@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import android.security.keystore.BackendBusyException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -101,7 +102,7 @@ public class MacAddressUtil {
             result.init(key);
             return result;
         } catch (KeyStoreException | NoSuchAlgorithmException | InvalidKeyException
-                | UnrecoverableKeyException | NoSuchProviderException e) {
+                | UnrecoverableKeyException | NoSuchProviderException | BackendBusyException e) {
             Log.e(TAG, "Failure in obtainMacRandHashFunction", e);
             return null;
         }
