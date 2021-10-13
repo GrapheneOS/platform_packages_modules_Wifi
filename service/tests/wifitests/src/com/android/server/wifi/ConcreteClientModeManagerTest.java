@@ -29,6 +29,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSess
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
+import static com.android.server.wifi.SelfRecovery.REASON_IFACE_ADDED;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -87,6 +88,7 @@ import java.util.concurrent.Executor;
 public class ConcreteClientModeManagerTest extends WifiBaseTest {
     private static final String TAG = "ClientModeManagerTest";
     private static final String TEST_INTERFACE_NAME = "testif0";
+    private static final String TEST_ADDED_INTERFACE_NAME = "testif1";
     private static final String OTHER_INTERFACE_NAME = "notTestIf";
     private static final int TEST_WIFI_OFF_DEFERRING_TIME_MS = 4000;
     private static final int TEST_ACTIVE_SUBSCRIPTION_ID = 1;
@@ -136,6 +138,8 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
     final ArgumentCaptor<WifiNative.InterfaceCallback> mInterfaceCallbackCaptor =
             ArgumentCaptor.forClass(WifiNative.InterfaceCallback.class);
+    final ArgumentCaptor<WifiNative.InterfaceEventCallback> mInterfaceEventCallbackCaptor =
+            ArgumentCaptor.forClass(WifiNative.InterfaceEventCallback.class);
 
     /**
      * If mContext is reset, call it again to ensure system services could be retrieved
@@ -273,6 +277,8 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         verify(mWifiNative).setupInterfaceForClientInScanMode(
                 mInterfaceCallbackCaptor.capture(), eq(TEST_WORKSOURCE));
+        verify(mWifiNative).setWifiNativeInterfaceEventCallback(
+                mInterfaceEventCallbackCaptor.capture());
         verify(mWifiInjector, never()).makeClientModeImpl(any(), any(), anyBoolean());
 
         // now mark the interface as up
@@ -299,6 +305,8 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         verify(mWifiNative).setupInterfaceForClientInScanMode(
                 mInterfaceCallbackCaptor.capture(), eq(TEST_WORKSOURCE));
+        verify(mWifiNative).setWifiNativeInterfaceEventCallback(
+                mInterfaceEventCallbackCaptor.capture());
         verify(mWifiNative).switchClientInterfaceToConnectivityMode(
                 TEST_INTERFACE_NAME, TEST_WORKSOURCE);
         verify(mWifiInjector)
@@ -381,6 +389,35 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         mClientModeManager.getFactoryMacAddress();
         // in scan only mode, should get value from ScanOnlyModeImpl
         verify(mScanOnlyModeImpl).getFactoryMacAddress();
+    }
+
+    /**
+     * Adding a new interface will trigger self recovery.
+     */
+    @Test
+    public void clientInScanOnlyModeInterfaceHotPlug() throws Exception {
+        startClientInScanOnlyModeAndVerifyEnabled();
+
+        mInterfaceEventCallbackCaptor.getValue()
+                .onInterfaceAdded(TEST_ADDED_INTERFACE_NAME);
+        mLooper.dispatchAll();
+        verify(mSelfRecovery).trigger(eq(REASON_IFACE_ADDED));
+    }
+
+    /**
+     * Adding an interface after the previous one has been destroyed (e.g. due to Suspend-to-RAM)
+     * triggers self recovery.
+     */
+    @Test
+    public void interfaceDestroyedAndAdded() throws Exception {
+        startClientInScanOnlyModeAndVerifyEnabled();
+        mInterfaceCallbackCaptor.getValue().onDestroyed(TEST_INTERFACE_NAME);
+        mLooper.dispatchAll();
+
+        mInterfaceEventCallbackCaptor.getValue()
+                .onInterfaceAdded(TEST_ADDED_INTERFACE_NAME);
+        mLooper.dispatchAll();
+        verify(mSelfRecovery).trigger(eq(REASON_IFACE_ADDED));
     }
 
     /**
