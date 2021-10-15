@@ -431,6 +431,10 @@ public class WifiConfigManager {
             return false;
         }
 
+        if (config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_ALWAYS) {
+            return true;
+        }
+
         // Use enhanced randomization if it's forced on by dev option
         if (mFrameworkFacade.getIntegerSetting(mContext,
                 ENHANCED_MAC_RANDOMIZATION_FEATURE_FORCE_ENABLE_FLAG, 0) == 1) {
@@ -580,7 +584,8 @@ public class WifiConfigManager {
     private MacAddress updateRandomizedMacIfNeeded(WifiConfiguration config) {
         boolean shouldUpdateMac = config.randomizedMacExpirationTimeMs
                 < mClock.getWallClockMillis() || mClock.getWallClockMillis()
-                - config.randomizedMacLastModifiedTimeMs >= ENHANCED_MAC_REFRESH_MS_MAX;
+                - config.randomizedMacLastModifiedTimeMs >= ENHANCED_MAC_REFRESH_MS_MAX ||
+                config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_ALWAYS;
         if (!shouldUpdateMac) {
             return config.getRandomizedMacAddress();
         }
