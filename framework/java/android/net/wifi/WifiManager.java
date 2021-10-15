@@ -37,6 +37,7 @@ import android.annotation.SystemApi;
 import android.annotation.SystemService;
 import android.app.ActivityManager;
 import android.app.admin.WifiSsidPolicy;
+import android.app.compat.gms.GmsCompat;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -1687,6 +1688,10 @@ public class WifiManager {
             READ_WIFI_CREDENTIAL},
             conditional = true)
     public List<WifiConfiguration> getPrivilegedConfiguredNetworks() {
+        if (GmsCompat.isEnabled()) {
+            // READ_WIFI_CREDENTIAL is a privileged permission
+            return Collections.emptyList();
+        }
         try {
             Bundle extras = new Bundle();
             if (SdkLevel.isAtLeastS()) {
@@ -2012,6 +2017,9 @@ public class WifiManager {
     @NonNull
     public Map<OsuProvider, List<ScanResult>> getMatchingOsuProviders(
             @Nullable List<ScanResult> scanResults) {
+        if (GmsCompat.isEnabled()) {
+            return Collections.emptyMap();
+        }
         if (scanResults == null) {
             return new HashMap<>();
         }
@@ -2042,6 +2050,9 @@ public class WifiManager {
     @NonNull
     public Map<OsuProvider, PasspointConfiguration> getMatchingPasspointConfigsForOsuProviders(
             @NonNull Set<OsuProvider> osuProviders) {
+        if (GmsCompat.isEnabled()) {
+            return Collections.emptyMap();
+        }
         try {
             return mService.getMatchingPasspointConfigsForOsuProviders(
                     new ArrayList<>(osuProviders));
@@ -6963,6 +6974,9 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETUP_WIZARD
     })
     public Network getCurrentNetwork() {
+        if (GmsCompat.isEnabled()) {
+            return null;
+        }
         try {
             return mService.getCurrentNetwork();
         } catch (RemoteException e) {
