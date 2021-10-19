@@ -1028,7 +1028,7 @@ public class HalDeviceManager {
                                 @Override
                                 public void onChipReconfigureFailure(WifiStatus status)
                                         throws RemoteException {
-                                    Log.d(TAG, "onChipReconfigureFailure: status=" + statusString(
+                                    Log.e(TAG, "onChipReconfigureFailure: status=" + statusString(
                                             status));
                                 }
 
@@ -1690,7 +1690,13 @@ public class HalDeviceManager {
             if (bestIfaceCreationProposal != null) {
                 IWifiIface iface = executeChipReconfiguration(bestIfaceCreationProposal,
                         createIfaceType);
-                if (iface != null) {
+                if (iface == null) {
+                    // If the chip reconfiguration failed, we'll need to clean up internal state.
+                    Log.e(TAG, "Teardown Wifi internal state");
+                    mWifi = null;
+                    mIsReady = false;
+                    teardownInternal();
+                } else {
                     InterfaceCacheEntry cacheEntry = new InterfaceCacheEntry();
 
                     cacheEntry.chip = bestIfaceCreationProposal.chipInfo.chip;
@@ -1713,7 +1719,7 @@ public class HalDeviceManager {
             }
         }
 
-        Log.d(TAG, "createIfaceIfPossible: Failed to create iface for ifaceType=" + createIfaceType
+        Log.e(TAG, "createIfaceIfPossible: Failed to create iface for ifaceType=" + createIfaceType
                 + ", requestorWs=" + requestorWs);
         return null;
     }
