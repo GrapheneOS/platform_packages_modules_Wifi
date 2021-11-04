@@ -856,6 +856,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
                     Log.d(getTag(), "interface down!");
                     mStateMachine.sendMessage(CMD_INTERFACE_DOWN);
                 }
+                if (mClientModeImpl != null) {
+                    mClientModeImpl.onUpChanged(isUp);
+                }
             }
 
             @Override
