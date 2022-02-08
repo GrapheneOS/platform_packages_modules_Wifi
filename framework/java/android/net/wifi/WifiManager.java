@@ -5937,7 +5937,7 @@ public class WifiManager {
             listenerProxy = new ActionListenerProxy("connect", mLooper, listener);
         }
         try {
-            mService.connect(config, networkId, listenerProxy);
+            mService.connect(config, networkId, listenerProxy, mContext.getOpPackageName());
         } catch (RemoteException e) {
             if (listenerProxy != null) {
                 listenerProxy.onFailure(ActionListener.FAILURE_INTERNAL_ERROR);
@@ -6081,7 +6081,7 @@ public class WifiManager {
             listenerProxy = new ActionListenerProxy("save", mLooper, listener);
         }
         try {
-            mService.save(config, listenerProxy);
+            mService.save(config, listenerProxy, mContext.getOpPackageName());
         } catch (RemoteException e) {
             if (listenerProxy != null) {
                 listenerProxy.onFailure(ActionListener.FAILURE_INTERNAL_ERROR);

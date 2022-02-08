@@ -63,9 +63,11 @@ public interface ClientMode {
 
     void enableVerboseLogging(boolean verbose);
 
-    void connectNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper, int callingUid);
+    void connectNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper, int callingUid,
+            @NonNull String packageName);
 
-    void saveNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper, int callingUid);
+    void saveNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper, int callingUid,
+            @NonNull String packageName);
 
     void disconnect();
 

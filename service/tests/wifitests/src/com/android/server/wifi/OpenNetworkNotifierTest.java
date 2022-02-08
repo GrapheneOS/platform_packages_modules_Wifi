@@ -78,6 +78,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
     private static final int MIN_RSSI_LEVEL = -127;
     private static final String OPEN_NET_NOTIFIER_TAG = OpenNetworkNotifier.TAG;
     private static final int TEST_NETWORK_ID = 42;
+    private static final String TEST_PACKAGE_NAME = "com.test.xxx";
 
     @Mock private WifiContext mContext;
     @Mock private Resources mResources;
@@ -503,7 +504,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
     @Test
     public void actionConnectToNetwork_notificationNotShowing_doesNothing() {
         mBroadcastReceiver.onReceive(mContext, createIntent(ACTION_CONNECT_TO_NETWORK));
-        verify(mConnectHelper, never()).connectToNetwork(any(), any(), anyInt());
+        verify(mConnectHelper, never()).connectToNetwork(any(), any(), anyInt(), any());
     }
 
     /**
@@ -524,7 +525,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
         mBroadcastReceiver.onReceive(mContext, createIntent(ACTION_CONNECT_TO_NETWORK));
 
         verify(mConnectHelper).connectToNetwork(eq(new NetworkUpdateResult(TEST_NETWORK_ID)),
-                any(ActionListenerWrapper.class), eq(Process.SYSTEM_UID));
+                any(ActionListenerWrapper.class), eq(Process.SYSTEM_UID), any());
         // Connecting Notification
         verify(mNotificationBuilder).createNetworkConnectingNotification(OPEN_NET_NOTIFIER_TAG,
                 mTestNetwork);
@@ -705,7 +706,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
         ArgumentCaptor<ActionListenerWrapper> connectListenerCaptor =
                 ArgumentCaptor.forClass(ActionListenerWrapper.class);
         verify(mConnectHelper).connectToNetwork(eq(new NetworkUpdateResult(TEST_NETWORK_ID)),
-                connectListenerCaptor.capture(), eq(Process.SYSTEM_UID));
+                connectListenerCaptor.capture(), eq(Process.SYSTEM_UID), any());
         ActionListenerWrapper connectListener = connectListenerCaptor.getValue();
 
         // Connecting Notification
