@@ -37,6 +37,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.Handler;
 import android.os.test.TestLooper;
@@ -141,6 +142,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         // scanlistener input
         mTestScanResult = new ScanResult();
         mTestScanResult.SSID = SAVED_SSID;
+        mTestScanResult.setWifiSsid(WifiSsid.fromUtf8Text(SAVED_SSID));
         mTestScanResult.capabilities = "";
         mTestScanResult.frequency = 2412;
         ScanResult[] scanResults = new ScanResult[1];
@@ -206,17 +208,19 @@ public class WakeupControllerTest extends WifiBaseTest {
         }
     }
 
-    private ScanResult createOpenScanResult(String ssid, int frequency) {
+    private ScanResult createOpenScanResult(String utf8Ssid, int frequency) {
         ScanResult scanResult = new ScanResult();
-        scanResult.SSID = ssid;
+        scanResult.SSID = utf8Ssid;
+        scanResult.setWifiSsid(WifiSsid.fromUtf8Text(utf8Ssid));
         scanResult.capabilities = "";
         scanResult.frequency = frequency;
         return scanResult;
     }
 
-    private ScanResult createOweScanResult(String ssid, int frequency) {
+    private ScanResult createOweScanResult(String utf8Ssid, int frequency) {
         ScanResult scanResult = new ScanResult();
-        scanResult.SSID = ssid;
+        scanResult.SSID = utf8Ssid;
+        scanResult.setWifiSsid(WifiSsid.fromUtf8Text(utf8Ssid));
         scanResult.capabilities = "OWE";
         scanResult.frequency = frequency;
         return scanResult;

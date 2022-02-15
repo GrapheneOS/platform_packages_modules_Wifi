@@ -23,6 +23,7 @@ import android.net.wifi.WifiAnnotations.Protocol;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.WifiNl80211Manager;
+import android.net.wifi.util.HexEncoding;
 import android.util.Log;
 
 import com.android.server.wifi.ByteBufferReader;
@@ -34,6 +35,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +43,27 @@ import java.util.Locale;
 public class InformationElementUtil {
     private static final String TAG = "InformationElementUtil";
     private static final boolean DBG = false;
+
+    /** Converts InformationElement to hex string */
+    public static String toHexString(InformationElement e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(HexEncoding.encode(new byte[]{(byte) e.id}));
+        if (e.id == InformationElement.EID_EXTENSION_PRESENT) {
+            sb.append(HexEncoding.encode(new byte[]{(byte) e.idExt}));
+        }
+        sb.append(HexEncoding.encode(new byte[]{(byte) e.bytes.length}));
+        sb.append(HexEncoding.encode(e.bytes));
+        return sb.toString();
+    }
+
+    /** Parses information elements from hex string */
+    public static InformationElement[] parseInformationElements(String data) {
+        if (data == null) {
+            return new InformationElement[0];
+        }
+        return parseInformationElements(HexEncoding.decode(data));
+    }
+
     public static InformationElement[] parseInformationElements(byte[] bytes) {
         if (bytes == null) {
             return new InformationElement[0];
@@ -124,6 +147,30 @@ public class InformationElementUtil {
             }
         }
         return vsa;
+    }
+
+    /**
+     * Parse and retrieve all Vendor Specific Information Elements from the list of IEs.
+     *
+     * @param ies List of IEs to retrieve from
+     * @return List of {@link Vsa}
+     */
+    public static List<Vsa> getVendorSpecificIE(InformationElement[] ies) {
+        List<Vsa> vsas = new ArrayList<>();
+        if (ies != null) {
+            for (InformationElement ie : ies) {
+                if (ie.id == InformationElement.EID_VSA) {
+                    try {
+                        Vsa vsa = new Vsa();
+                        vsa.from(ie);
+                        vsas.add(vsa);
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, "Failed to parse Vendor Specific IE: " + e.getMessage());
+                    }
+                }
+            }
+        }
+        return vsas;
     }
 
     /**
@@ -486,6 +533,32 @@ public class InformationElementUtil {
     }
 
     /**
+     * EhtOperation: represents the EHT Operation IE
+     */
+    public static class EhtOperation {
+        private boolean mPresent = false;
+
+        /**
+         * Returns whether the EHT Information Element is present.
+         */
+        public boolean isPresent() {
+            return mPresent;
+        }
+
+        /** Parse EHT Operation IE */
+        public void from(InformationElement ie) {
+            if (ie.id != InformationElement.EID_EXTENSION_PRESENT
+                    || ie.idExt != InformationElement.EID_EXT_EHT_OPERATION) {
+                throw new IllegalArgumentException("Element id is not EHT_OPERATION");
+            }
+
+            mPresent = true;
+
+            //TODO put more functionality for parsing the IE
+        }
+    }
+
+    /**
      * HtCapabilities: represents the HT Capabilities IE
      */
     public static class HtCapabilities {
@@ -599,6 +672,28 @@ public class InformationElementUtil {
                     + (ie.bytes[17] & Constants.BYTE_MASK);
             mMaxNumberSpatialStreams = parseMaxNumberSpatialStreamsFromMcsMap(mcsMap);
             mPresent = true;
+        }
+    }
+
+    /**
+     * EhtCapabilities: represents the EHT Capabilities IE
+     */
+    public static class EhtCapabilities {
+        private boolean mPresent = false;
+        /** Returns whether HE Capabilities IE is present */
+        public boolean isPresent() {
+            return mPresent;
+        }
+
+        /** Parse EHT Capabilities IE */
+        public void from(InformationElement ie) {
+            if (ie.id != InformationElement.EID_EXTENSION_PRESENT
+                    || ie.idExt != InformationElement.EID_EXT_EHT_CAPABILITIES) {
+                throw new IllegalArgumentException("Element id is not EHT_CAPABILITIES: " + ie.id);
+            }
+            mPresent = true;
+
+            //TODO Add code to parse the IE
         }
     }
 
@@ -723,6 +818,7 @@ public class InformationElementUtil {
         public boolean IsOceCapable = false;
         public int mboAssociationDisallowedReasonCode =
                 MboOceConstants.MBO_OCE_ATTRIBUTE_NOT_PRESENT;
+        public byte[] oui;
 
         private void parseVsaMboOce(InformationElement ie) {
             ByteBuffer data = ByteBuffer.wrap(ie.bytes).order(ByteOrder.LITTLE_ENDIAN);
@@ -821,6 +917,7 @@ public class InformationElementUtil {
                 return;
             }
 
+            oui = Arrays.copyOfRange(ie.bytes, 0, 3);
             int oui = (((ie.bytes[0] & Constants.BYTE_MASK) << 16)
                        | ((ie.bytes[1] & Constants.BYTE_MASK) << 8)
                        |  ((ie.bytes[2] & Constants.BYTE_MASK)));
@@ -1543,7 +1640,7 @@ public class InformationElementUtil {
     }
 
     /**
-     * This util class determines the 802.11 standard (a/b/g/n/ac/ax) being used
+     * This util class determines the 802.11 standard (a/b/g/n/ac/ax/be) being used
      */
     public static class WifiMode {
         public static final int MODE_UNDEFINED = 0; // Unknown/undefined
@@ -1553,15 +1650,18 @@ public class InformationElementUtil {
         public static final int MODE_11N = 4;       // 802.11n
         public static final int MODE_11AC = 5;      // 802.11ac
         public static final int MODE_11AX = 6;      // 802.11ax
+        public static final int MODE_11BE = 7;      // 802.11be
         //<TODO> add support for 802.11ad and be more selective instead of defaulting to 11A
 
         /**
-         * Use frequency, max supported rate, and the existence of HE, VHT, HT & ERP fields in scan
+         * Use frequency, max supported rate, and the existence of EHT, HE, VHT, HT & ERP fields in
          * scan result to determine the 802.11 Wifi standard being used.
          */
-        public static int determineMode(int frequency, int maxRate, boolean foundHe,
-                boolean foundVht, boolean foundHt, boolean foundErp) {
-            if (foundHe) {
+        public static int determineMode(int frequency, int maxRate, boolean foundEht,
+                boolean foundHe, boolean foundVht, boolean foundHt, boolean foundErp) {
+            if (foundEht) {
+                return MODE_11BE;
+            } else if (foundHe) {
                 return MODE_11AX;
             } else if (!ScanResult.is24GHz(frequency) && foundVht) {
                 // Do not include subset of VHT on 2.4 GHz vendor extension
@@ -1583,7 +1683,7 @@ public class InformationElementUtil {
         }
 
         /**
-         * Map the wifiMode integer to its type, and output as String MODE_11<A/B/G/N/AC>
+         * Map the wifiMode integer to its type, and output as String MODE_11<A/B/G/N/AC/AX/BE>
          */
         public static String toString(int mode) {
             switch(mode) {
@@ -1599,6 +1699,8 @@ public class InformationElementUtil {
                     return "MODE_11AC";
                 case MODE_11AX:
                     return "MODE_11AX";
+                case MODE_11BE:
+                    return "MODE_11BE";
                 default:
                     return "MODE_UNDEFINED";
             }

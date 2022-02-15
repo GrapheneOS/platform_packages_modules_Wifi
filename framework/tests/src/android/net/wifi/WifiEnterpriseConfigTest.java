@@ -54,6 +54,7 @@ public class WifiEnterpriseConfigTest {
     private static final String TEST_DOMAIN_SUFFIX_MATCH = "domainSuffixMatch";
     private static final String TEST_ALT_SUBJECT_MATCH = "DNS:server.test.com";
     private static final String TEST_DECORATED_IDENTITY_PREFIX = "androidwifi.dev!";
+    private static final long TEST_SELECTED_RCOI = 0xcafeL;
 
     private WifiEnterpriseConfig mEnterpriseConfig;
 
@@ -608,6 +609,47 @@ public class WifiEnterpriseConfigTest {
         assertEquals(TEST_DECORATED_IDENTITY_PREFIX, config.getDecoratedIdentityPrefix());
     }
 
+    @Test
+    public void testTrustOnFirstUse() {
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+
+        assertFalse(config.isTrustOnFirstUseEnabled());
+        config.enableTrustOnFirstUse(true);
+        assertTrue(config.isTrustOnFirstUseEnabled());
+        config.enableTrustOnFirstUse(false);
+        assertFalse(config.isTrustOnFirstUseEnabled());
+    }
+
+    @Test
+    public void testHasCaCertificate() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+        assertFalse(config.hasCaCertificate());
+        config.setCaPath("/tmp/testCa.cert");
+        assertTrue(config.hasCaCertificate());
+
+        config = new WifiEnterpriseConfig();
+        assertFalse(config.hasCaCertificate());
+        config.setCaCertificate(FakeKeys.CA_CERT0);
+        assertTrue(config.hasCaCertificate());
+
+        config = new WifiEnterpriseConfig();
+        assertFalse(config.hasCaCertificate());
+        config.setCaCertificateAliases(new String[] {"single_alias 0"});
+        assertTrue(config.hasCaCertificate());
+    }
+
+    @Test
+    public void testUserApproveNoCaCert() {
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+
+        assertFalse(config.isUserApproveNoCaCert());
+        config.setUserApproveNoCaCert(true);
+        assertTrue(config.isUserApproveNoCaCert());
+        config.setUserApproveNoCaCert(false);
+        assertFalse(config.isUserApproveNoCaCert());
+    }
+
     /**
      * Verify that the set decorated identity prefix doesn't accept a malformed input.
      *
@@ -619,6 +661,15 @@ public class WifiEnterpriseConfigTest {
         PasspointConfiguration config = new PasspointConfiguration();
 
         config.setDecoratedIdentityPrefix(TEST_DECORATED_IDENTITY_PREFIX.replace('!', 'a'));
+    }
+
+    @Test
+    public void testSetGetSelectedRcoi() {
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+
+        assertEquals(0, config.getSelectedRcoi());
+        config.setSelectedRcoi(TEST_SELECTED_RCOI);
+        assertEquals(TEST_SELECTED_RCOI, config.getSelectedRcoi());
     }
 
     private void testIsEnterpriseConfigServerCertEnabled(int eapMethod) {

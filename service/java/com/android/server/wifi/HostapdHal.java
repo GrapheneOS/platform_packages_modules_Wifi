@@ -25,7 +25,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.WifiNative.HostapdDeathEventHandler;
-import com.android.server.wifi.WifiNative.SoftApListener;
+import com.android.server.wifi.WifiNative.SoftApHalCallback;
 
 import java.io.PrintWriter;
 
@@ -142,13 +142,13 @@ public class HostapdHal {
      * @return true on success, false on failure.
      */
     public boolean registerApCallback(@NonNull String ifaceName,
-            @NonNull SoftApListener listener) {
+            @NonNull SoftApHalCallback callback) {
         synchronized (mLock) {
             String methodStr = "registerApCallback";
             if (mIHostapd == null) {
                 return handleNullIHostapd(methodStr);
             }
-            return mIHostapd.registerApCallback(ifaceName, listener);
+            return mIHostapd.registerApCallback(ifaceName, callback);
         }
     }
 

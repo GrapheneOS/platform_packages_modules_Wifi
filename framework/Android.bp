@@ -94,12 +94,13 @@ java_defaults {
     static_libs: [
         "framework-wifi-util-lib",
         "android.hardware.wifi-V1.0-java-constants",
-        "androidx.annotation_annotation",
         "wifi-modules-utils",
     ],
     libs: [
+        "androidx.annotation_annotation",
         "unsupportedappusage", // for android.compat.annotation.UnsupportedAppUsage
         "framework-connectivity.stubs.module_lib",
+        "app-compat-annotations",
     ],
     aidl: {
         include_dirs: [
@@ -152,6 +153,7 @@ java_sdk_library {
     impl_library_visibility: [
         "//frameworks/opt/net/wifi/service:__subpackages__",
         "//packages/modules/Wifi/service:__subpackages__",
+        "//packages/modules/Wifi/WifiDialog:__subpackages__",
     ] + test_access_hidden_api_whitelist,
 
     apex_available: [
@@ -188,4 +190,10 @@ java_defaults {
 filegroup {
     name: "wifi-jarjar-rules",
     srcs: ["jarjar-rules.txt"],
+}
+
+platform_compat_config
+{
+    name: "wifi-compat-config",
+    src: ":framework-wifi-pre-jarjar",
 }

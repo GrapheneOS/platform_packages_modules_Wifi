@@ -369,9 +369,13 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
                 ScanResult result = mNativeScanResults.get(i).getScanResult();
                 // nanoseconds -> microseconds
                 if (result.timestamp >= mLastScanSettings.startTimeNanos / 1_000) {
+                    // Allow even not explicitly requested 6Ghz results because they could be found
+                    // via 6Ghz RNR.
                     if (mLastScanSettings.singleScanFreqs.containsChannel(
-                                    result.frequency)) {
+                                    result.frequency) || ScanResult.is6GHz(result.frequency)) {
                         singleScanResults.add(result);
+                    } else {
+                        numFilteredScanResults++;
                     }
                 } else {
                     numFilteredScanResults++;

@@ -78,6 +78,10 @@ public class WifiSettingsStore {
         return getPersistedWifiPasspointEnabled();
     }
 
+    public synchronized int getWifiMultiInternetMode() {
+        return getPersistedWifiMultiInternetMode();
+    }
+
     public synchronized boolean handleWifiToggled(boolean wifiEnabled) {
         // Can Wi-Fi be toggled in airplane mode ?
         if (mAirplaneModeOn && !isAirplaneToggleable()) {
@@ -141,12 +145,20 @@ public class WifiSettingsStore {
         persistWifiPasspointEnabledState(enabled);
     }
 
+    /**
+     * Handle the Wifi Multi Internet state change.
+     */
+    public synchronized void handleWifiMultiInternetMode(int mode) {
+        persistWifiMultiInternetMode(mode);
+    }
+
     void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("WifiState " + getPersistedWifiState());
         pw.println("AirplaneModeOn " + getPersistedAirplaneModeOn());
         pw.println("ScanAlwaysAvailable " + getPersistedScanAlwaysAvailable());
         pw.println("WifiScoringState " + getPersistedWifiScoringEnabled());
         pw.println("WifiPasspointState " + getPersistedWifiPasspointEnabled());
+        pw.println("WifiMultiInternetMode " + getPersistedWifiMultiInternetMode());
     }
 
     private void persistWifiState(int state) {
@@ -168,6 +180,11 @@ public class WifiSettingsStore {
     private void persistWifiPasspointEnabledState(boolean enabled) {
         mSettingsConfigStore.put(
                 WifiSettingsConfigStore.WIFI_PASSPOINT_ENABLED, enabled);
+    }
+
+    private void persistWifiMultiInternetMode(int mode) {
+        mSettingsConfigStore.put(
+                WifiSettingsConfigStore.WIFI_MULTI_INTERNET_MODE, mode);
     }
 
     /* Does Wi-Fi need to be disabled when airplane mode is on ? */
@@ -214,5 +231,10 @@ public class WifiSettingsStore {
     private boolean getPersistedWifiPasspointEnabled() {
         return mSettingsConfigStore.get(
                 WifiSettingsConfigStore.WIFI_PASSPOINT_ENABLED);
+    }
+
+    private int getPersistedWifiMultiInternetMode() {
+        return mSettingsConfigStore.get(
+                WifiSettingsConfigStore.WIFI_MULTI_INTERNET_MODE);
     }
 }

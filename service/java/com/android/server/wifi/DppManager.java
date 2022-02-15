@@ -20,12 +20,6 @@ import static android.net.wifi.WifiManager.EASY_CONNECT_NETWORK_ROLE_AP;
 
 import android.annotation.Nullable;
 import android.content.Context;
-import android.hardware.wifi.supplicant.V1_2.DppAkm;
-import android.hardware.wifi.supplicant.V1_2.DppNetRole;
-import android.hardware.wifi.supplicant.V1_3.DppProgressCode;
-import android.hardware.wifi.supplicant.V1_3.DppSuccessCode;
-import android.hardware.wifi.supplicant.V1_4.DppCurve;
-import android.hardware.wifi.supplicant.V1_4.DppFailureCode;
 import android.net.wifi.EasyConnectStatusCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.ScanResult;
@@ -44,6 +38,12 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppAkm;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppCurve;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppEventType;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppFailureCode;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppNetRole;
+import com.android.server.wifi.SupplicantStaIfaceHal.DppProgressCode;
 import com.android.server.wifi.WifiNative.DppEventCallback;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -627,13 +627,13 @@ public class DppManager {
 
             // Convert from HAL codes to WifiManager/user codes
             switch (dppStatusCode) {
-                case DppSuccessCode.CONFIGURATION_SENT:
+                case DppEventType.CONFIGURATION_SENT:
                     mDppMetrics.updateDppR1CapableEnrolleeResponderDevices();
                     dppSuccessCode = EasyConnectStatusCallback
                             .EASY_CONNECT_EVENT_SUCCESS_CONFIGURATION_SENT;
                     break;
 
-                case DppSuccessCode.CONFIGURATION_APPLIED:
+                case DppEventType.CONFIGURATION_APPLIED:
                     dppSuccessCode = EasyConnectStatusCallback
                             .EASY_CONNECT_EVENT_SUCCESS_CONFIGURATION_APPLIED;
                     break;

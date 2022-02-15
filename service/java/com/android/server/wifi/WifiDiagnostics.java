@@ -100,6 +100,7 @@ public class WifiDiagnostics {
     public static final int REPORT_REASON_WIFINATIVE_FAILURE        = 8;
     public static final int REPORT_REASON_REACHABILITY_LOST         = 9;
     public static final int REPORT_REASON_FATAL_FW_ALERT            = 10;
+    public static final int REPORT_REASON_REACHABILITY_FAILURE      = 11;
 
     /** number of bug reports to hold */
     public static final int MAX_BUG_REPORTS                         = 4;
@@ -789,8 +790,9 @@ public class WifiDiagnostics {
     /** This method is thread safe */
     private ArrayList<String> getLogcat(String logcatSections, int maxLines) {
         ArrayList<String> lines = new ArrayList<>(maxLines);
+        Process process = null;
         try {
-            Process process = mJavaRuntime.exec(
+            process = mJavaRuntime.exec(
                     String.format("logcat -b %s -t %d", logcatSections, maxLines));
             readLogcatStreamLinesWithTimeout(
                     new BufferedReader(new InputStreamReader(process.getInputStream())), lines);
@@ -799,6 +801,10 @@ public class WifiDiagnostics {
             process.waitFor(LOGCAT_PROC_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException|IOException e) {
             mLog.dump("Exception while capturing logcat: %").c(e.toString()).flush();
+        } finally {
+            if (process != null) {
+                process.destroy();
+            }
         }
         return lines;
     }

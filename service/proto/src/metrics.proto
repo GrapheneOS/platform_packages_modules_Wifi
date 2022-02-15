@@ -1044,6 +1044,9 @@ message ConnectionEvent {
 
     // The reason code if AP disconnects STA during the connecting state.
     DISCONNECTION_NON_LOCAL = 6;
+
+    // The reason code if a user rejects this connection.
+    AUTH_FAILURE_REJECTED_BY_USER = 7;
   }
 
   // Entity that recommended connecting to this network.

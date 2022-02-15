@@ -157,6 +157,8 @@ public class NetworkDetail {
         InformationElementUtil.VhtOperation vhtOperation =
                 new InformationElementUtil.VhtOperation();
         InformationElementUtil.HeOperation heOperation = new InformationElementUtil.HeOperation();
+        InformationElementUtil.EhtOperation ehtOperation =
+                new InformationElementUtil.EhtOperation();
 
         InformationElementUtil.HtCapabilities htCapabilities =
                 new InformationElementUtil.HtCapabilities();
@@ -164,6 +166,8 @@ public class NetworkDetail {
                 new InformationElementUtil.VhtCapabilities();
         InformationElementUtil.HeCapabilities heCapabilities =
                 new InformationElementUtil.HeCapabilities();
+        InformationElementUtil.EhtCapabilities ehtCapabilities =
+                new InformationElementUtil.EhtCapabilities();
 
         InformationElementUtil.ExtendedCapabilities extendedCapabilities =
                 new InformationElementUtil.ExtendedCapabilities();
@@ -235,6 +239,12 @@ public class NetworkDetail {
                                 break;
                             case ScanResult.InformationElement.EID_EXT_HE_CAPABILITIES:
                                 heCapabilities.from(ie);
+                                break;
+                            case ScanResult.InformationElement.EID_EXT_EHT_OPERATION:
+                                ehtOperation.from(ie);
+                                break;
+                            case ScanResult.InformationElement.EID_EXT_EHT_CAPABILITIES:
+                                ehtCapabilities.from(ie);
                                 break;
                             default:
                                 break;
@@ -311,7 +321,15 @@ public class NetworkDetail {
         int centerFreq0 = mPrimaryFreq;
         int centerFreq1 = 0;
 
-        // First check if HE Operation IE is present
+        if (ehtOperation.isPresent()) {
+            //TODO: include parsing of EHT_Operation to collect BW and center freq.
+        }
+
+        if (ehtOperation.isPresent()) {
+            //TODO Add impact for using info from EHT capabilities and EHT operation IEs
+        }
+
+        // Check if HE Operation IE is present
         if (heOperation.isPresent()) {
             // If 6GHz info is present, then parameters should be acquired from HE Operation IE
             if (heOperation.is6GhzInfoPresent()) {
@@ -380,7 +398,8 @@ public class NetworkDetail {
             maxRateA = supportedRates.mRates.get(supportedRates.mRates.size() - 1);
             mMaxRate = maxRateA > maxRateB ? maxRateA : maxRateB;
             mWifiMode = InformationElementUtil.WifiMode.determineMode(mPrimaryFreq, mMaxRate,
-                    heOperation.isPresent(), vhtOperation.isPresent(), htOperation.isPresent(),
+                    ehtOperation.isPresent(), heOperation.isPresent(), vhtOperation.isPresent(),
+                    htOperation.isPresent(),
                     iesFound.contains(ScanResult.InformationElement.EID_ERP));
         } else {
             mWifiMode = 0;
@@ -398,6 +417,7 @@ public class NetworkDetail {
                     + ", WifiMode: " + InformationElementUtil.WifiMode.toString(mWifiMode)
                     + ", Freq: " + mPrimaryFreq
                     + ", MaxRate: " + mMaxRate
+                    + ", EHT: " + String.valueOf(ehtOperation.isPresent())
                     + ", HE: " + String.valueOf(heOperation.isPresent())
                     + ", VHT: " + String.valueOf(vhtOperation.isPresent())
                     + ", HT: " + String.valueOf(htOperation.isPresent())

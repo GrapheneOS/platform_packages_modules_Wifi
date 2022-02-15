@@ -28,7 +28,9 @@ import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.util.ApConfigUtil;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -52,7 +54,8 @@ public class WifiCountryCode {
     private static final String BOOT_DEFAULT_WIFI_COUNTRY_CODE = "ro.boot.wificountrycode";
     private static final int PKT_COUNT_HIGH_PKT_PER_SEC = 16;
     private static final int DISCONNECT_WIFI_COUNT_MAX = 1;
-    private static final String COUNTRY_CODE_WORLD = "00";
+    @VisibleForTesting
+    public static final String COUNTRY_CODE_WORLD = "00";
     private final Context mContext;
     private final TelephonyManager mTelephonyManager;
     private final ActiveModeWarden mActiveModeWarden;
@@ -168,6 +171,7 @@ public class WifiCountryCode {
         public void onSetCountryCodeSucceeded(String country) {
             Log.i(TAG, "Receive onSetCountryCodeSucceeded " + country);
             if (!isDriverSupportedRegChangedEvent()) {
+                mWifiNative.countryCodeChanged(country);
                 handleCountryCodeChanged(country);
             }
         }
@@ -539,21 +543,36 @@ public class WifiCountryCode {
                     }
                 }
             } else if (!isClientModeOnly && am instanceof SoftApManager) {
-                // The API:updateCountryCode in SoftApManager is asynchronous, it requires a new
-                // callback support in S to trigger "notifyListener" for
-                // the new S API: SoftApCapability#getSupportedChannelList(band).
-                // It requires:
-                // 1. a new overlay configuration which is introduced from S.
-                // 2. wificond support in S for S API: SoftApCapability#getSupportedChannelList
-                // Any case if device supported to set country code in R,
-                // the new S API: SoftApCapability#getSupportedChannelList(band) still doesn't work
-                // normally in R build when wifi disabled.
                 SoftApManager sm = (SoftApManager) am;
-                if (!sm.updateCountryCode(country)) {
-                    Log.d(TAG, "Can't set country code (SoftApManager) to "
-                            + country + " when SAP on (Device doesn't support runtime update)");
+                if (mDriverCountryCode == null || TextUtils.equals(mDriverCountryCode, country)) {
+                    // Ignore SoftApManager init country code case or country code didn't be
+                    // changed case.
+                    continue;
+                }
+                // Restart SAP only when 1. overlay enabled 2. CC is not world mode.
+                if (ApConfigUtil.isSoftApRestartRequiredWhenCountryCodeChanged(mContext)
+                        && !mDriverCountryCode.equalsIgnoreCase(COUNTRY_CODE_WORLD)) {
+                    Log.i(TAG, "restart SoftAp required because country code changed to "
+                            + country);
+                    SoftApModeConfiguration modeConfig = sm.getSoftApModeConfiguration();
+                    mActiveModeWarden.stopSoftAp(modeConfig.getTargetMode());
+                    mActiveModeWarden.startSoftAp(modeConfig, sm.getRequestorWs());
                 } else {
-                    anyAmmConfigured = true;
+                    // The API:updateCountryCode in SoftApManager is asynchronous, it requires a
+                    // new callback support in S to trigger "notifyListener" for
+                    // the new S API: SoftApCapability#getSupportedChannelList(band).
+                    // It requires:
+                    // 1. a new overlay configuration which is introduced from S.
+                    // 2. wificond support in S for S API: SoftApCapability#getSupportedChannelList
+                    // Any case if device supported to set country code in R,
+                    // the new S API: SoftApCapability#getSupportedChannelList(band) still doesn't
+                    // work normally in R build when wifi disabled.
+                    if (!sm.updateCountryCode(country)) {
+                        Log.d(TAG, "Can't set country code (SoftApManager) to "
+                                + country + " when SAP on (Device doesn't support runtime update)");
+                    } else {
+                        anyAmmConfigured = true;
+                    }
                 }
             }
         }

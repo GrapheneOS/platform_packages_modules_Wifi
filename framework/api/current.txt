@@ -18,14 +18,35 @@ package android.net.wifi {
     field public static final int EASY_CONNECT_EVENT_FAILURE_URI_GENERATION = -13; // 0xfffffff3
   }
 
+  public final class MloLink implements android.os.Parcelable {
+    ctor public MloLink();
+    method public int describeContents();
+    method public int getBand();
+    method public int getChannel();
+    method public int getLinkId();
+    method @Nullable public android.net.MacAddress getStaMacAddress();
+    method public int getState();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.MloLink> CREATOR;
+    field public static final int INVALID_MLO_LINK_ID = -1; // 0xffffffff
+    field public static final int MLO_LINK_STATE_ACTIVE = 3; // 0x3
+    field public static final int MLO_LINK_STATE_IDLE = 2; // 0x2
+    field public static final int MLO_LINK_STATE_INVALID = 0; // 0x0
+    field public static final int MLO_LINK_STATE_UNASSOCIATED = 1; // 0x1
+  }
+
   public final class ScanResult implements android.os.Parcelable {
     ctor public ScanResult(@NonNull android.net.wifi.ScanResult);
     ctor public ScanResult();
     method public static int convertChannelToFrequencyMhzIfSupported(int, int);
     method public static int convertFrequencyMhzToChannelIfSupported(int);
     method public int describeContents();
+    method @NonNull public java.util.List<android.net.wifi.MloLink> getAffiliatedMloLinks();
+    method @Nullable public android.net.MacAddress getApMldMacAddress();
+    method public int getApMloLinkId();
     method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getInformationElements();
     method @NonNull public int[] getSecurityTypes();
+    method @Nullable public android.net.wifi.WifiSsid getWifiSsid();
     method public int getWifiStandard();
     method public boolean is80211mcResponder();
     method public boolean isPasspointNetwork();
@@ -33,11 +54,17 @@ package android.net.wifi {
     field public String BSSID;
     field public static final int CHANNEL_WIDTH_160MHZ = 3; // 0x3
     field public static final int CHANNEL_WIDTH_20MHZ = 0; // 0x0
+    field public static final int CHANNEL_WIDTH_320MHZ = 5; // 0x5
     field public static final int CHANNEL_WIDTH_40MHZ = 1; // 0x1
     field public static final int CHANNEL_WIDTH_80MHZ = 2; // 0x2
     field public static final int CHANNEL_WIDTH_80MHZ_PLUS_MHZ = 4; // 0x4
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.ScanResult> CREATOR;
-    field public String SSID;
+    field public static final int PREAMBLE_EHT = 4; // 0x4
+    field public static final int PREAMBLE_HE = 3; // 0x3
+    field public static final int PREAMBLE_HT = 1; // 0x1
+    field public static final int PREAMBLE_LEGACY = 0; // 0x0
+    field public static final int PREAMBLE_VHT = 2; // 0x2
+    field @Deprecated public String SSID;
     field public static final int UNSPECIFIED = -1; // 0xffffffff
     field public static final int WIFI_BAND_24_GHZ = 1; // 0x1
     field public static final int WIFI_BAND_5_GHZ = 2; // 0x2
@@ -46,6 +73,7 @@ package android.net.wifi {
     field public static final int WIFI_STANDARD_11AC = 5; // 0x5
     field public static final int WIFI_STANDARD_11AD = 7; // 0x7
     field public static final int WIFI_STANDARD_11AX = 6; // 0x6
+    field public static final int WIFI_STANDARD_11BE = 8; // 0x8
     field public static final int WIFI_STANDARD_11N = 4; // 0x4
     field public static final int WIFI_STANDARD_LEGACY = 1; // 0x1
     field public static final int WIFI_STANDARD_UNKNOWN = 0; // 0x0
@@ -61,6 +89,7 @@ package android.net.wifi {
   }
 
   public static class ScanResult.InformationElement implements android.os.Parcelable {
+    ctor public ScanResult.InformationElement(int, int, @NonNull byte[]);
     ctor public ScanResult.InformationElement(@NonNull android.net.wifi.ScanResult.InformationElement);
     method public int describeContents();
     method @NonNull public java.nio.ByteBuffer getBytes();
@@ -82,6 +111,8 @@ package android.net.wifi {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.SoftApConfiguration> CREATOR;
     field public static final int SECURITY_TYPE_OPEN = 0; // 0x0
     field public static final int SECURITY_TYPE_WPA2_PSK = 1; // 0x1
+    field public static final int SECURITY_TYPE_WPA3_OWE = 5; // 0x5
+    field public static final int SECURITY_TYPE_WPA3_OWE_TRANSITION = 4; // 0x4
     field public static final int SECURITY_TYPE_WPA3_SAE = 3; // 0x3
     field public static final int SECURITY_TYPE_WPA3_SAE_TRANSITION = 2; // 0x2
   }
@@ -111,13 +142,22 @@ package android.net.wifi {
     method public int describeContents();
     method @Deprecated public android.net.ProxyInfo getHttpProxy();
     method @Deprecated @NonNull public String getKey();
+    method @Deprecated public int getMacRandomizationSetting();
     method @Deprecated @NonNull public android.net.MacAddress getRandomizedMacAddress();
+    method @Deprecated public boolean isDppConfigurator();
     method @Deprecated public boolean isPasspoint();
     method @Deprecated public void setHttpProxy(android.net.ProxyInfo);
+    method @Deprecated public void setIpConfiguration(@Nullable android.net.IpConfiguration);
+    method @Deprecated public void setMacRandomizationSetting(int);
     method @Deprecated public void setSecurityParams(int);
     method public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public String BSSID;
     field @Deprecated public String FQDN;
+    field @Deprecated public static final int RANDOMIZATION_AUTO = 3; // 0x3
+    field @Deprecated public static final int RANDOMIZATION_NONE = 0; // 0x0
+    field @Deprecated public static final int RANDOMIZATION_NON_PERSISTENT = 2; // 0x2
+    field @Deprecated public static final int RANDOMIZATION_PERSISTENT = 1; // 0x1
+    field @Deprecated public static final int SECURITY_TYPE_DPP = 13; // 0xd
     field @Deprecated public static final int SECURITY_TYPE_EAP = 3; // 0x3
     field @Deprecated public static final int SECURITY_TYPE_EAP_SUITE_B = 5; // 0x5
     field @Deprecated public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE = 9; // 0x9
@@ -219,6 +259,7 @@ package android.net.wifi {
     ctor public WifiEnterpriseConfig();
     ctor public WifiEnterpriseConfig(android.net.wifi.WifiEnterpriseConfig);
     method public int describeContents();
+    method public void enableTrustOnFirstUse(boolean);
     method public String getAltSubjectMatch();
     method public String getAnonymousIdentity();
     method @Nullable public java.security.cert.X509Certificate getCaCertificate();
@@ -236,9 +277,11 @@ package android.net.wifi {
     method public String getPlmn();
     method public String getRealm();
     method @Deprecated public String getSubjectMatch();
+    method public boolean hasCaCertificate();
     method public boolean isAuthenticationSimBased();
     method public boolean isEapMethodServerCertUsed();
     method public boolean isServerCertValidationEnabled();
+    method public boolean isTrustOnFirstUseEnabled();
     method public void setAltSubjectMatch(String);
     method public void setAnonymousIdentity(String);
     method public void setCaCertificate(@Nullable java.security.cert.X509Certificate);
@@ -291,6 +334,9 @@ package android.net.wifi {
 
   public class WifiInfo implements android.os.Parcelable android.net.TransportInfo {
     method public int describeContents();
+    method @NonNull public java.util.List<android.net.wifi.MloLink> getAffiliatedMloLinks();
+    method @Nullable public android.net.MacAddress getApMldMacAddress();
+    method public int getApMloLinkId();
     method public String getBSSID();
     method public int getCurrentSecurityType();
     method public static android.net.NetworkInfo.DetailedState getDetailedStateOf(android.net.wifi.SupplicantState);
@@ -318,6 +364,7 @@ package android.net.wifi {
     field public static final String FREQUENCY_UNITS = "MHz";
     field public static final String LINK_SPEED_UNITS = "Mbps";
     field public static final int LINK_SPEED_UNKNOWN = -1; // 0xffffffff
+    field public static final int SECURITY_TYPE_DPP = 13; // 0xd
     field public static final int SECURITY_TYPE_EAP = 3; // 0x3
     field public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE = 9; // 0x9
     field public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT = 5; // 0x5
@@ -351,6 +398,7 @@ package android.net.wifi {
     method public void addOrUpdatePasspointConfiguration(android.net.wifi.hotspot2.PasspointConfiguration);
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_WIFI_STATE}) public void addSuggestionConnectionStatusListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.SuggestionConnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addSuggestionUserApprovalStatusListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.SuggestionUserApprovalStatusListener);
+    method public void allowAutojoinGlobal(boolean);
     method @Deprecated public static int calculateSignalLevel(int, int);
     method @IntRange(from=0) public int calculateSignalLevel(int);
     method @Deprecated public void cancelWps(android.net.wifi.WifiManager.WpsCallback);
@@ -371,6 +419,7 @@ package android.net.wifi {
     method @NonNull @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public java.util.List<android.net.wifi.WifiNetworkSuggestion> getNetworkSuggestions();
     method @Deprecated public java.util.List<android.net.wifi.hotspot2.PasspointConfiguration> getPasspointConfigurations();
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION}) public java.util.List<android.net.wifi.ScanResult> getScanResults();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public int getStaConcurrencyForMultiInternetMode();
     method public int getWifiState();
     method public boolean is24GHzBandSupported();
     method public boolean is5GHzBandSupported();
@@ -394,7 +443,9 @@ package android.net.wifi {
     method public boolean isStaApConcurrencySupported();
     method public boolean isStaBridgedApConcurrencySupported();
     method public boolean isStaConcurrencyForLocalOnlyConnectionsSupported();
+    method public boolean isStaConcurrencyForMultiInternetSupported();
     method public boolean isTdlsSupported();
+    method public boolean isTrustOnFirstUseSupported();
     method public boolean isWapiSupported();
     method public boolean isWifiDisplayR2Supported();
     method public boolean isWifiEnabled();
@@ -411,21 +462,25 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void registerSubsystemRestartTrackingCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.SubsystemRestartTrackingCallback);
     method @Deprecated public boolean removeNetwork(int);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public int removeNetworkSuggestions(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>);
+    method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public int removeNetworkSuggestions(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>, int);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public boolean removeNonCallerConfiguredNetworks();
     method @Deprecated public void removePasspointConfiguration(String);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeSuggestionConnectionStatusListener(@NonNull android.net.wifi.WifiManager.SuggestionConnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeSuggestionUserApprovalStatusListener(@NonNull android.net.wifi.WifiManager.SuggestionUserApprovalStatusListener);
+    method @RequiresPermission(allOf={android.Manifest.permission.MANAGE_WIFI_INTERFACES, android.Manifest.permission.ACCESS_WIFI_STATE}) public void reportImpactToCreateIfaceRequest(int, boolean, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.BiConsumer<java.lang.Boolean,java.util.List<android.util.Pair<java.lang.Integer,java.lang.String[]>>>);
     method @Deprecated public boolean saveConfiguration();
     method public void setTdlsEnabled(java.net.InetAddress, boolean);
     method public void setTdlsEnabledWithMacAddress(String, boolean);
     method @Deprecated public boolean setWifiEnabled(boolean);
-    method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void startLocalOnlyHotspot(android.net.wifi.WifiManager.LocalOnlyHotspotCallback, @Nullable android.os.Handler);
+    method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void startLocalOnlyHotspot(android.net.wifi.WifiManager.LocalOnlyHotspotCallback, @Nullable android.os.Handler);
     method @Deprecated public boolean startScan();
     method @Deprecated public void startWps(android.net.wifi.WpsInfo, android.net.wifi.WifiManager.WpsCallback);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void unregisterScanResultsCallback(@NonNull android.net.wifi.WifiManager.ScanResultsCallback);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void unregisterSubsystemRestartTrackingCallback(@NonNull android.net.wifi.WifiManager.SubsystemRestartTrackingCallback);
     method @Deprecated public int updateNetwork(android.net.wifi.WifiConfiguration);
     field public static final String ACTION_PICK_WIFI_NETWORK = "android.net.wifi.PICK_WIFI_NETWORK";
+    field public static final int ACTION_REMOVE_SUGGESTION_DISCONNECT = 2; // 0x2
+    field public static final int ACTION_REMOVE_SUGGESTION_LINGER = 1; // 0x1
     field public static final String ACTION_REQUEST_SCAN_ALWAYS_AVAILABLE = "android.net.wifi.action.REQUEST_SCAN_ALWAYS_AVAILABLE";
     field public static final String ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION = "android.net.wifi.action.WIFI_NETWORK_SUGGESTION_POST_CONNECTION";
     field public static final String ACTION_WIFI_SCAN_AVAILABILITY_CHANGED = "android.net.wifi.action.WIFI_SCAN_AVAILABILITY_CHANGED";
@@ -453,6 +508,7 @@ package android.net.wifi {
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_APP_DISALLOWED = 2; // 0x2
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_INTERNAL = 1; // 0x1
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_REMOVE_INVALID = 5; // 0x5
+    field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_RESTRICTED_BY_ADMIN = 8; // 0x8
     field public static final int STATUS_NETWORK_SUGGESTIONS_SUCCESS = 0; // 0x0
     field public static final int STATUS_SUGGESTION_APPROVAL_APPROVED_BY_CARRIER_PRIVILEGE = 4; // 0x4
     field public static final int STATUS_SUGGESTION_APPROVAL_APPROVED_BY_USER = 2; // 0x2
@@ -466,10 +522,17 @@ package android.net.wifi {
     field @Deprecated public static final String SUPPLICANT_CONNECTION_CHANGE_ACTION = "android.net.wifi.supplicant.CONNECTION_CHANGE";
     field @Deprecated public static final String SUPPLICANT_STATE_CHANGED_ACTION = "android.net.wifi.supplicant.STATE_CHANGE";
     field public static final String UNKNOWN_SSID = "<unknown ssid>";
+    field public static final int WIFI_INTERFACE_TYPE_AP = 1; // 0x1
+    field public static final int WIFI_INTERFACE_TYPE_AWARE = 2; // 0x2
+    field public static final int WIFI_INTERFACE_TYPE_DIRECT = 3; // 0x3
+    field public static final int WIFI_INTERFACE_TYPE_STA = 0; // 0x0
     field @Deprecated public static final int WIFI_MODE_FULL = 1; // 0x1
     field public static final int WIFI_MODE_FULL_HIGH_PERF = 3; // 0x3
     field public static final int WIFI_MODE_FULL_LOW_LATENCY = 4; // 0x4
     field @Deprecated public static final int WIFI_MODE_SCAN_ONLY = 2; // 0x2
+    field public static final int WIFI_MULTI_INTERNET_MODE_DBS_AP = 1; // 0x1
+    field public static final int WIFI_MULTI_INTERNET_MODE_DISABLED = 0; // 0x0
+    field public static final int WIFI_MULTI_INTERNET_MODE_MULTI_AP = 2; // 0x2
     field public static final String WIFI_STATE_CHANGED_ACTION = "android.net.wifi.WIFI_STATE_CHANGED";
     field public static final int WIFI_STATE_DISABLED = 1; // 0x1
     field public static final int WIFI_STATE_DISABLING = 0; // 0x0
@@ -596,7 +659,9 @@ package android.net.wifi {
     method @IntRange(from=0) public int getPriority();
     method @IntRange(from=0) public int getPriorityGroup();
     method @Nullable public String getSsid();
+    method @Nullable public android.os.ParcelUuid getSubscriptionGroup();
     method public int getSubscriptionId();
+    method @Nullable public android.net.wifi.WifiSsid getWifiSsid();
     method public boolean isAppInteractionRequired();
     method public boolean isCarrierMerged();
     method public boolean isCredentialSharedWithUser();
@@ -632,10 +697,12 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setPriorityGroup(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setRestricted(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setSsid(@NonNull String);
+    method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setSubscriptionGroup(@NonNull android.os.ParcelUuid);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setSubscriptionId(int);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setUntrusted(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWapiEnterpriseConfig(@NonNull android.net.wifi.WifiEnterpriseConfig);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWapiPassphrase(@NonNull String);
+    method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWifiSsid(@NonNull android.net.wifi.WifiSsid);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWpa2EnterpriseConfig(@NonNull android.net.wifi.WifiEnterpriseConfig);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWpa2Passphrase(@NonNull String);
     method @NonNull public android.net.wifi.WifiNetworkSuggestion.Builder setWpa3Enterprise192BitModeConfig(@NonNull android.net.wifi.WifiEnterpriseConfig);
@@ -647,10 +714,7 @@ package android.net.wifi {
   public final class WifiSsid implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public static android.net.wifi.WifiSsid fromBytes(@Nullable byte[]);
-    method @NonNull public static android.net.wifi.WifiSsid fromString(@Nullable String);
-    method @NonNull public static android.net.wifi.WifiSsid fromUtf8Text(@Nullable CharSequence);
     method @NonNull public byte[] getBytes();
-    method @Nullable public CharSequence getUtf8Text();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiSsid> CREATOR;
   }
@@ -679,7 +743,7 @@ package android.net.wifi.aware {
     ctor public AttachCallback();
     method public void onAttachFailed();
     method public void onAttached(android.net.wifi.aware.WifiAwareSession);
-    method public void onShutDown();
+    method public void onAwareSessionTerminated();
   }
 
   public final class AwareResources implements android.os.Parcelable {
@@ -705,8 +769,11 @@ package android.net.wifi.aware {
     method public boolean isInstantCommunicationModeSupported();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.Characteristics> CREATOR;
+    field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_128 = 4; // 0x4
+    field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_256 = 8; // 0x8
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_SK_128 = 1; // 0x1
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_SK_256 = 2; // 0x2
+    field public static final int WIFI_AWARE_CIPHER_SUITE_NONE = 0; // 0x0
   }
 
   public class DiscoverySession implements java.lang.AutoCloseable {
@@ -723,7 +790,9 @@ package android.net.wifi.aware {
     method public void onMessageSendSucceeded(int);
     method public void onPublishStarted(@NonNull android.net.wifi.aware.PublishDiscoverySession);
     method public void onServiceDiscovered(android.net.wifi.aware.PeerHandle, byte[], java.util.List<byte[]>);
+    method public void onServiceDiscovered(@NonNull android.net.wifi.aware.ServiceDiscoveryInfo);
     method public void onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle, byte[], java.util.List<byte[]>, int);
+    method public void onServiceDiscoveredWithinRange(@NonNull android.net.wifi.aware.ServiceDiscoveryInfo, int);
     method public void onServiceLost(@NonNull android.net.wifi.aware.PeerHandle, int);
     method public void onSessionConfigFailed();
     method public void onSessionConfigUpdated();
@@ -748,6 +817,9 @@ package android.net.wifi.aware {
 
   public final class PublishConfig implements android.os.Parcelable {
     method public int describeContents();
+    method public int getInstantCommunicationBand();
+    method @Nullable public android.net.wifi.aware.WifiAwareDataPathSecurityConfig getSecurityConfig();
+    method public boolean isInstantCommunicationModeEnabled();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.PublishConfig> CREATOR;
     field public static final int PUBLISH_TYPE_SOLICITED = 1; // 0x1
@@ -757,6 +829,8 @@ package android.net.wifi.aware {
   public static final class PublishConfig.Builder {
     ctor public PublishConfig.Builder();
     method public android.net.wifi.aware.PublishConfig build();
+    method @NonNull public android.net.wifi.aware.PublishConfig.Builder setDataPathSecurityConfig(@NonNull android.net.wifi.aware.WifiAwareDataPathSecurityConfig);
+    method @NonNull public android.net.wifi.aware.PublishConfig.Builder setInstantCommunicationModeEnabled(boolean, int);
     method public android.net.wifi.aware.PublishConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
     method public android.net.wifi.aware.PublishConfig.Builder setPublishType(int);
     method public android.net.wifi.aware.PublishConfig.Builder setRangingEnabled(boolean);
@@ -770,8 +844,18 @@ package android.net.wifi.aware {
     method public void updatePublish(@NonNull android.net.wifi.aware.PublishConfig);
   }
 
+  public final class ServiceDiscoveryInfo {
+    method @NonNull public java.util.List<byte[]> getMatchFilters();
+    method public int getPeerCipherSuite();
+    method @NonNull public android.net.wifi.aware.PeerHandle getPeerHandle();
+    method @Nullable public byte[] getScid();
+    method @Nullable public byte[] getServiceSpecificInfo();
+  }
+
   public final class SubscribeConfig implements android.os.Parcelable {
     method public int describeContents();
+    method public int getInstantCommunicationBand();
+    method public boolean isInstantCommunicationModeEnabled();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.SubscribeConfig> CREATOR;
     field public static final int SUBSCRIBE_TYPE_ACTIVE = 1; // 0x1
@@ -781,6 +865,7 @@ package android.net.wifi.aware {
   public static final class SubscribeConfig.Builder {
     ctor public SubscribeConfig.Builder();
     method public android.net.wifi.aware.SubscribeConfig build();
+    method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setInstantCommunicationModeEnabled(boolean, int);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
@@ -795,15 +880,45 @@ package android.net.wifi.aware {
     method public void updateSubscribe(@NonNull android.net.wifi.aware.SubscribeConfig);
   }
 
+  public final class WifiAwareChannelInfo implements android.os.Parcelable {
+    method public int describeContents();
+    method @IntRange(from=0) public int getChannelBandwidth();
+    method @IntRange(from=0) public int getChannelFrequencyMhz();
+    method @IntRange(from=0) public int getSpatialStreamCount();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.WifiAwareChannelInfo> CREATOR;
+  }
+
+  public final class WifiAwareDataPathSecurityConfig implements android.os.Parcelable {
+    method public int describeContents();
+    method public int getCipherSuite();
+    method @Nullable public byte[] getPmk();
+    method @Nullable public byte[] getPmkId();
+    method @Nullable public String getPskPassphrase();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.WifiAwareDataPathSecurityConfig> CREATOR;
+  }
+
+  public static final class WifiAwareDataPathSecurityConfig.Builder {
+    ctor public WifiAwareDataPathSecurityConfig.Builder(int);
+    method @NonNull public android.net.wifi.aware.WifiAwareDataPathSecurityConfig build();
+    method @NonNull public android.net.wifi.aware.WifiAwareDataPathSecurityConfig.Builder setPmk(@NonNull byte[]);
+    method @NonNull public android.net.wifi.aware.WifiAwareDataPathSecurityConfig.Builder setPmkId(@NonNull byte[]);
+    method @NonNull public android.net.wifi.aware.WifiAwareDataPathSecurityConfig.Builder setPskPassphrase(@NonNull String);
+  }
+
   public class WifiAwareManager {
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.CHANGE_WIFI_STATE}) public void attach(@NonNull android.net.wifi.aware.AttachCallback, @Nullable android.os.Handler);
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void attach(@NonNull android.net.wifi.aware.AttachCallback, @NonNull android.net.wifi.aware.IdentityChangedListener, @Nullable android.os.Handler);
-    method @Nullable public android.net.wifi.aware.AwareResources getAvailableAwareResources();
-    method @Nullable public android.net.wifi.aware.Characteristics getCharacteristics();
-    method public boolean isAvailable();
-    method public boolean isDeviceAttached();
-    method public boolean isInstantCommunicationModeEnabled();
+    method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.AwareResources getAvailableAwareResources();
+    method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.Characteristics getCharacteristics();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isAvailable();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isDeviceAttached();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isInstantCommunicationModeEnabled();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isSetChannelOnDataPathSupported();
+    field @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public static final String ACTION_WIFI_AWARE_RESOURCE_CHANGED = "android.net.wifi.aware.action.WIFI_AWARE_RESOURCE_CHANGED";
     field public static final String ACTION_WIFI_AWARE_STATE_CHANGED = "android.net.wifi.aware.action.WIFI_AWARE_STATE_CHANGED";
+    field public static final String EXTRA_AWARE_RESOURCES = "android.net.wifi.aware.extra.AWARE_RESOURCES";
     field public static final int WIFI_AWARE_DATA_PATH_ROLE_INITIATOR = 0; // 0x0
     field public static final int WIFI_AWARE_DATA_PATH_ROLE_RESPONDER = 1; // 0x1
     field public static final int WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE = 1; // 0x1
@@ -812,6 +927,7 @@ package android.net.wifi.aware {
 
   public final class WifiAwareNetworkInfo implements android.os.Parcelable android.net.TransportInfo {
     method public int describeContents();
+    method @NonNull public java.util.List<android.net.wifi.aware.WifiAwareChannelInfo> getChannelInfoList();
     method @Nullable public java.net.Inet6Address getPeerIpv6Addr();
     method public int getPort();
     method public int getTransportProtocol();
@@ -821,6 +937,9 @@ package android.net.wifi.aware {
 
   public final class WifiAwareNetworkSpecifier extends android.net.NetworkSpecifier implements android.os.Parcelable {
     method public int describeContents();
+    method @IntRange(from=0) public int getChannelFrequencyMhz();
+    method @Nullable public android.net.wifi.aware.WifiAwareDataPathSecurityConfig getWifiAwareDataPathSecurityConfig();
+    method public boolean isChannelRequired();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.WifiAwareNetworkSpecifier> CREATOR;
   }
@@ -829,6 +948,8 @@ package android.net.wifi.aware {
     ctor public WifiAwareNetworkSpecifier.Builder(@NonNull android.net.wifi.aware.DiscoverySession, @NonNull android.net.wifi.aware.PeerHandle);
     ctor public WifiAwareNetworkSpecifier.Builder(@NonNull android.net.wifi.aware.PublishDiscoverySession);
     method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier build();
+    method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder setChannelFrequencyMhz(@IntRange(from=0) int, boolean);
+    method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder setDataPathSecurityConfig(@NonNull android.net.wifi.aware.WifiAwareDataPathSecurityConfig);
     method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder setPmk(@NonNull byte[]);
     method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder setPort(@IntRange(from=0, to=65535) int);
     method @NonNull public android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder setPskPassphrase(@NonNull String);
@@ -864,6 +985,7 @@ package android.net.wifi.hotspot2 {
     method public void setCredential(android.net.wifi.hotspot2.pps.Credential);
     method public void setDecoratedIdentityPrefix(@Nullable String);
     method public void setHomeSp(android.net.wifi.hotspot2.pps.HomeSp);
+    method public void setSubscriptionExpirationTimeInMillis(long);
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.hotspot2.PasspointConfiguration> CREATOR;
   }
@@ -1002,6 +1124,7 @@ package android.net.wifi.p2p {
     ctor public WifiP2pDevice();
     ctor public WifiP2pDevice(android.net.wifi.p2p.WifiP2pDevice);
     method public int describeContents();
+    method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorElements();
     method @Nullable public android.net.wifi.p2p.WifiP2pWfdInfo getWfdInfo();
     method public boolean isGroupOwner();
     method public boolean isServiceDiscoveryCapable();
@@ -1063,6 +1186,7 @@ package android.net.wifi.p2p {
   }
 
   public class WifiP2pManager {
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN) public void addExternalApprover(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, @NonNull android.net.wifi.p2p.WifiP2pManager.ExternalApproverRequestListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void addLocalService(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.nsd.WifiP2pServiceInfo, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void addServiceRequest(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.nsd.WifiP2pServiceRequest, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void cancelConnect(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
@@ -1072,8 +1196,13 @@ package android.net.wifi.p2p {
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void createGroup(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void createGroup(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pConfig, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void discoverPeers(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
+    method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void discoverPeersOnSocialChannels(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
+    method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void discoverPeersOnSpecificFrequency(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, int, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void discoverServices(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
+    method public static int getP2pMaxAllowedVendorElementsLength();
     method public android.net.wifi.p2p.WifiP2pManager.Channel initialize(android.content.Context, android.os.Looper, android.net.wifi.p2p.WifiP2pManager.ChannelListener);
+    method public void removeClient(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN) public void removeExternalApprover(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void removeGroup(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void removeLocalService(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.nsd.WifiP2pServiceInfo, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void removeServiceRequest(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.nsd.WifiP2pServiceRequest, android.net.wifi.p2p.WifiP2pManager.ActionListener);
@@ -1084,13 +1213,19 @@ package android.net.wifi.p2p {
     method public void requestNetworkInfo(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.wifi.p2p.WifiP2pManager.NetworkInfoListener);
     method public void requestP2pState(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.wifi.p2p.WifiP2pManager.P2pStateListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void requestPeers(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.PeerListListener);
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN) public void setConnectionRequestResult(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, int, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void setDnsSdResponseListeners(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.DnsSdServiceResponseListener, android.net.wifi.p2p.WifiP2pManager.DnsSdTxtRecordListener);
     method public void setServiceResponseListener(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ServiceResponseListener);
     method public void setUpnpServiceResponseListener(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.UpnpServiceResponseListener);
+    method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void setVendorElements(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull java.util.List<android.net.wifi.ScanResult.InformationElement>, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void startListening(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void stopListening(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void stopPeerDiscovery(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
     field public static final int BUSY = 2; // 0x2
+    field public static final int CONNECTION_REQUEST_ACCEPT = 0; // 0x0
+    field public static final int CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE = 3; // 0x3
+    field public static final int CONNECTION_REQUEST_DEFER_TO_SERVICE = 2; // 0x2
+    field public static final int CONNECTION_REQUEST_REJECT = 1; // 0x1
     field public static final int ERROR = 0; // 0x0
     field public static final String EXTRA_DISCOVERY_STATE = "discoveryState";
     field public static final String EXTRA_NETWORK_INFO = "networkInfo";
@@ -1143,6 +1278,20 @@ package android.net.wifi.p2p {
 
   public static interface WifiP2pManager.DnsSdTxtRecordListener {
     method public void onDnsSdTxtRecordAvailable(String, java.util.Map<java.lang.String,java.lang.String>, android.net.wifi.p2p.WifiP2pDevice);
+  }
+
+  public static interface WifiP2pManager.ExternalApproverRequestListener {
+    method public void onAttached(@NonNull android.net.MacAddress);
+    method public void onConnectionRequested(int, @NonNull android.net.wifi.p2p.WifiP2pConfig, @NonNull android.net.wifi.p2p.WifiP2pDevice);
+    method public void onDetached(@NonNull android.net.MacAddress, int);
+    method public void onPinGenerated(@NonNull android.net.MacAddress, @NonNull String);
+    field public static final int APPROVER_DETACH_REASON_CLOSE = 3; // 0x3
+    field public static final int APPROVER_DETACH_REASON_FAILURE = 1; // 0x1
+    field public static final int APPROVER_DETACH_REASON_REMOVE = 0; // 0x0
+    field public static final int APPROVER_DETACH_REASON_REPLACE = 2; // 0x2
+    field public static final int REQUEST_TYPE_INVITATION = 1; // 0x1
+    field public static final int REQUEST_TYPE_JOIN = 2; // 0x2
+    field public static final int REQUEST_TYPE_NEGOTIATION = 0; // 0x0
   }
 
   public static interface WifiP2pManager.GroupInfoListener {
@@ -1307,10 +1456,12 @@ package android.net.wifi.rtt {
 
   public static final class RangingRequest.Builder {
     ctor public RangingRequest.Builder();
-    method public android.net.wifi.rtt.RangingRequest.Builder addAccessPoint(@NonNull android.net.wifi.ScanResult);
-    method public android.net.wifi.rtt.RangingRequest.Builder addAccessPoints(@NonNull java.util.List<android.net.wifi.ScanResult>);
+    method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addAccessPoint(@NonNull android.net.wifi.ScanResult);
+    method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addAccessPoints(@NonNull java.util.List<android.net.wifi.ScanResult>);
     method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addNon80211mcCapableAccessPoint(@NonNull android.net.wifi.ScanResult);
     method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addNon80211mcCapableAccessPoints(@NonNull java.util.List<android.net.wifi.ScanResult>);
+    method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addResponder(@NonNull android.net.wifi.rtt.ResponderConfig);
+    method @NonNull public android.net.wifi.rtt.RangingRequest.Builder addResponders(@NonNull java.util.List<android.net.wifi.rtt.ResponderConfig>);
     method public android.net.wifi.rtt.RangingRequest.Builder addWifiAwarePeer(@NonNull android.net.MacAddress);
     method public android.net.wifi.rtt.RangingRequest.Builder addWifiAwarePeer(@NonNull android.net.wifi.aware.PeerHandle);
     method public android.net.wifi.rtt.RangingRequest build();
@@ -1343,6 +1494,32 @@ package android.net.wifi.rtt {
     method public abstract void onRangingResults(@NonNull java.util.List<android.net.wifi.rtt.RangingResult>);
     field public static final int STATUS_CODE_FAIL = 1; // 0x1
     field public static final int STATUS_CODE_FAIL_RTT_NOT_AVAILABLE = 2; // 0x2
+  }
+
+  public final class ResponderConfig implements android.os.Parcelable {
+    method public int describeContents();
+    method @NonNull public static android.net.wifi.rtt.ResponderConfig fromScanResult(@NonNull android.net.wifi.ScanResult);
+    method public int getCenterFreq0Mhz();
+    method public int getCenterFreq1Mhz();
+    method public int getChannelWidth();
+    method public int getFrequencyMhz();
+    method @Nullable public android.net.MacAddress getMacAddress();
+    method public int getPreamble();
+    method public boolean is80211mcSupported();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.rtt.ResponderConfig> CREATOR;
+  }
+
+  public static final class ResponderConfig.Builder {
+    ctor public ResponderConfig.Builder();
+    method @NonNull public android.net.wifi.rtt.ResponderConfig build();
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder set80211mcSupported(boolean);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq0Mhz(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq1Mhz(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setChannelWidth(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setFrequencyMhz(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setMacAddress(@NonNull android.net.MacAddress);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setPreamble(int);
   }
 
   public final class ResponderLocation implements android.os.Parcelable {

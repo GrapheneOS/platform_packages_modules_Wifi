@@ -130,7 +130,11 @@ public interface ClientModeDefaults extends ClientMode {
         return null;
     }
 
-    default boolean setPowerSave(boolean ps) {
+    default boolean setPowerSave(@PowerSaveClientType int client, boolean ps) {
+        return false;
+    }
+
+    default boolean enablePowerSave() {
         return false;
     }
 

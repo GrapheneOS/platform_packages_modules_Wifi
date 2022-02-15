@@ -33,6 +33,7 @@ import android.net.wifi.WifiScanner;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiNative;
@@ -40,6 +41,7 @@ import com.android.server.wifi.coex.CoexManager;
 import com.android.wifi.resources.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +49,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Provide utility functions for updating soft AP related configuration.
@@ -189,6 +192,20 @@ public class ApConfigUtil {
     }
 
     /**
+     * Add 5Ghz to target band when 5Ghz SoftAp supported.
+     *
+     * @param targetBand The band is needed to add 5GHz band.
+     * @return The band includes 5Ghz when 5G SoftAp supported.
+     */
+    public static @BandType int append5GToBandIf5GSupported(@BandType int targetBand,
+            Context context) {
+        if (isBandSupported(SoftApConfiguration.BAND_5GHZ, context)) {
+            return targetBand | SoftApConfiguration.BAND_5GHZ;
+        }
+        return targetBand;
+    }
+
+    /**
      * Checks if band is a valid combination of {link  SoftApConfiguration#BandType} values
      */
     public static boolean isBandValid(@BandType int band) {
@@ -324,7 +341,7 @@ public class ApConfigUtil {
      * and OEM configuration.
      *
      * @param band to get channels for
-     * @param wifiNative reference used to get regulatory restrictionsimport java.util.Arrays;
+     * @param wifiNative reference used to get regulatory restrictions.
      * @param resources used to get OEM restrictions
      * @param inFrequencyMHz true to convert channel to frequency.
      * @return A list of frequencies that are allowed, null on error.
@@ -540,6 +557,71 @@ public class ApConfigUtil {
     }
 
     /**
+     * Check if security type is restricted for operation in 6GHz band
+     * As per WFA specification for 6GHz operation, the following security types are not allowed to
+     * be used in 6GHz band:
+     *   - OPEN
+     *   - WPA2-Personal
+     *   - WPA3-SAE-Transition
+     *   - WPA3-OWE-Transition
+     *
+     * @param type security type to check on
+     *
+     * @return true if security type is restricted for operation in 6GHz band, false otherwise
+     */
+    public static boolean isSecurityTypeRestrictedFor6gBand(
+            @SoftApConfiguration.SecurityType int type) {
+        switch(type) {
+            case SoftApConfiguration.SECURITY_TYPE_OPEN:
+            case SoftApConfiguration.SECURITY_TYPE_WPA2_PSK:
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION:
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION:
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove {@link SoftApConfiguration#BAND_6GHZ} if multiple bands are configured
+     * as a mask when security type is restricted to operate in this band.
+     *
+     * @param config The current {@link SoftApConfiguration}.
+     *
+     * @return the updated SoftApConfiguration.
+     */
+    public static SoftApConfiguration remove6gBandForUnsupportedSecurity(
+            SoftApConfiguration config) {
+        SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder(config);
+
+        if (config.getBands().length == 1) {
+            int configuredBand = config.getBand();
+            if ((configuredBand & SoftApConfiguration.BAND_6GHZ) != 0
+                    && isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
+                Log.i(TAG, "remove BAND_6G if multiple bands are configured "
+                        + "as a mask since security type is restricted");
+                builder.setBand(configuredBand & ~SoftApConfiguration.BAND_6GHZ);
+            }
+        } else if (SdkLevel.isAtLeastS()) {
+            SparseIntArray channels = config.getChannels();
+            SparseIntArray newChannels = new SparseIntArray(channels.size());
+            if (isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
+                for (int i = 0; i < channels.size(); i++) {
+                    int band = channels.keyAt(i);
+                    if ((band & SoftApConfiguration.BAND_6GHZ) != 0) {
+                        Log.i(TAG, "remove BAND_6G if multiple bands are configured "
+                                + "as a mask when security type is restricted");
+                        band &= ~SoftApConfiguration.BAND_6GHZ;
+                    }
+                    newChannels.put(band, channels.valueAt(i));
+                }
+                builder.setChannels(newChannels);
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
      * Update AP band and channel based on the provided country code and band.
      * This will also set
      * @param wifiNative reference to WifiNative
@@ -569,17 +651,30 @@ public class ApConfigUtil {
             return ERROR_GENERIC;
         }
 
-        /* Select a channel if it is not specified and ACS is not enabled */
-        if ((config.getChannel() == 0) && !acsEnabled) {
-            int freq = chooseApChannel(config.getBand(), wifiNative, coexManager, resources);
-            if (freq == -1) {
-                /* We're not able to get channel from wificond. */
-                Log.e(TAG, "Failed to get available channel.");
-                return ERROR_NO_CHANNEL;
+        if (!acsEnabled) {
+            /* Select a channel if it is not specified and ACS is not enabled */
+            if (config.getChannel() == 0) {
+                int freq = chooseApChannel(config.getBand(), wifiNative, coexManager, resources);
+                if (freq == -1) {
+                    /* We're not able to get channel from wificond. */
+                    Log.e(TAG, "Failed to get available channel.");
+                    return ERROR_NO_CHANNEL;
+                }
+                configBuilder.setChannel(
+                        ScanResult.convertFrequencyMhzToChannelIfSupported(freq),
+                        convertFrequencyToBand(freq));
             }
-            configBuilder.setChannel(
-                    ScanResult.convertFrequencyMhzToChannelIfSupported(freq),
-                    convertFrequencyToBand(freq));
+
+            if (SdkLevel.isAtLeastT()) {
+                /* remove list of allowed channels since they only apply to ACS */
+                Log.i(TAG, "Ignoring Allowed ACS channels since ACS is not supported.");
+                configBuilder.setAllowedAcsChannels(SoftApConfiguration.BAND_2GHZ,
+                        new int[] {});
+                configBuilder.setAllowedAcsChannels(SoftApConfiguration.BAND_5GHZ,
+                        new int[] {});
+                configBuilder.setAllowedAcsChannels(SoftApConfiguration.BAND_6GHZ,
+                        new int[] {});
+            }
         }
 
         return SUCCESS;
@@ -600,6 +695,9 @@ public class ApConfigUtil {
             @NonNull WifiConfiguration wifiConfig) {
         SoftApConfiguration.Builder configBuilder = new SoftApConfiguration.Builder();
         try {
+            // WifiConfiguration#SSID uses a formatted string with double quotes for UTF-8 and no
+            // quotes for hexadecimal. But to support legacy behavior, we need to continue
+            // setting the entire string with quotes as the UTF-8 SSID.
             configBuilder.setSsid(wifiConfig.SSID);
             if (wifiConfig.getAuthType() == WifiConfiguration.KeyMgmt.WPA2_PSK) {
                 configBuilder.setPassphrase(wifiConfig.preSharedKey,
@@ -687,6 +785,26 @@ public class ApConfigUtil {
             features |= SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED;
         }
 
+        if (isIeee80211axSupported(context)) {
+            Log.d(TAG, "Update Softap capability, add ax support");
+            features |= SoftApCapability.SOFTAP_FEATURE_IEEE80211_AX;
+        }
+
+        if (isIeee80211beSupported(context)) {
+            Log.d(TAG, "Update Softap capability, add be support");
+            features |= SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE;
+        }
+
+        if (isOweTransitionSupported(context)) {
+            Log.d(TAG, "Update Softap capability, add OWE Transition feature support");
+            features |= SoftApCapability.SOFTAP_FEATURE_WPA3_OWE_TRANSITION;
+        }
+
+        if (isOweSupported(context)) {
+            Log.d(TAG, "Update Softap capability, add OWE feature support");
+            features |= SoftApCapability.SOFTAP_FEATURE_WPA3_OWE;
+        }
+
         SoftApCapability capability = new SoftApCapability(features);
         int hardwareSupportedMaxClient = context.getResources().getInteger(
                 R.integer.config_wifiHardwareSoftapMaxClientCount);
@@ -696,6 +814,28 @@ public class ApConfigUtil {
         }
 
         return capability;
+    }
+
+    /**
+     * Helper function to get device support 802.11 AX on Soft AP or not
+     *
+     * @param context the caller context used to get value from resource file.
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isIeee80211axSupported(@NonNull Context context) {
+        return context.getResources().getBoolean(
+                    R.bool.config_wifiSoftapIeee80211axSupported);
+    }
+
+    /**
+     * Helper function to get device support 802.11 BE on Soft AP or not
+     *
+     * @param context the caller context used to get value from resource file.
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isIeee80211beSupported(@NonNull Context context) {
+        return context.getResources().getBoolean(
+                    R.bool.config_wifiSoftapIeee80211beSupported);
     }
 
     /**
@@ -835,6 +975,40 @@ public class ApConfigUtil {
                 R.bool.config_wifiSoftApDynamicCountryCodeUpdateSupported);
     }
 
+
+    /**
+     * Helper function to get whether or not restart Soft AP required when country code changed.
+     *
+     * @param context the caller context used to get value from resource file.
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isSoftApRestartRequiredWhenCountryCodeChanged(@NonNull Context context) {
+        return context.getResources().getBoolean(
+                R.bool.config_wifiForcedSoftApRestartWhenCountryCodeChanged);
+    }
+
+    /**
+     * Helper function to get OWE-Transition is support or not.
+     *
+     * @param context the caller context used to get value from resource file.
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isOweTransitionSupported(@NonNull Context context) {
+        return context.getResources().getBoolean(
+                R.bool.config_wifiSoftapOweTransitionSupported);
+    }
+
+    /**
+     * Helper function to get OWE is support or not.
+     *
+     * @param context the caller context used to get value from resource file.
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isOweSupported(@NonNull Context context) {
+        return context.getResources().getBoolean(
+                R.bool.config_wifiSoftapOweSupported);
+    }
+
     /**
      * Helper function for comparing two SoftApConfiguration.
      *
@@ -845,7 +1019,7 @@ public class ApConfigUtil {
      */
     public static boolean checkConfigurationChangeNeedToRestart(
             SoftApConfiguration currentConfig, SoftApConfiguration newConfig) {
-        return !Objects.equals(currentConfig.getSsid(), newConfig.getSsid())
+        return !Objects.equals(currentConfig.getWifiSsid(), newConfig.getWifiSsid())
                 || !Objects.equals(currentConfig.getBssid(), newConfig.getBssid())
                 || currentConfig.getSecurityType() != newConfig.getSecurityType()
                 || !Objects.equals(currentConfig.getPassphrase(), newConfig.getPassphrase())
@@ -885,11 +1059,9 @@ public class ApConfigUtil {
         // The bands length should always 1 in R. Adding SdkLevel.isAtLeastS for lint check only.
         if (config.getBands().length > 1 && SdkLevel.isAtLeastS()) {
             int[] bands = config.getBands();
-            if ((bands[0] & SoftApConfiguration.BAND_6GHZ) != 0
-                    || (bands[0] & SoftApConfiguration.BAND_60GHZ) != 0
-                    || (bands[1] & SoftApConfiguration.BAND_6GHZ) != 0
+            if ((bands[0] & SoftApConfiguration.BAND_60GHZ) != 0
                     || (bands[1] & SoftApConfiguration.BAND_60GHZ) != 0) {
-                Log.d(TAG, "Error, dual APs doesn't support on 6GHz and 60GHz");
+                Log.d(TAG, "Error, dual APs doesn't support on 60GHz");
                 return false;
             }
             if (!capability.areFeaturesSupported(SoftApCapability.SOFTAP_FEATURE_ACS_OFFLOAD)
@@ -907,20 +1079,28 @@ public class ApConfigUtil {
      * Check if need to provide freq range for ACS.
      *
      * @param band in SoftApConfiguration.BandType
+     * @param context the caller context used to get values from resource file
+     * @param config the used SoftApConfiguration
+     *
      * @return true when freq ranges is needed, otherwise false.
      */
-    public static boolean isSendFreqRangesNeeded(@BandType int band, Context context) {
-        // Fist we check if one of the selected bands has restrictions in the overlay file.
+    public static boolean isSendFreqRangesNeeded(@BandType int band, Context context,
+            SoftApConfiguration config) {
+        // Fist we check if one of the selected bands has restrictions in the overlay file or in the
+        // provided SoftApConfiguration.
         // Note,
         //   - We store the config string here for future use, hence we need to check all bands.
-        //   - If there is no OEM restriction, we store the full band
-        boolean retVal = false;
+        //   - If there is no restrictions on channels, we store the full band
         String channelList = "";
         if ((band & SoftApConfiguration.BAND_2GHZ) != 0) {
             channelList =
                 context.getResources().getString(R.string.config_wifiSoftap2gChannelList);
             if (!TextUtils.isEmpty(channelList)) {
-                retVal = true;
+                return true;
+            }
+            if (SdkLevel.isAtLeastT()
+                    && config.getAllowedAcsChannels(SoftApConfiguration.BAND_2GHZ).length != 0) {
+                return true;
             }
         }
 
@@ -928,7 +1108,11 @@ public class ApConfigUtil {
             channelList =
                 context.getResources().getString(R.string.config_wifiSoftap5gChannelList);
             if (!TextUtils.isEmpty(channelList)) {
-                retVal = true;
+                return true;
+            }
+            if (SdkLevel.isAtLeastT()
+                    && config.getAllowedAcsChannels(SoftApConfiguration.BAND_5GHZ).length != 0) {
+                return true;
             }
         }
 
@@ -936,13 +1120,12 @@ public class ApConfigUtil {
             channelList =
                 context.getResources().getString(R.string.config_wifiSoftap6gChannelList);
             if (!TextUtils.isEmpty(channelList)) {
-                retVal = true;
+                return true;
             }
-        }
-
-        // If any of the selected band has restriction in the overlay file, we return true.
-        if (retVal) {
-            return true;
+            if (SdkLevel.isAtLeastT()
+                    && config.getAllowedAcsChannels(SoftApConfiguration.BAND_6GHZ).length != 0) {
+                return true;
+            }
         }
 
         // Next, if only one of 5G or 6G is selected, then we need freqList to separate them
@@ -958,6 +1141,107 @@ public class ApConfigUtil {
 
         // In all other cases, we don't need to set the freqList
         return false;
+    }
+
+    /**
+     * Collect a List of allowed channels for ACS operations on a selected band
+     *
+     * @param band on which channel list are required
+     * @param oemConfigString Configuration string from OEM resource file.
+     *        An empty string means all channels on this band are allowed
+     * @param callerConfig allowed chnannels as required by the caller
+     *
+     * @return List of channel numbers that meet both criteria
+     */
+    public static List<Integer> collectAllowedAcsChannels(@BandType int band,
+            String oemConfigString, int[] callerConfig) {
+
+        // Convert the OEM config string into a set of channel numbers
+        Set<Integer> allowedChannelSet = getOemAllowedChannels(band, oemConfigString);
+
+        // Update the allowed channels with user configuration
+        allowedChannelSet.retainAll(getCallerAllowedChannels(band, callerConfig));
+
+        return new ArrayList<Integer>(allowedChannelSet);
+    }
+
+    private static Set<Integer> getSetForAllChannelsInBand(@BandType int band) {
+        switch(band) {
+            case SoftApConfiguration.BAND_2GHZ:
+                return IntStream.rangeClosed(
+                        ScanResult.BAND_24_GHZ_FIRST_CH_NUM,
+                        ScanResult.BAND_24_GHZ_LAST_CH_NUM)
+                        .boxed()
+                        .collect(Collectors.toSet());
+
+            case SoftApConfiguration.BAND_5GHZ:
+                return IntStream.rangeClosed(
+                        ScanResult.BAND_5_GHZ_FIRST_CH_NUM,
+                        ScanResult.BAND_5_GHZ_LAST_CH_NUM)
+                        .boxed()
+                        .collect(Collectors.toSet());
+
+            case SoftApConfiguration.BAND_6GHZ:
+                return IntStream.rangeClosed(
+                        ScanResult.BAND_6_GHZ_FIRST_CH_NUM,
+                        ScanResult.BAND_6_GHZ_LAST_CH_NUM)
+                        .boxed()
+                        .collect(Collectors.toSet());
+            default:
+                Log.e(TAG, "Invalid band: " + band);
+                return Collections.emptySet();
+        }
+    }
+
+    private static Set<Integer> getOemAllowedChannels(@BandType int band, String oemConfigString) {
+        if (TextUtils.isEmpty(oemConfigString)) {
+            // Empty string means all channels are allowed in this band
+            return getSetForAllChannelsInBand(band);
+        }
+
+        // String is not empty, parsing it
+        Set<Integer> allowedChannelsOem = new HashSet<>();
+
+        for (String channelRange : oemConfigString.split(",")) {
+            try {
+                if (channelRange.contains("-")) {
+                    String[] channels  = channelRange.split("-");
+                    if (channels.length != 2) {
+                        Log.e(TAG, "Unrecognized channel range, length is " + channels.length);
+                        continue;
+                    }
+                    int start = Integer.parseInt(channels[0].trim());
+                    int end = Integer.parseInt(channels[1].trim());
+                    if (start > end) {
+                        Log.e(TAG, "Invalid channel range, from " + start + " to " + end);
+                        continue;
+                    }
+
+                    allowedChannelsOem.addAll(IntStream.rangeClosed(start, end)
+                            .boxed().collect(Collectors.toSet()));
+                } else if (!TextUtils.isEmpty(channelRange)) {
+                    int channel = Integer.parseInt(channelRange.trim());
+                    allowedChannelsOem.add(channel);
+                }
+            } catch (NumberFormatException e) {
+                // Ignore malformed value
+                Log.e(TAG, "Malformed channel value detected: " + e);
+                continue;
+            }
+        }
+
+        return allowedChannelsOem;
+    }
+
+    private static Set<Integer> getCallerAllowedChannels(@BandType int band, int[] callerConfig) {
+        if (callerConfig.length == 0) {
+            // Empty set means all channels are allowed in this band
+            return getSetForAllChannelsInBand(band);
+        }
+
+        // Otherwise return the caller set as is
+        return IntStream.of(callerConfig).boxed()
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     /**
@@ -1048,5 +1332,17 @@ public class ApConfigUtil {
             }
         }
         return newSoftApCapability;
+    }
+
+    /**
+     * Helper function to check if security type can ignore password.
+     *
+     * @param security type for SoftApConfiguration.
+     * @return true for Open/Owe-Transition SoftAp AKM.
+     */
+    public static boolean isNonPasswordAP(int security) {
+        return (security == SoftApConfiguration.SECURITY_TYPE_OPEN
+                || security == SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION
+                || security == SoftApConfiguration.SECURITY_TYPE_WPA3_OWE);
     }
 }

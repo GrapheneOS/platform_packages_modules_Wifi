@@ -49,7 +49,8 @@ import java.util.stream.Collectors;
  */
 @SmallTest
 public class ScanResultTest {
-    public static final String TEST_SSID = "test_ssid";
+    public static final String TEST_SSID = "\"test_ssid\"";
+    public static final String TEST_SSID_NON_UTF_8 = "B9C8B8E8";
     public static final String TEST_BSSID = "04:ac:fe:45:34:10";
     public static final String TEST_CAPS = "CCMP";
     public static final int TEST_LEVEL = -56;
@@ -162,6 +163,18 @@ public class ScanResultTest {
         ScanResult readScanResult = parcelReadWrite(writeScanResult);
         assertScanResultEquals(writeScanResult, readScanResult);
     }
+
+    /**
+     * Verify parcel read/write for ScanResult with non-UTF-8 SSID.
+     */
+    @Test
+    public void verifyScanResultParcelWithNonUtf8Ssid() throws Exception {
+        ScanResult writeScanResult = createScanResult();
+        writeScanResult.setWifiSsid(WifiSsid.fromString(TEST_SSID_NON_UTF_8));
+        ScanResult readScanResult = parcelReadWrite(writeScanResult);
+        assertScanResultEquals(writeScanResult, readScanResult);
+    }
+
 
     /**
      * Verify parcel read/write for ScanResult.
@@ -277,6 +290,22 @@ public class ScanResultTest {
     }
 
     /**
+     * Verify toString for ScanResult with non-UTF-8 SSID.
+     */
+    @Test
+    public void verifyScanResultToStringWithNonUtf8Ssid() throws Exception {
+        ScanResult scanResult = createScanResult();
+        scanResult.setWifiSsid(WifiSsid.fromString(TEST_SSID_NON_UTF_8));
+        assertEquals("SSID: B9C8B8E8, BSSID: 04:ac:fe:45:34:10, capabilities: CCMP, "
+                + "level: -56, frequency: 2412, timestamp: 2480, "
+                + "distance: 0(cm), distanceSd: 0(cm), "
+                + "passpoint: no, ChannelBandwidth: 0, centerFreq0: 0, centerFreq1: 0, "
+                + "standard: 11ac, "
+                + "80211mcResponder: is not supported, "
+                + "Radio Chain Infos: null, interface name: test_ifname", scanResult.toString());
+    }
+
+    /**
      * verify frequency to channel conversion for all possible frequencies.
      */
     @Test
@@ -348,7 +377,7 @@ public class ScanResultTest {
 
     private static ScanResult createScanResult() {
         ScanResult result = new ScanResult();
-        result.wifiSsid = WifiSsid.fromUtf8Text(TEST_SSID);
+        result.setWifiSsid(WifiSsid.fromString(TEST_SSID));
         result.BSSID = TEST_BSSID;
         result.capabilities = TEST_CAPS;
         result.level = TEST_LEVEL;
@@ -362,6 +391,7 @@ public class ScanResultTest {
 
     private static void assertScanResultEquals(ScanResult expected, ScanResult actual) {
         assertEquals(expected.SSID, actual.SSID);
+        assertEquals(expected.getWifiSsid(), actual.getWifiSsid());
         assertEquals(expected.BSSID, actual.BSSID);
         assertEquals(expected.capabilities, actual.capabilities);
         assertEquals(expected.level, actual.level);
@@ -370,5 +400,22 @@ public class ScanResultTest {
         assertEquals(expected.getWifiStandard(), actual.getWifiStandard());
         assertArrayEquals(expected.radioChainInfos, actual.radioChainInfos);
         assertArrayEquals(expected.informationElements, actual.informationElements);
+    }
+
+    /**
+     * Test ScanResult.getBand() function.
+     */
+    @Test
+    public void testScanResultGetBand() throws Exception {
+        ScanResult scanResult = createScanResult();
+        assertEquals(ScanResult.WIFI_BAND_24_GHZ, scanResult.getBand());
+    }
+
+    /**
+     * Test ScanResult.toBand() function.
+     */
+    @Test
+    public void testScanResultToBand() throws Exception {
+        assertEquals(ScanResult.WIFI_BAND_24_GHZ, ScanResult.toBand(TEST_FREQUENCY));
     }
 }

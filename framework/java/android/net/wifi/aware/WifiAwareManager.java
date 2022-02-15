@@ -52,6 +52,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.nio.BufferOverflowException;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -137,6 +138,26 @@ public class WifiAwareManager {
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
     public static final String ACTION_WIFI_AWARE_STATE_CHANGED =
             "android.net.wifi.aware.action.WIFI_AWARE_STATE_CHANGED";
+    /**
+     * Intent broadcast sent whenever Wi-Fi Aware resource availability has changed. The resources
+     * are attached with the {@link #EXTRA_AWARE_RESOURCES} extra. The resources can also be
+     * obtained using the {@link #getAvailableAwareResources()} method. To receive this broadcast,
+     * apps must hold {@link android.Manifest.permission#ACCESS_WIFI_STATE}.
+     * <p>Note: The broadcast is only delivered to registered receivers - no manifest registered
+     * components will be launched.
+     */
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(ACCESS_WIFI_STATE)
+    public static final String ACTION_WIFI_AWARE_RESOURCE_CHANGED =
+            "android.net.wifi.aware.action.WIFI_AWARE_RESOURCE_CHANGED";
+
+    /**
+     * Sent as a part of {@link #ACTION_WIFI_AWARE_RESOURCE_CHANGED} that contains an instance of
+     * {@link AwareResources} representing the current Wi-Fi Aware resources.
+     */
+    public static final String EXTRA_AWARE_RESOURCES =
+            "android.net.wifi.aware.extra.AWARE_RESOURCES";
 
     /** @hide */
     @IntDef({
@@ -203,6 +224,7 @@ public class WifiAwareManager {
      * @return A boolean indicating whether the app can use the Aware API at this time (true) or
      * not (false).
      */
+    @RequiresPermission(ACCESS_WIFI_STATE)
     public boolean isAvailable() {
         try {
             return mService.isUsageEnabled();
@@ -219,9 +241,26 @@ public class WifiAwareManager {
      * @return A boolean indicating whether the device is attached to a cluster at this time (true)
      *         or not (false).
      */
+    @RequiresPermission(ACCESS_WIFI_STATE)
     public boolean isDeviceAttached() {
         try {
             return mService.isDeviceAttached();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Return the device support for setting a channel requirement in a data-path request. If true
+     * the channel set by
+     * {@link WifiAwareNetworkSpecifier.Builder#setChannelFrequencyMhz(int, boolean)} will be
+     * honored, otherwise it will be ignored.
+     * @return True is the device support set channel on data-path request, false otherwise.
+     */
+    @RequiresPermission(ACCESS_WIFI_STATE)
+    public boolean isSetChannelOnDataPathSupported() {
+        try {
+            return mService.isSetChannelOnDataPathSupported();
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -236,6 +275,7 @@ public class WifiAwareManager {
      */
     @SystemApi
     @RequiresApi(Build.VERSION_CODES.S)
+    @RequiresPermission(CHANGE_WIFI_STATE)
     public void enableInstantCommunicationMode(boolean enable) {
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
@@ -254,6 +294,7 @@ public class WifiAwareManager {
      * @return true if it is enabled, false otherwise.
      */
     @RequiresApi(Build.VERSION_CODES.S)
+    @RequiresPermission(ACCESS_WIFI_STATE)
     public boolean isInstantCommunicationModeEnabled() {
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
@@ -276,6 +317,7 @@ public class WifiAwareManager {
      *
      * @return An object specifying configuration limitations of Aware.
      */
+    @RequiresPermission(ACCESS_WIFI_STATE)
     public @Nullable Characteristics getCharacteristics() {
         try {
             return mService.getCharacteristics();
@@ -295,6 +337,7 @@ public class WifiAwareManager {
      *
      * @return An object specifying the currently available resource of the Wi-Fi Aware service.
      */
+    @RequiresPermission(ACCESS_WIFI_STATE)
     public @Nullable AwareResources getAvailableAwareResources() {
         try {
             return mService.getAvailableAwareResources();
@@ -356,9 +399,9 @@ public class WifiAwareManager {
      * Apps without {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} or
      * {@link android.Manifest.permission#ACCESS_FINE_LOCATION} can use the
      * {@link #attach(AttachCallback, Handler)} version.
-     * Note that aside from permission requirements this listener will wake up the host at regular
-     * intervals causing higher power consumption, do not use it unless the information is
-     * necessary (e.g. for OOB discovery).
+     * Note that aside from permission requirements the {@link IdentityChangedListener} will wake up
+     * the host at regular intervals causing higher power consumption, do not use it unless the
+     * information is necessary (e.g. for out-of-band discovery).
      *
      * @param attachCallback A callback for attach events, extended from
      * {@link AttachCallback}.
@@ -543,7 +586,7 @@ public class WifiAwareManager {
 
     /** @hide */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
-    public void requestMacAddresses(int uid, List<Integer> peerIds,
+    public void requestMacAddresses(int uid, int[] peerIds,
             IWifiAwareMacAddressProvider callback) {
         try {
             mService.requestMacAddresses(uid, peerIds, callback);
@@ -692,7 +735,7 @@ public class WifiAwareManager {
                             break;
                         case CALLBACK_ATTACH_TERMINATE:
                             mAwareManager.clear();
-                            attachCallback.onShutDown();
+                            attachCallback.onAwareSessionTerminated();
                     }
                 }
             };
@@ -727,7 +770,7 @@ public class WifiAwareManager {
 
         @Override
         public void onAttachTerminate() {
-            if (VDBG) Log.v(TAG, "onShutDown");
+            if (VDBG) Log.v(TAG, "onAwareSessionTerminated");
 
             Message msg = mHandler.obtainMessage(CALLBACK_ATTACH_TERMINATE);
             mHandler.sendMessage(msg);
@@ -749,6 +792,8 @@ public class WifiAwareManager {
 
         private static final String MESSAGE_BUNDLE_KEY_MESSAGE = "message";
         private static final String MESSAGE_BUNDLE_KEY_MESSAGE2 = "message2";
+        private static final String MESSAGE_BUNDLE_KEY_CIPHER_SUITE = "key_cipher_suite";
+        private static final String MESSAGE_BUNDLE_KEY_SCID = "key_scid";
 
         private final WeakReference<WifiAwareManager> mAwareManager;
         private final boolean mIsPublish;
@@ -802,29 +847,44 @@ public class WifiAwareManager {
                             break;
                         case CALLBACK_MATCH:
                         case CALLBACK_MATCH_WITH_DISTANCE:
-                            {
                             List<byte[]> matchFilter = null;
-                            byte[] arg = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2);
+                            Bundle data = msg.getData();
+                            byte[] arg = data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2);
                             try {
                                 matchFilter = new TlvBufferUtils.TlvIterable(0, 1, arg).toList();
                             } catch (BufferOverflowException e) {
-                                matchFilter = null;
+                                matchFilter = Collections.emptyList();
                                 Log.e(TAG, "onServiceDiscovered: invalid match filter byte array '"
                                         + new String(HexEncoding.encode(arg))
                                         + "' - cannot be parsed: e=" + e);
                             }
                             if (msg.what == CALLBACK_MATCH) {
                                 mOriginalCallback.onServiceDiscovered(new PeerHandle(msg.arg1),
-                                        msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
+                                        data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
                                         matchFilter);
+                                mOriginalCallback.onServiceDiscovered(
+                                        new ServiceDiscoveryInfo(
+                                                new PeerHandle(msg.arg1),
+                                                data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
+                                                matchFilter,
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)));
+
                             } else {
                                 mOriginalCallback.onServiceDiscoveredWithinRange(
                                         new PeerHandle(msg.arg1),
                                         msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
                                         matchFilter, msg.arg2);
+                                mOriginalCallback.onServiceDiscoveredWithinRange(
+                                        new ServiceDiscoveryInfo(
+                                                new PeerHandle(msg.arg1),
+                                                data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
+                                                matchFilter,
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)),
+                                        msg.arg2);
                             }
                             break;
-                        }
                         case CALLBACK_MESSAGE_SEND_SUCCESS:
                             mOriginalCallback.onMessageSendSucceeded(msg.arg1);
                             break;
@@ -881,10 +941,12 @@ public class WifiAwareManager {
         }
 
         private void onMatchCommon(int messageType, int peerId, byte[] serviceSpecificInfo,
-                byte[] matchFilter, int distanceMm) {
+                byte[] matchFilter, int distanceMm, int peerCipherSuite, byte[] scid) {
             Bundle data = new Bundle();
             data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE, serviceSpecificInfo);
             data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2, matchFilter);
+            data.putInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE, peerCipherSuite);
+            data.putByteArray(MESSAGE_BUNDLE_KEY_SCID, scid);
 
             Message msg = mHandler.obtainMessage(messageType);
             msg.arg1 = peerId;
@@ -894,21 +956,23 @@ public class WifiAwareManager {
         }
 
         @Override
-        public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter) {
+        public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
+                int peerCipherSuite, byte[] scid) {
             if (VDBG) Log.v(TAG, "onMatch: peerId=" + peerId);
 
-            onMatchCommon(CALLBACK_MATCH, peerId, serviceSpecificInfo, matchFilter, 0);
+            onMatchCommon(CALLBACK_MATCH, peerId, serviceSpecificInfo, matchFilter, 0,
+                    peerCipherSuite, scid);
         }
 
         @Override
         public void onMatchWithDistance(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
-                int distanceMm) {
+                int distanceMm, int peerCipherSuite, byte[] scid) {
             if (VDBG) {
                 Log.v(TAG, "onMatchWithDistance: peerId=" + peerId + ", distanceMm=" + distanceMm);
             }
 
             onMatchCommon(CALLBACK_MATCH_WITH_DISTANCE, peerId, serviceSpecificInfo, matchFilter,
-                    distanceMm);
+                    distanceMm, peerCipherSuite, scid);
         }
         @Override
         public void onMatchExpired(int peerId) {
@@ -992,6 +1056,23 @@ public class WifiAwareManager {
             }
             mAwareManager.clear();
             mOriginalCallback.onSessionTerminated();
+        }
+    }
+
+    /**
+     * Set Wi-Fi Aware protocol parameters.
+     * @hide
+     * @param params An object contain specified parameters. Use {@code null} to remove previously
+     *               set configuration and restore default behavior.
+     */
+    @SystemApi
+    @RequiresPermission(allOf = {android.Manifest.permission.OVERRIDE_WIFI_CONFIG,
+            CHANGE_WIFI_STATE})
+    public void setAwareParams(@Nullable AwareParams params) {
+        try {
+            mService.setAwareParams(params);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
         }
     }
 }

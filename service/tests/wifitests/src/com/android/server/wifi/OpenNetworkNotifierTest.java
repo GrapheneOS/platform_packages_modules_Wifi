@@ -41,6 +41,7 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Message;
 import android.os.Process;

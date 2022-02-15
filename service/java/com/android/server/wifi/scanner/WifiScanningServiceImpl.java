@@ -355,7 +355,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     mBackgroundScanStateMachine.sendMessage(Message.obtain(msg));
                     mSingleScanStateMachine.sendMessage(Message.obtain(msg));
                     mPnoScanStateMachine.sendMessage(Message.obtain(msg));
-                    mLastCallerInfoManager.put(LastCallerInfoManager.SCANNING_ENABLED, msg.arg1,
+                    mLastCallerInfoManager.put(WifiManager.API_SCANNING_ENABLED, msg.arg1,
                             msg.sendingUid, msg.arg2, (String) msg.obj, true);
                     break;
                 case WifiScanner.CMD_DISABLE:
@@ -364,7 +364,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     mBackgroundScanStateMachine.sendMessage(Message.obtain(msg));
                     mSingleScanStateMachine.sendMessage(Message.obtain(msg));
                     mPnoScanStateMachine.sendMessage(Message.obtain(msg));
-                    mLastCallerInfoManager.put(LastCallerInfoManager.SCANNING_ENABLED, msg.arg1,
+                    mLastCallerInfoManager.put(WifiManager.API_SCANNING_ENABLED, msg.arg1,
                             msg.sendingUid, msg.arg2, (String) msg.obj, false);
                     break;
                 case WifiScanner.CMD_START_BACKGROUND_SCAN:
@@ -1282,10 +1282,19 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             bucketSettings.report_events = WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN;
 
             ChannelCollection channels = mChannelHelper.createChannelCollection();
+            WifiScanner.ChannelSpec[][] available6GhzChannels =
+                    mChannelHelper.getAvailableScanChannels(WifiScanner.WIFI_BAND_6_GHZ);
+            boolean are6GhzChannelsAvailable = available6GhzChannels.length > 0
+                    && available6GhzChannels[0].length > 0;
             List<WifiNative.HiddenNetwork> hiddenNetworkList = new ArrayList<>();
             for (RequestInfo<ScanSettings> entry : mPendingScans) {
                 settings.scanType = mergeScanTypes(settings.scanType, entry.settings.type);
-                settings.enable6GhzRnr = mergeRnrSetting(settings.enable6GhzRnr, entry.settings);
+                if (are6GhzChannelsAvailable) {
+                    settings.enable6GhzRnr = mergeRnrSetting(
+                            settings.enable6GhzRnr, entry.settings);
+                } else {
+                    settings.enable6GhzRnr = false;
+                }
                 channels.addChannels(entry.settings);
                 for (ScanSettings.HiddenNetwork srcNetwork : entry.settings.hiddenNetworks) {
                     WifiNative.HiddenNetwork hiddenNetwork = new WifiNative.HiddenNetwork();

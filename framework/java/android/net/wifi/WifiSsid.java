@@ -71,9 +71,19 @@ public final class WifiSsid implements Parcelable {
     }
 
     /**
+     * Returns the raw byte array representing this SSID.
+     * @return the SSID
+     */
+    @NonNull
+    public byte[] getBytes() {
+        return mBytes;
+    }
+
+    /**
      * Create a UTF-8 WifiSsid from unquoted plaintext. If the text is null, return an
      * empty WifiSsid object which will return an empty byte array and empty text.
      * @throws IllegalArgumentException if the encoded UTF-8 byte array is longer than 32 bytes.
+     * @hide
      */
     @NonNull
     public static WifiSsid fromUtf8Text(@Nullable CharSequence utf8Text) {
@@ -84,12 +94,24 @@ public final class WifiSsid implements Parcelable {
     }
 
     /**
+     * If the SSID is encoded with UTF-8, this method returns the decoded SSID as plaintext.
+     * Otherwise, it returns {@code null}.
+     * @return the SSID
+     * @hide
+     */
+    @Nullable
+    public CharSequence getUtf8Text() {
+        return decodeSsid(mBytes, StandardCharsets.UTF_8);
+    }
+
+    /**
      * Create a WifiSsid from a string matching the format of {@link WifiSsid#toString()}.
      * If the string is null, return an empty WifiSsid object which will return an empty byte array
      * and empty text.
      * @throws IllegalArgumentException if the string is unquoted but not hexadecimal,
      *                                  if the hexadecimal string is odd-length,
      *                                  or if the encoded byte array is longer than 32 bytes.
+     * @hide
      */
     @NonNull
     public static WifiSsid fromString(@Nullable String string) {
@@ -101,25 +123,6 @@ public final class WifiSsid implements Parcelable {
             return new WifiSsid(string.substring(1, length - 1).getBytes(StandardCharsets.UTF_8));
         }
         return new WifiSsid(HexEncoding.decode(string));
-    }
-
-    /**
-     * Returns the raw byte array representing this SSID.
-     * @return the SSID
-     */
-    @NonNull
-    public byte[] getBytes() {
-        return mBytes;
-    }
-
-    /**
-     * If the SSID is encoded with UTF-8, this method returns the decoded SSID as plaintext.
-     * Otherwise, it returns {@code null}.
-     * @return the SSID
-     */
-    @Nullable
-    public CharSequence getUtf8Text() {
-        return decodeSsid(mBytes, StandardCharsets.UTF_8);
     }
 
     /**
@@ -221,11 +224,11 @@ public final class WifiSsid implements Parcelable {
     public static final String NONE = WifiManager.UNKNOWN_SSID;
 
     /**
-     * Use {@link #fromUtf8Text(CharSequence)} instead.
+     * Use {@link #fromBytes(byte[])} instead.
      * @hide
      */
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link #fromUtf8Text(java.lang.CharSequence)}")
+            publicAlternatives = "{@link #fromBytes(byte[])}")
     public static WifiSsid createFromAsciiEncoded(String asciiEncoded) {
         return fromUtf8Text(asciiEncoded);
     }

@@ -56,7 +56,7 @@ public class PasspointConfigurationTest {
     private static final int MAX_URL_BYTES = 1023;
     private static final int CERTIFICATE_FINGERPRINT_BYTES = 32;
     private static final String TEST_DECORATED_IDENTITY_PREFIX = "androidwifi.dev!";
-
+    private static final long SUBSCRIPTION_EXPIRATION_TIME_MS = 1643996661000L;
     /**
      * Verify parcel write and read consistency for the given configuration.
      *
@@ -657,5 +657,21 @@ public class PasspointConfigurationTest {
         PasspointConfiguration config = new PasspointConfiguration();
 
         config.setDecoratedIdentityPrefix(TEST_DECORATED_IDENTITY_PREFIX.replace('!', 'a'));
+    }
+
+    /**
+     * Tests {@link PasspointConfiguration#getSubscriptionExpirationTimeMillis()} and
+     * {@link PasspointConfiguration#setSubscriptionExpirationTimeInMillis(long)}
+     * <p>
+     */
+    @Test
+    public void testGetSetSubscriptionExpirationTimeMillis() throws Exception {
+        PasspointConfiguration passpointConfiguration = new PasspointConfiguration();
+        assertEquals(Long.MIN_VALUE,
+                passpointConfiguration.getSubscriptionExpirationTimeMillis());
+        passpointConfiguration
+                .setSubscriptionExpirationTimeInMillis(SUBSCRIPTION_EXPIRATION_TIME_MS);
+        assertEquals(SUBSCRIPTION_EXPIRATION_TIME_MS,
+                passpointConfiguration.getSubscriptionExpirationTimeMillis());
     }
 }

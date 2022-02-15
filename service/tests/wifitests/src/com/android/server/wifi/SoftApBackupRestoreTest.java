@@ -26,7 +26,9 @@ import android.content.Context;
 import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiMigration;
+import android.net.wifi.WifiSsid;
 import android.util.BackupUtils;
 import android.util.SparseIntArray;
 
@@ -94,7 +96,7 @@ public class SoftApBackupRestoreTest extends WifiBaseTest {
      */
     public static void assertWifiConfigurationEqualSoftApConfiguration(
             WifiConfiguration backup, SoftApConfiguration restore) {
-        assertEquals(backup.SSID, restore.getSsid());
+        assertEquals(backup.SSID, restore.getWifiSsid().getUtf8Text());
         assertEquals(backup.BSSID, restore.getBssid());
         assertEquals(ApConfigUtil.convertWifiConfigBandToSoftApConfigBand(backup.apBand),
                 restore.getBand());
@@ -390,7 +392,14 @@ public class SoftApBackupRestoreTest extends WifiBaseTest {
         DataOutputStream out = new DataOutputStream(baos);
 
         out.writeInt(version);
-        BackupUtils.writeString(out, config.getSsid());
+        WifiSsid wifiSsid = config.getWifiSsid();
+        if (wifiSsid != null) {
+            CharSequence utf8Ssid = wifiSsid.getUtf8Text();
+            BackupUtils.writeString(out, utf8Ssid != null
+                    ? utf8Ssid.toString() : WifiManager.UNKNOWN_SSID);
+        } else {
+            BackupUtils.writeString(out, null);
+        }
         out.writeInt(config.getBand());
         out.writeInt(config.getChannel());
         BackupUtils.writeString(out, config.getPassphrase());

@@ -34,6 +34,7 @@ import android.database.ContentObserver;
 import android.net.wifi.IActionListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.Handler;
 import android.os.Looper;

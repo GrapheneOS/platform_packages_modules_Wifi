@@ -54,7 +54,7 @@ public class HostapdHalTest extends WifiBaseTest {
     private @Mock HostapdHalHidlImp mIHostapdHidlMock;
     private @Mock Context mContext;
     private @Mock WifiNative.HostapdDeathEventHandler mHostapdHalDeathHandler;
-    private @Mock WifiNative.SoftApListener mSoftApListener;
+    private @Mock WifiNative.SoftApHalCallback mSoftApHalCallback;
     private TestLooper mLooper = new TestLooper();
 
     private class HostapdHalSpy extends HostapdHal {
@@ -167,10 +167,10 @@ public class HostapdHalTest extends WifiBaseTest {
     public void testRegisterApCallback() {
         initializeWithAidlImp(true);
         when(mIHostapdAidlMock.registerApCallback(anyString(),
-                any(WifiNative.SoftApListener.class)))
+                any(WifiNative.SoftApHalCallback.class)))
                 .thenReturn(true);
-        assertTrue(mHostapdHal.registerApCallback(IFACE_NAME, mSoftApListener));
-        verify(mIHostapdAidlMock).registerApCallback(eq(IFACE_NAME), eq(mSoftApListener));
+        assertTrue(mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback));
+        verify(mIHostapdAidlMock).registerApCallback(eq(IFACE_NAME), eq(mSoftApHalCallback));
     }
 
     /**
@@ -187,7 +187,7 @@ public class HostapdHalTest extends WifiBaseTest {
         Builder configurationBuilder = new SoftApConfiguration.Builder();
         SoftApConfiguration config = configurationBuilder.build();
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME, config,
-                isMetered, () -> mSoftApListener.onFailure()));
+                isMetered, () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdAidlMock).addAccessPoint(eq(IFACE_NAME), eq(config),
                 eq(isMetered), any(Runnable.class));
     }

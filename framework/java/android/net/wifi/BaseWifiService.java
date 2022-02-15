@@ -19,31 +19,8 @@ package android.net.wifi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.DhcpInfo;
+import android.net.DhcpOption;
 import android.net.Network;
-import android.net.wifi.CoexUnsafeChannel;
-import android.net.wifi.IActionListener;
-import android.net.wifi.ICoexCallback;
-import android.net.wifi.IDppCallback;
-import android.net.wifi.ILocalOnlyHotspotCallback;
-import android.net.wifi.INetworkRequestMatchCallback;
-import android.net.wifi.IOnWifiActivityEnergyInfoListener;
-import android.net.wifi.IOnWifiUsabilityStatsListener;
-import android.net.wifi.IScanResultsCallback;
-import android.net.wifi.ISoftApCallback;
-import android.net.wifi.ISubsystemRestartCallback;
-import android.net.wifi.ISuggestionConnectionStatusListener;
-import android.net.wifi.ISuggestionUserApprovalStatusListener;
-import android.net.wifi.ITrafficStateCallback;
-import android.net.wifi.IWifiConnectedNetworkScorer;
-import android.net.wifi.IWifiManager;
-import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
-import android.net.wifi.ScanResult;
-import android.net.wifi.SoftApConfiguration;
-import android.net.wifi.WifiAvailableChannel;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.hotspot2.PasspointConfiguration;
@@ -113,8 +90,23 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void setScreenOnScanSchedule(int[] scanSchedule, int[] scanType) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Map<String, Map<Integer, List<ScanResult>>> getAllMatchingFqdnsForScanResults(
             List<ScanResult> scanResults) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setSsidsAllowlist(String packageName, List<WifiSsid> ssids) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<WifiSsid> getSsidsAllowlist(String packageName) {
         throw new UnsupportedOperationException();
     }
 
@@ -131,6 +123,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public int addOrUpdateNetwork(WifiConfiguration config, String packageName, Bundle extras) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** Deprecated - can be removed */
     public int addOrUpdateNetwork(WifiConfiguration config, String packageName) {
         throw new UnsupportedOperationException();
     }
@@ -603,6 +600,14 @@ public class BaseWifiService extends IWifiManager.Stub {
 
     @Override
     public int removeNetworkSuggestions(
+            List<WifiNetworkSuggestion> networkSuggestions, String callingPackageName, int action) {
+        throw new UnsupportedOperationException();
+    }
+    /**
+     * @deprecated Replaced by {@link #removeNetworkSuggestions(List, String, int)}
+     */
+    @Deprecated
+    public int removeNetworkSuggestions(
             List<WifiNetworkSuggestion> networkSuggestions, String callingPackageName) {
         throw new UnsupportedOperationException();
     }
@@ -731,6 +736,24 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void setExternalPnoScanRequest(@NonNull IBinder binder,
+            @NonNull IPnoScanResultsCallback callback,
+            @NonNull List<WifiSsid> ssids, @NonNull int[] frequencies,
+            @NonNull String packageName, @NonNull String featureId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clearExternalPnoScanRequest() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getLastCallerInfoForApi(int apiType, @NonNull ILastCallerListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean setWifiConnectedNetworkScorer(IBinder binder,
             IWifiConnectedNetworkScorer scorer) {
         throw new UnsupportedOperationException();
@@ -822,5 +845,47 @@ public class BaseWifiService extends IWifiManager.Stub {
     public void setWifiPasspointEnabled(boolean enabled) {
         throw new UnsupportedOperationException();
     }
-}
 
+    @Override
+    public @WifiManager.WifiMultiInternetMode int getStaConcurrencyForMultiInternetMode() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean setStaConcurrencyForMultiInternetMode(
+            @WifiManager.WifiMultiInternetMode int mode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void validateCurrentWifiMeetsAdminRequirements() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String[] getOemPrivilegedAdmins() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void replyToP2pInvitationReceivedDialog(
+            int dialogId, boolean accepted, @Nullable String optionalPin) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addCustomDhcpOptions(WifiSsid ssid, byte[] oui, @NonNull List<DhcpOption> options) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeCustomDhcpOptions(WifiSsid ssid, byte[] oui) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void reportImpactToCreateIfaceRequest(String packageName, int interfaceType,
+            boolean queryForNewInterface, IInterfaceCreationInfoCallback callback) {
+        throw new UnsupportedOperationException();
+    }
+}

@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.net.wifi.WifiContext;
 import android.os.Looper;
 import android.provider.Settings;
 

@@ -680,7 +680,7 @@ public class WifiConfigurationTestUtil {
             WifiConfiguration configuration, String bssid, int level, int frequency,
             long tsf, long seen) {
         String caps = getScanResultCapsForNetwork(configuration);
-        WifiSsid ssid = WifiSsid.fromUtf8Text(configuration.getPrintableSsid());
+        WifiSsid ssid = WifiSsid.fromString(configuration.SSID);
         return new ScanDetail(ssid, bssid, caps, level, frequency, tsf, seen);
     }
 

@@ -64,9 +64,12 @@ public class WifiGlobals {
     private final int mClientModeImplNumLogRecs;
     // This is read from the overlay, cache it after boot up.
     private final boolean mSaveFactoryMacToConfigStoreEnabled;
+    private final int mWifiLowConnectedScoreThresholdToTriggerScanForMbb;
+    private final int mWifiLowConnectedScoreScanPeriodSeconds;
 
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
+    private boolean mIsUsingExternalScorer = false;
 
     public WifiGlobals(Context context) {
         mContext = context;
@@ -89,6 +92,10 @@ public class WifiGlobals {
                 .getInteger(R.integer.config_wifiClientModeImplNumLogRecs);
         mSaveFactoryMacToConfigStoreEnabled = mContext.getResources()
                 .getBoolean(R.bool.config_wifiSaveFactoryMacToWifiConfigStore);
+        mWifiLowConnectedScoreThresholdToTriggerScanForMbb = mContext.getResources().getInteger(
+                R.integer.config_wifiLowConnectedScoreThresholdToTriggerScanForMbb);
+        mWifiLowConnectedScoreScanPeriodSeconds = mContext.getResources().getInteger(
+                R.integer.config_wifiLowConnectedScoreScanPeriodSeconds);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -206,6 +213,16 @@ public class WifiGlobals {
         return mIsShowKeyVerboseLoggingModeEnabled;
     }
 
+    /** Set whether the external scorer is being used **/
+    public void setUsingExternalScorer(boolean isUsingExternalScorer) {
+        mIsUsingExternalScorer = isUsingExternalScorer;
+    }
+
+    /** Get whether the external scorer is being used **/
+    public boolean isUsingExternalScorer() {
+        return mIsUsingExternalScorer;
+    }
+
     /** Get the prefix of the default wifi p2p device name. */
     public String getWifiP2pDeviceNamePrefix() {
         return mP2pDeviceNamePrefix;
@@ -226,6 +243,16 @@ public class WifiGlobals {
         return mSaveFactoryMacToConfigStoreEnabled;
     }
 
+    /** Get the low score threshold to do scan for MBB when external scorer is not used. **/
+    public int getWifiLowConnectedScoreThresholdToTriggerScanForMbb() {
+        return mWifiLowConnectedScoreThresholdToTriggerScanForMbb;
+    }
+
+    /** Get the minimum period between the extra scans triggered for MBB when score is low **/
+    public int getWifiLowConnectedScoreScanPeriodSeconds() {
+        return mWifiLowConnectedScoreScanPeriodSeconds;
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -241,5 +268,11 @@ public class WifiGlobals {
         pw.println("mP2pDeviceNamePostfixNumDigits=" + mP2pDeviceNamePostfixNumDigits);
         pw.println("mClientModeImplNumLogRecs=" + mClientModeImplNumLogRecs);
         pw.println("mSaveFactoryMacToConfigStoreEnabled=" + mSaveFactoryMacToConfigStoreEnabled);
+        pw.println("mWifiLowConnectedScoreThresholdToTriggerScanForMbb="
+                + mWifiLowConnectedScoreThresholdToTriggerScanForMbb);
+        pw.println("mWifiLowConnectedScoreScanPeriodSeconds="
+                + mWifiLowConnectedScoreScanPeriodSeconds);
+        pw.println("mIsUsingExternalScorer="
+                + mIsUsingExternalScorer);
     }
 }

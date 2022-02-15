@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -50,16 +51,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.net.DhcpOption;
 import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
@@ -75,6 +79,7 @@ import android.util.Pair;
 import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiScoreCard.PerNetwork;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.UserActionEvent;
 import com.android.server.wifi.util.LruConnectionTracker;
@@ -324,6 +329,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     private void mockIsDeviceOwner(boolean result) {
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(result);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt())).thenReturn(result);
+    }
+
+    private void mockIsAdmin(boolean result) {
+        when(mWifiPermissionsUtil.isAdmin(anyInt(), any())).thenReturn(result);
     }
 
     /**
@@ -754,7 +763,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     /**
      * Verifies that the device owner could modify other other fields in the Wificonfiguration
-     * but not the macRandomizationSetting field.
+     * but not the macRandomizationSetting field for networks they do not own.
      */
     @Test
     public void testCannotUpdateMacRandomizationSettingWithoutPermission() {
@@ -780,6 +789,42 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NONE;
         networkUpdateResult = updateNetworkToWifiConfigManager(openNetwork);
         assertEquals(WifiConfiguration.INVALID_NETWORK_ID, networkUpdateResult.getNetworkId());
+    }
+
+    /**
+     * Verifies that the admin could set and modify the macRandomizationSetting field
+     * for networks they own.
+     */
+    @Test
+    public void testCanUpdateMacRandomizationSettingForAdminNetwork() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        ArgumentCaptor<WifiConfiguration> wifiConfigCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
+        mockIsDeviceOwner(true);
+        mockIsAdmin(true);
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NONE;
+
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        verify(mWcmListener).onNetworkAdded(wifiConfigCaptor.capture());
+        assertEquals(openNetwork.networkId, wifiConfigCaptor.getValue().networkId);
+        assertEquals(wifiConfigCaptor.getValue().macRandomizationSetting,
+                WifiConfiguration.RANDOMIZATION_NONE);
+        reset(mWcmListener);
+
+        // Change macRandomizationSetting for the network and verify success
+        openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
+        NetworkUpdateResult networkUpdateResult =
+                mWifiConfigManager.addOrUpdateNetwork(openNetwork, TEST_CREATOR_UID);
+        assertNotEquals(WifiConfiguration.INVALID_NETWORK_ID, networkUpdateResult.getNetworkId());
+        verify(mWcmListener).onNetworkUpdated(
+                wifiConfigCaptor.capture(), wifiConfigCaptor.capture());
+        WifiConfiguration newConfig = wifiConfigCaptor.getAllValues().get(1);
+        assertEquals(WifiConfiguration.RANDOMIZATION_AUTO, newConfig.macRandomizationSetting);
+        assertEquals(openNetwork.networkId, newConfig.networkId);
+        reset(mWcmListener);
     }
 
     /**
@@ -1915,8 +1960,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         ScanDetail eapSuiteBNetworkScanDetail = createScanDetailForNetwork(eapSuiteBNetwork);
 
         // Now mix and match parameters from different scan details.
-        openNetworkScanDetail.getScanResult().SSID =
-                wepNetworkScanDetail.getScanResult().SSID;
+        openNetworkScanDetail.getScanResult().setWifiSsid(
+                wepNetworkScanDetail.getScanResult().getWifiSsid());
         wepNetworkScanDetail.getScanResult().capabilities =
                 pskNetworkScanDetail.getScanResult().capabilities;
         pskNetworkScanDetail.getScanResult().capabilities =
@@ -4244,6 +4289,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration network1 = WifiConfigurationTestUtil.createWepHiddenNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskHiddenNetwork();
         WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
+        network3.allowAutojoin = false;
         verifyAddNetworkToWifiConfigManager(network1);
         verifyAddNetworkToWifiConfigManager(network2);
         verifyAddNetworkToWifiConfigManager(network3);
@@ -4258,11 +4304,16 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         // Retrieve the hidden network list & verify the order of the networks returned.
         List<WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks =
-                mWifiConfigManager.retrieveHiddenNetworkList();
+                mWifiConfigManager.retrieveHiddenNetworkList(false);
         assertEquals(3, hiddenNetworks.size());
         assertEquals(network3.SSID, hiddenNetworks.get(0).ssid);
         assertEquals(network2.SSID, hiddenNetworks.get(1).ssid);
         assertEquals(network1.SSID, hiddenNetworks.get(2).ssid);
+
+        hiddenNetworks = mWifiConfigManager.retrieveHiddenNetworkList(true);
+        assertEquals(2, hiddenNetworks.size());
+        assertEquals(network2.SSID, hiddenNetworks.get(0).ssid);
+        assertEquals(network1.SSID, hiddenNetworks.get(1).ssid);
     }
 
     /**
@@ -6349,6 +6400,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration ephemeralCarrierNetwork = WifiConfigurationTestUtil.createPskNetwork();
         ephemeralCarrierNetwork.ephemeral = true;
         ephemeralCarrierNetwork.subscriptionId = DATA_SUBID;
+        ephemeralCarrierNetwork.creatorName = TEST_CREATOR_NAME;
         WifiConfiguration ephemeralNonCarrierNetwork = WifiConfigurationTestUtil.createPskNetwork();
         ephemeralNonCarrierNetwork.ephemeral = true;
         verifyAddNetworkToWifiConfigManager(savedPskNetwork);
@@ -6356,9 +6408,17 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyAddEphemeralNetworkToWifiConfigManager(ephemeralNonCarrierNetwork);
 
         List<WifiConfiguration> networks = Arrays.asList(savedPskNetwork,
-                ephemeralNonCarrierNetwork);
-        mWifiConfigManager.removeEphemeralCarrierNetworks();
+                ephemeralNonCarrierNetwork, ephemeralCarrierNetwork);
+        mWifiConfigManager.removeEphemeralCarrierNetworks(Set.of(TEST_CREATOR_NAME));
         List<WifiConfiguration> retrievedNetworks =
+                mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
+                networks, retrievedNetworks);
+
+        networks = Arrays.asList(savedPskNetwork,
+                ephemeralNonCarrierNetwork);
+        mWifiConfigManager.removeEphemeralCarrierNetworks(Collections.emptySet());
+        retrievedNetworks =
                 mWifiConfigManager.getConfiguredNetworksWithPasswords();
         WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
                 networks, retrievedNetworks);
@@ -6556,6 +6616,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
             WifiConfiguration upgradableConfig) {
         int baseSecurityType = baseConfig.getDefaultSecurityParams().getSecurityType();
         int upgradableSecurityType = upgradableConfig.getDefaultSecurityParams().getSecurityType();
+
+        // The source guarantees that base configuration has necessary auto-upgrade type.
+        WifiConfigurationUtil.addUpgradableSecurityTypeIfNecessary(baseConfig);
 
         // Set up the store data.
         List<WifiConfiguration> sharedNetworks = new ArrayList<WifiConfiguration>() {
@@ -7148,5 +7211,103 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         config.networkId = result.getNetworkId();
         NetworkUpdateResult updateResult = addNetworkToWifiConfigManager(config);
         assertTrue(result.getNetworkId() == updateResult.getNetworkId());
+    }
+
+    private WifiConfiguration prepareTofuEapConfig(int eapMethod, int phase2Method) {
+        WifiConfiguration config = new WifiConfiguration();
+        config.SSID = "\"TofuSsid\"";
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP);
+        config.enterpriseConfig.setEapMethod(eapMethod);
+        config.enterpriseConfig.setPhase2Method(phase2Method);
+        config.enterpriseConfig.enableTrustOnFirstUse(true);
+        return config;
+    }
+
+    private void verifyAddTofuEnterpriseConfig(boolean isTofuSupported) {
+        long featureSet = isTofuSupported ? WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE : 0L;
+        when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(featureSet);
+
+        WifiConfiguration config = prepareTofuEapConfig(
+                WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.NONE);
+        NetworkUpdateResult result = addNetworkToWifiConfigManager(config);
+        if (isTofuSupported) {
+            assertTrue(result.getNetworkId() != WifiConfiguration.INVALID_NETWORK_ID);
+        } else {
+            assertEquals(WifiConfiguration.INVALID_NETWORK_ID,
+                    WifiConfiguration.INVALID_NETWORK_ID);
+        }
+
+        // The config uses EAP-SIM type which does not use Server Cert.
+        config = prepareTofuEapConfig(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        config.enterpriseConfig.enableTrustOnFirstUse(true);
+        result = addNetworkToWifiConfigManager(config);
+        assertEquals(WifiConfiguration.INVALID_NETWORK_ID, result.getNetworkId());
+
+        // The config alraedy has Root CA cert.
+        config = prepareTofuEapConfig(
+                WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.NONE);
+        config.enterpriseConfig.setCaPath("/path/to/ca");
+        config.enterpriseConfig.enableTrustOnFirstUse(true);
+        result = addNetworkToWifiConfigManager(config);
+        assertEquals(WifiConfiguration.INVALID_NETWORK_ID, result.getNetworkId());
+    }
+
+    /**
+     * Verifies the addition of a network with Trust On First Use support.
+     */
+    @Test
+    public void testAddTofuEnterpriseConfigWithTofuSupport() {
+        verifyAddTofuEnterpriseConfig(true);
+    }
+
+    /**
+     * Verifies the addition of a network without Trust On First Use support.
+     */
+    @Test
+    public void testAddTofuEnterpriseConfigWithoutTofuSupport() {
+        verifyAddTofuEnterpriseConfig(false);
+    }
+
+    @Test
+    public void testCustomDhcpOptions() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        byte[] oui1 = new byte[]{0x01, 0x02, 0x03};
+        byte[] oui2 = new byte[]{0x04, 0x05, 0x06};
+        byte[] oui3 = new byte[]{0x07, 0x08, 0x09};
+
+        ArrayList<DhcpOption> option1 = new ArrayList<DhcpOption>(
+                Arrays.asList(new DhcpOption((byte) 0x10, new byte[]{0x11, 0x12})));
+        ArrayList<DhcpOption> option2 = new ArrayList<DhcpOption>(
+                Arrays.asList(new DhcpOption((byte) 0x13, new byte[]{0x14, 0x15})));
+        ArrayList<DhcpOption> option3 = new ArrayList<DhcpOption>(
+                Arrays.asList(new DhcpOption((byte) 0x16, new byte[]{0x17})));
+        ArrayList<DhcpOption> option23 = new ArrayList<DhcpOption>();
+        option23.addAll(option2);
+        option23.addAll(option3);
+
+        mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui1, option1);
+        mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui2, option2);
+        mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui3, option3);
+        mLooper.dispatchAll();
+        assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui1)).size());
+        assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2)).size());
+        assertEquals(2, mWifiConfigManager.getCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2, oui3)).size());
+
+        mWifiConfigManager.removeCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui1);
+        mLooper.dispatchAll();
+        assertEquals(0, mWifiConfigManager.getCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui1)).size());
+        List<DhcpOption> actual2 = mWifiConfigManager
+                .getCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2));
+        assertEquals(option2, actual2);
+        List<DhcpOption> actual23 = mWifiConfigManager
+                .getCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2, oui3));
+        assertTrue(option23.size() == actual23.size());
+        assertTrue(option23.containsAll(actual23));
+        assertTrue(actual23.containsAll(option23));
     }
 }

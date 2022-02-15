@@ -23,6 +23,7 @@ import android.net.wifi.hotspot2.pps.Credential;
 import android.net.wifi.hotspot2.pps.HomeSp;
 import android.net.wifi.hotspot2.pps.Policy;
 import android.net.wifi.hotspot2.pps.UpdateParameter;
+import android.os.ParcelUuid;
 import android.util.Xml;
 
 import androidx.test.filters.SmallTest;
@@ -56,6 +57,8 @@ public class PasspointXmlUtilsTest extends WifiBaseTest {
     private static final int TEST_CARRIER_ID = 129;
     private static final int TEST_SUBSCRIPTION_ID = 1;
     private static final String TEST_DECORATED_IDENTITY_PREFIX = "androidwifi.dev!";
+    private static final ParcelUuid GROUP_UUID = ParcelUuid
+            .fromString("0000110B-0000-1000-8000-00805F9B34FB");
 
     /**
      * Helper function for generating a {@link PasspointConfiguration} for testing the XML
@@ -183,6 +186,7 @@ public class PasspointXmlUtilsTest extends WifiBaseTest {
         config.setOemPrivate(true);
         config.setCarrierId(TEST_CARRIER_ID);
         config.setSubscriptionId(TEST_SUBSCRIPTION_ID);
+        config.setSubscriptionGroup(GROUP_UUID);
 
         // Extensions
         if (SdkLevel.isAtLeastS()) {

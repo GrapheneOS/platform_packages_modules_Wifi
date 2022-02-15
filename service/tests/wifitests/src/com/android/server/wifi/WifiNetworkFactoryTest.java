@@ -16,9 +16,6 @@
 
 package com.android.server.wifi;
 
-import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
-import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE;
-import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_GONE;
 import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
 
@@ -79,6 +76,7 @@ import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.INetworkRequestUserSelectionCallback;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiScanner;
@@ -156,7 +154,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     private static final String TEST_BSSID_OUI_MASK = "ff:ff:ff:00:00:00";
     private static final String TEST_WPA_PRESHARED_KEY = "\"password123\"";
 
-    @Mock Context mContext;
+    @Mock WifiContext mContext;
     @Mock Resources mResources;
     @Mock ActivityManager mActivityManager;
     @Mock AlarmManager mAlarmManager;
@@ -168,6 +166,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     @Mock WifiConfigManager mWifiConfigManager;
     @Mock WifiConfigStore mWifiConfigStore;
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock FrameworkFacade mFrameworkFacade;
     @Mock WifiScanner mWifiScanner;
     @Mock PackageManager mPackageManager;
     @Mock IBinder mAppBinder;
@@ -175,11 +174,13 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     @Mock ConcreteClientModeManager mClientModeManager;
     @Mock ConnectivityManager mConnectivityManager;
     @Mock WifiMetrics mWifiMetrics;
+    @Mock WifiNative mWifiNative;
     @Mock NetworkProvider mNetworkProvider;
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock ConnectHelper mConnectHelper;
     @Mock PowerManager mPowerManager;
     @Mock ClientModeImplMonitor mCmiMonitor;
+    @Mock MultiInternetManager mMultiInternetManager;
     private @Mock ClientModeManager mPrimaryClientModeManager;
     private @Mock WifiGlobals mWifiGlobals;
     private MockitoSession mStaticMockSession = null;
@@ -246,15 +247,16 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         when(mResources.getBoolean(
                 eq(R.bool.config_wifiUseHalApiToDisableFwRoaming)))
                 .thenReturn(true);
+        when(mResources.getBoolean(
+                eq(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)))
+                .thenReturn(false);
         when(mPackageManager.getNameForUid(TEST_UID_1)).thenReturn(TEST_PACKAGE_NAME_1);
         when(mPackageManager.getNameForUid(TEST_UID_2)).thenReturn(TEST_PACKAGE_NAME_2);
         when(mPackageManager.getApplicationInfoAsUser(any(), anyInt(), any()))
                 .thenReturn(new ApplicationInfo());
         when(mPackageManager.getApplicationLabel(any())).thenReturn(TEST_APP_NAME);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, false);
+        mockPackageImportance(TEST_PACKAGE_NAME_2, true, false);
         when(mWifiInjector.getWifiScanner()).thenReturn(mWifiScanner);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
@@ -275,6 +277,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
             }
         }).when(mActiveModeWarden).requestLocalOnlyClientModeManager(any(), any(), any(), any());
         when(mClientModeManager.getRole()).thenReturn(ActiveModeManager.ROLE_CLIENT_PRIMARY);
+        when(mFrameworkFacade.getSettingsWorkSource(any())).thenReturn(
+                new WorkSource(Process.SYSTEM_UID, "system-service"));
 
         when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(
                 WifiManager.WIFI_FEATURE_WPA3_SAE | WifiManager.WIFI_FEATURE_OWE);
@@ -283,7 +287,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 mNetworkCapabilities, mActivityManager, mAlarmManager, mAppOpsManager,
                 mClock, mWifiInjector, mWifiConnectivityManager,
                 mWifiConfigManager, mWifiConfigStore, mWifiPermissionsUtil, mWifiMetrics,
-                mActiveModeWarden, mConnectHelper, mCmiMonitor);
+                mWifiNative, mActiveModeWarden, mConnectHelper, mCmiMonitor, mFrameworkFacade,
+                mMultiInternetManager);
 
         verify(mContext, atLeastOnce()).registerReceiver(
                 mBroadcastReceiverCaptor.capture(), any(), any(), any());
@@ -326,6 +331,14 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         if (null != mStaticMockSession) {
             mStaticMockSession.finishMocking();
         }
+    }
+
+    private void mockPackageImportance(String packageName, boolean isFgAppOrService,
+            boolean isFgApp) {
+        when(mFrameworkFacade.isRequestFromForegroundAppOrService(any(), eq(packageName)))
+                .thenReturn(isFgAppOrService);
+        when(mFrameworkFacade.isRequestFromForegroundApp(any(), eq(packageName)))
+                .thenReturn(isFgApp);
     }
 
     /**
@@ -413,8 +426,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     @Test
     public void testHandleAcceptNetworkRequestFromWithInvalidWifiNetworkSpecifier()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_GONE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, false, false);
+
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID_1))
                 .thenReturn(true);
         doThrow(new SecurityException()).when(mAppOpsManager).checkPackage(anyInt(), anyString());
@@ -431,8 +444,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromWithInternetCapability() throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
         mNetworkRequest.networkCapabilities.addCapability(
@@ -449,8 +461,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromNonFgAppOrSvcWithSpecifier() throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE + 1);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, false, false);
 
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
 
@@ -465,8 +476,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromFgAppWithSpecifier() {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
 
@@ -479,8 +489,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromNetworkSettingAppWithSpecifier() {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_GONE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, false, false);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID_1))
                 .thenReturn(true);
 
@@ -495,10 +504,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromFgAppWithSpecifierWithPendingRequestFromFgSvc() {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND);
+        mockPackageImportance(TEST_PACKAGE_NAME_2, true, true);
 
         // Handle request 1.
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
@@ -516,10 +522,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromFgSvcWithSpecifierWithPendingRequestFromFgSvc() {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
 
         // Handle request 1.
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
@@ -537,10 +539,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testHandleAcceptNetworkRequestFromFgAppWithSpecifierWithPendingRequestFromFgApp() {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        mockPackageImportance(TEST_PACKAGE_NAME_2, true, true);
 
         // Handle request 1.
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
@@ -559,10 +559,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     @Test
     public void testHandleAcceptNetworkRequestFromFgSvcWithSpecifierWithPendingRequestFromFgApp()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         // Handle request 1.
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
@@ -586,10 +583,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void
             testHandleAcceptNetworkRequestFromFgSvcWithSpecifierWithSamePendingRequestFromFgApp()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         // Handle request 1.
         attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
@@ -609,10 +603,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void
             testHandleAcceptNetworkRequestFromFgAppWithSpecifierWithConnectedRequestFromFgApp()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        mockPackageImportance(TEST_PACKAGE_NAME_2, true, true);
 
         // Connect to request 1
         sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
@@ -635,10 +627,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void
             testHandleAcceptNetworkRequestFromFgSvcWithSpecifierWithConnectedRequestFromFgApp()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         // Connect to request 1
         sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
@@ -665,10 +654,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void
             testHandleAcceptNetworkRequestFromFgSvcWithSpecifierWithSameConnectedRequestFromFgApp()
             throws Exception {
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_1))
-                .thenReturn(IMPORTANCE_FOREGROUND);
-        when(mActivityManager.getPackageImportance(TEST_PACKAGE_NAME_2))
-                .thenReturn(IMPORTANCE_FOREGROUND_SERVICE);
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
 
         // Connect to request 1
         sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
@@ -1254,6 +1240,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         sendUserSelectionSelect(networkRequestUserSelectionCallback, selectedNetwork);
         mLooper.dispatchAll();
 
+        // verify(mWifiConnectivityManager).isStaConcurrencyForMultiInternetEnabled();
         // Verify we did not attempt to trigger a connection or disable connectivity manager.
         verifyNoMoreInteractions(mClientModeManager, mWifiConnectivityManager);
     }
@@ -1279,6 +1266,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         sendUserSelectionSelect(networkRequestUserSelectionCallback, selectedNetwork);
         mLooper.dispatchAll();
 
+        // verify(mWifiConnectivityManager, times(2)).isStaConcurrencyForMultiInternetEnabled();
         // Verify we did not attempt to trigger a connection or disable connectivity manager.
         verifyNoMoreInteractions(mClientModeManager, mWifiConnectivityManager, mWifiConfigManager);
     }
@@ -2332,6 +2320,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void testHandleNewNetworkRequestWithSpecifierWhenAwaitingCmRetrieval() throws Exception {
         doNothing().when(mActiveModeWarden).requestLocalOnlyClientModeManager(
                 any(), any(), any(), any());
+        WorkSource ws = new WorkSource(TEST_UID_1, TEST_PACKAGE_NAME_1);
+        ws.add(new WorkSource(Process.SYSTEM_UID, "system-service"));
 
         when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
 
@@ -2351,7 +2341,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(
                         ActiveModeWarden.ExternalClientModeManagerRequestListener.class);
         verify(mActiveModeWarden).requestLocalOnlyClientModeManager(
-                cmListenerCaptor.capture(), eq(new WorkSource(TEST_UID_1, TEST_PACKAGE_NAME_1)),
+                cmListenerCaptor.capture(), eq(ws),
                 eq("\"" + TEST_SSID_1 + "\""), eq(TEST_BSSID_1));
         assertNotNull(cmListenerCaptor.getValue());
 
@@ -2417,6 +2407,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Remove the stale request1 & ensure nothing happens.
         mWifiNetworkFactory.releaseNetworkFor(oldRequest);
 
+        // verify(mWifiConnectivityManager, times(2)).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager, mNetworkRequestMatchCallback);
 
@@ -2461,6 +2452,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Remove the stale request1 & ensure nothing happens.
         mWifiNetworkFactory.releaseNetworkFor(oldRequest);
 
+        // verify(mWifiConnectivityManager, times(2)).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager, mNetworkRequestMatchCallback);
 
@@ -2497,6 +2489,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Remove the stale request1 & ensure nothing happens.
         mWifiNetworkFactory.releaseNetworkFor(oldRequest);
 
+        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager, mNetworkRequestMatchCallback);
 
@@ -2543,6 +2536,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.releaseNetworkFor(oldRequest);
         verify(mClientModeManager, times(2)).disconnect();
         verify(mClientModeManager, times(3)).getRole();
+        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
@@ -2554,6 +2548,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mClientModeManager).enableRoaming(true);
         verify(mActiveModeWarden).removeClientModeManager(any());
+        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
@@ -2579,6 +2574,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.needNetworkFor(mNetworkRequest);
         mLooper.dispatchAll();
 
+        // verify(mWifiConnectivityManager).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
     }
@@ -2622,6 +2618,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mNetworkRequest.networkCapabilities.setNetworkSpecifier(specifier1);
         mWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
 
+        // verify(mWifiConnectivityManager, times(4)).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
 
@@ -2679,6 +2676,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mClientModeManager).enableRoaming(true);
         verify(mActiveModeWarden).removeClientModeManager(any());
+        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
@@ -2964,9 +2962,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      * Verify that we bypass user approval for a specific request for a non-open network
      * (not access point) that was approved previously.
      */
-    @Test
-    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApproved()
-            throws Exception {
+    private void testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApproved(
+            boolean bypassActivated) throws Exception {
         ArgumentCaptor<WifiConfiguration> configurationArgumentCaptor =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
         // 1. First request (no user approval bypass)
@@ -3006,14 +3003,33 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(List.class);
         // Verify the match callback is not triggered since the UI is not started.
         matchedScanResultsCaptor = ArgumentCaptor.forClass(List.class);
-        verify(mNetworkRequestMatchCallback, never()).onMatch(matchedScanResultsCaptor.capture());
+        verify(mNetworkRequestMatchCallback, bypassActivated ? never() : times(1)).onMatch(
+                matchedScanResultsCaptor.capture());
 
         // Verify we added a WIfiConfiguration with non-null BSSID, and a connection is initiated.
-        verify(mWifiConfigManager, times(2)).addOrUpdateNetwork(
+        verify(mWifiConfigManager, bypassActivated ? times(2) : times(1)).addOrUpdateNetwork(
                 configurationArgumentCaptor.capture(), anyInt(), anyString());
-        assertNotNull(configurationArgumentCaptor.getValue().BSSID);
-        verify(mConnectHelper).connectToNetwork(any(), any(),
-                mConnectListenerArgumentCaptor.capture(), anyInt());
+        assertNotNull(configurationArgumentCaptor.getAllValues().get(0).BSSID);
+        if (bypassActivated) {
+            assertNotNull(configurationArgumentCaptor.getAllValues().get(1).BSSID);
+            verify(mConnectHelper).connectToNetwork(any(), any(),
+                    mConnectListenerArgumentCaptor.capture(), anyInt());
+        }
+    }
+
+    @Test
+    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApprovedNoStaSta()
+            throws Exception {
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApproved(true);
+    }
+
+    @Test
+    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApprovedYesStaSta()
+            throws Exception {
+        when(mResources.getBoolean(
+                eq(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)))
+                .thenReturn(true);
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidMatchApproved(false);
     }
 
     /**
@@ -3201,9 +3217,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      * Verify the user approval bypass for a specific request for an access point that was already
      * approved previously and the scan result is present in the cached scan results.
      */
-    @Test
-    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApproved()
-            throws Exception {
+    private void testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApproved(
+            boolean bypassActivated) throws Exception {
         // 1. First request (no user approval bypass)
         sendNetworkRequestAndSetupForConnectionStatus();
 
@@ -3225,24 +3240,41 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.needNetworkFor(mNetworkRequest);
 
         // Verify we did not trigger the UI for the second request.
-        verify(mContext, times(1)).startActivityAsUser(any(), any());
+        verify(mContext, times(bypassActivated ? 1 : 2)).startActivityAsUser(any(), any());
         // Verify we did not trigger a scan.
-        verify(mWifiScanner, never()).startScan(any(), any(), any(), any());
+        verify(mWifiScanner, bypassActivated ? never() : times(1)).startScan(any(), any(), any(),
+                any());
         // Verify we did not trigger the match callback.
         verify(mNetworkRequestMatchCallback, never()).onMatch(anyList());
         // Verify that we sent a connection attempt to ClientModeManager
-        verify(mConnectHelper).connectToNetwork(eq(mClientModeManager),  any(),
-                mConnectListenerArgumentCaptor.capture(), anyInt());
+        if (bypassActivated) {
+            verify(mConnectHelper).connectToNetwork(eq(mClientModeManager), any(),
+                    mConnectListenerArgumentCaptor.capture(), anyInt());
 
-        verify(mWifiMetrics).incrementNetworkRequestApiNumUserApprovalBypass();
+            verify(mWifiMetrics).incrementNetworkRequestApiNumUserApprovalBypass();
+        }
+    }
+
+    @Test
+    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedNoStaSta()
+            throws Exception {
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApproved(true);
+    }
+
+    @Test
+    public void testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedYesStaSta()
+            throws Exception {
+        when(mResources.getBoolean(
+                eq(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)))
+                .thenReturn(true);
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApproved(false);
     }
 
     /**
      * Verify the user approval bypass for a specific request for an access point that was already
      * approved previously via CDM and the scan result is present in the cached scan results.
      */
-    @Test
-    public void
+    private void
             testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedViaCDM()
             throws Exception {
         // Setup scan data for WPA-PSK networks.
@@ -3279,6 +3311,23 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 mConnectListenerArgumentCaptor.capture(), anyInt());
 
         verify(mWifiMetrics).incrementNetworkRequestApiNumUserApprovalBypass();
+    }
+
+    @Test
+    public void
+            testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedViaCDMNoStaSta()
+            throws Exception {
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedViaCDM();
+    }
+
+    @Test
+    public void
+            testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedViaCDMYesStaSta()
+            throws Exception {
+        when(mResources.getBoolean(
+                eq(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)))
+                .thenReturn(true);
+        testNetworkSpecifierMatchSuccessUsingLiteralSsidAndBssidMatchApprovedViaCDM();
     }
 
     /**
@@ -3607,22 +3656,22 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Scan results have increasing RSSI.
         scanResults[0].SSID = ssid1;
-        scanResults[0].wifiSsid = WifiSsid.fromUtf8Text(ssid1);
+        scanResults[0].setWifiSsid(WifiSsid.fromUtf8Text(ssid1));
         scanResults[0].BSSID = TEST_BSSID_1;
         scanResults[0].capabilities = caps;
         scanResults[0].level = -45;
         scanResults[1].SSID = ssid2;
-        scanResults[1].wifiSsid = WifiSsid.fromUtf8Text(ssid2);
+        scanResults[1].setWifiSsid(WifiSsid.fromUtf8Text(ssid2));
         scanResults[1].BSSID = TEST_BSSID_2;
         scanResults[1].capabilities = caps;
         scanResults[1].level = -35;
         scanResults[2].SSID = ssid3;
-        scanResults[2].wifiSsid = WifiSsid.fromUtf8Text(ssid3);
+        scanResults[2].setWifiSsid(WifiSsid.fromUtf8Text(ssid3));
         scanResults[2].BSSID = TEST_BSSID_3;
         scanResults[2].capabilities = caps;
         scanResults[2].level = -25;
         scanResults[3].SSID = ssid4;
-        scanResults[3].wifiSsid = WifiSsid.fromUtf8Text(ssid4);
+        scanResults[3].setWifiSsid(WifiSsid.fromUtf8Text(ssid4));
         scanResults[3].BSSID = TEST_BSSID_4;
         scanResults[3].capabilities = caps;
         scanResults[3].level = -15;
@@ -3752,6 +3801,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         for (int i = 0; i < ssids.length; i++) {
             for (int j = i * nums; j < (i + 1) * nums; j++) {
                 scanResults[j].SSID = ssids[i];
+                scanResults[j].setWifiSsid(WifiSsid.fromUtf8Text(ssids[i]));
                 scanResults[j].BSSID = baseBssid + Integer.toHexString(16 + j);
                 scanResults[j].capabilities = caps;
                 scanResults[j].level = -45;

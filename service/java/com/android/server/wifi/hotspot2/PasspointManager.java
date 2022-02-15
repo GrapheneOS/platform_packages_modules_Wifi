@@ -589,9 +589,12 @@ public class PasspointManager {
         }
         provider.uninstallCertsAndKeys();
         String packageName = provider.getPackageName();
-        // Remove any configs corresponding to the profile in WifiConfigManager.
-        mWifiConfigManager.removePasspointConfiguredNetwork(
-                provider.getWifiConfig().getProfileKey());
+        if (!provider.isFromSuggestion()) {
+            // Remove non-suggestion configs corresponding to the profile in WifiConfigManager.
+            // Suggestion passpoint will be handled by WifiNetworkSuggestionsManager
+            mWifiConfigManager.removePasspointConfiguredNetwork(
+                    provider.getWifiConfig().getProfileKey());
+        }
         String uniqueId = provider.getConfig().getUniqueId();
         mProviders.remove(uniqueId);
         mWifiConfigManager.removeConnectChoiceFromAllNetworks(uniqueId);
@@ -1644,5 +1647,18 @@ public class PasspointManager {
             mEnabled = enabled;
             mSettingsStore.handleWifiPasspointEnabled(enabled);
         }
+    }
+
+    /**
+     * Get the selected RCOI for a particular Passpoint network connection
+     * @param uniqueId The Unique ID of the Passpoint configuration
+     * @param ssid The target SSID
+     * @return Selected RCOI for a network, or 0 if none.
+     */
+    public long getSelectedRcoiForNetwork(String uniqueId, String ssid) {
+        if (TextUtils.isEmpty(uniqueId) || TextUtils.isEmpty(ssid)) return 0;
+        PasspointProvider provider = mProviders.get(uniqueId);
+        if (provider == null) return 0;
+        return provider.getAndRemoveMatchedRcoi(ssid);
     }
 }

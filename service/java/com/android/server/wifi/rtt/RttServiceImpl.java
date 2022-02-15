@@ -31,6 +31,7 @@ import android.location.LocationManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
+import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.IWifiRttManager;
@@ -1013,14 +1014,15 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
 
             request.peerHandlesTranslated = true;
-            mAwareManager.requestMacAddresses(request.uid, peerIdsNeedingTranslation,
+            int[] peerIdsArray = peerIdsNeedingTranslation.stream().mapToInt(i -> i).toArray();
+            mAwareManager.requestMacAddresses(request.uid, peerIdsArray,
                     new IWifiAwareMacAddressProvider.Stub() {
                         @Override
-                        public void macAddress(Map peerIdToMacMap) {
+                        public void macAddress(MacAddrMapping[] peerIdToMacList) {
                             // ASYNC DOMAIN
                             mHandler.post(() -> {
                                 // BACK TO SYNC DOMAIN
-                                processReceivedAwarePeerMacAddresses(request, peerIdToMacMap);
+                                processReceivedAwarePeerMacAddresses(request, peerIdToMacList);
                             });
                         }
                     });
@@ -1028,16 +1030,27 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
 
         private void processReceivedAwarePeerMacAddresses(RttRequestInfo request,
-                Map<Integer, byte[]> peerIdToMacMap) {
+                MacAddrMapping[] peerIdToMacList) {
             if (VDBG) {
-                Log.v(TAG, "processReceivedAwarePeerMacAddresses: request=" + request
-                        + ", peerIdToMacMap=" + peerIdToMacMap);
+                Log.v(TAG, "processReceivedAwarePeerMacAddresses: request=" + request);
+                Log.v(TAG, "processReceivedAwarePeerMacAddresses: peerIdToMacList begin");
+                for (MacAddrMapping mapping : peerIdToMacList) {
+                    Log.v(TAG, "[GABI]    " + mapping.peerId + ": "
+                            + MacAddress.fromBytes(mapping.macAddress));
+                }
+                Log.v(TAG, "processReceivedAwarePeerMacAddresses: peerIdToMacList end");
             }
 
             RangingRequest.Builder newRequestBuilder = new RangingRequest.Builder();
             for (ResponderConfig rttPeer : request.request.mRttPeers) {
                 if (rttPeer.peerHandle != null && rttPeer.macAddress == null) {
-                    byte[] mac = peerIdToMacMap.get(rttPeer.peerHandle.peerId);
+                    byte[] mac = null;
+                    for (MacAddrMapping mapping : peerIdToMacList) {
+                        if (mapping.peerId == rttPeer.peerHandle.peerId) {
+                            mac = mapping.macAddress;
+                            break;
+                        }
+                    }
                     if (mac == null || mac.length != 6) {
                         Log.e(TAG, "processReceivedAwarePeerMacAddresses: received an invalid MAC "
                                 + "address for peerId=" + rttPeer.peerHandle.peerId);

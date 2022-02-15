@@ -27,6 +27,7 @@ import static org.mockito.Mockito.withSettings;
 
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.util.ScanResultUtil;
 import android.util.ArraySet;
 
@@ -73,6 +74,7 @@ public class WakeupEvaluatorTest extends WifiBaseTest {
     private ScanResult makeScanResult(String ssid, int frequency, int level) {
         ScanResult scanResult = new ScanResult();
         scanResult.SSID = ssid;
+        scanResult.setWifiSsid(WifiSsid.fromUtf8Text(ssid));
         scanResult.frequency = frequency;
         scanResult.level = level;
         scanResult.capabilities = "[]";

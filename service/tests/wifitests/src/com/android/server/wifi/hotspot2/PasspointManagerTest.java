@@ -59,6 +59,7 @@ import android.net.Uri;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
@@ -89,7 +90,6 @@ import com.android.server.wifi.WifiCarrierInfoManager;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiConfigStore;
 import com.android.server.wifi.WifiConfigurationTestUtil;
-import com.android.server.wifi.WifiContext;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiKeyStore;
 import com.android.server.wifi.WifiMetrics;
@@ -2125,7 +2125,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         // Remove the provider from same app.
         assertTrue(mManager.removeProvider(TEST_CREATOR_UID, false, null, TEST_FQDN));
         verify(provider).uninstallCertsAndKeys();
-        verify(mWifiConfigManager).removePasspointConfiguredNetwork(
+        verify(mWifiConfigManager, never()).removePasspointConfiguredNetwork(
                 provider.getWifiConfig().getProfileKey());
         verify(mWifiConfigManager).saveToStore(true);
         verify(mWifiMetrics).incrementNumPasspointProviderUninstallation();

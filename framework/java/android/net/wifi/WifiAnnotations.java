@@ -75,6 +75,15 @@ public final class WifiAnnotations {
     @Retention(RetentionPolicy.SOURCE)
     public @interface ChannelWidth{}
 
+    @IntDef(prefix = { "PREAMBLE_" }, value = {
+            ScanResult.PREAMBLE_LEGACY,
+            ScanResult.PREAMBLE_HT,
+            ScanResult.PREAMBLE_VHT,
+            ScanResult.PREAMBLE_HE,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PreambleType {}
+
     @IntDef(prefix = { "WIFI_STANDARD_" }, value = {
             ScanResult.WIFI_STANDARD_UNKNOWN,
             ScanResult.WIFI_STANDARD_LEGACY,

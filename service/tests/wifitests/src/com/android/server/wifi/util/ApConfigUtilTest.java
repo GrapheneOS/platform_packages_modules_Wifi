@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.util;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -477,6 +478,104 @@ public class ApConfigUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Verify remove of 6GHz band from multiple band mask, when security type is restricted
+     */
+    @Test
+    public void updateBandMask6gSecurityRestriction() throws Exception {
+        SoftApConfiguration config;
+
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase(null, SoftApConfiguration.SECURITY_TYPE_OPEN)
+                .build();
+        assertEquals(SoftApConfiguration.BAND_5GHZ,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
+
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .build();
+        assertEquals(SoftApConfiguration.BAND_5GHZ,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
+
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        assertEquals(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
+
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase("somepassword",
+                        SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION)
+                .build();
+        assertEquals(SoftApConfiguration.BAND_5GHZ,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
+
+        if (SdkLevel.isAtLeastT()) {
+            config = new SoftApConfiguration.Builder()
+                    .setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ)
+                    .setPassphrase(null, SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION)
+                    .build();
+            assertEquals(SoftApConfiguration.BAND_5GHZ,
+                    ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
+        }
+    }
+
+    /**
+     * Verify remove of 6GHz band from multiple band mask in bridged mode,
+     * when security type is restricted.
+     */
+    @Test
+    public void updateBandMask6gSecurityRestrictionBridged() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        SoftApConfiguration config;
+        int[] bands = {SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ,
+                SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_6GHZ};
+
+        int[] bands_no6g = {SoftApConfiguration.BAND_2GHZ, SoftApConfiguration.BAND_5GHZ};
+
+        config = new SoftApConfiguration.Builder()
+                .setBands(bands)
+                .setPassphrase(null, SoftApConfiguration.SECURITY_TYPE_OPEN)
+                .build();
+        assertArrayEquals(bands_no6g,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBands());
+
+        config = new SoftApConfiguration.Builder()
+                .setBands(bands)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .build();
+        assertArrayEquals(bands_no6g,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBands());
+
+        config = new SoftApConfiguration.Builder()
+                .setBands(bands)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        assertArrayEquals(bands,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBands());
+
+        config = new SoftApConfiguration.Builder()
+                .setBands(bands)
+                .setPassphrase("somepassword",
+                        SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION)
+                .build();
+        assertArrayEquals(bands_no6g,
+                ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBands());
+
+        if (SdkLevel.isAtLeastT()) {
+            config = new SoftApConfiguration.Builder()
+                    .setBands(bands)
+                    .setPassphrase(null, SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION)
+                    .build();
+            assertArrayEquals(bands_no6g,
+                    ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBands());
+        }
+    }
+
+    /**
      * Verify default band and channel is used when HAL support is
      * not available.
      */
@@ -586,7 +685,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
     public void testSoftApCapabilityInitWithResourceValue() throws Exception {
         long testFeatures = SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT
                 | SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED
-                | SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED;
+                | SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED
+                | SoftApCapability.SOFTAP_FEATURE_IEEE80211_AX;
         SoftApCapability capability = new SoftApCapability(testFeatures);
         int test_max_client = 10;
         capability.setMaxSupportedClients(test_max_client);
@@ -602,6 +702,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifi60ghzSupport)).thenReturn(true);
         when(mResources.getBoolean(R.bool.config_wifiSoftap6ghzSupported)).thenReturn(true);
         when(mResources.getBoolean(R.bool.config_wifiSoftap60ghzSupported)).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiSoftapIeee80211axSupported)).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiSoftapIeee80211beSupported)).thenReturn(false);
         assertEquals(ApConfigUtil.updateCapabilityFromResource(mContext),
                 capability);
     }
@@ -657,9 +759,15 @@ public class ApConfigUtilTest extends WifiBaseTest {
         assertTrue(ApConfigUtil.checkConfigurationChangeNeedToRestart(currentConfig,
                 newConfig_ssidChanged));
         // Test BSSID changed
-        SoftApConfiguration newConfig_bssidChanged = new SoftApConfiguration
+        SoftApConfiguration.Builder newConfig_bssidChangedBuilder = new SoftApConfiguration
                 .Builder(newConfig_noChange)
-                .setBssid(testBssid).build();
+                .setBssid(testBssid);
+
+        if (SdkLevel.isAtLeastS()) {
+            newConfig_bssidChangedBuilder.setMacRandomizationSetting(
+                    SoftApConfiguration.RANDOMIZATION_NONE);
+        }
+        SoftApConfiguration newConfig_bssidChanged = newConfig_bssidChangedBuilder.build();
         assertTrue(ApConfigUtil.checkConfigurationChangeNeedToRestart(currentConfig,
                 newConfig_bssidChanged));
         // Test Passphrase Changed
@@ -817,15 +925,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
                 mockSoftApCapability));
         if (SdkLevel.isAtLeastS()) {
-            // Test 6G or 60G not support
-            testConfigBuilder.setChannels(
-                    new SparseIntArray(){{
-                        put(SoftApConfiguration.BAND_5GHZ, 149);
-                        put(SoftApConfiguration.BAND_6GHZ, 2);
-                    }});
-            assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
-                    mockSoftApCapability));
-
+            // Test 60G not support
             testConfigBuilder.setChannels(
                     new SparseIntArray(){{
                         put(SoftApConfiguration.BAND_5GHZ, 149);
@@ -861,5 +961,22 @@ public class ApConfigUtilTest extends WifiBaseTest {
         for (int freq : result) {
             assertTrue(Arrays.stream(TEST_5G_DFS_FREQS).anyMatch(n -> n == freq));
         }
+    }
+
+    @Test
+    public void testCollectAllowedAcsChannels() throws Exception {
+        List<Integer>  resultList;
+
+        // Test with empty oem and caller configs
+        resultList = ApConfigUtil.collectAllowedAcsChannels(SoftApConfiguration.BAND_2GHZ, "",
+                new int[] {});
+        assertArrayEquals(new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+                resultList.stream().mapToInt(x->x).toArray());
+
+        // Test with both oem and caller configs
+        resultList = ApConfigUtil.collectAllowedAcsChannels(SoftApConfiguration.BAND_2GHZ,
+                "1-6,8-9", new int[] {1, 5, 9, 10});
+        assertArrayEquals(new int[]{1, 5, 9},
+                resultList.stream().mapToInt(x->x).toArray());
     }
 }

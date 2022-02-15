@@ -24,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.net.wifi.ScanResult;
 import android.net.wifi.ScanResult.InformationElement;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiSsid;
 import android.os.Looper;
 

@@ -20,10 +20,12 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.ScanResult;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.os.Handler;
 import android.os.WorkSource;
@@ -35,6 +37,7 @@ import com.android.server.wifi.PropertyService;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiVendorHal;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -140,11 +143,11 @@ public class WifiP2pNative {
      * Close supplicant connection.
      */
     public void closeSupplicantConnection() {
-        // Nothing to do for HIDL.
+        // Nothing to do for HAL.
     }
 
     /**
-     * Returns whether HAL (HIDL) is supported on this device or not.
+     * Returns whether HAL is supported on this device or not.
      */
     public boolean isHalInterfaceSupported() {
         return mHalDeviceManager.isSupported();
@@ -230,7 +233,7 @@ public class WifiP2pNative {
                 Log.i(TAG, "P2P interface teardown completed");
             }
         } else {
-            Log.i(TAG, "HAL (HIDL) is not supported. Destroy listener for the interface.");
+            Log.i(TAG, "HAL is not supported. Destroy listener for the interface.");
             String ifaceName = mPropertyService.getString(P2P_INTERFACE_PROPERTY, P2P_IFACE_NAME);
             mInterfaceDestroyedListener.teardownAndInvalidate(ifaceName);
         }
@@ -244,7 +247,7 @@ public class WifiP2pNative {
             if (mIWifiP2pIface == null) return false;
             return mHalDeviceManager.replaceRequestorWs(mIWifiP2pIface, requestorWs);
         } else {
-            Log.i(TAG, "HAL (HIDL) is not supported. Ignore replace requestorWs");
+            Log.i(TAG, "HAL is not supported. Ignore replace requestorWs");
             return true;
         }
     }
@@ -406,13 +409,26 @@ public class WifiP2pNative {
     /**
      * Initiate a P2P service discovery with a (optional) timeout.
      *
-     * @param timeout Max time to be spent is peforming discovery.
-     *        Set to 0 to indefinely continue discovery untill and explicit
+     * @param timeout The maximum amount of time to be spent in performing discovery.
+     *        Set to 0 to indefinitely continue discovery until an explicit
      *        |stopFind| is sent.
      * @return boolean value indicating whether operation was successful.
      */
     public boolean p2pFind(int timeout) {
-        return mSupplicantP2pIfaceHal.find(timeout);
+        return mSupplicantP2pIfaceHal.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, timeout);
+    }
+
+    /**
+     * Initiate a P2P device discovery with a (optional) frequency and a (optional) timeout.
+     *
+     * @param freq is the frequency to be scanned.
+     * @param timeout The maximum amount of time to be spent in performing discovery.
+     *        Set to 0 to indefinitely continue discovery until an explicit
+     *        |stopFind| is sent.
+     * @return boolean value indicating whether operation was successful.
+     */
+    public boolean p2pFind(int freq, int timeout) {
+        return mSupplicantP2pIfaceHal.find(freq, timeout);
     }
 
     /**
@@ -843,5 +859,34 @@ public class WifiP2pNative {
      */
     public boolean setWfdR2DeviceInfo(String hex) {
         return mSupplicantP2pIfaceHal.setWfdR2DeviceInfo(hex);
+    }
+
+    /**
+     * Remove the client with the MAC address from the group.
+     *
+     * @param peerAddress Mac address of the client.
+     * @return true if success
+     */
+    public boolean removeClient(String peerAddress) {
+        // The client is deemed as a P2P client, not a legacy client, hence the false.
+        return mSupplicantP2pIfaceHal.removeClient(peerAddress, false);
+    }
+
+    /**
+     * Set vendor-specific information elements to the native service.
+     *
+     * @param vendorElements the vendor opaque data.
+     * @return true, if opeartion was successful.
+     */
+    public boolean setVendorElements(Set<ScanResult.InformationElement> vendorElements) {
+        return mSupplicantP2pIfaceHal.setVendorElements(vendorElements);
+    }
+
+    /**
+     * Remove vendor-specific information elements from the native service.
+     */
+    public boolean removeVendorElements() {
+        return mSupplicantP2pIfaceHal.setVendorElements(
+                new HashSet<ScanResult.InformationElement>());
     }
 }

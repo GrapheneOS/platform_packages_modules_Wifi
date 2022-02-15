@@ -331,49 +331,49 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
 
         // uid1: publish session 1
         client1.addSession(new WifiAwareDiscoverySessionState(null, 100, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis()));
+                false, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusType.SUCCESS, true);
 
         // uid1: publish session 2
         client1.addSession(new WifiAwareDiscoverySessionState(null, 101, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis()));
+                false, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusType.SUCCESS, true);
 
         // uid3: publish session 3 with ranging
         client3.addSession(new WifiAwareDiscoverySessionState(null, 111, (byte) 0, null, true,
-                true, mClock.getElapsedSinceBootMillis()));
+                true, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySessionWithRanging(uid3, false, -1, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusType.SUCCESS, true);
 
         // uid2: subscribe session 1
         client2.addSession(new WifiAwareDiscoverySessionState(null, 102, (byte) 0, null, false,
-                false, mClock.getElapsedSinceBootMillis()));
+                false, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusType.SUCCESS, false);
 
         // uid2: publish session 2
         client2.addSession(new WifiAwareDiscoverySessionState(null, 103, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis()));
+                false, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusType.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: min
         client3.addSession(new WifiAwareDiscoverySessionState(null, 112, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis()));
+                true, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 10, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusType.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: max
         client3.addSession(new WifiAwareDiscoverySessionState(null, 113, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis()));
+                true, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySessionWithRanging(uid3, true, -1, 50, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusType.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: minmax
         client3.addSession(new WifiAwareDiscoverySessionState(null, 114, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis()));
+                true, mClock.getElapsedSinceBootMillis(), false, 0));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 0, 110, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusType.SUCCESS, false);
 
@@ -392,7 +392,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
         // uid2: subscribe session 3
         mDut.recordDiscoverySession(uid2, clients);
         client2.addSession(new WifiAwareDiscoverySessionState(null, 104, (byte) 0, null, false,
-                false, mClock.getElapsedSinceBootMillis()));
+                false, mClock.getElapsedSinceBootMillis(), false, 0));
 
         // a few failures
         mDut.recordDiscoveryStatus(uid1, NanStatusType.INTERNAL_FAILURE, true);

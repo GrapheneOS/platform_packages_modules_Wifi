@@ -37,6 +37,7 @@ import com.android.server.wifi.hotspot2.WnmData;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -104,6 +105,8 @@ public class WifiMonitor {
     /* Transition Disable Indication */
     public static final int TRANSITION_DISABLE_INDICATION        = BASE + 72;
 
+    /* Trust On First Use Root CA Certification */
+    public static final int TOFU_ROOT_CA_CERTIFICATE             = BASE + 73;
 
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
@@ -594,5 +597,18 @@ public class WifiMonitor {
      */
     public void broadcastNetworkNotFoundEvent(String iface, String ssid) {
         sendMessage(iface, NETWORK_NOT_FOUND_EVENT, ssid);
+    }
+
+    /**
+     * Broadcast the certification event which takes place during TOFU process.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param networkId ID of the network in wpa_supplicant.
+     * @param ssid SSID of the network.
+     * @param cert the certificate data.
+     */
+    public void broadcastCertificationEvent(String iface, int networkId, String ssid,
+            X509Certificate cert) {
+        sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, 0, cert);
     }
 }

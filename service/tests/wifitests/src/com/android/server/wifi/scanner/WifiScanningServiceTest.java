@@ -152,8 +152,8 @@ public class WifiScanningServiceTest extends WifiBaseTest {
     @Mock WifiMetrics.ScanMetrics mScanMetrics;
     @Mock WifiManager mWifiManager;
     @Mock LastCallerInfoManager mLastCallerInfoManager;
-    ChannelHelper mChannelHelper0;
-    ChannelHelper mChannelHelper1;
+    PresetKnownBandsChannelHelper mChannelHelper0;
+    PresetKnownBandsChannelHelper mChannelHelper1;
     TestLooper mLooper;
     WifiScanningServiceImpl mWifiScanningServiceImpl;
 
@@ -878,6 +878,32 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         assertEquals(WifiScanner.WIFI_RNR_ENABLED,
                 requestSettings.getRnrSetting());
         assertEquals(true, nativeSettings.enable6GhzRnr);
+        doSuccessfulSingleScan(requestSettings, nativeSettings,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_BOTH, new int[0]));
+    }
+
+    /**
+     * Verify that when 6Ghz scanning is not supported, RNR will not get enabled even if RNR
+     * setting is WIFI_RNR_ENABLED.
+     */
+    @Test
+    public void testRnrIsDisabledWhen6GhzChannelsNotAvailable() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        mChannelHelper0 = new PresetKnownBandsChannelHelper(
+                new int[]{2412, 2450},
+                new int[]{5160, 5175},
+                new int[]{5600, 5650, 5660},
+                new int[0], // 6Ghz scanning unavailable
+                new int[]{58320, 60480});
+        when(mWifiScannerImpl0.getChannelHelper()).thenReturn(mChannelHelper0);
+        WifiScanner.ScanSettings requestSettings = createRequest(WifiScanner.WIFI_BAND_BOTH, 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        requestSettings.setRnrSetting(WifiScanner.WIFI_RNR_ENABLED);
+        WifiNative.ScanSettings nativeSettings = computeSingleScanNativeSettings(requestSettings);
+        // RNR should not be enabled in the native settings
+        nativeSettings.enable6GhzRnr = false;
+        assertEquals(WifiScanner.WIFI_RNR_ENABLED,
+                requestSettings.getRnrSetting());
         doSuccessfulSingleScan(requestSettings, nativeSettings,
                 ScanResults.create(0, WifiScanner.WIFI_BAND_BOTH, new int[0]));
     }
@@ -2717,7 +2743,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         verifySuccessfulResponse(order, handler, 192);
         assertDumpContainsRequestLog("addBackgroundScanRequest", 192);
         verify(mLastCallerInfoManager, atLeastOnce()).put(
-                eq(LastCallerInfoManager.SCANNING_ENABLED), anyInt(), anyInt(), anyInt(), any(),
+                eq(WifiManager.API_SCANNING_ENABLED), anyInt(), anyInt(), anyInt(), any(),
                 eq(true));
     }
 
@@ -2771,7 +2797,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         assertDumpContainsCallbackLog("singleScanResults", requestId,
                 "results=" + results.getScanData().getResults().length);
         verify(mLastCallerInfoManager, atLeastOnce()).put(
-                eq(LastCallerInfoManager.SCANNING_ENABLED), anyInt(), anyInt(), anyInt(), any(),
+                eq(WifiManager.API_SCANNING_ENABLED), anyInt(), anyInt(), anyInt(), any(),
                 eq(true));
     }
 
@@ -3135,7 +3161,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         controlChannel.sendMessage(Message.obtain(null, WifiScanner.CMD_DISABLE));
         mLooper.dispatchAll();
 
-        verify(mLastCallerInfoManager).put(eq(LastCallerInfoManager.SCANNING_ENABLED), anyInt(),
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_SCANNING_ENABLED), anyInt(),
                 anyInt(), anyInt(), any(), eq(false));
         verify(mWifiScannerImpl0).cleanup();
     }

@@ -186,7 +186,7 @@ public class WifiInfoTest {
         info.setInformationElements(generateIes());
         info.setIsPrimary(true);
         info.setMacAddress(TEST_BSSID);
-        info.setCurrentNetworkKey(TEST_NETWORK_KEY);
+        info.setNetworkKey(TEST_NETWORK_KEY);
         return info;
     }
 
@@ -218,7 +218,7 @@ public class WifiInfoTest {
             assertEquals(TEST_SUB_ID, info.getSubscriptionId());
             assertTrue(info.isPrimary());
         }
-        assertEquals(null, info.getCurrentNetworkKey());
+        assertEquals(null, info.getNetworkKey());
     }
 
     /**
@@ -331,7 +331,7 @@ public class WifiInfoTest {
         info.setProviderFriendlyName(TEST_PROVIDER_NAME);
         info.setInformationElements(generateIes());
         info.setMacAddress(TEST_BSSID);
-        info.setCurrentNetworkKey(TEST_NETWORK_KEY);
+        info.setNetworkKey(TEST_NETWORK_KEY);
         return info;
     }
 
@@ -344,7 +344,7 @@ public class WifiInfoTest {
         assertNull(info.getPasspointProviderFriendlyName());
         assertEquals(WifiInfo.DEFAULT_MAC_ADDRESS, info.getMacAddress());
         assertNull(info.getInformationElements());
-        assertNull(info.getCurrentNetworkKey());
+        assertNull(info.getNetworkKey());
     }
 
     @Test
@@ -486,7 +486,7 @@ public class WifiInfoTest {
             assertEquals(SubscriptionManager.INVALID_SUBSCRIPTION_ID, wifiInfo.getSubscriptionId());
             assertFalse(wifiInfo.isPrimary());
         }
-        assertEquals(null, wifiInfo.getCurrentNetworkKey());
+        assertEquals(null, wifiInfo.getNetworkKey());
     }
 
     /**

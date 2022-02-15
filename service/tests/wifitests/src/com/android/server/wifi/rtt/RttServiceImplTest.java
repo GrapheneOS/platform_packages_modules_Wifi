@@ -54,6 +54,7 @@ import android.location.LocationManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
+import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.rtt.IRttCallback;
@@ -94,10 +95,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -332,15 +331,19 @@ public class RttServiceImplTest extends WifiBaseTest {
         request.mRttPeers.add(ResponderConfig.fromWifiAwarePeerHandleWithDefaults(peerHandle1));
         request.mRttPeers.add(ResponderConfig.fromWifiAwarePeerHandleWithDefaults(peerHandle2));
         request.mRttPeers.add(ResponderConfig.fromWifiAwarePeerHandleWithDefaults(peerHandle3));
-        Map<Integer, MacAddress> peerHandleToMacMap = new HashMap<>();
-        MacAddress macAwarePeer1 = MacAddress.fromString("AA:BB:CC:DD:EE:FF");
-        MacAddress macAwarePeer2 = MacAddress.fromString("BB:BB:BB:EE:EE:EE");
-        peerHandleToMacMap.put(peerHandle1.peerId, macAwarePeer1);
-        peerHandleToMacMap.put(peerHandle2.peerId, macAwarePeer2);
-        peerHandleToMacMap.put(peerHandle3.peerId, null); // bad answer from Aware (expired?)
+        MacAddrMapping peerMapping1 = new MacAddrMapping();
+        MacAddrMapping peerMapping2 = new MacAddrMapping();
+        MacAddrMapping peerMapping3 = new MacAddrMapping();
+        peerMapping1.peerId = peerHandle1.peerId;
+        peerMapping2.peerId = peerHandle2.peerId;
+        peerMapping3.peerId = peerHandle3.peerId;
+        peerMapping1.macAddress = MacAddress.fromString("AA:BB:CC:DD:EE:FF").toByteArray();
+        peerMapping2.macAddress = MacAddress.fromString("BB:BB:BB:EE:EE:EE").toByteArray();
+        peerMapping3.macAddress = null; // bad answer from Aware (expired?)
+        MacAddrMapping[] peerHandleToMacList = {peerMapping1, peerMapping2, peerMapping3};
 
         AwareTranslatePeerHandlesToMac answer = new AwareTranslatePeerHandlesToMac(mDefaultUid,
-                peerHandleToMacMap);
+                peerHandleToMacList);
         doAnswer(answer).when(mockAwareManager).requestMacAddresses(anyInt(), any(), any());
 
         // issue request
@@ -359,9 +362,9 @@ public class RttServiceImplTest extends WifiBaseTest {
         assertNotEquals("Request to native is not null", null, finalRequest);
         assertEquals("Size of request", request.mRttPeers.size() - 1,
                 finalRequest.mRttPeers.size());
-        assertEquals("Aware peer 1 MAC", macAwarePeer1,
+        assertEquals("Aware peer 1 MAC", MacAddress.fromBytes(peerMapping1.macAddress),
                 finalRequest.mRttPeers.get(finalRequest.mRttPeers.size() - 2).macAddress);
-        assertEquals("Aware peer 2 MAC", macAwarePeer2,
+        assertEquals("Aware peer 2 MAC", MacAddress.fromBytes(peerMapping2.macAddress),
                 finalRequest.mRttPeers.get(finalRequest.mRttPeers.size() - 1).macAddress);
 
         // issue results - but remove the one for peer #2
@@ -1503,29 +1506,33 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     private class AwareTranslatePeerHandlesToMac extends MockAnswerUtil.AnswerWithArguments {
         private int mExpectedUid;
-        private Map<Integer, MacAddress> mPeerIdToMacMap;
+        private MacAddrMapping[] mPeerIdToMacList;
 
-        AwareTranslatePeerHandlesToMac(int expectedUid, Map<Integer, MacAddress> peerIdToMacMap) {
+        AwareTranslatePeerHandlesToMac(int expectedUid, MacAddrMapping[] peerIdToMacList) {
             mExpectedUid = expectedUid;
-            mPeerIdToMacMap = peerIdToMacMap;
+            mPeerIdToMacList = peerIdToMacList;
         }
 
-        public void answer(int uid, List<Integer> peerIds, IWifiAwareMacAddressProvider callback) {
+        public void answer(int uid, int[] peerIds, IWifiAwareMacAddressProvider callback) {
             assertEquals("Invalid UID", mExpectedUid, uid);
 
-            Map<Integer, byte[]> result = new HashMap<>();
-            for (Integer peerId: peerIds) {
+            List<MacAddrMapping> result = new ArrayList();
+            for (int peerId: peerIds) {
                 byte[] macBytes = null;
-                MacAddress macAddr = mPeerIdToMacMap.get(peerId);
-                if (macAddr != null) {
-                    macBytes = macAddr.toByteArray();
+                for (MacAddrMapping mapping : mPeerIdToMacList) {
+                    if (mapping.peerId == peerId) {
+                        macBytes = mapping.macAddress;
+                        break;
+                    }
                 }
-
-                result.put(peerId, macBytes);
+                MacAddrMapping mapping = new MacAddrMapping();
+                mapping.peerId = peerId;
+                mapping.macAddress = macBytes;
+                result.add(mapping);
             }
 
             try {
-                callback.macAddress(result);
+                callback.macAddress(result.toArray(new MacAddrMapping[0]));
             } catch (RemoteException e) {
                 e.printStackTrace();
             }

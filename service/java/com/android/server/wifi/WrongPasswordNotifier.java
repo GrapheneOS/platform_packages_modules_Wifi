@@ -21,6 +21,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
+import android.net.wifi.WifiContext;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;

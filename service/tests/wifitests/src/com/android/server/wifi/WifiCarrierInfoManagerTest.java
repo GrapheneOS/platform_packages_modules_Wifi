@@ -45,12 +45,14 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.os.PersistableBundle;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
@@ -118,6 +120,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     private static final String TEST_PACKAGE = "com.test12345";
     private static final String ANONYMOUS_IDENTITY = "anonymous@wlan.mnc456.mcc123.3gppnetwork.org";
     private static final String CARRIER_NAME = "Google";
+    private static final ParcelUuid GROUP_UUID = ParcelUuid
+            .fromString("0000110B-0000-1000-8000-00805F9B34FB");
 
     @Mock CarrierConfigManager mCarrierConfigManager;
     @Mock WifiContext mContext;
@@ -143,6 +147,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Mock WifiMetrics mWifiMetrics;
     @Mock WifiCarrierInfoManager.OnCarrierOffloadDisabledListener mOnCarrierOffloadDisabledListener;
     @Mock Clock mClock;
+    @Mock WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
 
     private List<SubscriptionInfo> mSubInfoList;
 
@@ -194,6 +199,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(mWifiCarrierInfoStoreManagerData);
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWifiNotificationManager()).thenReturn(mWifiNotificationManager);
+        when(mWifiInjector.getWifiNetworkSuggestionsManager())
+                .thenReturn(mWifiNetworkSuggestionsManager);
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mFrameworkFacade, mContext, mWifiConfigStore,
                 new Handler(mLooper.getLooper()), mWifiMetrics, mClock);
@@ -221,6 +228,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(mNonDataTelephonyManager);
         when(mTelephonyManager.getSimApplicationState(anyInt()))
                 .thenReturn(TelephonyManager.SIM_STATE_LOADED);
+        when(mTelephonyManager.getActiveModemCount()).thenReturn(2);
         when(mCarrierConfigManager.getConfigForSubId(anyInt()))
                 .thenReturn(generateTestCarrierConfig(false));
         when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(mSubInfoList);
@@ -251,6 +259,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(TelephonyManager.SIM_STATE_LOADED);
         when(mSubscriptionManager.getActiveSubscriptionIdList())
                 .thenReturn(new int[]{DATA_SUBID, NON_DATA_SUBID});
+        when(mSubscriptionManager.getSubscriptionsInGroup(GROUP_UUID)).thenReturn(mSubInfoList);
 
         // setup resource strings for IMSI protection notification.
         when(mResources.getString(eq(R.string.wifi_suggestion_imsi_privacy_title), anyString()))
@@ -585,12 +594,13 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         MockitoSession session = ExtendedMockito.mockitoSession().mockStatic(
                 Cipher.class).startMocking();
         try {
-            when(Cipher.getInstance(anyString())).thenReturn(cipher);
+            lenient().when(Cipher.getInstance(anyString())).thenReturn(cipher);
             when(cipher.doFinal(any(byte[].class))).thenReturn(permanentIdentity.getBytes());
             when(mDataTelephonyManager.getSubscriberId()).thenReturn(imsi);
             when(mDataTelephonyManager.getSimOperator()).thenReturn("321456");
-            ImsiEncryptionInfo info = new ImsiEncryptionInfo("321", "456",
-                    TelephonyManager.KEY_TYPE_WLAN, null, key, null);
+            ImsiEncryptionInfo info = mock(ImsiEncryptionInfo.class);
+            when(info.getPublicKey()).thenReturn(key);
+            when(info.getKeyIdentifier()).thenReturn(null);
             when(mDataTelephonyManager.getCarrierInfoForImsiEncryption(
                     eq(TelephonyManager.KEY_TYPE_WLAN)))
                     .thenReturn(info);
@@ -619,12 +629,12 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         MockitoSession session = ExtendedMockito.mockitoSession().mockStatic(
                 Cipher.class).startMocking();
         try {
-            when(Cipher.getInstance(anyString())).thenReturn(cipher);
+            lenient().when(Cipher.getInstance(anyString())).thenReturn(cipher);
             when(cipher.doFinal(any(byte[].class))).thenThrow(BadPaddingException.class);
             when(mDataTelephonyManager.getSubscriberId()).thenReturn(imsi);
             when(mDataTelephonyManager.getSimOperator()).thenReturn("321456");
-            ImsiEncryptionInfo info = new ImsiEncryptionInfo("321", "456",
-                    TelephonyManager.KEY_TYPE_WLAN, keyIdentifier, (PublicKey) null, null);
+            ImsiEncryptionInfo info = mock(ImsiEncryptionInfo.class);
+            when(info.getPublicKey()).thenReturn(null);
             when(mDataTelephonyManager.getCarrierInfoForImsiEncryption(
                     eq(TelephonyManager.KEY_TYPE_WLAN)))
                     .thenReturn(info);
@@ -2193,5 +2203,24 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         captor.getValue().onDataEnabledChanged(false, DATA_ENABLED_REASON_CARRIER);
         verify(mOnCarrierOffloadDisabledListener, times(2))
                 .onCarrierOffloadDisabled(DATA_SUBID, true);
+    }
+
+    @Test
+    public void testGetActiveSubsctionIdInGroup() {
+        assertEquals(DATA_SUBID, mWifiCarrierInfoManager
+                .getActiveSubscriptionIdInGroup(GROUP_UUID));
+    }
+
+    @Test
+    public void testCarrierPrivilegedListenerChange() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        TelephonyManager.CarrierPrivilegesListener carrierPrivilegesListener;
+        ArgumentCaptor<TelephonyManager.CarrierPrivilegesListener> listenerArgumentCaptor =
+                ArgumentCaptor.forClass(TelephonyManager.CarrierPrivilegesListener.class);
+        verify(mTelephonyManager, times(2))
+                .addCarrierPrivilegesListener(anyInt(), any(), listenerArgumentCaptor.capture());
+        carrierPrivilegesListener = listenerArgumentCaptor.getValue();
+        carrierPrivilegesListener.onCarrierPrivilegesChanged(Collections.emptyList(), new int[0]);
+        verify(mWifiNetworkSuggestionsManager).updateCarrierPrivilegedApps(any());
     }
 }

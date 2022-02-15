@@ -16,6 +16,9 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP;
+import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -3832,17 +3835,18 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
     @Test
     public void testIsItPossibleToCreateIface() {
-        when(mHalDeviceManager.isItPossibleToCreateIface(eq(IfaceType.AP), any())).thenReturn(true);
+        when(mHalDeviceManager.isItPossibleToCreateIface(eq(HDM_CREATE_IFACE_AP),
+                any())).thenReturn(true);
         assertTrue(mWifiVendorHal.isItPossibleToCreateApIface(new WorkSource()));
 
-        when(mHalDeviceManager.isItPossibleToCreateIface(eq(IfaceType.STA), any()))
+        when(mHalDeviceManager.isItPossibleToCreateIface(eq(HDM_CREATE_IFACE_STA), any()))
                 .thenReturn(true);
         assertTrue(mWifiVendorHal.isItPossibleToCreateStaIface(new WorkSource()));
     }
 
     @Test
     public void testIsStaApConcurrencySupported() {
-        when(mHalDeviceManager.canSupportIfaceCombo(
+        when(mHalDeviceManager.canSupportCreateTypeCombo(
                 argThat(ifaceCombo -> ifaceCombo.get(IfaceType.STA) == 1
                         && ifaceCombo.get(IfaceType.AP) == 1))).thenReturn(true);
         assertTrue(mWifiVendorHal.isStaApConcurrencySupported());
@@ -3850,7 +3854,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
     @Test
     public void testIsStaStaConcurrencySupported() {
-        when(mHalDeviceManager.canSupportIfaceCombo(
+        when(mHalDeviceManager.canSupportCreateTypeCombo(
                 argThat(ifaceCombo -> ifaceCombo.get(IfaceType.STA) == 2))).thenReturn(true);
         assertTrue(mWifiVendorHal.isStaStaConcurrencySupported());
     }

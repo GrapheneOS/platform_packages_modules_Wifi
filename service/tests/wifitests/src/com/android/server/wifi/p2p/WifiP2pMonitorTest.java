@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 public class WifiP2pMonitorTest extends WifiBaseTest {
     private static final String P2P_IFACE_NAME = "p2p0";
     private static final String SECOND_P2P_IFACE_NAME = "p2p1";
+    private static final int TEST_GROUP_FREQUENCY = 5180;
     private WifiP2pMonitor mWifiP2pMonitor;
     private TestLooper mLooper;
     private Handler mHandlerSpy;
@@ -112,5 +113,20 @@ public class WifiP2pMonitorTest extends WifiBaseTest {
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         verify(mHandlerSpy).handleMessage(messageCaptor.capture());
         assertEquals(WifiP2pMonitor.SUP_DISCONNECTION_EVENT, messageCaptor.getValue().what);
+    }
+    /**
+     * Broadcast frequency changed event test
+     */
+    @Test
+    public void testBroadcastP2pFrequencyChanged() {
+        mWifiP2pMonitor.registerHandler(
+                P2P_IFACE_NAME, WifiP2pMonitor.P2P_FREQUENCY_CHANGED_EVENT, mHandlerSpy);
+        mWifiP2pMonitor.broadcastP2pFrequencyChanged(P2P_IFACE_NAME, TEST_GROUP_FREQUENCY);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiP2pMonitor.P2P_FREQUENCY_CHANGED_EVENT, messageCaptor.getValue().what);
+        assertEquals(TEST_GROUP_FREQUENCY, messageCaptor.getValue().arg1);
     }
 }

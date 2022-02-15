@@ -19,6 +19,7 @@ package com.android.server.wifi.util;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.RENOUNCE_PERMISSIONS;
+import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
 import static android.content.pm.PackageManager.GET_PERMISSIONS;
 
 import android.Manifest;
@@ -36,21 +37,28 @@ import android.location.LocationManager;
 import android.net.NetworkStack;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.permission.PermissionManager;
 import android.provider.Settings;
+import android.util.ArraySet;
 import android.util.EventLog;
 import android.util.Log;
 import android.util.Pair;
+import android.util.SparseBooleanArray;
+
+import androidx.annotation.RequiresApi;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiLog;
+import com.android.wifi.resources.R;
 
 import java.util.Arrays;
+import java.util.Set;
 
 /**
  * A wifi permissions utility assessing permissions
@@ -72,6 +80,7 @@ public class WifiPermissionsUtil {
     private LocationManager mLocationManager;
     private WifiLog mLog;
     private boolean mVerboseLoggingEnabled;
+    private final SparseBooleanArray mOemPrivilegedAdminUidCache = new SparseBooleanArray();
 
     public WifiPermissionsUtil(WifiPermissionsWrapper wifiPermissionsWrapper,
             Context context, UserManager userManager, WifiInjector wifiInjector) {
@@ -254,7 +263,14 @@ public class WifiPermissionsUtil {
         } catch (PackageManager.NameNotFoundException e) {
             Log.w(TAG, "Could not find package for disavowal check: " + packageName);
         }
-        // App did not disavow location. Check for location permission.
+        // App did not disavow location. Check for location permission and location mode.
+        if (!isLocationModeEnabled()) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "enforceCanAccessScanResults(pkg=" + packageName + ", uid=" + uid + "): "
+                        + "location is disabled");
+            }
+            throw new SecurityException("Location mode is disabled for the device");
+        }
         if (mPermissionManager.checkPermissionForDataDelivery(
                 ACCESS_FINE_LOCATION, attributionSource, message)
                 == PermissionManager.PERMISSION_GRANTED) {
@@ -696,6 +712,24 @@ public class WifiPermissionsUtil {
     }
 
     /**
+     * Returns true if the |uid| holds REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION permission.
+     */
+    public boolean checkRequestCompanionProfileAutomotiveProjectionPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns true if the |uid| holds MANAGE_WIFI_INTERFACES permission.
+     */
+    public boolean checkManageWifiInterfacesPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                android.Manifest.permission.MANAGE_WIFI_INTERFACES, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
      * Returns true if the |uid| holds MANAGE_WIFI_AUTO_JOIN permission.
      */
     public boolean checkManageWifiAutoJoinPermission(int uid) {
@@ -799,7 +833,10 @@ public class WifiPermissionsUtil {
         return mode == AppOpsManager.MODE_ALLOWED;
     }
 
-    private static DevicePolicyManager retrieveDevicePolicyManagerFromContext(Context context) {
+    /**
+     * Returns the DevicePolicyManager from context
+     */
+    public static DevicePolicyManager retrieveDevicePolicyManagerFromContext(Context context) {
         DevicePolicyManager devicePolicyManager =
                 context.getSystemService(DevicePolicyManager.class);
         if (devicePolicyManager == null
@@ -908,7 +945,48 @@ public class WifiPermissionsUtil {
     }
 
     /**
-     * Returns true if the |callingUid|/\callingPackage| is the profile owner.
+     * Returns {@code true} if the calling {@code uid} is the OEM privileged admin.
+     *
+     * The admin must be allowlisted in the wifi overlay and signed with system cert.
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public boolean isOemPrivilegedAdmin(int uid) {
+        synchronized (mOemPrivilegedAdminUidCache) {
+            int cacheIdx = mOemPrivilegedAdminUidCache.indexOfKey(uid);
+            if (cacheIdx >= 0) {
+                return mOemPrivilegedAdminUidCache.valueAt(cacheIdx);
+            }
+        }
+
+        boolean result = isOemPrivilegedAdminNoCache(uid);
+
+        synchronized (mOemPrivilegedAdminUidCache) {
+            mOemPrivilegedAdminUidCache.put(uid, result);
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns {@code true} if the calling {@code uid} is the OEM privileged admin.
+     *
+     * This method doesn't memoize results, use {@code isOemPrivilegedAdmin} instead.
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private boolean isOemPrivilegedAdminNoCache(int uid) {
+        Set<String> oemPrivilegedAdmins = new ArraySet<>(mContext.getResources()
+                .getStringArray(R.array.config_oemPrivilegedWifiAdminPackages));
+        PackageManager pm = mContext.getPackageManager();
+        String[] packages = pm.getPackagesForUid(uid);
+        if (Arrays.stream(packages).noneMatch(oemPrivilegedAdmins::contains)) {
+            return false;
+        }
+
+        return pm.checkSignatures(uid, Process.SYSTEM_UID) == PackageManager.SIGNATURE_MATCH;
+    }
+
+    /**
+     * Returns true if the |callingUid|/|callingPackage| is the profile owner.
      */
     public boolean isProfileOwner(int uid, @Nullable String packageName) {
         // Cannot determine if the app is DO/PO if packageName is null. So, will return false to be
@@ -993,5 +1071,21 @@ public class WifiPermissionsUtil {
      */
     public void enableVerboseLogging(boolean enabled) {
         mVerboseLoggingEnabled = enabled;
+    }
+
+    /**
+     * Returns true if the |callingUid|/|callingPackage| is an admin.
+     */
+    public boolean isAdmin(int uid, @Nullable String packageName) {
+        // Cannot determine if the app is an admin if packageName is null.
+        // So, will return false to be safe.
+        if (packageName == null) {
+            Log.e(TAG, "isAdmin: packageName is null, returning false");
+            return false;
+        }
+        boolean isOemPrivilegedAdmin = (SdkLevel.isAtLeastT()) ? isOemPrivilegedAdmin(uid) : false;
+
+        return isDeviceOwner(uid, packageName) || isProfileOwner(uid, packageName)
+                || isOemPrivilegedAdmin;
     }
 }

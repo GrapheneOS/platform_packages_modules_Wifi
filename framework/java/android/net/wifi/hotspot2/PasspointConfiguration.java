@@ -31,6 +31,7 @@ import android.net.wifi.hotspot2.pps.UpdateParameter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
+import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -257,12 +258,19 @@ public final class PasspointConfiguration implements Parcelable {
      * Use Long.MIN_VALUE to indicate unset value.
      */
     private long mSubscriptionExpirationTimeMillis = Long.MIN_VALUE;
+
     /**
-     * @hide
+     * Utility method to set the time this subscription will expire. The framework will not attempt
+     * to auto-connect to networks using expired subscriptions.
+     * @param subscriptionExpirationTimeInMillis The expiration time in the format of number of
+     *                                           milliseconds since January 1, 1970, 00:00:00 GMT,
+     *                                           or {@link Long#MIN_VALUE} to unset.
      */
-    public void setSubscriptionExpirationTimeInMillis(long subscriptionExpirationTimeInMillis) {
+    public void setSubscriptionExpirationTimeInMillis(@CurrentTimeMillisLong
+            long subscriptionExpirationTimeInMillis) {
         mSubscriptionExpirationTimeMillis = subscriptionExpirationTimeInMillis;
     }
+
     /**
      *  Utility method to get the time this subscription will expire. It is in the format of number
      *  of milliseconds since January 1, 1970, 00:00:00 GMT.
@@ -425,6 +433,8 @@ public final class PasspointConfiguration implements Parcelable {
      */
     private int mSubscriptionId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
 
+    private ParcelUuid mSubscriptionGroup = null;
+
     /**
      * Set the carrier ID associated with current configuration.
      * @param carrierId {@code mCarrierId}
@@ -459,6 +469,22 @@ public final class PasspointConfiguration implements Parcelable {
      */
     public int getSubscriptionId() {
         return mSubscriptionId;
+    }
+
+    /**
+     * Set the subscription group uuid associated with current configuration.
+     * @hide
+     */
+    public void setSubscriptionGroup(ParcelUuid subscriptionGroup) {
+        this.mSubscriptionGroup = subscriptionGroup;
+    }
+
+    /**
+     * Get the subscription group uuid associated with current configuration.
+     * @hide
+     */
+    public ParcelUuid getSubscriptionGroup() {
+        return this.mSubscriptionGroup;
     }
 
     /**
@@ -716,6 +742,7 @@ public final class PasspointConfiguration implements Parcelable {
         mIsOemPaid = source.mIsOemPaid;
         mIsOemPrivate = source.mIsOemPrivate;
         mDecoratedIdentityPrefix = source.mDecoratedIdentityPrefix;
+        mSubscriptionGroup = source.mSubscriptionGroup;
     }
 
     @Override
@@ -754,6 +781,7 @@ public final class PasspointConfiguration implements Parcelable {
         dest.writeBoolean(mIsOemPaid);
         dest.writeBoolean(mIsOemPrivate);
         dest.writeString(mDecoratedIdentityPrefix);
+        dest.writeParcelable(mSubscriptionGroup, flags);
     }
 
     @Override
@@ -795,7 +823,8 @@ public final class PasspointConfiguration implements Parcelable {
                 && mMeteredOverride == that.mMeteredOverride
                 && (mServiceFriendlyNames == null ? that.mServiceFriendlyNames == null
                 : mServiceFriendlyNames.equals(that.mServiceFriendlyNames))
-                && Objects.equals(mDecoratedIdentityPrefix, that.mDecoratedIdentityPrefix);
+                && Objects.equals(mDecoratedIdentityPrefix, that.mDecoratedIdentityPrefix)
+                && Objects.equals(mSubscriptionGroup, that.mSubscriptionGroup);
     }
 
     @Override
@@ -806,7 +835,8 @@ public final class PasspointConfiguration implements Parcelable {
                 mUsageLimitStartTimeInMillis, mUsageLimitDataLimit, mUsageLimitTimeLimitInMinutes,
                 mServiceFriendlyNames, mCarrierId, mIsAutojoinEnabled, mIsMacRandomizationEnabled,
                 mIsNonPersistentMacRandomizationEnabled, mMeteredOverride, mSubscriptionId,
-                mIsCarrierMerged, mIsOemPaid, mIsOemPrivate, mDecoratedIdentityPrefix);
+                mIsCarrierMerged, mIsOemPaid, mIsOemPrivate, mDecoratedIdentityPrefix,
+                mSubscriptionGroup);
     }
 
     @Override
@@ -870,6 +900,7 @@ public final class PasspointConfiguration implements Parcelable {
         builder.append("mIsOemPaid:" + mIsOemPaid);
         builder.append("mIsOemPrivate:" + mIsOemPrivate);
         builder.append("mDecoratedUsernamePrefix:" + mDecoratedIdentityPrefix);
+        builder.append("mSubscriptionGroup:" + mSubscriptionGroup);
         return builder.toString();
     }
 
@@ -984,6 +1015,7 @@ public final class PasspointConfiguration implements Parcelable {
                 config.mIsOemPaid = in.readBoolean();
                 config.mIsOemPrivate = in.readBoolean();
                 config.mDecoratedIdentityPrefix = in.readString();
+                config.mSubscriptionGroup = in.readParcelable(null);
 
                 return config;
             }

@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiMigration;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -93,6 +94,13 @@ public class WifiSettingsConfigStore {
      */
     public static final Key<Boolean> WIFI_PASSPOINT_ENABLED =
             new Key<>("wifi_passpoint_enabled", true);
+
+    /**
+     * Whether Wifi Multi Internet is enabled for multi ap, dbs or disabled.
+     */
+    public static final Key<Integer> WIFI_MULTI_INTERNET_MODE =
+            new Key<Integer>("wifi_multi_internet_mode",
+                    WifiManager.WIFI_MULTI_INTERNET_MODE_DISABLED);
 
     /**
      * Store the STA factory MAC address retrieved from the driver on the first bootup.

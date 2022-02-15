@@ -17,10 +17,13 @@
 package android.net.wifi;
 
 import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
+import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
+import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_LINGER;
 import static android.net.wifi.WifiManager.ActionListener;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_SOFTAP;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_WIFI_AWARE;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_WIFI_DIRECT;
+import static android.net.wifi.WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_GENERIC;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_INCOMPATIBLE_MODE;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_NO_CHANNEL;
@@ -35,6 +38,7 @@ import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_ADDITIONAL_STA_MBB;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_ADDITIONAL_STA_RESTRICTED;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_AP_STA;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DECORATED_IDENTITY;
@@ -45,6 +49,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_P2P;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT_TERMS_AND_CONDITIONS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_SCANNER;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SAE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
 import static android.net.wifi.WifiManager.WpsCallback;
@@ -79,9 +84,11 @@ import static org.mockito.Mockito.when;
 
 import android.annotation.NonNull;
 import android.app.ActivityManager;
+import android.content.AttributionSource;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.net.DhcpInfo;
+import android.net.DhcpOption;
 import android.net.MacAddress;
 import android.net.wifi.WifiManager.ActiveCountryCodeChangedCallback;
 import android.net.wifi.WifiManager.CoexCallback;
@@ -109,6 +116,8 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.os.test.TestLooper;
+import android.util.ArraySet;
+import android.util.Pair;
 import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
@@ -131,6 +140,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
+import java.util.function.BiConsumer;
 
 /**
  * Unit tests for {@link android.net.wifi.WifiManager}.
@@ -158,6 +168,8 @@ public class WifiManagerTest {
             MacAddress.fromString("22:33:44:aa:aa:77"),
             MacAddress.fromString("aa:bb:cc:11:11:ff"),
             MacAddress.fromString("22:bb:cc:11:aa:ff")};
+    private static final String TEST_SSID = "\"Test WiFi Networks\"";
+    private static final byte[] TEST_OUI = new byte[]{0x01, 0x02, 0x03};
 
     @Mock Context mContext;
     @Mock android.net.wifi.IWifiManager mWifiService;
@@ -199,7 +211,10 @@ public class WifiManagerTest {
      */
     private boolean compareWifiAndSoftApConfiguration(
             SoftApConfiguration softApConfig, WifiConfiguration wifiConfig) {
-        if (!Objects.equals(wifiConfig.SSID, softApConfig.getSsid())) {
+        // SoftApConfiguration#toWifiConfiguration() creates a config with an unquoted UTF-8 SSID
+        // instead of the double quoted behavior in the javadoc for WifiConfiguration#SSID. Thus,
+        // we need to compare the wifi config SSID directly with the unquoted UTF-8 text.
+        if (!Objects.equals(wifiConfig.SSID, softApConfig.getWifiSsid().getUtf8Text())) {
             return false;
         }
         if (!Objects.equals(wifiConfig.BSSID, softApConfig.getBssid())) {
@@ -286,6 +301,8 @@ public class WifiManagerTest {
                     mRunnable.run();
                 }
             };
+            AttributionSource attributionSource = mock(AttributionSource.class);
+            when(mContext.getAttributionSource()).thenReturn(attributionSource);
         }
         mRestartCallback = new SubsystemRestartTrackingCallback() {
             @Override
@@ -706,6 +723,20 @@ public class WifiManagerTest {
         assertTrue(observer.mOnStoppedCalled);
         assertEquals(softApConfig, observer.mConfig);
         assertEquals(sub, observer.mSub);
+    }
+
+    @Test
+    public void testSetSsidsDoNotBlocklist() throws Exception {
+        // test non-empty set
+        List<WifiSsid> expectedSsids = new ArrayList<>();
+        expectedSsids.add(WifiSsid.fromString("\"TEST_SSID\""));
+        mWifiManager.setSsidsAllowlist(new ArraySet<>(expectedSsids));
+        verify(mWifiService).setSsidsAllowlist(any(), eq(expectedSsids));
+
+        // test empty set
+        mWifiManager.setSsidsAllowlist(Collections.EMPTY_SET);
+        verify(mWifiService).setSsidsAllowlist(any(),
+                eq(Collections.EMPTY_LIST));
     }
 
     /**
@@ -2219,8 +2250,8 @@ public class WifiManagerTest {
         List<WifiNetworkSuggestion> testList = new ArrayList<>();
         when(mWifiService.addNetworkSuggestions(any(List.class), anyString(),
                 nullable(String.class))).thenReturn(STATUS_NETWORK_SUGGESTIONS_SUCCESS);
-        when(mWifiService.removeNetworkSuggestions(any(List.class), anyString())).thenReturn(
-                STATUS_NETWORK_SUGGESTIONS_SUCCESS);
+        when(mWifiService.removeNetworkSuggestions(any(List.class), anyString(), anyInt()))
+                .thenReturn(STATUS_NETWORK_SUGGESTIONS_SUCCESS);
         when(mWifiService.getNetworkSuggestions(anyString()))
                 .thenReturn(testList);
 
@@ -2234,7 +2265,18 @@ public class WifiManagerTest {
 
         assertEquals(STATUS_NETWORK_SUGGESTIONS_SUCCESS,
                 mWifiManager.removeNetworkSuggestions(new ArrayList<>()));
-        verify(mWifiService).removeNetworkSuggestions(anyList(), eq(TEST_PACKAGE_NAME));
+        verify(mWifiService).removeNetworkSuggestions(anyList(), eq(TEST_PACKAGE_NAME),
+                eq(ACTION_REMOVE_SUGGESTION_DISCONNECT));
+    }
+
+    @Test
+    public void testRemoveNetworkSuggestionWithAction() throws Exception {
+        when(mWifiService.removeNetworkSuggestions(anyList(), anyString(), anyInt()))
+                .thenReturn(STATUS_NETWORK_SUGGESTIONS_SUCCESS);
+        assertEquals(STATUS_NETWORK_SUGGESTIONS_SUCCESS, mWifiManager
+                .removeNetworkSuggestions(new ArrayList<>(), ACTION_REMOVE_SUGGESTION_LINGER));
+        verify(mWifiService).removeNetworkSuggestions(any(List.class),
+                eq(TEST_PACKAGE_NAME), eq(ACTION_REMOVE_SUGGESTION_LINGER));
     }
 
     /**
@@ -2429,19 +2471,23 @@ public class WifiManagerTest {
         assertFalse(mWifiManager.isStaConcurrencyForLocalOnlyConnectionsSupported());
         assertFalse(mWifiManager.isMakeBeforeBreakWifiSwitchingSupported());
         assertFalse(mWifiManager.isStaConcurrencyForRestrictedConnectionsSupported());
+        assertFalse(mWifiManager.isStaConcurrencyForMultiInternetSupported());
 
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY));
         assertTrue(mWifiManager.isStaConcurrencyForLocalOnlyConnectionsSupported());
         assertFalse(mWifiManager.isMakeBeforeBreakWifiSwitchingSupported());
         assertFalse(mWifiManager.isStaConcurrencyForRestrictedConnectionsSupported());
+        assertFalse(mWifiManager.isStaConcurrencyForMultiInternetSupported());
 
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(WIFI_FEATURE_ADDITIONAL_STA_MBB
-                        | WIFI_FEATURE_ADDITIONAL_STA_RESTRICTED));
+                        | WIFI_FEATURE_ADDITIONAL_STA_RESTRICTED
+                        | WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET));
         assertFalse(mWifiManager.isStaConcurrencyForLocalOnlyConnectionsSupported());
         assertTrue(mWifiManager.isMakeBeforeBreakWifiSwitchingSupported());
         assertTrue(mWifiManager.isStaConcurrencyForRestrictedConnectionsSupported());
+        assertTrue(mWifiManager.isStaConcurrencyForMultiInternetSupported());
     }
 
     /**
@@ -2450,11 +2496,20 @@ public class WifiManagerTest {
     @Test
     public void testAddNetwork() throws Exception {
         WifiConfiguration configuration = new WifiConfiguration();
-        when(mWifiService.addOrUpdateNetwork(any(), anyString()))
+        when(mWifiService.addOrUpdateNetwork(any(), anyString(), any()))
                 .thenReturn(TEST_NETWORK_ID);
 
+        ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
+
         assertEquals(mWifiManager.addNetwork(configuration), TEST_NETWORK_ID);
-        verify(mWifiService).addOrUpdateNetwork(configuration, mContext.getOpPackageName());
+        verify(mWifiService).addOrUpdateNetwork(eq(configuration), eq(TEST_PACKAGE_NAME),
+                bundleCaptor.capture());
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(mContext.getAttributionSource(),
+                    bundleCaptor.getValue().getParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
+        } else {
+            assertNull(bundleCaptor.getValue().getParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
+        }
 
         // send a null config
         assertEquals(mWifiManager.addNetwork(null), -1);
@@ -2485,12 +2540,21 @@ public class WifiManagerTest {
     @Test
     public void testUpdateNetwork() throws Exception {
         WifiConfiguration configuration = new WifiConfiguration();
-        when(mWifiService.addOrUpdateNetwork(any(), anyString()))
+        when(mWifiService.addOrUpdateNetwork(any(), anyString(), any()))
                 .thenReturn(TEST_NETWORK_ID);
+
+        ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
 
         configuration.networkId = TEST_NETWORK_ID;
         assertEquals(mWifiManager.updateNetwork(configuration), TEST_NETWORK_ID);
-        verify(mWifiService).addOrUpdateNetwork(configuration, mContext.getOpPackageName());
+        verify(mWifiService).addOrUpdateNetwork(eq(configuration), eq(TEST_PACKAGE_NAME),
+                bundleCaptor.capture());
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(mContext.getAttributionSource(),
+                    bundleCaptor.getValue().getParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
+        } else {
+            assertNull(bundleCaptor.getValue().getParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
+        }
 
         // config with invalid network ID
         configuration.networkId = -1;
@@ -3153,6 +3217,28 @@ public class WifiManagerTest {
         verify(mWifiService).setWifiScoringEnabled(true);
     }
 
+    /**
+     * Verify the call to addCustomDhcpOptions goes to WifiServiceImpl.
+     */
+    @Test
+    public void addCustomDhcpOptionsGoesToWifiServiceImpl() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mWifiManager.addCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), TEST_OUI, new ArrayList<DhcpOption>());
+        verify(mWifiService).addCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), TEST_OUI, new ArrayList<DhcpOption>());
+    }
+
+    /**
+     * Verify the call to removeCustomDhcpOptions goes to WifiServiceImpl.
+     */
+    @Test
+    public void removeCustomDhcpOptionsGoesToWifiServiceImpl() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mWifiManager.removeCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), TEST_OUI);
+        verify(mWifiService).removeCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), TEST_OUI);
+    }
+
     @Test
     public void testScanThrottle() throws Exception {
         mWifiManager.setScanThrottleEnabled(true);
@@ -3279,6 +3365,15 @@ public class WifiManagerTest {
     }
 
     @Test
+    public void testSetExternalPnoScanRequestNullFrequencies() throws Exception {
+        mWifiManager.setExternalPnoScanRequest(mock(Executor.class), Collections.EMPTY_LIST,
+                null, mock(WifiManager.PnoScanResultsCallback.class));
+        // null frequencies should get converted to empty array
+        verify(mWifiService).setExternalPnoScanRequest(any(), any(), eq(Collections.EMPTY_LIST),
+                eq(new int[0]), any(), any());
+    }
+
+    @Test
     public void testSetEmergencyScanRequestInProgress() throws Exception {
         mWifiManager.setEmergencyScanRequestInProgress(true);
         verify(mWifiService).setEmergencyScanRequestInProgress(true);
@@ -3356,6 +3451,19 @@ public class WifiManagerTest {
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(~WIFI_FEATURE_DECORATED_IDENTITY));
         assertFalse(mWifiManager.isDecoratedIdentitySupported());
+    }
+
+    /**
+     * Test behavior of isTrustOnFirstUseSupported.
+     */
+    @Test
+    public void testIsTrustOnFirstUseSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_TRUST_ON_FIRST_USE));
+        assertTrue(mWifiManager.isTrustOnFirstUseSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_TRUST_ON_FIRST_USE));
+        assertFalse(mWifiManager.isTrustOnFirstUseSupported());
     }
 
     /**
@@ -3606,5 +3714,80 @@ public class WifiManagerTest {
 
         verify(mSoftApCallback).onBlockedClientConnecting(testWifiClient,
                 WifiManager.SAP_CLIENT_BLOCK_REASON_CODE_NO_MORE_STAS);
+    }
+
+    /*
+     * Verify call to {@link WifiManager#isStaConcurrencyForMultiInternetSupported}.
+     */
+    @Test
+    public void testIsStaConcurrencyForMultiInternetSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET));
+        assertTrue(mWifiManager.isStaConcurrencyForMultiInternetSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET));
+        assertFalse(mWifiManager.isStaConcurrencyForMultiInternetSupported());
+    }
+
+    /*
+     * Verify call to {@link WifiManager#getStaConcurrencyForMultiInternetMode()}.
+     */
+    @Test
+    public void testGetStaConcurrencyForMultiInternetMode() throws Exception {
+        final int mode = mWifiManager.getStaConcurrencyForMultiInternetMode();
+        verify(mWifiService).getStaConcurrencyForMultiInternetMode();
+        assertEquals(WifiManager.WIFI_MULTI_INTERNET_MODE_DISABLED, mode);
+    }
+
+    /*
+     * Verify call to {@link WifiManager#setStaConcurrencyForMultiInternetMode()}.
+     */
+    @Test
+    public void testSetStaConcurrencyForMultiInternetMode() throws Exception {
+        mWifiManager.setStaConcurrencyForMultiInternetMode(
+                WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP);
+        verify(mWifiService).setStaConcurrencyForMultiInternetMode(
+                WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP);
+    }
+
+    /**
+     * Verify call to
+     * {@link WifiManager#reportImpactToCreateIfaceRequest(int, boolean, Executor, BiConsumer)}.
+     */
+    @Test
+    public void testIsItPossibleToCreateInterface() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+
+        final int interfaceToCreate = WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
+        final boolean queryForNewInterface = false;
+        final boolean canCreate = true;
+        final String packageName1 = "TestPackage1";
+        final String packageName2 = "TestPackage2";
+        final int[] interfaces =
+                {WifiManager.WIFI_INTERFACE_TYPE_AP, WifiManager.WIFI_INTERFACE_TYPE_AWARE};
+        final String[] packagesForInterfaces =
+                {TEST_PACKAGE_NAME, packageName1 + "," + packageName2};
+        final List<Pair<Integer, String[]>> interfacePairs = List.of(
+                Pair.create(interfaces[0], new String[]{TEST_PACKAGE_NAME}),
+                Pair.create(interfaces[1], new String[]{packageName1, packageName2}));
+        when(mContext.getOpPackageName()).thenReturn(TEST_PACKAGE_NAME);
+        BiConsumer<Boolean, List<Pair<Integer, String[]>>> resultCallback = mock(
+                BiConsumer.class);
+        ArgumentCaptor<IInterfaceCreationInfoCallback.Stub> cbCaptor = ArgumentCaptor.forClass(
+                IInterfaceCreationInfoCallback.Stub.class);
+        ArgumentCaptor<List<Pair<Integer, String[]>>> resultCaptor = ArgumentCaptor.forClass(
+                List.class);
+
+        mWifiManager.reportImpactToCreateIfaceRequest(interfaceToCreate, queryForNewInterface,
+                new SynchronousExecutor(), resultCallback);
+        verify(mWifiService).reportImpactToCreateIfaceRequest(eq(TEST_PACKAGE_NAME),
+                eq(interfaceToCreate), eq(queryForNewInterface), cbCaptor.capture());
+        cbCaptor.getValue().onResults(canCreate, interfaces, packagesForInterfaces);
+        verify(resultCallback).accept(eq(canCreate), resultCaptor.capture());
+        assertEquals(interfacePairs.size(), resultCaptor.getValue().size());
+        for (int i = 0; i < interfacePairs.size(); ++i) {
+            assertEquals(interfacePairs.get(i).first, resultCaptor.getValue().get(i).first);
+            assertArrayEquals(interfacePairs.get(i).second, resultCaptor.getValue().get(i).second);
+        }
     }
 }

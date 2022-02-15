@@ -20,7 +20,7 @@ import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
 
 import com.android.server.wifi.WifiNative.HostapdDeathEventHandler;
-import com.android.server.wifi.WifiNative.SoftApListener;
+import com.android.server.wifi.WifiNative.SoftApHalCallback;
 
 import java.io.PrintWriter;
 
@@ -86,11 +86,11 @@ interface IHostapdHal {
      * registrations.
      *
      * @param ifaceName Name of the interface.
-     * @param listener Callback listener for AP events.
+     * @param callback Callback listener for AP events.
      * @return true on success, false on failure.
      */
     boolean registerApCallback(@NonNull String ifaceName,
-            @NonNull SoftApListener listener);
+            @NonNull SoftApHalCallback callback);
 
     /**
      * Returns whether or not the hostapd supports getting the AP info from the callback.

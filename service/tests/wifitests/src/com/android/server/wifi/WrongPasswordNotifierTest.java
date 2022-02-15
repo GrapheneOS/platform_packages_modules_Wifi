@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
+import android.net.wifi.WifiContext;
 import android.os.UserHandle;
 import android.provider.Settings;
 

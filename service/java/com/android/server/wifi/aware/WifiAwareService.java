@@ -17,12 +17,12 @@
 package com.android.server.wifi.aware;
 
 import android.content.Context;
+import android.net.wifi.WifiContext;
 import android.os.HandlerThread;
 import android.util.Log;
 
 import com.android.server.SystemService;
 import com.android.server.wifi.HalDeviceManager;
-import com.android.server.wifi.WifiContext;
 import com.android.server.wifi.WifiInjector;
 
 /**

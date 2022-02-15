@@ -138,6 +138,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
     private boolean mVerboseLoggingEnabled = false;
     private int mActiveSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     private boolean mWifiStateChangeBroadcastEnabled = true;
+    private boolean mSecondaryInternet = false;
+    private boolean mIsDbs = false;
     /**
      * mClientModeImpl is only non-null when in {@link ClientModeStateMachine.ConnectModeState} -
      * it will be null in all other states
@@ -198,6 +200,48 @@ public class ConcreteClientModeManager implements ClientModeManager {
      */
     public void setWifiStateChangeBroadcastEnabled(boolean enabled) {
         mWifiStateChangeBroadcastEnabled = enabled;
+    }
+
+    /**
+     * Sets whether this ClientModeManager is for secondary STA with internet.
+     * @param secondaryInternet whether the ClientModeManager is for secondary internet.
+     */
+    public void setSecondaryInternet(boolean secondaryInternet) {
+        // TODO: b/197670907 : Add client role ROLE_CLIENT_SECONDARY_INTERNET
+        if (mRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
+            mSecondaryInternet = secondaryInternet;
+        }
+    }
+
+    /**
+     * Sets whether this ClientModeManager is for DBS AP multi internet.
+     * @param isDbs whether the ClientModeManager is connecting to to the same SSID as primary.
+     */
+    public void setSecondaryInternetDbsAp(boolean isDbs) {
+        // TODO: b/197670907 : Add client role ROLE_CLIENT_SECONDARY_INTERNET
+        if (mRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
+            mIsDbs = isDbs;
+        }
+    }
+
+    /**
+     * Returns whether this ClientModeManager is for secondary STA with internet.
+     * @return true if it is for secondary STA with internet.
+     */
+    public boolean isSecondaryInternet() {
+        return mSecondaryInternet;
+    }
+
+    /**
+     * Returns whether this ClientModeManager is for DBS AP multi internet.
+     * @return true if the ClientModeManager is connecting to to the same SSID as primary.
+     */
+    public boolean isSecondaryInternetDbsAp() {
+        if (!isSecondaryInternet()) {
+            Log.wtf(TAG, "isSecondaryInternetDbsAp called while not secondary internet!?");
+            (new Throwable()).printStackTrace();
+        }
+        return mIsDbs;
     }
 
     /**
@@ -566,6 +610,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
         pw.println("mTargetRoleChangeInfo: " + mTargetRoleChangeInfo);
         pw.println("mClientInterfaceName: " + mClientInterfaceName);
         pw.println("mIfaceIsUp: " + mIfaceIsUp);
+        pw.println("mSecondaryInternet: " + mSecondaryInternet);
+        pw.println("mIsDbs: " + mIsDbs);
         mStateMachine.dump(fd, pw, args);
         pw.println();
         pw.println("Wi-Fi is " + syncGetWifiStateByName());
@@ -1299,8 +1345,13 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
-    public boolean setPowerSave(boolean ps) {
-        return getClientMode().setPowerSave(ps);
+    public boolean setPowerSave(@PowerSaveClientType int client, boolean ps) {
+        return getClientMode().setPowerSave(client, ps);
+    }
+
+    @Override
+    public boolean enablePowerSave() {
+        return getClientMode().enablePowerSave();
     }
 
     @Override

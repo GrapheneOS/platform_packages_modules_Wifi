@@ -296,6 +296,49 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         assertLogContainsRequestPattern(scanResultRegex, dump);
     }
 
+    /**
+     * Verify that scan results for channels not being explicitly requested get filtered out, with
+     * the exception of 6Ghz channels since they could be found via 6Ghz RNR.
+     */
+    @Test
+    public void testUnwantedScanResultsExcept6GhzGetFiltered() {
+        // Prepare the setting to trigger a scan that only explicitly target 2.4Ghz channels.
+        WifiNative.ScanSettings settings = new NativeScanSettingsBuilder()
+                .withBasePeriod(10000)
+                .withMaxApPerScan(2)
+                .addBucketWithBand(10000,
+                        WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN
+                                | WifiScanner.REPORT_EVENT_FULL_SCAN_RESULT,
+                        WifiScanner.WIFI_BAND_24_GHZ)
+                .build();
+        // Mock native scan results including 6155, which is a 6Ghz channel not explicitly being
+        // scanned but found via RNR
+        ArrayList<ScanDetail> rawScanResults = new ArrayList<>(Arrays.asList(
+                ScanResults.generateNativeResults(0, 5150, 5171, 6155)));
+        WifiNative.ScanEventHandler eventHandler = mock(WifiNative.ScanEventHandler.class);
+        InOrder order = inOrder(eventHandler, mWifiNative);
+        // scan succeeds
+        when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
+                .thenReturn(true);
+        when(mWifiNative.getScanResults(eq(IFACE_NAME))).thenReturn(rawScanResults);
+
+        // Trigger a scan to update mNativeScanResults in WificondScannerImpl.
+        assertTrue(mScanner.startSingleScan(settings, eventHandler));
+        Set<Integer> expectedScan = expectedBandScanFreqs(WifiScanner.WIFI_BAND_24_GHZ);
+        order.verify(mWifiNative).scan(eq(IFACE_NAME), anyInt(), eq(expectedScan), any(List.class),
+                anyBoolean());
+
+        // Notify scan has finished
+        mWifiMonitor.sendMessage(eq(IFACE_NAME), WifiMonitor.SCAN_RESULTS_EVENT);
+        mLooper.dispatchAll();
+
+        WifiScanner.ScanData scanData = mScanner.getLatestSingleScanResults();
+        // Only the 6Ghz scan result should remain, since only the 2.4Ghz band is requested but the
+        // other scan results are 5Ghz, so they get filtered out.
+        assertEquals(1, scanData.getResults().length);
+        assertEquals(6155, scanData.getResults()[0].frequency);
+    }
+
     @Test
     public void cleanupDeregistersHandlers() {
         mScanner.cleanup();

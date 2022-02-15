@@ -30,7 +30,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.ScanResult;
@@ -71,6 +70,8 @@ import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
+import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceStatusCode;
 import com.android.server.wifi.aware.WifiAwareMetrics;
 import com.android.server.wifi.hotspot2.ANQPNetworkKey;
 import com.android.server.wifi.hotspot2.NetworkDetail;
@@ -5668,7 +5669,7 @@ public class WifiMetrics {
                 sb.append("ASSOCIATION_REJECTION_EVENT")
                         .append(" timedOut=").append(event.associationTimedOut)
                         .append(" status=").append(event.status).append(":")
-                        .append(ISupplicantStaIfaceCallback.StatusCode.toString(event.status));
+                        .append(StaIfaceStatusCode.toString(event.status));
                 break;
             case StaEvent.TYPE_AUTHENTICATION_FAILURE_EVENT:
                 sb.append("AUTHENTICATION_FAILURE_EVENT reason=").append(event.authFailureReason)
@@ -5681,7 +5682,7 @@ public class WifiMetrics {
                 sb.append("NETWORK_DISCONNECTION_EVENT")
                         .append(" local_gen=").append(event.localGen)
                         .append(" reason=").append(event.reason).append(":")
-                        .append(ISupplicantStaIfaceCallback.ReasonCode.toString(
+                        .append(StaIfaceReasonCode.toString(
                                 (event.reason >= 0 ? event.reason : -1 * event.reason)));
                 break;
             case StaEvent.TYPE_CMD_ASSOCIATED_BSSID:

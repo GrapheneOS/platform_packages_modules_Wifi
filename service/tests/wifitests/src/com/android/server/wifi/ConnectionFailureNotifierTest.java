@@ -28,6 +28,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.os.Handler;
 import android.os.Process;
 import android.os.test.TestLooper;

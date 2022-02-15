@@ -50,6 +50,15 @@ import java.util.Set;
  * If the STA is in client mode, ClientMode is implemented using {@link ClientModeImpl}.
  */
 public interface ClientMode {
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(flag = true, prefix = {"POWER_SAVE_CLIENT_"},
+            value = {
+                    POWER_SAVE_CLIENT_DHCP,
+                    POWER_SAVE_CLIENT_WIFI_LOCK})
+    @interface PowerSaveClientType {}
+    int POWER_SAVE_CLIENT_DHCP = 0x1;
+    int POWER_SAVE_CLIENT_WIFI_LOCK = 0x2;
+
     void dump(FileDescriptor fd, PrintWriter pw, String[] args);
 
     void enableVerboseLogging(boolean verbose);
@@ -129,7 +138,8 @@ public interface ClientMode {
 
     WifiLinkLayerStats getWifiLinkLayerStats();
 
-    boolean setPowerSave(boolean ps);
+    boolean setPowerSave(@PowerSaveClientType int client, boolean ps);
+    boolean enablePowerSave();
 
     boolean setLowLatencyMode(boolean enabled);
 

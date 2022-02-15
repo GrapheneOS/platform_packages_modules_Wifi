@@ -37,7 +37,7 @@ import android.app.test.MockAnswerUtil;
 import android.content.Context;
 import android.hardware.wifi.hostapd.ApInfo;
 import android.hardware.wifi.hostapd.BandMask;
-import android.hardware.wifi.hostapd.Bandwidth;
+import android.hardware.wifi.hostapd.ChannelBandwidth;
 import android.hardware.wifi.hostapd.ClientInfo;
 import android.hardware.wifi.hostapd.DebugLevel;
 import android.hardware.wifi.hostapd.EncryptionType;
@@ -53,6 +53,7 @@ import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApConfiguration.Builder;
 import android.net.wifi.WifiManager;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
@@ -86,6 +87,11 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
     private static final String NETWORK_PSK = "test-psk";
     private static final String TEST_CLIENT_MAC = "11:22:33:44:55:66";
     private static final String TEST_AP_INSTANCE = "instance-wlan0";
+    private static final String TEST_AP_INSTANCE_2 = "instance-wlan1";
+    private static final int TEST_FREQ_24G = 2412;
+    private static final int TEST_FREQ_5G = 5745;
+    private static final int TEST_BANDWIDTH = ChannelBandwidth.BANDWIDTH_20;
+    private static final int TEST_GENERATION = Generation.WIFI_STANDARD_11N;
 
     private final int mBand256G = SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ
             | SoftApConfiguration.BAND_6GHZ;
@@ -94,7 +100,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
     private @Mock IHostapd mIHostapdMock;
     private @Mock IBinder mServiceBinderMock;
     private @Mock WifiNative.HostapdDeathEventHandler mHostapdHalDeathHandler;
-    private @Mock WifiNative.SoftApListener mSoftApListener;
+    private @Mock WifiNative.SoftApHalCallback mSoftApHalCallback;
 
     private IHostapdCallback mIHostapdCallback;
     private MockResources mResources;
@@ -109,8 +115,13 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
             ArgumentCaptor.forClass(NetworkParams.class);
 
     private class HostapdHalSpy extends HostapdHalAidlImp {
+        private IBinder mServiceBinderOverride;
         HostapdHalSpy() {
             super(mContext, new Handler(mLooper.getLooper()));
+        }
+
+        public void setServiceBinderOverride(IBinder serviceBinderOverride) {
+            mServiceBinderOverride = serviceBinderOverride;
         }
 
         @Override
@@ -120,12 +131,39 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         @Override
         protected IBinder getServiceBinderMockable() {
-            return mServiceBinderMock;
+            return mServiceBinderOverride == null ? mServiceBinderMock : mServiceBinderOverride;
         }
 
         @Override
         public boolean initialize() {
             return true;
+        }
+    }
+
+    private void mockApInfoChangedAndVerify(int numOfApInfo, IHostapdCallback mockHostapdCallback,
+            WifiNative.SoftApHalCallback mockSoftApHalCallback) throws Exception {
+        // Trigger on info changed.
+        ApInfo apInfo = new ApInfo();
+        apInfo.ifaceName = IFACE_NAME;
+        apInfo.apIfaceInstance = TEST_AP_INSTANCE;
+        apInfo.freqMhz = TEST_FREQ_24G;
+        apInfo.channelBandwidth = TEST_BANDWIDTH;
+        apInfo.generation = TEST_GENERATION;
+        apInfo.apIfaceInstanceMacAddress = MacAddress.fromString(TEST_CLIENT_MAC).toByteArray();
+        if (numOfApInfo == 1) {
+            mockHostapdCallback.onApInstanceInfoChanged(apInfo);
+            verify(mockSoftApHalCallback).onInfoChanged(eq(TEST_AP_INSTANCE), eq(TEST_FREQ_24G),
+                    eq(mHostapdHal.mapHalChannelBandwidthToSoftApInfo(TEST_BANDWIDTH)),
+                    eq(mHostapdHal.mapHalGenerationToWifiStandard(TEST_GENERATION)),
+                    eq(MacAddress.fromString(TEST_CLIENT_MAC)));
+        } else if (numOfApInfo == 2) {
+            apInfo.apIfaceInstance = TEST_AP_INSTANCE_2;
+            apInfo.freqMhz = TEST_FREQ_5G;
+            mockHostapdCallback.onApInstanceInfoChanged(apInfo);
+            verify(mockSoftApHalCallback).onInfoChanged(eq(TEST_AP_INSTANCE_2), eq(TEST_FREQ_5G),
+                    eq(mHostapdHal.mapHalChannelBandwidthToSoftApInfo(TEST_BANDWIDTH)),
+                    eq(mHostapdHal.mapHalGenerationToWifiStandard(TEST_GENERATION)),
+                    eq(MacAddress.fromString(TEST_CLIENT_MAC)));
         }
     }
 
@@ -179,6 +217,27 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies the hostapd death handling ignored with stale death recipient.
+     */
+    @Test
+    public void testDeathHandlingIgnore() throws Exception {
+        executeAndValidateInitializationSequence(true);
+        mHostapdHal.registerDeathHandler(mHostapdHalDeathHandler);
+        DeathRecipient old = mHostapdDeathCaptor.getValue();
+        // Start the HAL again
+        reset(mServiceBinderMock);
+        reset(mIHostapdMock);
+        // Initialize and start hostapd daemon with different service binder
+        ((HostapdHalSpy) mHostapdHal).setServiceBinderOverride(new Binder());
+        assertTrue(mHostapdHal.initialize());
+        assertTrue(mHostapdHal.startDaemon());
+        // The old binder died should be ignored.
+        old.binderDied();
+        mLooper.dispatchAll();
+        verify(mHostapdHalDeathHandler, never()).onDeath();
+    }
+
+    /**
      * Verifies the successful addition of access point.
      */
     @Test
@@ -196,7 +255,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -229,7 +288,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -264,7 +323,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -303,7 +362,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -343,7 +402,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -381,7 +440,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -418,7 +477,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -447,7 +506,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertFalse(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
     }
 
@@ -466,7 +525,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertFalse(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
     }
 
@@ -519,18 +578,18 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         // Trigger on failure.
-        mIHostapdCallback.onFailure(IFACE_NAME);
-        verify(mSoftApListener).onFailure();
+        mIHostapdCallback.onFailure(IFACE_NAME, IFACE_NAME);
+        verify(mSoftApHalCallback).onFailure();
 
         // Now remove the access point and ensure that the callback is no longer handled.
-        reset(mSoftApListener);
+        reset(mSoftApHalCallback);
         assertTrue(mHostapdHal.removeAccessPoint(IFACE_NAME));
-        mIHostapdCallback.onFailure(IFACE_NAME);
-        verify(mSoftApListener, never()).onFailure();
+        mIHostapdCallback.onFailure(IFACE_NAME, IFACE_NAME);
+        verify(mSoftApHalCallback, never()).onFailure();
     }
 
     /**
@@ -677,7 +736,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -716,7 +775,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -753,7 +812,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -784,31 +843,17 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
         doNothing().when(mIHostapdMock).addAccessPoint(any(), any());
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         // Trigger on failure.
-        mIHostapdCallback.onFailure(IFACE_NAME);
-        verify(mSoftApListener).onFailure();
+        mIHostapdCallback.onFailure(IFACE_NAME, IFACE_NAME);
+        verify(mSoftApHalCallback).onFailure();
         // Register SoftApManager callback
-        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApListener);
+        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
 
-        int testFreq = 2412;
-        int testBandwidth = Bandwidth.BANDWIDTH_20;
-        int testGeneration = Generation.WIFI_STANDARD_11N;
-        // Trigger on info changed.
-        ApInfo apInfo = new ApInfo();
-        apInfo.ifaceName = IFACE_NAME;
-        apInfo.apIfaceInstance = TEST_AP_INSTANCE;
-        apInfo.freqMhz = testFreq;
-        apInfo.bandwidth = testBandwidth;
-        apInfo.generation = testGeneration;
-        apInfo.apIfaceInstanceMacAddress = MacAddress.fromString(TEST_CLIENT_MAC).toByteArray();
-        mIHostapdCallback.onApInstanceInfoChanged(apInfo);
-        verify(mSoftApListener).onInfoChanged(eq(TEST_AP_INSTANCE), eq(testFreq),
-                eq(mHostapdHal.mapHalBandwidthToSoftApInfo(testBandwidth)),
-                eq(mHostapdHal.mapHalGenerationToWifiStandard(testGeneration)),
-                eq(MacAddress.fromString(TEST_CLIENT_MAC)));
+        // Trigger on info changed and verify.
+        mockApInfoChangedAndVerify(1, mIHostapdCallback, mSoftApHalCallback);
 
         // Trigger on client connected.
         ClientInfo clientInfo = new ClientInfo();
@@ -817,7 +862,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
         clientInfo.clientAddress = MacAddress.fromString(TEST_CLIENT_MAC).toByteArray();
         clientInfo.isConnected = true;
         mIHostapdCallback.onConnectedClientsChanged(clientInfo);
-        verify(mSoftApListener).onConnectedClientsChanged(eq(TEST_AP_INSTANCE),
+        verify(mSoftApHalCallback).onConnectedClientsChanged(eq(TEST_AP_INSTANCE),
                 eq(MacAddress.fromString(TEST_CLIENT_MAC)), eq(true));
     }
 
@@ -844,7 +889,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), isMetered,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -884,7 +929,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), isMetered,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -954,7 +999,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), true,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -1020,7 +1065,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), isMetered,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -1066,7 +1111,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
                 configurationBuilder.build(), isMetered,
-                () -> mSoftApListener.onFailure()));
+                () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMock).addAccessPoint(any(), any());
 
         assertEquals(IFACE_NAME, mIfaceParamsCaptor.getValue().name);
@@ -1082,5 +1127,39 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
                 mNetworkParamsCaptor.getValue().encryptionType);
         assertEquals(NETWORK_PSK, mNetworkParamsCaptor.getValue().passphrase);
         assertTrue(mNetworkParamsCaptor.getValue().isMetered);
+    }
+
+    /**
+     * Verifies the onFailure event in bridged mode.
+     */
+    @Test
+    public void testHostapdCallbackOnFailureEventInBridgedMode() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        executeAndValidateInitializationSequence(true);
+        Builder configurationBuilder = new SoftApConfiguration.Builder();
+        configurationBuilder.setSsid(NETWORK_SSID);
+        configurationBuilder.setBands(new int[] {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_5GHZ});
+
+        doNothing().when(mIHostapdMock).addAccessPoint(any(), any());
+        assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
+                configurationBuilder.build(), true,
+                () -> mSoftApHalCallback.onFailure()));
+        verify(mIHostapdMock).addAccessPoint(any(), any());
+
+        // Register SoftApManager callback
+        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
+
+        // Trigger on info changed and verify.
+        mockApInfoChangedAndVerify(2, mIHostapdCallback, mSoftApHalCallback);
+
+        // Trigger on failure from first instance.
+        mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE);
+        verify(mSoftApHalCallback).onInstanceFailure(TEST_AP_INSTANCE);
+
+        // Trigger on failure from second instance.
+        mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE_2);
+        verify(mSoftApHalCallback).onFailure();
+
     }
 }

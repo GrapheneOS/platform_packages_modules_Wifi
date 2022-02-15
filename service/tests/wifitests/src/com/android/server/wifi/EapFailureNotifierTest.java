@@ -16,7 +16,6 @@
 
 package com.android.server.wifi;
 
-import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_PREFIX;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE;
 
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
@@ -36,9 +34,10 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
+import android.net.wifi.WifiStringResourceWrapper;
 import android.provider.Settings;
 import android.service.notification.StatusBarNotification;
-import android.telephony.SubscriptionManager;
 
 import androidx.test.filters.SmallTest;
 
@@ -49,7 +48,6 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoSession;
 
 /**
  * Unit tests for {@link com.android.server.wifi.EapFailureNotifier}.
@@ -61,6 +59,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
 
     @Mock WifiContext mContext;
     @Mock Resources mResources;
+    @Mock WifiStringResourceWrapper mResourceWrapper;
     @Mock WifiNotificationManager mWifiNotificationManager;
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock Notification mNotification;
@@ -76,7 +75,6 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     private static final String ERROR_MESSAGE = "Error Message";
     private static final String ERROR_MESSAGE_UNKNOWN_ERROR_CODE =
             "Error Message Unknown Error Code";
-    private MockitoSession mStaticMockSession = null;
 
     EapFailureNotifier mEapFailureNotifier;
 
@@ -86,23 +84,15 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        // static mocking
-        mStaticMockSession = mockitoSession()
-            .mockStatic(SubscriptionManager.class)
-            .startMocking();
         when(mWifiCarrierInfoManager.getBestMatchSubscriptionId(mWifiConfiguration)).thenReturn(0);
-        lenient().when(SubscriptionManager.getResourcesForSubId(eq(mContext), anyInt()))
-                .thenReturn(mResources);
         when(mContext.getResources()).thenReturn(mResources);
-        when(mResources.getIdentifier(eq(ERROR_MESSAGE_OVERLAY_PREFIX + UNKNOWN_ERROR_CODE),
-                anyString(), anyString())).thenReturn(0);
-        when(mResources.getIdentifier(eq(ERROR_MESSAGE_OVERLAY_PREFIX + KNOWN_ERROR_CODE),
-                anyString(), anyString())).thenReturn(1);
-        when(mResources.getIdentifier(eq(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE),
-                anyString(), anyString())).thenReturn(2);
-        when(mResources.getString(eq(0), anyString())).thenReturn(null);
-        when(mResources.getString(eq(1), anyString())).thenReturn(ERROR_MESSAGE);
-        when(mResources.getString(eq(2), anyString())).thenReturn(ERROR_MESSAGE_UNKNOWN_ERROR_CODE);
+        when(mContext.getStringResourceWrapper(anyInt(), anyInt())).thenReturn(mResourceWrapper);
+        when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_PREFIX + UNKNOWN_ERROR_CODE),
+                anyString())).thenReturn(null);
+        when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_PREFIX + KNOWN_ERROR_CODE),
+                anyString())).thenReturn(ERROR_MESSAGE);
+        when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE),
+                anyString())).thenReturn(ERROR_MESSAGE_UNKNOWN_ERROR_CODE);
         when(mContext.createPackageContext(anyString(), eq(0))).thenReturn(mContext);
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mFrameworkFacade.getSettingsPackageName(any())).thenReturn(TEST_SETTINGS_PACKAGE);
@@ -114,9 +104,6 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     @After
     public void cleanUp() throws Exception {
         validateMockitoUsage();
-        if (mStaticMockSession != null) {
-            mStaticMockSession.finishMocking();
-        }
     }
 
     /**
@@ -230,7 +217,8 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         activeNotifications[0] = new StatusBarNotification("android", "", 56, "", 0, 0, 0,
                 mNotification, android.os.Process.myUserHandle(), 0);
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
-        when(mResources.getString(eq(1), anyString())).thenReturn("");
+        when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_PREFIX + KNOWN_ERROR_CODE),
+                anyString())).thenReturn("");
         mEapFailureNotifier.setCurrentShownSsid(SSID_1);
         mWifiConfiguration.SSID = SSID_1;
         mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
@@ -261,5 +249,25 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
         assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+    }
+
+    /**
+     * Verify that no eap failure notification will be generated with the following conditions :
+     * No eap failure notification of eap failure is displayed now.
+     * Error code is negative
+     * @throws Exception
+     */
+    @Test
+    public void onEapFailureWithNegativeErrorCode() throws Exception {
+        when(mFrameworkFacade.makeNotificationBuilder(any(),
+                eq(WifiService.NOTIFICATION_NETWORK_ALERTS))).thenReturn(mNotificationBuilder);
+        StatusBarNotification[] activeNotifications = new StatusBarNotification[1];
+        activeNotifications[0] = new StatusBarNotification("android", "", 56, "", 0, 0, 0,
+                mNotification, android.os.Process.myUserHandle(), 0);
+        when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
+        mWifiConfiguration.SSID = SSID_1;
+        mEapFailureNotifier.onEapFailure(-1, mWifiConfiguration, true);
+        verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
+                eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
     }
 }
