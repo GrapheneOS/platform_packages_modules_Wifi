@@ -2804,7 +2804,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 iface.startDppConfiguratorInitiator(peerBootstrapId, ownBootstrapId, ssid,
                         password != null ? password : "", psk != null ? psk : "",
                         frameworkToAidlDppNetRole(netRole), frameworkToAidlDppAkm(securityAkm),
-                        null);
+                        new byte[] {});
                 // TODO: update dppPrivateEcKey if it is returned
                 return true;
             } catch (RemoteException e) {

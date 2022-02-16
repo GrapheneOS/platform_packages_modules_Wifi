@@ -544,6 +544,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     WifiConfigManager mockWifiConfigManager() {
         WifiConfigManager wifiConfigManager = mock(WifiConfigManager.class);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        config.getNetworkSelectionStatus().setHasEverConnected(true);
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(config);
         when(wifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(null);
@@ -4479,9 +4480,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     public void testExternalPnoScanRequest_withSavedNetworks() {
         mWifiConnectivityManager.setLocationModeEnabled(true);
         // Create and add 3 networks.
-        WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
+        WifiConfiguration network1 = WifiConfigurationTestUtil.createPasspointNetwork();
+        network1.ephemeral = true;
+        network1.getNetworkSelectionStatus().setHasEverConnected(false);
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
-        WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
+        network2.getNetworkSelectionStatus().setHasEverConnected(true);
+        WifiConfiguration network3 = WifiConfigurationTestUtil.createPskNetwork();
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(network1);
         networkList.add(network2);
@@ -4495,20 +4499,20 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         // and external requested networks.
         Set<String> requestedSsids = new ArraySet<>();
         requestedSsids.add("\"Test_SSID_1\"");
-        requestedSsids.add(network3.SSID);
+        requestedSsids.add(network2.SSID);
         when(mExternalPnoScanRequestManager.getExternalPnoScanSsids()).thenReturn(requestedSsids);
 
-        mWifiConnectivityManager.setLocationModeEnabled(true);
         List<WifiScanner.PnoSettings.PnoNetwork> pnoNetworks =
                 mWifiConnectivityManager.retrievePnoNetworkList();
-        // There should be 4 SSIDs in total: network1, network2, network3, and Test_SSID_1.
-        assertEquals(4, pnoNetworks.size());
-        // Verify the order. Test_SSID_1 and network3 should be in the front because they are
-        // requested by an external app. Verify network3.SSID only appears once.
+        // There should be 3 SSIDs in total: network1, network2, and Test_SSID_1.
+        // network1 should be included in PNO even if it's never connected because it's ephemeral.
+        // network3 should not get included because it's saved and never connected before.
+        assertEquals(3, pnoNetworks.size());
+        // Verify the order. Test_SSID_1 and network2 should be in the front because they are
+        // requested by an external app. Verify network2.SSID only appears once.
         assertEquals("\"Test_SSID_1\"", pnoNetworks.get(0).ssid);
-        assertEquals(network3.SSID, pnoNetworks.get(1).ssid);
+        assertEquals(network2.SSID, pnoNetworks.get(1).ssid);
         assertEquals(network1.SSID, pnoNetworks.get(2).ssid);
-        assertEquals(network2.SSID, pnoNetworks.get(3).ssid);
     }
 
     @Test
@@ -4539,6 +4543,10 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
         WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
+        network1.getNetworkSelectionStatus().setHasEverConnected(true);
+        network2.getNetworkSelectionStatus().setHasEverConnected(true);
+        network3.getNetworkSelectionStatus().setHasEverConnected(true);
+
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(network1);
         networkList.add(network2);
@@ -4589,6 +4597,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         // Create 2 networks.
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
+        network1.getNetworkSelectionStatus().setHasEverConnected(true);
+        network2.getNetworkSelectionStatus().setHasEverConnected(true);
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(network1);
         networkList.add(network2);
@@ -4643,13 +4653,21 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void testRetrievePnoListOrder() {
-        //Create 3 networks.
+        //Create 4 networks.
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
         WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
+        WifiConfiguration network4 = WifiConfigurationTestUtil.createPskNetwork();
+
+        // mark all networks except network4 as connected before
+        network1.getNetworkSelectionStatus().setHasEverConnected(true);
+        network2.getNetworkSelectionStatus().setHasEverConnected(true);
+        network3.getNetworkSelectionStatus().setHasEverConnected(true);
+
         mLruConnectionTracker.addNetwork(network1);
         mLruConnectionTracker.addNetwork(network2);
         mLruConnectionTracker.addNetwork(network3);
+        mLruConnectionTracker.addNetwork(network4);
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(network1);
         networkList.add(network2);
@@ -4657,6 +4675,9 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mWifiConfigManager.getSavedNetworks(anyInt())).thenReturn(networkList);
         List<WifiScanner.PnoSettings.PnoNetwork> pnoNetworks =
                 mWifiConnectivityManager.retrievePnoNetworkList();
+
+        // Verify correct order of networks. Note that network4 should not appear for PNO scan
+        // since it had not been connected before.
         assertEquals(3, pnoNetworks.size());
         assertEquals(network3.SSID, pnoNetworks.get(0).ssid);
         assertEquals(network2.SSID, pnoNetworks.get(1).ssid);
@@ -4685,6 +4706,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     public void testFetchChannelSetForPartialScanMaxCount() {
         WifiConfiguration configuration1 = WifiConfigurationTestUtil.createOpenNetwork();
         WifiConfiguration configuration2 = WifiConfigurationTestUtil.createOpenNetwork();
+        configuration1.getNetworkSelectionStatus().setHasEverConnected(true);
+        configuration2.getNetworkSelectionStatus().setHasEverConnected(true);
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(configuration1, configuration2));
 

@@ -2155,8 +2155,10 @@ public class WifiConnectivityManager {
     private @NonNull List<WifiConfiguration> getAllScanOptimizationNetworks() {
         List<WifiConfiguration> networks = mConfigManager.getSavedNetworks(-1);
         networks.addAll(mWifiNetworkSuggestionsManager.getAllScanOptimizationSuggestionNetworks());
-        // remove all auto-join disabled or network selection disabled network.
+        // remove all saved but never connected, auto-join disabled, or network selection disabled
+        // networks.
         networks.removeIf(config -> !config.allowAutojoin
+                || (!config.ephemeral && !config.getNetworkSelectionStatus().hasEverConnected())
                 || !config.getNetworkSelectionStatus().isNetworkEnabled()
                 || mConfigManager.isNetworkTemporarilyDisabledByUser(
                         config.isPasspoint() ? config.FQDN : config.SSID));

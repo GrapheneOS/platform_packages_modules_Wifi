@@ -39,6 +39,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.display.DisplayManager;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.Network;
@@ -1180,6 +1181,12 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                         + "- must be an integer: "
                                         + displayIdStr);
                                 return -1;
+                            }
+                            DisplayManager dm = mContext.getSystemService(DisplayManager.class);
+                            Display[] displays = dm.getDisplays();
+                            for (Display display: displays) {
+                                pw.println("Display: id=" + display.getDisplayId() + ", info="
+                                        + display.getDeviceProductInfo());
                             }
                         } else {
                             pw.println("Ignoring unknown option " + pinOption);
