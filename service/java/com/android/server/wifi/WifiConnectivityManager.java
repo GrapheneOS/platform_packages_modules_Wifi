@@ -545,7 +545,15 @@ public class WifiConnectivityManager {
         }
 
         // Check if any blocklisted BSSIDs can be freed.
-        mWifiBlocklistMonitor.tryEnablingBlockedBssids(scanDetails);
+        List<ScanDetail> enabledDetails =
+                mWifiBlocklistMonitor.tryEnablingBlockedBssids(scanDetails);
+        for (ScanDetail scanDetail : enabledDetails) {
+            WifiConfiguration config = mConfigManager.getSavedNetworkForScanDetail(scanDetail);
+            if (config != null) {
+                mConfigManager.updateNetworkSelectionStatus(config.networkId,
+                        WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
+            }
+        }
         Set<String> bssidBlocklist = mWifiBlocklistMonitor.updateAndGetBssidBlocklistForSsids(
                 connectedSsids);
         updateUserDisabledList(scanDetails);

@@ -3557,15 +3557,24 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void verifyBlocklistRefreshedAfterScanResults() {
+        WifiConfiguration disabledConfig = WifiConfigurationTestUtil.createPskNetwork();
+        List<ScanDetail> mockScanDetails = new ArrayList<>();
+        mockScanDetails.add(mock(ScanDetail.class));
+        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockScanDetails);
+        when(mWifiConfigManager.getSavedNetworkForScanDetail(any())).thenReturn(
+                disabledConfig);
+
         when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
 
-        InOrder inOrder = inOrder(mWifiBlocklistMonitor);
+        InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
         // Force a connectivity scan
         inOrder.verify(mWifiBlocklistMonitor, never())
                 .updateAndGetBssidBlocklistForSsids(anySet());
         mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
 
         inOrder.verify(mWifiBlocklistMonitor).tryEnablingBlockedBssids(any());
+        inOrder.verify(mWifiConfigManager).updateNetworkSelectionStatus(disabledConfig.networkId,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
         inOrder.verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(anySet());
     }
 

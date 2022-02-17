@@ -675,11 +675,13 @@ public class WifiBlocklistMonitor {
     /**
      * Attempts to re-enable BSSIDs that likely experienced failures due to low RSSI.
      * @param scanDetails
+     * @return the list of ScanDetails for which BSSIDs were re-enabled.
      */
-    public void tryEnablingBlockedBssids(List<ScanDetail> scanDetails) {
+    public @NonNull List<ScanDetail> tryEnablingBlockedBssids(List<ScanDetail> scanDetails) {
         if (scanDetails == null) {
-            return;
+            return Collections.EMPTY_LIST;
         }
+        List<ScanDetail> results = new ArrayList<>();
         for (ScanDetail scanDetail : scanDetails) {
             ScanResult scanResult = scanDetail.getScanResult();
             if (scanResult == null) {
@@ -696,8 +698,10 @@ public class WifiBlocklistMonitor {
                 mBssidBlocklistMonitorLogger.logBssidUnblocked(
                         status, "rssi significantly improved");
                 mBssidStatusMap.remove(status.bssid);
+                results.add(scanDetail);
             }
         }
+        return results;
     }
 
     private boolean isLowRssiSensitiveFailure(int blockReason) {

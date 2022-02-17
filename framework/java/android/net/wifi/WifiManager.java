@@ -8371,7 +8371,7 @@ public class WifiManager {
 
 
     /**
-     * Callback registered with {@link #setExternalPnoScanRequest(Executor, List,
+     * Callback registered with {@link WifiManager#setExternalPnoScanRequest(List, int[], Executor,
      * PnoScanResultsCallback)}. Returns status and result information on offloaded external PNO
      * requests.
      * @hide
@@ -8582,14 +8582,13 @@ public class WifiManager {
      * {@link #clearExternalPnoScanRequest()}</li>
      * </ul>
      *
-     * @param executor The executor on which callback will be invoked.
      * @param ssids The list of SSIDs to request for PNO scan.
      * @param frequencies Provide as hint a list of up to 10 frequencies to be used for PNO scan.
      *                    Each frequency should be in MHz. For example 2412 and 5180 are valid
      *                    frequencies. {@link WifiInfo#getFrequency()} is a location where this
      *                    information could be obtained. If a null or empty array is provided, the
      *                    Wi-Fi framework will automatically decide the list of frequencies to scan.
-     *
+     * @param executor The executor on which callback will be invoked.
      * @param callback For the calling application to receive results and status updates.
      *
      * @throws SecurityException if the caller does not have permission.
@@ -8601,13 +8600,12 @@ public class WifiManager {
     @RequiresPermission(allOf = {ACCESS_FINE_LOCATION,
             REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION})
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public void setExternalPnoScanRequest(@NonNull @CallbackExecutor Executor executor,
-            @NonNull List<WifiSsid> ssids, @Nullable int[] frequencies,
+    public void setExternalPnoScanRequest(@NonNull List<WifiSsid> ssids,
+            @Nullable int[] frequencies, @NonNull @CallbackExecutor Executor executor,
             @NonNull PnoScanResultsCallback callback) {
         if (executor == null) throw new IllegalArgumentException("executor cannot be null");
         if (callback == null) throw new IllegalArgumentException("callback cannot be null");
         try {
-
             mService.setExternalPnoScanRequest(new Binder(),
                     new PnoScanResultsCallbackProxy(executor, callback),
                     ssids, frequencies == null ? new int[0] : frequencies,

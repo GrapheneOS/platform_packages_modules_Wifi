@@ -22,6 +22,7 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.util.Log;
 
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.GroupEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.WifiP2pStats;
@@ -363,7 +364,50 @@ public class WifiP2pMetrics {
                     - mCurrentConnectionEventStartTime);
             mCurrentConnectionEvent.connectivityLevelFailureCode = failure;
 
+            WifiStatsLog.write(WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,
+                    convertConnectionType(mCurrentConnectionEvent.connectionType),
+                    mCurrentConnectionEvent.durationTakenToConnectMillis,
+                    mCurrentConnectionEvent.durationTakenToConnectMillis / 200,
+                    convertFailureCode(failure));
             mCurrentConnectionEvent = null;
+        }
+    }
+
+    private int convertConnectionType(int connectionType) {
+        switch (connectionType) {
+            case P2pConnectionEvent.CONNECTION_FRESH:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__FRESH;
+            case P2pConnectionEvent.CONNECTION_REINVOKE:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__REINVOKE;
+            case P2pConnectionEvent.CONNECTION_LOCAL:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__LOCAL;
+            case P2pConnectionEvent.CONNECTION_FAST:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__FAST;
+            default:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__UNSPECIFIED;
+        }
+    }
+
+    private int convertFailureCode(int failureCode) {
+        switch (failureCode) {
+            case P2pConnectionEvent.CLF_NONE:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE;
+            case P2pConnectionEvent.CLF_TIMEOUT:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__TIMEOUT;
+            case P2pConnectionEvent.CLF_CANCEL:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__CANCEL;
+            case P2pConnectionEvent.CLF_PROV_DISC_FAIL:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__PROV_DISC_FAIL;
+            case P2pConnectionEvent.CLF_INVITATION_FAIL:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__INVITATION_FAIL;
+            case P2pConnectionEvent.CLF_USER_REJECT:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__USER_REJECT;
+            case P2pConnectionEvent.CLF_NEW_CONNECTION_ATTEMPT:
+                return WifiStatsLog
+                        .WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NEW_CONNECTION_ATTEMPT;
+            case P2pConnectionEvent.CLF_UNKNOWN:
+            default:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__UNKNOWN;
         }
     }
 

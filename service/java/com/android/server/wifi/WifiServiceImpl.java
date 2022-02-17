@@ -5884,8 +5884,8 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#setExternalPnoScanRequest(Executor, List, int[],
-     * WifiManager.PnoScanResultsCallback)}
+     * See {@link WifiManager#setExternalPnoScanRequest(List, int[], Executor,
+     * WifiManager.PnoScanResultsCallback)}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
