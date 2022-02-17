@@ -9305,9 +9305,9 @@ public class WifiManager {
     @SystemApi
     @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
     @NonNull
-    public Set<String> getOemPrivilegedAdmins() {
+    public Set<String> getOemPrivilegedWifiAdminPackages() {
         try {
-            return new ArraySet<>(mService.getOemPrivilegedAdmins());
+            return new ArraySet<>(mService.getOemPrivilegedWifiAdminPackages());
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

@@ -6471,10 +6471,10 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link android.net.wifi.WifiManager#getOemPrivilegedAdmins
+     * See {@link android.net.wifi.WifiManager#getOemPrivilegedWifiAdminPackages
      */
     @Override
-    public String[] getOemPrivilegedAdmins() {
+    public String[] getOemPrivilegedWifiAdminPackages() {
         return mContext.getResources()
                 .getStringArray(R.array.config_oemPrivilegedWifiAdminPackages);
     }

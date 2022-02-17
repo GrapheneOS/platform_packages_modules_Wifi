@@ -863,7 +863,7 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public String[] getOemPrivilegedAdmins() {
+    public String[] getOemPrivilegedWifiAdminPackages() {
         throw new UnsupportedOperationException();
     }
 
