@@ -6192,7 +6192,9 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN})
     public void allowAutojoin(int netId, boolean allowAutojoin) {
         try {
             mService.allowAutojoin(netId, allowAutojoin);
@@ -6209,7 +6211,9 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN})
     public void allowAutojoinPasspoint(@NonNull String fqdn, boolean allowAutojoin) {
         try {
             mService.allowAutojoinPasspoint(fqdn, allowAutojoin);
