@@ -1968,10 +1968,11 @@ public class WifiConfigManager {
      * @param disableOthers Whether to disable all other networks or not. This is used to indicate
      *                      that the app requested connection to a specific network.
      * @param uid           uid of the app requesting the update.
+     * @param packageName   Package name of calling apps
      * @return true if it succeeds, false otherwise
      */
     public boolean enableNetwork(int networkId, boolean disableOthers, int uid,
-                                 String packageName) {
+                                 @NonNull String packageName) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Enabling network " + networkId + " (disableOthers " + disableOthers + ")");
         }
@@ -1990,7 +1991,8 @@ public class WifiConfigManager {
             setLastSelectedNetwork(networkId);
         }
         if (!canModifyNetwork(config, uid, packageName)) {
-            Log.e(TAG, "UID " + uid + " does not have permission to update configuration "
+            Log.e(TAG, "UID " + uid +  " package " + packageName
+                    + " does not have permission to update configuration "
                     + config.getProfileKey());
             return false;
         }
@@ -2009,12 +2011,13 @@ public class WifiConfigManager {
      * @param uid       uid of the app requesting the update.
      * @return true if it succeeds, false otherwise
      */
-    public boolean disableNetwork(int networkId, int uid, String packageName) {
+    public boolean disableNetwork(int networkId, int uid, @NonNull String packageName) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Disabling network " + networkId);
         }
         if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
-            Log.e(TAG, "UID " + uid + " not visible to the current user");
+            Log.e(TAG, "UID " + uid + " package " + packageName
+                    + " not visible to the current user");
             return false;
         }
         WifiConfiguration config = getInternalConfiguredNetwork(networkId);
@@ -2027,7 +2030,8 @@ public class WifiConfigManager {
             clearLastSelectedNetwork();
         }
         if (!canModifyNetwork(config, uid, packageName)) {
-            Log.e(TAG, "UID " + uid + " does not have permission to update configuration "
+            Log.e(TAG, "UID " + uid + " package " + packageName
+                    + " does not have permission to update configuration "
                     + config.getProfileKey());
             return false;
         }
@@ -3704,17 +3708,18 @@ public class WifiConfigManager {
     }
 
     /** Update WifiConfigManager before connecting to a network. */
-    public void updateBeforeConnect(int networkId, int callingUid) {
+    public void updateBeforeConnect(int networkId, int callingUid, @NonNull String packageName) {
         userEnabledNetwork(networkId);
         if (!enableNetwork(networkId, true, callingUid, null)
                 || !updateLastConnectUid(networkId, callingUid)) {
-            Log.i(TAG, "connect Allowing uid " + callingUid
+            Log.i(TAG, "connect Allowing uid " + callingUid + " packageName " + packageName
                     + " with insufficient permissions to connect=" + networkId);
         }
     }
 
     /** See {@link WifiManager#save(WifiConfiguration, WifiManager.ActionListener)} */
-    public NetworkUpdateResult updateBeforeSaveNetwork(WifiConfiguration config, int callingUid) {
+    public NetworkUpdateResult updateBeforeSaveNetwork(WifiConfiguration config, int callingUid,
+            @NonNull String packageName) {
         NetworkUpdateResult result = addOrUpdateNetwork(config, callingUid);
         if (!result.isSuccess()) {
             Log.e(TAG, "saveNetwork adding/updating config=" + config + " failed");

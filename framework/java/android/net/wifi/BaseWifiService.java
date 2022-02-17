@@ -677,8 +677,14 @@ public class BaseWifiService extends IWifiManager.Stub {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    /** TO BE REMOVED */
     public void connect(WifiConfiguration config, int netId, IActionListener callback) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void connect(WifiConfiguration config, int netId, IActionListener callback,
+            @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
@@ -692,8 +698,14 @@ public class BaseWifiService extends IWifiManager.Stub {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    /** TO BE REMOVED */
     public void save(WifiConfiguration config, IActionListener callback) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void save(WifiConfiguration config, IActionListener callback,
+            @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
