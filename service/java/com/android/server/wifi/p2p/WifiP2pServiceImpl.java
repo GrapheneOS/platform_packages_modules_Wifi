@@ -4417,13 +4417,16 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 }
             };
 
-            mWifiInjector.getWifiDialogManager().launchP2pInvitationReceivedDialog(
-                    deviceName,
-                    isPinRequested,
-                    displayPin,
-                    displayId,
-                    callback,
-                    new WifiThreadRunner(getHandler()));
+            WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
+                    .createP2pInvitationReceivedDialog(
+                            deviceName,
+                            isPinRequested,
+                            displayPin,
+                            displayId,
+                            callback,
+                            new WifiThreadRunner(getHandler()));
+            dialogHandle.launchDialog(mContext.getResources().getInteger(
+                    R.integer.config_p2pInvitationReceivedDialogTimeoutMs));
         }
 
         /**

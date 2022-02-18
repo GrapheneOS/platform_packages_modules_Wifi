@@ -165,6 +165,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     android.Manifest.permission.ACCESS_FINE_LOCATION
             };
     private static final int TEST_GROUP_FREQUENCY = 5180;
+    private static final int P2P_INVITATION_RECEIVED_TIMEOUT_MS = 5180;
 
     private ArgumentCaptor<BroadcastReceiver> mBcastRxCaptor = ArgumentCaptor.forClass(
             BroadcastReceiver.class);
@@ -221,6 +222,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock WifiGlobals mWifiGlobals;
     @Mock AlarmManager mAlarmManager;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiDialogManager.DialogHandle mDialogHandle;
     @Mock Clock mClock;
     CoexManager.CoexListener mCoexListener;
 
@@ -1048,6 +1050,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         }
         when(mResources.getString(R.string.config_wifi_p2p_device_type))
                 .thenReturn("10-0050F204-5");
+        when(mResources.getInteger(R.integer.config_p2pInvitationReceivedDialogTimeoutMs))
+                .thenReturn(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
         when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
         when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
         when(mWifiInjector.getWifiP2pMetrics()).thenReturn(mWifiP2pMetrics);
@@ -1060,6 +1064,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiInjector.makeBroadcastOptions()).thenReturn(mBroadcastOptions);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
+                anyInt(), any(), any())).thenReturn(mDialogHandle);
         when(mWifiInjector.getClock()).thenReturn(mClock);
         // enable all permissions, disable specific permissions in tests
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
@@ -5501,8 +5507,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // "simple" client connect (no display ID)
         sendNegotiationRequestEvent(config);
-        verify(mWifiDialogManager).launchP2pInvitationReceivedDialog(anyString(), anyBoolean(),
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(anyString(), anyBoolean(),
                 any(), eq(Display.DEFAULT_DISPLAY), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
     }
 
     /**
@@ -5526,8 +5533,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         mWifiP2pServiceImpl.getMessenger(mClient2, TEST_PACKAGE_NAME, bundle);
 
         sendNegotiationRequestEvent(config);
-        verify(mWifiDialogManager).launchP2pInvitationReceivedDialog(anyString(),
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(anyString(),
                 anyBoolean(), any(), eq(someNonDefaultDisplayId), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
     }
 
     /**
@@ -5552,8 +5560,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // "simple" client connect (no display ID)
         sendNegotiationRequestEvent(config);
-        verify(mWifiDialogManager).launchP2pInvitationReceivedDialog(anyString(), anyBoolean(),
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(anyString(), anyBoolean(),
                 any(), eq(Display.DEFAULT_DISPLAY), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
     }
 
     private void verifySetVendorElement(boolean isP2pActivated, boolean shouldSucceed,
