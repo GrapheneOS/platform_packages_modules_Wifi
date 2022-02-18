@@ -3628,13 +3628,9 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public void allowAutojoinGlobal(boolean choice) {
         int callingUid = Binder.getCallingUid();
-        boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
-                || isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName());
-        if (!hasPermission && SdkLevel.isAtLeastT()) {
-            // MANAGE_WIFI_AUTO_JOIN is a new permission added in T.
-            hasPermission = mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid);
-        }
-        if (!hasPermission) {
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
+                && !mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid)
+                && !isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName())) {
             throw new SecurityException("Uid " + callingUid
                     + " is not allowed to set wifi global autojoin");
         }
@@ -3651,16 +3647,9 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     public void allowAutojoin(int netId, boolean choice) {
+        enforceNetworkSettingsPermission();
+
         int callingUid = Binder.getCallingUid();
-        boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid);
-        if (!hasPermission && SdkLevel.isAtLeastT()) {
-            // MANAGE_WIFI_AUTO_JOIN is a new permission added in T.
-            hasPermission = mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid);
-        }
-        if (!hasPermission) {
-            throw new SecurityException("Uid " + callingUid
-                    + " is not allowed to set wifi autojoin");
-        }
         mLog.info("allowAutojoin=% uid=%").c(choice).c(callingUid).flush();
         mWifiThreadRunner.post(() -> {
             WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
@@ -3709,20 +3698,12 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     public void allowAutojoinPasspoint(String fqdn, boolean enableAutojoin) {
-        int callingUid = Binder.getCallingUid();
-        boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid);
-        if (!hasPermission && SdkLevel.isAtLeastT()) {
-            // MANAGE_WIFI_AUTO_JOIN is a new permission added in T.
-            hasPermission = mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid);
-        }
-        if (!hasPermission) {
-            throw new SecurityException("Uid " + callingUid
-                    + " is not allowed to set wifi Passpoint autojoin");
-        }
+        enforceNetworkSettingsPermission();
         if (fqdn == null) {
             throw new IllegalArgumentException("FQDN cannot be null");
         }
 
+        int callingUid = Binder.getCallingUid();
         mLog.info("allowAutojoinPasspoint=% uid=%").c(enableAutojoin).c(callingUid).flush();
         mWifiThreadRunner.post(
                 () -> mPasspointManager.enableAutojoin(null, fqdn, enableAutojoin));
