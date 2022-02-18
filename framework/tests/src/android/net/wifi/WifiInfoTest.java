@@ -477,7 +477,7 @@ public class WifiInfoTest {
         assertEquals(WifiInfo.LINK_SPEED_UNKNOWN, wifiInfo.getRxLinkSpeedMbps());
         assertEquals(WifiInfo.INVALID_RSSI, wifiInfo.getRssi());
         assertEquals(WifiManager.UNKNOWN_SSID, wifiInfo.getSSID());
-        assertEquals(null, wifiInfo.getBSSID());
+        assertNull(wifiInfo.getBSSID());
         assertEquals(-1, wifiInfo.getNetworkId());
         if (SdkLevel.isAtLeastS()) {
             assertFalse(wifiInfo.isOemPaid());
@@ -486,7 +486,10 @@ public class WifiInfoTest {
             assertEquals(SubscriptionManager.INVALID_SUBSCRIPTION_ID, wifiInfo.getSubscriptionId());
             assertFalse(wifiInfo.isPrimary());
         }
-        assertEquals(null, wifiInfo.getNetworkKey());
+        assertNull(wifiInfo.getNetworkKey());
+        assertEquals(MloLink.INVALID_MLO_LINK_ID, wifiInfo.getApMloLinkId());
+        assertNull(wifiInfo.getApMldMacAddress());
+        assertEquals(0, wifiInfo.getAffiliatedMloLinks().size());
     }
 
     /**

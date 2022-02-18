@@ -118,7 +118,7 @@ public final class ScanResult implements Parcelable {
      * The Multi-Link Operation (MLO) link id for the access point.
      * Only applicable for Wi-Fi 7 access points.
      */
-    private int mApMloLinkId;
+    private int mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
 
     /**
      * Return the access point Multi-Link Operation (MLO) link-id for Wi-Fi 7 access points.
@@ -537,7 +537,7 @@ public final class ScanResult implements Parcelable {
     /**
      * AP wifi standard.
      */
-    private @WifiStandard int mWifiStandard;
+    private @WifiStandard int mWifiStandard = WIFI_STANDARD_UNKNOWN;
 
     /**
      * return the AP wifi standard.
@@ -1314,9 +1314,7 @@ public final class ScanResult implements Parcelable {
         this.centerFreq1 = UNSPECIFIED;
         this.flags = 0;
         this.radioChainInfos = null;
-        this.mWifiStandard = WIFI_STANDARD_UNKNOWN;
         this.mApMldMacAddress = null;
-        this.mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
     }
 
     /** {@hide} */
@@ -1342,9 +1340,7 @@ public final class ScanResult implements Parcelable {
         this.centerFreq1 = UNSPECIFIED;
         this.flags = 0;
         this.radioChainInfos = null;
-        this.mWifiStandard = WIFI_STANDARD_UNKNOWN;
         this.mApMldMacAddress = null;
-        this.mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
     }
 
     /** {@hide} */
@@ -1371,9 +1367,7 @@ public final class ScanResult implements Parcelable {
             this.flags = 0;
         }
         this.radioChainInfos = null;
-        this.mWifiStandard = WIFI_STANDARD_UNKNOWN;
         this.mApMldMacAddress = null;
-        this.mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
     }
 
     /** {@hide} */

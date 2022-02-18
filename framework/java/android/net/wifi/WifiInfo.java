@@ -504,15 +504,13 @@ public class WifiInfo implements TransportInfo, Parcelable {
         mSecurityType = -1;
         mIsPrimary = IS_PRIMARY_FALSE;
         mNetworkKey = null;
+        mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
     }
 
     /** @hide */
     public void reset() {
         setInetAddress(null);
         setBSSID(null);
-        setApMldMacAddress(null);
-        mApMloLinkId = 0;
-        mAffiliatedMloLinks = Collections.emptyList();
         setSSID(null);
         setHiddenSSID(false);
         setNetworkId(-1);
@@ -550,12 +548,13 @@ public class WifiInfo implements TransportInfo, Parcelable {
         mIsUsable = true;
         mSecurityType = -1;
         mNetworkKey = null;
+        resetMultiLinkInfo();
     }
 
     /** @hide */
     public void resetMultiLinkInfo() {
         setApMldMacAddress(null);
-        mApMloLinkId = 0;
+        mApMloLinkId = MloLink.INVALID_MLO_LINK_ID;
         mAffiliatedMloLinks = Collections.emptyList();
     }
 

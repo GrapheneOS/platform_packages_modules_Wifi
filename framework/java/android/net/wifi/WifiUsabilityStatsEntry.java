@@ -920,10 +920,10 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     /**
      * Channel utilization ratio on the current channel.
      *
-     * @return The channel utilization ratio (value) in the range of [0, 255], where
-     *         x corresponds to (x * 100 / 255)%.
+     * @return The channel utilization ratio (value) in the range of [0, 255], where x corresponds
+     *         to (x * 100 / 255)%, or -1 indicating that there is no valid value to return.
      */
-    public @IntRange(from = 0, to = 255) int getChannelUtilizationRatio() {
+    public @IntRange(from = -1, to = 255) int getChannelUtilizationRatio() {
         return mChannelUtilizationRatio;
     }
 

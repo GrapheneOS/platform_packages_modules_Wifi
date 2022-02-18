@@ -105,6 +105,7 @@ import com.android.internal.util.StateMachine;
 import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.BuildProperties;
+import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.WifiDialogManager;
 import com.android.server.wifi.WifiGlobals;
@@ -305,6 +306,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private final boolean mP2pSupported;
 
     private final WifiP2pDevice mThisDevice = new WifiP2pDevice();
+
+    // To avoid changing the default name on every initialization, preserve it
+    // in a period if this device is not rebooted.
+    private String mDefaultDeviceName = null;
+    private long mLastDefaultDeviceNameGeneratingTimeMillis = 0L;
+    // Keep the default name in 24 hours.
+    @VisibleForTesting
+    static final long DEFAULT_DEVICE_NAME_LIFE_TIME_MILLIS = 24 * 60 * 60 * 1000;
 
     // When a group has been explicitly created by an app, we persist the group
     // even after all clients have been disconnected until an explicit remove
@@ -597,6 +606,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private final Map<IBinder, DeathHandlerData> mDeathDataByBinder = new ConcurrentHashMap<>();
     private final Map<Integer, WorkSource> mActiveClients = new ConcurrentHashMap<>();
 
+    private Clock mClock;
+
     public WifiP2pServiceImpl(Context context, WifiInjector wifiInjector) {
         mContext = context;
         mWifiInjector = wifiInjector;
@@ -608,6 +619,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         mWifiGlobals = mWifiInjector.getWifiGlobals();
         mBuildProperties = mWifiInjector.getBuildProperties();
         mUserManager = mWifiInjector.getUserManager();
+        mClock = mWifiInjector.getClock();
 
         mDetailedState = NetworkInfo.DetailedState.IDLE;
 
@@ -3146,6 +3158,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message,
                                     WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_FAILED,
                                     WifiP2pManager.ERROR);
+                            break;
                         }
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
@@ -3200,6 +3213,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message,
                                     WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_FAILED,
                                     WifiP2pManager.ERROR);
+                            break;
                         }
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
@@ -3484,6 +3498,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message,
                                     WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_FAILED,
                                     WifiP2pManager.ERROR);
+                            break;
                         }
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
@@ -3954,6 +3969,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message,
                                     WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_FAILED,
                                     WifiP2pManager.ERROR);
+                            break;
                         }
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
@@ -4021,6 +4037,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message,
                                     WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_FAILED,
                                     WifiP2pManager.ERROR);
+                            break;
                         }
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
@@ -4858,6 +4875,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             String deviceName = mSettingsConfigStore.get(WIFI_P2P_DEVICE_NAME);
             if (!TextUtils.isEmpty(deviceName)) return deviceName;
 
+            // If a default device is already generated and not expired, just return it.
+            long expirationTime = mLastDefaultDeviceNameGeneratingTimeMillis
+                    + DEFAULT_DEVICE_NAME_LIFE_TIME_MILLIS;
+            if (!TextUtils.isEmpty(mDefaultDeviceName)
+                    && expirationTime > mClock.getElapsedSinceBootMillis()) {
+                logd("Return the persistent device name: " + mDefaultDeviceName);
+                return mDefaultDeviceName;
+            }
+
             String prefix = mWifiGlobals.getWifiP2pDeviceNamePrefix();
             if (DEVICE_NAME_PREFIX_LENGTH_MAX < prefix.getBytes(StandardCharsets.UTF_8).length
                     || 0 == prefix.getBytes(StandardCharsets.UTF_8).length) {
@@ -4888,8 +4914,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             } else {
                 postfix = StringUtil.generateRandomString(4);
             }
-            logd("the default device name: " + prefix + postfix);
-            return prefix + postfix;
+            mDefaultDeviceName = prefix + postfix;
+            mLastDefaultDeviceNameGeneratingTimeMillis = mClock.getElapsedSinceBootMillis();
+            logd("the default device name: " + mDefaultDeviceName);
+            return mDefaultDeviceName;
         }
 
         private boolean setAndPersistDeviceName(String devName) {

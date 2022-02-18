@@ -27,8 +27,6 @@ import android.net.MacAddress;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.android.modules.utils.build.SdkLevel;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
@@ -101,9 +99,6 @@ public final class MloLink implements Parcelable {
      * Constructor for a MloLInk.
      */
     public MloLink() {
-        if (!SdkLevel.isAtLeastT()) {
-            throw new UnsupportedOperationException();
-        }
         mBand = WifiScanner.WIFI_BAND_UNSPECIFIED;
         mChannel = 0;
         mState = MLO_LINK_STATE_UNASSOCIATED;
