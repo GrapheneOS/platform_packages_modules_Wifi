@@ -6440,10 +6440,24 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * Method for WifiDialog to notify the framework of a reply to a P2P Invitation Received dialog.
-     * @param dialogId id of the replying dialog.
-     * @param accepted Whether the invitation was accepted.
-     * @param optionalPin PIN of the reply, or {@code null} if none was supplied.
+     * See {@link WifiManager#replyToSimpleDialog(int, int)}
+     */
+    public void replyToSimpleDialog(int dialogId, @WifiManager.DialogReply int reply) {
+        int uid = Binder.getCallingUid();
+        int pid = Binder.getCallingPid();
+        mWifiPermissionsUtil.checkPackage(uid, mContext.getWifiDialogApkPkgName());
+        if (isVerboseLoggingEnabled()) {
+            mLog.info("replyToSimpleDialog uid=% pid=%"
+                            + " dialogId=% reply=%")
+                    .c(uid).c(pid).c(dialogId).c(reply)
+                    .flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiDialogManager.replyToSimpleDialog(dialogId, reply));
+    }
+
+    /**
+     * See {@link WifiManager#replyToP2pInvitationReceivedDialog(int, boolean, String)}
      */
     @Override
     public void replyToP2pInvitationReceivedDialog(
