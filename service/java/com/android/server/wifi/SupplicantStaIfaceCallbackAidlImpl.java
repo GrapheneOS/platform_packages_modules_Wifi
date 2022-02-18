@@ -1103,4 +1103,12 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             mStaIfaceHal.logCallback("onQosPolicyRequest");
         }
     }
+
+    @Override
+    public void onAuxiliarySupplicantEvent(int eventCode, byte[] bssid,
+            String reasonString) {
+        synchronized (mLock) {
+            mStaIfaceHal.logCallback("onAuxiliarySupplicantEvent");
+        }
+    }
 }
