@@ -7257,12 +7257,27 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertFalse(succeeded);
     }
 
-    @Test(expected = SecurityException.class)
+    @Test
     public void testAllowAutojoinGlobalFailureNoPermission() throws Exception {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(false);
+        // expect exception without any permissions
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.allowAutojoinGlobal(true));
+
+        // should be callable on T with MANAGE_WIFI_AUTO_JOIN
+        if (SdkLevel.isAtLeastT()) {
+            when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+                    .thenReturn(true);
+            mWifiServiceImpl.allowAutojoinGlobal(true);
+            when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+                    .thenReturn(false);
+        }
+
+        // should be callable on any SDK level with NETWORK_SETTINGS
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         mWifiServiceImpl.allowAutojoinGlobal(true);
     }
 
@@ -7336,20 +7351,28 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testAllowAutojoinFailureNoNetworkSettingsPermission() throws Exception {
-        doThrow(new SecurityException()).when(mContext)
-                .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
-                        eq("WifiService"));
-        try {
+    public void testAllowAutojoinCallableWithPermission() throws Exception {
+        // expect exception without any permissions
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.allowAutojoin(0, true));
+
+        // should be callable on T with MANAGE_WIFI_AUTO_JOIN
+        if (SdkLevel.isAtLeastT()) {
+            when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+                    .thenReturn(true);
             mWifiServiceImpl.allowAutojoin(0, true);
-            fail("Expected SecurityException");
-        } catch (SecurityException e) {
-            // Test succeeded
+            when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+                    .thenReturn(false);
         }
+
+        // should be callable on any SDK level with NETWORK_SETTINGS
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        mWifiServiceImpl.allowAutojoin(0, true);
     }
 
     @Test
     public void testAllowAutojoinOnSuggestionNetwork() {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
         config.allowAutojoin = false;
         config.fromWifiNetworkSuggestion = true;
@@ -7367,6 +7390,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testAllowAutojoinOnSavedNetwork() {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
         config.allowAutojoin = false;
         config.fromWifiNetworkSuggestion = false;
@@ -7382,6 +7406,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testAllowAutojoinOnWifiNetworkSpecifier() {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
         config.fromWifiNetworkSpecifier = true;
         when(mWifiConfigManager.getConfiguredNetwork(0)).thenReturn(config);
@@ -7395,6 +7420,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testAllowAutojoinOnSavedPasspointNetwork() {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createPasspointNetwork();
         when(mWifiConfigManager.getConfiguredNetwork(0)).thenReturn(config);
         when(mWifiNetworkSuggestionsManager.allowNetworkSuggestionAutojoin(any(), anyBoolean()))
