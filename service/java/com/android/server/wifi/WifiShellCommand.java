@@ -1160,6 +1160,76 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     mScanRequestProxy.enableScanning(enabled, hiddenEnabled);
                     return 0;
+                case "launch-dialog-simple":
+                    String title = null;
+                    String message = null;
+                    String positiveButtonText = null;
+                    String negativeButtonText = null;
+                    String neutralButtonText = null;
+                    String dialogOption = getNextOption();
+                    while (dialogOption != null) {
+                        switch (dialogOption) {
+                            case "-t":
+                                title = getNextArgRequired();
+                                break;
+                            case "-m":
+                                message = getNextArgRequired();
+                                break;
+                            case "-y":
+                                positiveButtonText = getNextArgRequired();
+                                break;
+                            case "-n":
+                                negativeButtonText = getNextArgRequired();
+                                break;
+                            case "-x":
+                                neutralButtonText = getNextArgRequired();
+                                break;
+                            default:
+                                pw.println("Ignoring unknown option " + dialogOption);
+                                break;
+                        }
+                        dialogOption = getNextOption();
+                    }
+                    ArrayBlockingQueue<String> dialogQueue = new ArrayBlockingQueue<>(1);
+                    WifiDialogManager.SimpleDialogCallback wifiEnableRequestCallback =
+                            new WifiDialogManager.SimpleDialogCallback() {
+                                @Override
+                                public void onPositiveButtonClicked() {
+                                    dialogQueue.offer("Positive button was clicked.");
+                                }
+
+                                @Override
+                                public void onNegativeButtonClicked() {
+                                    dialogQueue.offer("Negative button was clicked.");
+                                }
+
+                                @Override
+                                public void onNeutralButtonClicked() {
+                                    dialogQueue.offer("Neutral button was clicked.");
+                                }
+
+                                @Override
+                                public void onCancelled() {
+                                    dialogQueue.offer("Dialog was cancelled.");
+                                }
+                            };
+                    mWifiDialogManager.launchSimpleDialog(
+                            title,
+                            message,
+                            positiveButtonText,
+                            negativeButtonText,
+                            neutralButtonText,
+                            wifiEnableRequestCallback,
+                            mWifiThreadRunner);
+                    pw.println("Launched dialog. Waiting up to 15 seconds for user response.");
+                    pw.flush();
+                    String dialogResponse = dialogQueue.poll(15, TimeUnit.SECONDS);
+                    if (dialogResponse == null) {
+                        pw.println("No response received.");
+                    } else {
+                        pw.println(dialogResponse);
+                    }
+                    return 0;
                 case "launch-dialog-p2p-invitation-received":
                     String deviceName = getNextArgRequired();
                     boolean isPinRequested = false;
@@ -1943,9 +2013,18 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println(
                 "    Reset the WiFi resources cache which will cause them to be reloaded next "
                         + "time they are accessed. Necessary if overlays are manually modified.");
+        pw.println("  launch-dialog-simple [-t <title>] [-m <message>] [-y <positive_button_text>]"
+                + " [-n <negative_button_text>] [-x <neutral_button_text>]");
+        pw.println("    Launches a simple dialog and waits up to 15 seconds to"
+                + " print the response.");
+        pw.println("    -t - Title");
+        pw.println("    -m - Message");
+        pw.println("    -y - Positive Button Text");
+        pw.println("    -n - Negative Button Text");
+        pw.println("    -x - Neutral Button Text");
         pw.println("  launch-dialog-p2p-invitation-received <device_name> [-p] [-d <pin>] "
                 + "[-i <display_id>]");
-        pw.println("    Launches a P2P Invitation Received dialog and waits up to 30 seconds to"
+        pw.println("    Launches a P2P Invitation Received dialog and waits up to 15 seconds to"
                 + " print the response.");
         pw.println("    <device_name> - Name of the device sending the invitation");
         pw.println("    -p - Show PIN input");

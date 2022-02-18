@@ -9252,18 +9252,65 @@ public class WifiManager {
     public static final int DIALOG_TYPE_UNKNOWN = 0;
 
     /**
-     * DialogType for a P2P Invitation Received dialog.
+     * DialogType for a simple dialog.
+     * @see {@link com.android.server.wifi.WifiDialogManager#launchSimpleDialog}
      * @hide
      */
-    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 1;
+    public static final int DIALOG_TYPE_SIMPLE = 1;
+
+    /**
+     * DialogType for a P2P Invitation Received dialog.
+     * @see {@link com.android.server.wifi.WifiDialogManager#launchP2pInvitationReceivedDialog}
+     * @hide
+     */
+    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 2;
 
     /** @hide */
     @IntDef(prefix = { "DIALOG_TYPE_" }, value = {
             DIALOG_TYPE_UNKNOWN,
+            DIALOG_TYPE_SIMPLE,
             DIALOG_TYPE_P2P_INVITATION_RECEIVED,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface DialogType {}
+
+    /**
+     * Dialog positive button was clicked.
+     * @hide
+     */
+    public static final int DIALOG_REPLY_POSITIVE = 0;
+
+    /**
+     * Dialog negative button was clicked.
+     * @hide
+     */
+    public static final int DIALOG_REPLY_NEGATIVE = 1;
+
+    /**
+     * Dialog neutral button was clicked.
+     * @hide
+     */
+    public static final int DIALOG_REPLY_NEUTRAL = 2;
+
+    /**
+     * Dialog was cancelled.
+     * @hide
+     */
+    public static final int DIALOG_REPLY_CANCELLED = 3;
+
+    /**
+     * Indication of a reply to a dialog.
+     * See {@link WifiManager#replyToSimpleDialog(int, int)}
+     * @hide
+     */
+    @IntDef(prefix = { "DIALOG_TYPE_" }, value = {
+            DIALOG_REPLY_POSITIVE,
+            DIALOG_REPLY_NEGATIVE,
+            DIALOG_REPLY_NEUTRAL,
+            DIALOG_REPLY_CANCELLED,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface DialogReply {}
 
     /**
      * Extra int indicating the type of dialog to display.
@@ -9276,6 +9323,39 @@ public class WifiManager {
      * @hide
      */
     public static final String EXTRA_DIALOG_ID = "android.net.wifi.extra.DIALOG_ID";
+
+    /**
+     * Extra String indicating the title of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_TITLE = "android.net.wifi.extra.DIALOG_TITLE";
+
+    /**
+     * Extra String indicating the message of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_MESSAGE = "android.net.wifi.extra.DIALOG_MESSAGE";
+
+    /**
+     * Extra String indicating the positive button text of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_POSITIVE_BUTTON_TEXT =
+            "android.net.wifi.extra.DIALOG_POSITIVE_BUTTON_TEXT";
+
+    /**
+     * Extra String indicating the negative button text of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT =
+            "android.net.wifi.extra.DIALOG_NEGATIVE_BUTTON_TEXT";
+
+    /**
+     * Extra String indicating the neutral button text of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT =
+            "android.net.wifi.extra.DIALOG_NEUTRAL_BUTTON_TEXT";
 
     /**
      * Extra String indicating a P2P device name for a P2P Invitation Sent/Received dialog.
@@ -9318,6 +9398,24 @@ public class WifiManager {
     }
 
     /**
+     * Method for WifiDialog to notify the framework of a reply to a simple dialog.
+     * @param dialogId id of the replying dialog.
+     * @param reply reply of the dialog.
+     * @hide
+     */
+    public void replyToSimpleDialog(int dialogId, @DialogReply int reply) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "replyToWifiEnableRequestDialog: dialogId=" + dialogId
+                    + " reply=" + reply);
+        }
+        try {
+            mService.replyToSimpleDialog(dialogId, reply);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
      * Method for WifiDialog to notify the framework of a reply to a P2P Invitation Received dialog.
      * @param dialogId id of the replying dialog.
      * @param accepted Whether the invitation was accepted.
@@ -9327,7 +9425,7 @@ public class WifiManager {
     public void replyToP2pInvitationReceivedDialog(
             int dialogId, boolean accepted, @Nullable String optionalPin) {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "notifyP2pInvitationResponse: "
+            Log.v(TAG, "replyToP2pInvitationReceivedDialog: "
                     + "dialogId=" + dialogId
                     + ", accepted=" + accepted
                     + ", pin=" + optionalPin);
