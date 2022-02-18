@@ -874,6 +874,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void replyToSimpleDialog(int dialogId, int button) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void addCustomDhcpOptions(WifiSsid ssid, byte[] oui, @NonNull List<DhcpOption> options) {
         throw new UnsupportedOperationException();
     }
