@@ -2734,7 +2734,6 @@ public class WifiNetworkSuggestionsManager {
             pw.println("Has user approved: " + appInfo.hasUserApproved);
             pw.println("Has carrier privileges: "
                     + (appInfo.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID));
-            pw.println("Is active scorer: " + appInfo.packageName.equals(null));
             for (ExtendedWifiNetworkSuggestion extNetworkSuggestion
                     : appInfo.extNetworkSuggestions.values()) {
                 pw.println("Network: " + extNetworkSuggestion);
