@@ -1160,12 +1160,107 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     mScanRequestProxy.enableScanning(enabled, hiddenEnabled);
                     return 0;
+                case "launch-dialog-simple":
+                    String title = null;
+                    String message = null;
+                    String positiveButtonText = null;
+                    String negativeButtonText = null;
+                    String neutralButtonText = null;
+                    String dialogOption = getNextOption();
+                    boolean simpleTimeoutSpecified = false;
+                    long simpleTimeoutMs = 0;
+                    while (dialogOption != null) {
+                        switch (dialogOption) {
+                            case "-t":
+                                title = getNextArgRequired();
+                                break;
+                            case "-m":
+                                message = getNextArgRequired();
+                                break;
+                            case "-y":
+                                positiveButtonText = getNextArgRequired();
+                                break;
+                            case "-n":
+                                negativeButtonText = getNextArgRequired();
+                                break;
+                            case "-x":
+                                neutralButtonText = getNextArgRequired();
+                                break;
+                            case "-c":
+                                simpleTimeoutMs = Integer.parseInt(getNextArgRequired());
+                                simpleTimeoutSpecified = true;
+                                break;
+                            default:
+                                pw.println("Ignoring unknown option " + dialogOption);
+                                break;
+                        }
+                        dialogOption = getNextOption();
+                    }
+                    ArrayBlockingQueue<String> simpleQueue = new ArrayBlockingQueue<>(1);
+                    WifiDialogManager.SimpleDialogCallback wifiEnableRequestCallback =
+                            new WifiDialogManager.SimpleDialogCallback() {
+                                @Override
+                                public void onPositiveButtonClicked() {
+                                    simpleQueue.offer("Positive button was clicked.");
+                                }
+
+                                @Override
+                                public void onNegativeButtonClicked() {
+                                    simpleQueue.offer("Negative button was clicked.");
+                                }
+
+                                @Override
+                                public void onNeutralButtonClicked() {
+                                    simpleQueue.offer("Neutral button was clicked.");
+                                }
+
+                                @Override
+                                public void onCancelled() {
+                                    simpleQueue.offer("Dialog was cancelled.");
+                                }
+                            };
+                    WifiDialogManager.DialogHandle simpleDialogHandle =
+                            mWifiDialogManager.createSimpleDialog(
+                                    title,
+                                    message,
+                                    positiveButtonText,
+                                    negativeButtonText,
+                                    neutralButtonText,
+                                    wifiEnableRequestCallback,
+                                    mWifiThreadRunner);
+                    if (simpleTimeoutSpecified) {
+                        simpleDialogHandle.launchDialog(simpleTimeoutMs);
+                        pw.println("Launched dialog with " + simpleTimeoutMs + " millisecond"
+                                + " timeout. Waiting for user response...");
+                        pw.flush();
+                        String dialogResponse = simpleQueue.take();
+                        if (dialogResponse == null) {
+                            pw.println("No response received.");
+                        } else {
+                            pw.println(dialogResponse);
+                        }
+                    } else {
+                        simpleDialogHandle.launchDialog();
+                        pw.println("Launched dialog. Waiting up to 15 seconds for user response"
+                                + " before dismissing...");
+                        pw.flush();
+                        String dialogResponse = simpleQueue.poll(15, TimeUnit.SECONDS);
+                        if (dialogResponse == null) {
+                            pw.println("No response received. Dismissing dialog.");
+                            simpleDialogHandle.dismissDialog();
+                        } else {
+                            pw.println(dialogResponse);
+                        }
+                    }
+                    return 0;
                 case "launch-dialog-p2p-invitation-received":
                     String deviceName = getNextArgRequired();
                     boolean isPinRequested = false;
                     String displayPin = null;
                     String pinOption = getNextOption();
                     int displayId = Display.DEFAULT_DISPLAY;
+                    boolean p2pInvRecTimeoutSpecified = false;
+                    long p2pInvRecTimeout = 0;
                     while (pinOption != null) {
                         if (pinOption.equals("-p")) {
                             isPinRequested = true;
@@ -1184,42 +1279,63 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                             }
                             DisplayManager dm = mContext.getSystemService(DisplayManager.class);
                             Display[] displays = dm.getDisplays();
-                            for (Display display: displays) {
+                            for (Display display : displays) {
                                 pw.println("Display: id=" + display.getDisplayId() + ", info="
                                         + display.getDeviceProductInfo());
                             }
+                        } else if (pinOption.equals("-c")) {
+                            p2pInvRecTimeout = Integer.parseInt(getNextArgRequired());
+                            p2pInvRecTimeoutSpecified = true;
                         } else {
                             pw.println("Ignoring unknown option " + pinOption);
                         }
                         pinOption = getNextOption();
                     }
-                    ArrayBlockingQueue<String> queue = new ArrayBlockingQueue<>(1);
+                    ArrayBlockingQueue<String> p2pInvRecQueue = new ArrayBlockingQueue<>(1);
                     WifiDialogManager.P2pInvitationReceivedDialogCallback callback =
                             new WifiDialogManager.P2pInvitationReceivedDialogCallback() {
                         @Override
                         public void onAccepted(@Nullable String optionalPin) {
-                            queue.offer("Invitation accepted with optionalPin=" + optionalPin);
+                            p2pInvRecQueue.offer("Invitation accepted with optionalPin="
+                                    + optionalPin);
                         }
 
                         @Override
                         public void onDeclined() {
-                            queue.offer("Invitation declined");
+                            p2pInvRecQueue.offer("Invitation declined");
                         }
                     };
-                    mWifiDialogManager.launchP2pInvitationReceivedDialog(
-                            deviceName,
-                            isPinRequested,
-                            displayPin,
-                            displayId,
-                            callback,
-                            mWifiThreadRunner);
-                    pw.println("Launched dialog. Waiting up to 15 seconds for user response.");
-                    pw.flush();
-                    String msg = queue.poll(15, TimeUnit.SECONDS);
-                    if (msg == null) {
-                        pw.println("No response received.");
+                    WifiDialogManager.DialogHandle p2pInvitationReceivedDialogHandle =
+                            mWifiDialogManager.createP2pInvitationReceivedDialog(
+                                    deviceName,
+                                    isPinRequested,
+                                    displayPin,
+                                    displayId,
+                                    callback,
+                                    mWifiThreadRunner);
+                    if (p2pInvRecTimeoutSpecified) {
+                        p2pInvitationReceivedDialogHandle.launchDialog(p2pInvRecTimeout);
+                        pw.println("Launched dialog with " + p2pInvRecTimeout + " millisecond"
+                                + " timeout. Waiting for user response...");
+                        pw.flush();
+                        String dialogResponse = p2pInvRecQueue.take();
+                        if (dialogResponse == null) {
+                            pw.println("No response received.");
+                        } else {
+                            pw.println(dialogResponse);
+                        }
                     } else {
-                        pw.println(msg);
+                        p2pInvitationReceivedDialogHandle.launchDialog();
+                        pw.println("Launched dialog. Waiting up to 15 seconds for user response"
+                                + " before dismissing...");
+                        pw.flush();
+                        String dialogResponse = p2pInvRecQueue.poll(15, TimeUnit.SECONDS);
+                        if (dialogResponse == null) {
+                            pw.println("No response received. Dismissing dialog.");
+                            p2pInvitationReceivedDialogHandle.dismissDialog();
+                        } else {
+                            pw.println(dialogResponse);
+                        }
                     }
                     return 0;
                 case "query-interface":
@@ -1943,14 +2059,25 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println(
                 "    Reset the WiFi resources cache which will cause them to be reloaded next "
                         + "time they are accessed. Necessary if overlays are manually modified.");
+        pw.println("  launch-dialog-simple [-t <title>] [-m <message>] [-y <positive_button_text>]"
+                + " [-n <negative_button_text>] [-x <neutral_button_text>] [-c <timeout_millis>]");
+        pw.println("    Launches a simple dialog and waits up to 15 seconds to"
+                + " print the response.");
+        pw.println("    -t - Title");
+        pw.println("    -m - Message");
+        pw.println("    -y - Positive Button Text");
+        pw.println("    -n - Negative Button Text");
+        pw.println("    -x - Neutral Button Text");
+        pw.println("    -c - Optional timeout in milliseconds");
         pw.println("  launch-dialog-p2p-invitation-received <device_name> [-p] [-d <pin>] "
-                + "[-i <display_id>]");
-        pw.println("    Launches a P2P Invitation Received dialog and waits up to 30 seconds to"
+                + "[-i <display_id>] [-c <timeout_millis>]");
+        pw.println("    Launches a P2P Invitation Received dialog and waits up to 15 seconds to"
                 + " print the response.");
         pw.println("    <device_name> - Name of the device sending the invitation");
         pw.println("    -p - Show PIN input");
         pw.println("    -d - Display PIN <pin>");
         pw.println("    -i - Display ID");
+        pw.println("    -c - Optional timeout in milliseconds");
         pw.println("  query-interface <uid> <package_name> STA|AP|AWARE|DIRECT [-new]");
         pw.println(
                 "    Query whether the specified could be created for the specified UID and "

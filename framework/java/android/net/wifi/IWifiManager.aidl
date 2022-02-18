@@ -384,6 +384,8 @@ interface IWifiManager
 
     void replyToP2pInvitationReceivedDialog(int dialogId, boolean accepted, String optionalPin);
 
+    void replyToSimpleDialog(int dialogId, int reply);
+
     void addCustomDhcpOptions(in WifiSsid ssid, in byte[] oui, in List<DhcpOption> options);
 
     void removeCustomDhcpOptions(in WifiSsid ssid, in byte[] oui);
