@@ -288,6 +288,14 @@ public class WifiDialogActivity extends Activity  {
         int dialogType = intent.getIntExtra(
                 WifiManager.EXTRA_DIALOG_TYPE, WifiManager.DIALOG_TYPE_UNKNOWN);
         switch (dialogType) {
+            case WifiManager.DIALOG_TYPE_SIMPLE:
+                dialog = createSimpleDialog(dialogId,
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_TITLE),
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_MESSAGE),
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT),
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT),
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT));
+                break;
             case WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED:
                 dialog = createP2pInvitationReceivedDialog(
                         dialogId,
@@ -307,10 +315,18 @@ public class WifiDialogActivity extends Activity  {
         if (dialog == null) {
             return false;
         }
-        mActiveDialogsPerId.put(dialogId, dialog);
+        dialog.setOnDismissListener((dialogDismiss) -> {
+            if (mIsVerboseLoggingEnabled) {
+                Log.v(TAG, "Dialog id=" + dialogId
+                        + " dismissed.");
+            }
+            removeIntentAndPossiblyFinish(dialogId);
+        });
+        dialog.setCanceledOnTouchOutside(false);
         if (mGravity != Gravity.NO_GRAVITY) {
             dialog.getWindow().setGravity(mGravity);
         }
+        mActiveDialogsPerId.put(dialogId, dialog);
         dialog.show();
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Showing dialog " + dialogId);
@@ -337,6 +353,64 @@ public class WifiDialogActivity extends Activity  {
             }
         }
         return true;
+    }
+
+    /**
+     * Returns a simple dialog for the given Intent, or {@code null} if no dialog could be created.
+     */
+    private @Nullable Dialog createSimpleDialog(
+            int dialogId,
+            @Nullable String title,
+            @Nullable String message,
+            @Nullable String positiveButtonText,
+            @Nullable String negativeButtonText,
+            @Nullable String neutralButtonText) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(positiveButtonText, (dialogPositive, which) -> {
+                    if (mIsVerboseLoggingEnabled) {
+                        Log.v(TAG, "Positive button pressed for simple dialog id="
+                                + dialogId);
+                    }
+                    getWifiManager().replyToSimpleDialog(dialogId,
+                            WifiManager.DIALOG_REPLY_POSITIVE);
+                })
+                .setNegativeButton(negativeButtonText, (dialogNegative, which) -> {
+                    if (mIsVerboseLoggingEnabled) {
+                        Log.v(TAG, "Negative button pressed for simple dialog id="
+                                + dialogId);
+                    }
+                    getWifiManager().replyToSimpleDialog(dialogId,
+                            WifiManager.DIALOG_REPLY_NEGATIVE);
+                })
+                .setNeutralButton(neutralButtonText, (dialogNeutral, which) -> {
+                    if (mIsVerboseLoggingEnabled) {
+                        Log.v(TAG, "Neutral button pressed for simple dialog id="
+                                + dialogId);
+                    }
+                    getWifiManager().replyToSimpleDialog(dialogId,
+                            WifiManager.DIALOG_REPLY_NEUTRAL);
+                })
+                .setOnCancelListener((dialogCancel) -> {
+                    if (mIsVerboseLoggingEnabled) {
+                        Log.v(TAG, "Simple dialog id=" + dialogId
+                                + " cancelled.");
+                    }
+                    getWifiManager().replyToSimpleDialog(dialogId,
+                            WifiManager.DIALOG_REPLY_CANCELLED);
+                })
+                .create();
+        if (mIsVerboseLoggingEnabled) {
+            Log.v(TAG, "Created a simple dialog."
+                    + " id=" + dialogId
+                    + " title=" + title
+                    + " message=" + message
+                    + " positiveButtonText=" + positiveButtonText
+                    + " negativeButtonText=" + negativeButtonText
+                    + " neutralButtonText=" + neutralButtonText);
+        }
+        return dialog;
     }
 
     /**
@@ -407,15 +481,7 @@ public class WifiDialogActivity extends Activity  {
                     }
                     getWifiManager().replyToP2pInvitationReceivedDialog(dialogId, false, null);
                 })
-                .setOnDismissListener((dialogDismiss) -> {
-                    if (mIsVerboseLoggingEnabled) {
-                        Log.v(TAG, "P2P Invitation Received dialog id=" + dialogId
-                                + " dismissed.");
-                    }
-                    removeIntentAndPossiblyFinish(dialogId);
-                })
                 .create();
-        dialog.setCanceledOnTouchOutside(false);
         if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_TYPE_APPLIANCE)
                 == Configuration.UI_MODE_TYPE_APPLIANCE) {
             // For appliance devices, add a key listener which accepts.
