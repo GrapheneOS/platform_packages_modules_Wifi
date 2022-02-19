@@ -3474,7 +3474,8 @@ public class WifiServiceImpl extends BaseWifiService {
      * int, true)}
      * @return
      */
-    private boolean triggerConnectAndReturnStatus(int netId, int callingUid) {
+    private boolean triggerConnectAndReturnStatus(int netId, int callingUid,
+            @NonNull String packageName) {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final Mutable<Boolean> success = new Mutable<>(false);
         IActionListener.Stub connectListener = new IActionListener.Stub() {
@@ -3494,7 +3495,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         mConnectHelper.connectToNetwork(
                                 new NetworkUpdateResult(netId),
                                 new ActionListenerWrapper(connectListener),
-                                callingUid)
+                                callingUid, packageName)
                 )
         );
         // now wait for response.
@@ -3514,7 +3515,7 @@ public class WifiServiceImpl extends BaseWifiService {
      * @return {@code true} if the operation succeeded
      */
     @Override
-    public boolean enableNetwork(int netId, boolean disableOthers, String packageName) {
+    public boolean enableNetwork(int netId, boolean disableOthers, @NonNull String packageName) {
         if (enforceChangePermission(packageName) != MODE_ALLOWED) {
             return false;
         }
@@ -3524,6 +3525,10 @@ public class WifiServiceImpl extends BaseWifiService {
                     .c(Binder.getCallingUid()).flush();
             return false;
         }
+        if (packageName == null) {
+            throw new IllegalArgumentException("packageName must not be null");
+        }
+
         int callingUid = Binder.getCallingUid();
         // TODO b/33807876 Log netId
         mLog.info("enableNetwork uid=% disableOthers=%")
@@ -3532,7 +3537,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         mWifiMetrics.incrementNumEnableNetworkCalls();
         if (disableOthers) {
-            return triggerConnectAndReturnStatus(netId, callingUid);
+            return triggerConnectAndReturnStatus(netId, callingUid, packageName);
         } else {
             return mWifiThreadRunner.call(
                     () -> mWifiConfigManager.enableNetwork(netId, false, callingUid, packageName),
@@ -5657,15 +5662,20 @@ public class WifiServiceImpl extends BaseWifiService {
      * @param config New or existing config to add/update and connect to
      * @param netId Network ID of existing config to connect to if the supplied config is null
      * @param callback Listener to notify action result
+     * @param packageName Package name of the requesting App
      *
      * see: {@link WifiManager#connect(WifiConfiguration, WifiManager.ActionListener)}
      *      {@link WifiManager#connect(int, WifiManager.ActionListener)}
      */
     @Override
-    public void connect(WifiConfiguration config, int netId, @Nullable IActionListener callback) {
+    public void connect(WifiConfiguration config, int netId, @Nullable IActionListener callback,
+            @NonNull String packageName) {
         int uid = Binder.getCallingUid();
         if (!isPrivileged(Binder.getCallingPid(), uid)) {
             throw new SecurityException(TAG + ": Permission denied");
+        }
+        if (packageName == null) {
+            throw new IllegalArgumentException("packageName must not be null");
         }
         mLog.info("connect uid=%").c(uid).flush();
         mWifiThreadRunner.post(() -> {
@@ -5743,7 +5753,7 @@ public class WifiServiceImpl extends BaseWifiService {
             }
 
             mMakeBeforeBreakManager.stopAllSecondaryTransientClientModeManagers(() ->
-                    mConnectHelper.connectToNetwork(result, wrapper, uid));
+                    mConnectHelper.connectToNetwork(result, wrapper, uid, packageName));
         });
     }
 
@@ -5752,21 +5762,25 @@ public class WifiServiceImpl extends BaseWifiService {
      * WifiManager.ActionListener)}
      */
     @Override
-    public void save(WifiConfiguration config, @Nullable IActionListener callback) {
+    public void save(WifiConfiguration config, @Nullable IActionListener callback,
+            @NonNull String packageName) {
         int uid = Binder.getCallingUid();
         if (!isPrivileged(Binder.getCallingPid(), uid)) {
             throw new SecurityException(TAG + ": Permission denied");
+        }
+        if (packageName == null) {
+            throw new IllegalArgumentException("packageName must not be null");
         }
         mLog.info("save uid=%").c(uid).flush();
         mWifiThreadRunner.post(() -> {
             ActionListenerWrapper wrapper = new ActionListenerWrapper(callback);
             NetworkUpdateResult result =
-                    mWifiConfigManager.updateBeforeSaveNetwork(config, uid);
+                    mWifiConfigManager.updateBeforeSaveNetwork(config, uid, packageName);
             if (result.isSuccess()) {
                 broadcastWifiCredentialChanged(WifiManager.WIFI_CREDENTIAL_SAVED, config);
                 mMakeBeforeBreakManager.stopAllSecondaryTransientClientModeManagers(() ->
                         mActiveModeWarden.getPrimaryClientModeManager()
-                                .saveNetwork(result, wrapper, uid));
+                                .saveNetwork(result, wrapper, uid, packageName));
                 if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
                     mWifiMetrics.logUserActionEvent(
                             UserActionEvent.EVENT_ADD_OR_UPDATE_NETWORK, config.networkId);
@@ -6426,10 +6440,24 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * Method for WifiDialog to notify the framework of a reply to a P2P Invitation Received dialog.
-     * @param dialogId id of the replying dialog.
-     * @param accepted Whether the invitation was accepted.
-     * @param optionalPin PIN of the reply, or {@code null} if none was supplied.
+     * See {@link WifiManager#replyToSimpleDialog(int, int)}
+     */
+    public void replyToSimpleDialog(int dialogId, @WifiManager.DialogReply int reply) {
+        int uid = Binder.getCallingUid();
+        int pid = Binder.getCallingPid();
+        mWifiPermissionsUtil.checkPackage(uid, mContext.getWifiDialogApkPkgName());
+        if (isVerboseLoggingEnabled()) {
+            mLog.info("replyToSimpleDialog uid=% pid=%"
+                            + " dialogId=% reply=%")
+                    .c(uid).c(pid).c(dialogId).c(reply)
+                    .flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiDialogManager.replyToSimpleDialog(dialogId, reply));
+    }
+
+    /**
+     * See {@link WifiManager#replyToP2pInvitationReceivedDialog(int, boolean, String)}
      */
     @Override
     public void replyToP2pInvitationReceivedDialog(
@@ -6471,10 +6499,10 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link android.net.wifi.WifiManager#getOemPrivilegedAdmins
+     * See {@link android.net.wifi.WifiManager#getOemPrivilegedWifiAdminPackages
      */
     @Override
-    public String[] getOemPrivilegedAdmins() {
+    public String[] getOemPrivilegedWifiAdminPackages() {
         return mContext.getResources()
                 .getStringArray(R.array.config_oemPrivilegedWifiAdminPackages);
     }

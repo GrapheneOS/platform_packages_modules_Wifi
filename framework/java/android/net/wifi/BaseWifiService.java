@@ -677,8 +677,14 @@ public class BaseWifiService extends IWifiManager.Stub {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    /** TO BE REMOVED */
     public void connect(WifiConfiguration config, int netId, IActionListener callback) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void connect(WifiConfiguration config, int netId, IActionListener callback,
+            @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
@@ -692,8 +698,14 @@ public class BaseWifiService extends IWifiManager.Stub {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    /** TO BE REMOVED */
     public void save(WifiConfiguration config, IActionListener callback) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void save(WifiConfiguration config, IActionListener callback,
+            @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
@@ -863,13 +875,18 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public String[] getOemPrivilegedAdmins() {
+    public String[] getOemPrivilegedWifiAdminPackages() {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void replyToP2pInvitationReceivedDialog(
             int dialogId, boolean accepted, @Nullable String optionalPin) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void replyToSimpleDialog(int dialogId, int button) {
         throw new UnsupportedOperationException();
     }
 
