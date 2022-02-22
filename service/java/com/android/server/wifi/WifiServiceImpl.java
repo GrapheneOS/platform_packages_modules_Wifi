@@ -3038,16 +3038,16 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public void setScreenOnScanSchedule(int[] scanSchedule, int[] scanType) {
+    public void setScreenOnScanSchedule(int[] scanScheduleSeconds, int[] scanType) {
         if (!SdkLevel.isAtLeastT()) {
             throw new UnsupportedOperationException();
         }
-        if ((scanSchedule == null && scanType != null)
-                || (scanSchedule != null && scanType == null)) {
+        if ((scanScheduleSeconds == null && scanType != null)
+                || (scanScheduleSeconds != null && scanType == null)) {
             throw new IllegalArgumentException("scanSchedule and scanType should be either both"
                     + " non-null or both null");
         }
-        if (scanSchedule != null && scanSchedule.length < 1) {
+        if (scanScheduleSeconds != null && scanScheduleSeconds.length < 1) {
             throw new IllegalArgumentException("scanSchedule should have length > 0, or be null");
         }
         if (scanType != null) {
@@ -3066,13 +3066,13 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
             throw new SecurityException("Uid=" + uid + ", is not allowed to set scan schedule");
         }
-        mLog.info("scanSchedule=% scanType=% uid=%").c(Arrays.toString(scanSchedule))
+        mLog.info("scanSchedule=% scanType=% uid=%").c(Arrays.toString(scanScheduleSeconds))
                 .c(Arrays.toString(scanType)).c(uid).flush();
         mWifiThreadRunner.post(() -> mWifiConnectivityManager.setExternalScreenOnScanSchedule(
-                scanSchedule, scanType));
+                scanScheduleSeconds, scanType));
         mLastCallerInfoManager.put(WifiManager.API_SET_SCAN_SCHEDULE, Process.myTid(),
                 uid, Binder.getCallingPid(), "<unknown>",
-                scanSchedule != null);
+                scanScheduleSeconds != null);
     }
 
     /**

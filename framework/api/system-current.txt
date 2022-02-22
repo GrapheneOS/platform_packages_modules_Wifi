@@ -770,7 +770,9 @@ package android.net.wifi {
   }
 
   public static class WifiManager.ScreenOnScanSchedule {
-    ctor public WifiManager.ScreenOnScanSchedule(int, int);
+    ctor public WifiManager.ScreenOnScanSchedule(@NonNull java.time.Duration, int);
+    method @NonNull public java.time.Duration getScanInterval();
+    method public int getScanType();
   }
 
   public static interface WifiManager.SoftApCallback {

@@ -86,6 +86,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1783,18 +1784,35 @@ public class WifiManager {
      */
     @SystemApi
     public static class ScreenOnScanSchedule {
-        private final int mScanTimeMs;
+        private final Duration mScanInterval;
         private final int mScanType;
 
         /**
          * Creates a ScreenOnScanSchedule.
-         * @param scanTimeMs Interval between framework-initiated connectivity scans in
-         *                   milliseconds.
+         * @param scanInterval Interval between framework-initiated connectivity scans.
          * @param scanType One of the {@code WifiScanner.SCAN_TYPE_} values.
          */
-        public ScreenOnScanSchedule(int scanTimeMs, @WifiAnnotations.ScanType int scanType) {
-            mScanTimeMs = scanTimeMs;
+        public ScreenOnScanSchedule(@NonNull Duration scanInterval,
+                @WifiAnnotations.ScanType int scanType) {
+            if (scanInterval == null) {
+                throw new IllegalArgumentException("scanInterval can't be null");
+            }
+            mScanInterval = scanInterval;
             mScanType = scanType;
+        }
+
+        /**
+         * Gets the interval between framework-initiated connectivity scans.
+         */
+        public @NonNull Duration getScanInterval() {
+            return mScanInterval;
+        }
+
+        /**
+         * Gets the type of scan to be used. One of the {@code WifiScanner.SCAN_TYPE_} values.
+         */
+        public @WifiAnnotations.ScanType int getScanType() {
+            return mScanType;
         }
     }
 
@@ -1802,7 +1820,8 @@ public class WifiManager {
      * Allows a privileged app to customize the screen-on scan behavior. When a non-null schedule
      * is set via this API, it will always get used instead of the scan schedules defined in the
      * overlay. When a null schedule is set via this API, the wifi subsystem will go back to using
-     * the scan schedules defined in the overlay.
+     * the scan schedules defined in the overlay. Also note, the scan schedule will be truncated
+     * (rounded down) to the nearest whole second.
      * <p>
      * Example usage:
      * The following call specifies that first scheduled scan should be in 20 seconds using
@@ -1811,8 +1830,10 @@ public class WifiManager {
      * {@link WifiScanner#SCAN_TYPE_LOW_POWER}.
      * <pre>
      * List<ScreenOnScanSchedule> schedule = new ArrayList<>();
-     * schedule.add(new ScreenOnScanSchedule(20, WifiScanner.SCAN_TYPE_HIGH_ACCURACY));
-     * schedule.add(new ScreenOnScanSchedule(40, WifiScanner.SCAN_TYPE_LOW_POWER));
+     * schedule.add(new ScreenOnScanSchedule(Duration.ofSeconds(20),
+     *         WifiScanner.SCAN_TYPE_HIGH_ACCURACY));
+     * schedule.add(new ScreenOnScanSchedule(Duration.ofSeconds(40),
+     *         WifiScanner.SCAN_TYPE_LOW_POWER));
      * wifiManager.setScreenOnScanSchedule(schedule);
      * </pre>
      * @param screenOnScanSchedule defines the screen-on scan schedule and the corresponding
@@ -1842,8 +1863,8 @@ public class WifiManager {
             int[] scanSchedule = new int[screenOnScanSchedule.size()];
             int[] scanType = new int[screenOnScanSchedule.size()];
             for (int i = 0; i < screenOnScanSchedule.size(); i++) {
-                scanSchedule[i] = screenOnScanSchedule.get(i).mScanTimeMs;
-                scanType[i] = screenOnScanSchedule.get(i).mScanType;
+                scanSchedule[i] = (int) screenOnScanSchedule.get(i).getScanInterval().toSeconds();
+                scanType[i] = screenOnScanSchedule.get(i).getScanType();
             }
             mService.setScreenOnScanSchedule(scanSchedule, scanType);
         } catch (RemoteException e) {
