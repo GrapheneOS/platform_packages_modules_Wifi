@@ -380,7 +380,7 @@ interface IWifiManager
 
     void validateCurrentWifiMeetsAdminRequirements();
 
-    String[] getOemPrivilegedAdmins();
+    String[] getOemPrivilegedWifiAdminPackages();
 
     void replyToP2pInvitationReceivedDialog(int dialogId, boolean accepted, String optionalPin);
 
