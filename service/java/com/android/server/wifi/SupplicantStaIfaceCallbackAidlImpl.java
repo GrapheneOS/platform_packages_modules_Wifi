@@ -1098,7 +1098,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     }
 
     @Override
-    public void onQosPolicyRequest(QosPolicyData[] qosPolicyData) {
+    public void onQosPolicyRequest(int qosPolicyRequestId, QosPolicyData[] qosPolicyData) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onQosPolicyRequest");
         }
