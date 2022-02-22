@@ -70,7 +70,7 @@ interface IWifiManager
 
     oneway void getWifiActivityEnergyInfoAsync(in IOnWifiActivityEnergyInfoListener listener);
 
-    void setScreenOnScanSchedule(in int[] scanSchedule, in int[] scanType);
+    void setScreenOnScanSchedule(in int[] scanScheduleSeconds, in int[] scanType);
 
     ParceledListSlice getConfiguredNetworks(String packageName, String featureId, boolean callerNetworksOnly);
 

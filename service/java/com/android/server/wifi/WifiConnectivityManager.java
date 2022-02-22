@@ -2080,8 +2080,8 @@ public class WifiConnectivityManager {
     /**
      * Sets the external scan schedule and scan type.
      */
-    public void setExternalScreenOnScanSchedule(int[] scanSchedule, int[] scanType) {
-        mExternalSingleScanScheduleSec = scanSchedule;
+    public void setExternalScreenOnScanSchedule(int[] scanScheduleSeconds, int[] scanType) {
+        mExternalSingleScanScheduleSec = scanScheduleSeconds;
         mExternalSingleScanType = scanType;
     }
 
