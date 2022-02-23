@@ -1682,6 +1682,7 @@ public class SupplicantStaIfaceHal {
         }
     }
 
+
     /**
      * Returns a bitmask of advanced capabilities: WPA3 SAE/SUITE B and OWE
      * Bitmask used is:
