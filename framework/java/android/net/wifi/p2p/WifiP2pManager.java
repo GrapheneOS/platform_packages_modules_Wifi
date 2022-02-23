@@ -2742,6 +2742,8 @@ public class WifiP2pManager {
      * Set the result for the incoming request from a specific peer.
      *
      * @param c is the channel created at {@link #initialize(Context, Looper, ChannelListener)}.
+     * @param deviceAddress the peer which is bound to the external approver.
+     * @param result the response for the incoming request.
      * @param listener for callback on success or failure.
      */
     @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
@@ -2754,6 +2756,34 @@ public class WifiP2pManager {
 
         Bundle extras = prepareExtrasBundle(c);
         extras.putParcelable(EXTRA_PARAM_KEY_PEER_ADDRESS, deviceAddress);
+        c.mAsyncChannel.sendMessage(SET_CONNECTION_REQUEST_RESULT,
+                result, c.putListener(listener), extras);
+    }
+
+    /**
+     * Set the result with PIN for the incoming request from a specific peer.
+     *
+     * @param c is the channel created at {@link #initialize(Context, Looper, ChannelListener)}.
+     * @param deviceAddress the peer which is bound to the external approver.
+     * @param result the response for the incoming request.
+     * @param pin the PIN for the incoming request.
+     * @param listener for callback on success or failure.
+     */
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
+    public void setConnectionRequestResult(@NonNull Channel c, @NonNull MacAddress deviceAddress,
+            @ConnectionRequestResponse int result, @Nullable String pin,
+            @Nullable ActionListener listener) {
+        checkChannel(c);
+        if (null == deviceAddress) {
+            throw new IllegalArgumentException("deviceAddress cannot be empty");
+        }
+        if (result == CONNECTION_REQUEST_ACCEPT && TextUtils.isEmpty(pin)) {
+            throw new IllegalArgumentException("PIN cannot be empty for accepting a request");
+        }
+
+        Bundle extras = prepareExtrasBundle(c);
+        extras.putParcelable(EXTRA_PARAM_KEY_PEER_ADDRESS, deviceAddress);
+        extras.putString(EXTRA_PARAM_KEY_WPS_PIN, pin);
         c.mAsyncChannel.sendMessage(SET_CONNECTION_REQUEST_RESULT,
                 result, c.putListener(listener), extras);
     }

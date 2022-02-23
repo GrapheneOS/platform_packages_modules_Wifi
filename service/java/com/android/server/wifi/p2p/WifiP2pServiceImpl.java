@@ -5695,6 +5695,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         && WpsInfo.KEYPAD == mSavedPeerConfig.wps.setup) {
                     sendMessage(PEER_CONNECTION_USER_CONFIRM);
                 } else {
+                    Bundle extras = (Bundle) message.obj;
+                    String pin = extras.getString(
+                            WifiP2pManager.EXTRA_PARAM_KEY_WPS_PIN);
+                    if (!TextUtils.isEmpty(pin)) {
+                        mSavedPeerConfig.wps.pin = pin;
+                    }
                     sendMessage(PEER_CONNECTION_USER_ACCEPT);
                 }
             } else if (WifiP2pManager.CONNECTION_REQUEST_REJECT == message.arg1) {
