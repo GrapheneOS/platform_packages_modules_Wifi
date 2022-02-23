@@ -90,7 +90,7 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void setScreenOnScanSchedule(int[] scanSchedule, int[] scanType) {
+    public void setScreenOnScanSchedule(int[] scanScheduleSeconds, int[] scanType) {
         throw new UnsupportedOperationException();
     }
 
