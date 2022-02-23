@@ -382,7 +382,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     }
 
     @Override
-    public void onEapFailure(byte[/* 6 */] bssid, int errorCode) {
+    public void onEapFailure(int errorCode) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onEapFailure");
             mWifiMonitor.broadcastAuthenticationFailureEvent(
