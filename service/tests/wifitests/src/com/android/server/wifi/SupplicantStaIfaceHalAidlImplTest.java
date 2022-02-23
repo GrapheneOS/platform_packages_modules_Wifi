@@ -1281,7 +1281,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
 
-        mISupplicantStaIfaceCallback.onEapFailure(eapFailureCode);
+        mISupplicantStaIfaceCallback.onEapFailure(new byte[6], eapFailureCode);
         verify(mWifiMonitor).broadcastAuthenticationFailureEvent(
                 eq(WLAN0_IFACE_NAME), eq(WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE),
                 eq(eapFailureCode));
