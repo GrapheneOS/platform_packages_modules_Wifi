@@ -9255,12 +9255,12 @@ public class WifiManager {
             "android.net.wifi.action.LAUNCH_DIALOG";
 
     /**
-     * Intent action to cancel an existing dialog from the WifiDialog app.
+     * Intent action to dismiss an existing dialog from the WifiDialog app.
      * Must include EXTRA_DIALOG_ID.
      * @hide
      */
-    public static final String ACTION_CANCEL_DIALOG =
-            "android.net.wifi.action.CANCEL_DIALOG";
+    public static final String ACTION_DISMISS_DIALOG =
+            "android.net.wifi.action.DISMISS_DIALOG";
 
     /**
      * Unknown DialogType.
@@ -9270,14 +9270,14 @@ public class WifiManager {
 
     /**
      * DialogType for a simple dialog.
-     * @see {@link com.android.server.wifi.WifiDialogManager#launchSimpleDialog}
+     * @see {@link com.android.server.wifi.WifiDialogManager#createSimpleDialog}
      * @hide
      */
     public static final int DIALOG_TYPE_SIMPLE = 1;
 
     /**
      * DialogType for a P2P Invitation Received dialog.
-     * @see {@link com.android.server.wifi.WifiDialogManager#launchP2pInvitationReceivedDialog}
+     * @see {@link com.android.server.wifi.WifiDialogManager#createP2pInvitationReceivedDialog}
      * @hide
      */
     public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 2;
@@ -9330,13 +9330,19 @@ public class WifiManager {
     public @interface DialogReply {}
 
     /**
+     * Invalid dialog id for dialogs that are not currently active.
+     * @hide
+     */
+    public static final int INVALID_DIALOG_ID = -1;
+
+    /**
      * Extra int indicating the type of dialog to display.
      * @hide
      */
     public static final String EXTRA_DIALOG_TYPE = "android.net.wifi.extra.DIALOG_TYPE";
 
     /**
-     * Extra int indicating the ID of a dialog. The value must be non-negative.
+     * Extra int indicating the ID of a dialog. The value must not be {@link #INVALID_DIALOG_ID}.
      * @hide
      */
     public static final String EXTRA_DIALOG_ID = "android.net.wifi.extra.DIALOG_ID";

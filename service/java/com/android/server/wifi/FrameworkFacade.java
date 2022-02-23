@@ -273,7 +273,7 @@ public class FrameworkFacade {
      * Create a new instance of {@link AlertDialog.Builder}.
      * @param context reference to a Context
      * @return an instance of AlertDialog.Builder
-     * @deprecated Use {@link WifiDialogManager#launchSimpleDialog} instead, or create another
+     * @deprecated Use {@link WifiDialogManager#createSimpleDialog} instead, or create another
      *             dialog type in WifiDialogManager.
      */
     public AlertDialog.Builder makeAlertDialogBuilder(Context context) {
