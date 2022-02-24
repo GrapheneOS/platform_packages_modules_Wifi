@@ -943,6 +943,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             return;
         }
         mP2pStateMachine.dump(fd, pw, args);
+        mWifiP2pMetrics.dump(pw);
         pw.println("mAutonomousGroup " + mAutonomousGroup);
         pw.println("mJoinExistingGroup " + mJoinExistingGroup);
         pw.println("mDiscoveryStarted " + mDiscoveryStarted);
