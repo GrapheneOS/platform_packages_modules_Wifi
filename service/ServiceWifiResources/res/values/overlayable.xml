@@ -220,6 +220,7 @@
           <item type="bool" name="config_wifiSoftapOweSupported" />
           <item type="bool" name="config_wifiSoftapOweTransitionSupported" />
           <item type="integer" name="config_wifiDialogGravity" />
+          <item type="bool" name="config_showConfirmationDialogForThirdPartyAppsEnablingWifi" />
           <item type="integer" name="config_p2pInvitationReceivedDialogTimeoutMs"/>
           <item type="bool" name="config_p2pInvitationReceivedDialogNotificationSound"/>
           <item type="bool" name="config_wifiForcedSoftApRestartWhenCountryCodeChanged" />
@@ -295,6 +296,10 @@
           <item type="string" name="wifi_softap_auto_shutdown_timeout_expired_summary" />
           <item type="string" name="wifi_sim_required_title" />
           <item type="string" name="wifi_sim_required_message" />
+          <item type="string" name="wifi_enable_request_dialog_title" />
+          <item type="string" name="wifi_enable_request_dialog_message" />
+          <item type="string" name="wifi_enable_request_dialog_positive_button" />
+          <item type="string" name="wifi_enable_request_dialog_negative_button" />
           <!-- Params from strings.xml that can be overlayed -->
 
           <!-- Params from styles.xml that can be overlayed -->
