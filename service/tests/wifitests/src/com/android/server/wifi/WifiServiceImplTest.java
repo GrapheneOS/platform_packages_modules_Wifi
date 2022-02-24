@@ -410,6 +410,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock WifiShellCommand mWifiShellCommand;
     @Mock DevicePolicyManager mDevicePolicyManager;
     @Mock HalDeviceManager mHalDeviceManager;
+    @Mock WifiDialogManager mWifiDialogManager;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
 
@@ -561,6 +562,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mUserManager.getUserRestrictions()).thenReturn(mBundle);
         when(mContext.getSystemService(DevicePolicyManager.class)).thenReturn(mDevicePolicyManager);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
+        when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -1038,6 +1040,177 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
         when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_CHANGE_WIFI_STATE),
                 any())).thenReturn(true);
+
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        verify(mActiveModeWarden).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify that a dialog is shown for third-party apps targeting pre-Q SDK enabling Wi-Fi.
+     */
+    @Test
+    public void testSetWifiEnabledDialogForThirdPartyAppsTargetingBelowQSdk() throws Exception {
+        when(mResources.getBoolean(
+                R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
+                .thenReturn(true);
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
+                eq(Build.VERSION_CODES.Q), anyInt())).thenReturn(true);
+        when(mSettingsStore.handleWifiToggled(eq(true))).thenReturn(true);
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
+        ApplicationInfo applicationInfo = mock(ApplicationInfo.class);
+        when(mPackageManager.getApplicationInfo(any(), anyInt())).thenReturn(applicationInfo);
+        String appName = "appName";
+        when(applicationInfo.loadLabel(any())).thenReturn(appName);
+        String title = "appName wants to enable Wi-Fi.";
+        String message = "Enable Wi-Fi?";
+        String positiveButtonText = "Yes";
+        String negativeButtonText = "No";
+        when(mResources.getString(R.string.wifi_enable_request_dialog_title, appName))
+                .thenReturn(title);
+        when(mResources.getString(R.string.wifi_enable_request_dialog_message)).thenReturn(message);
+        when(mResources.getString(R.string.wifi_enable_request_dialog_positive_button))
+                .thenReturn(positiveButtonText);
+        when(mResources.getString(R.string.wifi_enable_request_dialog_negative_button))
+                .thenReturn(negativeButtonText);
+
+        // Verify the negative reply does not enable wifi
+        WifiDialogManager.DialogHandle dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> callbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        mLooper.dispatchAll();
+        verify(mWifiDialogManager, times(1)).createSimpleDialog(
+                eq(title),
+                eq(message),
+                eq(positiveButtonText),
+                eq(negativeButtonText),
+                eq(null),
+                callbackCaptor.capture(),
+                any());
+        verify(dialogHandle).launchDialog();
+        callbackCaptor.getValue().onNegativeButtonClicked();
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+
+        // Verify the cancel reply does not enable wifi.
+        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        callbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(mWifiDialogManager, times(2)).createSimpleDialog(
+                eq(title),
+                eq(message),
+                eq(positiveButtonText),
+                eq(negativeButtonText),
+                eq(null),
+                callbackCaptor.capture(),
+                any());
+        verify(dialogHandle).launchDialog();
+        callbackCaptor.getValue().onCancelled();
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+
+        // Verify the positive reply will enable wifi.
+        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        callbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(mWifiDialogManager, times(3)).createSimpleDialog(
+                eq(title),
+                eq(message),
+                eq(positiveButtonText),
+                eq(negativeButtonText),
+                eq(null),
+                callbackCaptor.capture(),
+                any());
+        verify(dialogHandle).launchDialog();
+        callbackCaptor.getValue().onPositiveButtonClicked();
+        verify(mActiveModeWarden, times(1)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+
+        // Verify disabling wifi works without dialog.
+        when(mSettingsStore.handleWifiToggled(eq(false))).thenReturn(true);
+        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(2)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(dialogHandle, never()).launchDialog();
+
+        // Verify wifi becoming enabled will dismiss any outstanding dialogs.
+        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(2)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        callbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(mWifiDialogManager, times(4)).createSimpleDialog(
+                eq(title),
+                eq(message),
+                eq(positiveButtonText),
+                eq(negativeButtonText),
+                eq(null),
+                callbackCaptor.capture(),
+                any());
+        verify(dialogHandle).launchDialog();
+        when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
+        // Enabled by privileged app
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(3)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(dialogHandle).dismissDialog();
+
+        // Verify wifi already enabled will not trigger dialog.
+        when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(false);
+        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
+        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(dialogHandle);
+        when(mClientModeManager.syncGetWifiState()).thenReturn(WifiManager.WIFI_STATE_ENABLED);
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden, times(3)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(dialogHandle, never()).launchDialog();
+    }
+
+    /**
+     * Verify that no dialog is shown for non-third-party apps targeting pre-Q SDK enabling Wi-Fi.
+     */
+    @Test
+    public void testSetWifiEnabledNoDialogForNonThirdPartyAppsTargetingBelowQSdk() {
+        when(mResources.getBoolean(
+                R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
+                .thenReturn(true);
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
+                eq(Build.VERSION_CODES.Q), anyInt())).thenReturn(true);
+        when(mSettingsStore.handleWifiToggled(eq(true))).thenReturn(true);
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
 
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         verify(mActiveModeWarden).wifiToggled(

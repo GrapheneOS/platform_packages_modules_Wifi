@@ -32,6 +32,7 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_AP;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_AWARE;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -47,6 +48,7 @@ import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import android.Manifest;
+import android.annotation.AnyThread;
 import android.annotation.CheckResult;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -64,6 +66,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
 import android.location.LocationManager;
 import android.net.DhcpInfo;
 import android.net.DhcpOption;
@@ -148,6 +151,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import androidx.annotation.RequiresApi;
@@ -319,6 +323,8 @@ public class WifiServiceImpl extends BaseWifiService {
     private final MakeBeforeBreakManager mMakeBeforeBreakManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final @NonNull WifiDialogManager mWifiDialogManager;
+    private final SparseArray<WifiDialogManager.DialogHandle> mWifiEnableRequestDialogHandles =
+            new SparseArray<>();
 
     private boolean mWifiTetheringDisallowed;
     private boolean mIsBootComplete;
@@ -948,7 +954,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
     /**
      * Helper method to check if the entity initiating the binder call has any of the signature only
-     * permissions.
+     * permissions. Not to be confused with the concept of privileged apps, which are system apps
+     * with allow-listed "privileged" permissions.
      */
     private boolean isPrivileged(int pid, int uid) {
         return checkNetworkSettingsPermission(pid, uid)
@@ -1128,10 +1135,12 @@ public class WifiServiceImpl extends BaseWifiService {
         int callingUid = Binder.getCallingUid();
         int callingPid = Binder.getCallingPid();
         boolean isPrivileged = isPrivileged(callingPid, callingUid);
-        if (!isPrivileged && !isDeviceOrProfileOwner(callingUid, packageName)
-                && !mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.Q,
-                  callingUid)
-                && !mWifiPermissionsUtil.isSystem(packageName, callingUid)) {
+        boolean isThirdParty = !isPrivileged
+                && !isDeviceOrProfileOwner(callingUid, packageName)
+                && !mWifiPermissionsUtil.isSystem(packageName, callingUid);
+        boolean isTargetSdkLessThanQ = mWifiPermissionsUtil.isTargetSdkLessThan(packageName,
+                Build.VERSION_CODES.Q, callingUid);
+        if (isThirdParty && !isTargetSdkLessThanQ) {
             mLog.info("setWifiEnabled not allowed for uid=%").c(callingUid).flush();
             return false;
         }
@@ -1156,16 +1165,48 @@ public class WifiServiceImpl extends BaseWifiService {
             return false;
         }
 
+        // Show a user-confirmation dialog for legacy third-party apps targeting less than Q.
+        if (enable && isTargetSdkLessThanQ && isThirdParty
+                && mContext.getResources().getBoolean(
+                R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi)) {
+            mLog.info("setWifiEnabled must show user confirmation dialog for uid=%").c(callingUid)
+                    .flush();
+            mWifiThreadRunner.post(() -> {
+                if (getPrimaryClientModeManagerBlockingThreadSafe().syncGetWifiState()
+                        == WIFI_STATE_ENABLED) {
+                    // Wi-Fi already enabled; don't need to show dialog.
+                    return;
+                }
+                showWifiEnableRequestDialog(callingUid, callingPid, packageName);
+            });
+            return true;
+        }
+        setWifiEnabledInternal(packageName, enable, callingUid, callingPid, isPrivileged);
+        return true;
+    }
+
+    @AnyThread
+    private void setWifiEnabledInternal(String packageName, boolean enable,
+            int callingUid, int callingPid, boolean isPrivileged) {
         mLog.info("setWifiEnabled package=% uid=% enable=%").c(packageName)
                 .c(callingUid).c(enable).flush();
         long ident = Binder.clearCallingIdentity();
         try {
             if (!mSettingsStore.handleWifiToggled(enable)) {
                 // Nothing to do if wifi cannot be toggled
-                return true;
+                return;
             }
         } finally {
             Binder.restoreCallingIdentity(ident);
+        }
+        if (enable) {
+            // Clear out all outstanding wifi enable request dialogs.
+            mWifiThreadRunner.post(() -> {
+                for (int i = 0; i < mWifiEnableRequestDialogHandles.size(); i++) {
+                    mWifiEnableRequestDialogHandles.valueAt(i).dismissDialog();
+                }
+                mWifiEnableRequestDialogHandles.clear();
+            });
         }
         if (mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
             if (enable) {
@@ -1183,7 +1224,59 @@ public class WifiServiceImpl extends BaseWifiService {
         mActiveModeWarden.wifiToggled(new WorkSource(callingUid, packageName));
         mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
                 callingUid, callingPid, packageName, enable);
-        return true;
+    }
+
+    private void showWifiEnableRequestDialog(int uid, int pid, @NonNull String packageName) {
+        String appName;
+        try {
+            PackageManager pm = mContext.getPackageManager();
+            ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+            appName = appInfo.loadLabel(pm).toString();
+        } catch (PackageManager.NameNotFoundException e) {
+            appName = packageName;
+        }
+        WifiDialogManager.SimpleDialogCallback dialogCallback =
+                new WifiDialogManager.SimpleDialogCallback() {
+                    @Override
+                    public void onPositiveButtonClicked() {
+                        mLog.info("setWifiEnabled dialog accepted for package=% uid=%")
+                                .c(packageName).c(uid).flush();
+                        mWifiEnableRequestDialogHandles.delete(uid);
+                        setWifiEnabledInternal(packageName, true, uid, pid, false);
+                    }
+
+                    @Override
+                    public void onNegativeButtonClicked() {
+                        mLog.info("setWifiEnabled dialog declined for package=% uid=%")
+                                .c(packageName).c(uid).flush();
+                        mWifiEnableRequestDialogHandles.delete(uid);
+                    }
+
+                    @Override
+                    public void onNeutralButtonClicked() {
+                        // Not used.
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        mLog.info("setWifiEnabled dialog cancelled for package=% uid=%")
+                                .c(packageName).c(uid).flush();
+                        mWifiEnableRequestDialogHandles.delete(uid);
+                    }
+                };
+        Resources res = mContext.getResources();
+        WifiDialogManager.DialogHandle dialogHandle = mWifiDialogManager.createSimpleDialog(
+                res.getString(R.string.wifi_enable_request_dialog_title, appName),
+                res.getString(R.string.wifi_enable_request_dialog_message),
+                res.getString(R.string.wifi_enable_request_dialog_positive_button),
+                res.getString(R.string.wifi_enable_request_dialog_negative_button),
+                null /* neutralButtonText */,
+                dialogCallback,
+                mWifiThreadRunner);
+        mWifiEnableRequestDialogHandles.put(uid, dialogHandle);
+        dialogHandle.launchDialog();
+        mLog.info("setWifiEnabled dialog launched for package=% uid=%").c(packageName)
+                .c(uid).flush();
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
