@@ -165,10 +165,11 @@ public class WifiDialogActivity extends Activity  {
             receivedIntents.add(getIntent());
         }
         for (Intent intent : receivedIntents) {
-            int dialogId = intent.getIntExtra(WifiManager.EXTRA_DIALOG_ID, -1);
-            if (dialogId < 0) {
+            int dialogId = intent.getIntExtra(WifiManager.EXTRA_DIALOG_ID,
+                    WifiManager.INVALID_DIALOG_ID);
+            if (dialogId == WifiManager.INVALID_DIALOG_ID) {
                 if (mIsVerboseLoggingEnabled) {
-                    Log.v(TAG, "Received Intent with negative dialogId=" + dialogId);
+                    Log.v(TAG, "Received Intent with invalid dialogId!");
                 }
                 continue;
             }
@@ -203,15 +204,16 @@ public class WifiDialogActivity extends Activity  {
         if (intent == null) {
             return;
         }
-        int dialogId = intent.getIntExtra(WifiManager.EXTRA_DIALOG_ID, -1);
-        if (dialogId < 0) {
+        int dialogId = intent.getIntExtra(WifiManager.EXTRA_DIALOG_ID,
+                WifiManager.INVALID_DIALOG_ID);
+        if (dialogId == WifiManager.INVALID_DIALOG_ID) {
             if (mIsVerboseLoggingEnabled) {
-                Log.v(TAG, "Received Intent with negative dialogId=" + dialogId);
+                Log.v(TAG, "Received Intent with invalid dialogId!");
             }
             return;
         }
         String action = intent.getAction();
-        if (WifiManager.ACTION_CANCEL_DIALOG.equals(action)) {
+        if (WifiManager.ACTION_DISMISS_DIALOG.equals(action)) {
             removeIntentAndPossiblyFinish(dialogId);
             return;
         }
@@ -245,15 +247,15 @@ public class WifiDialogActivity extends Activity  {
     }
 
     /**
-     * Remove the Intent and corresponding Dialog of the given dialogId and finish the Activity if
-     * there are no dialogs left to show.
+     * Remove the Intent and corresponding dialog of the given dialogId (dismissing it if it is
+     * showing) and finish the Activity if there are no dialogs left to show.
      */
     private void removeIntentAndPossiblyFinish(int dialogId) {
         mLaunchIntentsPerId.remove(dialogId);
         Dialog dialog = mActiveDialogsPerId.get(dialogId);
         mActiveDialogsPerId.remove(dialogId);
         if (dialog != null && dialog.isShowing()) {
-            dialog.cancel();
+            dialog.dismiss();
         }
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Dialog id " + dialogId + " removed.");
