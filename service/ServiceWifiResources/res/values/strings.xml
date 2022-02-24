@@ -209,4 +209,10 @@
     <string name="wifi_ca_cert_notification_preT_message">The network <xliff:g id="ssid">%1$s</xliff:g> is missing a certificate. Tap to learn how to add certificates.</string>
     <string name="wifi_ca_cert_notification_preT_continue_text">Connect anyway</string>
     <string name="wifi_ca_cert_notification_preT_abort_text">Don\'t connect</string>
+
+    <!-- User-confirmation dialog for pre-Q apps enabling Wi-Fi. -->
+    <string name="wifi_enable_request_dialog_title">Allow <xliff:g id="app_name" example="App123">%1$s</xliff:g> to turn on Wi\u2011Fi?</string>
+    <string name="wifi_enable_request_dialog_message">You can turn off Wi\u2011Fi in Quick Settings</string>
+    <string name="wifi_enable_request_dialog_positive_button">Allow</string>
+    <string name="wifi_enable_request_dialog_negative_button">Don\u0027t allow</string>
 </resources>

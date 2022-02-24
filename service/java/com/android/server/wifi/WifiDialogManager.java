@@ -306,7 +306,7 @@ public class WifiDialogManager {
     /**
      * Callback for receiving simple dialog responses.
      */
-    interface SimpleDialogCallback {
+    public interface SimpleDialogCallback {
         /**
          * The positive button was clicked.
          */
