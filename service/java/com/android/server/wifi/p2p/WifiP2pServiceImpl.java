@@ -5500,7 +5500,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 // The total bytes of an IE is EID (1 byte) + length (1 byte) + payload length.
                 int totalBytes = aggregatedVendorElements.stream()
                         .mapToInt(ie -> (2 + ie.bytes.length)).sum();
-                if (totalBytes > WifiP2pManager.getP2pMaxAllowedVendorElementsLength()) {
+                if (totalBytes > WifiP2pManager.getP2pMaxAllowedVendorElementsLengthBytes()) {
                     mVendorElements.forEach((k, v) -> {
                         Log.w(TAG, "package=" + k + " VSIE size="
                                 + v.stream().mapToInt(ie -> ie.bytes.length).sum());

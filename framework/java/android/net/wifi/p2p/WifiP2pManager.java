@@ -2799,7 +2799,7 @@ public class WifiP2pManager {
      * To clear the previously set vendor elements, call this API with an empty List.
      * <p>
      * The maximum accumulated length of all VSIEs must be before the limit specified by
-     * {@link #getP2pMaxAllowedVendorElementsLength()}.
+     * {@link #getP2pMaxAllowedVendorElementsLengthBytes()}.
      * <p>
      * To publish vendor elements, this API should be called before peer discovery API, ex.
      * {@link #discoverPeers(Channel, ActionListener)}.
@@ -2851,7 +2851,7 @@ public class WifiP2pManager {
      * The length is calculated adding the payload length + 2 bytes for each VSIE
      * (2 bytes: 1 byte for type and 1 byte for length).
      */
-    public static int getP2pMaxAllowedVendorElementsLength() {
+    public static int getP2pMaxAllowedVendorElementsLengthBytes() {
         return WIFI_P2P_VENDOR_ELEMENTS_MAXIMUM_LENGTH;
     }
 }
