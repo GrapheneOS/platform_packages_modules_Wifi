@@ -2184,6 +2184,58 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that when wrong password authentication failure notification is not sent when
+     * the network was local only.
+     */
+    @Test
+    public void testWrongPasswordWithLocalOnlyConnection() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        startConnectSuccess();
+
+        WifiConfiguration config = createTestNetwork(false);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
+
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
+        mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
+                WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+
+        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(anyString());
+        assertEquals("DisconnectedState", getCurrentState().getName());
+    }
+
+    /**
+     * Verify that when wrong password authentication failure notification is sent when
+     * the network was NOT local only.
+     */
+    @Test
+    public void testWrongPasswordWithNonLocalOnlyConnection() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        startConnectSuccess();
+
+        WifiConfiguration config = createTestNetwork(false);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
+
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
+                WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+
+        verify(mWrongPasswordNotifier).onWrongPasswordError(anyString());
+        assertEquals("DisconnectedState", getCurrentState().getName());
+    }
+
+    /**
      * It is observed sometimes the WifiMonitor.NETWORK_DISCONNECTION_EVENT is observed before the
      * actual connection failure messages while making a connection.
      * The test make sure that make sure that the connection event is ended properly in the above
