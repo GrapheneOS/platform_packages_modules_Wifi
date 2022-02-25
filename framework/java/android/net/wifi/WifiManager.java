@@ -9360,6 +9360,27 @@ public class WifiManager {
     public static final String EXTRA_DIALOG_MESSAGE = "android.net.wifi.extra.DIALOG_MESSAGE";
 
     /**
+     * Extra String indicating the message URL of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_MESSAGE_URL =
+            "android.net.wifi.extra.DIALOG_MESSAGE_URL";
+
+    /**
+     * Extra String indicating the start index of a message URL span of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_MESSAGE_URL_START =
+            "android.net.wifi.extra.DIALOG_MESSAGE_URL_START";
+
+    /**
+     * Extra String indicating the end index of a message URL span of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_MESSAGE_URL_END =
+            "android.net.wifi.extra.DIALOG_MESSAGE_URL_END";
+
+    /**
      * Extra String indicating the positive button text of a simple dialog.
      * @hide
      */
