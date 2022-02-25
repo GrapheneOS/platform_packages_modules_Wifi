@@ -23,6 +23,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA256;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA384;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
@@ -2291,6 +2292,25 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private boolean isSecondaryInternet() {
         return mClientModeManager.getRole() == ROLE_CLIENT_SECONDARY_LONG_LIVED
                 && mClientModeManager.isSecondaryInternet();
+    }
+
+    /** Check whether this connection is for local only network. */
+    private boolean isLocalOnly() {
+        return mClientModeManager.getRole() == ROLE_CLIENT_LOCAL_ONLY;
+    }
+
+    /**
+     * Check if originaly requested as local only for ClientModeManager before fallback.
+     * A secondary role could fallback to primary due to hardware support limit.
+     * @return true if the original request for ClientModeManager is local only.
+     */
+    public boolean isRequestedForLocalOnly(WifiConfiguration currentWifiConfiguration,
+            String currentBssid) {
+        Pair<Integer, String> specificRequestUidAndPackageName =
+                mNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                        currentWifiConfiguration, currentBssid);
+        // Check if there is an active specific request in WifiNetworkFactory for local only.
+        return specificRequestUidAndPackageName.first != Process.INVALID_UID;
     }
 
     private void handleScreenStateChanged(boolean screenOn) {
@@ -5018,7 +5038,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     if (isPermanentWrongPasswordFailure(mTargetNetworkId, reasonCode)) {
                         disableReason = WifiConfiguration.NetworkSelectionStatus
                                 .DISABLED_BY_WRONG_PASSWORD;
-                        if (targetedNetwork != null && isPrimary()) {
+                        // For primary role, send error notification except for local only network,
+                        // for secondary role, send only for secondary internet.
+                        final boolean isForLocalOnly = isRequestedForLocalOnly(
+                                targetedNetwork, mTargetBssid) || isLocalOnly();
+                        final boolean needNotifyError = isPrimary() ? !isForLocalOnly
+                                : isSecondaryInternet();
+                        if (targetedNetwork != null && needNotifyError) {
                             mWrongPasswordNotifier.onWrongPasswordError(targetedNetwork.SSID);
                         }
                     } else if (reasonCode == WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE) {

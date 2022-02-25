@@ -1240,7 +1240,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         sendUserSelectionSelect(networkRequestUserSelectionCallback, selectedNetwork);
         mLooper.dispatchAll();
 
-        // verify(mWifiConnectivityManager).isStaConcurrencyForMultiInternetEnabled();
         // Verify we did not attempt to trigger a connection or disable connectivity manager.
         verifyNoMoreInteractions(mClientModeManager, mWifiConnectivityManager);
     }
@@ -2536,7 +2535,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.releaseNetworkFor(oldRequest);
         verify(mClientModeManager, times(2)).disconnect();
         verify(mClientModeManager, times(3)).getRole();
-        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
@@ -2548,7 +2546,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mClientModeManager).enableRoaming(true);
         verify(mActiveModeWarden).removeClientModeManager(any());
-        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
@@ -2574,7 +2571,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.needNetworkFor(mNetworkRequest);
         mLooper.dispatchAll();
 
-        // verify(mWifiConnectivityManager).isStaConcurrencyForMultiInternetEnabled();
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
     }
@@ -2630,7 +2626,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mClientModeManager).enableRoaming(true);
         verify(mActiveModeWarden).removeClientModeManager(any());
-
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
     }
@@ -2676,7 +2671,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mClientModeManager).enableRoaming(true);
         verify(mActiveModeWarden).removeClientModeManager(any());
-        // verify(mWifiConnectivityManager, times(3)).isStaConcurrencyForMultiInternetEnabled();
 
         verifyNoMoreInteractions(mWifiConnectivityManager, mWifiScanner, mClientModeManager,
                 mAlarmManager);
