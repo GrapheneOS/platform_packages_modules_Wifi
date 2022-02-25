@@ -6174,7 +6174,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                         probInternet < PROBABILITY_WITH_INTERNET_TO_PERMANENTLY_DISABLE_NETWORK
                                                 ? DISABLED_NO_INTERNET_PERMANENT
                                                 : DISABLED_NO_INTERNET_TEMPORARY);
-                            } else {
+                            } else { // NETWORK_STATUS_UNWANTED_VALIDATION_FAILED
                                 // stop collect last-mile stats since validation fail
                                 removeMessages(CMD_DIAGS_CONNECT_TIMEOUT);
                                 mWifiDiagnostics.reportConnectionEvent(
@@ -6201,18 +6201,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                             mWifiInfo.getRssi());
                                 }
                                 mWifiScoreCard.noteValidationFailure(mWifiInfo);
+                                mCmiMonitor.onInternetValidationFailed(mClientModeManager,
+                                        mCurrentConnectionDetectedCaptivePortal);
                             }
-                        }
-                        if (mClientModeManager.getRole() == ROLE_CLIENT_SECONDARY_TRANSIENT
-                                && !mCurrentConnectionDetectedCaptivePortal) {
-                            Log.d(getTag(), "Internet validation failed during MBB,"
-                                    + " disconnecting ClientModeManager=" + mClientModeManager);
-                            mWifiMetrics.logStaEvent(
-                                    mInterfaceName,
-                                    StaEvent.TYPE_FRAMEWORK_DISCONNECT,
-                                    StaEvent.DISCONNECT_MBB_NO_INTERNET);
-                            mWifiMetrics.incrementMakeBeforeBreakNoInternetCount();
-                            mWifiNative.disconnect(mInterfaceName);
                         }
                     }
                     break;
