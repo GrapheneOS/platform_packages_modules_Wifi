@@ -2365,8 +2365,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         private void removeHwPnoScanRequest(ClientInfo ci, int handler) {
             if (ci != null) {
                 Pair<PnoSettings, ScanSettings> settings = removePnoScanRequest(ci, handler);
-                logScanRequest("removeHwPnoScanRequest", ci, handler, null,
-                        settings.second, settings.first);
+                if (settings != null) {
+                    logScanRequest("removeHwPnoScanRequest", ci, handler, null,
+                            settings.second, settings.first);
+                }
             }
         }
 
