@@ -693,8 +693,13 @@ public class WifiBlocklistMonitor {
                 continue;
             }
             int sufficientRssi = mScoringParams.getSufficientRssi(scanResult.frequency);
-            if (status.lastRssi < sufficientRssi && scanResult.level >= sufficientRssi
-                    && scanResult.level - status.lastRssi >= MIN_RSSI_DIFF_TO_UNBLOCK_BSSID) {
+            int goodRssi = mScoringParams.getGoodRssi(scanResult.frequency);
+            boolean rssiMinDiffAchieved = scanResult.level - status.lastRssi
+                    >= MIN_RSSI_DIFF_TO_UNBLOCK_BSSID;
+            boolean sufficientRssiBreached =
+                    status.lastRssi < sufficientRssi && scanResult.level >= sufficientRssi;
+            boolean goodRssiBreached = status.lastRssi < goodRssi && scanResult.level >= goodRssi;
+            if (rssiMinDiffAchieved && (sufficientRssiBreached || goodRssiBreached)) {
                 mBssidBlocklistMonitorLogger.logBssidUnblocked(
                         status, "rssi significantly improved");
                 mBssidStatusMap.remove(status.bssid);
