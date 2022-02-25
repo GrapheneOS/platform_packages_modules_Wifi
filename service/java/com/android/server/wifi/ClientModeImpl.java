@@ -6680,7 +6680,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private boolean startIpClient(WifiConfiguration config, boolean isFilsConnection) {
-        if (mIpClient == null) {
+        if (mIpClient == null || config == null) {
             return false;
         }
 
