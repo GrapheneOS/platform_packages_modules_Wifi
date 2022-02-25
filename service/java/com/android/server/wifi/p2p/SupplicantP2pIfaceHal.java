@@ -1068,6 +1068,16 @@ public class SupplicantP2pIfaceHal {
         }
     }
 
+    /**
+     * Get the supported features.
+     *
+     * @return  bitmask defined by WifiP2pManager.FEATURE_*
+     */
+    public long getSupportedFeatures() {
+        if (mP2pIfaceHal instanceof SupplicantP2pIfaceHalHidlImpl) return 0L;
+        return ((SupplicantP2pIfaceHalAidlImpl) mP2pIfaceHal).getSupportedFeatures();
+    }
+
     private boolean handleNullHal(String methodStr) {
         Log.e(TAG, "Cannot call " + methodStr + " because HAL object is null.");
         return false;

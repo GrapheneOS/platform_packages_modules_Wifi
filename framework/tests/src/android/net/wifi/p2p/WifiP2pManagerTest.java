@@ -19,10 +19,10 @@ package android.net.wifi.p2p;
 import static android.net.wifi.WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -167,7 +167,8 @@ public class WifiP2pManagerTest {
      */
     @Test
     public void testSetVendorElementsWithNonVendorSpecificInformationElement() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastT());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS);
         WifiP2pManager.Channel channel = mock(WifiP2pManager.Channel.class);
         List<ScanResult.InformationElement> ies = new ArrayList<>();
         ies.add(new ScanResult.InformationElement(
@@ -187,7 +188,8 @@ public class WifiP2pManagerTest {
      */
     @Test
     public void testSetVendorElementsWithIeSizeOver255Bytes() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastT());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS);
         WifiP2pManager.Channel channel = mock(WifiP2pManager.Channel.class);
         List<ScanResult.InformationElement> ies = new ArrayList<>();
         ies.add(new ScanResult.InformationElement(
@@ -205,7 +207,8 @@ public class WifiP2pManagerTest {
      */
     @Test
     public void testSetVendorElementsWithTotalSizeOver512Bytes() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastT());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS);
         WifiP2pManager.Channel channel = mock(WifiP2pManager.Channel.class);
         List<ScanResult.InformationElement> ies = new ArrayList<>();
         ies.add(new ScanResult.InformationElement(
@@ -218,5 +221,35 @@ public class WifiP2pManagerTest {
             fail("expected IllegalArgumentException.");
         } catch (IllegalArgumentException expected) {
         }
+    }
+
+    /** Test {@link WifiP2pManager#isSetVendorElementsSupported()} work as expectation. */
+    @Test
+    public void testIsSetVendorElementsSupported() throws Exception {
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(0L);
+        assertFalse(mDut.isSetVendorElementsSupported());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS);
+        assertTrue(mDut.isSetVendorElementsSupported());
+    }
+
+    /** Test {@link WifiP2pManager#isChannelConstrainedDiscoverySupported()} work as expectation. */
+    @Test
+    public void testIsFlexibleDiscoverySupported() throws Exception {
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(0L);
+        assertFalse(mDut.isChannelConstrainedDiscoverySupported());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY);
+        assertTrue(mDut.isChannelConstrainedDiscoverySupported());
+    }
+
+    /** Test {@link WifiP2pManager#isGroupClientRemovalSupported()} work as expectation. */
+    @Test
+    public void testIsGroupClientRemovalSupported() throws Exception {
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(0L);
+        assertFalse(mDut.isGroupClientRemovalSupported());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
+        assertTrue(mDut.isGroupClientRemovalSupported());
     }
 }

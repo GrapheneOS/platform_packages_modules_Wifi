@@ -5507,6 +5507,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveClientSuccess() throws Exception {
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         mockEnterGroupCreatedState();
 
         when(mWifiNative.removeClient(anyString())).thenReturn(true);
@@ -5522,6 +5524,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveClientFailureWhenNativeCallFailure() throws Exception {
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         mockEnterGroupCreatedState();
 
         when(mWifiNative.removeClient(anyString())).thenReturn(false);
@@ -5538,6 +5542,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveClientSuccessWhenP2pCreatingGroup() throws Exception {
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         // Move to group creating state
         testConnectWithConfigValidAsGroupSuccess();
 
@@ -5552,6 +5558,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveClientSuccessWhenP2pInactive() throws Exception {
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         // Move to inactive state
         forceP2pEnabled(mClient1);
 
@@ -5566,6 +5574,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveClientSuccessWhenP2pDisabled() throws Exception {
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         sendSimpleMsg(mClientMessenger, WifiP2pManager.REMOVE_CLIENT, mTestWifiP2pPeerAddress);
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
@@ -5578,6 +5588,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testRemoveClientFailureWhenP2pUnsupported() throws Exception {
         setUpWifiP2pServiceImpl(false);
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         sendSimpleMsg(mClientMessenger, WifiP2pManager.REMOVE_CLIENT, mTestWifiP2pPeerAddress);
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
@@ -5718,6 +5730,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     private void verifySetVendorElement(boolean isP2pActivated, boolean shouldSucceed,
             boolean hasPermission, boolean shouldSetToNative) throws Exception {
 
+        when(mWifiNative.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS);
         when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
                 .thenReturn(hasPermission);
         when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt()))
