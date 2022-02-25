@@ -363,7 +363,6 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             mStaIfaceHal.logCallback("onAuthenticationTimeout");
             mWifiMonitor.broadcastAuthenticationFailureEvent(
                     mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1);
-            mStateBeforeDisconnect = StaIfaceCallbackState.INACTIVE;
         }
     }
 
