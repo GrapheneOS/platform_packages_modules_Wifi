@@ -202,6 +202,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private WifiGlobals mWifiGlobals;
     private UserManager mUserManager;
     private final int mVerboseAlwaysOnLevel;
+    private WifiP2pNative mWifiNative;
 
     private static final Boolean JOIN_GROUP = true;
     private static final Boolean FORM_GROUP = false;
@@ -628,6 +629,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         HandlerThread wifiP2pThread = mWifiInjector.getWifiP2pServiceHandlerThread();
         mClientHandler = new ClientHandler(TAG, wifiP2pThread.getLooper());
+        mWifiNative = mWifiInjector.getWifiP2pNative();
         mP2pStateMachine = new P2pStateMachine(TAG, wifiP2pThread.getLooper(), mP2pSupported);
         mP2pStateMachine.start();
         mVerboseAlwaysOnLevel = context.getResources()
@@ -926,6 +928,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         }
     }
 
+    /**
+     * see {@link android.net.wifi.p2p.WifiP2pManager#getSupportedFeatures()}
+     */
+    @Override
+    public long getSupportedFeatures() {
+        return mWifiNative.getSupportedFeatures();
+    }
+
     private boolean getWfdPermission(int uid) {
         WifiPermissionsWrapper wifiPermissionsWrapper = mWifiInjector.getWifiPermissionsWrapper();
         return wifiPermissionsWrapper.getUidPermission(
@@ -1002,7 +1012,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private UserAuthorizingJoinState mUserAuthorizingJoinState = new UserAuthorizingJoinState();
         private OngoingGroupRemovalState mOngoingGroupRemovalState = new OngoingGroupRemovalState();
 
-        private WifiP2pNative mWifiNative = mWifiInjector.getWifiP2pNative();
         private WifiP2pMonitor mWifiMonitor = mWifiInjector.getWifiP2pMonitor();
         private final WifiP2pDeviceList mPeers = new WifiP2pDeviceList();
         private String mInterfaceName;
@@ -1909,6 +1918,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pManager.REMOVE_CLIENT:
+                        if (!isFeatureSupported(WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL)) {
+                            replyToMessage(message, WifiP2pManager.REMOVE_CLIENT_FAILED,
+                                    WifiP2pManager.ERROR);
+                            break;
+                        }
                         replyToMessage(message, WifiP2pManager.REMOVE_CLIENT_SUCCEEDED);
                         break;
                     case WifiP2pManager.ADD_EXTERNAL_APPROVER: {
@@ -1962,8 +1976,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pManager.SET_VENDOR_ELEMENTS: {
-                        if (!SdkLevel.isAtLeastT()) {
-                            replyToMessage(message, WifiP2pManager.SET_VENDOR_ELEMENTS_FAILED);
+                        if (!isFeatureSupported(WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS)) {
+                            replyToMessage(message, WifiP2pManager.SET_VENDOR_ELEMENTS_FAILED,
+                                    WifiP2pManager.ERROR);
                             break;
                         }
                         if (!mWifiPermissionsUtil.checkConfigOverridePermission(
@@ -2331,7 +2346,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                     WifiP2pManager.ERROR);
                             break;
                         }
-                        int freq = SdkLevel.isAtLeastT()
+                        int freq = isFeatureSupported(WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY)
                                 ? message.arg1 : WifiP2pManager.WIFI_P2P_SCAN_FULL;
                         int uid = message.sendingUid;
                         Bundle extras = (Bundle) message.obj;
@@ -3955,8 +3970,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             sendP2pConnectionChangedBroadcast();
                         }
                         break;
-                    case WifiP2pManager.REMOVE_CLIENT:
-                    {
+                    case WifiP2pManager.REMOVE_CLIENT: {
+                        if (!isFeatureSupported(WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL)) {
+                            replyToMessage(message, WifiP2pManager.REMOVE_CLIENT_FAILED,
+                                    WifiP2pManager.ERROR);
+                            break;
+                        }
                         if (mVerboseLoggingEnabled) logd(getName() + " remove client");
                         MacAddress peerAddress = (MacAddress) message.obj;
 
@@ -5521,7 +5540,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         }
 
         private boolean p2pFind(int freq, int timeout) {
-            if (SdkLevel.isAtLeastT()) {
+            if (isFeatureSupported(WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS)) {
                 Set<ScanResult.InformationElement> aggregatedVendorElements = new HashSet<>();
                 mVendorElements.forEach((k, v) -> aggregatedVendorElements.addAll(v));
                 if (!mWifiNative.setVendorElements(aggregatedVendorElements)) {
@@ -5755,6 +5774,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
             Log.w(TAG, "Invalid connection result: " + message.arg1);
             return false;
+        }
+
+        private boolean isFeatureSupported(long feature) {
+            return (getSupportedFeatures() & feature) == feature;
         }
     }
 
