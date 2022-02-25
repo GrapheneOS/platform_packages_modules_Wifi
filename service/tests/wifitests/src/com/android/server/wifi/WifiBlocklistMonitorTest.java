@@ -127,6 +127,7 @@ public class WifiBlocklistMonitorTest {
         when(mWifiConnectivityHelper.getMaxNumAllowlistSsid())
                 .thenReturn(TEST_NUM_MAX_FIRMWARE_SUPPORT_SSIDS);
         when(mScoringParams.getSufficientRssi(anyInt())).thenReturn(TEST_SUFFICIENT_RSSI);
+        when(mScoringParams.getGoodRssi(anyInt())).thenReturn(TEST_GOOD_RSSI);
         mResources = new MockResources();
         mResources.setInteger(R.integer.config_wifiBssidBlocklistMonitorBaseBlockDurationMs,
                 (int) BASE_BLOCKLIST_DURATION);
@@ -976,11 +977,11 @@ public class WifiBlocklistMonitorTest {
     }
 
     /**
-     * Verify that if the RSSI is low when the BSSID is blocked, a RSSI improvement will remove
-     * the BSSID from blocklist.
+     * Verify that if the RSSI is low when the BSSID is blocked, a RSSI improvement to suffient
+     * RSSI will remove the BSSID from blocklist.
      */
     @Test
-    public void testUnblockBssidAfterRssiImproves() {
+    public void testUnblockBssidAfterRssiBreachSufficient() {
         WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
         when(mClock.getWallClockMillis()).thenReturn(0L);
         // verify TEST_BSSID_1 is blocked
@@ -1002,11 +1003,11 @@ public class WifiBlocklistMonitorTest {
     }
 
     /**
-     * Verify that if the RSSI is already good when the BSSID is blocked, a RSSI improvement will
-     * not remove the BSSID from blocklist.
+     * Verify that if the RSSI is sufficient when the BSSID is blocked, a RSSI improvement to good
+     * RSSI will remove the BSSID from blocklist.
      */
     @Test
-    public void testBssidNotUnblockedIfRssiAlreadyGood() {
+    public void testUnblockBssidAfterRssiBreachGood() {
         WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
         when(mClock.getWallClockMillis()).thenReturn(0L);
         // verify TEST_BSSID_1 is blocked
@@ -1017,6 +1018,26 @@ public class WifiBlocklistMonitorTest {
 
         // verify TEST_BSSID_1 is not removed from blocklist
         List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
+        assertEquals(1, enabledDetails.size());
+        assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+    }
+
+    /**
+     * Verify that if the RSSI is already sufficient when the BSSID is blocked, a RSSI improvement
+     * will not remove the BSSID from blocklist.
+     */
+    @Test
+    public void testBssidNotUnblockedIfRssiAlreadySufficient() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
+        when(mClock.getWallClockMillis()).thenReturn(0L);
+        // verify TEST_BSSID_1 is blocked
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(
+                TEST_BSSID_1, config, WifiBlocklistMonitor.REASON_EAP_FAILURE,
+                TEST_SUFFICIENT_RSSI);
+        assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
+
+        // verify TEST_BSSID_1 is not removed from blocklist
+        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI - 1);
         assertTrue(enabledDetails.isEmpty());
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
     }
