@@ -15,6 +15,8 @@
  */
 package com.android.server.wifi.util;
 
+import android.net.MacAddress;
+import android.net.wifi.MloLink;
 import android.net.wifi.ScanResult;
 import android.net.wifi.ScanResult.InformationElement;
 import android.net.wifi.WifiAnnotations.Cipher;
@@ -216,6 +218,159 @@ public class InformationElementUtil {
             stationCount = data.getShort() & Constants.SHORT_MASK;
             channelUtilization = data.get() & Constants.BYTE_MASK;
             capacity = data.getShort() & Constants.SHORT_MASK;
+        }
+    }
+
+    /**
+     * Rnr: represents the Reduced Neighbor Report (RNR) IE
+     * As described by IEEE 802.11 Specification Section 9.4.2.170
+     */
+    public static class Rnr {
+        private static final int TBTT_INFO_COUNT_OFFSET = 0;
+        private static final int TBTT_INFO_COUNT_MASK = 0xF0;
+        private static final int TBTT_INFO_COUNT_SHIFT = 4;
+        private static final int TBTT_INFO_LENGTH_OFFSET = 1;
+        private static final int TBTT_INFO_OP_CLASS_OFFSET = 2;
+        private static final int TBTT_INFO_CHANNEL_OFFSET = 3;
+        private static final int TBTT_INFO_SET_START_OFFSET = 4;
+        private static final int MLD_ID_START_OFFSET = 0;
+        private static final int LINK_ID_START_OFFSET = 1;
+        private static final int LINK_ID_MASK = 0x0F;
+
+        private boolean mPresent = false;
+        private List<MloLink> mAffiliatedMloLinks = new ArrayList<>();
+
+        /**
+         * Returns whether the RNR Information Element is present.
+         */
+        public boolean isPresent() {
+            return mPresent;
+        }
+
+        /**
+         * Returns the list of the affiliated MLO links
+         */
+        public List<MloLink> getAffiliatedMloLinks() {
+            return mAffiliatedMloLinks;
+        }
+
+        /**
+         * Parse RNR Operation IE
+         *
+         * RNR format as described in IEEE 802.11 specs, Section 9.4.2.170
+         *
+         *              | ElementID | Length | Neighbor AP Information Fields |
+         * Octets:            1          1             variable
+         *
+         *
+         * Where Neighbor AP Information Fields is one or more Neighbor AP Information Field as,
+         *
+         *               | Header | Operating Class | Channel | TBTT Information Set |
+         * Octets:            2            1            1           variable
+         *
+         *
+         * The Header subfield is described as follows,
+         *
+         *            | Type  | Filtered AP | Reserved | Count | Length |
+         * Bits:         2          1           1          4       8
+         *
+         *
+         * Information Set is one or more TBTT Information fields, which is described as,
+         *
+         *         | Offset | BSSID  | Short-SSID | BSS Params | 20MHz PSD | MLD Params|
+         * Octets:     1      0 or 6    0 or 4        0 or 1      0 or 1      0 or 3
+         *
+         *
+         * The MLD Params are described as,
+         *       | MLD ID | Link ID | BSS Change Count | Reserved |
+         * Bits:     8        4              8              4
+         *
+         * Note: InformationElement.bytes has 'Element ID' and 'Length'
+         *       stripped off already
+         *
+         */
+        public void from(InformationElement ie) {
+            if (ie.id != InformationElement.EID_RNR) {
+                throw new IllegalArgumentException("Element id is not RNR");
+            }
+
+            int startOffset = 0;
+            while (ie.bytes.length > startOffset + TBTT_INFO_SET_START_OFFSET) {
+                int tbttInfoCount =
+                        ie.bytes[startOffset + TBTT_INFO_COUNT_OFFSET] & TBTT_INFO_COUNT_MASK;
+                tbttInfoCount >>= TBTT_INFO_COUNT_SHIFT;
+                tbttInfoCount++;
+
+                int tbttInfoLen =
+                        ie.bytes[startOffset + TBTT_INFO_LENGTH_OFFSET] & Constants.BYTE_MASK;
+                int tbttInfoStartOffset = startOffset + TBTT_INFO_SET_START_OFFSET;
+
+                // Only handle TBTT info with MLD Info
+                if (tbttInfoLen == 4 || tbttInfoLen >= 16) {
+                    // Make sure length allows for this TBTT Info
+                    if (ie.bytes.length < startOffset + TBTT_INFO_SET_START_OFFSET
+                            + tbttInfoLen * tbttInfoCount) {
+                        if (DBG) {
+                            Log.w(TAG, "Invalid RNR len, not enough for TBTT Info: "
+                                    + ie.bytes.length + "/" + tbttInfoLen + "/" + tbttInfoCount);
+                        }
+                        // Skipping parsing of the IE
+                        return;
+                    }
+
+                    int mldStartOffset;
+                    int bssidOffset;
+
+                    if (tbttInfoLen == 4) {
+                        mldStartOffset = 1;
+                        bssidOffset = -1;
+                    } else {
+                        mldStartOffset = 13;
+                        bssidOffset = 1;
+                    }
+
+                    int opClass = ie.bytes[startOffset + TBTT_INFO_OP_CLASS_OFFSET]
+                            & Constants.BYTE_MASK;
+                    int channel = ie.bytes[startOffset + TBTT_INFO_CHANNEL_OFFSET]
+                            & Constants.BYTE_MASK;
+                    int band = ScanResult.getBandFromOpClass(opClass, channel);
+                    if (band == WifiScanner.WIFI_BAND_UNSPECIFIED) {
+                        if (DBG) {
+                            Log.w(TAG, "Invalid op class/channel in RNR TBTT Info: "
+                                    + opClass + "/" + channel);
+                        }
+                        // Skipping parsing of the IE
+                        return;
+                    }
+                    for (int i = 0; i < tbttInfoCount; i++) {
+                        int mldId = ie.bytes[tbttInfoStartOffset + mldStartOffset
+                                + MLD_ID_START_OFFSET] & Constants.BYTE_MASK;
+                        if (mldId == 0) {
+                            //This is an affiliated link
+                            int linkId = ie.bytes[tbttInfoStartOffset + mldStartOffset
+                                    + LINK_ID_START_OFFSET] & LINK_ID_MASK;
+                            MloLink link = new MloLink();
+                            link.setLinkId(linkId);
+                            link.setBand(band);
+                            link.setChannel(channel);
+                            if (bssidOffset != -1) {
+                                int macAddressStart = tbttInfoStartOffset + bssidOffset;
+                                link.setApMacAddress(MacAddress.fromBytes(
+                                        Arrays.copyOfRange(ie.bytes,
+                                                macAddressStart, macAddressStart + 6)));
+                            }
+
+                            mAffiliatedMloLinks.add(link);
+                        }
+                        tbttInfoStartOffset += tbttInfoLen;
+                    }
+                }
+
+                startOffset += TBTT_INFO_SET_START_OFFSET + (tbttInfoCount * tbttInfoLen);
+            }
+
+            // Done with parsing
+            mPresent = true;
         }
     }
 
@@ -694,6 +849,255 @@ public class InformationElementUtil {
             mPresent = true;
 
             //TODO Add code to parse the IE
+        }
+    }
+
+    /**
+     * MultiLink: represents the Multi-Link IE
+     * as described in IEEE 802.11be Specification Section 9.4.2.312
+     */
+    public static class MultiLink {
+        private static final int CONTROL_FIELD_LEN = 2;
+        private static final int BASIC_COMMON_INFO_FIELD_MIN_LEN = 7;
+        private static final int BASIC_LINK_INFO_FIELD_MIN_LEN = 0;
+        private static final int BASIC_IE_MIN_LEN = CONTROL_FIELD_LEN
+                + BASIC_COMMON_INFO_FIELD_MIN_LEN
+                + BASIC_LINK_INFO_FIELD_MIN_LEN;
+
+        // Control field constants
+        private static final int IE_TYPE_OFFSET = 0;
+        private static final int IE_TYPE_MASK = 0x07;
+        public static final int TYPE_BASIC = 0;
+        public static final int LINK_ID_PRESENT_OFFSET = 0;
+        public static final int LINK_ID_PRESENT_MASK = 0x10;
+
+
+        // Common info field constants
+        private static final int COMMON_FIELD_START_INDEX = CONTROL_FIELD_LEN;
+        private static final int BASIC_IE_COMMON_INFO_LEN_OFFSET = 0;
+        private static final int BASIC_IE_COMMON_MLD_MAC_ADDRESS_OFFSET = 1;
+        private static final int BASIC_IE_COMMOM_LINK_ID_OFFSET = 7;
+        private static final int BASIC_IE_COMMOM_LINK_ID_MASK = 0x0F;
+
+        // Per-STA sub-element constants
+        private static final int PER_STA_SUB_ELEMENT_ID = 0;
+        private static final int PER_STA_SUB_ELEMENT_MIN_LEN = 5;
+        private static final int PER_STA_SUB_ELEMENT_LINK_ID_OFFSET = 2;
+        private static final int PER_STA_SUB_ELEMENT_LINK_ID_MASK = 0x0F;
+        private static final int PER_STA_SUB_ELEMENT_STA_INFO_OFFSET = 4;
+        private static final int PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_OFFSET = 2;
+        private static final int PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_MASK = 0x20;
+        private static final int PER_STA_SUB_ELEMENT_STA_INFO_MAC_ADDRESS_OFFSET = 1;
+
+        private boolean mPresent = false;
+        private int mLinkId = MloLink.INVALID_MLO_LINK_ID;
+        private MacAddress mMldMacAddress = null;
+        private List<MloLink> mAffiliatedLinks = new ArrayList<>();
+
+        /** Returns whether Multi-Link IE is present */
+        public boolean isPresent() {
+            return mPresent;
+        }
+
+        /** Returns the MLD MAC Address */
+        public MacAddress getMldMacAddress() {
+            return mMldMacAddress;
+        }
+
+        /** Return the link id */
+        public int getLinkId() {
+            return mLinkId;
+        }
+
+        /** Return the affiliated links */
+        public List<MloLink> getAffiliatedLinks() {
+            return new ArrayList<MloLink>(mAffiliatedLinks);
+        }
+
+        /**
+         * Parse Common Info field in Multi-Link Operation IE
+         *
+         * Common Info filed as described in IEEE 802.11 specs, Section 9.4.2.312,
+         *
+         *        | Len | MLD Address | Link Id | BSS Change count | MedSync | EML Cap | MLD Cap |
+         * Octets:   1        6          0 or 1        0 or 1         0 or 2    0 or 2    0 or 2
+         *
+         */
+        private int parseCommonInfoField(InformationElement ie) {
+            int commonInfoLength = ie.bytes[COMMON_FIELD_START_INDEX
+                    + BASIC_IE_COMMON_INFO_LEN_OFFSET] & Constants.BYTE_MASK;
+            if (commonInfoLength < BASIC_COMMON_INFO_FIELD_MIN_LEN) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid Common Info field length: " + commonInfoLength);
+                }
+                // Skipping parsing of the IE
+                return 0;
+            }
+
+            boolean isLinkIdInfoPresent = (ie.bytes[LINK_ID_PRESENT_OFFSET]
+                    & LINK_ID_PRESENT_MASK) != 0;
+            if (isLinkIdInfoPresent) {
+                if (ie.bytes.length < BASIC_IE_MIN_LEN + 1 /*Link Id info */) {
+                    if (DBG) {
+                        Log.w(TAG, "Invalid Multi-Link IE len: " + ie.bytes.length);
+                    }
+                    // Skipping parsing of the IE
+                    return 0;
+                }
+
+                mLinkId = ie.bytes[COMMON_FIELD_START_INDEX
+                        + BASIC_IE_COMMOM_LINK_ID_OFFSET] & BASIC_IE_COMMOM_LINK_ID_MASK;
+            }
+
+            int macAddressStart = COMMON_FIELD_START_INDEX + BASIC_IE_COMMON_MLD_MAC_ADDRESS_OFFSET;
+            mMldMacAddress = MacAddress.fromBytes(
+                    Arrays.copyOfRange(ie.bytes, macAddressStart, macAddressStart + 6));
+
+            return commonInfoLength;
+        }
+
+        /**
+         * Parse Link Info field in Multi-Link Operation IE
+         *
+         * Link Info filed as described in IEEE 802.11 specs, Section 9.4.2.312,
+         *
+         *        | ID | Len | STA Control | STA Info | STA Profile |
+         * Octets:  1     1        2         variable    variable
+         *
+         * where STA Control subfield is described as,
+         *
+         *      | LinkId | Complete | MAC | Beacon Interval | DTIM | NSTR Link | NSTR Bitmap | R |
+         * Bits:    4          1       1          1             1        1            1        6
+         *
+         */
+        private boolean parseLinkInfoField(InformationElement ie, int startOffset) {
+            // Check if Link Info field is present
+            while (ie.bytes.length >= startOffset + PER_STA_SUB_ELEMENT_MIN_LEN) {
+                int subElementId = ie.bytes[startOffset] & Constants.BYTE_MASK;
+                int subElementLen = ie.bytes[startOffset + 1] & Constants.BYTE_MASK;
+                if (ie.bytes.length < startOffset + subElementLen) {
+                    if (DBG) {
+                        Log.w(TAG, "Invalid sub-element length: " + subElementLen);
+                    }
+                    // Skipping parsing of the IE
+                    return false;
+                }
+                if (subElementId != PER_STA_SUB_ELEMENT_ID) {
+                    // Skip this subelement, could be an unsupported one
+                    startOffset += subElementLen;
+                    continue;
+                }
+
+                MloLink link = new MloLink();
+                link.setLinkId(ie.bytes[startOffset + PER_STA_SUB_ELEMENT_LINK_ID_OFFSET]
+                        & PER_STA_SUB_ELEMENT_LINK_ID_MASK);
+
+                int staInfoLength = ie.bytes[startOffset + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET]
+                        & Constants.BYTE_MASK;
+                if (subElementLen < PER_STA_SUB_ELEMENT_STA_INFO_OFFSET + staInfoLength) {
+                    if (DBG) {
+                        Log.w(TAG, "Invalid sta info length: " + staInfoLength);
+                    }
+                    // Skipping parsing of the IE
+                    return false;
+                }
+
+                // Check if MAC Address is present
+                if ((ie.bytes[startOffset + PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_OFFSET]
+                        & PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_MASK) != 0) {
+                    if (staInfoLength < 1 /*length*/ + 6 /*mac address*/) {
+                        if (DBG) {
+                            Log.w(TAG, "Invalid sta info length: " + staInfoLength);
+                        }
+                        // Skipping parsing of the IE
+                        return false;
+                    }
+
+                    int macAddressOffset = startOffset + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET
+                            + PER_STA_SUB_ELEMENT_STA_INFO_MAC_ADDRESS_OFFSET;
+                    link.setApMacAddress(MacAddress.fromBytes(Arrays.copyOfRange(ie.bytes,
+                            macAddressOffset, macAddressOffset + 6)));
+                }
+
+                mAffiliatedLinks.add(link);
+
+                // Done with this sub-element
+                startOffset += subElementLen;
+            }
+
+            return true;
+        }
+
+        /**
+         * Parse Multi-Link Operation IE
+         *
+         * Multi-Link IE format as described in IEEE 802.11 specs, Section 9.4.2.312
+         *
+         *              | ElementID | Length | ExtendedID | Control | Common Info | Link Info |
+         * Octets:            1          1         1          2        Variable     variable
+         *
+         *
+         * Where Control field is described as,
+         *
+         *         | Type | Reserved | Presence Bitmap |
+         * Bits:      3        1            12
+         *
+         * Where the Presence Bitmap subfield is described as,
+         *
+         *        | LinkId | BSS change count | MedSync | EML cap | MLD cap | Reserved |
+         * Bits:      1            1               1         1         1         7
+         *
+         *
+         *
+         * Note: InformationElement.bytes has 'Element ID', 'Length', and 'Extended ID'
+         *       stripped off already
+         *
+         */
+        public void from(InformationElement ie) {
+            if (ie.id != InformationElement.EID_EXTENSION_PRESENT
+                    || ie.idExt != InformationElement.EID_EXT_MULTI_LINK) {
+                throw new IllegalArgumentException("Element id is not Multi-Link: " + ie.id);
+            }
+
+            // Make sure the byte array length is at least the Control field size
+            if (ie.bytes.length < CONTROL_FIELD_LEN) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid Multi-Link IE len: " + ie.bytes.length);
+                }
+                // Skipping parsing of the IE
+                return;
+            }
+
+            // Check on IE type
+            // Note only the BASIC type is allowed to be received from AP
+            int type = ie.bytes[IE_TYPE_OFFSET] & IE_TYPE_MASK;
+            if (type != TYPE_BASIC) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid/Unsupported Multi-Link IE type: " + type);
+                }
+                // Skipping parsing of the IE
+                return;
+            }
+
+            // Check length
+            if (ie.bytes.length < BASIC_IE_MIN_LEN) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid Multi-Link IE len: " + ie.bytes.length);
+                }
+                // Skipping parsing of the IE
+                return;
+            }
+
+            int commonInfoLength = parseCommonInfoField(ie);
+            if (commonInfoLength == 0) {
+                return;
+            }
+
+            if (!parseLinkInfoField(ie, CONTROL_FIELD_LEN + commonInfoLength)) {
+                return;
+            }
+
+            mPresent = true;
         }
     }
 
