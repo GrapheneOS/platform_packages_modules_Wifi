@@ -1163,6 +1163,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 case "launch-dialog-simple":
                     String title = null;
                     String message = null;
+                    String messageUrl = null;
+                    int messageUrlStart = 0;
+                    int messageUrlEnd = 0;
                     String positiveButtonText = null;
                     String negativeButtonText = null;
                     String neutralButtonText = null;
@@ -1176,6 +1179,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                 break;
                             case "-m":
                                 message = getNextArgRequired();
+                                break;
+                            case "-l":
+                                messageUrl = getNextArgRequired();
+                                messageUrlStart = Integer.valueOf(getNextArgRequired());
+                                messageUrlEnd = Integer.valueOf(getNextArgRequired());
                                 break;
                             case "-y":
                                 positiveButtonText = getNextArgRequired();
@@ -1220,9 +1228,12 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                 }
                             };
                     WifiDialogManager.DialogHandle simpleDialogHandle =
-                            mWifiDialogManager.createSimpleDialog(
+                            mWifiDialogManager.createSimpleDialogWithUrl(
                                     title,
                                     message,
+                                    messageUrl,
+                                    messageUrlStart,
+                                    messageUrlEnd,
                                     positiveButtonText,
                                     negativeButtonText,
                                     neutralButtonText,
@@ -2059,12 +2070,14 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println(
                 "    Reset the WiFi resources cache which will cause them to be reloaded next "
                         + "time they are accessed. Necessary if overlays are manually modified.");
-        pw.println("  launch-dialog-simple [-t <title>] [-m <message>] [-y <positive_button_text>]"
+        pw.println("  launch-dialog-simple [-t <title>] [-m <message>]"
+                + " [-l <url> <url_start> <url_end>] [-y <positive_button_text>]"
                 + " [-n <negative_button_text>] [-x <neutral_button_text>] [-c <timeout_millis>]");
         pw.println("    Launches a simple dialog and waits up to 15 seconds to"
                 + " print the response.");
         pw.println("    -t - Title");
         pw.println("    -m - Message");
+        pw.println("    -l - URL of the message, with the start and end index inside the message");
         pw.println("    -y - Positive Button Text");
         pw.println("    -n - Negative Button Text");
         pw.println("    -x - Neutral Button Text");

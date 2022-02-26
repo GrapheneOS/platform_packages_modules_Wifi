@@ -2394,6 +2394,18 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         }
     }
 
+    /**
+     * Get the supported features.
+     *
+     * @return  bitmask defined by WifiP2pManager.FEATURE_*
+     */
+    public long getSupportedFeatures() {
+        // First AIDL version supports these three features.
+        return WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS
+                | WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY
+                | WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL;
+    }
+
     private byte[] convertInformationElementSetToBytes(
             Set<ScanResult.InformationElement> ies) {
         try {

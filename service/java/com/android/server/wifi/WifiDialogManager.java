@@ -255,6 +255,9 @@ public class WifiDialogManager {
         SimpleDialogHandle(
                 final String title,
                 final String message,
+                final String messageUrl,
+                final int messageUrlStart,
+                final int messageUrlEnd,
                 final String positiveButtonText,
                 final String negativeButtonText,
                 final String neutralButtonText,
@@ -263,9 +266,24 @@ public class WifiDialogManager {
             super(getBaseLaunchIntent(WifiManager.DIALOG_TYPE_SIMPLE)
                     .putExtra(WifiManager.EXTRA_DIALOG_TITLE, title)
                     .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE, message)
+                    .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL, messageUrl)
+                    .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, messageUrlStart)
+                    .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, messageUrlEnd)
                     .putExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT, positiveButtonText)
                     .putExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT, negativeButtonText)
                     .putExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT, neutralButtonText));
+            if (messageUrl != null) {
+                if (message == null) {
+                    throw new IllegalArgumentException("Cannot set span for null message!");
+                }
+                if (messageUrlStart < 0) {
+                    throw new IllegalArgumentException("Span start cannot be less than 0!");
+                }
+                if (messageUrlEnd > message.length()) {
+                    throw new IllegalArgumentException("Span end index " + messageUrlEnd
+                            + " cannot be greater than message length " + message.length() + "!");
+                }
+            }
             if (callback == null) {
                 throw new IllegalArgumentException("Callback cannot be null!");
             }
@@ -306,7 +324,7 @@ public class WifiDialogManager {
     /**
      * Callback for receiving simple dialog responses.
      */
-    interface SimpleDialogCallback {
+    public interface SimpleDialogCallback {
         /**
          * The positive button was clicked.
          */
@@ -356,6 +374,61 @@ public class WifiDialogManager {
                     new SimpleDialogHandle(
                             title,
                             message,
+                            null /* messageUrl */,
+                            0 /* messageUrlStart */,
+                            0 /* messageUrlEnd */,
+                            positiveButtonText,
+                            negativeButtonText,
+                            neutralButtonText,
+                            callback,
+                            callbackThreadRunner)
+            );
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for simple dialog: " + e);
+            return null;
+        }
+    }
+
+    /**
+     * Creates a simple dialog with a URL embedded in the message.
+     *
+     * @param title                Title of the dialog.
+     * @param message              Message of the dialog.
+     * @param messageUrl           URL to embed in the message. If non-null, then message must also
+     *                             be non-null.
+     * @param messageUrlStart      Start index (inclusive) of the URL in the message. Must be
+     *                             non-negative.
+     * @param messageUrlEnd        End index (exclusive) of the URL in the message. Must be less
+     *                             than the length of message.
+     * @param positiveButtonText   Text of the positive button or {@code null} for no button.
+     * @param negativeButtonText   Text of the negative button or {@code null} for no button.
+     * @param neutralButtonText    Text of the neutral button or {@code null} for no button.
+     * @param callback             Callback to receive the dialog response.
+     * @param callbackThreadRunner WifiThreadRunner to run the callback on.
+     * @return DialogHandle        Handle for the dialog, or {@code null} if no dialog could
+     *                             be created.
+     */
+    @AnyThread
+    @Nullable
+    public DialogHandle createSimpleDialogWithUrl(
+            @Nullable String title,
+            @Nullable String message,
+            @Nullable String messageUrl,
+            int messageUrlStart,
+            int messageUrlEnd,
+            @Nullable String positiveButtonText,
+            @Nullable String negativeButtonText,
+            @Nullable String neutralButtonText,
+            @NonNull SimpleDialogCallback callback,
+            @NonNull WifiThreadRunner callbackThreadRunner) {
+        try {
+            return new DialogHandle(
+                    new SimpleDialogHandle(
+                            title,
+                            message,
+                            messageUrl,
+                            messageUrlStart,
+                            messageUrlEnd,
                             positiveButtonText,
                             negativeButtonText,
                             neutralButtonText,

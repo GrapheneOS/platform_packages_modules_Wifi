@@ -35,7 +35,11 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.Vibrator;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
+import android.text.style.URLSpan;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -294,6 +298,9 @@ public class WifiDialogActivity extends Activity  {
                 dialog = createSimpleDialog(dialogId,
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_TITLE),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_MESSAGE),
+                        intent.getStringExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL),
+                        intent.getIntExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, 0),
+                        intent.getIntExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, 0),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT));
@@ -330,6 +337,9 @@ public class WifiDialogActivity extends Activity  {
         }
         mActiveDialogsPerId.put(dialogId, dialog);
         dialog.show();
+        // Allow message URLs to be clickable.
+        ((TextView) dialog.findViewById(android.R.id.message))
+                .setMovementMethod(LinkMovementMethod.getInstance());
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Showing dialog " + dialogId);
         }
@@ -364,12 +374,21 @@ public class WifiDialogActivity extends Activity  {
             int dialogId,
             @Nullable String title,
             @Nullable String message,
+            @Nullable String messageUrl,
+            int messageUrlStart,
+            int messageUrlEnd,
             @Nullable String positiveButtonText,
             @Nullable String negativeButtonText,
             @Nullable String neutralButtonText) {
+        SpannableString spannableMessage = null;
+        if (message != null) {
+            spannableMessage = new SpannableString(message);
+            spannableMessage.setSpan(new URLSpan(messageUrl), messageUrlStart, messageUrlEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(title)
-                .setMessage(message)
+                .setMessage(spannableMessage)
                 .setPositiveButton(positiveButtonText, (dialogPositive, which) -> {
                     if (mIsVerboseLoggingEnabled) {
                         Log.v(TAG, "Positive button pressed for simple dialog id="
@@ -408,6 +427,7 @@ public class WifiDialogActivity extends Activity  {
                     + " id=" + dialogId
                     + " title=" + title
                     + " message=" + message
+                    + " url=[" + messageUrl + "," + messageUrlStart + "," + messageUrlEnd + "]"
                     + " positiveButtonText=" + positiveButtonText
                     + " negativeButtonText=" + negativeButtonText
                     + " neutralButtonText=" + neutralButtonText);

@@ -1759,6 +1759,12 @@ public class WifiNative {
                 scanResult.radioChainInfos[idx].level = nativeRadioChainInfo.getLevelDbm();
                 idx++;
             }
+
+            // Fill MLO Attributes
+            scanResult.setApMldMacAddress(networkDetail.getMldMacAddress());
+            scanResult.setApMloLinkId(networkDetail.getMloLinkId());
+            scanResult.setAffiliatedMloLinks(networkDetail.getAffiliatedMloLinks());
+
             results.add(scanDetail);
         }
         if (mVerboseLoggingEnabled) {
