@@ -3,6 +3,8 @@ package com.android.server.wifi.hotspot2;
 import static com.android.server.wifi.hotspot2.anqp.Constants.BYTES_IN_EUI48;
 import static com.android.server.wifi.hotspot2.anqp.Constants.BYTE_MASK;
 
+import android.net.MacAddress;
+import android.net.wifi.MloLink;
 import android.net.wifi.ScanResult;
 import android.util.Log;
 
@@ -18,6 +20,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -131,6 +134,11 @@ public class NetworkDetail {
     private final boolean mMboCellularDataAware;
     private final boolean mOceSupported;
 
+    // MLO Attributes
+    private MacAddress mMldMacAddress = null;
+    private int mMloLinkId = MloLink.INVALID_MLO_LINK_ID;
+    private List<MloLink> mAffiliatedMloLinks = Collections.emptyList();
+
     public NetworkDetail(String bssid, ScanResult.InformationElement[] infoElements,
             List<String> anqpLines, int freq) {
         if (infoElements == null) {
@@ -168,7 +176,10 @@ public class NetworkDetail {
                 new InformationElementUtil.HeCapabilities();
         InformationElementUtil.EhtCapabilities ehtCapabilities =
                 new InformationElementUtil.EhtCapabilities();
-
+        InformationElementUtil.Rnr rnr =
+                new InformationElementUtil.Rnr();
+        InformationElementUtil.MultiLink multiLink =
+                new InformationElementUtil.MultiLink();
         InformationElementUtil.ExtendedCapabilities extendedCapabilities =
                 new InformationElementUtil.ExtendedCapabilities();
 
@@ -232,6 +243,9 @@ public class NetworkDetail {
                     case ScanResult.InformationElement.EID_EXTENDED_SUPPORTED_RATES:
                         extendedSupportedRates.from(ie);
                         break;
+                    case ScanResult.InformationElement.EID_RNR:
+                        rnr.from(ie);
+                        break;
                     case ScanResult.InformationElement.EID_EXTENSION_PRESENT:
                         switch(ie.idExt) {
                             case ScanResult.InformationElement.EID_EXT_HE_OPERATION:
@@ -245,6 +259,9 @@ public class NetworkDetail {
                                 break;
                             case ScanResult.InformationElement.EID_EXT_EHT_CAPABILITIES:
                                 ehtCapabilities.from(ie);
+                                break;
+                            case ScanResult.InformationElement.EID_EXT_MULTI_LINK:
+                                multiLink.from(ie);
                                 break;
                             default:
                                 break;
@@ -405,6 +422,29 @@ public class NetworkDetail {
             mWifiMode = 0;
             mMaxRate = 0;
         }
+
+        if (multiLink.isPresent()) {
+            mMldMacAddress = multiLink.getMldMacAddress();
+            mMloLinkId = multiLink.getLinkId();
+            if (rnr.isPresent()) {
+                if (!rnr.getAffiliatedMloLinks().isEmpty()) {
+                    mAffiliatedMloLinks = new ArrayList<>(rnr.getAffiliatedMloLinks());
+                } else if (!multiLink.getAffiliatedLinks().isEmpty()) {
+                    mAffiliatedMloLinks = new ArrayList<>(multiLink.getAffiliatedLinks());
+                }
+            }
+
+            // Add the current link to the list of links if not empty
+            if (!mAffiliatedMloLinks.isEmpty()) {
+                MloLink link = new MloLink();
+                link.setApMacAddress(MacAddress.fromString(bssid));
+                link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(mPrimaryFreq));
+                link.setBand(ScanResult.toBand(mPrimaryFreq));
+                link.setLinkId(mMloLinkId);
+                mAffiliatedMloLinks.add(link);
+            }
+        }
+
         if (DBG) {
             Log.d(TAG, mSSID + "ChannelWidth is: " + mChannelWidth + " PrimaryFreq: "
                     + mPrimaryFreq + " Centerfreq0: " + mCenterfreq0 + " Centerfreq1: "
@@ -601,6 +641,18 @@ public class NetworkDetail {
 
     public boolean isSSID_UTF8() {
         return mExtendedCapabilities.isStrictUtf8();
+    }
+
+    public MacAddress getMldMacAddress() {
+        return mMldMacAddress;
+    }
+
+    public int getMloLinkId() {
+        return mMloLinkId;
+    }
+
+    public List<MloLink> getAffiliatedMloLinks() {
+        return mAffiliatedMloLinks;
     }
 
     @Override

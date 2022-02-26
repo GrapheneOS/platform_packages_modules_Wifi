@@ -1822,6 +1822,137 @@ public class InformationElementUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Tests for parsing RNR IE
+     * RNR format as described in IEEE 802.11 specs, Section 9.4.2.170
+     *
+     *              | ElementID | Length | Neighbor AP Information Fields |
+     * Octets:            1          1             variable
+     *
+     * Where Neighbor AP Information Fields is one or more Neighbor AP Information Field as,
+     *
+     *               | Header | Operating Class | Channel | TBTT Information Set |
+     * Octets:            2            1            1           variable
+     *
+     * The Header subfield is described as follows,
+     *
+     *            | Type  | Filtered AP | Reserved | Count | Length |
+     * Bits:         2          1           1          4       8
+     *
+     *
+     * Information Set is one or more TBTT Information fields, which is described as,
+     *
+     *         | Offset | BSSID  | Short-SSID | BSS Params | 20MHz PSD | MLD Params|
+     * Octets:     1      0 or 6    0 or 4        0 or 1      0 or 1      0 or 3
+     *
+     * The MLD Params are described as,
+     *       | MLD ID | Link ID | BSS Change Count | Reserved |
+     * Bits:     8        4              8              4
+     */
+
+    /**
+     * Verify that the expected RNR information element to be parsed correctly
+     */
+    @Test
+    public void parseRnrIe() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_RNR;
+        ie.bytes = new byte[] {
+                (byte) 0x00,  (byte) 0x04, (byte) 81,   (byte) 11,   // First TBTT Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x01, (byte) 0x00, //  First Set
+                (byte) 0x10,  (byte) 0x04, (byte) 120,  (byte) 149,  // Second TBTT Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x02, (byte) 0x00, //  First Set
+                (byte) 0x00,  (byte) 0x22, (byte) 0x01, (byte) 0x00  //  Second Set
+        };
+        InformationElementUtil.Rnr rnr = new InformationElementUtil.Rnr();
+        rnr.from(ie);
+        assertTrue(rnr.isPresent());
+        assertEquals(2, rnr.getAffiliatedMloLinks().size());
+    }
+
+    /**
+     * Tests for parsing Multi-Link IE
+     *
+     * Multi-Link IE format as described in IEEE 802.11 specs, Section 9.4.2.312
+     *
+     *              | ElementID | Length | ExtendedID | Control | Common Info | Link Info |
+     * Octets:            1          1         1          2        Variable     variable
+     *
+     *
+     * Where Control field is described as,
+     *
+     *         | Type | Reserved | Presence Bitmap |
+     * Bits:      3        1            12
+     *
+     * Where the Presence Bitmap subfield is described as,
+     *
+     *        | LinkId | BSS change count | MedSync | EML cap | MLD cap | Reserved |
+     * Bits:      1            1               1         1         1         7
+     *
+     * Common Info filed as described in IEEE 802.11 specs, Section 9.4.2.312,
+     *
+     *        | Len | MLD Address | Link Id | BSS Change count | MedSync | EML Cap | MLD Cap |
+     * Octets:   1        6          0 or 1        0 or 1         0 or 2    0 or 2    0 or 2
+     *
+     * Link Info filed as described in IEEE 802.11 specs, Section 9.4.2.312,
+     *
+     *        | ID | Len | STA Control | STA Info | STA Profile |
+     * Octets:  1     1        2         variable    variable
+     *
+     * where STA Control subfield is described as,
+     *
+     *      | LinkId | Complete | MAC | Beacon Interval | DTIM | NSTR Link | NSTR Bitmap | R |
+     * Bits:    4          1       1          1             1        1            1        6
+     */
+
+    /**
+     * Verify that the expected Multi-Link information element with no link info to be parsed
+     * correctly.
+     */
+    @Test
+    public void parseMultiLinkIeNoLinkInfo() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_MULTI_LINK;
+
+        ie.bytes = new byte[] {
+                (byte) 0x10,  (byte) 0x00,                              // Control
+                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,    // Common Info
+                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01
+        };
+        InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
+        multiLink.from(ie);
+        assertTrue(multiLink.isPresent());
+        assertEquals(1, multiLink.getLinkId());
+        assertTrue(multiLink.getAffiliatedLinks().isEmpty());
+    }
+
+    /**
+     * Verify that the expected Multi-Link information element with link info to be parsed
+     * correctly.
+     */
+    @Test
+    public void parseMultiLinkIeWithLinkInfo() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_MULTI_LINK;
+
+        ie.bytes = new byte[] {
+                (byte) 0x10,  (byte) 0x00,                              // Control
+                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,    // Common Info
+                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01,
+                (byte) 0x00,  (byte) 0x08, (byte) 0x02, (byte) 0x00,    // First Link Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00,    //
+                (byte) 0x00,  (byte) 0x08, (byte) 0x03, (byte) 0x00,    // Second Link Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00     //
+        };
+        InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
+        multiLink.from(ie);
+        assertTrue(multiLink.isPresent());
+        assertEquals(1, multiLink.getLinkId());
+        assertEquals(2, multiLink.getAffiliatedLinks().size());
+    }
+
+    /**
      * verify determineMode for various combinations.
      */
     @Test

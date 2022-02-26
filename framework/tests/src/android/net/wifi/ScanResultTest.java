@@ -408,7 +408,7 @@ public class ScanResultTest {
     @Test
     public void testScanResultGetBand() throws Exception {
         ScanResult scanResult = createScanResult();
-        assertEquals(ScanResult.WIFI_BAND_24_GHZ, scanResult.getBand());
+        assertEquals(WifiScanner.WIFI_BAND_24_GHZ, scanResult.getBand());
     }
 
     /**
@@ -416,6 +416,17 @@ public class ScanResultTest {
      */
     @Test
     public void testScanResultToBand() throws Exception {
-        assertEquals(ScanResult.WIFI_BAND_24_GHZ, ScanResult.toBand(TEST_FREQUENCY));
+        assertEquals(WifiScanner.WIFI_BAND_24_GHZ, ScanResult.toBand(TEST_FREQUENCY));
+    }
+
+    /**
+     * Test ScanResult.getBandFromOpClass() function.
+     */
+    @Test
+    public void testScanResultGetBandFromOpCalss() throws Exception {
+        assertEquals(WifiScanner.WIFI_BAND_24_GHZ, ScanResult.getBandFromOpClass(81, 11));
+        assertEquals(WifiScanner.WIFI_BAND_UNSPECIFIED, ScanResult.getBandFromOpClass(81, 36));
+        assertEquals(WifiScanner.WIFI_BAND_5_GHZ, ScanResult.getBandFromOpClass(120, 149));
+        assertEquals(WifiScanner.WIFI_BAND_6_GHZ, ScanResult.getBandFromOpClass(131, 32));
     }
 }

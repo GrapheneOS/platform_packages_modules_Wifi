@@ -971,6 +971,39 @@ public final class ScanResult implements Parcelable {
     }
 
     /**
+     * Utility function to convert Operating Class into a band
+     *
+     * Use 802.11 Specification Table E-4: Global Operating Classes for decoding
+     *
+     * @param opClass operating class
+     * @param channel number
+     *
+     * @return one of {@link WifiScanner.WIFI_BAND_24_GHZ}, {@link WifiScanner.WIFI_BAND_5_GHZ}, or
+     *         {@link WifiScanner.WIFI_BAND_6_GHZ} for a valid opClass, channel pair, otherwise
+     *         {@link WifiScanner.WIFI_BAND_UNSPECIFIED} is returned.
+     *
+     * @hide
+     */
+    public static int getBandFromOpClass(int opClass, int channel) {
+        if (opClass >= 81 && opClass <= 84) {
+            if (channel >= BAND_24_GHZ_FIRST_CH_NUM && channel <= BAND_24_GHZ_LAST_CH_NUM) {
+                return WifiScanner.WIFI_BAND_24_GHZ;
+            }
+        } else if (opClass >= 115 && opClass <= 130) {
+            if (channel >= BAND_5_GHZ_FIRST_CH_NUM && channel <= BAND_5_GHZ_LAST_CH_NUM) {
+                return WifiScanner.WIFI_BAND_5_GHZ;
+            }
+        } else if (opClass >= 131 && opClass <= 137) {
+            if (channel >= BAND_6_GHZ_FIRST_CH_NUM && channel <= BAND_6_GHZ_LAST_CH_NUM) {
+                return WifiScanner.WIFI_BAND_6_GHZ;
+            }
+        }
+
+        // If none of the above combinations, then return as invalid band
+        return WifiScanner.WIFI_BAND_UNSPECIFIED;
+    }
+
+    /**
      * Utility function to convert frequency in MHz to channel number.
      *
      * See also {@link #convertChannelToFrequencyMhzIfSupported(int, int)}.
@@ -1113,6 +1146,8 @@ public final class ScanResult implements Parcelable {
         @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
         public static final int EID_VHT_OPERATION = 192;
         /** @hide */
+        public static final int EID_RNR = 201;
+        /** @hide */
         @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
         public static final int EID_VSA = 221;
         /** @hide */
@@ -1123,10 +1158,24 @@ public final class ScanResult implements Parcelable {
         public static final int EID_EXT_HE_CAPABILITIES = 35;
         /** @hide */
         public static final int EID_EXT_HE_OPERATION = 36;
-        /** @hide */
-        public static final int EID_EXT_EHT_CAPABILITIES = 108;
-        /** @hide */
+        /**
+         * EHT Operation IE extension id: see IEEE 802.11be Specification section 9.4.2.1
+         *
+         * @hide
+         */
         public static final int EID_EXT_EHT_OPERATION = 106;
+        /**
+         * Multi-Link IE extension id: see IEEE 802.11be Specification section 9.4.2.1
+         *
+         * @hide
+         */
+        public static final int EID_EXT_MULTI_LINK = 107;
+        /**
+         * EHT Capabilities IE extension id: see IEEE 802.11be Specification section 9.4.2.1
+         *
+         * @hide
+         */
+        public static final int EID_EXT_EHT_CAPABILITIES = 108;
 
         /** @hide */
         @UnsupportedAppUsage
