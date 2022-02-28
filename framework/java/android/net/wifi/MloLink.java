@@ -24,6 +24,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
+import android.net.NetworkCapabilities;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -106,6 +107,24 @@ public final class MloLink implements Parcelable {
         mApMacAddress = null;
         mStaMacAddress = null;
         mLinkId = INVALID_MLO_LINK_ID;
+    }
+
+    /**
+     * Copy Constructor
+     *
+     * @hide
+     */
+    public MloLink(MloLink source, long redactions) {
+        mBand = source.mBand;
+        mChannel = source.mChannel;
+        mLinkId = source.mLinkId;
+        mState = source.mState;
+
+        mStaMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_LOCAL_MAC_ADDRESS) != 0)
+                ? null :  MacAddress.fromString(source.mStaMacAddress.toString());
+
+        mApMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_ACCESS_FINE_LOCATION) != 0)
+                ? null : MacAddress.fromString(source.mApMacAddress.toString());
     }
 
     /** Returns the Wi-Fi band of this link as one of:
