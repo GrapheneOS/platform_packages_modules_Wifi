@@ -889,6 +889,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      *
      * @return {@link MloLink#INVALID_MLO_LINK_ID} or a valid value (0-15).
      */
+    @IntRange(from = MloLink.INVALID_MLO_LINK_ID, to = MloLink.MAX_MLO_LINK_ID)
     public int getApMloLinkId() {
         return mApMloLinkId;
     }
