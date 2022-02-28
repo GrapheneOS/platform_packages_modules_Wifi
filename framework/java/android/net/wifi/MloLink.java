@@ -21,6 +21,7 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_6_GHZ;
 
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
@@ -137,7 +138,11 @@ public final class MloLink implements Parcelable {
         return mBand;
     }
 
-    /** Returns the channel number of this link. */
+    /**
+     * Returns the channel number of this link.
+     * A valid value is based on the 802.11 specification in sections 19.3.15 and 27.3.23
+     */
+    @IntRange(from = 1)
     public int getChannel() {
         return mChannel;
     }
@@ -148,6 +153,7 @@ public final class MloLink implements Parcelable {
      *
      * @return {@link #INVALID_MLO_LINK_ID} or a valid value (0-15).
      */
+    @IntRange(from = INVALID_MLO_LINK_ID, to = MAX_MLO_LINK_ID)
     public int getLinkId() {
         return mLinkId;
     }
@@ -165,13 +171,22 @@ public final class MloLink implements Parcelable {
     /**
      * Returns the AP MAC address of this link.
      *
-     * @hide
+     * @return AP MAC address for this link or null when the caller has insufficient
+     * permissions to access the access point MAC Address.
      */
     public @Nullable MacAddress getApMacAddress() {
         return mApMacAddress;
     }
 
-    /** Returns the STA MAC address of this link. */
+    /**
+     * Returns the STA MAC address of this link.
+     *
+     * @return STA MAC address assigned for this link, or null in the following cases:
+     * <ul>
+     *     <li> The caller has insufficient permissions to access the STA MAC Address </li>
+     *     <li> Link is not associated, hence no MAC address is assigned to it by STA </li>
+     * </ul>
+     */
     public @Nullable MacAddress getStaMacAddress() {
         return mStaMacAddress;
     }

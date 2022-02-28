@@ -17,6 +17,7 @@
 package android.net.wifi;
 
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -129,6 +130,7 @@ public final class ScanResult implements Parcelable {
      *
      * @return {@link MloLink#INVALID_MLO_LINK_ID} or a valid value (0-15).
      */
+    @IntRange(from = MloLink.INVALID_MLO_LINK_ID, to = MloLink.MAX_MLO_LINK_ID)
     public int getApMloLinkId() {
         return mApMloLinkId;
     }
