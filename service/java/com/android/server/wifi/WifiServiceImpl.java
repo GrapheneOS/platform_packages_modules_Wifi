@@ -952,6 +952,11 @@ public class WifiServiceImpl extends BaseWifiService {
                 pid, uid) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean checkManageDeviceAdminsPermission(int pid, int uid) {
+        return mContext.checkPermission(android.Manifest.permission.MANAGE_DEVICE_ADMINS,
+                pid, uid) == PackageManager.PERMISSION_GRANTED;
+    }
+
     /**
      * Helper method to check if the entity initiating the binder call has any of the signature only
      * permissions. Not to be confused with the concept of privileged apps, which are system apps
@@ -6473,20 +6478,25 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link android.net.wifi.WifiManager#validateCurrentWifiMeetsAdminRequirements()}.
+     * See {@link android.net.wifi.WifiManager#notifyMinimumRequiredWifiSecurityLevelChanged(int)}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public void validateCurrentWifiMeetsAdminRequirements() {
+    public void notifyMinimumRequiredWifiSecurityLevelChanged(int adminMinimumSecurityLevel) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
+        if (!Arrays.asList(DevicePolicyManager.WIFI_SECURITY_OPEN,
+                DevicePolicyManager.WIFI_SECURITY_PERSONAL,
+                DevicePolicyManager.WIFI_SECURITY_ENTERPRISE_EAP,
+                DevicePolicyManager.WIFI_SECURITY_ENTERPRISE_192)
+                .contains(adminMinimumSecurityLevel)) {
+            throw new IllegalArgumentException("Input security level is invalid");
+        }
+        if (!checkManageDeviceAdminsPermission(Binder.getCallingPid(), Binder.getCallingUid())) {
+            throw new SecurityException("Caller does not have MANAGE_DEVICE_ADMINS permission");
+        }
         mWifiThreadRunner.post(() -> {
-            DevicePolicyManager devicePolicyManager =
-                    WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
-            if (devicePolicyManager == null) return;
-
-            int adminMinimumSecurityLevel =
-                    devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
-            WifiSsidPolicy policy = devicePolicyManager.getWifiSsidPolicy();
-
             for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
                 WifiInfo wifiInfo = cmm.syncRequestConnectionInfo();
                 if (wifiInfo == null) continue;
@@ -6505,28 +6515,46 @@ public class WifiServiceImpl extends BaseWifiService {
                     mLog.info("disconnect admin restricted network").flush();
                     continue;
                 }
+            }
+        });
+    }
 
-                //check SSID restriction
-                if (policy != null) {
-                    //skip SSID restriction check for Osu and Passpoint networks
-                    if (wifiInfo.isOsuAp() || wifiInfo.isPasspointAp()) continue;
+    /**
+     * See {@link android.net.wifi.WifiManager#notifyWifiSsidPolicyChanged(WifiSsidPolicy)}.
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public void notifyWifiSsidPolicyChanged(int policyType, List<WifiSsid> ssids) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
+        if (ssids == null) {
+            throw new IllegalArgumentException("SSID list may not be null");
+        }
+        if (!checkManageDeviceAdminsPermission(Binder.getCallingPid(), Binder.getCallingUid())) {
+            throw new SecurityException("Caller does not have MANAGE_DEVICE_ADMINS permission");
+        }
+        mWifiThreadRunner.post(() -> {
+            for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
+                WifiInfo wifiInfo = cmm.syncRequestConnectionInfo();
+                if (wifiInfo == null) continue;
 
-                    int policyType = policy.getPolicyType();
-                    Set<WifiSsid> ssids = policy.getSsids();
-                    WifiSsid ssid = wifiInfo.getWifiSsid();
+                //skip SSID restriction check for Osu and Passpoint networks
+                if (wifiInfo.isOsuAp() || wifiInfo.isPasspointAp()) continue;
 
-                    if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST
-                            && !ssids.contains(ssid)) {
-                        cmm.disconnect();
-                        mLog.info("disconnect admin restricted network").flush();
-                        continue;
-                    }
-                    if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST
-                            && ssids.contains(ssid)) {
-                        cmm.disconnect();
-                        mLog.info("disconnect admin restricted network").flush();
-                        continue;
-                    }
+                WifiSsid ssid = wifiInfo.getWifiSsid();
+
+                if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST
+                        && !ssids.contains(ssid)) {
+                    cmm.disconnect();
+                    mLog.info("disconnect admin restricted network").flush();
+                    continue;
+                }
+                if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST
+                        && ssids.contains(ssid)) {
+                    cmm.disconnect();
+                    mLog.info("disconnect admin restricted network").flush();
+                    continue;
                 }
             }
         });
