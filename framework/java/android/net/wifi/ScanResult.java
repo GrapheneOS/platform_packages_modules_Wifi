@@ -1659,7 +1659,7 @@ public final class ScanResult implements Parcelable {
                 // Read MLO related attributes
                 sr.mApMldMacAddress = in.readParcelable(MacAddress.class.getClassLoader());
                 sr.mApMloLinkId = in.readInt();
-                in.readTypedList(sr.mAffiliatedMloLinks, MloLink.CREATOR);
+                sr.mAffiliatedMloLinks = in.createTypedArrayList(MloLink.CREATOR);
 
                 return sr;
             }
