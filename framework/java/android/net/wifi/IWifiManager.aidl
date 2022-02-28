@@ -378,7 +378,9 @@ interface IWifiManager
 
     boolean setStaConcurrencyForMultiInternetMode(int mode);
 
-    void validateCurrentWifiMeetsAdminRequirements();
+    void notifyMinimumRequiredWifiSecurityLevelChanged(int level);
+
+    void notifyWifiSsidPolicyChanged(int policyType, in List<WifiSsid> ssids);
 
     String[] getOemPrivilegedWifiAdminPackages();
 

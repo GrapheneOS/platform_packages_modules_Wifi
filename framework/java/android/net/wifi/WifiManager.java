@@ -36,6 +36,7 @@ import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.SystemService;
 import android.app.ActivityManager;
+import android.app.admin.WifiSsidPolicy;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -9198,19 +9199,45 @@ public class WifiManager {
     }
 
     /**
-     * Check if the currently connected network meets all the admin set restrictions.
+     * Check if the currently connected network meets the minimum required Wi-Fi security level set.
      * If not, the current network will be disconnected.
      *
+     * @throws SecurityException if the caller does not have permission.
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SystemApi
-    public void validateCurrentWifiMeetsAdminRequirements() {
+    @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_ADMINS)
+    public void notifyMinimumRequiredWifiSecurityLevelChanged(int level) {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "validateCurrentWifiMeetsAdminRequirements");
+            Log.v(TAG, "notifyMinimumRequiredWifiSecurityLevelChanged");
         }
         try {
-            mService.validateCurrentWifiMeetsAdminRequirements();
+            mService.notifyMinimumRequiredWifiSecurityLevelChanged(level);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Check if the currently connected network meets the Wi-Fi SSID policy set.
+     * If not, the current network will be disconnected.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SystemApi
+    @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_ADMINS)
+    public void notifyWifiSsidPolicyChanged(@NonNull WifiSsidPolicy policy) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyWifiSsidPolicyChanged");
+        }
+        try {
+            if (policy != null) {
+                mService.notifyWifiSsidPolicyChanged(
+                        policy.getPolicyType(), new ArrayList<>(policy.getSsids()));
+            }
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

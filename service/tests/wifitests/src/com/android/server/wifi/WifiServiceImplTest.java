@@ -185,7 +185,6 @@ import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.util.ArraySet;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
@@ -9973,11 +9972,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test that validateCurrentWifiMeetsAdminRequirements disconnects the current network
+     * Test that notifyWifiSsidPolicyChanged disconnects the current network
      * due to SSID allowlist restriction
      */
     @Test
-    public void testValidateCurrentWifiMeetsAdminRequirementsWithAllowlistRestriction()
+    public void testNotifyWifiSsidPolicyChangedWithAllowlistRestriction()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
 
@@ -9987,27 +9986,25 @@ public class WifiServiceImplTest extends WifiBaseTest {
         wifiInfo.setNetworkId(TEST_NETWORK_ID);
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PSK);
 
+        when(mContext.checkPermission(eq(android.Manifest.permission.MANAGE_DEVICE_ADMINS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
         when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
 
-        WifiSsidPolicy policy = new WifiSsidPolicy(
-                WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
-                new ArraySet<>(Arrays.asList(WifiSsid.fromUtf8Text("SSID"))));
-        when(mDevicePolicyManager.getWifiSsidPolicy()).thenReturn(policy);
-
-        mWifiServiceImpl.validateCurrentWifiMeetsAdminRequirements();
+        mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
+                Arrays.asList(WifiSsid.fromUtf8Text("SSID")));
         mLooper.dispatchAll();
 
         verify(mClientModeManager).disconnect();
     }
 
     /**
-     * Test that validateCurrentWifiMeetsAdminRequirements disconnects the current network
+     * Test that notifyWifiSsidPolicyChanged disconnects the current network
      * due to SSID denylist restriction
      */
     @Test
-    public void testValidateCurrentWifiMeetsAdminRequirementsWithDenylistRestriction()
+    public void testNotifyWifiSsidPolicyChangedWithDenylistRestriction()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
 
@@ -10017,54 +10014,50 @@ public class WifiServiceImplTest extends WifiBaseTest {
         wifiInfo.setNetworkId(TEST_NETWORK_ID);
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PSK);
 
+        when(mContext.checkPermission(eq(android.Manifest.permission.MANAGE_DEVICE_ADMINS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
         when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
 
-        WifiSsidPolicy policy = new WifiSsidPolicy(
-                WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
-                new ArraySet<>(Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID))));
-        when(mDevicePolicyManager.getWifiSsidPolicy()).thenReturn(policy);
-
-        mWifiServiceImpl.validateCurrentWifiMeetsAdminRequirements();
+        mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
+                Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID)));
         mLooper.dispatchAll();
 
         verify(mClientModeManager).disconnect();
     }
 
     /**
-     * Test that validateCurrentWifiMeetsAdminRequirements does not disconnect the current network
+     * Test that notifyWifiSsidPolicyChanged does not disconnect the current network
      * due to SSID restriction for Passpoint networks
      */
     @Test
-    public void testValidateCurrentWifiMeetsAdminRequirementsWithSsidRestrictionForPasspoint()
+    public void testNotifyWifiSsidPolicyChangedWithSsidRestrictionForPasspoint()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
 
         WifiInfo wifiInfo = setupForGetConnectionInfo();
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PASSPOINT_R1_R2);
 
+        when(mContext.checkPermission(eq(android.Manifest.permission.MANAGE_DEVICE_ADMINS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
         when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
 
-        WifiSsidPolicy policy = new WifiSsidPolicy(
-                WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
-                new ArraySet<>(Arrays.asList(WifiSsid.fromUtf8Text("SSID"))));
-        when(mDevicePolicyManager.getWifiSsidPolicy()).thenReturn(policy);
-
-        mWifiServiceImpl.validateCurrentWifiMeetsAdminRequirements();
+        mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
+                Arrays.asList(WifiSsid.fromUtf8Text("SSID")));
         mLooper.dispatchAll();
 
         verify(mClientModeManager, never()).disconnect();
     }
 
     /**
-     * Test that validateCurrentWifiMeetsAdminRequirements does not disconnect the current network
+     * Test that notifyWifiSsidPolicyChanged does not disconnect the current network
      * due to SSID restriction for Osu networks
      */
     @Test
-    public void testValidateCurrentWifiMeetsAdminRequirementsWithSsidRestrictionForOsu()
+    public void testNotifyWifiSsidPolicyChangedWithSsidRestrictionForOsu()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
 
@@ -10075,41 +10068,39 @@ public class WifiServiceImplTest extends WifiBaseTest {
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PASSPOINT_R3);
         wifiInfo.setOsuAp(true);
 
+        when(mContext.checkPermission(eq(android.Manifest.permission.MANAGE_DEVICE_ADMINS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
         when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
 
-        WifiSsidPolicy policy = new WifiSsidPolicy(
-                WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
-                new ArraySet<>(Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID))));
-        when(mDevicePolicyManager.getWifiSsidPolicy()).thenReturn(policy);
-
-        mWifiServiceImpl.validateCurrentWifiMeetsAdminRequirements();
+        mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
+                Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID)));
         mLooper.dispatchAll();
 
         verify(mClientModeManager, never()).disconnect();
     }
 
     /**
-     * Test that validateCurrentWifiMeetsAdminRequirements disconnects the current network
+     * Test that notifyMinimumRequiredWifiSecurityLevelChanged disconnects the current network
      * due to minimum security level restriction
      */
     @Test
-    public void testValidateCurrentWifiMeetsAdminRequirementsWithSecurityLevelRestriction()
+    public void testNotifyMinimumRequiredWifiSecurityLevelChangedWithSecurityLevelRestriction()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
 
         WifiInfo wifiInfo = setupForGetConnectionInfo();
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PSK);
 
+        when(mContext.checkPermission(eq(android.Manifest.permission.MANAGE_DEVICE_ADMINS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
         when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
 
-        when(mDevicePolicyManager.getMinimumRequiredWifiSecurityLevel()).thenReturn(
+        mWifiServiceImpl.notifyMinimumRequiredWifiSecurityLevelChanged(
                 DevicePolicyManager.WIFI_SECURITY_ENTERPRISE_EAP);
-
-        mWifiServiceImpl.validateCurrentWifiMeetsAdminRequirements();
         mLooper.dispatchAll();
 
         verify(mClientModeManager).disconnect();
