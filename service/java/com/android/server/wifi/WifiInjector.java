@@ -241,6 +241,7 @@ public class WifiInjector {
     private final ExternalScoreUpdateObserverProxy mExternalScoreUpdateObserverProxy;
     private final WifiNotificationManager mWifiNotificationManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
+    private final InterfaceConflictManager mInterfaceConflictManager;
     @NonNull private final WifiDialogManager mWifiDialogManager;
 
     public WifiInjector(WifiContext context) {
@@ -281,6 +282,7 @@ public class WifiInjector {
         mSoftApBackupRestore = new SoftApBackupRestore(mContext, mSettingsMigrationDataHolder);
         mWifiStateTracker = new WifiStateTracker(mBatteryStats);
         mWifiThreadRunner = new WifiThreadRunner(wifiHandler);
+        mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner);
         mWifiP2pServiceHandlerThread = new HandlerThread("WifiP2pService");
         mWifiP2pServiceHandlerThread.start();
         mPasspointProvisionerHandlerThread =
@@ -300,6 +302,8 @@ public class WifiInjector {
                         mFrameworkFacade, mContext);
         // Modules interacting with Native.
         mHalDeviceManager = new HalDeviceManager(mContext, mClock, this, wifiHandler);
+        mInterfaceConflictManager = new InterfaceConflictManager(mContext, mFrameworkFacade,
+                mHalDeviceManager, mWifiThreadRunner, mWifiDialogManager);
         mWifiVendorHal = new WifiVendorHal(mContext, mHalDeviceManager, wifiHandler, mWifiGlobals);
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, wifiHandler, mClock, mWifiMetrics,
@@ -531,7 +535,6 @@ public class WifiInjector {
         mSimRequiredNotifier = new SimRequiredNotifier(mContext, mFrameworkFacade,
                 mWifiNotificationManager);
         mLastCallerInfoManager = new LastCallerInfoManager();
-        mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner);
     }
 
     /**
@@ -558,6 +561,7 @@ public class WifiInjector {
         mWifiBackupRestore.enableVerboseLogging(verboseEnabled);
         mHalDeviceManager.enableVerboseLogging(verboseEnabled);
         mScanRequestProxy.enableVerboseLogging(verboseEnabled);
+        mInterfaceConflictManager.enableVerboseLogging(verboseEnabled);
         mWakeupController.enableVerboseLogging(verboseEnabled);
         mWifiNetworkSuggestionsManager.enableVerboseLogging(verboseEnabled);
         LogcatLog.enableVerboseLogging(verboseEnabled);
@@ -1091,6 +1095,10 @@ public class WifiInjector {
 
     public WifiNotificationManager getWifiNotificationManager() {
         return mWifiNotificationManager;
+    }
+
+    public InterfaceConflictManager getInterfaceConflictManager() {
+        return mInterfaceConflictManager;
     }
 
     public LastCallerInfoManager getLastCallerInfoManager() {

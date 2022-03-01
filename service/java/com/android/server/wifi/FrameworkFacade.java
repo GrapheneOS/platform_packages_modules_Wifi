@@ -28,6 +28,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
@@ -428,5 +429,21 @@ public class FrameworkFacade {
                 break;
         }
         return false;
+    }
+
+    /**
+     * Return the (displayable) application name corresponding to the (uid, packageName).
+     */
+    public @NonNull CharSequence getAppName(Context context, @NonNull String packageName, int uid) {
+        ApplicationInfo applicationInfo = null;
+        try {
+            applicationInfo = context.getPackageManager().getApplicationInfoAsUser(
+                    packageName, 0, UserHandle.getUserHandleForUid(uid));
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "Failed to find app name for " + packageName);
+            return "";
+        }
+        CharSequence appName = context.getPackageManager().getApplicationLabel(applicationInfo);
+        return (appName != null) ? appName : "";
     }
 }

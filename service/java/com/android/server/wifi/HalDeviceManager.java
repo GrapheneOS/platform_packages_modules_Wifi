@@ -115,7 +115,7 @@ public class HalDeviceManager {
             HDM_CREATE_IFACE_P2P,
             HDM_CREATE_IFACE_NAN,
     })
-    private @interface HdmIfaceTypeForCreation {};
+    public @interface HdmIfaceTypeForCreation {};
 
     public static final SparseIntArray HAL_IFACE_MAP = new SparseIntArray() {{
             put(HDM_CREATE_IFACE_STA, IfaceType.STA);
