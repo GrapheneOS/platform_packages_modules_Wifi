@@ -81,11 +81,16 @@ import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.internal.util.State;
+import com.android.internal.util.StateMachine;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
 import com.android.wifi.resources.R;
@@ -128,6 +133,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     @Mock private WifiAwareMetrics mAwareMetricsMock;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiPermissionsWrapper mPermissionsWrapperMock;
+    @Mock private InterfaceConflictManager mInterfaceConflictManager;
     TestAlarmManager mAlarmManager;
     @Mock private PowerManager mMockPowerManager;
     @Mock private WifiManager mMockWifiManager;
@@ -178,13 +184,17 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 30000);
         when(mMockContext.getResources()).thenReturn(mResources);
 
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenReturn(
+                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         mDut = new WifiAwareStateManager();
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
                 mWifiPermissionsUtil, mPermissionsWrapperMock, new Clock(),
-                mock(NetdWrapper.class));
+                mock(NetdWrapper.class), mInterfaceConflictManager);
         mDut.startLate();
         mMockLooper.dispatchAll();
         verify(mMockContext, times(3)).registerReceiver(bcastRxCaptor.capture(),
@@ -4061,6 +4071,82 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
 
         verifyNoMoreInteractions(mockCallback, mockSessionCallback, mMockNative, mAwareMetricsMock);
+    }
+
+    /**
+     * Validate the connection operation when user approval is required and the user accepts or
+     * rejects the request.
+     */
+    private void runTestConnectUserApproval(boolean userAcceptsRequest) throws Exception {
+        final int clientId = 1005;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        ArgumentCaptor<State> mTargetStateCaptor = ArgumentCaptor.forClass(State.class);
+        ArgumentCaptor<WaitingState> mWaitingStateCaptor = ArgumentCaptor.forClass(
+                WaitingState.class);
+        InOrder inOrder = inOrder(mInterfaceConflictManager);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+
+        // simulate user approval needed
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenAnswer(
+                new MockAnswerUtil.AnswerWithArguments() {
+                        public int answer(String tag, Message msg, StateMachine stateMachine,
+                                WaitingState waitingState, State targetState, int createIfaceType,
+                                WorkSource requestorWs) {
+                            stateMachine.deferMessage(msg);
+                            stateMachine.transitionTo(waitingState);
+                            return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
+                        }
+                    });
+        mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
+                any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
+                eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any());
+
+        // simulate user approval triggered and granted/rejected (userAcceptsRequest)
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenReturn(
+                userAcceptsRequest ? InterfaceConflictManager.ICM_EXECUTE_COMMAND
+                        : InterfaceConflictManager.ICM_ABORT_COMMAND);
+        mWaitingStateCaptor.getValue().sendTransitionStateCommand(mTargetStateCaptor.getValue());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
+                any(), any(), any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any());
+
+        if (userAcceptsRequest) {
+            verify(mMockNative).enableAndConfigure(anyShort(), eq(configRequest), eq(false),
+                    eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
+        } else {
+            verify(mockCallback).onConnectFail(NanStatusType.NO_RESOURCES_AVAILABLE);
+        }
+    }
+
+    /**
+     * Validate the connection operation when user approval is required and the user accepts the
+     * request.
+     */
+    @Test
+    public void testConnectUserApprovalAccept() throws Exception {
+        runTestConnectUserApproval(true);
+    }
+
+    /**
+     * Validate the connection operation when user approval is required and the user rejects the
+     * request.
+     */
+    @Test
+    public void testConnectUserApprovalReject() throws Exception {
+        runTestConnectUserApproval(false);
     }
 
     /*

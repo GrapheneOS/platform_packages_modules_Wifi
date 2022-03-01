@@ -34,8 +34,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.Icon;
 import android.net.MacAddress;
@@ -163,7 +161,6 @@ public class WifiNetworkSuggestionsManager {
     private final AppOpsManager mAppOps;
     private final ActivityManager mActivityManager;
     private final WifiNotificationManager mNotificationManager;
-    private final PackageManager mPackageManager;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiConfigManager mWifiConfigManager;
     private final WifiMetrics mWifiMetrics;
@@ -656,7 +653,6 @@ public class WifiNetworkSuggestionsManager {
         mHandler = handler;
         mAppOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         mActivityManager = context.getSystemService(ActivityManager.class);
-        mPackageManager = context.getPackageManager();
         mWifiInjector = wifiInjector;
         mFrameworkFacade = mWifiInjector.getFrameworkFacade();
         mWifiPermissionsUtil = wifiPermissionsUtil;
@@ -1568,19 +1564,6 @@ public class WifiNetworkSuggestionsManager {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private @NonNull CharSequence getAppName(@NonNull String packageName, int uid) {
-        ApplicationInfo applicationInfo = null;
-        try {
-            applicationInfo = mContext.getPackageManager().getApplicationInfoAsUser(
-                packageName, 0, UserHandle.getUserHandleForUid(uid));
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, "Failed to find app name for " + packageName);
-            return "";
-        }
-        CharSequence appName = mPackageManager.getApplicationLabel(applicationInfo);
-        return (appName != null) ? appName : "";
-    }
-
     /**
      * Check if the request came from foreground app.
      */
@@ -1595,7 +1578,7 @@ public class WifiNetworkSuggestionsManager {
     }
 
     private void sendUserApprovalDialog(@NonNull String packageName, int uid) {
-        CharSequence appName = getAppName(packageName, uid);
+        CharSequence appName = mFrameworkFacade.getAppName(mContext, packageName, uid);
         AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
                 .setTitle(mResources.getString(R.string.wifi_suggestion_title))
                 .setMessage(mResources.getString(R.string.wifi_suggestion_content, appName))
@@ -1636,7 +1619,7 @@ public class WifiNetworkSuggestionsManager {
                                 Pair.create(EXTRA_UID, uid)))
                         .build();
 
-        CharSequence appName = getAppName(packageName, uid);
+        CharSequence appName = mFrameworkFacade.getAppName(mContext, packageName, uid);
         Notification notification = mFrameworkFacade.makeNotificationBuilder(
                 mContext, WifiService.NOTIFICATION_NETWORK_STATUS)
                 .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),

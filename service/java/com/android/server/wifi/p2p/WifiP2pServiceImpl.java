@@ -107,6 +107,8 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.BuildProperties;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiDialogManager;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
@@ -118,6 +120,7 @@ import com.android.server.wifi.p2p.ExternalApproverManager.ApproverEntry;;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
+import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiAsyncChannel;
 import com.android.server.wifi.util.WifiHandler;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -201,6 +204,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     @Nullable private CoexManager mCoexManager;
     private WifiGlobals mWifiGlobals;
     private UserManager mUserManager;
+    private InterfaceConflictManager mInterfaceConflictManager;
     private final int mVerboseAlwaysOnLevel;
     private WifiP2pNative mWifiNative;
 
@@ -620,6 +624,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         mWifiGlobals = mWifiInjector.getWifiGlobals();
         mBuildProperties = mWifiInjector.getBuildProperties();
         mUserManager = mWifiInjector.getUserManager();
+        mInterfaceConflictManager = mWifiInjector.getInterfaceConflictManager();
         mClock = mWifiInjector.getClock();
 
         mDetailedState = NetworkInfo.DetailedState.IDLE;
@@ -631,6 +636,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         mClientHandler = new ClientHandler(TAG, wifiP2pThread.getLooper());
         mWifiNative = mWifiInjector.getWifiP2pNative();
         mP2pStateMachine = new P2pStateMachine(TAG, wifiP2pThread.getLooper(), mP2pSupported);
+        mP2pStateMachine.setDbg(false); // can enable for very verbose logs
         mP2pStateMachine.start();
         mVerboseAlwaysOnLevel = context.getResources()
                 .getInteger(R.integer.config_wifiVerboseLoggingAlwaysOnLevel);
@@ -995,7 +1001,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private DefaultState mDefaultState = new DefaultState();
         private P2pNotSupportedState mP2pNotSupportedState = new P2pNotSupportedState();
         private P2pDisablingState mP2pDisablingState = new P2pDisablingState();
+        private P2pDisabledContainerState mP2pDisabledContainerState =
+                new P2pDisabledContainerState();
         private P2pDisabledState mP2pDisabledState = new P2pDisabledState();
+        private WaitingState mWaitingState = new WaitingState(this);
         private P2pEnabledState mP2pEnabledState = new P2pEnabledState();
         // Inactive is when p2p is enabled with no connectivity
         private InactiveState mInactiveState = new InactiveState();
@@ -1056,7 +1065,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             addState(mDefaultState);
                 addState(mP2pNotSupportedState, mDefaultState);
                 addState(mP2pDisablingState, mDefaultState);
-                addState(mP2pDisabledState, mDefaultState);
+                addState(mP2pDisabledContainerState, mDefaultState);
+                    addState(mP2pDisabledState, mP2pDisabledContainerState);
+                    addState(mWaitingState, mP2pDisabledContainerState);
                 addState(mP2pEnabledState, mDefaultState);
                     addState(mInactiveState, mP2pEnabledState);
                     addState(mGroupCreatingState, mP2pEnabledState);
@@ -2155,7 +2166,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
         }
 
-        class P2pDisabledState extends State {
+        class P2pDisabledContainerState extends State { // split due to b/220588514
             @Override
             public void enter() {
                 if (isVerboseLoggingEnabled()) logd(getName());
@@ -2163,7 +2174,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mActiveClients.clear();
                 clearP2pInternalDataIfNecessary();
             }
+        }
 
+        class P2pDisabledState extends State {
             private void setupInterfaceFeatures(String interfaceName) {
                 if (mContext.getResources().getBoolean(
                         R.bool.config_wifi_p2p_mac_randomization_supported)) {
@@ -2203,12 +2216,23 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             public boolean processMessage(Message message) {
                 if (isVerboseLoggingEnabled()) logd(getName() + message.toString());
                 switch (message.what) {
-                    case ENABLE_P2P:
-                        if (setupInterface()) {
-                            transitionTo(mInactiveState);
-                        }
+                    case ENABLE_P2P: {
+                        int proceedWithOperation =
+                                mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
+                                        TAG, message, mP2pStateMachine, mWaitingState,
+                                        mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
+                                        createMergedRequestorWs());
+                        if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
+                            Log.e(TAG, "User refused to set up P2P");
+                        } else if (proceedWithOperation
+                                == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
+                            if (setupInterface()) {
+                                transitionTo(mInactiveState);
+                            }
+                        } // else InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER: nop
                         break;
-                    case REMOVE_CLIENT_INFO:
+                    }
+                    case REMOVE_CLIENT_INFO: {
                         if (!(message.obj instanceof IBinder)) {
                             loge("Invalid obj when REMOVE_CLIENT_INFO");
                             break;
@@ -2223,7 +2247,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         detachExternalApproverFromClient(b);
                         break;
-                    default:
+                    }
+                    default: {
                         // only handle commands from clients and only commands
                         // which require P2P to be active.
                         if (!needsActiveP2p(message.what)) {
@@ -2246,10 +2271,23 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         if (!isWifiP2pAvailable()) return NOT_HANDLED;
                         if (mDeathDataByBinder.isEmpty()) return NOT_HANDLED;
-                        if (!setupInterface()) return NOT_HANDLED;
-                        deferMessage(message);
-                        transitionTo(mInactiveState);
+
+                        int proceedWithOperation =
+                                mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
+                                        TAG, message, mP2pStateMachine, mWaitingState,
+                                        mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
+                                        createMergedRequestorWs());
+                        if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
+                            Log.e(TAG, "User refused to set up P2P");
+                            return NOT_HANDLED;
+                        } else if (proceedWithOperation
+                                == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
+                            if (!setupInterface()) return NOT_HANDLED;
+                            deferMessage(message);
+                            transitionTo(mInactiveState);
+                        }  // else InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER: nop
                         break;
+                    }
                 }
                 return HANDLED;
             }

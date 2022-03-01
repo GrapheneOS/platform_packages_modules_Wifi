@@ -225,6 +225,7 @@
           <item type="bool" name="config_p2pInvitationReceivedDialogNotificationSound"/>
           <item type="bool" name="config_wifiForcedSoftApRestartWhenCountryCodeChanged" />
           <item type="array" name="config_wifiInterfacePriorityTreatAsForegroundList"/>
+          <item type="bool" name="config_wifiUserApprovalRequiredForD2dInterfacePriority" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->
@@ -300,6 +301,10 @@
           <item type="string" name="wifi_enable_request_dialog_message" />
           <item type="string" name="wifi_enable_request_dialog_positive_button" />
           <item type="string" name="wifi_enable_request_dialog_negative_button" />
+          <item type="string" name="wifi_interface_priority_title" />
+          <item type="string" name="wifi_interface_priority_message" />
+          <item type="string" name="wifi_interface_priority_approve" />
+          <item type="string" name="wifi_interface_priority_reject" />
           <!-- Params from strings.xml that can be overlayed -->
 
           <!-- Params from styles.xml that can be overlayed -->
