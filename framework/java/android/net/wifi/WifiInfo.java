@@ -578,7 +578,14 @@ public class WifiInfo implements TransportInfo, Parcelable {
             mApMldMacAddress = shouldRedactLocationSensitiveFields(redactions)
                     ? null : source.mApMldMacAddress;
             mApMloLinkId = source.mApMloLinkId;
-            mAffiliatedMloLinks = source.mAffiliatedMloLinks;
+            if (source.mApMldMacAddress != null) {
+                mAffiliatedMloLinks = new ArrayList<MloLink>();
+                for (MloLink link : source.mAffiliatedMloLinks) {
+                    mAffiliatedMloLinks.add(new MloLink(link, redactions));
+                }
+            } else {
+                mAffiliatedMloLinks = Collections.emptyList();
+            }
             mWifiSsid = shouldRedactLocationSensitiveFields(redactions)
                     ? null : source.mWifiSsid;
             mNetworkId = shouldRedactLocationSensitiveFields(redactions)
@@ -882,6 +889,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      *
      * @return {@link MloLink#INVALID_MLO_LINK_ID} or a valid value (0-15).
      */
+    @IntRange(from = MloLink.INVALID_MLO_LINK_ID, to = MloLink.MAX_MLO_LINK_ID)
     public int getApMloLinkId() {
         return mApMloLinkId;
     }
@@ -1618,7 +1626,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
                 info.mApMldMacAddress = in.readParcelable(MacAddress.class.getClassLoader());
                 info.mApMloLinkId = in.readInt();
-                in.readTypedList(info.mAffiliatedMloLinks, MloLink.CREATOR);
+                info.mAffiliatedMloLinks = in.createTypedArrayList(MloLink.CREATOR);
                 return info;
             }
 

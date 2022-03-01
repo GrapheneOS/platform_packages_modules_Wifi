@@ -21,9 +21,11 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_6_GHZ;
 
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
+import android.net.NetworkCapabilities;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -108,6 +110,24 @@ public final class MloLink implements Parcelable {
         mLinkId = INVALID_MLO_LINK_ID;
     }
 
+    /**
+     * Copy Constructor
+     *
+     * @hide
+     */
+    public MloLink(MloLink source, long redactions) {
+        mBand = source.mBand;
+        mChannel = source.mChannel;
+        mLinkId = source.mLinkId;
+        mState = source.mState;
+
+        mStaMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_LOCAL_MAC_ADDRESS) != 0)
+                ? null :  MacAddress.fromString(source.mStaMacAddress.toString());
+
+        mApMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_ACCESS_FINE_LOCATION) != 0)
+                ? null : MacAddress.fromString(source.mApMacAddress.toString());
+    }
+
     /** Returns the Wi-Fi band of this link as one of:
      *      {@link WifiScanner#WIFI_BAND_UNSPECIFIED},
      *      {@link WifiScanner#WIFI_BAND_24_GHZ},
@@ -118,7 +138,11 @@ public final class MloLink implements Parcelable {
         return mBand;
     }
 
-    /** Returns the channel number of this link. */
+    /**
+     * Returns the channel number of this link.
+     * A valid value is based on the 802.11 specification in sections 19.3.15 and 27.3.23
+     */
+    @IntRange(from = 1)
     public int getChannel() {
         return mChannel;
     }
@@ -129,6 +153,7 @@ public final class MloLink implements Parcelable {
      *
      * @return {@link #INVALID_MLO_LINK_ID} or a valid value (0-15).
      */
+    @IntRange(from = INVALID_MLO_LINK_ID, to = MAX_MLO_LINK_ID)
     public int getLinkId() {
         return mLinkId;
     }
@@ -146,13 +171,22 @@ public final class MloLink implements Parcelable {
     /**
      * Returns the AP MAC address of this link.
      *
-     * @hide
+     * @return AP MAC address for this link or null when the caller has insufficient
+     * permissions to access the access point MAC Address.
      */
     public @Nullable MacAddress getApMacAddress() {
         return mApMacAddress;
     }
 
-    /** Returns the STA MAC address of this link. */
+    /**
+     * Returns the STA MAC address of this link.
+     *
+     * @return STA MAC address assigned for this link, or null in the following cases:
+     * <ul>
+     *     <li> The caller has insufficient permissions to access the STA MAC Address </li>
+     *     <li> Link is not associated, hence no MAC address is assigned to it by STA </li>
+     * </ul>
+     */
     public @Nullable MacAddress getStaMacAddress() {
         return mStaMacAddress;
     }

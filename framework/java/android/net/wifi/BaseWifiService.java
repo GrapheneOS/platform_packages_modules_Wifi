@@ -870,7 +870,12 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void validateCurrentWifiMeetsAdminRequirements() {
+    public void notifyMinimumRequiredWifiSecurityLevelChanged(int level) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void notifyWifiSsidPolicyChanged(int policyType, @NonNull List<WifiSsid> ssids) {
         throw new UnsupportedOperationException();
     }
 
