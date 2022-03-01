@@ -19,6 +19,8 @@ package com.android.server.wifi;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_FEATURES;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -235,6 +237,8 @@ public class WifiNativeTest extends WifiBaseTest {
         return result;
     }
 
+    public static final long WIFI_TEST_FEATURE = 0x800000000L;
+
     private static final RadioChainInfo MOCK_NATIVE_RADIO_CHAIN_INFO_1 = new RadioChainInfo(1, -89);
     private static final RadioChainInfo MOCK_NATIVE_RADIO_CHAIN_INFO_2 = new RadioChainInfo(0, -78);
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
@@ -256,6 +260,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock BuildProperties mBuildProperties;
     @Mock private WifiNative.InterfaceCallback mInterfaceCallback;
     @Mock private WifiCountryCode.ChangeListener mWifiCountryCodeChangeListener;
+    @Mock WifiSettingsConfigStore mSettingsConfigStore;
 
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
             ArgumentCaptor.forClass(WifiNl80211Manager.ScanEventCallback.class);
@@ -288,6 +293,10 @@ public class WifiNativeTest extends WifiBaseTest {
 
         when(mWifiInjector.makeNetdWrapper()).thenReturn(mNetdWrapper);
         when(mWifiInjector.getCoexManager()).thenReturn(mCoexManager);
+
+        when(mWifiInjector.getSettingsConfigStore()).thenReturn(mSettingsConfigStore);
+        when(mSettingsConfigStore.get(eq(WIFI_NATIVE_SUPPORTED_FEATURES)))
+                .thenReturn(WIFI_TEST_FEATURE);
 
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mStaIfaceHal, mHostapdHal, mWificondControl,
@@ -1378,5 +1387,16 @@ public class WifiNativeTest extends WifiBaseTest {
         String testCountryCode = "US";
         mWifiNative.countryCodeChanged(testCountryCode);
         verify(mWificondControl).notifyCountryCodeChanged(testCountryCode);
+    }
+
+    /**
+     * Tests that getSupportedFeatureSet() guaranteed to include the feature set stored in config
+     * store even when interface doesn't exist.
+     *
+     */
+    @Test
+    public void testGetSupportedFeatureSetWhenInterfaceDoesntExist() throws Exception {
+        long featureSet = mWifiNative.getSupportedFeatureSet(null);
+        assertEquals(featureSet, WIFI_TEST_FEATURE);
     }
 }

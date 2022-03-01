@@ -18,6 +18,8 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
 
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_FEATURES;
+
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -104,6 +106,7 @@ public class WifiNative {
     private CountryCodeChangeListenerInternal mCountryCodeChangeListener;
     private boolean mUseFakeScanDetails;
     private final ArrayList<ScanDetail> mFakeScanDetails = new ArrayList<>();
+    private long mCachedFeatureSet;
 
     public WifiNative(WifiVendorHal vendorHal,
                       SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
@@ -1222,6 +1225,7 @@ public class WifiNative {
             Log.i(TAG, "Successfully setup " + iface);
 
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
+            saveCompleteFeatureSetInConfigStoreIfNecessary(iface.featureSet);
             mIsEnhancedOpenSupported = (iface.featureSet & WIFI_FEATURE_OWE) != 0;
             return iface.name;
         }
@@ -1441,6 +1445,7 @@ public class WifiNative {
             }
             iface.type = Iface.IFACE_TYPE_STA_FOR_CONNECTIVITY;
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
+            saveCompleteFeatureSetInConfigStoreIfNecessary(iface.featureSet);
             mIsEnhancedOpenSupported = (iface.featureSet & WIFI_FEATURE_OWE) != 0;
             Log.i(TAG, "Successfully switched to connectivity mode on iface=" + iface);
             return true;
@@ -3353,15 +3358,22 @@ public class WifiNative {
      * @param ifaceName Name of the interface.
      * @return bitmask defined by WifiManager.WIFI_FEATURE_*
      */
-    public long getSupportedFeatureSet(@NonNull String ifaceName) {
+    public long getSupportedFeatureSet(String ifaceName) {
         synchronized (mLock) {
-            Iface iface = mIfaceMgr.getIface(ifaceName);
-            if (iface == null) {
-                Log.e(TAG, "Could not get Iface object for interface " + ifaceName);
-                return 0;
+            long featureSet = 0;
+            // First get the complete feature set stored in config store when supplicant was
+            // started
+            featureSet = getCompleteFeatureSetFromConfigStore();
+            // Include the feature set saved in interface class. This is to make sure that
+            // framework is returning the feature set for SoftAp only products and multi-chip
+            // products.
+            if (ifaceName != null) {
+                Iface iface = mIfaceMgr.getIface(ifaceName);
+                if (iface != null) {
+                    featureSet |= iface.featureSet;
+                }
             }
-
-            return iface.featureSet;
+            return featureSet;
         }
     }
 
@@ -4209,5 +4221,30 @@ public class WifiNative {
                         + "because exception happened:" + re);
             }
         }
+    }
+
+    /**
+     * Save the complete list of features retrieved from WiFi HAL and Supplicant HAL in
+     * config store.
+     */
+    private void saveCompleteFeatureSetInConfigStoreIfNecessary(long featureSet) {
+        long cachedFeatureSet = getCompleteFeatureSetFromConfigStore();
+        if (cachedFeatureSet != featureSet) {
+            mCachedFeatureSet = featureSet;
+            mWifiInjector.getSettingsConfigStore()
+                    .put(WIFI_NATIVE_SUPPORTED_FEATURES, mCachedFeatureSet);
+            Log.i(TAG, "Supported features is updated in config store: " + mCachedFeatureSet);
+        }
+    }
+
+    /**
+     * Get the feature set from cache/config store
+     */
+    private long getCompleteFeatureSetFromConfigStore() {
+        if (mCachedFeatureSet == 0) {
+            mCachedFeatureSet = mWifiInjector.getSettingsConfigStore()
+                    .get(WIFI_NATIVE_SUPPORTED_FEATURES);
+        }
+        return mCachedFeatureSet;
     }
 }

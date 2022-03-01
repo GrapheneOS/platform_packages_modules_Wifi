@@ -7839,7 +7839,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void getWifiActivityEnergyInfoAsyncFeatureUnsupported() throws Exception {
-        when(mClientModeManager.getSupportedFeatures()).thenReturn(0L);
+        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(0L);
         mLooper.startAutoDispatch();
         mWifiServiceImpl.getWifiActivityEnergyInfoAsync(mOnWifiActivityEnergyInfoListener);
         mLooper.stopAutoDispatch();
@@ -7852,7 +7852,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void getWifiActivityEnergyInfoAsyncSuccess() throws Exception {
-        when(mClientModeManager.getSupportedFeatures()).thenReturn(Long.MAX_VALUE);
+        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(Long.MAX_VALUE);
         setupReportActivityInfo();
         mLooper.startAutoDispatch();
         mWifiServiceImpl.getWifiActivityEnergyInfoAsync(mOnWifiActivityEnergyInfoListener);
@@ -8097,11 +8097,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     private long testGetSupportedFeaturesCaseForRtt(
-            long supportedFeaturesFromClientModeManager, boolean rttDisabled) {
+            long supportedFeaturesFromWifiNative, boolean rttDisabled) {
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)).thenReturn(
                 !rttDisabled);
-        when(mClientModeManager.getSupportedFeatures())
-                .thenReturn(supportedFeaturesFromClientModeManager);
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(supportedFeaturesFromWifiNative);
         mLooper.startAutoDispatch();
         long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
         mLooper.stopAutoDispatchAndIgnoreExceptions();
@@ -8147,7 +8147,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     private long testGetSupportedFeaturesCaseForMacRandomization(
-            long supportedFeaturesFromClientModeManager, boolean apMacRandomizationEnabled,
+            long supportedFeaturesFromWifiNative, boolean apMacRandomizationEnabled,
             boolean staConnectedMacRandomizationEnabled, boolean p2pMacRandomizationEnabled) {
         when(mResources.getBoolean(
                 R.bool.config_wifi_connected_mac_randomization_supported))
@@ -8158,8 +8158,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mResources.getBoolean(
                 R.bool.config_wifi_p2p_mac_randomization_supported))
                 .thenReturn(p2pMacRandomizationEnabled);
-        when(mClientModeManager.getSupportedFeatures())
-                .thenReturn(supportedFeaturesFromClientModeManager);
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(supportedFeaturesFromWifiNative);
         mLooper.startAutoDispatch();
         long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
         mLooper.stopAutoDispatchAndIgnoreExceptions();
@@ -8208,21 +8208,21 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void syncGetSupportedFeaturesForStaApConcurrency() {
-        long supportedFeaturesFromClientModeManager = WifiManager.WIFI_FEATURE_OWE;
-        when(mClientModeManager.getSupportedFeatures())
-                .thenReturn(supportedFeaturesFromClientModeManager);
+        long supportedFeaturesFromWifiNative = WifiManager.WIFI_FEATURE_OWE;
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(supportedFeaturesFromWifiNative);
 
         when(mActiveModeWarden.isStaApConcurrencySupported())
                 .thenReturn(false);
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager,
+        assertEquals(supportedFeaturesFromWifiNative,
                         mWifiServiceImpl.getSupportedFeatures());
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         when(mActiveModeWarden.isStaApConcurrencySupported())
                 .thenReturn(true);
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager | WifiManager.WIFI_FEATURE_AP_STA,
+        assertEquals(supportedFeaturesFromWifiNative | WifiManager.WIFI_FEATURE_AP_STA,
                 mWifiServiceImpl.getSupportedFeatures());
         mLooper.stopAutoDispatchAndIgnoreExceptions();
     }
@@ -8324,26 +8324,26 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void syncGetSupportedFeaturesForStaStaConcurrency() {
         assumeTrue(SdkLevel.isAtLeastS());
 
-        long supportedFeaturesFromClientModeManager = WifiManager.WIFI_FEATURE_OWE;
-        when(mClientModeManager.getSupportedFeatures())
-                .thenReturn(supportedFeaturesFromClientModeManager);
+        long supportedFeaturesFromWifiNative = WifiManager.WIFI_FEATURE_OWE;
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(supportedFeaturesFromWifiNative);
 
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager,
+        assertEquals(supportedFeaturesFromWifiNative,
                 mWifiServiceImpl.getSupportedFeatures());
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         when(mActiveModeWarden.isStaStaConcurrencySupportedForLocalOnlyConnections())
                 .thenReturn(true);
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager
+        assertEquals(supportedFeaturesFromWifiNative
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY,
                 mWifiServiceImpl.getSupportedFeatures());
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         when(mActiveModeWarden.isStaStaConcurrencySupportedForMbb()).thenReturn(true);
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager
+        assertEquals(supportedFeaturesFromWifiNative
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_MBB,
                 mWifiServiceImpl.getSupportedFeatures());
@@ -8354,7 +8354,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mActiveModeWarden.isStaStaConcurrencySupportedForMultiInternet())
                 .thenReturn(true);
         mLooper.startAutoDispatch();
-        assertEquals(supportedFeaturesFromClientModeManager
+        assertEquals(supportedFeaturesFromWifiNative
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_MBB
                         | WifiManager.WIFI_FEATURE_ADDITIONAL_STA_RESTRICTED
@@ -9031,7 +9031,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     private List<WifiConfiguration> setupMultiTypeConfigs(
             long featureFlags, boolean saeAutoUpgradeEnabled, boolean oweAutoUpgradeEnabled) {
-        when(mClientModeManager.getSupportedFeatures()).thenReturn(featureFlags);
+        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(featureFlags);
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(saeAutoUpgradeEnabled);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(oweAutoUpgradeEnabled);
 
@@ -9364,7 +9364,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetExternalPnoScanRequest_Success() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mClientModeManager.getSupportedFeatures()).thenReturn(WifiManager.WIFI_FEATURE_PNO);
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(WifiManager.WIFI_FEATURE_PNO);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
         when(mWifiPermissionsUtil.checkCallersLocationPermission(
@@ -9384,7 +9385,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetExternalPnoScanRequest_PnoNotSupported() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mClientModeManager.getSupportedFeatures()).thenReturn(0L);
+        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(0L);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
         when(mWifiPermissionsUtil.checkCallersLocationPermission(
