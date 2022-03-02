@@ -1705,6 +1705,11 @@ public class WifiP2pManager {
      * connect through listener callbacks {@link ActionListener#onSuccess} or
      * {@link ActionListener#onFailure}.
      *
+     * <p> An app should use {@link WifiP2pConfig.Builder} to build the configuration
+     * for this API, ex. call {@link WifiP2pConfig.Builder#setDeviceAddress(MacAddress)}
+     * to set the peer MAC address and {@link WifiP2pConfig.Builder#enablePersistentMode(boolean)}
+     * to configure the persistent mode.
+     *
      * <p> Register for {@link #WIFI_P2P_CONNECTION_CHANGED_ACTION} intent to
      * determine when the framework notifies of a change in connectivity.
      *
