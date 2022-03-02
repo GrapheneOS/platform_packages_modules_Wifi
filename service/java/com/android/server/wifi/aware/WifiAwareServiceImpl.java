@@ -43,6 +43,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 import android.util.SparseArray;
@@ -181,14 +182,16 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
 
     @Override
     public void enableInstantCommunicationMode(String callingPackage, boolean enable) {
-        int uid = getMockableCallingUid();
-        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
-        if (!mWifiPermissionsUtil.isSystem(callingPackage, uid)) {
-            Log.i(TAG, "enableInstantCommunicationMode not allowed for uid="
-                    + Binder.getCallingUid());
-            return;
-        }
         enforceChangePermission();
+        int uid = getMockableCallingUid();
+        if (uid != Process.SHELL_UID && uid != Process.ROOT_UID) {
+            mWifiPermissionsUtil.checkPackage(uid, callingPackage);
+            if (!mWifiPermissionsUtil.isSystem(callingPackage, uid)
+                    && !mWifiPermissionsUtil.checkConfigOverridePermission(uid)) {
+                Log.i(TAG, "enableInstantCommunicationMode not allowed for uid=" + uid);
+                return;
+            }
+        }
         mStateManager.enableInstantCommunicationMode(enable);
     }
 
