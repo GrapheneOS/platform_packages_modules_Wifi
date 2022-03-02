@@ -1120,7 +1120,7 @@ package android.net.wifi.aware {
   }
 
   public class WifiAwareManager {
-    method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public void enableInstantCommunicationMode(boolean);
+    method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void enableInstantCommunicationMode(boolean);
     method @RequiresPermission(allOf={android.Manifest.permission.OVERRIDE_WIFI_CONFIG, android.Manifest.permission.CHANGE_WIFI_STATE}) public void setAwareParams(@Nullable android.net.wifi.aware.AwareParams);
   }
 
