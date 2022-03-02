@@ -50,6 +50,7 @@ import android.util.SparseIntArray;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -103,7 +104,8 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             WifiPermissionsUtil wifiPermissionsUtil, WifiPermissionsWrapper permissionsWrapper,
             WifiSettingsConfigStore settingsConfigStore,
             WifiAwareNativeManager wifiAwareNativeManager, WifiAwareNativeApi wifiAwareNativeApi,
-            WifiAwareNativeCallback wifiAwareNativeCallback, NetdWrapper netdWrapper) {
+            WifiAwareNativeCallback wifiAwareNativeCallback, NetdWrapper netdWrapper,
+            InterfaceConflictManager interfaceConflictManager) {
         Log.i(TAG, "Starting Wi-Fi Aware service");
 
         mWifiPermissionsUtil = wifiPermissionsUtil;
@@ -113,7 +115,8 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
 
         mHandler.post(() -> {
             mStateManager.start(mContext, handlerThread.getLooper(), awareMetrics,
-                    wifiPermissionsUtil, permissionsWrapper, new Clock(), netdWrapper);
+                    wifiPermissionsUtil, permissionsWrapper, new Clock(), netdWrapper,
+                    interfaceConflictManager);
 
             settingsConfigStore.registerChangeListener(
                     WIFI_VERBOSE_LOGGING_ENABLED,

@@ -48,8 +48,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.ISuggestionConnectionStatusListener;
@@ -148,7 +146,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     private @Mock Resources mResources;
     private @Mock AppOpsManager mAppOpsManager;
     private @Mock WifiNotificationManager mWifiNotificationManager;
-    private @Mock PackageManager mPackageManager;
     private @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     private @Mock WifiInjector mWifiInjector;
     private @Mock FrameworkFacade mFrameworkFacade;
@@ -239,7 +236,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 .thenReturn(mock(PendingIntent.class));
         when(mContext.getResources()).thenReturn(mResources);
         when(mContext.getSystemService(Context.APP_OPS_SERVICE)).thenReturn(mAppOpsManager);
-        when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE))
                 .thenReturn(mock(LayoutInflater.class));
@@ -267,19 +263,11 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         when(mResources.getText(eq(R.string.wifi_suggestion_action_disallow_app)))
                 .thenReturn("blah");
 
-
-        // Our app Info. Needed for notification builder.
-        ApplicationInfo ourAppInfo = new ApplicationInfo();
-        when(mContext.getApplicationInfo()).thenReturn(ourAppInfo);
         // test app info
-        ApplicationInfo appInfO1 = new ApplicationInfo();
-        when(mPackageManager.getApplicationInfoAsUser(eq(TEST_PACKAGE_1), eq(0), any()))
-            .thenReturn(appInfO1);
-        when(mPackageManager.getApplicationLabel(appInfO1)).thenReturn(TEST_APP_NAME_1);
-        ApplicationInfo appInfO2 = new ApplicationInfo();
-        when(mPackageManager.getApplicationInfoAsUser(eq(TEST_PACKAGE_2), eq(0), any()))
-            .thenReturn(appInfO2);
-        when(mPackageManager.getApplicationLabel(appInfO2)).thenReturn(TEST_APP_NAME_2);
+        when(mFrameworkFacade.getAppName(any(), eq(TEST_PACKAGE_1), eq(TEST_UID_1)))
+            .thenReturn(TEST_APP_NAME_1);
+        when(mFrameworkFacade.getAppName(any(), eq(TEST_PACKAGE_2), eq(TEST_UID_2)))
+                .thenReturn(TEST_APP_NAME_2);
         when(mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(any())).thenReturn(
                 TelephonyManager.UNKNOWN_CARRIER_ID);
         when(mWifiCarrierInfoManager.isSubIdMatchingCarrierId(anyInt(), anyInt())).thenReturn(true);
@@ -299,9 +287,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         mWifiInjector, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore,
                         mWifiMetrics, mWifiCarrierInfoManager, mWifiKeyStore,
                         mLruConnectionTracker, mClock);
-        verify(mContext).getResources();
-        verify(mContext).getSystemService(Context.APP_OPS_SERVICE);
-        verify(mContext).getPackageManager();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any());
 
         ArgumentCaptor<NetworkSuggestionStoreData.DataSource> dataSourceArgumentCaptor =

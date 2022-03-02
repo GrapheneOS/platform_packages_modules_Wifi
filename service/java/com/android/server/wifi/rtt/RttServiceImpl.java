@@ -1035,7 +1035,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 Log.v(TAG, "processReceivedAwarePeerMacAddresses: request=" + request);
                 Log.v(TAG, "processReceivedAwarePeerMacAddresses: peerIdToMacList begin");
                 for (MacAddrMapping mapping : peerIdToMacList) {
-                    Log.v(TAG, "[GABI]    " + mapping.peerId + ": "
+                    Log.v(TAG, "    " + mapping.peerId + ": "
                             + MacAddress.fromBytes(mapping.macAddress));
                 }
                 Log.v(TAG, "processReceivedAwarePeerMacAddresses: peerIdToMacList end");

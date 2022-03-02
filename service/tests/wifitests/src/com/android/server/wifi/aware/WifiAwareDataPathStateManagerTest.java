@@ -83,6 +83,8 @@ import android.os.test.TestLooper;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.aware.WifiAwareDataPathStateManager.WifiAwareNetworkAgent;
@@ -133,6 +135,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     @Mock private Context mMockContext;
     @Mock private ConnectivityManager mMockCm;
     @Mock private NetdWrapper mMockNetdWrapper;
+    @Mock private InterfaceConflictManager mInterfaceConflictManager;
     @Mock private WifiAwareDataPathStateManager.NetworkInterfaceWrapper mMockNetworkInterface;
     @Mock private IWifiAwareEventCallback mMockCallback;
     @Mock IWifiAwareDiscoverySessionCallback mMockSessionCallback;
@@ -170,6 +173,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 Context.POWER_SERVICE);
         when(mMockContext.getSystemService(PowerManager.class)).thenReturn(mMockPowerManager);
 
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenReturn(
+                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+
         // by default pretend to be an old API: i.e. allow Responders configured as *ANY*. This
         // allows older (more extrensive) tests to run.
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(), anyInt(), anyInt()))
@@ -179,7 +186,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         mDut = new WifiAwareStateManager();
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
-                mWifiPermissionsUtil, mPermissionsWrapperMock, mClock, mMockNetdWrapper);
+                mWifiPermissionsUtil, mPermissionsWrapperMock, mClock, mMockNetdWrapper,
+                mInterfaceConflictManager);
         mDut.startLate();
         mMockLooper.dispatchAll();
 

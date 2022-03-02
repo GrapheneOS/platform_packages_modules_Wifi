@@ -5195,7 +5195,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
     private long getSupportedFeaturesInternal() {
         long supportedFeatureSet = mWifiThreadRunner.call(
-                () -> mActiveModeWarden.getPrimaryClientModeManager().getSupportedFeatures(),
+                () -> mWifiNative.getSupportedFeatureSet(
+                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName()),
                 0L);
         // Mask the feature set against system properties.
         boolean rttSupported = mContext.getPackageManager().hasSystemFeature(

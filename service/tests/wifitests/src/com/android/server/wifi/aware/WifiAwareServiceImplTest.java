@@ -59,6 +59,8 @@ import android.util.SparseIntArray;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NetdWrapper;
@@ -108,8 +110,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     @Mock private WifiAwareMetrics mAwareMetricsMock;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiPermissionsWrapper mPermissionsWrapperMock;
-    @Mock
-    WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock private InterfaceConflictManager mInterfaceConflictManager;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -157,16 +159,22 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isTargetSdkLessThan(any(), eq(Build.VERSION_CODES.TIRAMISU),
                 anyInt())).thenReturn(true);
 
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenReturn(
+                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+
         mDut = new WifiAwareServiceImplSpy(mContextMock);
         mDut.fakeUid = mDefaultUid;
         mDut.start(mHandlerThreadMock, mAwareStateManagerMock, mWifiAwareShellCommandMock,
                 mAwareMetricsMock, mWifiPermissionsUtil, mPermissionsWrapperMock,
                 mWifiSettingsConfigStore,
                 mock(WifiAwareNativeManager.class), mock(WifiAwareNativeApi.class),
-                mock(WifiAwareNativeCallback.class), mock(NetdWrapper.class));
+                mock(WifiAwareNativeCallback.class), mock(NetdWrapper.class),
+                mInterfaceConflictManager);
         mMockLooper.dispatchAll();
         verify(mAwareStateManagerMock).start(eq(mContextMock), any(), eq(mAwareMetricsMock),
-                eq(mWifiPermissionsUtil), eq(mPermissionsWrapperMock), any(), any());
+                eq(mWifiPermissionsUtil), eq(mPermissionsWrapperMock), any(), any(),
+                eq(mInterfaceConflictManager));
     }
 
     /**

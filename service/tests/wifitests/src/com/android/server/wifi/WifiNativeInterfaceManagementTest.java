@@ -72,6 +72,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     private static final String IFACE_NAME_0 = "mockWlan0";
     private static final String IFACE_NAME_1 = "mockWlan1";
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
+    private static final long TEST_SUPPORTED_FEATURES = 0;
 
     @Mock private WifiVendorHal mWifiVendorHal;
     @Mock private WifiNl80211Manager mWificondControl;
@@ -87,6 +88,9 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     @Mock private WifiNative.StatusListener mStatusListener;
     @Mock private WifiNative.InterfaceCallback mIfaceCallback0;
     @Mock private WifiNative.InterfaceCallback mIfaceCallback1;
+
+    @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
+
     private TestLooper mLooper;
 
     private ArgumentCaptor<VendorHalDeathEventHandler> mWifiVendorHalDeathHandlerCaptor =
@@ -169,6 +173,11 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mHostapdHal.registerApCallback(any(), any())).thenReturn(true);
 
         when(mWifiInjector.makeNetdWrapper()).thenReturn(mNetdWrapper);
+        when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
+
+        when(mWifiSettingsConfigStore.get(
+                eq(WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_FEATURES)))
+                .thenReturn(TEST_SUPPORTED_FEATURES);
 
         mInOrder = inOrder(mWifiVendorHal, mWificondControl, mSupplicantStaIfaceHal, mHostapdHal,
                 mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1, mWifiMetrics);

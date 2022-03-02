@@ -67,7 +67,10 @@ import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
 import com.android.wifi.resources.R;
@@ -240,6 +243,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public WifiAwareDataPathStateManager mDataPathMgr;
     private PowerManager mPowerManager;
     private LocationManager mLocationManager;
+    private InterfaceConflictManager mInterfaceConflictMgr;
     private WifiManager mWifiManager;
     private Handler mHandler;
 
@@ -249,7 +253,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean mCurrentRangingEnabled = false;
     private boolean mInstantCommModeGlobalEnable = false;
     private int mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
-
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mCurrentDiscoveryInterfaceMac = ALL_ZERO_MAC;
@@ -435,12 +438,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void start(Context context, Looper looper, WifiAwareMetrics awareMetrics,
             WifiPermissionsUtil wifiPermissionsUtil, WifiPermissionsWrapper permissionsWrapper,
-            Clock clock, NetdWrapper netdWrapper) {
+            Clock clock, NetdWrapper netdWrapper, InterfaceConflictManager interfaceConflictMgr) {
         Log.i(TAG, "start()");
 
         mContext = context;
         mAwareMetrics = awareMetrics;
         mWifiPermissionsUtil = wifiPermissionsUtil;
+        mInterfaceConflictMgr = interfaceConflictMgr;
         mSm = new WifiAwareStateMachine(TAG, looper);
         mSm.setDbg(VDBG);
         mSm.start();
@@ -1395,6 +1399,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         private DefaultState mDefaultState = new DefaultState();
         private WaitState mWaitState = new WaitState();
         private WaitForResponseState mWaitForResponseState = new WaitForResponseState();
+        private WaitingState mWaitingState = new WaitingState(this);
 
         private short mNextTransactionId = 1;
         public int mNextSessionId = 1;
@@ -1420,6 +1425,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
             addState(mDefaultState);
             /* --> */ addState(mWaitState, mDefaultState);
+            /* ----> */ addState(mWaitingState, mWaitState);
             /* --> */ addState(mWaitForResponseState, mDefaultState);
 
             setInitialState(mWaitState);
@@ -1778,6 +1784,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         waitForResponse = false;
                         break;
                     }
+
                     int clientId = msg.arg2;
                     IWifiAwareEventCallback callback = (IWifiAwareEventCallback) msg.obj;
                     ConfigRequest configRequest = (ConfigRequest) msg.getData()
@@ -1791,9 +1798,32 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     boolean notifyIdentityChange = msg.getData().getBoolean(
                             MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE);
 
-                    waitForResponse = connectLocal(mCurrentTransactionId, clientId, uid, pid,
-                            callingPackage, callingFeatureId, callback, configRequest,
-                            notifyIdentityChange);
+                    int proceedWithOperation =
+                            mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG, msg,
+                                    this, mWaitingState, mWaitState,
+                                    HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                                    new WorkSource(uid, callingPackage));
+
+                    if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
+                        // handling user rejection or possible conflict (pending command)
+                        try {
+                            callback.onConnectFail(
+                                    NanStatusType.NO_RESOURCES_AVAILABLE);
+                            mAwareMetrics.recordAttachStatus(
+                                    NanStatusType.NO_RESOURCES_AVAILABLE);
+                        } catch (RemoteException e) {
+                            Log.w(TAG, "displayUserApprovalDialog user refusal: RemoteException "
+                                    + "(FYI): " + e);
+                        }
+                        waitForResponse = false;
+                    } else if (proceedWithOperation
+                            == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
+                        waitForResponse = connectLocal(mCurrentTransactionId, clientId, uid, pid,
+                                callingPackage, callingFeatureId, callback, configRequest,
+                                notifyIdentityChange);
+                    } else { // InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER
+                        waitForResponse = false;
+                    }
                     break;
                 }
                 case COMMAND_TYPE_DISCONNECT: {
@@ -3663,5 +3693,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mWifiAwareNativeApi.dump(fd, pw, args);
         pw.println("mAwareMetrics:");
         mAwareMetrics.dump(fd, pw, args);
+        mInterfaceConflictMgr.dump(fd, pw, args);
     }
 }
