@@ -894,8 +894,8 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void reportImpactToCreateIfaceRequest(String packageName, int interfaceType,
-            boolean queryForNewInterface, IInterfaceCreationInfoCallback callback) {
+    public void reportCreateInterfaceImpact(String packageName, int interfaceType,
+            boolean requireNewInterface, IInterfaceCreationInfoCallback callback) {
         throw new UnsupportedOperationException();
     }
 }

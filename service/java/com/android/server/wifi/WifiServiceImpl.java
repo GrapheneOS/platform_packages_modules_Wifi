@@ -6620,8 +6620,8 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public void reportImpactToCreateIfaceRequest(String packageName, int interfaceType,
-            boolean queryForNewInterface, IInterfaceCreationInfoCallback callback) {
+    public void reportCreateInterfaceImpact(String packageName, int interfaceType,
+            boolean requireNewInterface, IInterfaceCreationInfoCallback callback) {
         if (!SdkLevel.isAtLeastT()) {
             throw new UnsupportedOperationException("SDK level too old");
         }
@@ -6656,7 +6656,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiThreadRunner.post(() -> {
             List<Pair<Integer, WorkSource>> details =
                     mHalDeviceManager.reportImpactToCreateIface(
-                            wifiIfaceToHdmIfaceMap.get(interfaceType), queryForNewInterface,
+                            wifiIfaceToHdmIfaceMap.get(interfaceType), requireNewInterface,
                             new WorkSource(callingUid, packageName));
             try {
                 if (details == null) {
