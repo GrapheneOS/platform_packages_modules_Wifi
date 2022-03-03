@@ -438,8 +438,11 @@ public class ActiveModeWarden {
                     R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)) {
                 return false;
             }
-            final int uid = requestorWs.getUid(0);
-            final String packageName = requestorWs.getPackageName(0);
+            // Remove settings WorkSource to make sure the targetSdk is correct.
+            WorkSource ws = new WorkSource(requestorWs);
+            ws.remove(mFacade.getSettingsWorkSource(mContext));
+            final int uid = ws.getUid(0);
+            final String packageName = ws.getPackageName(0);
             // For peer to peer use-case, only allow secondary STA if the app is targeting S SDK
             // or is a system app to provide backward compatibility.
             return mWifiPermissionsUtil.isSystem(packageName, uid)
