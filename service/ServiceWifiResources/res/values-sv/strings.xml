@@ -122,6 +122,14 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Inga enheter har anslutits. Tryck för att ändra."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Ingen wifi-anslutning"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Sätt i ett SIM-kort från <xliff:g id="CARRIER_NAME">%2$s</xliff:g> om du vill ansluta till <xliff:g id="SSID">%1$s</xliff:g>"</string>
+    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
+    <skip />
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Är det här ett betrott nätverk?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ja, anslut"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nej, anslut inte"</string>
@@ -143,4 +151,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"Det saknas ett certifikat för nätverket <xliff:g id="SSID">%1$s</xliff:g>. Tryck här för att ta reda på hur du lägger till certifikat."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Anslut ändå"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"Anslut inte"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"Vill du tillåta att <xliff:g id="APP_NAME">%1$s</xliff:g> aktiverar wifi?"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Du kan stänga av wifi i snabbinställningarna"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Tillåt"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Tillåt inte"</string>
 </resources>

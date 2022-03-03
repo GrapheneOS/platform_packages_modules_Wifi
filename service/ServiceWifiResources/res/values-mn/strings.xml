@@ -122,6 +122,14 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Ямар ч төхөөрөмж холбогдоогүй байна. Өөрчлөхийн тулд товшино уу."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wifi-г салгалаа"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g>-д холбогдохын тулд <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM-г хийнэ үү"</string>
+    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
+    <skip />
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Энэ сүлжээ итгэмжлэгдсэн үү?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Тийм, холбогд"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Үгүй, бүү холбогд"</string>
@@ -143,4 +151,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"<xliff:g id="SSID">%1$s</xliff:g> сүлжээнд сертификат хоосон байна. Хэрхэн сертификатууд нэмэх талаар сурах бол товшино уу."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Ямар ч байсан холбогдох"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"Бүү холбогд"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"<xliff:g id="APP_NAME">%1$s</xliff:g>-д Wi-Fi асаахыг зөвшөөрөх үү?"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Та Wi-Fi-г Шуурхай тохиргоо хэсэгт унтраах боломжтой"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Зөвшөөр"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Бүү зөвшөөр"</string>
 </resources>

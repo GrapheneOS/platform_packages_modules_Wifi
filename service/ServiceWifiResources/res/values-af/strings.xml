@@ -122,6 +122,14 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Geen toestelle is gekoppel nie. Tik om te wysig."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi is ontkoppel"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Sit \'n <xliff:g id="CARRIER_NAME">%2$s</xliff:g>-SIM in om aan <xliff:g id="SSID">%1$s</xliff:g> te koppel"</string>
+    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
+    <skip />
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Word hierdie netwerk vertrou?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ja, koppel"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nee, moenie koppel nie"</string>
@@ -143,4 +151,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"Die netwerk <xliff:g id="SSID">%1$s</xliff:g> kort \'n sertifikaat. Tik om uit te vind hoe om sertifikate by te voeg."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Koppel in elk geval"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"Moenie koppel nie"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"Laat <xliff:g id="APP_NAME">%1$s</xliff:g> toe om wi-fi aan te skakel?"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Jy kan wi-fi in Kitsinstellings afskakel"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Laat toe"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Moenie toelaat nie"</string>
 </resources>
