@@ -392,5 +392,5 @@ interface IWifiManager
 
     void removeCustomDhcpOptions(in WifiSsid ssid, in byte[] oui);
 
-    void reportImpactToCreateIfaceRequest(String packageName, int interfaceType, boolean queryForNewInterface, in IInterfaceCreationInfoCallback callback);
+    void reportCreateInterfaceImpact(String packageName, int interfaceType, boolean requireNewInterface, in IInterfaceCreationInfoCallback callback);
 }
