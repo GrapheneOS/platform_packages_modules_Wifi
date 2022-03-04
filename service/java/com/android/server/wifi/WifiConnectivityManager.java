@@ -2970,6 +2970,13 @@ public class WifiConnectivityManager {
     }
 
     /**
+     * Return whether auto join is on/off
+     */
+    public boolean getAutoJoinEnabledExternal() {
+        return mAutoJoinEnabledExternal;
+    }
+
+    /**
      * Check if multi internet connection exists.
      *
      * @return true if multi internet connection exists.

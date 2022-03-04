@@ -99,6 +99,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * This class provides the primary API for managing all aspects of Wi-Fi
@@ -6203,6 +6204,40 @@ public class WifiManager {
         }
     }
 
+    /**
+     * Returns whether auto-join global is enabled/disabled
+     * @see #allowAutojoinGlobal(boolean)
+     *
+     * Available for DO/PO apps.
+     * Other apps require {@code android.Manifest.permission#NETWORK_SETTINGS} or
+     * {@code android.Manifest.permission#MANAGE_WIFI_AUTO_JOIN} permission.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether auto-join global is enabled/disabled.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void getAutojoinGlobal(@NonNull Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getAutojoinGlobal(
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 
     /**
      * Sets the user choice for allowing auto-join to a network.
