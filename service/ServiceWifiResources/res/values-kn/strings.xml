@@ -122,6 +122,14 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ಯಾವುದೇ ಸಾಧನಗಳನ್ನು ಕನೆಕ್ಟ್ ಮಾಡಿಲ್ಲ. ಮಾರ್ಪಡಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"ವೈ-ಫೈ ಕನೆಕ್ಷನ್ ಕಡಿತಗೊಂಡಿದೆ."</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಲು, <xliff:g id="CARRIER_NAME">%2$s</xliff:g> ಸಿಮ್‌ ಅನ್ನು ಸೇರಿಸಿ"</string>
+    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
+    <skip />
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ಈ ನೆಟ್‌ವರ್ಕ್ ವಿಶ್ವಾಸಾರ್ಹವೇ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ಹೌದು, ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ಇಲ್ಲ, ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>
@@ -143,4 +151,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"ನೆಟ್‌ವರ್ಕ್ <xliff:g id="SSID">%1$s</xliff:g> ಒಂದು ಪ್ರಮಾಣಪತ್ರವನ್ನು ಹೊಂದಿಲ್ಲ. ಪ್ರಮಾಣಪತ್ರಗಳನ್ನು ಸೇರಿಸುವುದು ಹೇಗೆ ಎಂದು ತಿಳಿಯಲು ಟ್ಯಾಪ್ ಮಾಡಿ."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"ಹೇಗಿದ್ದರೂ ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"ವೈ-ಫೈ ಅನ್ನು ಆನ್ ಮಾಡಲು <xliff:g id="APP_NAME">%1$s</xliff:g> ಗೆ ಅನುಮತಿಸಬೇಕೇ?"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"ತ್ವರಿತ ಸೆಟ್ಟಿಂಗ್‍ಗಳಲ್ಲಿ ನೀವು ವೈ-ಫೈ ಅನ್ನು ಆಫ್ ಮಾಡಬಹುದು"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ಅನುಮತಿಸಿ"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ಅನುಮತಿಸಬೇಡಿ"</string>
 </resources>
