@@ -125,6 +125,7 @@ import android.net.NetworkStack;
 import android.net.Uri;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.IActionListener;
+import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
@@ -7461,6 +7462,36 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(true);
         mWifiServiceImpl.allowAutojoinGlobal(true);
+    }
+
+    @Test
+    public void testGetAutojoinGlobal_Exceptions() {
+        // good inputs should result in no exceptions.
+        IBooleanListener listener = mock(IBooleanListener.class);
+        // null listener ==> IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.getAutojoinGlobal(null));
+
+        // No permission ==> SecurityException
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getAutojoinGlobal(listener));
+    }
+
+    @Test
+    public void testGetAutojoinGlobal_GoodCase() throws RemoteException {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        IBooleanListener listener = mock(IBooleanListener.class);
+
+        InOrder inOrder = inOrder(listener);
+        when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(true);
+        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(false);
+        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
     }
 
     @Test(expected = SecurityException.class)

@@ -25,6 +25,7 @@ import android.net.DhcpOption;
 import android.net.Network;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.IActionListener;
+import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
@@ -113,6 +114,8 @@ interface IWifiManager
     boolean disableNetwork(int netId, String packageName);
 
     void allowAutojoinGlobal(boolean choice);
+
+    void getAutojoinGlobal(in IBooleanListener listener);
 
     void allowAutojoin(int netId, boolean choice);
 
