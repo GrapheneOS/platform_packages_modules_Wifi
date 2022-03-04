@@ -9303,16 +9303,24 @@ public class WifiManager {
     public static final int DIALOG_TYPE_SIMPLE = 1;
 
     /**
+     * DialogType for a P2P Invitation Sent dialog.
+     * @see {@link com.android.server.wifi.WifiDialogManager#createP2pInvitationSentDialog}
+     * @hide
+     */
+    public static final int DIALOG_TYPE_P2P_INVITATION_SENT = 2;
+
+    /**
      * DialogType for a P2P Invitation Received dialog.
      * @see {@link com.android.server.wifi.WifiDialogManager#createP2pInvitationReceivedDialog}
      * @hide
      */
-    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 2;
+    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 3;
 
     /** @hide */
     @IntDef(prefix = { "DIALOG_TYPE_" }, value = {
             DIALOG_TYPE_UNKNOWN,
             DIALOG_TYPE_SIMPLE,
+            DIALOG_TYPE_P2P_INVITATION_SENT,
             DIALOG_TYPE_P2P_INVITATION_RECEIVED,
     })
     @Retention(RetentionPolicy.SOURCE)

@@ -305,6 +305,12 @@ public class WifiDialogActivity extends Activity  {
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT));
                 break;
+            case WifiManager.DIALOG_TYPE_P2P_INVITATION_SENT:
+                dialog = createP2pInvitationSentDialog(
+                        dialogId,
+                        intent.getStringExtra(WifiManager.EXTRA_P2P_DEVICE_NAME),
+                        intent.getStringExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN));
+                break;
             case WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED:
                 dialog = createP2pInvitationReceivedDialog(
                         dialogId,
@@ -431,6 +437,54 @@ public class WifiDialogActivity extends Activity  {
                     + " positiveButtonText=" + positiveButtonText
                     + " negativeButtonText=" + negativeButtonText
                     + " neutralButtonText=" + neutralButtonText);
+        }
+        return dialog;
+    }
+
+    /**
+     * Returns a P2P Invitation Sent Dialog for the given Intent, or {@code null} if no Dialog
+     * could be created.
+     */
+    private @Nullable Dialog createP2pInvitationSentDialog(
+            final int dialogId,
+            final @NonNull String deviceName,
+            @Nullable String displayPin) {
+        if (TextUtils.isEmpty(deviceName)) {
+            if (mIsVerboseLoggingEnabled) {
+                Log.v(TAG, "Could not create P2P Invitation Sent dialog with null or empty"
+                        + " device name."
+                        + " id=" + dialogId
+                        + " deviceName=" + deviceName
+                        + " displayPin=" + displayPin);
+            }
+            return null;
+        }
+
+        final View textEntryView = LayoutInflater.from(this)
+                .inflate(getLayoutId("wifi_p2p_dialog"), null);
+        ViewGroup group = textEntryView.findViewById(getViewId("info"));
+        addRowToP2pDialog(group, getStringId("wifi_p2p_to_message"), deviceName);
+
+        if (displayPin != null) {
+            addRowToP2pDialog(group, getStringId("wifi_p2p_show_pin_message"), displayPin);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(getString(getStringId("wifi_p2p_invitation_sent_title")))
+                .setView(textEntryView)
+                .setPositiveButton(getStringId("ok"), (dialogPositive, which) -> {
+                    // No-op
+                    if (mIsVerboseLoggingEnabled) {
+                        Log.v(TAG, "P2P Invitation Sent Dialog id=" + dialogId
+                                + " accepted.");
+                    }
+                })
+                .create();
+        if (mIsVerboseLoggingEnabled) {
+            Log.v(TAG, "Created P2P Invitation Sent dialog."
+                    + " id=" + dialogId
+                    + " deviceName=" + deviceName
+                    + " displayPin=" + displayPin);
         }
         return dialog;
     }

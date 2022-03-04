@@ -18,13 +18,10 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.drawable.Icon;
@@ -33,16 +30,8 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.os.Handler;
-import android.provider.Browser;
-import android.text.SpannableString;
-import android.text.Spanned;
 import android.text.TextUtils;
-import android.text.method.LinkMovementMethod;
-import android.text.style.URLSpan;
 import android.util.Log;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.TextView;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
@@ -75,6 +64,7 @@ public class InsecureEapNetworkHandler {
     private final WifiNative mWifiNative;
     private final FrameworkFacade mFacade;
     private final WifiNotificationManager mNotificationManager;
+    private final WifiDialogManager mWifiDialogManager;
     private final boolean mIsTrustOnFirstUseSupported;
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
     private final String mInterfaceName;
@@ -89,7 +79,7 @@ public class InsecureEapNetworkHandler {
     // This is updated on setting a pending CA cert.
     private CertificateSubjectInfo mPendingCaCertIssuerInfo = null;
     @Nullable
-    private AlertDialog mTofuAlertDialog = null;
+    private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
     private boolean mIsCertNotificationReceiverRegistered = false;
 
     BroadcastReceiver mCertNotificationReceiver = new BroadcastReceiver() {
@@ -115,6 +105,7 @@ public class InsecureEapNetworkHandler {
             @NonNull WifiNative wifiNative,
             @NonNull FrameworkFacade facade,
             @NonNull WifiNotificationManager notificationManager,
+            @NonNull WifiDialogManager wifiDialogManager,
             boolean isTrustOnFirstUseSupported,
             @NonNull InsecureEapNetworkHandlerCallbacks callbacks,
             @NonNull String interfaceName,
@@ -124,6 +115,7 @@ public class InsecureEapNetworkHandler {
         mWifiNative = wifiNative;
         mFacade = facade;
         mNotificationManager = notificationManager;
+        mWifiDialogManager = wifiDialogManager;
         mIsTrustOnFirstUseSupported = isTrustOnFirstUseSupported;
         mCallbacks = callbacks;
         mInterfaceName = interfaceName;
@@ -331,14 +323,17 @@ public class InsecureEapNetworkHandler {
         String title = mIsTrustOnFirstUseSupported
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_title)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_title);
-        String continueBtnText = mIsTrustOnFirstUseSupported
+        String positiveButtonText = mIsTrustOnFirstUseSupported
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_continue_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_continue_text);
-        String abortBtnText = mIsTrustOnFirstUseSupported
+        String negativeButtonText = mIsTrustOnFirstUseSupported
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_abort_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_abort_text);
 
-        CharSequence content;
+        String message = null;
+        String messageUrl = null;
+        int messageUrlStart = 0;
+        int messageUrlEnd = 0;
         if (mIsTrustOnFirstUseSupported) {
             String signature = NativeUtil.hexStringFromByteArray(
                     mPendingCaCert.getSignature());
@@ -364,63 +359,50 @@ public class InsecureEapNetworkHandler {
                     .append(mContext.getString(
                             R.string.wifi_ca_cert_dialog_message_signature_name_text,
                             signature.substring(0, 16)));
-            content = contentBuilder.toString();
+            message = contentBuilder.toString();
         } else {
             String hint = mContext.getString(
                     R.string.wifi_ca_cert_dialog_preT_message_hint, mCurConfig.SSID);
             String linkText = mContext.getString(
                     R.string.wifi_ca_cert_dialog_preT_message_link);
-            // System service content is not a valid activity context, it cannot
-            // launch another activity via Intent.
-            // Override URLSpan onClick to add FLAG_ACTIVITY_NEW_TASK flag.
-            SpannableString link = new SpannableString(linkText);
-            link.setSpan(new URLSpan(mCaCertHelpLink) {
-                @Override
-                public void onClick(@NonNull View widget) {
-                    // When a user clicks the link, the dialog is still on the top of all
-                    // activities, i.e. the user cannot read the help page normally.
-                    // Dismiss the dialog and launch a notifiation to let the user
-                    // make a decision later.
-                    if (null != mCurConfig) {
-                        notifyUserForCaCertificate();
-                    }
-
-                    // Open the help page regardless a notifiation could be launched.
-                    Context c = widget.getContext();
-                    Intent openLinkIntent = new Intent(Intent.ACTION_VIEW)
-                            .setData(Uri.parse(mCaCertHelpLink))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            .putExtra(Browser.EXTRA_APPLICATION_ID, c.getPackageName());
-                    c.startActivity(openLinkIntent);
-                }
-            }, 0, linkText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            content = TextUtils.concat(hint, " ", link);
+            message = hint + " " + linkText;
+            messageUrl = mCaCertHelpLink;
+            messageUrlStart = hint.length() + 1;
+            messageUrlEnd = message.length();
         }
-
-        mTofuAlertDialog = mFacade.makeAlertDialogBuilder(mContext)
-                .setPositiveButton(continueBtnText, new OnClickListener() {
+        mTofuAlertDialog = mWifiDialogManager.createSimpleDialogWithUrl(
+                title,
+                message,
+                messageUrl,
+                messageUrlStart,
+                messageUrlEnd,
+                positiveButtonText,
+                negativeButtonText,
+                null /* neutralButtonText */,
+                new WifiDialogManager.SimpleDialogCallback() {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onPositiveButtonClicked() {
                         handleAccept(mCurConfig.SSID);
                     }
-                })
-                .setNegativeButton(abortBtnText, new OnClickListener() {
+
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onNegativeButtonClicked() {
                         handleReject(mCurConfig.SSID);
                     }
-                })
-                .setTitle(title)
-                .setMessage(content)
-                .create();
 
-        mTofuAlertDialog.setCanceledOnTouchOutside(false);
-        mTofuAlertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        mTofuAlertDialog.getWindow().addSystemFlags(
-                WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-        mTofuAlertDialog.show();
-        ((TextView) mTofuAlertDialog.findViewById(android.R.id.message))
-                .setMovementMethod(LinkMovementMethod.getInstance());
+                    @Override
+                    public void onNeutralButtonClicked() {
+                        // Not used.
+                        handleReject(mCurConfig.SSID);
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        handleReject(mCurConfig.SSID);
+                    }
+                },
+                new WifiThreadRunner(mHandler));
+        mTofuAlertDialog.launchDialog();
     }
 
     private PendingIntent genCaCertNotifIntent(
@@ -487,7 +469,7 @@ public class InsecureEapNetworkHandler {
     private void dismissDialogAndNotification() {
         mNotificationManager.cancel(SystemMessage.NOTE_SERVER_CA_CERTIFICATE);
         if (mTofuAlertDialog != null) {
-            mTofuAlertDialog.dismiss();
+            mTofuAlertDialog.dismissDialog();
             mTofuAlertDialog = null;
         }
     }

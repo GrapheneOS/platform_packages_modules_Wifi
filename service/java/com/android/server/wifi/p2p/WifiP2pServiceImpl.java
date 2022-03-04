@@ -22,13 +22,10 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGI
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.AlertDialog;
 import android.app.BroadcastOptions;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
@@ -92,7 +89,6 @@ import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
@@ -116,7 +112,7 @@ import com.android.server.wifi.WifiLog;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.coex.CoexManager;
-import com.android.server.wifi.p2p.ExternalApproverManager.ApproverEntry;;
+import com.android.server.wifi.p2p.ExternalApproverManager.ApproverEntry;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
@@ -4358,26 +4354,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         extras);
                 return;
             }
-
-            Resources r = mContext.getResources();
-
-            final View textEntryView = LayoutInflater.from(mContext).cloneInContext(mContext)
-                    .inflate(R.layout.wifi_p2p_dialog, null);
-
-            ViewGroup group = (ViewGroup) textEntryView.findViewById(R.id.info);
-            addRowToDialog(group, R.string.wifi_p2p_to_message, getDeviceName(peerAddress));
-            addRowToDialog(group, R.string.wifi_p2p_show_pin_message, pin);
-
-            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
-                    .setTitle(r.getString(R.string.wifi_p2p_invitation_sent_title))
-                    .setView(textEntryView)
-                    .setPositiveButton(r.getString(R.string.ok), null)
-                    .create();
-            dialog.setCanceledOnTouchOutside(false);
-            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-            dialog.getWindow().addSystemFlags(
-                    WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-            dialog.show();
+            WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
+                    .createP2pInvitationSentDialog(getDeviceName(peerAddress), pin);
+            if (dialogHandle == null) {
+                loge("Could not create invitation sent dialog!");
+                return;
+            }
+            dialogHandle.launchDialog();
         }
 
         private void notifyP2pProvDiscShowPinRequest(String pin, String peerAddress) {
@@ -4397,28 +4380,32 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 return;
             }
 
-            Resources r = mContext.getResources();
-            final View textEntryView = LayoutInflater.from(mContext).cloneInContext(mContext)
-                    .inflate(R.layout.wifi_p2p_dialog, null);
+            int displayId = mDeathDataByBinder.values().stream()
+                    .filter(d -> d.mDisplayId != Display.DEFAULT_DISPLAY)
+                    .findAny()
+                    .map((dhd) -> dhd.mDisplayId)
+                    .orElse(Display.DEFAULT_DISPLAY);
+            // TODO(b/222115086): This dialog only makes sense for the provision discovery receiver.
+            //                    Use WifiDialogManager.createP2pInvitationSentDialog(...) for the
+            //                    initiator.
+            mWifiInjector.getWifiDialogManager().createP2pInvitationReceivedDialog(
+                    getDeviceName(peerAddress),
+                    false /* isPinRequested */,
+                    pin,
+                    displayId,
+                    new WifiDialogManager.P2pInvitationReceivedDialogCallback() {
+                        @Override
+                        public void onAccepted(@Nullable String optionalPin) {
+                            sendMessage(PEER_CONNECTION_USER_CONFIRM);
+                        }
 
-            ViewGroup group = (ViewGroup) textEntryView.findViewById(R.id.info);
-            addRowToDialog(group, R.string.wifi_p2p_to_message, getDeviceName(peerAddress));
-            addRowToDialog(group, R.string.wifi_p2p_show_pin_message, pin);
-
-            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
-                    .setTitle(r.getString(R.string.wifi_p2p_invitation_sent_title))
-                    .setView(textEntryView)
-                    .setPositiveButton(r.getString(R.string.accept), new OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                sendMessage(PEER_CONNECTION_USER_CONFIRM);
-                            }
-                    })
-                    .create();
-            dialog.setCanceledOnTouchOutside(false);
-            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-            dialog.getWindow().addSystemFlags(
-                    WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-            dialog.show();
+                        @Override
+                        public void onDeclined() {
+                            // Do nothing
+                            // TODO(b/222115086): Do the correct "decline" behavior.
+                        }
+                    },
+                    new WifiThreadRunner(getHandler())).launchDialog();
         }
 
         private void notifyInvitationReceived(
