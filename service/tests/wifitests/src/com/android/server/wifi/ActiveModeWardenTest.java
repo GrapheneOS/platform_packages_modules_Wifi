@@ -135,6 +135,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     private static final String TEST_PACKAGE = "com.test";
     private static final String TEST_COUNTRYCODE = "US";
     private static final WorkSource TEST_WORKSOURCE = new WorkSource(TEST_UID, TEST_PACKAGE);
+    private static final WorkSource SETTINGS_WORKSOURCE =
+            new WorkSource(Process.SYSTEM_UID, "system-service");
 
     TestLooper mLooper;
     @Mock WifiInjector mWifiInjector;
@@ -211,7 +213,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
         when(mSettingsStore.isScanAlwaysAvailable()).thenReturn(false);
         when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
-        when(mFacade.getSettingsWorkSource(mContext)).thenReturn(TEST_WORKSOURCE);
+        when(mFacade.getSettingsWorkSource(mContext)).thenReturn(SETTINGS_WORKSOURCE);
 
         doAnswer(new Answer<ClientModeManager>() {
             public ClientModeManager answer(InvocationOnMock invocation) {
@@ -337,7 +339,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             verify(mWifiInjector).makeClientModeManager(
                     any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
         } else {
-            verify(mClientModeManager).setRole(ROLE_CLIENT_PRIMARY, TEST_WORKSOURCE);
+            verify(mClientModeManager).setRole(ROLE_CLIENT_PRIMARY, SETTINGS_WORKSOURCE);
         }
         verify(mScanRequestProxy, times(1)).enableScanning(true, true);
         if (fromState.equals(DISABLED_STATE_STRING)) {
@@ -1963,7 +1965,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiInjector, never()).makeClientModeManager(
-                any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
+                any(), any(), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
         assertInDisabledState();
         assertInEmergencyMode();
 
@@ -1974,7 +1976,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         // Wifi toggle on now takes effect
         verify(mWifiInjector).makeClientModeManager(
-                any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
+                any(), eq(SETTINGS_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
         assertInEnabledState();
     }
 
@@ -3170,12 +3172,18 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
+        // Simulate explicit user approval
+        WorkSource workSource = new WorkSource(TEST_WORKSOURCE);
+        workSource.add(SETTINGS_WORKSOURCE);
         when(mWifiPermissionsUtil.isSystem(TEST_PACKAGE, TEST_UID)).thenReturn(false);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(
                 TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
                 .thenReturn(true);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(
+                "system-service", Build.VERSION_CODES.S, Process.SYSTEM_UID))
+                .thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                workSource, ROLE_CLIENT_LOCAL_ONLY));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, true);
     }
 
@@ -4020,7 +4028,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             mClientListener.onStarted(mClientModeManager);
             mLooper.dispatchAll();
             verify(mWifiInjector).makeClientModeManager(
-                    any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_SCAN_ONLY), anyBoolean());
+                    any(), eq(SETTINGS_WORKSOURCE), eq(ROLE_CLIENT_SCAN_ONLY), anyBoolean());
             verify(mModeChangeCallback).onActiveModeManagerAdded(mClientModeManager);
             verify(mScanRequestProxy).enableScanning(true, false);
             verify(mBatteryStats).reportWifiOn();

@@ -20,6 +20,7 @@ import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.Manifest.permission.CHANGE_WIFI_STATE;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
+import static android.Manifest.permission.OVERRIDE_WIFI_CONFIG;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
@@ -269,13 +270,18 @@ public class WifiAwareManager {
     /**
      * Enable the Wifi Aware Instant communication mode. If the device doesn't support this feature
      * calling this API will result no action.
+     * <p>
+     * Note: before {@link android.os.Build.VERSION_CODES#TIRAMISU}, only system app can use this
+     * API. Start with {@link android.os.Build.VERSION_CODES#TIRAMISU} apps hold
+     * {@link android.Manifest.permission#OVERRIDE_WIFI_CONFIG} are allowed to use it.
+     *
      * @see Characteristics#isInstantCommunicationModeSupported()
      * @param enable true for enable, false otherwise.
      * @hide
      */
     @SystemApi
     @RequiresApi(Build.VERSION_CODES.S)
-    @RequiresPermission(CHANGE_WIFI_STATE)
+    @RequiresPermission(allOf = {CHANGE_WIFI_STATE, OVERRIDE_WIFI_CONFIG})
     public void enableInstantCommunicationMode(boolean enable) {
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
@@ -1066,7 +1072,7 @@ public class WifiAwareManager {
      *               set configuration and restore default behavior.
      */
     @SystemApi
-    @RequiresPermission(allOf = {android.Manifest.permission.OVERRIDE_WIFI_CONFIG,
+    @RequiresPermission(allOf = {OVERRIDE_WIFI_CONFIG,
             CHANGE_WIFI_STATE})
     public void setAwareParams(@Nullable AwareParams params) {
         try {
