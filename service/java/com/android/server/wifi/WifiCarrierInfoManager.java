@@ -20,7 +20,6 @@ import static android.Manifest.permission.NETWORK_SETTINGS;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -57,7 +56,6 @@ import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
-import android.view.WindowManager;
 
 import androidx.annotation.RequiresApi;
 
@@ -1814,32 +1812,40 @@ public class WifiCarrierInfoManager {
     private void sendImsiPrivacyConfirmationDialog(@NonNull String carrierName, int carrierId) {
         mWifiMetrics.addUserApprovalCarrierUiReaction(ACTION_USER_ALLOWED_CARRIER,
                 mIsLastUserApprovalUiDialog);
-        AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
-                .setTitle(mResources.getString(
-                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_title))
-                .setMessage(mResources.getString(
+        mWifiInjector.getWifiDialogManager().createSimpleDialog(
+                mResources.getString(
+                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_title),
+                mResources.getString(
                         R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_content,
-                        carrierName))
-                .setPositiveButton(mResources.getText(
+                        carrierName),
+                mResources.getString(
                         R.string.wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation),
-                        (d, which) -> mHandler.post(
-                                () -> handleUserAllowCarrierExemptionAction(
-                                        carrierName, carrierId)))
-                .setNegativeButton(mResources.getText(
-                        R.string.wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation),
-                        (d, which) -> mHandler.post(
-                                () -> handleUserDisallowCarrierExemptionAction(
-                                        carrierName, carrierId)))
-                .setOnDismissListener(
-                        (d) -> mHandler.post(this::handleUserDismissAction))
-                .setOnCancelListener(
-                        (d) -> mHandler.post(this::handleUserDismissAction))
-                .create();
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        dialog.getWindow().addSystemFlags(
-                WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-        dialog.show();
+                mResources.getString(R.string
+                        .wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation),
+                null /* neutralButtonText */,
+                new WifiDialogManager.SimpleDialogCallback() {
+                    @Override
+                    public void onPositiveButtonClicked() {
+                        handleUserAllowCarrierExemptionAction(carrierName, carrierId);
+                    }
+
+                    @Override
+                    public void onNegativeButtonClicked() {
+                        handleUserDisallowCarrierExemptionAction(carrierName, carrierId);
+                    }
+
+                    @Override
+                    public void onNeutralButtonClicked() {
+                        // Not used.
+                        handleUserDismissAction();
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        handleUserDismissAction();
+                    }
+                },
+                new WifiThreadRunner(mHandler)).launchDialog();
         mIsLastUserApprovalUiDialog = true;
     }
 

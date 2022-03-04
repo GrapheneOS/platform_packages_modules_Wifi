@@ -26,7 +26,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -60,7 +59,6 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
-import android.view.WindowManager;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
@@ -1579,27 +1577,35 @@ public class WifiNetworkSuggestionsManager {
 
     private void sendUserApprovalDialog(@NonNull String packageName, int uid) {
         CharSequence appName = mFrameworkFacade.getAppName(mContext, packageName, uid);
-        AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
-                .setTitle(mResources.getString(R.string.wifi_suggestion_title))
-                .setMessage(mResources.getString(R.string.wifi_suggestion_content, appName))
-                .setPositiveButton(
-                        mResources.getText(R.string.wifi_suggestion_action_allow_app),
-                        (d, which) -> mHandler.post(
-                                () -> handleUserAllowAction(uid, packageName)))
-                .setNegativeButton(
-                        mResources.getText(R.string.wifi_suggestion_action_disallow_app),
-                        (d, which) -> mHandler.post(
-                                () -> handleUserDisallowAction(uid, packageName)))
-                .setOnDismissListener(
-                        (d) -> mHandler.post(() -> handleUserDismissAction()))
-                .setOnCancelListener(
-                        (d) -> mHandler.post(() -> handleUserDismissAction()))
-                .create();
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        dialog.getWindow().addSystemFlags(
-                WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-        dialog.show();
+        mWifiInjector.getWifiDialogManager().createSimpleDialog(
+                mResources.getString(R.string.wifi_suggestion_title),
+                mResources.getString(R.string.wifi_suggestion_content, appName),
+                mResources.getString(R.string.wifi_suggestion_action_allow_app),
+                mResources.getString(R.string.wifi_suggestion_action_disallow_app),
+                null /* neutralButtonText */,
+                new WifiDialogManager.SimpleDialogCallback() {
+                    @Override
+                    public void onPositiveButtonClicked() {
+                        handleUserAllowAction(uid, packageName);
+                    }
+
+                    @Override
+                    public void onNegativeButtonClicked() {
+                        handleUserDisallowAction(uid, packageName);
+                    }
+
+                    @Override
+                    public void onNeutralButtonClicked() {
+                        // Not used.
+                        handleUserDismissAction();
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        handleUserDismissAction();
+                    }
+                },
+                new WifiThreadRunner(mHandler)).launchDialog();
         mIsLastUserApprovalUiDialog = true;
     }
 

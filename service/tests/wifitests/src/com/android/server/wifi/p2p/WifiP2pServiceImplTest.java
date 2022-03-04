@@ -1121,6 +1121,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
         when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
                 anyInt(), any(), any())).thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any()))
+                .thenReturn(mDialogHandle);
         when(mWifiInjector.getClock()).thenReturn(mClock);
         when(mWifiInjector.getInterfaceConflictManager()).thenReturn(mInterfaceConflictManager);
         // enable all permissions, disable specific permissions in tests
@@ -5091,6 +5093,59 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         WifiP2pConfig config = configCaptor.getValue();
         assertEquals(WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT + 1,
                 config.groupOwnerIntent);
+    }
+
+    /**
+     * Verify that a P2P_PROV_DISC_SHOW_PIN_EVENT for config method DISPLAY triggers an invitation
+     * sent dialog with the correct PIN.
+     */
+    @Test
+    public void testProvisionDiscoveryShowPinEventLaunchesInvitationSentDialog() throws Exception {
+        when(mWifiInfo.getNetworkId()).thenReturn(WifiConfiguration.INVALID_NETWORK_ID);
+        when(mWifiInfo.getFrequency()).thenReturn(2412);
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.DISPLAY;
+        forceP2pEnabled(mClient1);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+
+        mockEnterProvisionDiscoveryState();
+
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        pdEvent.pin = "pin";
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_SHOW_PIN_EVENT,
+                pdEvent);
+
+        verify(mWifiNative).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager).createP2pInvitationSentDialog(
+                pdEvent.device.deviceName, pdEvent.pin);
+        verify(mDialogHandle).launchDialog();
+    }
+
+    /**
+     * Verify that a P2P_PROV_DISC_SHOW_PIN_EVENT for config method DISPLAY triggers an invitation
+     * sent dialog with the correct PIN.
+     */
+    @Test
+    public void testProvisionDiscoveryShowPinEventInactiveStateLaunchesInvitationReceivedDialog()
+            throws Exception {
+        when(mWifiInfo.getNetworkId()).thenReturn(WifiConfiguration.INVALID_NETWORK_ID);
+        when(mWifiInfo.getFrequency()).thenReturn(2412);
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.DISPLAY;
+        forceP2pEnabled(mClient1);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+
+        sendDeviceFoundEventMsg(mTestWifiP2pDevice);
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        pdEvent.pin = "pin";
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_SHOW_PIN_EVENT,
+                pdEvent);
+
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                eq(pdEvent.device.deviceName), eq(false), eq(pdEvent.pin), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog();
     }
 
     /**

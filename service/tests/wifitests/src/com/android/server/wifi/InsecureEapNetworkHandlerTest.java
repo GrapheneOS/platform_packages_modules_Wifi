@@ -31,7 +31,6 @@ import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
@@ -39,8 +38,6 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.os.Handler;
-import android.view.Window;
-import android.widget.TextView;
 
 import androidx.test.filters.SmallTest;
 
@@ -73,14 +70,12 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     @Mock WifiNative mWifiNative;
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock WifiNotificationManager mWifiNotificationManager;
+    @Mock WifiDialogManager mWifiDialogManager;
     @Mock Handler mHandler;
     @Mock InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks mCallbacks;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Notification.Builder mNotificationBuilder;
-    @Mock private AlertDialog.Builder mAlertDialogBuilder;
-    @Mock private AlertDialog mTofuAlertDialog;
-    @Mock private Window mTofuAlertDialogWindow;
-    @Mock private TextView mTofuAlertDialogMessageView;
+    @Mock private WifiDialogManager.DialogHandle mTofuAlertDialog;
 
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
 
@@ -99,19 +94,12 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         when(mContext.getText(anyInt())).thenReturn("TestStr");
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mContext.getResources()).thenReturn(mResources);
+        when(mWifiDialogManager.createSimpleDialogWithUrl(
+                any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                .thenReturn(mTofuAlertDialog);
 
         when(mFrameworkFacade.makeNotificationBuilder(any(), any()))
                 .thenReturn(mNotificationBuilder);
-        when(mFrameworkFacade.makeAlertDialogBuilder(any()))
-                .thenReturn(mAlertDialogBuilder);
-        when(mAlertDialogBuilder.setPositiveButton(any(), any())).thenReturn(mAlertDialogBuilder);
-        when(mAlertDialogBuilder.setNegativeButton(any(), any())).thenReturn(mAlertDialogBuilder);
-        when(mAlertDialogBuilder.setMessage(any())).thenReturn(mAlertDialogBuilder);
-        when(mAlertDialogBuilder.setTitle(any())).thenReturn(mAlertDialogBuilder);
-        when(mAlertDialogBuilder.create()).thenReturn(mTofuAlertDialog);
-        when(mTofuAlertDialog.getWindow()).thenReturn(mTofuAlertDialogWindow);
-        when(mTofuAlertDialog.findViewById(eq(android.R.id.message)))
-                .thenReturn(mTofuAlertDialogMessageView);
     }
 
     @After
@@ -332,7 +320,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mWifiNative,
                 mFrameworkFacade,
                 mWifiNotificationManager,
-                isTrustOnFirstUseSupported,
+                mWifiDialogManager, isTrustOnFirstUseSupported,
                 mCallbacks,
                 WIFI_IFACE_NAME,
                 mHandler);
@@ -365,12 +353,15 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
 
         if (isUserSelected) {
-            verify(mFrameworkFacade).makeAlertDialogBuilder(eq(mContext));
-            // Cannot mock the button behavior of a dialog, call methods directly.
+            ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
+                    ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+            verify(mWifiDialogManager).createSimpleDialogWithUrl(
+                    any(), any(), any(), anyInt(), anyInt(), any(), any(), any(),
+                    dialogCallbackCaptor.capture(), any());
             if (action == ACTION_ACCEPT) {
-                mInsecureEapNetworkHandler.handleAccept(config.SSID);
+                dialogCallbackCaptor.getValue().onPositiveButtonClicked();
             } else if (action == ACTION_REJECT) {
-                mInsecureEapNetworkHandler.handleReject(config.SSID);
+                dialogCallbackCaptor.getValue().onNegativeButtonClicked();
             }
         } else {
             verify(mFrameworkFacade, never()).makeAlertDialogBuilder(any());
@@ -383,12 +374,15 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 intent.putExtra(InsecureEapNetworkHandler.EXTRA_PENDING_CERT_SSID, TEST_SSID);
                 BroadcastReceiver br = mBroadcastReceiverCaptor.getValue();
                 br.onReceive(mContext, intent);
-                verify(mFrameworkFacade).makeAlertDialogBuilder(eq(mContext));
-                // Cannot mock the button behavior of a dialog, call methods directly.
+                ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
+                        ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+                verify(mWifiDialogManager).createSimpleDialogWithUrl(
+                        any(), any(), any(), anyInt(), anyInt(), any(), any(), any(),
+                        dialogCallbackCaptor.capture(), any());
                 if (action == ACTION_ACCEPT) {
-                    mInsecureEapNetworkHandler.handleAccept(config.SSID);
+                    dialogCallbackCaptor.getValue().onPositiveButtonClicked();
                 } else if (action == ACTION_REJECT) {
-                    mInsecureEapNetworkHandler.handleReject(config.SSID);
+                    dialogCallbackCaptor.getValue().onNegativeButtonClicked();
                 }
             } else {
                 Intent intent = new Intent();
@@ -419,7 +413,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
             verify(mCallbacks).onReject(eq(config.SSID));
         } else if (action == ACTION_TAP) {
-            verify(mFrameworkFacade).makeAlertDialogBuilder(eq(mContext));
+            verify(mWifiDialogManager).createSimpleDialogWithUrl(
+                    any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any());
+            verify(mTofuAlertDialog).launchDialog();
         }
         verify(mCallbacks, never()).onError(any());
     }
