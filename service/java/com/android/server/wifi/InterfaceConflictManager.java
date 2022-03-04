@@ -28,6 +28,7 @@ import android.net.wifi.WifiContext;
 import android.os.Message;
 import android.os.WorkSource;
 import android.text.TextUtils;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 
@@ -40,6 +41,7 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +62,7 @@ public class InterfaceConflictManager {
 
     private final Resources mResources;
     private final boolean mUserApprovalNeeded;
+    private final Set<String> mUserApprovalExemptedPackages;
     private boolean mUserApprovalNeededOverride = false;
     private boolean mUserApprovalNeededOverrideValue = false;
 
@@ -82,6 +85,11 @@ public class InterfaceConflictManager {
         mResources = mContext.getResources();
         mUserApprovalNeeded = mResources.getBoolean(
                 R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority);
+        String[] packageList = mResources.getStringArray(
+                R.array.config_wifiExcludedFromUserApprovalForD2dInterfacePriority);
+        mUserApprovalExemptedPackages =
+                (packageList == null || packageList.length == 0) ? Collections.emptySet()
+                        : new ArraySet<>(packageList);
     }
 
     /**
@@ -92,12 +100,30 @@ public class InterfaceConflictManager {
     }
 
     /**
-     * Returns an indication as to whether user approval is needed. This is typically a device
-     * configuration but may be overridden via the shell command.
+     * Returns an indication as to whether user approval is needed for this specific request. User
+     * approval is controlled by:
+     * - A global overlay `config_wifiUserApprovalRequiredForD2dInterfacePriority`
+     * - An exemption list overlay `config_wifiExcludedFromUserApprovalForD2dInterfacePriority`
+     *   which is a list of packages which are *exempted* from user approval
+     * - A shell command which can be used to override
+     *
+     * @param requestorWs The WorkSource of the requestor - used to determine whether it is exempted
+     *                    from user approval. All requesting packages must be exempted for the
+     *                    dialog to NOT be displayed.
      */
-    private boolean isUserApprovalNeeded() {
+    private boolean isUserApprovalNeeded(WorkSource requestorWs) {
         if (mUserApprovalNeededOverride) return mUserApprovalNeededOverrideValue;
-        return mUserApprovalNeeded;
+        if (!mUserApprovalNeeded || mUserApprovalExemptedPackages.isEmpty()) {
+            return mUserApprovalNeeded;
+        }
+
+        for (int i = 0; i < requestorWs.size(); ++i) {
+            if (!mUserApprovalExemptedPackages.contains(requestorWs.getPackageName(i))) {
+                return true;
+            }
+        }
+
+        return false; // all packages of the requestor are excluded
     }
 
     /**
@@ -213,7 +239,7 @@ public class InterfaceConflictManager {
                 return ICM_SKIP_COMMAND_WAIT_FOR_USER; // same effect
             }
 
-            if (!isUserApprovalNeeded()) return ICM_EXECUTE_COMMAND;
+            if (!isUserApprovalNeeded(requestorWs)) return ICM_EXECUTE_COMMAND;
 
             List<Pair<Integer, WorkSource>> impact = mHdm.reportImpactToCreateIface(createIfaceType,
                     false, requestorWs);

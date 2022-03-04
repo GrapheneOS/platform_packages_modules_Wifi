@@ -160,6 +160,23 @@ public class InterfaceConflictManagerTest {
     }
 
     /**
+     * Verify that w/o user approval enabled will always continue operation
+     */
+    @Test
+    public void testUserApprovalDisabledForSpecificPackage() {
+        // disable user approval for specific package
+        when(mResources.getStringArray(
+                R.array.config_wifiExcludedFromUserApprovalForD2dInterfacePriority)).thenReturn(
+                new String[]{TEST_PACKAGE_NAME});
+
+        assertEquals(InterfaceConflictManager.ICM_EXECUTE_COMMAND,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", mSm.obtainMessage(10), mSm,
+                        mSm.B, mSm.A, HalDeviceManager.HDM_CREATE_IFACE_NAN, TEST_WS));
+        mTestLooper.dispatchAll();
+        assertEquals("State changed incorrect", mSm.A, mSm.getCurrentState());
+    }
+
+    /**
      * Verify that if interface cannot be created or if interface can be created w/o side effects
      * then command simply proceeds.
      */

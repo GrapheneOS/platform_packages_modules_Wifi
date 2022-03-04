@@ -226,6 +226,7 @@
           <item type="bool" name="config_wifiForcedSoftApRestartWhenCountryCodeChanged" />
           <item type="array" name="config_wifiInterfacePriorityTreatAsForegroundList"/>
           <item type="bool" name="config_wifiUserApprovalRequiredForD2dInterfacePriority" />
+          <item type="array" name="config_wifiExcludedFromUserApprovalForD2dInterfacePriority" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->
