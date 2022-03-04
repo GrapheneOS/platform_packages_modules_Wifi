@@ -304,6 +304,12 @@ public class WifiNetworkSelector {
             return false;
         }
 
+        // Metered networks costs the user data, so this is insufficient.
+        if (network.meteredOverride == WifiConfiguration.METERED_OVERRIDE_METERED) {
+            localLog("Current network is metered");
+            return false;
+        }
+
         // Network without internet access is not sufficient, unless expected
         if (!hasInternetOrExpectNoInternet(wifiInfo)) {
             localLog("Current network has [" + network.numNoInternetAccessReports
