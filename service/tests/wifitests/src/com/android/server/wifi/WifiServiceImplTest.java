@@ -6732,8 +6732,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testRemoveNonCallerConfiguredNetworks_NetworksRemoved() {
         final int callerUid = Binder.getCallingUid();
-        when(mWifiPermissionsUtil.isDeviceOwner(Binder.getCallingUid(), TEST_PACKAGE_NAME))
-                .thenReturn(true);
+        when(mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(
+                Binder.getCallingUid(), TEST_PACKAGE_NAME)).thenReturn(true);
 
         mLooper.startAutoDispatch();
         mWifiServiceImpl.removeNonCallerConfiguredNetworks(TEST_PACKAGE_NAME);

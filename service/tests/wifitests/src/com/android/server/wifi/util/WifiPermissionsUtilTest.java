@@ -1019,6 +1019,43 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies the helper method exposed for checking if the calling uid is a ProfileOwner
+     * of an organization owned device.
+     */
+    @Test
+    public void testIsProfileOwnerOfOrganizationOwnedDevice() throws Exception {
+        setupMocks();
+        WifiPermissionsUtil wifiPermissionsUtil = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+
+        when(mMockContext.createPackageContextAsUser(
+                TEST_WIFI_STACK_APK_NAME, 0, UserHandle.getUserHandleForUid(MANAGED_PROFILE_UID)))
+                .thenReturn(mMockContext);
+        when(mMockContext.getSystemService(DevicePolicyManager.class))
+                .thenReturn(mDevicePolicyManager);
+
+        when(mDevicePolicyManager.isOrganizationOwnedDeviceWithManagedProfile())
+                .thenReturn(true);
+        String[] packageNames = {TEST_PACKAGE_NAME};
+        when(mMockContext.getPackageManager().getPackagesForUid(MANAGED_PROFILE_UID))
+                .thenReturn(packageNames);
+
+        when(mDevicePolicyManager.isProfileOwnerApp(TEST_PACKAGE_NAME)).thenReturn(true);
+        assertTrue(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
+                MANAGED_PROFILE_UID));
+
+        when(mDevicePolicyManager.isProfileOwnerApp(TEST_PACKAGE_NAME)).thenReturn(false);
+        assertFalse(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
+                MANAGED_PROFILE_UID));
+
+        // DevicePolicyManager does not exist.
+        when(mMockContext.getSystemService(Context.DEVICE_POLICY_SERVICE))
+                .thenReturn(null);
+        assertFalse(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
+                MANAGED_PROFILE_UID));
+    }
+
+    /**
      * Test case setting: caller does not have Location permission.
      * Expect a SecurityException
      */

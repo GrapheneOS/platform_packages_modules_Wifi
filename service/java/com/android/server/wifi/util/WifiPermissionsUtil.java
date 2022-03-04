@@ -1001,6 +1001,36 @@ public class WifiPermissionsUtil {
         return devicePolicyManager.isProfileOwnerApp(packageName);
     }
 
+    /**
+     * Returns {@code true} if the calling {@code uid} is the profile owner of
+     * an organization owned device.
+     */
+    public boolean isProfileOwnerOfOrganizationOwnedDevice(int uid) {
+        DevicePolicyManager devicePolicyManager =
+                retrieveDevicePolicyManagerFromUserContext(uid);
+        if (devicePolicyManager == null) return false;
+
+        // this relies on having only one PO on COPE device.
+        if (!devicePolicyManager.isOrganizationOwnedDeviceWithManagedProfile()) {
+            return false;
+        }
+        String[] packages = mContext.getPackageManager().getPackagesForUid(uid);
+        for (String packageName : packages) {
+            if (devicePolicyManager.isProfileOwnerApp(packageName)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if the calling {@code uid} and {@code packageName} is the device owner
+     * or the profile owner of an organization owned device.
+     */
+    public boolean isOrganizationOwnedDeviceAdmin(int uid, @Nullable String packageName) {
+        boolean isDeviceOwner =
+                packageName == null ? isDeviceOwner(uid) : isDeviceOwner(uid, packageName);
+        return isDeviceOwner || isProfileOwnerOfOrganizationOwnedDevice(uid);
+    }
+
     /** Helper method to check if the entity initiating the binder call is a system app. */
     public boolean isSystem(String packageName, int uid) {
         long ident = Binder.clearCallingIdentity();
