@@ -479,7 +479,8 @@ public class WifiInjector {
         mConnectionFailureNotifier = new ConnectionFailureNotifier(
                 mContext, mFrameworkFacade, mWifiConfigManager,
                 mWifiConnectivityManager, wifiHandler,
-                mWifiNotificationManager, mConnectionFailureNotificationBuilder);
+                mWifiNotificationManager, mConnectionFailureNotificationBuilder,
+                mWifiDialogManager);
         mWifiNetworkFactory = new WifiNetworkFactory(
                 wifiLooper, mContext, REGULAR_NETWORK_CAPABILITIES_FILTER,
                 (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE),

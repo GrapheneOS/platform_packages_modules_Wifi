@@ -813,6 +813,16 @@
     </string-array>
 
     <!-- Indicates whether or not user approval is required for device-to-device interface priority
-         decisions -->
+         decisions (note: packages included in
+         `config_excludedFromUserApprovalForD2dInterfacePriority` are excluded). -->
     <bool translatable="false" name="config_wifiUserApprovalRequiredForD2dInterfacePriority">false</bool>
+    <!-- list of package names that are excluded from the user approval flag
+         `config_wifiUserApprovalRequiredForD2dInterfacePriority`. I.e. any priority conflicts from
+          requests by these packages will be handled by the default resolution of the framework. -->
+    <string-array translatable="false" name="config_wifiExcludedFromUserApprovalForD2dInterfacePriority">
+        <!-- Below is a sample configuration for this list:
+        <item>com.company1.example.test.name1</item>
+        <item>com.company2.example.test.name2</item>
+        -->
+    </string-array>
 </resources>

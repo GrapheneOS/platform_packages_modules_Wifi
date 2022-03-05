@@ -81,6 +81,7 @@ import android.net.ip.IpClientUtil;
 import android.net.wifi.BaseWifiService;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.IActionListener;
+import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
@@ -3559,8 +3560,9 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new SecurityException("Caller does not hold CHANGE_WIFI_STATE permission");
         }
         final int callingUid = Binder.getCallingUid();
-        if (!mWifiPermissionsUtil.isDeviceOwner(callingUid, packageName)) {
-            throw new SecurityException("Caller is not device owner");
+        if (!mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(callingUid, packageName)) {
+            throw new SecurityException("Caller is not device owner or profile owner "
+                    + "of an organization owned device");
         }
         return mWifiThreadRunner.call(
                 () -> mWifiConfigManager.removeNonCallerConfiguredNetwork(callingUid), false);
@@ -3736,6 +3738,30 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiThreadRunner.post(() -> mWifiConnectivityManager.setAutoJoinEnabledExternal(choice));
         mLastCallerInfoManager.put(WifiManager.API_AUTOJOIN_GLOBAL, Process.myTid(),
                 callingUid, Binder.getCallingPid(), "<unknown>", choice);
+    }
+
+    /**
+     * See {@link WifiManager#getAutojoinGlobal(Executor, Consumer)}
+     */
+    @Override
+    public void getAutojoinGlobal(@NonNull IBooleanListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        int callingUid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
+                && !mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid)
+                && !isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName())) {
+            throw new SecurityException("Uid " + callingUid
+                    + " is not allowed to get wifi global autojoin");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**

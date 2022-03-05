@@ -366,6 +366,22 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     }
 
     @Test
+    public void testNetworkInsufficientWhenMetered() {
+        // mock current network to be connected
+        WifiConfiguration testConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        when(mWifiInfo.getSupplicantState()).thenReturn(SupplicantState.COMPLETED);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt()))
+                .thenReturn(testConfig);
+
+        // verify the current network is sufficient
+        assertTrue(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
+
+        // verify the current network is no longer sufficient after setting "isUsable" to false.
+        testConfig.meteredOverride = WifiConfiguration.METERED_OVERRIDE_METERED;
+        assertFalse(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
+    }
+
+    @Test
     public void testNetworkInsufficientWhenMarkedUnusable() {
         // mock current network to be connected
         WifiConfiguration testConfig = WifiConfigurationTestUtil.createOpenNetwork();

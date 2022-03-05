@@ -623,4 +623,40 @@ public class WifiDialogManager {
             ((P2pInvitationReceivedDialogHandle) internalHandle).notifyOnDeclined();
         }
     }
+
+    private class P2pInvitationSentDialogHandle extends DialogHandleInternal {
+        P2pInvitationSentDialogHandle(
+                final @NonNull String deviceName,
+                final @NonNull String displayPin) throws IllegalArgumentException {
+            super(getBaseLaunchIntent(WifiManager.DIALOG_TYPE_P2P_INVITATION_SENT)
+                    .putExtra(WifiManager.EXTRA_P2P_DEVICE_NAME, deviceName)
+                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN, displayPin));
+            if (deviceName == null) {
+                throw new IllegalArgumentException("Device name cannot be null!");
+            }
+            if (displayPin == null) {
+                throw new IllegalArgumentException("Display PIN cannot be null!");
+            }
+        }
+    }
+
+    /**
+     * Creates a P2P Invitation Sent dialog.
+     *
+     * @param deviceName           Name of the device the invitation was sent to.
+     * @param displayPin           display PIN
+     * @return DialogHandle        Handle for the dialog, or {@code null} if no dialog could
+     *                             be created.
+     */
+    @AnyThread
+    public DialogHandle createP2pInvitationSentDialog(
+            @NonNull String deviceName,
+            @Nullable String displayPin) {
+        try {
+            return new DialogHandle(new P2pInvitationSentDialogHandle(deviceName, displayPin));
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for P2P Invitation Sent dialog: " + e);
+            return null;
+        }
+    }
 }

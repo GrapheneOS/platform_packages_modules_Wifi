@@ -122,6 +122,14 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ഉപകരണങ്ങളൊന്നും കണക്‌റ്റ് ചെയ്തിട്ടില്ല. പരിഷ്‌കരിക്കാൻ ടാപ്പ് ചെയ്യുക."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"വൈഫൈ വിച്ഛേദിച്ചു"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> എന്നതിലേക്ക് കണക്‌റ്റ് ചെയ്യാൻ <xliff:g id="CARRIER_NAME">%2$s</xliff:g> സിം ഇടുക"</string>
+    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
+    <skip />
+    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
+    <skip />
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ഈ നെറ്റ്‌വർക്ക് വിശ്വസനീയമാണോ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ഉവ്വ്, കണക്റ്റ് ചെയ്യുക"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"വേണ്ട, കണക്റ്റ് ചെയ്യരുത്"</string>
@@ -143,4 +151,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"<xliff:g id="SSID">%1$s</xliff:g> എന്ന നെറ്റ്‌വർക്കിന് ഒരു സർട്ടിഫിക്കറ്റ് ഇല്ല. സർട്ടിഫിക്കറ്റുകൾ ചേർക്കുന്നത് എങ്ങനെയെന്നറിയാൻ ടാപ് ചെയ്യുക."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"എന്തായാലും കണക്‌റ്റ് ചെയ്യുക"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"കണക്റ്റ് ചെയ്യരുത്"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"വൈഫൈ ഓണാക്കാൻ <xliff:g id="APP_NAME">%1$s</xliff:g> എന്നതിനെ അനുവദിക്കണോ?"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"ദ്രുത ക്രമീകരണത്തിൽ നിങ്ങൾക്ക് വൈഫൈ ഓഫാക്കാൻ കഴിയും"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"അനുവദിക്കുക"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"അനുവദിക്കരുത്"</string>
 </resources>

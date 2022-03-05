@@ -1001,20 +1001,22 @@ public class WifiConfigManager {
         // isDeviceOwner(uid) method), but it would require changing  many methods to pass the
         // package name around (for example, all methods called by
         // WifiServiceImpl.triggerConnectAndReturnStatus(netId, callingUid)
-        final boolean isDeviceOwner = packageName == null
-                ? mWifiPermissionsUtil.isDeviceOwner(uid)
-                : mWifiPermissionsUtil.isDeviceOwner(uid, packageName);
+        final boolean isOrganizationOwnedDeviceAdmin =
+                mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(uid, packageName);
 
-        // If |uid| corresponds to the device owner, allow all modifications.
-        if (isDeviceOwner) {
+        // If |uid| corresponds to the device owner or the profile owner of an organization owned
+        // device, allow all modifications.
+        if (isOrganizationOwnedDeviceAdmin) {
             return true;
         }
 
         final boolean isCreator = (config.creatorUid == uid);
 
-        // WiFi config lockdown related logic. At this point we know uid is NOT a Device Owner.
+        // WiFi config lockdown related logic. At this point we know uid is NOT a Device Owner
+        // or a Profile Owner of an organization owned device.
         final boolean isConfigEligibleForLockdown =
-                mWifiPermissionsUtil.isDeviceOwner(config.creatorUid, config.creatorName);
+                mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(config.creatorUid,
+                        config.creatorName);
         if (!isConfigEligibleForLockdown) {
             // App that created the network or settings app (i.e user) has permission to
             // modify the network.
@@ -1030,7 +1032,6 @@ public class WifiConfigManager {
                 // If not locked down, settings app (i.e user) has permission to modify the network.
                 && (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid));
-
     }
 
     private void mergeSecurityParamsListWithInternalWifiConfiguration(

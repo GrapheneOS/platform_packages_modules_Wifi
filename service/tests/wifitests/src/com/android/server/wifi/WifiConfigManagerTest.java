@@ -336,6 +336,11 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isAdmin(anyInt(), any())).thenReturn(result);
     }
 
+    private void mockIsOrganizationOwnedDeviceAdmin(boolean result) {
+        when(mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(anyInt(), any()))
+                .thenReturn(result);
+    }
+
     /**
      * Called after each test
      */
@@ -763,16 +768,16 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verifies that the device owner could modify other other fields in the Wificonfiguration
-     * but not the macRandomizationSetting field for networks they do not own.
+     * Verifies that the organization owned device admin could modify other other fields in the
+     * Wificonfiguration but not the macRandomizationSetting field for networks they do not own.
      */
     @Test
-    public void testCannotUpdateMacRandomizationSettingWithoutPermission() {
+    public void testCannotUpdateMacRandomizationSettingWithoutPermissionDO() {
         ArgumentCaptor<WifiConfiguration> wifiConfigCaptor =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
-        mockIsDeviceOwner(true);
+        mockIsOrganizationOwnedDeviceAdmin(true);
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
         openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
 
@@ -803,7 +808,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiConfiguration.class);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
-        mockIsDeviceOwner(true);
+        mockIsOrganizationOwnedDeviceAdmin(true);
         mockIsAdmin(true);
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
         openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NONE;

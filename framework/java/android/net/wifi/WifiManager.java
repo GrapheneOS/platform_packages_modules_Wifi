@@ -99,6 +99,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * This class provides the primary API for managing all aspects of Wi-Fi
@@ -6203,6 +6204,40 @@ public class WifiManager {
         }
     }
 
+    /**
+     * Returns whether auto-join global is enabled/disabled
+     * @see #allowAutojoinGlobal(boolean)
+     *
+     * Available for DO/PO apps.
+     * Other apps require {@code android.Manifest.permission#NETWORK_SETTINGS} or
+     * {@code android.Manifest.permission#MANAGE_WIFI_AUTO_JOIN} permission.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether auto-join global is enabled/disabled.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void getAutojoinGlobal(@NonNull Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getAutojoinGlobal(
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 
     /**
      * Sets the user choice for allowing auto-join to a network.
@@ -9303,16 +9338,24 @@ public class WifiManager {
     public static final int DIALOG_TYPE_SIMPLE = 1;
 
     /**
+     * DialogType for a P2P Invitation Sent dialog.
+     * @see {@link com.android.server.wifi.WifiDialogManager#createP2pInvitationSentDialog}
+     * @hide
+     */
+    public static final int DIALOG_TYPE_P2P_INVITATION_SENT = 2;
+
+    /**
      * DialogType for a P2P Invitation Received dialog.
      * @see {@link com.android.server.wifi.WifiDialogManager#createP2pInvitationReceivedDialog}
      * @hide
      */
-    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 2;
+    public static final int DIALOG_TYPE_P2P_INVITATION_RECEIVED = 3;
 
     /** @hide */
     @IntDef(prefix = { "DIALOG_TYPE_" }, value = {
             DIALOG_TYPE_UNKNOWN,
             DIALOG_TYPE_SIMPLE,
+            DIALOG_TYPE_P2P_INVITATION_SENT,
             DIALOG_TYPE_P2P_INVITATION_RECEIVED,
     })
     @Retention(RetentionPolicy.SOURCE)
@@ -9601,21 +9644,21 @@ public class WifiManager {
     public @interface WifiInterfaceType {}
 
     /**
-     * Class describing a consequence of interface creation - returned by
+     * Class describing an impact of interface creation - returned by
      * {@link #reportCreateInterfaceImpact(int, boolean, Executor, BiConsumer)}. Due to Wi-Fi
      * concurrency limitations certain interfaces may have to be torn down. Each of these
      * interfaces was requested by a set of applications who could potentially be impacted.
      *
      * This class contain the information for a single interface: the interface type with
-     * {@link InterfaceCreationConsequence#getInterfaceType()} and the list of impacted packages
-     * with {@link InterfaceCreationConsequence#getPackages()}.
+     * {@link InterfaceCreationImpact#getInterfaceType()} and the set of impacted packages
+     * with {@link InterfaceCreationImpact#getPackages()}.
      */
-    public static class InterfaceCreationConsequence {
+    public static class InterfaceCreationImpact {
         private final int mInterfaceType;
-        private final List<String> mPackages;
+        private final Set<String> mPackages;
 
-        public InterfaceCreationConsequence(@WifiInterfaceType int interfaceType,
-                @NonNull List<String> packages) {
+        public InterfaceCreationImpact(@WifiInterfaceType int interfaceType,
+                @NonNull Set<String> packages) {
             mInterfaceType = interfaceType;
             mPackages = packages;
         }
@@ -9632,7 +9675,7 @@ public class WifiManager {
          * @return The list of potentially impacted packages due to tearing down the interface
          * specified in {@link #getInterfaceType()}.
          */
-        public @NonNull List<String> getPackages() {
+        public @NonNull Set<String> getPackages() {
             return mPackages;
         }
     }
@@ -9644,7 +9687,7 @@ public class WifiManager {
      * which returns two arguments:
      * <li>First argument: a {@code boolean} - indicating whether or not the interface can be
      * created.</li>
-     * <li>Second argument: a {@code List<Pair<Integer, String[]>>} - if the interface can be
+     * <li>Second argument: a {@code List<InterfaceCreationImpact>} - if the interface can be
      * created (first argument is {@code true} then this is the list of interface types which
      * will be removed and the packages which requested them. Possibly an empty list. If the
      * first argument is {@code false}, then an empty list will be returned here.</li>
@@ -9669,7 +9712,7 @@ public class WifiManager {
      * @param executor An {@link Executor} on which to return the result.
      * @param resultCallback The asynchronous callback which will return two argument: a
      * {@code boolean} (whether the interface can be created), and a
-     * {@code List<InterfaceCreationConsequence>} (a list of {@link InterfaceCreationConsequence}:
+     * {@code List<InterfaceCreationImpact>} (a list of {@link InterfaceCreationImpact}:
      *                       interfaces which will be destroyed when the interface is created
      *                       and the packages which requested them and thus may be impacted).
      */
@@ -9679,7 +9722,7 @@ public class WifiManager {
     public void reportCreateInterfaceImpact(@WifiInterfaceType int interfaceType,
             boolean requireNewInterface,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull BiConsumer<Boolean, List<InterfaceCreationConsequence>> resultCallback) {
+            @NonNull BiConsumer<Boolean, List<InterfaceCreationImpact>> resultCallback) {
         Objects.requireNonNull(executor, "Non-null executor required");
         Objects.requireNonNull(resultCallback, "Non-null resultCallback required");
         try {
@@ -9704,14 +9747,14 @@ public class WifiManager {
                                 return;
                             }
 
-                            final List<InterfaceCreationConsequence> finalList =
+                            final List<InterfaceCreationImpact> finalList =
                                     (canCreate && interfacesToDelete.length > 0) ? new ArrayList<>()
                                             : Collections.emptyList();
                             if (canCreate) {
                                 for (int i = 0; i < interfacesToDelete.length; ++i) {
                                     finalList.add(
-                                            new InterfaceCreationConsequence(interfacesToDelete[i],
-                                                    Arrays.asList(
+                                            new InterfaceCreationImpact(interfacesToDelete[i],
+                                                    new ArraySet<>(
                                                             packagesForInterfaces[i].split(","))));
                                 }
                             }
