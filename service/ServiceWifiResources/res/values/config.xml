@@ -151,6 +151,9 @@
          If both APs in Dual AP mode are idle, it shuts down the AP in higher band. -->
     <integer translatable="false" name="config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond">300000</integer>
 
+    <!-- boolean indicating whether or not to disable shutdown idle instance timer in the bridged mode when charging -->
+    <bool translatable="false" name ="config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging">false</bool>
+
     <!-- Integer indicating maximum hardware supported client number of soft ap -->
     <integer translatable="false" name="config_wifiHardwareSoftapMaxClientCount">16</integer>
 
