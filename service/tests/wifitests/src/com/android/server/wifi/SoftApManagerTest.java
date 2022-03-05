@@ -41,6 +41,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
@@ -52,8 +53,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.app.test.TestAlarmManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.MacAddress;
 import android.net.wifi.CoexUnsafeChannel;
@@ -68,6 +71,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeWifiClient;
+import android.os.BatteryManager;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
@@ -184,6 +188,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     @Mock ConcreteClientModeManager mConcreteClientModeManager;
     @Mock WifiInfo mPrimaryWifiInfo;
     @Mock WifiInfo mSecondWifiInfo;
+    @Mock BatteryManager mBatteryManager;
 
     final ArgumentCaptor<WifiNative.InterfaceCallback> mWifiNativeInterfaceCallbackCaptor =
             ArgumentCaptor.forClass(WifiNative.InterfaceCallback.class);
@@ -197,6 +202,9 @@ public class SoftApManagerTest extends WifiBaseTest {
 
     private final ArgumentCaptor<ClientModeImplListener> mCmiListenerCaptor =
             ArgumentCaptor.forClass(ClientModeImplListener.class);
+
+    private final ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor =
+            ArgumentCaptor.forClass(BroadcastReceiver.class);
 
     SoftApManager mSoftApManager;
 
@@ -372,6 +380,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNative,
                 mCoexManager,
+                mBatteryManager,
                 countryCode,
                 mListener,
                 mCallback,
@@ -3207,6 +3216,63 @@ public class SoftApManagerTest extends WifiBaseTest {
                 WifiManager.IFACE_IP_MODE_TETHERED, bridgedConfig,
                 mTestSoftApCapability);
         startSoftApAndVerifyEnabled(apConfig, TEST_COUNTRY_CODE, bridgedConfig);
+    }
+
+    @Test
+    public void testSchedulesTimeoutTimerWhenChargingChanged() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mResources.getBoolean(R.bool
+                  .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging))
+                .thenReturn(true);
+
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, generateBridgedModeSoftApConfig(null),
+                mTestSoftApCapability);
+        startSoftApAndVerifyEnabled(apConfig);
+
+        verify(mResources)
+                .getInteger(R.integer.config_wifiFrameworkSoftApShutDownTimeoutMilliseconds);
+        verify(mResources)
+                .getInteger(R.integer
+                .config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond);
+
+        reset(mCallback);
+        // SoftApInfo updated
+        mockSoftApInfoUpdateAndVerifyAfterSapStarted(true /* bridged mode*/, true);
+        WakeupMessage timerOnTestInterface =
+                mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_INTERFACE_NAME);
+        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
+                argThat((IntentFilter filter) ->
+                        filter.hasAction(Intent.ACTION_POWER_CONNECTED)
+                                && filter.hasAction(Intent.ACTION_POWER_DISCONNECTED)));
+        mBroadcastReceiverCaptor.getValue().onReceive(mContext,
+                new Intent(Intent.ACTION_POWER_CONNECTED));
+        mLooper.dispatchAll();
+        // Verify whole SAP timer is canceled at this point
+        verify(mAlarmManager.getAlarmManager(), never()).cancel(
+                eq(mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_INTERFACE_NAME)));
+        verify(mAlarmManager.getAlarmManager()).cancel(
+                eq(mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_FIRST_INSTANCE_NAME)));
+        verify(mAlarmManager.getAlarmManager()).cancel(
+                eq(mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_SECOND_INSTANCE_NAME)));
+
+        mBroadcastReceiverCaptor.getValue().onReceive(mContext,
+                new Intent(Intent.ACTION_POWER_DISCONNECTED));
+        mLooper.dispatchAll();
+        // Verify tethered instance timer is NOT re-scheduled (Keep 2 times)
+        verify(mAlarmManager.getAlarmManager(), times(2)).setExact(anyInt(), anyLong(),
+                    eq(mSoftApManager.SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG
+                            + TEST_INTERFACE_NAME),
+                    any(), any());
+        // Verify AP instance timer is scheduled.
+        verify(mAlarmManager.getAlarmManager(), times(2)).setExact(anyInt(), anyLong(),
+                eq(mSoftApManager.SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG
+                                  + TEST_FIRST_INSTANCE_NAME),
+                        any(), any());
+        verify(mAlarmManager.getAlarmManager(), times(2)).setExact(anyInt(), anyLong(),
+                eq(mSoftApManager.SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG
+                                  + TEST_SECOND_INSTANCE_NAME),
+                        any(), any());
     }
 }
 
