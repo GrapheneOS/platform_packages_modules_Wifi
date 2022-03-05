@@ -1511,10 +1511,10 @@ package android.net.wifi.rtt {
   public final class ResponderConfig implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public static android.net.wifi.rtt.ResponderConfig fromScanResult(@NonNull android.net.wifi.ScanResult);
-    method public int getCenterFreq0Mhz();
-    method public int getCenterFreq1Mhz();
+    method @IntRange(from=0) public int getCenterFreq0Mhz();
+    method @IntRange(from=0) public int getCenterFreq1Mhz();
     method public int getChannelWidth();
-    method public int getFrequencyMhz();
+    method @IntRange(from=0) public int getFrequencyMhz();
     method @Nullable public android.net.MacAddress getMacAddress();
     method public int getPreamble();
     method public boolean is80211mcSupported();
@@ -1526,10 +1526,10 @@ package android.net.wifi.rtt {
     ctor public ResponderConfig.Builder();
     method @NonNull public android.net.wifi.rtt.ResponderConfig build();
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder set80211mcSupported(boolean);
-    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq0Mhz(int);
-    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq1Mhz(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq0Mhz(@IntRange(from=0) int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setCenterFreq1Mhz(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setChannelWidth(int);
-    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setFrequencyMhz(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setFrequencyMhz(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setMacAddress(@NonNull android.net.MacAddress);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setPreamble(int);
   }
