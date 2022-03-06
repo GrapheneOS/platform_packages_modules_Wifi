@@ -23,6 +23,7 @@ import static android.net.wifi.ScanResult.InformationElement.EID_HT_CAPABILITIES
 import static android.net.wifi.ScanResult.InformationElement.EID_VHT_CAPABILITIES;
 
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -514,6 +515,7 @@ public final class ResponderConfig implements Parcelable {
     /**
      * @return the frequency in MHz of the Wi-Fi channel
      */
+    @IntRange(from = 0)
     public int getFrequencyMhz() {
         return frequency;
     }
@@ -525,6 +527,7 @@ public final class ResponderConfig implements Parcelable {
      *
      * @return the center frequency in MHz of the first channel segment
      */
+    @IntRange(from = 0)
     public int getCenterFreq0Mhz() {
         return centerFreq0;
     }
@@ -535,6 +538,7 @@ public final class ResponderConfig implements Parcelable {
      *
      * @return the center frequency in MHz of the second channel segment (if used)
      */
+    @IntRange(from = 0)
     public int getCenterFreq1Mhz() {
         return centerFreq1;
     }
@@ -609,7 +613,7 @@ public final class ResponderConfig implements Parcelable {
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
         @NonNull
-        public Builder setFrequencyMhz(int frequency) {
+        public Builder setFrequencyMhz(@IntRange(from = 0) int frequency) {
             this.mFrequency = frequency;
             return this;
         }
@@ -622,7 +626,7 @@ public final class ResponderConfig implements Parcelable {
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
         @NonNull
-        public Builder setCenterFreq0Mhz(int centerFreq0) {
+        public Builder setCenterFreq0Mhz(@IntRange(from = 0) int centerFreq0) {
             this.mCenterFreq0 = centerFreq0;
             return this;
         }
@@ -635,7 +639,7 @@ public final class ResponderConfig implements Parcelable {
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
         @NonNull
-        public Builder setCenterFreq1Mhz(int centerFreq1) {
+        public Builder setCenterFreq1Mhz(@IntRange(from = 0) int centerFreq1) {
             this.mCenterFreq1 = centerFreq1;
             return this;
         }
