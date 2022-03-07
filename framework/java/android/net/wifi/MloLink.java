@@ -122,9 +122,11 @@ public final class MloLink implements Parcelable {
         mState = source.mState;
 
         mStaMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_LOCAL_MAC_ADDRESS) != 0)
+                || source.mStaMacAddress == null
                 ? null :  MacAddress.fromString(source.mStaMacAddress.toString());
 
         mApMacAddress = ((redactions & NetworkCapabilities.REDACT_FOR_ACCESS_FINE_LOCATION) != 0)
+                || source.mApMacAddress == null
                 ? null : MacAddress.fromString(source.mApMacAddress.toString());
     }
 
