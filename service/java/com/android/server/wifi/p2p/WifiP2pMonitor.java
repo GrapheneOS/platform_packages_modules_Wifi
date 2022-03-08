@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.p2p;
 
+import android.annotation.IntDef;
+import android.annotation.NonNull;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -31,6 +33,8 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Protocol;
 import com.android.server.wifi.p2p.WifiP2pServiceImpl.P2pStatus;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +80,22 @@ public class WifiP2pMonitor {
     public static final int AP_STA_DISCONNECTED_EVENT            = BASE + 41;
     public static final int AP_STA_CONNECTED_EVENT               = BASE + 42;
 
+    public static final int PROV_DISC_STATUS_SUCCESS             = 0;
+    public static final int PROV_DISC_STATUS_TIMEOUT             = 1;
+    public static final int PROV_DISC_STATUS_REJECTED            = 2;
+    public static final int PROV_DISC_STATUS_TIMEOUT_JOIN        = 3;
+    public static final int PROV_DISC_STATUS_INFO_UNAVAILABLE    = 4;
+    public static final int PROV_DISC_STATUS_UNKNOWN             = 5;
+    @IntDef(prefix = {"PROV_DISC_STATUS_"}, value = {
+            PROV_DISC_STATUS_SUCCESS,
+            PROV_DISC_STATUS_TIMEOUT,
+            PROV_DISC_STATUS_REJECTED,
+            PROV_DISC_STATUS_TIMEOUT_JOIN,
+            PROV_DISC_STATUS_INFO_UNAVAILABLE,
+            PROV_DISC_STATUS_UNKNOWN})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface P2pProvDiscStatus {
+    }
 
     private boolean mVerboseLoggingEnabled = false;
 
@@ -422,9 +442,12 @@ public class WifiP2pMonitor {
      * Broadcast P2P discovery failure event to all handlers registered for this event.
      *
      * @param iface Name of iface on which this occurred.
+     * @param status Indicate the reason of this failure.
+     * @param event The information about the provision discovery.
      */
-    public void broadcastP2pProvisionDiscoveryFailure(String iface) {
-        sendMessage(iface, P2P_PROV_DISC_FAILURE_EVENT);
+    public void broadcastP2pProvisionDiscoveryFailure(@NonNull String iface,
+            @P2pProvDiscStatus int status, @NonNull WifiP2pProvDiscEvent event) {
+        sendMessage(iface, P2P_PROV_DISC_FAILURE_EVENT, status, 0, event);
     }
 
     /**

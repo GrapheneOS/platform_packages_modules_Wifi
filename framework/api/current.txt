@@ -1233,6 +1233,7 @@ package android.net.wifi.p2p {
     method @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public void startListening(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void stopListening(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method public void stopPeerDiscovery(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pManager.ActionListener);
+    field public static final String ACTION_WIFI_P2P_REQUEST_RESPONSE_CHANGED = "android.net.wifi.p2p.action.WIFI_P2P_REQUEST_RESPONSE_CHANGED";
     field public static final int BUSY = 2; // 0x2
     field public static final int CONNECTION_REQUEST_ACCEPT = 0; // 0x0
     field public static final int CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE = 3; // 0x3
@@ -1242,6 +1243,7 @@ package android.net.wifi.p2p {
     field public static final String EXTRA_DISCOVERY_STATE = "discoveryState";
     field public static final String EXTRA_NETWORK_INFO = "networkInfo";
     field public static final String EXTRA_P2P_DEVICE_LIST = "wifiP2pDeviceList";
+    field public static final String EXTRA_REQUEST_RESPONSE = "android.net.wifi.p2p.extra.REQUEST_RESPONSE";
     field public static final String EXTRA_WIFI_P2P_DEVICE = "wifiP2pDevice";
     field public static final String EXTRA_WIFI_P2P_GROUP = "p2pGroupInfo";
     field public static final String EXTRA_WIFI_P2P_INFO = "wifiP2pInfo";
