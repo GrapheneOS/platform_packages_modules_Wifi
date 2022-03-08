@@ -26,6 +26,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pProvDiscEvent;
 import android.net.wifi.p2p.WifiP2pWfdInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceResponse;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.server.wifi.p2p.WifiP2pServiceImpl.P2pStatus;
@@ -381,6 +382,23 @@ public class SupplicantP2pIfaceCallbackHidlImpl extends ISupplicantP2pIfaceCallb
         mMonitor.broadcastP2pInvitationResult(mInterface, halStatusToP2pStatus(status));
     }
 
+    private @WifiP2pMonitor.P2pProvDiscStatus int convertHalProvDiscStatusToFrameworkStatus(
+            int status) {
+        switch (status) {
+            case ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.SUCCESS:
+                return WifiP2pMonitor.PROV_DISC_STATUS_SUCCESS;
+            case ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.TIMEOUT:
+                return WifiP2pMonitor.PROV_DISC_STATUS_TIMEOUT;
+            case ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.REJECTED:
+                return WifiP2pMonitor.PROV_DISC_STATUS_REJECTED;
+            case ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.TIMEOUT_JOIN:
+                return WifiP2pMonitor.PROV_DISC_STATUS_TIMEOUT_JOIN;
+            case ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.INFO_UNAVAILABLE:
+                return WifiP2pMonitor.PROV_DISC_STATUS_INFO_UNAVAILABLE;
+            default:
+                return WifiP2pMonitor.PROV_DISC_STATUS_UNKNOWN;
+        }
+    }
 
     /**
      * Used to indicate the completion of a P2P provision discovery request.
@@ -394,14 +412,9 @@ public class SupplicantP2pIfaceCallbackHidlImpl extends ISupplicantP2pIfaceCallb
      */
     public void onProvisionDiscoveryCompleted(byte[] p2pDeviceAddress, boolean isRequest,
             byte status, short configMethods, String generatedPin) {
-        if (status != ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.SUCCESS) {
-            Log.e(TAG, "Provision discovery failed: " + status);
-            mMonitor.broadcastP2pProvisionDiscoveryFailure(mInterface);
-            return;
-        }
-
         logd("Provision discovery " + (isRequest ? "request" : "response")
-                + " for WPS Config method: " + configMethods);
+                + " for WPS Config method: " + configMethods
+                + " status: " + status);
 
         WifiP2pProvDiscEvent event = new WifiP2pProvDiscEvent();
         event.device = new WifiP2pDevice();
@@ -410,8 +423,17 @@ public class SupplicantP2pIfaceCallbackHidlImpl extends ISupplicantP2pIfaceCallb
             event.device.deviceAddress = NativeUtil.macAddressFromByteArray(p2pDeviceAddress);
         } catch (Exception e) {
             Log.e(TAG, "Could not decode MAC address.", e);
+            event.device.deviceAddress = null;
+        }
+
+        if (status != ISupplicantP2pIfaceCallback.P2pProvDiscStatusCode.SUCCESS) {
+            Log.e(TAG, "Provision discovery failed, status code: " + status);
+            mMonitor.broadcastP2pProvisionDiscoveryFailure(mInterface,
+                    convertHalProvDiscStatusToFrameworkStatus(status), event);
             return;
         }
+
+        if (TextUtils.isEmpty(event.device.deviceAddress)) return;
 
         if ((configMethods & WpsConfigMethods.PUSHBUTTON) != 0) {
             if (isRequest) {

@@ -899,6 +899,26 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Send simple API msg.
+     *
+     * Mock the API msg with int arg.
+     *
+     * @param replyMessenger for checking replied message.
+     */
+    private void sendSimpleMsg(Messenger replyMessenger,
+            int what, int arg1, Object obj) throws Exception {
+        Message msg = Message.obtain();
+        msg.what = what;
+        msg.arg1 = arg1;
+        msg.obj = obj;
+        if (replyMessenger != null) {
+            msg.replyTo = replyMessenger;
+        }
+        mP2pStateMachineMessenger.send(Message.obtain(msg));
+        mLooper.dispatchAll();
+    }
+
+    /**
      * force P2p State enter InactiveState to start others unit test
      *
      * @param clientBinder client binder to use for p2p channel init
@@ -1284,6 +1304,22 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendGroupStartedMsg(group);
         simulateTetherReady();
     }
+
+    /**
+     * Mock enter the user authorizing negotiation request state.
+     */
+    private void mockEnterUserAuthorizingNegotiationRequestState(int wpsType) throws Exception {
+        mockPeersList();
+
+        // Enter UserAuthorizingNegotiationRequestState
+        WifiP2pConfig config = new WifiP2pConfig();
+        config.deviceAddress = mTestWifiP2pDevice.deviceAddress;
+        config.wps = new WpsInfo();
+        config.wps.setup = wpsType;
+
+        sendNegotiationRequestEvent(config);
+    }
+
 
     /**
      * Mock WifiP2pServiceImpl.mPeers.
@@ -2981,8 +3017,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             verify(mWifiPermissionsUtil).checkCanAccessWifiDirect(
                     eq("testPkg1"), eq("testFeature"), anyInt(), eq(false));
         }
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device.deviceAddress = mTestWifiP2pPeerConfig.deviceAddress;
 
-        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT);
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT,
+                WifiP2pMonitor.PROV_DISC_STATUS_UNKNOWN, pdEvent);
 
         verify(mWifiP2pMetrics).endConnectionEvent(
                 eq(P2pConnectionEvent.CLF_PROV_DISC_FAIL));
@@ -5989,23 +6028,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         forceP2pEnabled(mClient1);
         mockPeersList();
-        sendDeviceFoundEventMsg(mTestWifiP2pDevice);
 
         if (hasApprover) {
             verifyAddExternalApprover(binder, true, true);
         }
 
-        // Enter UserAuthorizingNegotiationRequestState
-        WifiP2pConfig config = new WifiP2pConfig();
-        config.deviceAddress = mTestWifiP2pDevice.deviceAddress;
-        config.wps = new WpsInfo();
-        config.wps.setup = wpsType;
-
-        Message msg = Message.obtain();
-        msg.what = WifiP2pMonitor.P2P_GO_NEGOTIATION_REQUEST_EVENT;
-        msg.obj = config;
-        mP2pStateMachineMessenger.send(Message.obtain(msg));
-        mLooper.dispatchAll();
+        mockEnterUserAuthorizingNegotiationRequestState(wpsType);
 
         when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
                 .thenReturn(hasPermission);
@@ -6132,5 +6160,58 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testP2pWithUserApprovalReject() throws Exception {
         runTestP2pWithUserApproval(false);
+    }
+
+    /*
+     * Verify the connection event ends due to the provision discovery failure.
+     */
+    @Test
+    public void testProvDiscRejectEventForProvDisc() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+
+        mockEnterProvisionDiscoveryState();
+
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT,
+                WifiP2pMonitor.PROV_DISC_STATUS_REJECTED,
+                pdEvent);
+        verify(mWifiNative).p2pCancelConnect();
+
+    }
+
+    /**
+     * Verify the p2p reject is sent on canceling a request.
+     */
+    @Test
+    public void testSendP2pRejectWhenCancelRequest() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+
+        mockEnterProvisionDiscoveryState();
+
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null, WifiP2pManager.CANCEL_CONNECT);
+        verify(mWifiNative).p2pReject(eq(mTestWifiP2pDevice.deviceAddress));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void testSendP2pRejectOnRejectRequest() throws Exception {
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+        forceP2pEnabled(mClient1);
+
+        mockEnterUserAuthorizingNegotiationRequestState(WpsInfo.PBC);
+
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_REJECT);
+        verify(mWifiNative).p2pReject(eq(mTestWifiP2pDevice.deviceAddress));
     }
 }

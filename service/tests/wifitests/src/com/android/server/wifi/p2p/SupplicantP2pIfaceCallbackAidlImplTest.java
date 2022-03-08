@@ -74,6 +74,7 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
     private String mDeviceAddress2String = "01:12:23:34:45:56";
     private byte[] mDeviceInfoBytes = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 };
     private static final byte[] DEVICE_ADDRESS = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 };
+    private static final String DEVICE_ADDRESS_STR = "00:01:02:03:04:05";
     private static final int TEST_NETWORK_ID = 9;
     private static final int TEST_GROUP_FREQUENCY = 5400;
     private byte[] mTestPrimaryDeviceTypeBytes = { 0x00, 0x01, 0x02, -1, 0x04, 0x05, 0x06, 0x07 };
@@ -456,6 +457,64 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
         verify(mMonitor).broadcastP2pProvisionDiscoveryPbcRequest(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PBC_REQ, discEventCaptor.getValue().event);
+    }
+
+    private void verifyProvisionDiscoveryFailureEvent(
+            int halStatus, int expectedStatus) throws Exception {
+        byte[] p2pDeviceAddr = DEVICE_ADDRESS;
+        boolean isRequest = false;
+        byte status = (byte) halStatus;
+        short configMethods = WpsConfigMethods.DISPLAY;
+        String generatedPin = "12345678";
+
+        ArgumentCaptor<WifiP2pProvDiscEvent> discEventCaptor =
+                ArgumentCaptor.forClass(WifiP2pProvDiscEvent.class);
+        mDut.onProvisionDiscoveryCompleted(
+                p2pDeviceAddr, isRequest, status, configMethods, generatedPin);
+        verify(mMonitor).broadcastP2pProvisionDiscoveryFailure(eq(mIface),
+                eq(expectedStatus), discEventCaptor.capture());
+        WifiP2pProvDiscEvent event = discEventCaptor.getValue();
+        assertEquals(DEVICE_ADDRESS_STR, event.device.deviceAddress);
+    }
+
+    /**
+     * Test provision discovery callback for timeout.
+     */
+    @Test
+    public void testOnProvisionDiscoveryTimeout() throws Exception {
+        verifyProvisionDiscoveryFailureEvent(
+                P2pProvDiscStatusCode.TIMEOUT,
+                WifiP2pMonitor.PROV_DISC_STATUS_TIMEOUT);
+    }
+
+    /**
+     * Test provision discovery callback for rejection.
+     */
+    @Test
+    public void testOnProvisionDiscoveryRejection() throws Exception {
+        verifyProvisionDiscoveryFailureEvent(
+                P2pProvDiscStatusCode.REJECTED,
+                WifiP2pMonitor.PROV_DISC_STATUS_REJECTED);
+    }
+
+    /**
+     * Test provision discovery callback for joining timeout.
+     */
+    @Test
+    public void testOnProvisionDiscoveryJoinTimeout() throws Exception {
+        verifyProvisionDiscoveryFailureEvent(
+                P2pProvDiscStatusCode.TIMEOUT_JOIN,
+                WifiP2pMonitor.PROV_DISC_STATUS_TIMEOUT_JOIN);
+    }
+
+    /**
+     * Test provision discovery callback for information unavailable
+     */
+    @Test
+    public void testOnProvisionDiscoveryInfoUnavailable() throws Exception {
+        verifyProvisionDiscoveryFailureEvent(
+                P2pProvDiscStatusCode.INFO_UNAVAILABLE,
+                WifiP2pMonitor.PROV_DISC_STATUS_INFO_UNAVAILABLE);
     }
 
     /**
