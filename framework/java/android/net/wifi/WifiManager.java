@@ -6205,7 +6205,7 @@ public class WifiManager {
     }
 
     /**
-     * Returns whether auto-join global is enabled/disabled
+     * Query whether or not auto-join global is enabled/disabled
      * @see #allowAutojoinGlobal(boolean)
      *
      * Available for DO/PO apps.
@@ -6219,12 +6219,12 @@ public class WifiManager {
      * @throws SecurityException if the caller does not have permission.
      * @throws NullPointerException if the caller provided invalid inputs.
      */
-    public void getAutojoinGlobal(@NonNull Executor executor,
+    public void queryAutojoinGlobal(@NonNull Executor executor,
             @NonNull Consumer<Boolean> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
         try {
-            mService.getAutojoinGlobal(
+            mService.queryAutojoinGlobal(
                     new IBooleanListener.Stub() {
                         @Override
                         public void onResult(boolean value) {

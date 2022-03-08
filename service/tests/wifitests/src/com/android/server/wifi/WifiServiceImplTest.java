@@ -7465,31 +7465,31 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testGetAutojoinGlobal_Exceptions() {
+    public void testQueryAutojoinGlobal_Exceptions() {
         // good inputs should result in no exceptions.
         IBooleanListener listener = mock(IBooleanListener.class);
         // null listener ==> IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
-                () -> mWifiServiceImpl.getAutojoinGlobal(null));
+                () -> mWifiServiceImpl.queryAutojoinGlobal(null));
 
         // No permission ==> SecurityException
         assertThrows(SecurityException.class,
-                () -> mWifiServiceImpl.getAutojoinGlobal(listener));
+                () -> mWifiServiceImpl.queryAutojoinGlobal(listener));
     }
 
     @Test
-    public void testGetAutojoinGlobal_GoodCase() throws RemoteException {
+    public void testQueryAutojoinGlobal_GoodCase() throws RemoteException {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         IBooleanListener listener = mock(IBooleanListener.class);
 
         InOrder inOrder = inOrder(listener);
         when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(true);
-        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mWifiServiceImpl.queryAutojoinGlobal(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(true);
 
         when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(false);
-        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mWifiServiceImpl.queryAutojoinGlobal(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(false);
     }

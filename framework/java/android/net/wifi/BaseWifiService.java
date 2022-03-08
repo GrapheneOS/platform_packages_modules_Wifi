@@ -195,7 +195,7 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void getAutojoinGlobal(@NonNull IBooleanListener listener) {
+    public void queryAutojoinGlobal(@NonNull IBooleanListener listener) {
         throw new UnsupportedOperationException();
     }
 
