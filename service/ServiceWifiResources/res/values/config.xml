@@ -828,4 +828,7 @@
         <item>com.company2.example.test.name2</item>
         -->
     </string-array>
+
+    <!-- boolean indicating whether the Easy Connect (DPP) AKM is supported -->
+    <bool translatable="false" name ="config_wifiDppAkmSupported">false</bool>
 </resources>
