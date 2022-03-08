@@ -431,6 +431,7 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isCarrierNetworkOffloadEnabled(int, boolean);
     method public boolean isDecoratedIdentitySupported();
     method @Deprecated public boolean isDeviceToApRttSupported();
+    method public boolean isEasyConnectDppAkmSupported();
     method public boolean isEasyConnectEnrolleeResponderModeSupported();
     method public boolean isEasyConnectSupported();
     method public boolean isEnhancedOpenSupported();

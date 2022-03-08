@@ -225,6 +225,7 @@
           <item type="integer" name="config_p2pInvitationReceivedDialogTimeoutMs"/>
           <item type="bool" name="config_p2pInvitationReceivedDialogNotificationSound"/>
           <item type="bool" name="config_wifiForcedSoftApRestartWhenCountryCodeChanged" />
+          <item type="bool" name="config_wifiDppAkmSupported" />
           <item type="array" name="config_wifiInterfacePriorityTreatAsForegroundList"/>
           <item type="bool" name="config_wifiUserApprovalRequiredForD2dInterfacePriority" />
           <item type="array" name="config_wifiExcludedFromUserApprovalForD2dInterfacePriority" />

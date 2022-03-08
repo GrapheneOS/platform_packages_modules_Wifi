@@ -43,6 +43,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_ADDITIONAL_STA_RESTRICTE
 import static android.net.wifi.WifiManager.WIFI_FEATURE_AP_STA;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DECORATED_IDENTITY;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP_AKM;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP_ENROLLEE_RESPONDER;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_P2P;
@@ -2431,6 +2432,19 @@ public class WifiManagerTest {
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(~WIFI_FEATURE_DPP));
         assertFalse(mWifiManager.isEasyConnectSupported());
+    }
+
+    /**
+     * Test behavior of isEasyConnectDppAkmSupported
+     */
+    @Test
+    public void testIsEasyConnectDppAkmSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_DPP_AKM));
+        assertTrue(mWifiManager.isEasyConnectDppAkmSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_DPP_AKM));
+        assertFalse(mWifiManager.isEasyConnectDppAkmSupported());
     }
 
     /**
