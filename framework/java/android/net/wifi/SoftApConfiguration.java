@@ -1316,6 +1316,12 @@ public final class SoftApConfiguration implements Parcelable {
             mAllowedAcsChannels5g = new HashSet<>(other.mAllowedAcsChannels5g);
             mAllowedAcsChannels6g = new HashSet<>(other.mAllowedAcsChannels6g);
             mMaxChannelBandwidth = other.mMaxChannelBandwidth;
+            if (SdkLevel.isAtLeastS() && mBssid != null) {
+                // Auto set correct MAC randomization setting for the legacy SoftApConfiguration
+                // to avoid the exception happen when framework (system server) copy
+                // SoftApConfiguration.
+                mMacRandomizationSetting = RANDOMIZATION_NONE;
+            }
         }
 
         /**
