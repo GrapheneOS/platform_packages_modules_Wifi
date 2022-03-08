@@ -115,7 +115,7 @@ interface IWifiManager
 
     void allowAutojoinGlobal(boolean choice);
 
-    void getAutojoinGlobal(in IBooleanListener listener);
+    void queryAutojoinGlobal(in IBooleanListener listener);
 
     void allowAutojoin(int netId, boolean choice);
 

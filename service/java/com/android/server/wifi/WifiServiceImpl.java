@@ -3741,10 +3741,10 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#getAutojoinGlobal(Executor, Consumer)}
+     * See {@link WifiManager#queryAutojoinGlobal(Executor, Consumer)}
      */
     @Override
-    public void getAutojoinGlobal(@NonNull IBooleanListener listener) {
+    public void queryAutojoinGlobal(@NonNull IBooleanListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
