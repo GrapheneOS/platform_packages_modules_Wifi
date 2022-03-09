@@ -713,7 +713,6 @@ public class ApConfigUtilTest extends WifiBaseTest {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         wifiConfig.SSID = "AndroidAP";
         wifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA2_PSK);
-        wifiConfig.preSharedKey = "1233443";
         assertNull(ApConfigUtil.fromWifiConfiguration(wifiConfig));
     }
 

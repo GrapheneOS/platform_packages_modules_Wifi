@@ -575,12 +575,11 @@ public class WifiApConfigStore {
                     Log.d(TAG, "passphrase not ASCII encodable");
                     return false;
                 }
-            }
-
-            if (authType != SoftApConfiguration.SECURITY_TYPE_WPA3_SAE
-                    && !validateApConfigPreSharedKey(preSharedKey)) {
-                // failed preSharedKey checks for WPA2 and WPA3 SAE Transition mode.
-                return false;
+                if (authType != SoftApConfiguration.SECURITY_TYPE_WPA3_SAE
+                        && !validateApConfigPreSharedKey(preSharedKey)) {
+                    // failed preSharedKey checks for WPA2 and WPA3 SAE Transition mode.
+                    return false;
+                }
             }
         } else {
             // this is not a supported security type

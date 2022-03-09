@@ -400,46 +400,6 @@ public class SoftApConfigurationTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testInvalidShortPasswordLengthForWpa2() {
-        SoftApConfiguration original = new SoftApConfiguration.Builder()
-                .setPassphrase(generateRandomString(SoftApConfiguration.PSK_MIN_LEN - 1),
-                        SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
-                .setChannel(149, SoftApConfiguration.BAND_5GHZ)
-                .setHiddenSsid(true)
-                .build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidLongPasswordLengthForWpa2() {
-        SoftApConfiguration original = new SoftApConfiguration.Builder()
-                .setPassphrase(generateRandomString(SoftApConfiguration.PSK_MAX_LEN + 1),
-                        SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
-                .setChannel(149, SoftApConfiguration.BAND_5GHZ)
-                .setHiddenSsid(true)
-                .build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidShortPasswordLengthForWpa3SaeTransition() {
-        SoftApConfiguration original = new SoftApConfiguration.Builder()
-                .setPassphrase(generateRandomString(SoftApConfiguration.PSK_MIN_LEN - 1),
-                        SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION)
-                .setChannel(149, SoftApConfiguration.BAND_5GHZ)
-                .setHiddenSsid(true)
-                .build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidLongPasswordLengthForWpa3SaeTransition() {
-        SoftApConfiguration original = new SoftApConfiguration.Builder()
-                .setPassphrase(generateRandomString(SoftApConfiguration.PSK_MAX_LEN + 1),
-                        SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION)
-                .setChannel(149, SoftApConfiguration.BAND_5GHZ)
-                .setHiddenSsid(true)
-                .build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
     public void testInvalieShutdownTimeoutMillis() {
         SoftApConfiguration original = new SoftApConfiguration.Builder()
                 .setShutdownTimeoutMillis(-2)
