@@ -3741,10 +3741,10 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#getAutojoinGlobal(Executor, Consumer)}
+     * See {@link WifiManager#queryAutojoinGlobal(Executor, Consumer)}
      */
     @Override
-    public void getAutojoinGlobal(@NonNull IBooleanListener listener) {
+    public void queryAutojoinGlobal(@NonNull IBooleanListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
@@ -5258,6 +5258,14 @@ public class WifiServiceImpl extends BaseWifiService {
                 supportedFeatureSet |= WifiManager.WIFI_FEATURE_STA_BRIDGED_AP;
             }
         }
+        if (SdkLevel.isAtLeastT()) {
+            if (((supportedFeatureSet & WifiManager.WIFI_FEATURE_DPP) != 0)
+                    && mContext.getResources().getBoolean(R.bool.config_wifiDppAkmSupported)) {
+                // Set if DPP is filled by supplicant and DPP AKM is enabled by overlay.
+                supportedFeatureSet |= WifiManager.WIFI_FEATURE_DPP_AKM;
+            }
+        }
+
         supportedFeatureSet |= mWifiThreadRunner.call(
                 () -> {
                     long concurrencyFeatureSet = 0L;

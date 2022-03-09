@@ -410,6 +410,22 @@ public class WifiP2pManager {
             "android.net.wifi.p2p.action.WIFI_P2P_PERSISTENT_GROUPS_CHANGED";
 
     /**
+     * Broadcast intent action indicating whether or not current connecting
+     * request is accepted.
+     *
+     * The connecting request is initiated by
+     * {@link #connect(Channel, WifiP2pConfig, ActionListener)}.
+     */
+    public static final String ACTION_WIFI_P2P_REQUEST_RESPONSE_CHANGED =
+            "android.net.wifi.p2p.action.WIFI_P2P_REQUEST_RESPONSE_CHANGED";
+
+    /**
+     * The lookup key for the result of a request, true if accepted, false otherwise.
+     */
+    public static final String EXTRA_REQUEST_RESPONSE =
+            "android.net.wifi.p2p.extra.REQUEST_RESPONSE";
+
+    /**
      * The lookup key for a handover message returned by the WifiP2pService.
      * @hide
      */

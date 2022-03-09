@@ -584,6 +584,10 @@ public class WifiConfiguration implements Parcelable {
      * <br>
      * This API would clear existing security types and add a default one.
      *
+     * Before calling this API with {@link #SECURITY_TYPE_DPP} as securityType,
+     * call {@link WifiManager#isEasyConnectDppAkmSupported() to know whether this security type is
+     * supported or not.
+     *
      * @param securityType One of the following security types:
      * {@link #SECURITY_TYPE_OPEN},
      * {@link #SECURITY_TYPE_WEP},

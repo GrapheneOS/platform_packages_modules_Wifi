@@ -7471,31 +7471,31 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testGetAutojoinGlobal_Exceptions() {
+    public void testQueryAutojoinGlobal_Exceptions() {
         // good inputs should result in no exceptions.
         IBooleanListener listener = mock(IBooleanListener.class);
         // null listener ==> IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
-                () -> mWifiServiceImpl.getAutojoinGlobal(null));
+                () -> mWifiServiceImpl.queryAutojoinGlobal(null));
 
         // No permission ==> SecurityException
         assertThrows(SecurityException.class,
-                () -> mWifiServiceImpl.getAutojoinGlobal(listener));
+                () -> mWifiServiceImpl.queryAutojoinGlobal(listener));
     }
 
     @Test
-    public void testGetAutojoinGlobal_GoodCase() throws RemoteException {
+    public void testQueryAutojoinGlobal_GoodCase() throws RemoteException {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         IBooleanListener listener = mock(IBooleanListener.class);
 
         InOrder inOrder = inOrder(listener);
         when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(true);
-        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mWifiServiceImpl.queryAutojoinGlobal(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(true);
 
         when(mWifiConnectivityManager.getAutoJoinEnabledExternal()).thenReturn(false);
-        mWifiServiceImpl.getAutojoinGlobal(listener);
+        mWifiServiceImpl.queryAutojoinGlobal(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(false);
     }
@@ -8217,6 +8217,37 @@ public class WifiServiceImplTest extends WifiBaseTest {
                         featureP2pMacRandomization, true, true, false));
         assertEquals(featureStaConnectedMacRandomization | featureApMacRandomization,
                 testGetSupportedFeaturesCaseForMacRandomization(0, true, true, false));
+    }
+
+    /**
+     * Verifies feature support for DPP AKM when DPP is supported.
+     */
+    @Test
+    public void testDppAkmFeatureSupportDppSupported() throws Exception {
+        when(mResources.getBoolean(R.bool.config_wifiDppAkmSupported)).thenReturn(true);
+        when(mWifiNative.getSupportedFeatureSet(anyString()))
+                .thenReturn(WifiManager.WIFI_FEATURE_DPP);
+
+        mLooper.startAutoDispatch();
+        long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        assertTrue((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
+    }
+
+    /**
+     * Verifies feature support for DPP AKM when DPP is not supported.
+     */
+    @Test
+    public void testDppAkmFeatureSupportDppNotSupported() throws Exception {
+        when(mResources.getBoolean(R.bool.config_wifiDppAkmSupported)).thenReturn(true);
+        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(0L);
+
+        mLooper.startAutoDispatch();
+        long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        assertFalse((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
     }
 
     @Test

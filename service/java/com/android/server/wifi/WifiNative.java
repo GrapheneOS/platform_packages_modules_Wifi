@@ -1721,6 +1721,14 @@ public class WifiNative {
                 WifiNl80211Manager.SCAN_TYPE_PNO_SCAN));
     }
 
+    /**
+     * Get the max number of SSIDs that the driver supports per scan.
+     * @param ifaceName Name of the interface.
+     */
+    public int getMaxNumScanSsids(@NonNull String ifaceName) {
+        return mWifiCondManager.getMaxNumScanSsids(ifaceName);
+    }
+
     private ArrayList<ScanDetail> convertNativeScanResults(@NonNull String ifaceName,
             List<NativeScanResult> nativeResults) {
         ArrayList<ScanDetail> results = new ArrayList<>();

@@ -2065,7 +2065,8 @@ public class WifiManager {
      * @throws {@link SecurityException} if the calling app is not a Device Owner (DO),
      *                           Profile Owner (PO), system app, or a privileged app that has one of
      *                           the permissions required by this API.
-     * @throws {@link IllegalArgumentException} if the input configuration is null.
+     * @throws {@link IllegalArgumentException} if the input configuration is null or if the
+     *            security type in input configuration is not supported.
      */
     @RequiresPermission(anyOf = {
             android.Manifest.permission.NETWORK_SETTINGS,
@@ -2076,6 +2077,10 @@ public class WifiManager {
     @NonNull
     public AddNetworkResult addNetworkPrivileged(@NonNull WifiConfiguration config) {
         if (config == null) throw new IllegalArgumentException("config cannot be null");
+        if (config.isSecurityType(WifiInfo.SECURITY_TYPE_DPP)
+                && !isFeatureSupported(WIFI_FEATURE_DPP_AKM)) {
+            throw new IllegalArgumentException("dpp akm is not supported");
+        }
         config.networkId = -1;
         try {
             return mService.addOrUpdateNetworkPrivileged(config, mContext.getOpPackageName());
@@ -3185,6 +3190,12 @@ public class WifiManager {
      * @hide
      */
     public static final long WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET = 0x20000000000000L;
+
+    /**
+     * Support for DPP (Easy-Connect) AKM.
+     * @hide
+     */
+    public static final long WIFI_FEATURE_DPP_AKM = 0x40000000000000L;
 
     private long getSupportedFeatures() {
         try {
@@ -6205,7 +6216,7 @@ public class WifiManager {
     }
 
     /**
-     * Returns whether auto-join global is enabled/disabled
+     * Query whether or not auto-join global is enabled/disabled
      * @see #allowAutojoinGlobal(boolean)
      *
      * Available for DO/PO apps.
@@ -6219,12 +6230,12 @@ public class WifiManager {
      * @throws SecurityException if the caller does not have permission.
      * @throws NullPointerException if the caller provided invalid inputs.
      */
-    public void getAutojoinGlobal(@NonNull Executor executor,
+    public void queryAutojoinGlobal(@NonNull Executor executor,
             @NonNull Consumer<Boolean> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
         try {
-            mService.getAutojoinGlobal(
+            mService.queryAutojoinGlobal(
                     new IBooleanListener.Stub() {
                         @Override
                         public void onResult(boolean value) {
@@ -7298,6 +7309,19 @@ public class WifiManager {
      */
     public boolean isTrustOnFirstUseSupported() {
         return isFeatureSupported(WIFI_FEATURE_TRUST_ON_FIRST_USE);
+    }
+
+    /**
+     * Wi-Fi Easy Connect DPP AKM enables provisioning and configuration of Wi-Fi devices without
+     * the need of using the device PSK passphrase.
+     * For more details, visit <a href="https://www.wi-fi.org/">https://www.wi-fi.org/</a> and
+     * search for "Easy Connect" or "Device Provisioning Protocol specification".
+     *
+     * @return true if this device supports Wi-Fi Easy-connect DPP (Device Provisioning Protocol)
+     * AKM, false otherwise.
+     */
+    public boolean isEasyConnectDppAkmSupported() {
+        return isFeatureSupported(WIFI_FEATURE_DPP_AKM);
     }
 
     /**
