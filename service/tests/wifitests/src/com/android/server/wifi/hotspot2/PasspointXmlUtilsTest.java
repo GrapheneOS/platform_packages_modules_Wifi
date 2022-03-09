@@ -192,6 +192,9 @@ public class PasspointXmlUtilsTest extends WifiBaseTest {
         if (SdkLevel.isAtLeastS()) {
             config.setDecoratedIdentityPrefix(TEST_DECORATED_IDENTITY_PREFIX);
         }
+
+        String[] aaaServerTrustedNames = new String[] {"www.google.com", "www.android.com"};
+        config.setAaaServerTrustedNames(aaaServerTrustedNames);
         return config;
     }
 
