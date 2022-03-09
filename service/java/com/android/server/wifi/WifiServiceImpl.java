@@ -3161,7 +3161,7 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         }
         int uid = Binder.getCallingUid();
-        if (!mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(uid)
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
                 && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
             throw new SecurityException("Uid=" + uid + ", is not allowed to set scan schedule");
         }
@@ -3211,8 +3211,8 @@ public class WifiServiceImpl extends BaseWifiService {
         boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 || isDeviceOrProfileOwner(uid, packageName);
         if (!hasPermission && SdkLevel.isAtLeastT()) {
-            // MANAGE_WIFI_AUTO_JOIN is a new permission added in T.
-            hasPermission = mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(uid);
+            // MANAGE_WIFI_NETWORK_SELECTION is a new permission added in T.
+            hasPermission = mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid);
         }
         if (!hasPermission) {
             throw new SecurityException(TAG + ": Permission denied");
@@ -3234,8 +3234,8 @@ public class WifiServiceImpl extends BaseWifiService {
         boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 || isDeviceOrProfileOwner(uid, packageName);
         if (!hasPermission && SdkLevel.isAtLeastT()) {
-            // MANAGE_WIFI_AUTO_JOIN is a new permission added in T.
-            hasPermission = mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(uid);
+            // MANAGE_WIFI_NETWORK_SELECTION is a new permission added in T.
+            hasPermission = mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid);
         }
         if (!hasPermission) {
             throw new SecurityException(TAG + ": Permission denied");
@@ -3729,7 +3729,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public void allowAutojoinGlobal(boolean choice) {
         int callingUid = Binder.getCallingUid();
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
-                && !mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid)
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(callingUid)
                 && !isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName())) {
             throw new SecurityException("Uid " + callingUid
                     + " is not allowed to set wifi global autojoin");
@@ -3750,7 +3750,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         int callingUid = Binder.getCallingUid();
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
-                && !mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(callingUid)
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(callingUid)
                 && !isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName())) {
             throw new SecurityException("Uid " + callingUid
                     + " is not allowed to get wifi global autojoin");

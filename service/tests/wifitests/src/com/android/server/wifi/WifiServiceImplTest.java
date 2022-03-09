@@ -7433,7 +7433,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test(expected = SecurityException.class)
     public void testAllowAutojoinGlobalFailureNoPermission() throws Exception {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(false);
         mWifiServiceImpl.allowAutojoinGlobal(true);
@@ -7441,30 +7442,34 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testAllowAutojoinGlobalWithPermission() throws Exception {
-        // verify allowAutojoinGlobal with MANAGE_WIFI_AUTO_JOIN
+        // verify allowAutojoinGlobal with MANAGE_WIFI_NETWORK_SELECTION
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(false);
         mWifiServiceImpl.allowAutojoinGlobal(true);
 
         // verify allowAutojoinGlobal with NETWORK_SETTINGS
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(false);
         mWifiServiceImpl.allowAutojoinGlobal(true);
 
         // verify allowAutojoinGlobal with DO
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(true);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(false);
         mWifiServiceImpl.allowAutojoinGlobal(true);
 
         // verify allowAutojoinGlobal with PO
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), anyString())).thenReturn(false);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), anyString())).thenReturn(true);
         mWifiServiceImpl.allowAutojoinGlobal(true);
@@ -7529,7 +7534,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testSetSsidsDoNotBlocklist_WithPermissionAndroidT()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
 
         List<WifiSsid> expectedSsids = new ArrayList<>();
         expectedSsids.add(WifiSsid.fromString(TEST_SSID_WITH_QUOTES));
@@ -9371,14 +9377,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test(expected = SecurityException.class)
     public void testSetScreenOnScanSchedule_NoPermission() {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
         mWifiServiceImpl.setScreenOnScanSchedule(null, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetScreenOnScanSchedule_BadInput1() {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
         // test that both arrays need to be null or non-null. Never one null one non-null.
         mWifiServiceImpl.setScreenOnScanSchedule(null, new int[] {1});
     }
@@ -9386,7 +9394,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test(expected = IllegalArgumentException.class)
     public void testSetScreenOnScanSchedule_BadInput2() {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
         // test that the input should not be empty arrays.
         mWifiServiceImpl.setScreenOnScanSchedule(new int[0], new int[0]);
     }
@@ -9394,7 +9403,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetScreenOnScanSchedule_Success() {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
         int[] expectedSchedule = new int[] {20, 40, 80};
         int[] expectedType = new int[] {2, 2, 1};
         mWifiServiceImpl.setScreenOnScanSchedule(expectedSchedule, expectedType);

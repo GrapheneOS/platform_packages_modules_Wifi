@@ -2798,7 +2798,7 @@ public class WifiP2pManager {
      * @param deviceAddress the peer which is bound to the external approver.
      * @param listener for callback when the framework needs to notify the external approver.
      */
-    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
     public void addExternalApprover(@NonNull Channel c, @NonNull MacAddress deviceAddress,
             @NonNull ExternalApproverRequestListener listener) {
         checkChannel(c);
@@ -2819,7 +2819,7 @@ public class WifiP2pManager {
      * @param deviceAddress the peer which is bound to the external approver.
      * @param listener for callback on success or failure.
      */
-    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
     public void removeExternalApprover(@NonNull Channel c, @NonNull MacAddress deviceAddress,
             @Nullable ActionListener listener) {
         checkChannel(c);
@@ -2840,7 +2840,7 @@ public class WifiP2pManager {
      * @param result the response for the incoming request.
      * @param listener for callback on success or failure.
      */
-    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
     public void setConnectionRequestResult(@NonNull Channel c, @NonNull MacAddress deviceAddress,
             @ConnectionRequestResponse int result, @Nullable ActionListener listener) {
         checkChannel(c);
@@ -2863,7 +2863,7 @@ public class WifiP2pManager {
      * @param pin the PIN for the incoming request.
      * @param listener for callback on success or failure.
      */
-    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
     public void setConnectionRequestResult(@NonNull Channel c, @NonNull MacAddress deviceAddress,
             @ConnectionRequestResponse int result, @Nullable String pin,
             @Nullable ActionListener listener) {
