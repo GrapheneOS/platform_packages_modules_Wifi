@@ -730,10 +730,15 @@ public class WifiPermissionsUtil {
     }
 
     /**
-     * Returns true if the |uid| holds MANAGE_WIFI_AUTO_JOIN permission.
+     * Returns true if the |uid| holds MANAGE_WIFI_NETWORK_SELECTION permission.
      */
-    public boolean checkManageWifiAutoJoinPermission(int uid) {
+    public boolean checkManageWifiNetworkSelectionPermission(int uid) {
+        // TODO(b/223298889): remove check for MANAGE_WIFI_AUTO_JOIN after call callers have
+        // migrated to MANAGE_WIFI_NETWORK_SELECTION.
         return mWifiPermissionsWrapper.getUidPermission(
+                android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION, uid)
+                == PackageManager.PERMISSION_GRANTED
+                || mWifiPermissionsWrapper.getUidPermission(
                 android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN, uid)
                 == PackageManager.PERMISSION_GRANTED;
     }

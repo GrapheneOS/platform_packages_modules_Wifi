@@ -5781,8 +5781,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private boolean checkExternalApproverCaller(Message message,
                 IBinder binder, MacAddress devAddr) {
             Bundle extras = (Bundle) message.obj;
-            if (!mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(message.sendingUid)) {
-                loge("Permission violation - no MANAGE_WIFI_AUTO_JOIN,"
+            if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(
+                    message.sendingUid)) {
+                loge("Permission violation - no MANAGE_WIFI_NETWORK_SELECTION,"
                         + " permission, uid = " + message.sendingUid);
                 return false;
             }
