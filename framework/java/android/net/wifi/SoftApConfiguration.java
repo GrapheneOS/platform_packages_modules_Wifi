@@ -35,7 +35,6 @@ import android.util.SparseIntArray;
 
 import androidx.annotation.RequiresApi;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Preconditions;
 import com.android.modules.utils.build.SdkLevel;
 
@@ -70,12 +69,6 @@ import java.util.stream.IntStream;
 public final class SoftApConfiguration implements Parcelable {
 
     private static final String TAG = "SoftApConfiguration";
-
-    @VisibleForTesting
-    static final int PSK_MIN_LEN = 8;
-
-    @VisibleForTesting
-    static final int PSK_MAX_LEN = 63;
 
     /**
      * 2GHz band.
@@ -1504,7 +1497,7 @@ public final class SoftApConfiguration implements Parcelable {
          * and {@link #SECURITY_TYPE_WPA3_OWE}.
          *
          * @return Builder for chaining.
-         * @throws IllegalArgumentException when the passphrase length is invalid and
+         * @throws IllegalArgumentException when the passphrase length is empty and
          *         {@code securityType} is any of the following:
          *         {@link #SECURITY_TYPE_WPA2_PSK} or {@link #SECURITY_TYPE_WPA3_SAE_TRANSITION}
          *         or {@link #SECURITY_TYPE_WPA3_SAE},
@@ -1528,15 +1521,6 @@ public final class SoftApConfiguration implements Parcelable {
                 }
             } else {
                 Preconditions.checkStringNotEmpty(passphrase);
-                if (securityType == SECURITY_TYPE_WPA2_PSK
-                        || securityType == SECURITY_TYPE_WPA3_SAE_TRANSITION) {
-                    if (passphrase.length() < PSK_MIN_LEN || passphrase.length() > PSK_MAX_LEN) {
-                        throw new IllegalArgumentException(
-                                "Password size must be at least " + PSK_MIN_LEN
-                                + " and no more than " + PSK_MAX_LEN
-                                + " for WPA2_PSK and WPA3_SAE_TRANSITION Mode");
-                    }
-                }
             }
             mSecurityType = securityType;
             mPassphrase = passphrase;
