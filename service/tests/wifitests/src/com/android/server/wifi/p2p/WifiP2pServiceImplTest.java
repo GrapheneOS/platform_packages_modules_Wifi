@@ -129,6 +129,7 @@ import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
+import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
@@ -2635,7 +2636,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_FRESH),
-                configCaptor.capture());
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_UNKNOWN));
         assertEquals(mTestWifiP2pPeerConfig.toString(), configCaptor.getValue().toString());
     }
 
@@ -2669,7 +2671,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_REINVOKE),
-                configCaptor.capture());
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_UNKNOWN));
         assertEquals(mTestWifiP2pPeerConfig.toString(), configCaptor.getValue().toString());
     }
 
@@ -2700,7 +2703,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_REINVOKE),
-                eq(null));
+                eq(null),
+                eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
     }
 
     /**
@@ -2738,7 +2742,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_LOCAL),
-                eq(null));
+                eq(null),
+                eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
     }
 
     /**
@@ -2764,7 +2769,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_LOCAL),
-                eq(null));
+                eq(null),
+                eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
     }
 
     /**
@@ -2794,7 +2800,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_FAST),
-                configCaptor.capture());
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_CLIENT));
         assertEquals(mTestWifiP2pFastConnectionConfig.toString(),
                 configCaptor.getValue().toString());
     }
@@ -2825,7 +2832,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_FAST),
-                configCaptor.capture());
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
         assertEquals(mTestWifiP2pFastConnectionConfig.toString(),
                 configCaptor.getValue().toString());
     }
@@ -5454,7 +5462,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pMetrics).startConnectionEvent(
                 eq(P2pConnectionEvent.CONNECTION_FRESH),
-                configCaptor.capture());
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_UNKNOWN));
         assertEquals(mTestWifiP2pPeerConfig.toString(), configCaptor.getValue().toString());
         // Verify timer is cannelled
         // Includes re-schedule 4 times:

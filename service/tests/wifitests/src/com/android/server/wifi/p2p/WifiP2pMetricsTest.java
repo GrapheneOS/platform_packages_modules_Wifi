@@ -77,7 +77,8 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
         WifiP2pStats stats;
 
         // Start and end Connection event.
-        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, null);
+        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, null,
+                GroupEvent.GROUP_OWNER);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(1000L);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
@@ -86,11 +87,13 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__FRESH,
                 1000, 1000 / 200,
-                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER
                 ));
 
         // Start and end Connection event.
-        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, config);
+        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, config,
+                GroupEvent.GROUP_OWNER);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(2, stats.connectionEvent.length);
@@ -103,13 +106,15 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
 
         // Start two ConnectionEvents in a row.
         // The current active un-ended connection event is excluded.
-        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config);
+        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config,
+                GroupEvent.GROUP_OWNER);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(3, stats.connectionEvent.length);
 
         // The last un-ended connection is ended.
         // The current active un-ended connection event is excluded.
-        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config);
+        mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config,
+                GroupEvent.GROUP_OWNER);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(4, stats.connectionEvent.length);
     }

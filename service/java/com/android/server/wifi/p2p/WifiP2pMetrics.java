@@ -211,6 +211,18 @@ public class WifiP2pMetrics {
                 }
                 sb.append(", durationTakenToConnectMillis=");
                 sb.append(event.durationTakenToConnectMillis);
+                sb.append(", groupRole=");
+                switch (event.groupRole) {
+                    case GroupEvent.GROUP_OWNER:
+                        sb.append("OWNER");
+                        break;
+                    case GroupEvent.GROUP_CLIENT:
+                        sb.append("CLIENT");
+                        break;
+                    default:
+                        sb.append("UNKNOWN DURING CONNECT");
+                        break;
+                }
                 sb.append(", connectivityLevelFailureCode=");
                 switch (event.connectivityLevelFailureCode) {
                     case P2pConnectionEvent.CLF_NONE:
@@ -313,14 +325,15 @@ public class WifiP2pMetrics {
     }
 
     /**
-     * Create a new connection event. Call when p2p attmpts to make a new connection to
+     * Create a new connection event. Call when p2p attempts to make a new connection to
      * another peer. If there is a current 'un-ended' connection event, it will be ended with
-     * P2pConnectionEvent.CLF_NEW_CONNNECTION_ATTEMPT.
+     * P2pConnectionEvent.CLF_NEW_CONNECTION_ATTEMPT.
      *
      * @param connectionType indicate this connection is fresh or reinvoke.
      * @param config configuration used for this connection.
+     * @param groupRole groupRole used for this connection.
      */
-    public void startConnectionEvent(int connectionType, WifiP2pConfig config) {
+    public void startConnectionEvent(int connectionType, WifiP2pConfig config, int groupRole) {
         synchronized (mLock) {
             // handle overlapping connection event first.
             if (mCurrentConnectionEvent != null) {
@@ -335,6 +348,7 @@ public class WifiP2pMetrics {
             mCurrentConnectionEvent = new P2pConnectionEvent();
             mCurrentConnectionEvent.startTimeMillis = mClock.getWallClockMillis();
             mCurrentConnectionEvent.connectionType = connectionType;
+            mCurrentConnectionEvent.groupRole = groupRole;
             if (config != null) {
                 mCurrentConnectionEvent.wpsMethod = config.wps.setup;
             }
@@ -356,7 +370,8 @@ public class WifiP2pMetrics {
                 // Reinvoking a group with invitation will be handled in supplicant.
                 // There won't be a connection starting event in framework.
                 // THe framework only get the connection ending event in GroupStarted state.
-                startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, null);
+                startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, null,
+                        GroupEvent.GROUP_UNKNOWN);
             }
 
             mCurrentConnectionEvent.durationTakenToConnectMillis = (int)
@@ -368,7 +383,8 @@ public class WifiP2pMetrics {
                     convertConnectionType(mCurrentConnectionEvent.connectionType),
                     mCurrentConnectionEvent.durationTakenToConnectMillis,
                     mCurrentConnectionEvent.durationTakenToConnectMillis / 200,
-                    convertFailureCode(failure));
+                    convertFailureCode(failure),
+                    convertGroupRole(mCurrentConnectionEvent.groupRole));
             mCurrentConnectionEvent = null;
         }
     }
@@ -408,6 +424,17 @@ public class WifiP2pMetrics {
             case P2pConnectionEvent.CLF_UNKNOWN:
             default:
                 return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__UNKNOWN;
+        }
+    }
+
+    private int convertGroupRole(int groupRole) {
+        switch (groupRole) {
+            case GroupEvent.GROUP_OWNER:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER;
+            case GroupEvent.GROUP_CLIENT:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_CLIENT;
+            default:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_UNKNOWN;
         }
     }
 
