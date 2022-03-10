@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
@@ -23,11 +24,14 @@ import android.os.UserHandle;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.Display;
 
 import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import java.util.Set;
 
@@ -151,14 +155,16 @@ public class WifiDialogManager {
      */
     private class DialogHandleInternal {
         private int mDialogId = WifiManager.INVALID_DIALOG_ID;
-        private @NonNull Intent mIntent;
+        private final @NonNull Intent mIntent;
         private Runnable mTimeoutRunnable;
+        private final int mDisplayId;
 
-        DialogHandleInternal(@NonNull Intent intent)
+        DialogHandleInternal(@NonNull Intent intent, int displayId)
                 throws IllegalArgumentException {
             if (intent == null) {
                 throw new IllegalArgumentException("Intent cannot be null!");
             }
+            mDisplayId = displayId;
             mIntent = intent;
         }
 
@@ -172,7 +178,20 @@ public class WifiDialogManager {
             }
             registerDialog();
             mIntent.putExtra(WifiManager.EXTRA_DIALOG_ID, mDialogId);
-            mContext.startActivityAsUser(mIntent, UserHandle.CURRENT);
+            boolean launched = false;
+            if (SdkLevel.isAtLeastT() && mDisplayId != Display.DEFAULT_DISPLAY) {
+                try {
+                    mContext.startActivityAsUser(mIntent,
+                            ActivityOptions.makeBasic().setLaunchDisplayId(mDisplayId).toBundle(),
+                            UserHandle.CURRENT);
+                    launched = true;
+                } catch (Exception e) {
+                    Log.e(TAG, "Error startActivityAsUser - " + e);
+                }
+            }
+            if (!launched) {
+                mContext.startActivityAsUser(mIntent, UserHandle.CURRENT);
+            }
             if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "Launching dialog with id=" + mDialogId);
             }
@@ -271,7 +290,8 @@ public class WifiDialogManager {
                     .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, messageUrlEnd)
                     .putExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT, positiveButtonText)
                     .putExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT, negativeButtonText)
-                    .putExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT, neutralButtonText));
+                    .putExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT, neutralButtonText),
+                    Display.DEFAULT_DISPLAY);
             if (messageUrl != null) {
                 if (message == null) {
                     throw new IllegalArgumentException("Cannot set span for null message!");
@@ -497,8 +517,7 @@ public class WifiDialogManager {
             super(getBaseLaunchIntent(WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED)
                     .putExtra(WifiManager.EXTRA_P2P_DEVICE_NAME, deviceName)
                     .putExtra(WifiManager.EXTRA_P2P_PIN_REQUESTED, isPinRequested)
-                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN, displayPin)
-                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_ID, displayId));
+                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN, displayPin), displayId);
             if (deviceName == null) {
                 throw new IllegalArgumentException("Device name cannot be null!");
             }
@@ -627,10 +646,12 @@ public class WifiDialogManager {
     private class P2pInvitationSentDialogHandle extends DialogHandleInternal {
         P2pInvitationSentDialogHandle(
                 final @NonNull String deviceName,
-                final @NonNull String displayPin) throws IllegalArgumentException {
+                final @NonNull String displayPin,
+                int displayId) throws IllegalArgumentException {
             super(getBaseLaunchIntent(WifiManager.DIALOG_TYPE_P2P_INVITATION_SENT)
                     .putExtra(WifiManager.EXTRA_P2P_DEVICE_NAME, deviceName)
-                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN, displayPin));
+                    .putExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN, displayPin),
+                    displayId);
             if (deviceName == null) {
                 throw new IllegalArgumentException("Device name cannot be null!");
             }
@@ -645,15 +666,18 @@ public class WifiDialogManager {
      *
      * @param deviceName           Name of the device the invitation was sent to.
      * @param displayPin           display PIN
+     * @param displayId            display ID
      * @return DialogHandle        Handle for the dialog, or {@code null} if no dialog could
      *                             be created.
      */
     @AnyThread
     public DialogHandle createP2pInvitationSentDialog(
             @NonNull String deviceName,
-            @Nullable String displayPin) {
+            @Nullable String displayPin,
+            int displayId) {
         try {
-            return new DialogHandle(new P2pInvitationSentDialogHandle(deviceName, displayPin));
+            return new DialogHandle(new P2pInvitationSentDialogHandle(deviceName, displayPin,
+                    displayId));
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Could not create DialogHandle for P2P Invitation Sent dialog: " + e);
             return null;

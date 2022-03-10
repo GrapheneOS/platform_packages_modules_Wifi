@@ -1159,7 +1159,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
         when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
                 anyInt(), any(), any())).thenReturn(mDialogHandle);
-        when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any()))
+        when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))
                 .thenReturn(mDialogHandle);
         when(mWifiInjector.getClock()).thenReturn(mClock);
         when(mWifiInjector.getInterfaceConflictManager()).thenReturn(mInterfaceConflictManager);
@@ -5242,7 +5242,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pConnect(any(), anyBoolean());
         verify(mWifiDialogManager).createP2pInvitationSentDialog(
-                pdEvent.device.deviceName, pdEvent.pin);
+                pdEvent.device.deviceName, pdEvent.pin, Display.DEFAULT_DISPLAY);
         verify(mDialogHandle).launchDialog();
     }
 

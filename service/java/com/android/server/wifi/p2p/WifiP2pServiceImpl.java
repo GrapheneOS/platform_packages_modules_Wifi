@@ -4452,8 +4452,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         extras);
                 return;
             }
+            int displayId = mDeathDataByBinder.values().stream()
+                    .filter(d -> d.mDisplayId != Display.DEFAULT_DISPLAY)
+                    .findAny()
+                    .map((dhd) -> dhd.mDisplayId)
+                    .orElse(Display.DEFAULT_DISPLAY);
+
             WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
-                    .createP2pInvitationSentDialog(getDeviceName(peerAddress), pin);
+                    .createP2pInvitationSentDialog(getDeviceName(peerAddress), pin, displayId);
             if (dialogHandle == null) {
                 loge("Could not create invitation sent dialog!");
                 return;

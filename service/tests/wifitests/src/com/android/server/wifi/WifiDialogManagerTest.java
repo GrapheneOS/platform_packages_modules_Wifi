@@ -18,20 +18,24 @@ package com.android.server.wifi;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.app.ActivityOptions;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.UserHandle;
 import android.view.Display;
 
@@ -70,6 +74,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiContext.getWifiDialogApkPkgName()).thenReturn(WIFI_DIALOG_APK_PKG_NAME);
+        doThrow(SecurityException.class).when(mWifiContext).startActivityAsUser(any(), any(),
+                any());
     }
 
     private void dispatchMockWifiThreadRunner(WifiThreadRunner wifiThreadRunner) {
@@ -121,6 +127,25 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         ArgumentCaptor<Intent> intentArgumentCaptor = ArgumentCaptor.forClass(Intent.class);
         verify(wifiContext, times(times))
                 .startActivityAsUser(intentArgumentCaptor.capture(), eq(UserHandle.CURRENT));
+        return intentArgumentCaptor.getValue();
+    }
+
+    /**
+     * Helper method to verify display-specific startActivityAsUser was called a given amount of
+     * times and return the last Intent that was sent.
+     */
+    @NonNull
+    private Intent verifyStartActivityAsUser(
+            int times,
+            int displayId,
+            @NonNull WifiContext wifiContext) {
+        ArgumentCaptor<Intent> intentArgumentCaptor = ArgumentCaptor.forClass(Intent.class);
+        ArgumentCaptor<Bundle> bundleArgumentCaptor = ArgumentCaptor.forClass(Bundle.class);
+        verify(wifiContext, times(times)).startActivityAsUser(intentArgumentCaptor.capture(),
+                bundleArgumentCaptor.capture(), eq(UserHandle.CURRENT));
+        assertEquals(ActivityOptions.makeBasic().setLaunchDisplayId(
+                        displayId).toBundle().toString(),
+                bundleArgumentCaptor.getValue().toString()); // since can't compare Bundles
         return intentArgumentCaptor.getValue();
     }
 
@@ -358,8 +383,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
             @NonNull Intent launchIntent,
             String expectedDeviceName,
             boolean expectedIsPinRequested,
-            @Nullable String expectedDisplayPin,
-            int expectedDisplayId) {
+            @Nullable String expectedDisplayPin) {
         assertThat(launchIntent.getAction()).isEqualTo(WifiManager.ACTION_LAUNCH_DIALOG);
         ComponentName component = launchIntent.getComponent();
         assertThat(component.getPackageName()).isEqualTo(WIFI_DIALOG_APK_PKG_NAME);
@@ -381,11 +405,6 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         assertThat(launchIntent.hasExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN)).isTrue();
         assertThat(launchIntent.getStringExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN))
                 .isEqualTo(expectedDisplayPin);
-        assertThat(launchIntent.hasExtra(WifiManager.EXTRA_P2P_DISPLAY_ID)).isTrue();
-        // the -1000 should always be an incorrect value - i.e. don't default (not really
-        // necessary since validation that extra exists - but a backup).
-        assertThat(launchIntent.getIntExtra(WifiManager.EXTRA_P2P_DISPLAY_ID, -1000))
-                .isEqualTo(expectedDisplayId);
         return dialogId;
     }
 
@@ -408,7 +427,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(1)).onAccepted(null);
@@ -424,7 +443,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, true, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, true, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, "012345");
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(1)).onAccepted("012345");
@@ -433,9 +452,10 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dialogHandle = wifiDialogManager.createP2pInvitationReceivedDialog(
                 TEST_DEVICE_NAME, false, null, 123, callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
+        verifyStartActivityAsUser(1, 123, mWifiContext);
         intent = verifyStartActivityAsUser(3, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, 123);
+                TEST_DEVICE_NAME, false, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, "012345");
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(2)).onAccepted("012345");
@@ -447,7 +467,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(4, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, true, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, true, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(2)).onAccepted(null);
@@ -459,7 +479,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(5, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, false, null);
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(1)).onDeclined();
@@ -471,7 +491,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(6, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, true, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, true, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, false, "012345");
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(2)).onDeclined();
@@ -483,7 +503,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(7, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, false, "012345");
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(3)).onDeclined();
@@ -495,7 +515,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(8, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, true, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, true, null);
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, false, null);
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback, times(4)).onDeclined();
@@ -520,7 +540,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
         dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         verifyDismissIntent(intent);
@@ -541,7 +561,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(3, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
 
         // Callback should receive replies to the corresponding dialogId now.
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
@@ -567,7 +587,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle1, 0, mWifiThreadRunner);
         Intent intent1 = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId1 = verifyP2pInvitationReceivedDialogLaunchIntent(intent1,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
 
         // Launch Dialog2
         P2pInvitationReceivedDialogCallback callback2 =
@@ -578,7 +598,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle2, 0, mWifiThreadRunner);
         Intent intent2 = verifyStartActivityAsUser(2, mWifiContext);
         int dialogId2 = verifyP2pInvitationReceivedDialogLaunchIntent(intent2,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
 
         // callback1 notified
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId1, true, null);
@@ -611,7 +631,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
 
         // Verify cancel runnable wasn't posted.
         verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt());
@@ -624,7 +644,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
 
         // Verify the timeout runnable was posted and run it.
         ArgumentCaptor<Runnable> runnableArgumentCaptor = ArgumentCaptor.forClass(Runnable.class);
@@ -652,7 +672,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(4, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY);
+                TEST_DEVICE_NAME, false, null);
         // Reply before the timeout is over
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
         dispatchMockWifiThreadRunner(callbackThreadRunner);
