@@ -290,4 +290,10 @@ public interface ClientMode {
      * will be artificially reduced so that ConnectivityService will prefer any other connection.
      */
     void setShouldReduceNetworkScore(boolean shouldReduceNetworkScore);
+
+
+    /**
+     * update the capabilities
+     */
+    void updateCapabilities();
 }

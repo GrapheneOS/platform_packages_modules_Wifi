@@ -62,8 +62,8 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.text.TextUtils;
+import android.util.ArraySet;
 import android.util.Log;
-import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
@@ -76,6 +76,7 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -162,6 +163,7 @@ public class WifiNetworkFactory extends NetworkFactory {
     @Nullable private NetworkRequest mConnectedSpecificNetworkRequest;
     @Nullable private WifiNetworkSpecifier mConnectedSpecificNetworkRequestSpecifier;
     @Nullable private WifiConfiguration mUserSelectedNetwork;
+    private Set<Integer> mConnectedUids = new ArraySet<>();
     private int mUserSelectedNetworkConnectRetryCount;
     // Map of bssid to latest scan results for all scan results matching a request. Will be
     //  - null, if there are no active requests.
@@ -852,7 +854,8 @@ public class WifiNetworkFactory extends NetworkFactory {
                     R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)
                     && !mWifiPermissionsUtil.isTargetSdkLessThan(
                     mActiveSpecificNetworkRequest.getRequestorPackageName(), Build.VERSION_CODES.S,
-                    mActiveSpecificNetworkRequest.getRequestorUid())) {
+                    mActiveSpecificNetworkRequest.getRequestorUid())
+                    && mClientModeManager == null) {
                 revokeNormalBypass = !mWifiNative.isItPossibleToCreateStaIface(
                         new WorkSource(mActiveSpecificNetworkRequest.getRequestorUid(),
                                 mActiveSpecificNetworkRequest.getRequestorPackageName()));
@@ -936,31 +939,29 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     /**
-     * Return the uid of the specific network request being processed if connected to the requested
+     * Return the uids of the specific network request being processed if connected to the requested
      * network.
      *
      * @param connectedNetwork WifiConfiguration corresponding to the connected network.
-     * @return Pair of uid & package name of the specific request (if any), else <-1, "">.
+     * @return Set of uids which request this network
      */
-    public Pair<Integer, String> getSpecificNetworkRequestUidAndPackageName(
+    public Set<Integer> getSpecificNetworkRequestUids(
             @NonNull WifiConfiguration connectedNetwork, @NonNull String connectedBssid) {
         if (mUserSelectedNetwork == null || connectedNetwork == null) {
-            return Pair.create(Process.INVALID_UID, "");
+            return Collections.emptySet();
         }
         if (!isUserSelectedNetwork(connectedNetwork, connectedBssid)) {
             Log.w(TAG, "Connected to unknown network " + connectedNetwork + ":" + connectedBssid
                     + ". Ignoring...");
-            return Pair.create(Process.INVALID_UID, "");
+            return Collections.emptySet();
         }
         if (mConnectedSpecificNetworkRequestSpecifier != null) {
-            return Pair.create(mConnectedSpecificNetworkRequest.getRequestorUid(),
-                    mConnectedSpecificNetworkRequest.getRequestorPackageName());
+            return mConnectedUids;
         }
         if (mActiveSpecificNetworkRequestSpecifier != null) {
-            return Pair.create(mActiveSpecificNetworkRequest.getRequestorUid(),
-                    mActiveSpecificNetworkRequest.getRequestorPackageName());
+            return Set.of(mActiveSpecificNetworkRequest.getRequestorUid());
         }
-        return Pair.create(Process.INVALID_UID, "");
+        return Collections.emptySet();
     }
 
     // Helper method to add the provided network configuration to WifiConfigManager, if it does not
@@ -1153,20 +1154,9 @@ public class WifiNetworkFactory extends NetworkFactory {
             return;
         }
         Log.d(TAG, "Connected to network " + mUserSelectedNetwork);
-        if (mRegisteredCallbacks != null) {
-            int itemCount = mRegisteredCallbacks.beginBroadcast();
-            for (int i = 0; i < itemCount; i++) {
-                try {
-                    mRegisteredCallbacks.getBroadcastItem(i).onUserSelectionConnectSuccess(
-                            mUserSelectedNetwork);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "Unable to invoke network request connect failure callback ", e);
-                }
-            }
-            mRegisteredCallbacks.finishBroadcast();
-        }
+
         // transition the request from "active" to "connected".
-        setupForConnectedRequest();
+        setupForConnectedRequest(true);
     }
 
     /**
@@ -1300,14 +1290,39 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     // Invoked at the start of new connected request processing.
-    private void setupForConnectedRequest() {
-        mConnectedSpecificNetworkRequest = mActiveSpecificNetworkRequest;
-        mConnectedSpecificNetworkRequestSpecifier = mActiveSpecificNetworkRequestSpecifier;
+    private void setupForConnectedRequest(boolean newConnection) {
+        if (mRegisteredCallbacks != null) {
+            int itemCount = mRegisteredCallbacks.beginBroadcast();
+            for (int i = 0; i < itemCount; i++) {
+                try {
+                    mRegisteredCallbacks.getBroadcastItem(i).onUserSelectionConnectSuccess(
+                            mUserSelectedNetwork);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Unable to invoke network request connect failure callback ", e);
+                }
+            }
+            mRegisteredCallbacks.finishBroadcast();
+        }
+        if (newConnection) {
+            mConnectedSpecificNetworkRequest = mActiveSpecificNetworkRequest;
+            mConnectedSpecificNetworkRequestSpecifier = mActiveSpecificNetworkRequestSpecifier;
+            mConnectedUids.clear();
+        }
+        if (mActiveSpecificNetworkRequest.getRequestorUid() == 0) {
+            // For shell test call from root
+            mConnectedUids.add(Process.SYSTEM_UID);
+        } else {
+            mConnectedUids.add(mActiveSpecificNetworkRequest.getRequestorUid());
+        }
         mActiveSpecificNetworkRequest = null;
         mActiveSpecificNetworkRequestSpecifier = null;
         mSkipUserDialogue = false;
         mActiveMatchedScanResults = null;
         mPendingConnectionSuccess = false;
+        if (!newConnection) {
+            mClientModeManager.updateCapabilities();
+            return;
+        }
         // Cancel connection timeout alarm.
         cancelConnectionTimeout();
 
@@ -1337,6 +1352,7 @@ public class WifiNetworkFactory extends NetworkFactory {
         disconnectAndRemoveNetworkFromWifiConfigManager(mUserSelectedNetwork);
         mConnectedSpecificNetworkRequest = null;
         mConnectedSpecificNetworkRequestSpecifier = null;
+        mConnectedUids.clear();
 
         if (mConnectionStartTimeMillis != -1) {
             int connectionDurationSec = toIntExact(TimeUnit.MILLISECONDS.toSeconds(
@@ -1380,6 +1396,17 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (mUserSelectedNetwork == null) {
             Log.e(TAG, "No user selected network to connect to. Ignoring ClientModeManager"
                     + "retrieval..");
+            return;
+        }
+
+        if (ActiveModeWarden.isClientModeManagerConnectedOrConnectingToBssid(mClientModeManager,
+                mUserSelectedNetwork.SSID, mUserSelectedNetwork.BSSID)
+                && mConnectedSpecificNetworkRequest != null
+                && !WifiConfigurationUtil.hasCredentialChanged(
+                        mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration,
+                mActiveSpecificNetworkRequestSpecifier.wifiConfiguration)) {
+            // Already connected to the same network.
+            setupForConnectedRequest(false);
             return;
         }
 

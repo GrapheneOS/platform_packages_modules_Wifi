@@ -223,4 +223,7 @@ public interface ClientModeDefaults extends ClientMode {
 
     @Override
     default void setShouldReduceNetworkScore(boolean shouldReduceNetworkScore) { }
+
+    @Override
+    default void updateCapabilities() { }
 }

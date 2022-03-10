@@ -1960,22 +1960,6 @@ public class ActiveModeWarden {
                 super.exit();
             }
 
-            private boolean isClientModeManagerConnectedOrConnectingToBssid(
-                    @NonNull ClientModeManager clientModeManager,
-                    @NonNull String ssid, @NonNull String bssid) {
-                WifiConfiguration connectedOrConnectingWifiConfiguration = coalesce(
-                        clientModeManager.getConnectingWifiConfiguration(),
-                        clientModeManager.getConnectedWifiConfiguration());
-                String connectedOrConnectingBssid = coalesce(
-                        clientModeManager.getConnectingBssid(),
-                        clientModeManager.getConnectedBssid());
-                String connectedOrConnectingSsid =
-                        connectedOrConnectingWifiConfiguration == null
-                                ? null : connectedOrConnectingWifiConfiguration.SSID;
-                return Objects.equals(ssid, connectedOrConnectingSsid)
-                        && Objects.equals(bssid, connectedOrConnectingBssid);
-            }
-
             @Nullable
             private ConcreteClientModeManager findAnyClientModeManagerConnectingOrConnectedToBssid(
                     @NonNull String ssid, @Nullable String bssid) {
@@ -2210,5 +2194,25 @@ public class ActiveModeWarden {
 
     private static <T> T coalesce(T a, T  b) {
         return a != null ? a : b;
+    }
+
+    /**
+     * Check if CMM is connecting or connected to target BSSID and SSID
+     */
+    public static boolean isClientModeManagerConnectedOrConnectingToBssid(
+            @NonNull ClientModeManager clientModeManager,
+            @NonNull String ssid, @NonNull String bssid) {
+        WifiConfiguration connectedOrConnectingWifiConfiguration = coalesce(
+                clientModeManager.getConnectingWifiConfiguration(),
+                clientModeManager.getConnectedWifiConfiguration());
+        String connectedOrConnectingBssid = coalesce(
+                clientModeManager.getConnectingBssid(),
+                clientModeManager.getConnectedBssid());
+        String connectedOrConnectingSsid =
+                connectedOrConnectingWifiConfiguration == null
+                        ? null : connectedOrConnectingWifiConfiguration.SSID;
+        Log.v(TAG, connectedOrConnectingBssid + "   " + connectedOrConnectingSsid);
+        return Objects.equals(ssid, connectedOrConnectingSsid)
+                && Objects.equals(bssid, connectedOrConnectingBssid);
     }
 }
