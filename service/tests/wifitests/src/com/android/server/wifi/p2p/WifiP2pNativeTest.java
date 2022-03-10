@@ -296,10 +296,9 @@ public class WifiP2pNativeTest extends WifiBaseTest {
      */
     @Test
     public void testP2pFindIndefinitely() {
-        when(mSupplicantP2pIfaceHalMock.find(anyInt(), anyInt())).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.find(anyInt())).thenReturn(true);
         assertTrue(mWifiP2pNative.p2pFind());
-        verify(mSupplicantP2pIfaceHalMock).find(eq(
-                WifiP2pManager.WIFI_P2P_SCAN_FULL), eq(0));
+        verify(mSupplicantP2pIfaceHalMock).find(eq(0));
     }
 
     /**
@@ -307,12 +306,39 @@ public class WifiP2pNativeTest extends WifiBaseTest {
      */
     @Test
     public void testP2pFindWithTimeout() {
-        when(mSupplicantP2pIfaceHalMock.find(anyInt(), anyInt())).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.find(anyInt())).thenReturn(true);
         assertTrue(mWifiP2pNative.p2pFind(TEST_P2P_FIND_TIMEOUT));
-        verify(mSupplicantP2pIfaceHalMock).find(
-                eq(WifiP2pManager.WIFI_P2P_SCAN_FULL), eq(TEST_P2P_FIND_TIMEOUT));
+        verify(mSupplicantP2pIfaceHalMock).find(eq(TEST_P2P_FIND_TIMEOUT));
     }
 
+    /**
+     * Verifies initiating a P2P service discovery on social channels.
+     */
+    @Test
+    public void testP2pFindOnSocialChannels() {
+        when(mSupplicantP2pIfaceHalMock.find(anyInt(), anyInt(), anyInt())).thenReturn(true);
+        assertTrue(mWifiP2pNative.p2pFind(
+                WifiP2pManager.WIFI_P2P_SCAN_SOCIAL,
+                WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, TEST_P2P_FIND_TIMEOUT));
+        verify(mSupplicantP2pIfaceHalMock).find(
+                eq(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL),
+                eq(WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED),
+                eq(TEST_P2P_FIND_TIMEOUT));
+    }
+
+    /**
+     * Verifies initiating a P2P service discovery on specific frequency.
+     */
+    @Test
+    public void testP2pFindOnSpecificFrequency() {
+        int freq = 2412;
+        when(mSupplicantP2pIfaceHalMock.find(anyInt(), anyInt(), anyInt())).thenReturn(true);
+        assertTrue(mWifiP2pNative.p2pFind(
+                WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, freq, TEST_P2P_FIND_TIMEOUT));
+        verify(mSupplicantP2pIfaceHalMock).find(
+                eq(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ),
+                eq(freq), eq(TEST_P2P_FIND_TIMEOUT));
+    }
     /**
      * Verifies stopping a P2P service discovery.
      */

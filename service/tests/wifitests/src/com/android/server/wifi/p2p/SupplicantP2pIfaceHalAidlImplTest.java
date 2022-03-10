@@ -276,28 +276,64 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
-     * Sunny day scenario for find()
+     * Sunny day scenario for find(int)
      */
     @Test
     public void testFind_success() throws Exception {
         doNothing().when(mISupplicantP2pIfaceMock).find(anyInt());
         // Default value when service is not yet initialized.
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, 1));
+        assertFalse(mDut.find(1));
 
         executeAndValidateInitializationSequence(false, false);
-        assertTrue(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, 1));
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, -1));
+        assertTrue(mDut.find(1));
+        verify(mISupplicantP2pIfaceMock).find(eq(1));
+        assertFalse(mDut.find(-1));
+        verify(mISupplicantP2pIfaceMock, never()).find(eq(-1));
     }
 
     /**
-     * Verify that find returns false, if HAL call did not succeed.
+     * Verify that find(int) returns false, if HAL call did not succeed.
      */
     @Test
     public void testFind_failure() throws Exception {
         executeAndValidateInitializationSequence(false, false);
         doThrow(new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN))
             .when(mISupplicantP2pIfaceMock).find(anyInt());
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, 1));
+        assertFalse(mDut.find(1));
+        // Check that service is still alive.
+        assertTrue(mDut.isInitializationComplete());
+    }
+
+    /**
+     * Sunny day scenario for find with scan type, {@link WifiP2pManager#WIFI_P2P_SCAN_FULL}.
+     */
+    @Test
+    public void testFindFullScan_success() throws Exception {
+        doNothing().when(mISupplicantP2pIfaceMock).find(anyInt());
+        // Default value when service is not yet initialized.
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
+
+        executeAndValidateInitializationSequence(false, false);
+        assertTrue(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL,
+                             WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, -1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, 2412, -1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, -1, 1));
+    }
+
+    /**
+     * Verify that find with scan type, {@link WifiP2pManager#WIFI_P2P_SCAN_FULL}, returns false,
+     * if HAL call did not succeed.
+     */
+    @Test
+    public void testFindFullScan_failure() throws Exception {
+        executeAndValidateInitializationSequence(false, false);
+        doThrow(new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN))
+            .when(mISupplicantP2pIfaceMock).find(anyInt());
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_FULL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
         // Check that service is still alive.
         assertTrue(mDut.isInitializationComplete());
     }
@@ -309,22 +345,28 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     public void testFindSocialOnly_success() throws Exception {
         doNothing().when(mISupplicantP2pIfaceMock).findOnSocialChannels(anyInt());
         // Default value when service is not yet initialized.
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
 
         executeAndValidateInitializationSequence(false, false);
-        assertTrue(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, 1));
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, -1));
+        assertTrue(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL,
+                             WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, -1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, 2412, -1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, -1, 1));
     }
 
     /**
-     * Verify that find returns false, if HAL call did not succeed.
+     * Verify that findOnSocialChannels() returns false, if HAL call did not succeed.
      */
     @Test
     public void testFindSocialOnly_failure() throws Exception {
         executeAndValidateInitializationSequence(false, false);
         doThrow(new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN))
             .when(mISupplicantP2pIfaceMock).findOnSocialChannels(anyInt());
-        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SOCIAL,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
         // Check that service is still alive.
         assertTrue(mDut.isInitializationComplete());
     }
@@ -337,11 +379,14 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         int freq = 2412;
         doNothing().when(mISupplicantP2pIfaceMock).findOnSpecificFrequency(anyInt(), anyInt());
         // Default value when service is not yet initialized.
-        assertFalse(mDut.find(freq, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, freq, 1));
 
         executeAndValidateInitializationSequence(false, false);
-        assertTrue(mDut.find(freq, 1));
-        assertFalse(mDut.find(freq, -1));
+        assertTrue(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, freq, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, freq, -1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, -1, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ,
+                              WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, 1));
     }
 
     /**
@@ -352,7 +397,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence(false, false);
         doThrow(new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN))
             .when(mISupplicantP2pIfaceMock).findOnSpecificFrequency(anyInt(), anyInt());
-        assertFalse(mDut.find(2412, 1));
+        assertFalse(mDut.find(WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ, 2412, 1));
         // Check that service is still alive.
         assertTrue(mDut.isInitializationComplete());
     }
