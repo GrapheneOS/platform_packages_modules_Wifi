@@ -9514,13 +9514,6 @@ public class WifiManager {
     public static final String EXTRA_P2P_DISPLAY_PIN = "android.net.wifi.extra.P2P_DISPLAY_PIN";
 
     /**
-     * Extra String indicating the Display ID to be used for the dialog. Default display is
-     * Display.DEFAULT_DISPLAY.
-     * @hide
-     */
-    public static final String EXTRA_P2P_DISPLAY_ID = "android.net.wifi.extra.P2P_DISPLAY_ID";
-
-    /**
      * Returns a set of packages that aren't DO or PO but should be able to manage WiFi networks.
      * @hide
      */
