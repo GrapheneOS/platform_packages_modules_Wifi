@@ -505,7 +505,8 @@ public class PasspointNetworkNominateHelperTest {
     }
 
     /**
-     * Verify that when the WAN metrics status is 'LINK_STATUS_DOWN', it should be ignored.
+     * Verify that when the WAN metrics status is 'LINK_STATUS_DOWN', it should be set
+     * No Internet.
      * @throws Exception
      */
     @Test
@@ -530,7 +531,9 @@ public class PasspointNetworkNominateHelperTest {
 
         List<Pair<ScanDetail, WifiConfiguration>> candidates = mNominateHelper
                 .getPasspointNetworkCandidates(scanDetails, false);
-        assertTrue(candidates.isEmpty());
+        assertEquals(1, candidates.size());
+        assertEquals(TEST_FQDN1, candidates.get(0).second.FQDN);
+        verify(mWifiConfigManager).incrementNetworkNoInternetAccessReports(eq(TEST_NETWORK_ID));
     }
 
     /**

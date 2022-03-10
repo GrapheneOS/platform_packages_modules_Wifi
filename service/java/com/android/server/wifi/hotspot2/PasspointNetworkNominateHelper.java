@@ -88,12 +88,6 @@ public class PasspointNetworkNominateHelper {
                 // If scanDetail is not Passpoint network, ignore.
                 continue;
             }
-            if (isApWanLinkStatusDown(scanDetail)) {
-                // If scanDetail has no internet connection, ignore.
-                mLocalLog.log("Ignoring no internet connection Passpoint AP: "
-                        + WifiNetworkSelector.toScanId(scanDetail.getScanResult()));
-                continue;
-            }
             filteredScanDetails.add(scanDetail);
         }
         if (!filteredScanDetails.isEmpty()) {
@@ -239,6 +233,15 @@ public class PasspointNetworkNominateHelper {
                 candidate.mScanDetail.getScanResult(), 0, null);
         mWifiConfigManager.updateScanDetailForNetwork(
                 result.getNetworkId(), candidate.mScanDetail);
+        if (isApWanLinkStatusDown(candidate.mScanDetail)) {
+            // If scanDetail has no internet connection, mark No Internet and
+            // still report to the upper layer.
+            mLocalLog.log("Mark no internet connection Passpoint AP: "
+                    + WifiNetworkSelector.toScanId(candidate.mScanDetail.getScanResult()));
+            mWifiConfigManager.incrementNetworkNoInternetAccessReports(result.getNetworkId());
+            mWifiConfigManager.updateNetworkSelectionStatus(result.getNetworkId(),
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT);
+        }
         return mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
     }
 
