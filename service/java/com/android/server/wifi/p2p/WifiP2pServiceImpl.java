@@ -4980,6 +4980,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         + interfaceName, ex);
                 return null;
             }
+            if (null == iface) {
+                Log.w(TAG, "Could not obtain interface " + interfaceName);
+                return null;
+            }
             Enumeration<InetAddress> addrs = iface.getInetAddresses();
             while (addrs.hasMoreElements()) {
                 InetAddress addr = addrs.nextElement();
