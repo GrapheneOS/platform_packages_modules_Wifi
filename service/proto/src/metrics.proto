@@ -3018,6 +3018,10 @@ message P2pConnectionEvent {
 
   // Failures that happen at the connectivity layer.
   optional ConnectivityLevelFailure connectivity_level_failure_code = 5;
+
+  // Group role. This could be unknown with connect() call when the WifiConfig doesn't have the
+  // credential.
+  optional GroupEvent.GroupRole group_role = 6;
 }
 
 // GroupEvent tracking group information from GroupStarted to GroupRemoved.
@@ -3028,6 +3032,8 @@ message GroupEvent {
     GROUP_OWNER = 0;
 
     GROUP_CLIENT = 1;
+
+    GROUP_UNKNOWN = 2;
   }
 
   // The ID of network in supplicant for this group.
