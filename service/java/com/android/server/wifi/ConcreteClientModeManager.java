@@ -1477,4 +1477,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 + " role=" + getRole()
                 + "}";
     }
+
+    @Override
+    public void updateCapabilities() {
+        getClientMode().updateCapabilities();
+    }
 }

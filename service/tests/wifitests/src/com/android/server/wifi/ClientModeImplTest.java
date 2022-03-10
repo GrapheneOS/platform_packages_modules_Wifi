@@ -573,8 +573,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         // enableDebugLogs();
         mWifiMonitor = spy(new MockWifiMonitor());
         when(mTelephonyManager.createForSubscriptionId(anyInt())).thenReturn(mDataTelephonyManager);
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Collections.emptySet());
         setUpWifiNative();
         doAnswer(new AnswerWithArguments() {
             public MacAddress answer(
@@ -2202,8 +2202,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration config = createTestNetwork(false);
         when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
 
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Set.of(TEST_UID));
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
                 WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
         DisconnectEventInfo disconnectEventInfo =
@@ -2228,8 +2228,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration config = createTestNetwork(false);
         when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
 
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Collections.emptySet());
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
                 WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
         DisconnectEventInfo disconnectEventInfo =
@@ -3249,8 +3249,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void verifyConnectedModeNetworkCapabilitiesBandwidthUpdate() throws Exception {
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(40_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(50_000);
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Collections.emptySet());
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
 
@@ -4346,6 +4346,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         // not user selected
         when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
                 .thenReturn(currentNetwork);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
+                .thenReturn(currentNetwork);
+
         when(mWifiConfigManager.getLastSelectedNetwork()).thenReturn(FRAMEWORK_NETWORK_ID + 1);
 
         // internet validation failure
@@ -4499,6 +4502,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // user didn't pick this network
         when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(currentNetwork);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
                 .thenReturn(currentNetwork);
         when(mWifiConfigManager.getLastSelectedNetwork()).thenReturn(FRAMEWORK_NETWORK_ID + 1);
 
@@ -4689,8 +4694,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mWifiInfo.setFrequency(5825);
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(40_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(50_000);
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Collections.emptySet());
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
 
@@ -4736,8 +4741,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mWifiInfo.setFrequency(2437);
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(30_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(40_000);
-        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
-                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Set.of(TEST_UID));
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
         ArgumentCaptor<NetworkCapabilities> networkCapabilitiesCaptor =
@@ -4765,8 +4770,6 @@ public class ClientModeImplTest extends WifiBaseTest {
                 new WifiNetworkAgentSpecifier(expectedConfig, ScanResult.WIFI_BAND_24_GHZ,
                         true /* matchLocalOnlySpecifiers */);
         assertEquals(expectedWifiNetworkAgentSpecifier, wifiNetworkAgentSpecifier);
-        assertEquals(TEST_UID, networkCapabilities.getRequestorUid());
-        assertEquals(OP_PACKAGE_NAME, networkCapabilities.getRequestorPackageName());
         assertEquals(30_000, networkCapabilities.getLinkUpstreamBandwidthKbps());
         assertEquals(40_000, networkCapabilities.getLinkDownstreamBandwidthKbps());
     }
@@ -6221,6 +6224,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 .thenReturn(mScanDetailCache);
         when(mScanDetailCache.getScanResult(anyString())).thenReturn(scanResult);
         when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(anyInt())).thenReturn(config);
 
         // Trigger ip reachability failure and ensure there is no action.
         ReachabilityLossInfoParcelable lossInfo =
