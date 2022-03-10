@@ -16,42 +16,140 @@
 
 package com.android.server.wifi;
 
+import android.app.ActivityManager;
+import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.drawable.Icon;
+import android.net.wifi.WifiContext;
 import android.provider.Settings;
+
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 
 /* Tracks persisted settings for Wi-Fi and airplane mode interaction */
 public class WifiSettingsStore {
-    /* Values tracked in Settings.Global.WIFI_ON */
-    static final int WIFI_DISABLED                      = 0;
-    static final int WIFI_ENABLED                       = 1;
-
+    /* Values used to track the current state of Wi-Fi
+     * Key: Settings.Global.WIFI_ON
+     * Values:
+     *     WIFI_DISABLED
+     *     WIFI_ENABLED
+     *     WIFI_ENABLED_APM_OVERRIDE
+     *     WIFI_DISABLED_APM_ON
+     */
+    @VisibleForTesting
+    public static final int WIFI_DISABLED                      = 0;
+    @VisibleForTesting
+    public static final int WIFI_ENABLED                       = 1;
     /* Wifi enabled while in airplane mode */
-    private static final int WIFI_ENABLED_AIRPLANE_OVERRIDE     = 2;
+    @VisibleForTesting
+    public static final int WIFI_ENABLED_APM_OVERRIDE = 2;
     /* Wifi disabled due to airplane mode on */
-    private static final int WIFI_DISABLED_AIRPLANE_ON          = 3;
+    @VisibleForTesting
+    public static final int WIFI_DISABLED_APM_ON = 3;
+
+    /* Values used to track the current state of airplane mode
+     * Key: Settings.Global.AIRPLANE_MODE_ON
+     * Values:
+     *     APM_DISABLED
+     *     APM_ENABLED
+     */
+    @VisibleForTesting
+    public static final int APM_DISABLED                      = 0;
+    @VisibleForTesting
+    public static final int APM_ENABLED                       = 1;
+
+    /* Values used to track whether Wi-Fi should remain on in airplane mode
+     * Key: Settings.Secure WIFI_APM_STATE
+     * Values:
+     *     WIFI_TURNS_OFF_IN_APM
+     *     WIFI_REMAINS_ON_IN_APM
+     */
+    @VisibleForTesting
+    public static final String WIFI_APM_STATE = "wifi_apm_state";
+    @VisibleForTesting
+    public static final int WIFI_TURNS_OFF_IN_APM = 0;
+    @VisibleForTesting
+    public static final int WIFI_REMAINS_ON_IN_APM = 1;
+
+    /* Values used to track whether Bluetooth should remain on in airplane mode
+     * Key: Settings.Secure BLUETOOTH_APM_STATE
+     * Values:
+     *     BT_TURNS_OFF_IN_APM
+     *     BT_REMAINS_ON_IN_APM
+     */
+    @VisibleForTesting
+    public static final String BLUETOOTH_APM_STATE = "bluetooth_apm_state";
+    @VisibleForTesting
+    public static final int BT_TURNS_OFF_IN_APM = 0;
+    @VisibleForTesting
+    public static final int BT_REMAINS_ON_IN_APM = 1;
+
+    /* Values used to track whether a notification has been shown
+     * Keys:
+     *     Settings.Secure APM_WIFI_NOTIFICATION
+     *     Settings.Secure APM_WIFI_ENABLED_NOTIFICATION
+     * Values:
+     *     NOTIFICATION_NOT_SHOWN
+     *     NOTIFICATION_SHOWN
+     */
+    /* Track whether Wi-Fi remains on in airplane mode notification was shown */
+    @VisibleForTesting
+    public static final String APM_WIFI_NOTIFICATION = "apm_wifi_notification";
+    /* Track whether Wi-Fi enabled in airplane mode notification was shown */
+    @VisibleForTesting
+    public static final String APM_WIFI_ENABLED_NOTIFICATION = "apm_wifi_enabled_notification";
+    @VisibleForTesting
+    public static final int NOTIFICATION_NOT_SHOWN = 0;
+    @VisibleForTesting
+    public static final int NOTIFICATION_SHOWN = 1;
 
     /* Persisted state that tracks the wifi & airplane interaction from settings */
     private int mPersistWifiState = WIFI_DISABLED;
+
     /* Tracks current airplane mode state */
     private boolean mAirplaneModeOn = false;
 
-    private final Context mContext;
-    private final WifiSettingsConfigStore mSettingsConfigStore;
+    // TODO(b/240650689): Replace NOTE_WIFI_APM_NOTIFICATION with
+    // SystemMessage.NOTE_WIFI_APM_NOTIFICATION
+    private static final int WIFI_APM_NOTIFICATION_ID = 73;
 
-    WifiSettingsStore(Context context, WifiSettingsConfigStore sharedPreferences) {
+    private final WifiContext mContext;
+    private final WifiSettingsConfigStore mSettingsConfigStore;
+    private final WifiThreadRunner mWifiThreadRunner;
+    private final FrameworkFacade mFrameworkFacade;
+    private final WifiNotificationManager mNotificationManager;
+    private final DeviceConfigFacade mDeviceConfigFacade;
+
+    WifiSettingsStore(WifiContext context, WifiSettingsConfigStore sharedPreferences,
+            WifiThreadRunner wifiThread, FrameworkFacade frameworkFacade,
+            WifiNotificationManager notificationManager, DeviceConfigFacade deviceConfigFacade) {
         mContext = context;
         mSettingsConfigStore = sharedPreferences;
+        mWifiThreadRunner = wifiThread;
+        mFrameworkFacade = frameworkFacade;
+        mNotificationManager = notificationManager;
+        mDeviceConfigFacade = deviceConfigFacade;
         mAirplaneModeOn = getPersistedAirplaneModeOn();
         mPersistWifiState = getPersistedWifiState();
     }
 
+    private int getUserSecureIntegerSetting(String name, int def) {
+        Context userContext = mFrameworkFacade.getUserContext(mContext);
+        return mFrameworkFacade.getSecureIntegerSetting(userContext, name, def);
+    }
+
+    private void setUserSecureIntegerSetting(String name, int value) {
+        Context userContext = mFrameworkFacade.getUserContext(mContext);
+        mFrameworkFacade.setSecureIntegerSetting(userContext, name, value);
+    }
+
     public synchronized boolean isWifiToggleEnabled() {
         return mPersistWifiState == WIFI_ENABLED
-                || mPersistWifiState == WIFI_ENABLED_AIRPLANE_OVERRIDE;
+                || mPersistWifiState == WIFI_ENABLED_APM_OVERRIDE;
     }
 
     /**
@@ -82,15 +180,47 @@ public class WifiSettingsStore {
         return getPersistedWifiMultiInternetMode();
     }
 
+    public void setPersistWifiState(int state) {
+        mPersistWifiState = state;
+    }
+
+    private void showNotification(int titleId, int messageId) {
+        String settingsPackage = mFrameworkFacade.getSettingsPackageName(mContext);
+        if (settingsPackage == null) return;
+
+        String title = mContext.getResources().getString(titleId);
+        String message = mContext.getResources().getString(messageId);
+        Notification.Builder builder = mFrameworkFacade.makeNotificationBuilder(mContext,
+                        WifiService.NOTIFICATION_APM_ALERTS)
+                .setAutoCancel(true)
+                .setLocalOnly(true)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(new Notification.BigTextStyle().bigText(message))
+                .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
+                        R.drawable.ic_wifi_settings));
+        mNotificationManager.notify(WIFI_APM_NOTIFICATION_ID, builder.build());
+    }
+
     public synchronized boolean handleWifiToggled(boolean wifiEnabled) {
         // Can Wi-Fi be toggled in airplane mode ?
         if (mAirplaneModeOn && !isAirplaneToggleable()) {
             return false;
         }
-
         if (wifiEnabled) {
             if (mAirplaneModeOn) {
-                persistWifiState(WIFI_ENABLED_AIRPLANE_OVERRIDE);
+                persistWifiState(WIFI_ENABLED_APM_OVERRIDE);
+                if (mDeviceConfigFacade.isApmEnhancementEnabled()) {
+                    setUserSecureIntegerSetting(WIFI_APM_STATE, WIFI_REMAINS_ON_IN_APM);
+                    if (getUserSecureIntegerSetting(APM_WIFI_ENABLED_NOTIFICATION,
+                            NOTIFICATION_NOT_SHOWN) == NOTIFICATION_NOT_SHOWN) {
+                        mWifiThreadRunner.post(
+                                () -> showNotification(R.string.wifi_enabled_apm_first_time_title,
+                                        R.string.wifi_enabled_apm_first_time_message));
+                        setUserSecureIntegerSetting(
+                                APM_WIFI_ENABLED_NOTIFICATION, NOTIFICATION_SHOWN);
+                    }
+                }
             } else {
                 persistWifiState(WIFI_ENABLED);
             }
@@ -100,6 +230,9 @@ public class WifiSettingsStore {
             // wifi being disabled due to airplane mode being turned on
             // is handled handleAirplaneModeToggled()
             persistWifiState(WIFI_DISABLED);
+            if (mDeviceConfigFacade.isApmEnhancementEnabled() && mAirplaneModeOn) {
+                setUserSecureIntegerSetting(WIFI_APM_STATE, WIFI_TURNS_OFF_IN_APM);
+            }
         }
         return true;
     }
@@ -116,14 +249,28 @@ public class WifiSettingsStore {
 
     synchronized void handleAirplaneModeToggled() {
         if (mAirplaneModeOn) {
-            // Wifi disabled due to airplane on
             if (mPersistWifiState == WIFI_ENABLED) {
-                persistWifiState(WIFI_DISABLED_AIRPLANE_ON);
+                if (mDeviceConfigFacade.isApmEnhancementEnabled()
+                        && getUserSecureIntegerSetting(WIFI_APM_STATE, WIFI_TURNS_OFF_IN_APM)
+                        == WIFI_REMAINS_ON_IN_APM) {
+                    persistWifiState(WIFI_ENABLED_APM_OVERRIDE);
+                    if (getUserSecureIntegerSetting(APM_WIFI_NOTIFICATION, NOTIFICATION_NOT_SHOWN)
+                            == NOTIFICATION_NOT_SHOWN
+                            && !isBluetoothEnabledOnApm()) {
+                        mWifiThreadRunner.post(
+                                () -> showNotification(R.string.apm_enabled_first_time_title,
+                                        R.string.apm_enabled_first_time_message));
+                        setUserSecureIntegerSetting(APM_WIFI_NOTIFICATION, NOTIFICATION_SHOWN);
+                    }
+                } else {
+                    // Wifi disabled due to airplane on
+                    persistWifiState(WIFI_DISABLED_APM_ON);
+                }
             }
         } else {
             /* On airplane mode disable, restore wifi state if necessary */
-            if (mPersistWifiState == WIFI_ENABLED_AIRPLANE_OVERRIDE
-                    || mPersistWifiState == WIFI_DISABLED_AIRPLANE_ON) {
+            if (mPersistWifiState == WIFI_ENABLED_APM_OVERRIDE
+                    || mPersistWifiState == WIFI_DISABLED_APM_ON) {
                 persistWifiState(WIFI_ENABLED);
             }
         }
@@ -152,6 +299,23 @@ public class WifiSettingsStore {
         persistWifiMultiInternetMode(mode);
     }
 
+    /**
+     * Indicate whether Wi-Fi should remain on when airplane mode is enabled
+     */
+    public boolean shouldWifiRemainEnabledWhenApmEnabled() {
+        return mDeviceConfigFacade.isApmEnhancementEnabled()
+                && isWifiToggleEnabled()
+                && (getUserSecureIntegerSetting(WIFI_APM_STATE,
+                WIFI_TURNS_OFF_IN_APM) == WIFI_REMAINS_ON_IN_APM);
+    }
+
+    private boolean isBluetoothEnabledOnApm() {
+        return mFrameworkFacade.getIntegerSetting(mContext.getContentResolver(),
+                Settings.Global.BLUETOOTH_ON, 0) != 0
+                && getUserSecureIntegerSetting(BLUETOOTH_APM_STATE, BT_TURNS_OFF_IN_APM)
+                == BT_REMAINS_ON_IN_APM;
+    }
+
     void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("WifiState " + getPersistedWifiState());
         pw.println("AirplaneModeOn " + getPersistedAirplaneModeOn());
@@ -159,12 +323,18 @@ public class WifiSettingsStore {
         pw.println("WifiScoringState " + getPersistedWifiScoringEnabled());
         pw.println("WifiPasspointState " + getPersistedWifiPasspointEnabled());
         pw.println("WifiMultiInternetMode " + getPersistedWifiMultiInternetMode());
+        pw.println("WifiStateApm " + (getUserSecureIntegerSetting(WIFI_APM_STATE,
+                WIFI_TURNS_OFF_IN_APM) == WIFI_REMAINS_ON_IN_APM));
+        pw.println("WifiStateBt " + isBluetoothEnabledOnApm());
+        pw.println("WifiStateUser " + ActivityManager.getCurrentUser());
+        pw.println("AirplaneModeEnhancementEnabled "
+                + mDeviceConfigFacade.isApmEnhancementEnabled());
     }
 
     private void persistWifiState(int state) {
         final ContentResolver cr = mContext.getContentResolver();
         mPersistWifiState = state;
-        Settings.Global.putInt(cr, Settings.Global.WIFI_ON, state);
+        mFrameworkFacade.setIntegerSetting(cr, Settings.Global.WIFI_ON, state);
     }
 
     private void persistScanAlwaysAvailableState(boolean isAvailable) {
@@ -189,7 +359,7 @@ public class WifiSettingsStore {
 
     /* Does Wi-Fi need to be disabled when airplane mode is on ? */
     private boolean isAirplaneSensitive() {
-        String airplaneModeRadios = Settings.Global.getString(mContext.getContentResolver(),
+        String airplaneModeRadios = mFrameworkFacade.getStringSetting(mContext,
                 Settings.Global.AIRPLANE_MODE_RADIOS);
         return airplaneModeRadios == null
                 || airplaneModeRadios.contains(Settings.Global.RADIO_WIFI);
@@ -197,7 +367,7 @@ public class WifiSettingsStore {
 
     /* Is Wi-Fi allowed to be re-enabled while airplane mode is on ? */
     private boolean isAirplaneToggleable() {
-        String toggleableRadios = Settings.Global.getString(mContext.getContentResolver(),
+        String toggleableRadios = mFrameworkFacade.getStringSetting(mContext,
                 Settings.Global.AIRPLANE_MODE_TOGGLEABLE_RADIOS);
         return toggleableRadios != null
                 && toggleableRadios.contains(Settings.Global.RADIO_WIFI);
@@ -206,16 +376,16 @@ public class WifiSettingsStore {
     private int getPersistedWifiState() {
         final ContentResolver cr = mContext.getContentResolver();
         try {
-            return Settings.Global.getInt(cr, Settings.Global.WIFI_ON);
+            return mFrameworkFacade.getIntegerSetting(cr, Settings.Global.WIFI_ON);
         } catch (Settings.SettingNotFoundException e) {
-            Settings.Global.putInt(cr, Settings.Global.WIFI_ON, WIFI_DISABLED);
+            mFrameworkFacade.setIntegerSetting(cr, Settings.Global.WIFI_ON, WIFI_DISABLED);
             return WIFI_DISABLED;
         }
     }
 
     private boolean getPersistedAirplaneModeOn() {
-        return Settings.Global.getInt(mContext.getContentResolver(),
-                Settings.Global.AIRPLANE_MODE_ON, 0) == 1;
+        return mFrameworkFacade.getIntegerSetting(mContext.getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, APM_DISABLED) == APM_ENABLED;
     }
 
     private boolean getPersistedScanAlwaysAvailable() {

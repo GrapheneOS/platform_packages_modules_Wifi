@@ -205,6 +205,7 @@ public class DeviceConfigFacade {
     private int mTrafficStatsThresholdMaxKbyte;
     private int mBandwidthEstimatorLargeTimeConstantSec;
     private boolean mInterfaceFailureBugreportEnabled;
+    private boolean mApmEnhancementEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -378,6 +379,8 @@ public class DeviceConfigFacade {
                 DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC);
         mInterfaceFailureBugreportEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "interface_failure_bugreport_enabled", false);
+        mApmEnhancementEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "apm_enhancement_enabled", false);
 
     }
 
@@ -799,5 +802,12 @@ public class DeviceConfigFacade {
      */
     public boolean isInterfaceFailureBugreportEnabled() {
         return mInterfaceFailureBugreportEnabled;
+    }
+
+    /**
+     * Gets the feature flag for APM enhancement
+     */
+    public boolean isApmEnhancementEnabled() {
+        return mApmEnhancementEnabled;
     }
 }
