@@ -1988,7 +1988,7 @@ public class XmlUtil {
                                 } else if (value instanceof Long) {
                                     shutDownMillis = (long) value;
                                 }
-                                if (SdkLevel.isAtLeastT() && shutDownMillis == 0
+                                if (shutDownMillis == 0
                                         && Compatibility.isChangeEnabled(
                                         SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)) {
                                     shutDownMillis = SoftApConfiguration.DEFAULT_TIMEOUT;
