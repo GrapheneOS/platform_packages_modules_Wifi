@@ -86,7 +86,10 @@ public class ScoringParams {
         /** CandidateScorer parameters */
         public int throughputBonusNumerator = 120;
         public int throughputBonusDenominator = 433;
-        public int throughputBonusLimit = 200;
+        public int throughputBonusNumeratorAfter800Mbps = 1;
+        public int throughputBonusDenominatorAfter800Mbps = 16;
+        public boolean enable6GhzBeaconRssiBoost = true;
+        public int throughputBonusLimit = 320;
         public int savedNetworkBonus = 500;
         public int unmeteredNetworkBonus = 1000;
         public int currentNetworkBonusMin = 16;
@@ -268,6 +271,12 @@ public class ScoringParams {
                 R.integer.config_wifiFrameworkThroughputBonusNumerator);
         mVal.throughputBonusDenominator = context.getResources().getInteger(
                 R.integer.config_wifiFrameworkThroughputBonusDenominator);
+        mVal.throughputBonusNumeratorAfter800Mbps = context.getResources().getInteger(
+                R.integer.config_wifiFrameworkThroughputBonusNumeratorAfter800Mbps);
+        mVal.throughputBonusDenominatorAfter800Mbps = context.getResources().getInteger(
+                R.integer.config_wifiFrameworkThroughputBonusDenominatorAfter800Mbps);
+        mVal.enable6GhzBeaconRssiBoost = context.getResources().getBoolean(
+                R.bool.config_wifiEnable6GhzBeaconRssiBoost);
         mVal.throughputBonusLimit = context.getResources().getInteger(
                 R.integer.config_wifiFrameworkThroughputBonusLimit);
         mVal.savedNetworkBonus = context.getResources().getInteger(
@@ -427,6 +436,27 @@ public class ScoringParams {
      */
     public int getThroughputBonusDenominator() {
         return mVal.throughputBonusDenominator;
+    }
+
+    /**
+     * Getter for throughput numerator after 800Mbps.
+     */
+    public int getThroughputBonusNumeratorAfter800Mbps() {
+        return mVal.throughputBonusNumeratorAfter800Mbps;
+    }
+
+    /**
+     * Getter for throughput denominator after 800Mbps.
+     */
+    public int getThroughputBonusDenominatorAfter800Mbps() {
+        return mVal.throughputBonusDenominatorAfter800Mbps;
+    }
+
+    /**
+     * Feature flag for boosting 6Ghz RSSI based on channel width.
+     */
+    public boolean is6GhzBeaconRssiBoostEnabled() {
+        return mVal.enable6GhzBeaconRssiBoost;
     }
 
     /*

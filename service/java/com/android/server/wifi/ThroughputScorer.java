@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static com.android.server.wifi.WifiNetworkSelector.NetworkNominator.NOMINATOR_ID_SCORED;
 
 import android.annotation.NonNull;
+import android.net.wifi.ScanResult;
 import android.util.Log;
 
 import com.android.server.wifi.WifiCandidates.Candidate;
@@ -83,12 +84,8 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
      * Calculates an individual candidate's score.
      */
     private ScoredCandidate scoreCandidate(Candidate candidate, boolean currentNetworkHasInternet) {
-        int rssiSaturationThreshold = mScoringParams.getSufficientRssi(candidate.getFrequency());
-        int rssi = Math.min(candidate.getScanRssi(), rssiSaturationThreshold);
-        int rssiBaseScore = (rssi + RSSI_SCORE_OFFSET) * RSSI_SCORE_SLOPE_IS_4;
-
+        int rssiBaseScore = calculateRssiScore(candidate);
         int throughputBonusScore = calculateThroughputBonusScore(candidate);
-
         int rssiAndThroughputScore = rssiBaseScore + throughputBonusScore;
 
         boolean unExpectedNoInternet = candidate.hasNoInternetAccess()
@@ -176,10 +173,44 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
                 USE_USER_CONNECT_CHOICE, candidate);
     }
 
+    private int calculateRssiScore(Candidate candidate) {
+        int rssiSaturationThreshold = mScoringParams.getSufficientRssi(candidate.getFrequency());
+        int rssi = candidate.getScanRssi();
+        if (mScoringParams.is6GhzBeaconRssiBoostEnabled()
+                && ScanResult.is6GHz(candidate.getFrequency())) {
+            switch (candidate.getChannelWidth()) {
+                case ScanResult.CHANNEL_WIDTH_40MHZ:
+                    rssi += 3;
+                    break;
+                case ScanResult.CHANNEL_WIDTH_80MHZ:
+                    rssi += 6;
+                    break;
+                case ScanResult.CHANNEL_WIDTH_160MHZ:
+                    rssi += 9;
+                    break;
+                case ScanResult.CHANNEL_WIDTH_320MHZ:
+                    rssi += 12;
+                    break;
+                default:
+                    // do nothing
+            }
+        }
+
+        rssi = Math.min(rssi, rssiSaturationThreshold);
+        return (rssi + RSSI_SCORE_OFFSET) * RSSI_SCORE_SLOPE_IS_4;
+    }
+
     private int calculateThroughputBonusScore(Candidate candidate) {
-        int throughputScoreRaw = candidate.getPredictedThroughputMbps()
+        int throughput = candidate.getPredictedThroughputMbps();
+        int throughputUpTo800Mbps = Math.min(800, throughput);
+        int throughputMoreThan800Mbps = Math.max(0, throughput - 800);
+
+        int throughputScoreRaw = (throughputUpTo800Mbps
                 * mScoringParams.getThroughputBonusNumerator()
-                / mScoringParams.getThroughputBonusDenominator();
+                / mScoringParams.getThroughputBonusDenominator())
+                + (throughputMoreThan800Mbps
+                * mScoringParams.getThroughputBonusNumeratorAfter800Mbps()
+                / mScoringParams.getThroughputBonusDenominatorAfter800Mbps());
         return Math.min(throughputScoreRaw, mScoringParams.getThroughputBonusLimit());
     }
 
