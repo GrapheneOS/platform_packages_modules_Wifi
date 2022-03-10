@@ -227,16 +227,29 @@ public class SupplicantP2pIfaceHalTest {
     }
 
     /**
-     * Test that we can call find
+     * Test that we can call find with timeout
      */
     @Test
     public void testFind() {
         initializeWithAidlImpl(true);
         int timeout = 5;
-        int freq = WifiP2pManager.WIFI_P2P_SCAN_FULL;
-        when(mP2pIfaceHalAidlMock.find(anyInt(), anyInt())).thenReturn(true);
-        assertTrue(mDut.find(freq, timeout));
-        verify(mP2pIfaceHalAidlMock).find(eq(freq), eq(timeout));
+        when(mP2pIfaceHalAidlMock.find(anyInt())).thenReturn(true);
+        assertTrue(mDut.find(timeout));
+        verify(mP2pIfaceHalAidlMock).find(eq(timeout));
+    }
+
+    /**
+     * Test that we can call find with {@link WifiP2pManager#WifiP2pScanType}
+     */
+    @Test
+    public void testFindWithType() {
+        initializeWithAidlImpl(true);
+        int scanType = WifiP2pManager.WIFI_P2P_SCAN_FULL;
+        int freq = WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED;
+        int timeout = 5;
+        when(mP2pIfaceHalAidlMock.find(anyInt(), anyInt(), anyInt())).thenReturn(true);
+        assertTrue(mDut.find(scanType, freq, timeout));
+        verify(mP2pIfaceHalAidlMock).find(eq(scanType), eq(freq), eq(timeout));
     }
 
     /**
