@@ -2768,7 +2768,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private void updateWifiInfoWhenConnected(@NonNull WifiConfiguration config) {
-        mWifiInfo.setHiddenSSID(config.hiddenSSID);
         mWifiInfo.setEphemeral(config.ephemeral);
         mWifiInfo.setTrusted(config.trusted);
         mWifiInfo.setOemPaid(config.oemPaid);
@@ -5513,6 +5512,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 ScanResult scanResult = scanDetailCache.getScanResult(mLastBssid);
                                 if (scanResult != null) {
                                     mWifiInfo.setFrequency(scanResult.frequency);
+                                    boolean isHidden = true;
+                                    for (byte b : scanResult.getWifiSsid().getBytes()) {
+                                        if (b != 0) {
+                                            isHidden = false;
+                                            break;
+                                        }
+                                    }
+                                    mWifiInfo.setHiddenSSID(isHidden);
                                 }
                             }
                         }
