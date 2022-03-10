@@ -394,6 +394,22 @@ public class ClientModeImplTest extends WifiBaseTest {
         return detail;
     }
 
+    private static ScanDetail getHiddenScanDetail(int rssi, String bssid, int freq) {
+        ScanResult.InformationElement ie = new ScanResult.InformationElement();
+        WifiSsid ssid = WifiSsid.fromBytes(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+        ie.id = ScanResult.InformationElement.EID_SSID;
+        ie.bytes = ssid.getBytes();
+        ScanResult.InformationElement[] ies = new ScanResult.InformationElement[1];
+        ies[0] = ie;
+        NetworkDetail nd = new NetworkDetail(TEST_BSSID_STR, ies, new ArrayList<String>(), sFreq);
+        ScanDetail detail = new ScanDetail(nd, ssid, bssid, "", rssi, freq,
+                Long.MAX_VALUE, /* needed so that scan results aren't rejected because
+                                   there older than scan start */
+                ies, new ArrayList<String>(), ScanResults.generateIERawDatafromScanResultIE(ies));
+
+        return detail;
+    }
+
     private ArrayList<ScanDetail> getMockScanResults() {
         ScanResults sr = ScanResults.create(0, 2412, 2437, 2462, 5180, 5220, 5745, 5825);
         ArrayList<ScanDetail> list = sr.getScanDetailArrayList();
@@ -1721,26 +1737,33 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testConnectHiddenSsid() throws Exception {
-        WifiConfiguration hiddenSsidConfig = createTestNetwork(true);
-        setupAndStartConnectSequence(hiddenSsidConfig);
-        validateSuccessfulConnectSequence(hiddenSsidConfig);
+        connect();
 
-        // Connect and verify WifiInfo.getHiddenSsid is true.
-        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR,
-                        SupplicantState.ASSOCIATING));
+        // Set the scan detail cache for hidden SSID.
+        when(mWifiConfigManager.getScanDetailCacheForNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(mScanDetailCache);
+        ScanDetail hiddenScanDetail = getHiddenScanDetail(TEST_RSSI, TEST_BSSID_STR1, sFreq1);
+        when(mScanDetailCache.getScanDetail(TEST_BSSID_STR1)).thenReturn(hiddenScanDetail);
+        when(mScanDetailCache.getScanResult(TEST_BSSID_STR1)).thenReturn(
+                hiddenScanDetail.getScanResult());
+
+        mCmi.sendMessage(WifiMonitor.ASSOCIATED_BSSID_EVENT, 0, 0, TEST_BSSID_STR1);
         mLooper.dispatchAll();
 
-        assertNotNull(mWifiInfo);
+        // Hidden SSID scan result should set WifiInfo.getHiddenSsid() to true.
         assertTrue(mWifiInfo.getHiddenSSID());
 
-        // Disconnect and verify WifiInfo.getHiddenSsid is false.
-        DisconnectEventInfo disconnectEventInfo =
-                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
-        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        // Set the scan detail cache for non-hidden SSID.
+        ScanDetail googleGuestScanDetail =
+                getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq1);
+        when(mScanDetailCache.getScanDetail(TEST_BSSID_STR)).thenReturn(googleGuestScanDetail);
+        when(mScanDetailCache.getScanResult(TEST_BSSID_STR)).thenReturn(
+                googleGuestScanDetail.getScanResult());
+
+        mCmi.sendMessage(WifiMonitor.ASSOCIATED_BSSID_EVENT, 0, 0, TEST_BSSID_STR);
         mLooper.dispatchAll();
 
-        assertNotNull(mWifiInfo);
+        // Non-hidden SSID scan result should set WifiInfo.getHiddenSsid() to false.
         assertFalse(mWifiInfo.getHiddenSSID());
     }
 
