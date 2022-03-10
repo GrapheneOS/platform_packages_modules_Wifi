@@ -34,7 +34,6 @@ import com.android.server.wifi.WifiBaseTest;
 
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlSerializer;
 
 import java.io.ByteArrayInputStream;
@@ -249,19 +248,32 @@ public class PasspointXmlUtilsTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that a XmlPullParserException will be thrown when deserialize a XML block
+     * Verify that a XmlPullParserException will be not thrown when deserialize a XML block
      * for a PasspointConfiguraiton containing an unknown tag.
      *
      * @throws Exception
      */
-    @Test(expected = XmlPullParserException.class)
+    @Test
     public void deserializePasspointConfigurationWithUnknownTag() throws Exception {
-        String xmlStr = "<UnknownTag>\n"
-                + "</UnknownTag>\n";
+        String xmlStr = "<boolean name=\"AutoJoinEnabled\" value=\"true\" />\n"
+                + "<UnknownTag></UnknownTag>\n"
+                + "<HomeSP>\n"
+                + "<string name=\"FQDN\">www.xyz.com</string>\n"
+                + "<string name=\"unknown\">xxx</string>\n"
+                + "<string name=\"FriendlyName\">XYZ</string>\n"
+                + "</HomeSP>\n";
+        PasspointConfiguration expectedConfig = new PasspointConfiguration();
+        expectedConfig.setAutojoinEnabled(true);
+        HomeSp homeSp = new HomeSp();
+        homeSp.setFqdn("www.xyz.com");
+        homeSp.setFriendlyName("XYZ");
+        expectedConfig.setHomeSp(homeSp);
+
         final XmlPullParser in = Xml.newPullParser();
         final ByteArrayInputStream inputStream =
                 new ByteArrayInputStream(xmlStr.getBytes(StandardCharsets.UTF_8));
         in.setInput(inputStream, StandardCharsets.UTF_8.name());
-        PasspointXmlUtils.deserializePasspointConfiguration(in, in.getDepth());
+        assertEquals(expectedConfig,
+                PasspointXmlUtils.deserializePasspointConfiguration(in, in.getDepth()));
     }
 }
