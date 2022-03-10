@@ -5942,7 +5942,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     private void verifyAddExternalApprover(Binder binder, boolean hasPermission,
             boolean shouldSucceed) throws Exception {
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
         MacAddress devAddr = MacAddress.fromString(
                 mTestWifiP2pDevice.deviceAddress);
@@ -5978,7 +5978,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     private void verifyRemoveExternalApprover(boolean hasPermission,
             boolean shouldSucceed) throws Exception {
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
         MacAddress devAddr = MacAddress.fromString(
                 mTestWifiP2pDevice.deviceAddress);
@@ -6035,7 +6035,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         mockEnterUserAuthorizingNegotiationRequestState(wpsType);
 
-        when(mWifiPermissionsUtil.checkManageWifiAutoJoinPermission(anyInt()))
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
         sendSetConnectionRequestResultMsg(mClientMessenger,
                 MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),

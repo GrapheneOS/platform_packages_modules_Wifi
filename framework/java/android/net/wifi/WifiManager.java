@@ -19,7 +19,7 @@ package android.net.wifi;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.Manifest.permission.CHANGE_WIFI_STATE;
-import static android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN;
+import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.READ_WIFI_CREDENTIAL;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
@@ -1849,7 +1849,7 @@ public class WifiManager {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @RequiresPermission(anyOf = {
             android.Manifest.permission.NETWORK_SETTINGS,
-            MANAGE_WIFI_AUTO_JOIN
+            MANAGE_WIFI_NETWORK_SELECTION
     })
     @SystemApi
     public void setScreenOnScanSchedule(@Nullable List<ScreenOnScanSchedule> screenOnScanSchedule) {
@@ -1919,7 +1919,7 @@ public class WifiManager {
     @SystemApi
     @RequiresPermission(anyOf = {
             android.Manifest.permission.NETWORK_SETTINGS,
-            android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN}, conditional = true)
+            android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}, conditional = true)
     public void setSsidsAllowlist(@NonNull Set<WifiSsid> ssids) {
         if (ssids == null) {
             throw new IllegalArgumentException(TAG + ": ssids can not be null");
@@ -1942,7 +1942,7 @@ public class WifiManager {
     @SystemApi
     @RequiresPermission(anyOf = {
             android.Manifest.permission.NETWORK_SETTINGS,
-            android.Manifest.permission.MANAGE_WIFI_AUTO_JOIN}, conditional = true)
+            android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}, conditional = true)
     public @NonNull Set<WifiSsid> getSsidsAllowlist() {
         try {
             return new ArraySet<WifiSsid>(
@@ -6205,7 +6205,7 @@ public class WifiManager {
      *
      * Available for DO/PO apps.
      * Other apps require {@code android.Manifest.permission#NETWORK_SETTINGS} or
-     * {@code android.Manifest.permission#MANAGE_WIFI_AUTO_JOIN} permission.
+     * {@code android.Manifest.permission#MANAGE_WIFI_NETWORK_SELECTION} permission.
      */
     public void allowAutojoinGlobal(boolean allowAutojoin) {
         try {
