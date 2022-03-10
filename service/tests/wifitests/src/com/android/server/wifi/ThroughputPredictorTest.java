@@ -21,6 +21,7 @@ import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MAX_CH
 import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MIN_CHANNEL_UTILIZATION;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.when;
 
@@ -90,6 +91,40 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     @After
     public void cleanup() {
         validateMockitoUsage();
+    }
+
+    @Test
+    public void verify6GhzRssiBoost() {
+        // First make sure the boost is disabled
+        when(mResource.getBoolean(R.bool.config_wifiEnable6GhzBeaconRssiBoost)).thenReturn(false);
+        int predicted_5Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5160, 1,
+                0, 0, false);
+        int predicted_6Ghz_20MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_20MHZ, -70, 5975, 1,
+                0, 0, false);
+        int predicted_6Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5975, 1,
+                0, 0, false);
+
+        // verify that after the boost is enabled, only the 6Ghz 80MHz bandwidth score is increased.
+        when(mResource.getBoolean(R.bool.config_wifiEnable6GhzBeaconRssiBoost)).thenReturn(true);
+        int newPredicted_5Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5160, 1,
+                0, 0, false);
+        int newPredicted_6Ghz_20MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_20MHZ, -70, 5975, 1,
+                0, 0, false);
+        int newPredicted_6Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5975, 1,
+                0, 0, false);
+
+        assertEquals("5Ghz AP should not get RSSI boost",
+                predicted_5Ghz_80MHz, newPredicted_5Ghz_80MHz);
+        assertEquals("6Ghz AP with 20MHz bandwidth should not get RSSI boost",
+                predicted_6Ghz_20MHz, newPredicted_6Ghz_20MHz);
+        assertTrue("6Ghz AP with 80MHz bandwidth should get RSSI boost",
+                predicted_6Ghz_80MHz < newPredicted_6Ghz_80MHz);
     }
 
     @Test

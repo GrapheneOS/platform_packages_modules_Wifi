@@ -38,6 +38,9 @@
           <item type="bool" name="config_wifi_turn_off_during_emergency_call" />
           <item type="integer" name="config_wifiFrameworkThroughputBonusNumerator" />
           <item type="integer" name="config_wifiFrameworkThroughputBonusDenominator" />
+          <item type="integer" name="config_wifiFrameworkThroughputBonusNumeratorAfter800Mbps" />
+          <item type="integer" name="config_wifiFrameworkThroughputBonusDenominatorAfter800Mbps" />
+          <item type="bool" name="config_wifiEnable6GhzBeaconRssiBoost" />
           <item type="integer" name="config_wifiFrameworkThroughputBonusLimit" />
           <item type="integer" name="config_wifiFrameworkSavedNetworkBonus" />
           <item type="integer" name="config_wifiFrameworkUnmeteredNetworkBonus" />

@@ -957,6 +957,7 @@ public class WifiNetworkSelector {
                         NetworkNominator.NOMINATOR_ID_CURRENT,
                         cmmState.wifiInfo.getRssi(),
                         cmmState.wifiInfo.getFrequency(),
+                        ScanResult.CHANNEL_WIDTH_20MHZ, // channel width not available in WifiInfo
                         calculateLastSelectionWeight(currentNetwork.networkId),
                         WifiConfiguration.isMetered(currentNetwork, cmmState.wifiInfo),
                         isFromCarrierOrPrivilegedApp(currentNetwork),
@@ -988,6 +989,7 @@ public class WifiNetworkSelector {
                                     registeredNominator.getId(),
                                     scanDetail.getScanResult().level,
                                     scanDetail.getScanResult().frequency,
+                                    scanDetail.getScanResult().channelWidth,
                                     calculateLastSelectionWeight(config.networkId),
                                     metered,
                                     isFromCarrierOrPrivilegedApp(config),

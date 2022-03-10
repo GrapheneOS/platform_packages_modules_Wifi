@@ -93,9 +93,21 @@
     <!-- Parameters for controlling network selection by the framework -->
 
     <!-- The ratio of the next two parameters is the multiplier that converts the estimated
-         throughput in Mbps to score points. -->
+         throughput in Mbps to score points, when the throughput is less than 800Mbps. -->
     <integer translatable="false" name="config_wifiFrameworkThroughputBonusNumerator">120</integer>
     <integer translatable="false" name="config_wifiFrameworkThroughputBonusDenominator">433</integer>
+
+    <!-- The ratio of the next two parameters is the multiplier that converts the estimated
+         throughput in Mbps to score points for each point of throughput more than 800Mbps.
+         This default ratio is picked to help favor 6G HE160 over 5G HE80 which have throughput
+         difference up to 1200Mbps. 1200Mbps difference leads to 75 points difference, which is
+         roughly equivalent to 18dB RSSI.-->
+    <integer translatable="false" name="config_wifiFrameworkThroughputBonusNumeratorAfter800Mbps">1</integer>
+    <integer translatable="false" name="config_wifiFrameworkThroughputBonusDenominatorAfter800Mbps">16</integer>
+
+    <!-- Boolean indicating whether 6Ghz RSSI boost is given to compensate for power spectrum
+         limitations -->
+    <bool translatable="false" name="config_wifiEnable6GhzBeaconRssiBoost">true</bool>
 
     <!-- Maximum contribution (in score points) due to the estimated throughput. -->
     <integer translatable="false" name="config_wifiFrameworkThroughputBonusLimit">320</integer>

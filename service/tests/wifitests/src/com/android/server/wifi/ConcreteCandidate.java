@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.net.wifi.WifiAnnotations;
 import android.util.ArrayMap;
 
 import com.android.server.wifi.proto.WifiScoreCardProto;
@@ -43,6 +44,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     private double mLastSelectionWeight;
     private int mScanRssi = -127;
     private int mFrequency = -1;
+    private int mChannelWidth;
     private int mPredictedThroughputMbps = 0;
     private int mEstimatedPercentInternetAvailability = 50;
 
@@ -72,6 +74,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
         mLastSelectionWeight = candidate.getLastSelectionWeight();
         mScanRssi = candidate.getScanRssi();
         mFrequency = candidate.getFrequency();
+        mChannelWidth = candidate.getChannelWidth();
         mPredictedThroughputMbps = candidate.getPredictedThroughputMbps();
         mEstimatedPercentInternetAvailability = candidate
                 .getEstimatedPercentInternetAvailability();
@@ -263,9 +266,19 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
         return this;
     }
 
+    public ConcreteCandidate setChannelWidth(@WifiAnnotations.ChannelWidth int channelWidth) {
+        mChannelWidth = channelWidth;
+        return this;
+    }
+
     @Override
     public int getFrequency() {
         return mFrequency;
+    }
+
+    @Override
+    public int getChannelWidth() {
+        return mChannelWidth;
     }
 
     public ConcreteCandidate setPredictedThroughputMbps(int predictedThroughputMbps) {

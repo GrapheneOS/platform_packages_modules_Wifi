@@ -20,6 +20,9 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import android.net.wifi.ScanResult;
 
 import androidx.test.filters.SmallTest;
 
@@ -442,4 +445,51 @@ public class CandidateScorerTest extends WifiBaseTest {
         }
     }
 
+    @Test
+    public void test6GhzRssiBoost() {
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            // setup a 5Ghz and a 6Ghz candidate with the same RSSI
+            mCandidate1 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-77).setFrequency(5180)
+                    .setChannelWidth(ScanResult.CHANNEL_WIDTH_20MHZ);
+            mCandidate2 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-77).setFrequency(5975)
+                    .setChannelWidth(ScanResult.CHANNEL_WIDTH_20MHZ);
+
+            // both should be equal score when both networks have 20Mhz channel width
+            assertEquals(evaluate(mCandidate2), evaluate(mCandidate1), TOL);
+
+            // increase channel width of 6Ghz network and verify it now has a higher score
+            mCandidate2.setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ);
+            assertTrue(evaluate(mCandidate2) > evaluate(mCandidate1));
+        }
+    }
+
+    @Test
+    public void testThroughputBeforeAndAfter800Mbps() {
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            // setup candidate
+            mCandidate1 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-50).setFrequency(5180).setPredictedThroughputMbps(0);
+            double scoreThroughput0Mbps = evaluate(mCandidate1);
+
+            mCandidate1.setPredictedThroughputMbps(800);
+            double scoreThroughput800Mbps = evaluate(mCandidate1);
+
+            mCandidate1.setPredictedThroughputMbps(2000);
+            double scoreThroughput2800Mbps = evaluate(mCandidate1);
+
+            // verify score awarded according to expected slope when throughput <= 800Mbps
+            assertEquals("expected score under 800Mbps does not match",
+                    800 * mScoringParams.getThroughputBonusNumerator()
+                    / mScoringParams.getThroughputBonusDenominator(),
+                    scoreThroughput800Mbps - scoreThroughput0Mbps, TOL);
+
+            // verify score awarded according to expected slope when throughput > 800Mbps
+            assertEquals("expected score over 800Mbps does not match",
+                    1200 * mScoringParams.getThroughputBonusNumeratorAfter800Mbps()
+                    / mScoringParams.getThroughputBonusDenominatorAfter800Mbps(),
+                    scoreThroughput2800Mbps - scoreThroughput800Mbps, TOL);
+        }
+    }
 }
