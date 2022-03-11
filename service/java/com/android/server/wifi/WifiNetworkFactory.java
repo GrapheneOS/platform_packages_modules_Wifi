@@ -64,9 +64,11 @@ import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.ActionListenerWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -939,6 +941,34 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     /**
+     * Return the uid of the specific network request being processed if connected to the requested
+     * network.
+     *
+     * @param connectedNetwork WifiConfiguration corresponding to the connected network.
+     * @return Pair of uid & package name of the specific request (if any), else <-1, "">.
+     */
+    public Pair<Integer, String> getSpecificNetworkRequestUidAndPackageName(
+            @NonNull WifiConfiguration connectedNetwork, @NonNull String connectedBssid) {
+        if (mUserSelectedNetwork == null || connectedNetwork == null) {
+            return Pair.create(Process.INVALID_UID, "");
+        }
+        if (!isUserSelectedNetwork(connectedNetwork, connectedBssid)) {
+            Log.w(TAG, "Connected to unknown network " + connectedNetwork + ":" + connectedBssid
+                    + ". Ignoring...");
+            return Pair.create(Process.INVALID_UID, "");
+        }
+        if (mConnectedSpecificNetworkRequestSpecifier != null) {
+            return Pair.create(mConnectedSpecificNetworkRequest.getRequestorUid(),
+                    mConnectedSpecificNetworkRequest.getRequestorPackageName());
+        }
+        if (mActiveSpecificNetworkRequestSpecifier != null) {
+            return Pair.create(mActiveSpecificNetworkRequest.getRequestorUid(),
+                    mActiveSpecificNetworkRequest.getRequestorPackageName());
+        }
+        return Pair.create(Process.INVALID_UID, "");
+    }
+
+    /**
      * Return the uids of the specific network request being processed if connected to the requested
      * network.
      *
@@ -1399,7 +1429,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             return;
         }
 
-        if (ActiveModeWarden.isClientModeManagerConnectedOrConnectingToBssid(mClientModeManager,
+        if (SdkLevel.isAtLeastS() && ActiveModeWarden
+                .isClientModeManagerConnectedOrConnectingToBssid(mClientModeManager,
                 mUserSelectedNetwork.SSID, mUserSelectedNetwork.BSSID)
                 && mConnectedSpecificNetworkRequest != null
                 && !WifiConfigurationUtil.hasCredentialChanged(

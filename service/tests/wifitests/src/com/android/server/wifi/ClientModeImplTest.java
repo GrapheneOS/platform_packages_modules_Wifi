@@ -148,6 +148,7 @@ import android.test.mock.MockContentResolver;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Range;
 
 import androidx.test.filters.SmallTest;
 
@@ -591,6 +592,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mTelephonyManager.createForSubscriptionId(anyInt())).thenReturn(mDataTelephonyManager);
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Collections.emptySet());
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(Process.INVALID_UID, ""));
         setUpWifiNative();
         doAnswer(new AnswerWithArguments() {
             public MacAddress answer(
@@ -2227,6 +2230,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Set.of(TEST_UID));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
                 WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
         DisconnectEventInfo disconnectEventInfo =
@@ -2253,6 +2258,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Collections.emptySet());
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(Process.INVALID_UID, ""));
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
                 WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD);
         DisconnectEventInfo disconnectEventInfo =
@@ -3274,6 +3281,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(50_000);
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Collections.emptySet());
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(Process.INVALID_UID, ""));
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
 
@@ -4719,6 +4728,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(50_000);
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Collections.emptySet());
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(Process.INVALID_UID, ""));
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
 
@@ -4766,6 +4777,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(40_000);
         when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
                 .thenReturn(Set.of(TEST_UID));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
         ArgumentCaptor<NetworkCapabilities> networkCapabilitiesCaptor =
@@ -4793,6 +4806,13 @@ public class ClientModeImplTest extends WifiBaseTest {
                 new WifiNetworkAgentSpecifier(expectedConfig, ScanResult.WIFI_BAND_24_GHZ,
                         true /* matchLocalOnlySpecifiers */);
         assertEquals(expectedWifiNetworkAgentSpecifier, wifiNetworkAgentSpecifier);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(Set.of(new Range<Integer>(TEST_UID, TEST_UID)),
+                    networkCapabilities.getUids());
+        } else {
+            assertEquals(TEST_UID, networkCapabilities.getRequestorUid());
+            assertEquals(OP_PACKAGE_NAME, networkCapabilities.getRequestorPackageName());
+        }
         assertEquals(30_000, networkCapabilities.getLinkUpstreamBandwidthKbps());
         assertEquals(40_000, networkCapabilities.getLinkDownstreamBandwidthKbps());
     }
