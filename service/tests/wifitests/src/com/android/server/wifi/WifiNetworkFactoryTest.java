@@ -2285,6 +2285,11 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void testHandleNetworkRequestWithSpecifierGetUid() throws Exception {
         assertTrue(mWifiNetworkFactory.getSpecificNetworkRequestUids(
                 new WifiConfiguration(), "").isEmpty());
+        assertEquals(Integer.valueOf(Process.INVALID_UID),
+                mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                        new WifiConfiguration(), new String()).first);
+        assertTrue(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                new WifiConfiguration(), new String()).second.isEmpty());
 
         sendNetworkRequestAndSetupForConnectionStatus();
         assertNotNull(mSelectedNetwork);
@@ -2294,6 +2299,11 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         connectedNetwork.SSID += "test";
         assertTrue(mWifiNetworkFactory.getSpecificNetworkRequestUids(
                 new WifiConfiguration(), "").isEmpty());
+        assertEquals(Integer.valueOf(Process.INVALID_UID),
+                mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                        new WifiConfiguration(), new String()).first);
+        assertTrue(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                new WifiConfiguration(), new String()).second.isEmpty());
 
         // connected to the correct network.
         connectedNetwork = new WifiConfiguration(mSelectedNetwork);
@@ -2301,6 +2311,12 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertEquals(Set.of(TEST_UID_1),
                 mWifiNetworkFactory.getSpecificNetworkRequestUids(
                         connectedNetwork, connectedBssid));
+        assertEquals(Integer.valueOf(TEST_UID_1),
+                mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                        connectedNetwork, connectedBssid).first);
+        assertEquals(TEST_PACKAGE_NAME_1,
+                mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+                        connectedNetwork, connectedBssid).second);
     }
 
     /**
@@ -3434,10 +3450,12 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         verify(mActiveModeWarden, atLeastOnce()).requestLocalOnlyClientModeManager(
                 any(), any(), any(), any());
-        verify(mClientModeManager, atLeastOnce()).getConnectedWifiConfiguration();
-        verify(mClientModeManager, atLeastOnce()).getConnectingWifiConfiguration();
-        verify(mClientModeManager, atLeastOnce()).getConnectingBssid();
-        verify(mClientModeManager, atLeastOnce()).getConnectedBssid();
+        if (SdkLevel.isAtLeastS()) {
+            verify(mClientModeManager, atLeastOnce()).getConnectedWifiConfiguration();
+            verify(mClientModeManager, atLeastOnce()).getConnectingWifiConfiguration();
+            verify(mClientModeManager, atLeastOnce()).getConnectingBssid();
+            verify(mClientModeManager, atLeastOnce()).getConnectedBssid();
+        }
 
         // Cancel the periodic scan timer.
         mInOrder.verify(mAlarmManager).cancel(mPeriodicScanListenerArgumentCaptor.getValue());
