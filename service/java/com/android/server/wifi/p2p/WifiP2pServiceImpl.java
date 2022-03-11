@@ -254,7 +254,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     // User wants to disconnect wifi in favour of p2p
     private static final int DROP_WIFI_USER_ACCEPT          =   BASE + 4;
     // User wants to keep his wifi connection and drop p2p
-    private static final int DROP_WIFI_USER_REJECT          =   BASE + 5;
+    @VisibleForTesting
+    static final int DROP_WIFI_USER_REJECT                  =   BASE + 5;
     // Delayed message to timeout p2p disable
     public static final int DISABLE_P2P_TIMED_OUT           =   BASE + 6;
     // User confirm a peer request
@@ -3704,12 +3705,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case DROP_WIFI_USER_ACCEPT:
                         mFrequencyConflictDialog = null;
                         // User accepted dropping wifi in favour of p2p
-                        if (mWifiChannel != null) {
-                            mWifiChannel.sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 1);
-                        } else {
-                            loge("DROP_WIFI_USER_ACCEPT message received when WifiChannel is null");
-                        }
-                        mTemporarilyDisconnectedWifi = true;
+                        sendDisconnectWifiRequest(true);
                         break;
                     case DISCONNECT_WIFI_RESPONSE:
                         // Got a response from ClientModeImpl, retry p2p
@@ -5211,6 +5207,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             Bundle extras = new Bundle();
             extras.putBoolean(WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE, true);
             sendMessage(WifiP2pManager.DISCOVER_PEERS, extras);
+
+            sendDisconnectWifiRequest(false);
         }
 
         private void handleGroupRemoved() {
@@ -5255,14 +5253,19 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             mPeersLostDuringConnection.clear();
             mServiceDiscReqId = null;
 
-            if (mTemporarilyDisconnectedWifi) {
-                if (mWifiChannel != null) {
-                    mWifiChannel.sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
-                } else {
-                    loge("handleGroupRemoved(): WifiChannel is null");
-                }
-                mTemporarilyDisconnectedWifi = false;
+            sendDisconnectWifiRequest(false);
+        }
+
+        private void sendDisconnectWifiRequest(boolean disableWifi) {
+            if (null == mWifiChannel) {
+                loge("WifiChannel is null, ignore DISCONNECT_WIFI_REQUEST " + disableWifi);
+                return;
             }
+            if (mTemporarilyDisconnectedWifi == disableWifi) return;
+
+            mWifiChannel.sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST,
+                    disableWifi ? 1 : 0);
+            mTemporarilyDisconnectedWifi = disableWifi;
         }
 
         private void replyToMessage(Message msg, int what) {

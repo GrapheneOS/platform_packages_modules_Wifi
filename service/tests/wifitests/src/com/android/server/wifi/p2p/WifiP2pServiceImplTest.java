@@ -245,6 +245,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock View mView;
     @Mock AlertDialog.Builder mAlertDialogBuilder;
     @Mock AlertDialog mAlertDialog;
+    @Mock AsyncChannel mAsyncChannel;
     CoexManager.CoexListener mCoexListener;
 
     private void generatorTestData() {
@@ -2971,7 +2972,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         forceP2pEnabled(mClient1);
         when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
         sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
-        AsyncChannel wifiChannel = mock(AsyncChannel.class);
+        AsyncChannel wifiChannel = mAsyncChannel;
         sendChannelHalfConnectedEvent(mClientMessenger, wifiChannel);
         WifiDialogManager.DialogHandle dialogHandle = mock(WifiDialogManager.DialogHandle.class);
         when(mWifiDialogManager.createSimpleDialog(
@@ -2990,6 +2991,33 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         callbackCaptor.getValue().onPositiveButtonClicked();
         mLooper.dispatchAll();
         verify(wifiChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 1);
+    }
+
+    /**
+     * Verify DISCONNECT_WIFI_REQUEST is cleared when cancelConnect() is called.
+     */
+    @Test
+    public void testClearDisconnectWifiRequestOnCallCancelConnect() throws Exception {
+        // accept the frequency conflict dialog to start next try.
+        testAcceptFrequencyConflictDialogSendsDisconnectWifiRequest();
+
+        reset(mAsyncChannel);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
+        verify(mAsyncChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
+    }
+
+    /**
+     * Verify DISCONNECT_WIFI_REQUEST is cleared when group formation fails.
+     */
+    @Test
+    public void testClearDisconnectWifiRequestWhenGroupFormationFails() throws Exception {
+        // accept the frequency conflict dialog to start next try.
+        testAcceptFrequencyConflictDialogSendsDisconnectWifiRequest();
+
+        reset(mAsyncChannel);
+        // Send a reject to trigger handleGroupCreationFailure().
+        sendSimpleMsg(mClientMessenger, WifiP2pServiceImpl.DROP_WIFI_USER_REJECT);
+        verify(mAsyncChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
     }
 
     /**
