@@ -17,7 +17,9 @@
 package com.android.server.wifi.p2p;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.net.MacAddress;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -37,6 +40,7 @@ import android.os.Process;
 import androidx.test.filters.SmallTest;
 
 import com.android.internal.util.Protocol;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.BinderUtil;
 import com.android.server.wifi.WifiBaseTest;
 
@@ -112,6 +116,51 @@ public class WifiP2pShellCommandTest extends WifiBaseTest {
     }
 
     @Test
+    public void testP2pPeerDiscoveryOnSocialChannels() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot("start-peer-discovery-on-social-channels");
+        verify(mWifiP2pManager).discoverPeersOnSocialChannels(eq(mWifiP2pChannel), any());
+        runP2pCommandAsRoot("stop-peer-discovery");
+        verify(mWifiP2pManager).stopPeerDiscovery(eq(mWifiP2pChannel), any());
+    }
+
+    @Test
+    public void testP2pPeerDiscoveryOnSpecificFrequencyWithPositiveFrequency() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final int frequencyMhz = 2412;
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot(
+                "start-peer-discovery-on-specific-frequency", Integer.toString(frequencyMhz));
+        verify(mWifiP2pManager).discoverPeersOnSpecificFrequency(
+                eq(mWifiP2pChannel), eq(frequencyMhz), any());
+        runP2pCommandAsRoot("stop-peer-discovery");
+        verify(mWifiP2pManager).stopPeerDiscovery(eq(mWifiP2pChannel), any());
+    }
+
+    @Test
+    public void testP2pPeerDiscoveryOnSpecificFrequencyWithNonePositiveFrequency() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final int frequencyMhz = 0;
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot(
+                "start-peer-discovery-on-specific-frequency", Integer.toString(frequencyMhz));
+        verify(mWifiP2pManager, never()).discoverPeersOnSpecificFrequency(
+                eq(mWifiP2pChannel), eq(frequencyMhz), any());
+    }
+
+    @Test
+    public void testP2pPeerDiscoveryOnSpecificFrequencyWithUnformattedFrequency() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final String frequencyMhz = "abcd";
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot(
+                "start-peer-discovery-on-specific-frequency", frequencyMhz);
+        verify(mWifiP2pManager, never()).discoverPeersOnSpecificFrequency(
+                eq(mWifiP2pChannel), anyInt(), any());
+    }
+
+    @Test
     public void testP2pServiceDiscovery() {
         runP2pCommandAsRoot("init");
         runP2pCommandAsRoot("start-service-discovery");
@@ -125,6 +174,25 @@ public class WifiP2pShellCommandTest extends WifiBaseTest {
         runP2pCommandAsRoot("init");
         runP2pCommandAsRoot("list-peers");
         verify(mWifiP2pManager).requestPeers(eq(mWifiP2pChannel), any());
+    }
+
+    @Test
+    public void testP2pRemoveClientWithValidMacAddress() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final String peerAddress = "aa:bb:cc:11:22:33";
+        final MacAddress peerMacAddress = MacAddress.fromString(peerAddress);
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot("remove-client", peerAddress);
+        verify(mWifiP2pManager).removeClient(eq(mWifiP2pChannel), eq(peerMacAddress), any());
+    }
+
+    @Test
+    public void testP2pRemoveClientWithInalidMacAddress() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final String peerAddress = "aa33";
+        runP2pCommandAsRoot("init");
+        runP2pCommandAsRoot("remove-client", peerAddress);
+        verify(mWifiP2pManager, never()).removeClient(eq(mWifiP2pChannel), any(), any());
     }
 
     @Test

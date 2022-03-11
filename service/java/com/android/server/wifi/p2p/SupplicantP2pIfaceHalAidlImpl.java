@@ -433,8 +433,42 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         }
     }
 
-    /** See {@link ISupplicantStaNetwork#find(int, int)} for documentation. */
-    public boolean find(int freq, int timeout) {
+    /**
+     * Initiate a P2P service discovery with a (optional) timeout.
+     *
+     * @param timeout Max time to be spent is performing discovery.
+     *        Set to 0 to indefinitely continue discovery until an explicit
+     *        |stopFind| is sent.
+     * @return boolean value indicating whether operation was successful.
+     */
+    public boolean find(int timeout) {
+        return find(
+                WifiP2pManager.WIFI_P2P_SCAN_FULL,
+                WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED, timeout);
+    }
+
+    /**
+     * Initiate a P2P device discovery with a scan type, a (optional) frequency, and a (optional)
+     * timeout.
+     *
+     * @param type indicates what channels to scan.
+     *        Valid values are {@link WifiP2pManager#WIFI_P2P_SCAN_FULL} for doing full P2P scan,
+     *        {@link WifiP2pManager#WIFI_P2P_SCAN_SOCIAL} for scanning social channels,
+     *        {@link WifiP2pManager#WIFI_P2P_SCAN_SINGLE_FREQ} for scanning a specified frequency.
+     * @param freq is the frequency to be scanned.
+     *        The possible values are:
+     *        <ul>
+     *        <li> A valid frequency for {@link WifiP2pManager#WIFI_P2P_SCAN_SINGLE_FREQ}</li>
+     *        <li> {@link WifiP2pManager#WIFI_P2P_SCAN_FREQ_UNSPECIFIED} for
+     *          {@link WifiP2pManager#WIFI_P2P_SCAN_FULL} and
+     *          {@link WifiP2pManager#WIFI_P2P_SCAN_SOCIAL}</li>
+     *        </ul>
+     * @param timeout Max time to be spent is performing discovery.
+     *        Set to 0 to indefinitely continue discovery until an explicit
+     *        |stopFind| is sent.
+     * @return boolean value indicating whether operation was successful.
+     */
+    public boolean find(@WifiP2pManager.WifiP2pScanType int type, int freq, int timeout) {
         synchronized (mLock) {
             String methodStr = "find";
             if (!checkP2pIfaceAndLogFailure(methodStr)) {
@@ -444,21 +478,33 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 Log.e(TAG, "Invalid timeout value: " + timeout);
                 return false;
             }
-            if (freq < 0 && freq != WifiP2pManager.WIFI_P2P_SCAN_SOCIAL) {
+            if (freq < 0) {
                 Log.e(TAG, "Invalid freq value: " + freq);
                 return false;
             }
+            if (freq != WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED
+                    && type != WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ) {
+                Log.e(TAG, "Specified freq for scan type:" + type);
+                return false;
+            }
             try {
-                switch (freq) {
+                switch (type) {
                     case WifiP2pManager.WIFI_P2P_SCAN_FULL:
                         mISupplicantP2pIface.find(timeout);
                         break;
                     case WifiP2pManager.WIFI_P2P_SCAN_SOCIAL:
                         mISupplicantP2pIface.findOnSocialChannels(timeout);
                         break;
-                    default:
+                    case WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ:
+                        if (freq == WifiP2pManager.WIFI_P2P_SCAN_FREQ_UNSPECIFIED) {
+                            Log.e(TAG, "Unspecified freq for WIFI_P2P_SCAN_SINGLE_FREQ");
+                            return false;
+                        }
                         mISupplicantP2pIface.findOnSpecificFrequency(freq, timeout);
                         break;
+                    default:
+                        Log.e(TAG, "Invalid scan type: " + type);
+                        return false;
                 }
                 return true;
             } catch (RemoteException e) {

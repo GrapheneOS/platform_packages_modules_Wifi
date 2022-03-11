@@ -17,6 +17,7 @@
 package com.android.server.wifi.p2p;
 
 import android.content.Context;
+import android.net.MacAddress;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -31,6 +32,7 @@ import android.os.Process;
 
 import com.android.internal.util.Protocol;
 import com.android.modules.utils.BasicShellCommandHandler;
+import com.android.modules.utils.build.SdkLevel;
 
 import java.io.PrintWriter;
 import java.util.concurrent.CountDownLatch;
@@ -86,6 +88,37 @@ public class WifiP2pShellCommand extends BasicShellCommandHandler {
                 mWifiP2pManager.discoverPeers(sWifiP2pChannel, actionListener);
                 countDownLatch.await(1000, TimeUnit.MILLISECONDS);
                 return 0;
+            case "start-peer-discovery-on-social-channels":
+                if (!SdkLevel.isAtLeastT()) {
+                    pw.println("This feature is only supported on SdkLevel T or later.");
+                    return -1;
+                }
+                mWifiP2pManager.discoverPeersOnSocialChannels(sWifiP2pChannel, actionListener);
+                countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+                return 0;
+            case "start-peer-discovery-on-specific-frequency":
+                if (!SdkLevel.isAtLeastT()) {
+                    pw.println("This feature is only supported on SdkLevel T or later.");
+                    return -1;
+                }
+                int frequencyMhz;
+                try {
+                    frequencyMhz = Integer.parseInt(getNextArgRequired());
+                } catch (NumberFormatException e) {
+                    pw.println(
+                            "Invalid argument to 'start-peer-discovery-on-specific-frequency' "
+                                    + "- must be an integer");
+                    return -1;
+                }
+                if (frequencyMhz <= 0) {
+                    pw.println("Invalid argument to 'start-peer-discovery-on-specific-frequency' "
+                            + "- must be a positive integer.");
+                    return -1;
+                }
+                mWifiP2pManager.discoverPeersOnSpecificFrequency(
+                        sWifiP2pChannel, frequencyMhz, actionListener);
+                countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+                return 0;
             case "stop-peer-discovery":
                 mWifiP2pManager.stopPeerDiscovery(sWifiP2pChannel, actionListener);
                 countDownLatch.await(1000, TimeUnit.MILLISECONDS);
@@ -114,6 +147,23 @@ public class WifiP2pShellCommand extends BasicShellCommandHandler {
                                 countDownLatch.countDown();
                             }
                         });
+                countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+                return 0;
+            case "remove-client":
+                if (!SdkLevel.isAtLeastT()) {
+                    pw.println("This feature is only supported on SdkLevel T or later.");
+                    return -1;
+                }
+                MacAddress peerAddress;
+                try {
+                    peerAddress = MacAddress.fromString(getNextArgRequired());
+                } catch (IllegalArgumentException e) {
+                    pw.println(
+                            "Invalid argument to 'remove-client' "
+                                    + "- must be a valid mac address");
+                    return -1;
+                }
+                mWifiP2pManager.removeClient(sWifiP2pChannel, peerAddress, actionListener);
                 countDownLatch.await(1000, TimeUnit.MILLISECONDS);
                 return 0;
             case "cancel-connect":
@@ -455,6 +505,10 @@ public class WifiP2pShellCommand extends BasicShellCommandHandler {
                         + " keep the p2p client and block SoftAp or NAN.");
         pw.println("  start-peer-discovery");
         pw.println("    Start p2p peer discovery.");
+        pw.println("  start-peer-discovery-on-social-channels");
+        pw.println("    Start p2p peer discovery on social channels.");
+        pw.println("  start-peer-discovery-on-specific-frequency <frequency>");
+        pw.println("    Start p2p peer discovery on specific frequency.");
         pw.println("  stop-peer-discovery");
         pw.println("    Stop p2p peer discovery.");
         pw.println("  start-service-discovery");
@@ -505,6 +559,9 @@ public class WifiP2pShellCommand extends BasicShellCommandHandler {
         pw.println("        - Use a frequency in MHz to indicate the preferred frequency.");
         pw.println("    <persistent> true for a persistent group; otherwise false.");
         pw.println("    Connect to a device with a configuration.");
+        pw.println("  remove-client <peerAddress>");
+        pw.println("    <peerAddress> the MAC address of the p2p client.");
+        pw.println("    Remove the p2p client.");
         pw.println("  cancel-connect");
         pw.println("    Cancel an onging connection request.");
         pw.println("  create-group");

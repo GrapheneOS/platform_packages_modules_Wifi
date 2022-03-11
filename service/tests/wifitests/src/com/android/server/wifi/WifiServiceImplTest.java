@@ -8238,7 +8238,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
-        assertTrue((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
+        if (SdkLevel.isAtLeastT()) {
+            assertTrue((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
+        } else {
+            assertFalse((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
+        }
     }
 
     /**

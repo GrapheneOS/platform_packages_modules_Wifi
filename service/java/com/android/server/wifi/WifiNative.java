@@ -1725,8 +1725,8 @@ public class WifiNative {
      * Get the max number of SSIDs that the driver supports per scan.
      * @param ifaceName Name of the interface.
      */
-    public int getMaxNumScanSsids(@NonNull String ifaceName) {
-        return mWifiCondManager.getMaxNumScanSsids(ifaceName);
+    public int getMaxSsidsPerScan(@NonNull String ifaceName) {
+        return mWifiCondManager.getMaxSsidsPerScan(ifaceName);
     }
 
     private ArrayList<ScanDetail> convertNativeScanResults(@NonNull String ifaceName,

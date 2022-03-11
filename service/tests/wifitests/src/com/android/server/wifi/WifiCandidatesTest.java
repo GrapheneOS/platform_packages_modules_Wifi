@@ -413,14 +413,31 @@ public class WifiCandidatesTest extends WifiBaseTest {
                 .keyFromScanDetailAndConfig(mScanDetail1, mConfig1);
         WifiCandidates.Candidate candidate;
         // Make sure the CarrierOrPrivileged false is remembered
-        assertTrue(mWifiCandidates.add(key, mConfig1, 0, -50, 2412, 0.0, false, false, 100));
+        assertTrue(mWifiCandidates.add(key, mConfig1, 0, -50, 2412,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 0.0, false, false, 100));
         candidate = mWifiCandidates.getCandidates().get(0);
         assertFalse(candidate.isCarrierOrPrivileged());
         mWifiCandidates.remove(candidate);
         // Make sure the CarrierOrPrivileged true is remembered
-        assertTrue(mWifiCandidates.add(key, mConfig1, 0, -50, 2412, 0.0, false, true, 100));
+        assertTrue(mWifiCandidates.add(key, mConfig1, 0, -50, 2412,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 0.0, false, true, 100));
         candidate = mWifiCandidates.getCandidates().get(0);
         assertTrue(candidate.isCarrierOrPrivileged());
         mWifiCandidates.remove(candidate);
+    }
+
+    @Test
+    public void testAddCandidateFrequencyAndChannelWidth() {
+        int testFrequency = 5975;
+        int testChannelWidth = ScanResult.CHANNEL_WIDTH_80MHZ;
+        WifiCandidates.Key key = mWifiCandidates
+                .keyFromScanDetailAndConfig(mScanDetail1, mConfig1);
+        WifiCandidates.Candidate candidate;
+
+        assertTrue(mWifiCandidates.add(key, mConfig1, 0, -50, testFrequency,
+                testChannelWidth, 0.0, false, false, 100));
+        candidate = mWifiCandidates.getCandidates().get(0);
+        assertEquals(testFrequency, candidate.getFrequency());
+        assertEquals(testChannelWidth, candidate.getChannelWidth());
     }
 }

@@ -109,6 +109,7 @@ import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Range;
 
 import androidx.annotation.RequiresApi;
 
@@ -2307,11 +2308,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     public boolean isRequestedForLocalOnly(WifiConfiguration currentWifiConfiguration,
             String currentBssid) {
-        Pair<Integer, String> specificRequestUidAndPackageName =
-                mNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
+        Set<Integer> uids =
+                mNetworkFactory.getSpecificNetworkRequestUids(
                         currentWifiConfiguration, currentBssid);
         // Check if there is an active specific request in WifiNetworkFactory for local only.
-        return specificRequestUidAndPackageName.first != Process.INVALID_UID;
+        return !uids.isEmpty();
     }
 
     private void handleScreenStateChanged(boolean screenOn) {
@@ -2769,7 +2770,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private void updateWifiInfoWhenConnected(@NonNull WifiConfiguration config) {
-        mWifiInfo.setHiddenSSID(config.hiddenSSID);
         mWifiInfo.setEphemeral(config.ephemeral);
         mWifiInfo.setTrusted(config.trusted);
         mWifiInfo.setOemPaid(config.oemPaid);
@@ -4378,18 +4378,34 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
         }
 
-        Pair<Integer, String> specificRequestUidAndPackageName =
-                mNetworkFactory.getSpecificNetworkRequestUidAndPackageName(
-                        currentWifiConfiguration, currentBssid);
+        List<Integer> uids = new ArrayList<>(mNetworkFactory
+                .getSpecificNetworkRequestUids(
+                        currentWifiConfiguration, currentBssid));
         // There is an active specific request.
         // TODO: Check if the specific Request is for dual band Wifi or local only.
-        if (specificRequestUidAndPackageName.first != Process.INVALID_UID
+        if (!uids.isEmpty()
                 && !mWifiConnectivityManager.hasMultiInternetConnection()) {
             // Remove internet capability.
             builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-            // Fill up the uid/packageName for this connection.
-            builder.setRequestorUid(specificRequestUidAndPackageName.first);
-            builder.setRequestorPackageName(specificRequestUidAndPackageName.second);
+            Collections.sort(uids);
+            Set<Range<Integer>> uidRanges = new ArraySet<>();
+            int start = 0;
+            int next = 0;
+            for (int i : uids) {
+                if (start == next) {
+                    start = i;
+                    next = start + 1;
+                } else if (i == next) {
+                    next++;
+                } else {
+                    uidRanges.add(new Range<>(start, next - 1));
+                    start = i;
+                    next = start + 1;
+                }
+            }
+            uidRanges.add(new Range<>(start, next - 1));
+
+            builder.setUids(uidRanges);
             // Fill up the network agent specifier for this connection, allowing NetworkCallbacks
             // to match local-only specifiers in requests. TODO(b/187921303): a third-party app can
             // observe this location-sensitive information by registering a NetworkCallback.
@@ -4457,6 +4473,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     /**
      * Method to update network capabilities from the current WifiConfiguration.
      */
+    @Override
     public void updateCapabilities() {
         updateCapabilities(getConnectedWifiConfigurationInternal());
     }
@@ -5498,6 +5515,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 ScanResult scanResult = scanDetailCache.getScanResult(mLastBssid);
                                 if (scanResult != null) {
                                     mWifiInfo.setFrequency(scanResult.frequency);
+                                    boolean isHidden = true;
+                                    for (byte b : scanResult.getWifiSsid().getBytes()) {
+                                        if (b != 0) {
+                                            isHidden = false;
+                                            break;
+                                        }
+                                    }
+                                    mWifiInfo.setHiddenSSID(isHidden);
                                 }
                             }
                         }

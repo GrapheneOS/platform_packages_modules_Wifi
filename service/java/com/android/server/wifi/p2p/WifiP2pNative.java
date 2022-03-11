@@ -449,20 +449,32 @@ public class WifiP2pNative {
      * @return boolean value indicating whether operation was successful.
      */
     public boolean p2pFind(int timeout) {
-        return mSupplicantP2pIfaceHal.find(WifiP2pManager.WIFI_P2P_SCAN_FULL, timeout);
+        return mSupplicantP2pIfaceHal.find(timeout);
     }
 
     /**
-     * Initiate a P2P device discovery with a (optional) frequency and a (optional) timeout.
+     * Initiate a P2P device discovery with a scan type, a (optional) frequency, and a (optional)
+     * timeout.
      *
+     * @param type indicates what channels to scan.
+     *        Valid values are {@link WifiP2pManager#WIFI_P2P_SCAN_FULL} for doing full P2P scan,
+     *        {@link WifiP2pManager#WIFI_P2P_SCAN_SOCIAL} for scanning social channels,
+     *        {@link WifiP2pManager#WIFI_P2P_SCAN_SINGLE_FREQ} for scanning a specified frequency.
      * @param freq is the frequency to be scanned.
+     *        The possible values are:
+     *        <ul>
+     *        <li> A valid frequency for {@link WifiP2pManager#WIFI_P2P_SCAN_SINGLE_FREQ}</li>
+     *        <li> {@link WifiP2pManager#WIFI_P2P_SCAN_FREQ_UNSPECIFIED} for
+     *          {@link WifiP2pManager#WIFI_P2P_SCAN_FULL} and
+     *          {@link WifiP2pManager#WIFI_P2P_SCAN_SOCIAL}</li>
+     *        </ul>
      * @param timeout The maximum amount of time to be spent in performing discovery.
      *        Set to 0 to indefinitely continue discovery until an explicit
      *        |stopFind| is sent.
      * @return boolean value indicating whether operation was successful.
      */
-    public boolean p2pFind(int freq, int timeout) {
-        return mSupplicantP2pIfaceHal.find(freq, timeout);
+    public boolean p2pFind(@WifiP2pManager.WifiP2pScanType int type, int freq, int timeout) {
+        return mSupplicantP2pIfaceHal.find(type, freq, timeout);
     }
 
     /**

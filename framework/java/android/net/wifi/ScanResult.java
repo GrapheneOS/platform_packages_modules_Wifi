@@ -582,7 +582,7 @@ public final class ScanResult implements Parcelable {
     /**
      * AP Channel bandwidth; one of {@link #CHANNEL_WIDTH_20MHZ}, {@link #CHANNEL_WIDTH_40MHZ},
      * {@link #CHANNEL_WIDTH_80MHZ}, {@link #CHANNEL_WIDTH_160MHZ}, {@link #CHANNEL_WIDTH_320MHZ},
-     * or {@link #CHANNEL_WIDTH_80MHZ_PLUS_MHZ}.
+     * or {@link #CHANNEL_WIDTH_80MHZ_PLUS_MHZ}, or {@link #CHANNEL_WIDTH_320MHZ}
      */
     public @ChannelWidth int channelWidth;
 
