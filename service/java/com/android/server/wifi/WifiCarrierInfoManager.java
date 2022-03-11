@@ -203,8 +203,8 @@ public class WifiCarrierInfoManager {
             new ArrayList<>();
     private final SparseArray<SimInfo> mSubIdToSimInfoSparseArray = new SparseArray<>();
     private final Map<ParcelUuid, List<Integer>> mSubscriptionGroupMap = new HashMap<>();
-    private List<WifiCarrierPrivilegeListener> mCarrierPrivilegeListeners;
-    private final SparseArray<List<String>> mCarrierPrivilegedPackagesBySimSlot =
+    private List<WifiCarrierPrivilegeCallback> mCarrierPrivilegeCallbacks;
+    private final SparseArray<Set<String>> mCarrierPrivilegedPackagesBySimSlot =
             new SparseArray<>();
 
     private List<SubscriptionInfo> mActiveSubInfos = null;
@@ -463,13 +463,13 @@ public class WifiCarrierInfoManager {
                 for (int simSlot = 0; simSlot < mTelephonyManager.getActiveModemCount();
                         simSlot++) {
                     if (!mCarrierPrivilegedPackagesBySimSlot.contains(simSlot)) {
-                        WifiCarrierPrivilegeListener listener =
-                                new WifiCarrierPrivilegeListener(simSlot);
-                        mTelephonyManager.addCarrierPrivilegesListener(simSlot,
-                                new HandlerExecutor(mHandler), listener);
+                        WifiCarrierPrivilegeCallback callback =
+                                new WifiCarrierPrivilegeCallback(simSlot);
+                        mTelephonyManager.registerCarrierPrivilegesCallback(simSlot,
+                                new HandlerExecutor(mHandler), callback);
                         mCarrierPrivilegedPackagesBySimSlot.append(simSlot,
-                                Collections.emptyList());
-                        mCarrierPrivilegeListeners.add(listener);
+                                Collections.emptySet());
+                        mCarrierPrivilegeCallbacks.add(callback);
                     }
                 }
             }
@@ -481,18 +481,18 @@ public class WifiCarrierInfoManager {
      */
     @VisibleForTesting
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public final class WifiCarrierPrivilegeListener implements
-            TelephonyManager.CarrierPrivilegesListener {
+    public final class WifiCarrierPrivilegeCallback implements
+            TelephonyManager.CarrierPrivilegesCallback {
         private int mSimSlot = -1;
 
-        public WifiCarrierPrivilegeListener(int simSlot) {
+        public WifiCarrierPrivilegeCallback(int simSlot) {
             mSimSlot = simSlot;
         }
 
         @Override
         public void onCarrierPrivilegesChanged(
-                @androidx.annotation.NonNull List<String> privilegedPackageNames,
-                @androidx.annotation.NonNull int[] privilegedUids) {
+                @androidx.annotation.NonNull Set<String> privilegedPackageNames,
+                @androidx.annotation.NonNull Set<Integer> privilegedUids) {
             mCarrierPrivilegedPackagesBySimSlot.put(mSimSlot, privilegedPackageNames);
             resetCarrierPrivilegedApps();
         }
@@ -562,7 +562,7 @@ public class WifiCarrierInfoManager {
                     }
                 });
         if (SdkLevel.isAtLeastT()) {
-            mCarrierPrivilegeListeners = new ArrayList<>();
+            mCarrierPrivilegeCallbacks = new ArrayList<>();
         }
     }
 
@@ -1989,10 +1989,10 @@ public class WifiCarrierInfoManager {
             mUserDataEnabledListenerList.clear();
         }
         if (SdkLevel.isAtLeastT()) {
-            for (WifiCarrierPrivilegeListener listener : mCarrierPrivilegeListeners) {
-                mTelephonyManager.removeCarrierPrivilegesListener(listener);
+            for (WifiCarrierPrivilegeCallback callback : mCarrierPrivilegeCallbacks) {
+                mTelephonyManager.unregisterCarrierPrivilegesCallback(callback);
             }
-            mCarrierPrivilegeListeners.clear();
+            mCarrierPrivilegeCallbacks.clear();
         }
         resetNotification();
         saveToStore();
