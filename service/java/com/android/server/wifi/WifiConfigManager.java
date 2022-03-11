@@ -3661,7 +3661,7 @@ public class WifiConfigManager {
     /**
      * This maintains the legacy user connect choice state in the config store
      */
-    private boolean setLegacyUserConnectChoice(@NonNull final WifiConfiguration selected,
+    public boolean setLegacyUserConnectChoice(@NonNull final WifiConfiguration selected,
             int rssi) {
         boolean change = false;
         Collection<WifiConfiguration> configuredNetworks = getInternalConfiguredNetworks();
