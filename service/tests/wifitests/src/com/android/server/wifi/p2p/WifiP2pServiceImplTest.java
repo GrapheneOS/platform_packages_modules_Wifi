@@ -5997,19 +5997,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Verify failure scenario for setVendorElements on preT.
-     */
-    @Test
-    public void testSetVendorElementsFailureOnPreT() throws Exception {
-        assumeFalse(SdkLevel.isAtLeastT());
-        assumeTrue(SdkLevel.isAtLeastS());
-        boolean isP2pActivated = false, shouldSucceed = false;
-        boolean hasPermission = true, shouldSetToNative = false;
-        verifySetVendorElement(isP2pActivated, shouldSucceed,
-                hasPermission, shouldSetToNative);
-    }
-
-    /**
      * Verify failure scenario for setVendorElements when no NEARBY permission.
      */
     @Test
