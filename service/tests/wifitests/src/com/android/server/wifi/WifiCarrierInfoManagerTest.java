@@ -2217,13 +2217,15 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Test
     public void testCarrierPrivilegedListenerChange() {
         assumeTrue(SdkLevel.isAtLeastT());
-        TelephonyManager.CarrierPrivilegesListener carrierPrivilegesListener;
-        ArgumentCaptor<TelephonyManager.CarrierPrivilegesListener> listenerArgumentCaptor =
-                ArgumentCaptor.forClass(TelephonyManager.CarrierPrivilegesListener.class);
+        TelephonyManager.CarrierPrivilegesCallback carrierPrivilegesCallback;
+        ArgumentCaptor<TelephonyManager.CarrierPrivilegesCallback> callbackArgumentCaptor =
+                ArgumentCaptor.forClass(TelephonyManager.CarrierPrivilegesCallback.class);
         verify(mTelephonyManager, times(2))
-                .addCarrierPrivilegesListener(anyInt(), any(), listenerArgumentCaptor.capture());
-        carrierPrivilegesListener = listenerArgumentCaptor.getValue();
-        carrierPrivilegesListener.onCarrierPrivilegesChanged(Collections.emptyList(), new int[0]);
+                .registerCarrierPrivilegesCallback(anyInt(), any(),
+                        callbackArgumentCaptor.capture());
+        carrierPrivilegesCallback = callbackArgumentCaptor.getValue();
+        carrierPrivilegesCallback.onCarrierPrivilegesChanged(Collections.emptySet(),
+                Collections.emptySet());
         verify(mWifiNetworkSuggestionsManager).updateCarrierPrivilegedApps(any());
     }
 }
