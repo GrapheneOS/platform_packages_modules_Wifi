@@ -65,7 +65,11 @@ import android.hardware.wifi.V1_0.IWifiStaIface;
 import android.hardware.wifi.V1_0.IfaceType;
 import android.hardware.wifi.V1_0.WifiStatus;
 import android.hardware.wifi.V1_0.WifiStatusCode;
+import android.hardware.wifi.V1_5.WifiBand;
 import android.hardware.wifi.V1_6.IfaceConcurrencyType;
+import android.hardware.wifi.V1_6.WifiRadioCombination;
+import android.hardware.wifi.V1_6.WifiRadioCombinationMatrix;
+import android.hardware.wifi.V1_6.WifiRadioConfiguration;
 import android.hidl.manager.V1_0.IServiceNotification;
 import android.hidl.manager.V1_2.IServiceManager;
 import android.net.wifi.WifiContext;
@@ -3157,6 +3161,112 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 TestChipV6.CHIP_MODE_ID);
     }
 
+    private IWifiIface setupDbsSupportTest(ChipMockBase testChip, int onlyChipMode,
+            ArrayList<ArrayList<Integer>> radioCombinationMatrix) throws Exception {
+        WifiRadioCombinationMatrix matrix = new WifiRadioCombinationMatrix();
+        for (ArrayList<Integer> comb: radioCombinationMatrix) {
+            WifiRadioCombination combination = new WifiRadioCombination();
+            for (Integer b: comb) {
+                WifiRadioConfiguration config = new WifiRadioConfiguration();
+                config.bandInfo = b;
+                combination.radioConfigurations.add(config);
+            }
+            matrix.radioCombinations.add(combination);
+        }
+
+        testChip.chipSupportedRadioCombinationsMatrix = matrix;
+
+        testChip.initialize();
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, testChip.chip,
+                mManagerStatusListenerMock);
+        executeAndValidateInitializationSequence();
+        executeAndValidateStartupSequence();
+
+        InterfaceDestroyedListener staDestroyedListener = mock(
+                InterfaceDestroyedListener.class);
+
+        InterfaceDestroyedListener p2pDestroyedListener = mock(
+                InterfaceDestroyedListener.class);
+
+        // Request STA
+        IWifiIface staIface = validateInterfaceSequence(testChip,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA, // createIfaceType
+                "wlan0", // ifaceName
+                onlyChipMode, // finalChipMode
+                null, // tearDownList
+                staDestroyedListener, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("STA can't be created", staIface, IsNull.notNullValue());
+
+        // Request P2P
+        IWifiIface p2pIface = validateInterfaceSequence(testChip,
+                true, // chipModeValid
+                onlyChipMode, // chipModeId
+                HDM_CREATE_IFACE_P2P, // ifaceTypeToCreate
+                "p2p0", // ifaceName
+                onlyChipMode, // finalChipMode
+                null, // tearDownList
+                p2pDestroyedListener, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("P2P can't be created", p2pIface, IsNull.notNullValue());
+        mTestLooper.dispatchAll();
+
+        return staIface;
+    }
+
+    /**
+     * Validate 24GHz/5GHz DBS support.
+     */
+    @Test
+    public void test24g5gDbsSupport() throws Exception {
+        TestChipV6 testChip = new TestChipV6();
+        ArrayList<ArrayList<Integer>> radioCombinationMatrix = new ArrayList<>() {{
+                add(new ArrayList(Arrays.asList(WifiBand.BAND_24GHZ, WifiBand.BAND_5GHZ)));
+            }};
+        IWifiIface iface = setupDbsSupportTest(testChip, TestChipV6.CHIP_MODE_ID,
+                radioCombinationMatrix);
+
+        assertTrue(mDut.is24g5gDbsSupported(iface));
+        assertFalse(mDut.is5g6gDbsSupported(iface));
+    }
+
+    /**
+     * Validate 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void test5g6gDbsSupport() throws Exception {
+        TestChipV6 testChip = new TestChipV6();
+        ArrayList<ArrayList<Integer>> radioCombinationMatrix = new ArrayList<>() {{
+                add(new ArrayList(Arrays.asList(WifiBand.BAND_5GHZ, WifiBand.BAND_6GHZ)));
+            }};
+        IWifiIface iface = setupDbsSupportTest(testChip, TestChipV6.CHIP_MODE_ID,
+                radioCombinationMatrix);
+
+        assertFalse(mDut.is24g5gDbsSupported(iface));
+        assertTrue(mDut.is5g6gDbsSupported(iface));
+    }
+
+    /**
+     * Validate 2.4GHz/5GHz DBS and 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void test24g5gAnd5g6gDbsSupport() throws Exception {
+        TestChipV6 testChip = new TestChipV6();
+        ArrayList<ArrayList<Integer>> radioCombinationMatrix = new ArrayList<>() {{
+                add(new ArrayList(Arrays.asList(WifiBand.BAND_24GHZ, WifiBand.BAND_5GHZ)));
+                add(new ArrayList(Arrays.asList(WifiBand.BAND_5GHZ, WifiBand.BAND_6GHZ)));
+            }};
+        IWifiIface iface = setupDbsSupportTest(testChip, TestChipV6.CHIP_MODE_ID,
+                radioCombinationMatrix);
+
+        assertTrue(mDut.is24g5gDbsSupported(iface));
+        assertTrue(mDut.is5g6gDbsSupported(iface));
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // utilities
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -3912,6 +4022,21 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         }
     }
 
+    private class GetSupportedRadioCombinationsMatrixAnswer
+            extends MockAnswerUtil.AnswerWithArguments {
+        private ChipMockBase mChipMockBase;
+
+        GetSupportedRadioCombinationsMatrixAnswer(ChipMockBase chipMockBase) {
+            mChipMockBase = chipMockBase;
+        }
+
+        public void answer(
+                android.hardware.wifi.V1_6.IWifiChip.getSupportedRadioCombinationsMatrixCallback
+                cb) {
+            cb.onValues(mStatusOk, mChipMockBase.chipSupportedRadioCombinationsMatrix);
+        }
+    }
+
     // chip configuration
 
     private static final int CHIP_MOCK_V1 = 0;
@@ -3930,6 +4055,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         public int chipModeId = -1000;
         public int chipModeIdValidForRtt = -1; // single chip mode ID where RTT can be created
         public int chipCapabilities = 0;
+        public WifiRadioCombinationMatrix chipSupportedRadioCombinationsMatrix = null;
         public Map<Integer, ArrayList<String>> interfaceNames = new HashMap<>();
         public Map<Integer, Map<String, IWifiIface>> interfacesByName = new HashMap<>();
 
@@ -3988,6 +4114,10 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                     chip).createRttController(any(), any());
 
             doAnswer(new GetBoundIfaceAnswer(true)).when(mRttControllerMock).getBoundIface(any());
+            doAnswer(new GetSupportedRadioCombinationsMatrixAnswer(this))
+                    .when(chip).getSupportedRadioCombinationsMatrix(
+                            any(android.hardware.wifi.V1_6.IWifiChip
+                                    .getSupportedRadioCombinationsMatrixCallback.class));
         }
     }
 
@@ -4336,6 +4466,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     // test chip configuration V6 for Bridged AP:
     // mode:
     //    STA + (AP || AP_BRIDGED)
+    //    STA + (NAN || P2P)
     private class TestChipV6 extends ChipMockBase {
         // only mode (different number from any in other TestChips so can catch test errors)
         static final int CHIP_MODE_ID = 60;
@@ -4361,7 +4492,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination ccc;
             android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit cccl;
 
-            // Mode 60 (only one): 1xSTA + 1x{AP,AP_BRIDGED}
+            // Mode 60 (only one): 1xSTA + 1x{AP,AP_BRIDGED}, 1xSTA + 1x{P2P,NAN}
             availableModes_1_6 = new ArrayList<>();
             cm = new android.hardware.wifi.V1_6.IWifiChip.ChipMode();
             cm.id = CHIP_MODE_ID;
@@ -4380,6 +4511,22 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             ccc.limits.add(cccl);
 
             cm.availableCombinations.add(ccc);
+
+            ccc = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+
+            cccl = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit();
+            cccl.maxIfaces = 1;
+            cccl.types.add(IfaceType.STA);
+            ccc.limits.add(cccl);
+
+            cccl = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit();
+            cccl.maxIfaces = 1;
+            cccl.types.add(IfaceType.P2P);
+            cccl.types.add(IfaceType.NAN);
+            ccc.limits.add(cccl);
+
+            cm.availableCombinations.add(ccc);
+
             availableModes_1_6.add(cm);
 
             chipModeIdValidForRtt = CHIP_MODE_ID;

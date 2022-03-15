@@ -5776,13 +5776,40 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
             Log.d(TAG, "WifiInfo: " + wifiInfo);
             int freq = wifiInfo.getFrequency();
+            /*
+             * GO intent table
+             * STA Freq         2.4GHz/5GHz DBS 5GHz/6GHz DBS   GO intent
+             * 2.4 GHz          No              X               5
+             * N/A              X               X               6 (default)
+             * 2.4 GHz          Yes             X               7
+             * 5 GHz            Yes             No              8
+             * 5 GHz            Yes             Yes             9
+             * 5 GHz            No              X               10
+             * 6 GHz            X               No              11
+             * 6 Ghz            X               Yes             12
+             */
             if (wifiInfo.getNetworkId() == WifiConfiguration.INVALID_NETWORK_ID) {
-                intent = DEFAULT_GROUP_OWNER_INTENT + 1;
+                intent = DEFAULT_GROUP_OWNER_INTENT;
             } else if (ScanResult.is24GHz(freq)) {
-                intent = WifiP2pConfig.GROUP_OWNER_INTENT_MIN;
+                if (mWifiNative.is24g5gDbsSupported()) {
+                    intent = 7;
+                } else {
+                    intent = 5;
+                }
             } else if (ScanResult.is5GHz(freq)) {
-                // If both sides use the maximum, the negotiation would fail.
-                intent = WifiP2pConfig.GROUP_OWNER_INTENT_MAX - 1;
+                if (!mWifiNative.is24g5gDbsSupported()) {
+                    intent = 10;
+                } else if (mWifiNative.is5g6gDbsSupported()) {
+                    intent = 9;
+                } else {
+                    intent = 8;
+                }
+            } else if (ScanResult.is6GHz(freq)) {
+                if (mWifiNative.is5g6gDbsSupported()) {
+                    intent = 12;
+                } else {
+                    intent = 11;
+                }
             } else {
                 intent = DEFAULT_GROUP_OWNER_INTENT;
             }
