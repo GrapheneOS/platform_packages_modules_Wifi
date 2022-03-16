@@ -383,6 +383,7 @@ public class XmlUtil {
         private static final String XML_TAG_IS_RESTRICTED = "IsRestricted";
         private static final String XML_TAG_SUBSCRIPTION_GROUP = "SubscriptionGroup";
         public static final String XML_TAG_BSSID_ALLOW_LIST = "bssidAllowList";
+        private static final String XML_TAG_IS_REPEATER_ENABLED = "RepeaterEnabled";
 
         /**
          * Write WepKeys to the XML stream.
@@ -513,6 +514,8 @@ public class XmlUtil {
             XmlUtil.writeNextValue(
                     out, XML_TAG_NUM_REBOOTS_SINCE_LAST_USE,
                     configuration.numRebootsSinceLastUse);
+            XmlUtil.writeNextValue(out, XML_TAG_IS_REPEATER_ENABLED,
+                    configuration.isRepeaterEnabled());
             writeSecurityParamsListToXml(out, configuration);
         }
 
@@ -893,6 +896,9 @@ public class XmlUtil {
                         case XML_TAG_BSSID_ALLOW_LIST:
                             configuration.setBssidAllowlist(
                                     covertStringListToMacAddressList((List<String>) value));
+                            break;
+                        case XML_TAG_IS_REPEATER_ENABLED:
+                            configuration.setRepeaterEnabled((boolean) value);
                             break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);

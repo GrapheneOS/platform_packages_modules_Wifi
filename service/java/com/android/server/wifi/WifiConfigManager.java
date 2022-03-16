@@ -1175,6 +1175,7 @@ public class WifiConfigManager {
         internalConfig.getNetworkSelectionStatus().setConnectChoiceRssi(
                 externalConfig.getNetworkSelectionStatus().getConnectChoiceRssi());
         internalConfig.setBssidAllowlist(externalConfig.getBssidAllowlistInternal());
+        internalConfig.setRepeaterEnabled(externalConfig.isRepeaterEnabled());
     }
 
     /**

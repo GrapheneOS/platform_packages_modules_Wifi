@@ -1611,6 +1611,36 @@ public class WifiConfiguration implements Parcelable {
     public boolean meteredHint;
 
     /**
+     * True if this configuration is intended to be repeater enabled to expand coverage.
+     */
+    private boolean mIsRepeaterEnabled;
+
+    /**
+     * Sets if this configuration is intended to be repeater enabled for expanded coverage.
+     *
+     * @param isRepeaterEnabled true if this network is intended to be repeater enabled,
+     *        false otherwise.
+     *
+     * @hide
+     */
+    @SystemApi
+    public void setRepeaterEnabled(boolean isRepeaterEnabled) {
+        mIsRepeaterEnabled = isRepeaterEnabled;
+    }
+
+    /**
+     * Returns if this configuration is intended to be repeater enabled for expanded coverage.
+     *
+     * @return true if this network is intended to be repeater enabled, false otherwise.
+     *
+     * @hide
+     */
+    @SystemApi
+    public boolean isRepeaterEnabled() {
+        return mIsRepeaterEnabled;
+    }
+
+    /**
      * Indicate whether the network is restricted or not.
      *
      * This bit can only be used by suggestion network, see
@@ -3103,6 +3133,7 @@ public class WifiConfiguration implements Parcelable {
         fromWifiNetworkSpecifier = false;
         dbsSecondaryInternet = false;
         meteredHint = false;
+        mIsRepeaterEnabled = false;
         meteredOverride = METERED_OVERRIDE_NONE;
         useExternalScores = false;
         validatedInternetAccess = false;
@@ -3246,6 +3277,7 @@ public class WifiConfiguration implements Parcelable {
         if (this.fromWifiNetworkSpecifier) sbuf.append(" fromWifiNetworkSpecifier");
         if (this.dbsSecondaryInternet) sbuf.append(" dbsSecondaryInternet");
         if (this.meteredHint) sbuf.append(" meteredHint");
+        if (this.mIsRepeaterEnabled) sbuf.append(" repeaterEnabled");
         if (this.useExternalScores) sbuf.append(" useExternalScores");
         if (this.validatedInternetAccess || this.ephemeral || this.trusted || this.oemPaid
                 || this.oemPrivate || this.carrierMerged || this.fromWifiNetworkSuggestion
@@ -3814,6 +3846,7 @@ public class WifiConfiguration implements Parcelable {
             fromWifiNetworkSpecifier = source.fromWifiNetworkSpecifier;
             dbsSecondaryInternet = source.dbsSecondaryInternet;
             meteredHint = source.meteredHint;
+            mIsRepeaterEnabled = source.mIsRepeaterEnabled;
             meteredOverride = source.meteredOverride;
             useExternalScores = source.useExternalScores;
 
@@ -3916,6 +3949,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeInt(fromWifiNetworkSpecifier ? 1 : 0);
         dest.writeInt(dbsSecondaryInternet ? 1 : 0);
         dest.writeInt(meteredHint ? 1 : 0);
+        dest.writeBoolean(mIsRepeaterEnabled);
         dest.writeInt(meteredOverride);
         dest.writeInt(useExternalScores ? 1 : 0);
         dest.writeInt(creatorUid);
@@ -4011,6 +4045,7 @@ public class WifiConfiguration implements Parcelable {
                 config.fromWifiNetworkSpecifier = in.readInt() != 0;
                 config.dbsSecondaryInternet = in.readInt() != 0;
                 config.meteredHint = in.readInt() != 0;
+                config.mIsRepeaterEnabled = in.readBoolean();
                 config.meteredOverride = in.readInt();
                 config.useExternalScores = in.readInt() != 0;
                 config.creatorUid = in.readInt();

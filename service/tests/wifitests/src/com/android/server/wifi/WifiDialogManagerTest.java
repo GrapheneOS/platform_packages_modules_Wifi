@@ -43,6 +43,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiDialogManager.DialogHandle;
 import com.android.server.wifi.WifiDialogManager.P2pInvitationReceivedDialogCallback;
 import com.android.server.wifi.WifiDialogManager.SimpleDialogCallback;
@@ -452,7 +453,9 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dialogHandle = wifiDialogManager.createP2pInvitationReceivedDialog(
                 TEST_DEVICE_NAME, false, null, 123, callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
-        verifyStartActivityAsUser(1, 123, mWifiContext);
+        if (SdkLevel.isAtLeastT()) {
+            verifyStartActivityAsUser(1, 123, mWifiContext);
+        }
         intent = verifyStartActivityAsUser(3, mWifiContext);
         dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
                 TEST_DEVICE_NAME, false, null);
