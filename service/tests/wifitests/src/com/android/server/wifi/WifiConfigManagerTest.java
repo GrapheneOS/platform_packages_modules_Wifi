@@ -5386,7 +5386,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
             network = mWifiConfigManager.getConfiguredNetwork(networkId);
         }
         network.setIpConfiguration(ipConfiguration);
-        mockIsDeviceOwner(withDeviceOwnerPolicy);
+        mockIsAdmin(withDeviceOwnerPolicy || withProfileOwnerPolicy);
         when(mWifiPermissionsUtil.isProfileOwner(anyInt(), any()))
                 .thenReturn(withProfileOwnerPolicy);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt()))
