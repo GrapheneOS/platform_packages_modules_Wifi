@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"אין מכשירים מחוברים. יש להקיש כדי לשנות."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"‏Wi-Fi מנותק"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"‏יש להכניס SIM של <xliff:g id="CARRIER_NAME">%2$s</xliff:g> כדי להתחבר אל <xliff:g id="SSID">%1$s</xliff:g>"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"התנגשות בין אפליקציות"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"האפליקציה <xliff:g id="APP_0">%1$s</xliff:g> צריכה להציג ממשק מסוג <xliff:g id="INTERFACE">%2$s</xliff:g>. כתוצאה מכך, תופסק ההצגה של ממשקים אחרים שעשויים להשפיע על <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"כן, אני רוצה להפעיל"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"לא, אני לא רוצה להפעיל"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"האם הרשת הזו מהימנה?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"כן, אני רוצה להתחבר"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"לא, אני לא רוצה להתחבר"</string>

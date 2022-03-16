@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"No hay dispositivos conectados. Toca para modificar este ajuste."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi‑Fi desconectado"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Para conectarte a <xliff:g id="SSID">%1$s</xliff:g>, inserta una tarjeta SIM de <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Conflicto con aplicaciones"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"La aplicación <xliff:g id="APP_0">%1$s</xliff:g> necesita mostrar la interfaz <xliff:g id="INTERFACE">%2$s</xliff:g>. Esta acción provocará que se dejen de mostrar otras interfaces, lo que podría afectar a <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Sí, aprobar"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"No, rechazar"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"¿Esta red es de confianza?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Sí, conectar"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"No, no conectar"</string>
@@ -152,7 +148,7 @@
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Conectar de todos modos"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"No conectar"</string>
     <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"¿Permitir que <xliff:g id="APP_NAME">%1$s</xliff:g> active la Wi‑Fi?"</string>
-    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Puedes desactivar Wi‑Fi en los ajustes rápidos"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Puedes desactivar la Wi‑Fi en los ajustes rápidos"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Permitir"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"No permitir"</string>
 </resources>

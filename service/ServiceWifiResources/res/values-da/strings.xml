@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Der er ikke tilsluttet nogen enheder. Tryk for at ændre."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi-forbindelsen er afbrudt"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Indsæt et SIM-kort fra <xliff:g id="CARRIER_NAME">%2$s</xliff:g> for at oprette forbindelse til <xliff:g id="SSID">%1$s</xliff:g>."</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Appkonflikt"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"Appen <xliff:g id="APP_0">%1$s</xliff:g> skal åbne en <xliff:g id="INTERFACE">%2$s</xliff:g>-grænseflade. Dette vil medføre, at andre grænseflader lukkes, hvilket kan påvirke <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Ja, godkend"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Nej, afvis"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Er dette et netværk, du har tillid til?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ja, opret forbindelse"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nej, opret ikke forbindelse"</string>

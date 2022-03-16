@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Nincsenek csatlakoztatott eszközök. Koppintson a módosításhoz."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Nincs Wi-Fi-kapcsolat"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"A(z) <xliff:g id="SSID">%1$s</xliff:g> csatlakoztatásához helyezzen be <xliff:g id="CARRIER_NAME">%2$s</xliff:g> szolgáltatóhoz tartozó SIM-kártyát"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Ütköző alkalmazások"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"A(z) <xliff:g id="APP_0">%1$s</xliff:g> alkalmazásnak fel kell hoznia a következő kezelőfelületet: <xliff:g id="INTERFACE">%2$s</xliff:g>. Ez más kezelőfelületek deaktiválását eredményezi, amely hatással lehet a következőkre: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Igen, elfogadom"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Nem, elutasítom"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Ez megbízható hálózat?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Igen, csatlakozzon"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nem, ne csatlakozzon"</string>

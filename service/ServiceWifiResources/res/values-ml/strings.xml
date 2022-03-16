@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ഉപകരണങ്ങളൊന്നും കണക്‌റ്റ് ചെയ്തിട്ടില്ല. പരിഷ്‌കരിക്കാൻ ടാപ്പ് ചെയ്യുക."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"വൈഫൈ വിച്ഛേദിച്ചു"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> എന്നതിലേക്ക് കണക്‌റ്റ് ചെയ്യാൻ <xliff:g id="CARRIER_NAME">%2$s</xliff:g> സിം ഇടുക"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ആപ്പ് വെെരുദ്ധ്യം"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> ആപ്പ് ഒരു <xliff:g id="INTERFACE">%2$s</xliff:g> ഇന്റർഫേസ് ലഭ്യമാക്കേണ്ടതുണ്ട്. ഇത് മറ്റുള്ള ഇന്റർഫേസുകൾ പ്രവർത്തനരഹിതമാകാൻ കാരണമാകും, ഇത് <xliff:g id="APPS">%3$s</xliff:g> എന്നിവയെ ബാധിച്ചേക്കാം."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ഉവ്വ്, അനുമതി നൽകുക"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"വേണ്ട, നിരസിക്കുക"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ഈ നെറ്റ്‌വർക്ക് വിശ്വസനീയമാണോ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ഉവ്വ്, കണക്റ്റ് ചെയ്യുക"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"വേണ്ട, കണക്റ്റ് ചെയ്യരുത്"</string>
