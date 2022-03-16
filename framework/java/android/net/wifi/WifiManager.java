@@ -9695,6 +9695,21 @@ public class WifiManager {
         public @NonNull Set<String> getPackages() {
             return mPackages;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(mInterfaceType, mPackages);
+        }
+
+        @Override
+        public boolean equals(Object that) {
+            if (this == that) return true;
+            if (!(that instanceof InterfaceCreationImpact)) return false;
+            InterfaceCreationImpact thatInterfaceCreationImpact = (InterfaceCreationImpact) that;
+
+            return this.mInterfaceType == thatInterfaceCreationImpact.mInterfaceType
+                    && Objects.equals(this.mPackages, thatInterfaceCreationImpact.mPackages);
+        }
     }
 
     /**
@@ -9704,10 +9719,10 @@ public class WifiManager {
      * which returns two arguments:
      * <li>First argument: a {@code boolean} - indicating whether or not the interface can be
      * created.</li>
-     * <li>Second argument: a {@code List<InterfaceCreationImpact>} - if the interface can be
-     * created (first argument is {@code true} then this is the list of interface types which
-     * will be removed and the packages which requested them. Possibly an empty list. If the
-     * first argument is {@code false}, then an empty list will be returned here.</li>
+     * <li>Second argument: a {@code Set<InterfaceCreationImpact>} - if the interface can be
+     * created (first argument is {@code true} then this is the set of interface types which
+     * will be removed and the packages which requested them. Possibly an empty set. If the
+     * first argument is {@code false}, then an empty set will be returned here.</li>
      * <p>
      * Interfaces, input and output, are specified using the {@code WIFI_INTERFACE_*} constants:
      * {@link #WIFI_INTERFACE_TYPE_STA}, {@link #WIFI_INTERFACE_TYPE_AP},
@@ -9729,7 +9744,7 @@ public class WifiManager {
      * @param executor An {@link Executor} on which to return the result.
      * @param resultCallback The asynchronous callback which will return two argument: a
      * {@code boolean} (whether the interface can be created), and a
-     * {@code List<InterfaceCreationImpact>} (a list of {@link InterfaceCreationImpact}:
+     * {@code Set<InterfaceCreationImpact>} (a set of {@link InterfaceCreationImpact}:
      *                       interfaces which will be destroyed when the interface is created
      *                       and the packages which requested them and thus may be impacted).
      */
@@ -9739,7 +9754,7 @@ public class WifiManager {
     public void reportCreateInterfaceImpact(@WifiInterfaceType int interfaceType,
             boolean requireNewInterface,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull BiConsumer<Boolean, List<InterfaceCreationImpact>> resultCallback) {
+            @NonNull BiConsumer<Boolean, Set<InterfaceCreationImpact>> resultCallback) {
         Objects.requireNonNull(executor, "Non-null executor required");
         Objects.requireNonNull(resultCallback, "Non-null resultCallback required");
         try {
@@ -9764,18 +9779,18 @@ public class WifiManager {
                                 return;
                             }
 
-                            final List<InterfaceCreationImpact> finalList =
-                                    (canCreate && interfacesToDelete.length > 0) ? new ArrayList<>()
-                                            : Collections.emptyList();
+                            final Set<InterfaceCreationImpact> finalSet =
+                                    (canCreate && interfacesToDelete.length > 0) ? new ArraySet<>()
+                                            : Collections.emptySet();
                             if (canCreate) {
                                 for (int i = 0; i < interfacesToDelete.length; ++i) {
-                                    finalList.add(
+                                    finalSet.add(
                                             new InterfaceCreationImpact(interfacesToDelete[i],
                                                     new ArraySet<>(
                                                             packagesForInterfaces[i].split(","))));
                                 }
                             }
-                            executor.execute(() -> resultCallback.accept(canCreate, finalList));
+                            executor.execute(() -> resultCallback.accept(canCreate, finalSet));
                         }
                     });
         } catch (RemoteException e) {

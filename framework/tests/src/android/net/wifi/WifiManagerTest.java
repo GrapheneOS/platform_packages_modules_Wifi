@@ -139,6 +139,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
@@ -3780,18 +3781,18 @@ public class WifiManagerTest {
                 {WifiManager.WIFI_INTERFACE_TYPE_AP, WifiManager.WIFI_INTERFACE_TYPE_AWARE};
         final String[] packagesForInterfaces =
                 {TEST_PACKAGE_NAME, packageName1 + "," + packageName2};
-        final List<WifiManager.InterfaceCreationImpact> interfacePairs = List.of(
+        final Set<WifiManager.InterfaceCreationImpact> interfacePairs = Set.of(
                 new WifiManager.InterfaceCreationImpact(interfaces[0],
                         new ArraySet<>(new String[]{TEST_PACKAGE_NAME})),
                 new WifiManager.InterfaceCreationImpact(interfaces[1],
                         new ArraySet<>(new String[]{packageName1, packageName2})));
         when(mContext.getOpPackageName()).thenReturn(TEST_PACKAGE_NAME);
-        BiConsumer<Boolean, List<WifiManager.InterfaceCreationImpact>> resultCallback = mock(
+        BiConsumer<Boolean, Set<WifiManager.InterfaceCreationImpact>> resultCallback = mock(
                 BiConsumer.class);
         ArgumentCaptor<IInterfaceCreationInfoCallback.Stub> cbCaptor = ArgumentCaptor.forClass(
                 IInterfaceCreationInfoCallback.Stub.class);
-        ArgumentCaptor<List<WifiManager.InterfaceCreationImpact>> resultCaptor =
-                ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Set<WifiManager.InterfaceCreationImpact>> resultCaptor =
+                ArgumentCaptor.forClass(Set.class);
 
         mWifiManager.reportCreateInterfaceImpact(interfaceToCreate, requireNewInterface,
                 new SynchronousExecutor(), resultCallback);
@@ -3799,12 +3800,6 @@ public class WifiManagerTest {
                 eq(interfaceToCreate), eq(requireNewInterface), cbCaptor.capture());
         cbCaptor.getValue().onResults(canCreate, interfaces, packagesForInterfaces);
         verify(resultCallback).accept(eq(canCreate), resultCaptor.capture());
-        assertEquals(interfacePairs.size(), resultCaptor.getValue().size());
-        for (int i = 0; i < interfacePairs.size(); ++i) {
-            assertEquals(interfacePairs.get(i).getInterfaceType(),
-                    resultCaptor.getValue().get(i).getInterfaceType());
-            assertArrayEquals(interfacePairs.get(i).getPackages().toArray(),
-                    resultCaptor.getValue().get(i).getPackages().toArray());
-        }
+        assertEquals(interfacePairs, resultCaptor.getValue());
     }
 }
