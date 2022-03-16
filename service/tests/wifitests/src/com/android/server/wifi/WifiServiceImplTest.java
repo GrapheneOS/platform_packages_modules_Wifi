@@ -10258,6 +10258,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 interfaceToCreateInternal, true, ws);
         verify(mockCallback, times(3)).onResults(boolCaptor.capture(), intArrayCaptor.capture(),
                 stringArrayCaptor.capture());
+        verify(mPackageManager).makeUidVisible(TEST_UID, OTHER_TEST_UID);
 
         // result 0: failure
         assertFalse(boolCaptor.getAllValues().get(0));

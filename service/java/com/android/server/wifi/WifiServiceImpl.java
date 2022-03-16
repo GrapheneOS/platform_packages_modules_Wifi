@@ -6705,6 +6705,8 @@ public class WifiServiceImpl extends BaseWifiService {
                         for (int j = 0; j < detail.second.size(); ++j) {
                             if (j != 0) packages.append(",");
                             packages.append(detail.second.getPackageName(j));
+                            mContext.getPackageManager().makeUidVisible(callingUid,
+                                    detail.second.getUid(j));
                         }
                         packagesForInterfaces[i] = packages.toString();
                         ++i;
