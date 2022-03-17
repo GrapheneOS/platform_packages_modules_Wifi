@@ -233,7 +233,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                 configRequest, false, mExtras);
 
         verify(mAwareStateManagerMock).connect(anyInt(), anyInt(), anyInt(), eq(callingPackage),
-                eq(callingFeatureId), eq(mCallbackMock), eq(configRequest), eq(false));
+                eq(callingFeatureId), eq(mCallbackMock), eq(configRequest), eq(false), any());
     }
 
     /**
@@ -374,7 +374,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         for (int i = 0; i < loopCount; ++i) {
             mDut.connect(mBinderMock, "", "", mCallbackMock, null, false, mExtras);
             inOrder.verify(mAwareStateManagerMock).connect(clientIdCaptor.capture(), anyInt(),
-                    anyInt(), any(), any(), eq(mCallbackMock), any(), eq(false));
+                    anyInt(), any(), any(), eq(mCallbackMock), any(), eq(false), any());
             int id = clientIdCaptor.getValue();
             if (i != 0) {
                 assertTrue("Client ID incrementing", id > prevId);
@@ -863,7 +863,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         ArgumentCaptor<Integer> clientId = ArgumentCaptor.forClass(Integer.class);
         verify(mAwareStateManagerMock).connect(clientId.capture(), anyInt(), anyInt(),
                 eq(callingPackage), eq(callingFeatureId), eq(mCallbackMock),
-                eq(new ConfigRequest.Builder().build()), eq(false));
+                eq(new ConfigRequest.Builder().build()), eq(false), any());
 
         return clientId.getValue();
     }
