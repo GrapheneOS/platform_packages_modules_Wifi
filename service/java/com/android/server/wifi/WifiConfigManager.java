@@ -3520,16 +3520,15 @@ public class WifiConfigManager {
      * Returns true if the given uid has permission to add, update or remove proxy settings
      */
     private boolean canModifyProxySettings(int uid, String packageName) {
-        final boolean isDeviceOwner = mWifiPermissionsUtil.isDeviceOwner(uid, packageName);
-        final boolean isProfileOwner = mWifiPermissionsUtil.isProfileOwner(uid, packageName);
+        final boolean isAdmin = mWifiPermissionsUtil.isAdmin(uid, packageName);
         final boolean hasNetworkSettingsPermission =
                 mWifiPermissionsUtil.checkNetworkSettingsPermission(uid);
         final boolean hasNetworkSetupWizardPermission =
                 mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
         final boolean hasNetworkManagedProvisioningPermission =
                 mWifiPermissionsUtil.checkNetworkManagedProvisioningPermission(uid);
-        // If |uid| corresponds to the device owner, allow all modifications.
-        if (isProfileOwner || isDeviceOwner || hasNetworkSettingsPermission
+        // If |uid| corresponds to the admin, allow all modifications.
+        if (isAdmin || hasNetworkSettingsPermission
                 || hasNetworkSetupWizardPermission || hasNetworkManagedProvisioningPermission) {
             return true;
         }
@@ -3537,8 +3536,7 @@ public class WifiConfigManager {
             Log.v(TAG, "UID: " + uid + " cannot modify WifiConfiguration proxy settings."
                     + " hasNetworkSettings=" + hasNetworkSettingsPermission
                     + " hasNetworkSetupWizard=" + hasNetworkSetupWizardPermission
-                    + " DeviceOwner=" + isDeviceOwner
-                    + " ProfileOwner=" + isProfileOwner);
+                    + " Admin=" + isAdmin);
         }
         return false;
     }
