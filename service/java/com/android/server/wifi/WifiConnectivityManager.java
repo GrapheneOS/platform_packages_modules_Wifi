@@ -459,21 +459,12 @@ public class WifiConnectivityManager {
                             + secondaryCmmCandidate.SSID + " / "
                             + secondaryCmmCandidate.getNetworkSelectionStatus()
                             .getCandidate().BSSID + " isDbsAp " + isDbsAp);
-                    // Disable roaming if necessary.
-                    if (mContext.getResources()
-                            .getBoolean(R.bool.config_wifiUseHalApiToDisableFwRoaming)) {
-                        // Note: This is an old HAL API, but since it wasn't being exercised before,
-                        // we are being extra cautious and only using it on devices running >= S.
-                        if (!ccm.enableRoaming(false)) {
-                            Log.w(TAG, "Failed to disable roaming");
-                        }
-                    }
                     // Secondary candidate cannot be null (otherwise we would have switched to
                     // legacy flow above). Use the explicit bssid for network connection.
                     WifiConfiguration targetNetwork = new WifiConfiguration(secondaryCmmCandidate);
                     targetNetwork.dbsSecondaryInternet = isDbsAp;
                     targetNetwork.ephemeral = true;
-                    targetNetwork.BSSID = targetBssid2;
+                    targetNetwork.BSSID = targetBssid2; // specify the BSSID to disable roaming.
                     connectToNetworkUsingCmmWithoutMbb(cm, targetNetwork);
 
                     handleScanResultsWithCandidate(handleScanResultsListener);
@@ -1603,6 +1594,15 @@ public class WifiConnectivityManager {
             @NonNull WifiConfiguration targetNetwork, @NonNull String targetBssid) {
         if (!shouldConnect()) {
             return;
+        }
+        if (mContext.getResources().getBoolean(R.bool.config_wifiUseHalApiToDisableFwRoaming)) {
+            // If network with specified BSSID, disable roaming. Otherwise enable the roaming.
+            boolean enableRoaming = targetNetwork.BSSID == null
+                    || targetNetwork.BSSID.equals(ClientModeImpl.SUPPLICANT_BSSID_ANY);
+            if (!clientModeManager.enableRoaming(enableRoaming)) {
+                Log.w(TAG, "Failed to change roaming to "
+                        + (enableRoaming ? "enabled" : "disabled"));
+            }
         }
         clientModeManager.startConnectToNetwork(
                 targetNetwork.networkId, Process.WIFI_UID, targetBssid);
