@@ -73,6 +73,7 @@ import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.aware.WifiAwareSession;
 import android.net.wifi.util.HexEncoding;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
@@ -149,6 +150,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     @Rule
     public ErrorCollector collector = new ErrorCollector();
     private MockResources mResources;
+    private Bundle mExtras = new Bundle();
 
     /**
      * Initialize mocks.
@@ -2037,7 +2039,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // (3) create client
         mDut.connect(clientId, Process.myUid(), pid, TEST_PACKAGE_NAME, TEST_FEATURE_ID,
-                mMockCallback, configRequest, false);
+                mMockCallback, configRequest, false, mExtras);
         mMockLooper.dispatchAll();
 
         if (startUpSequence) {
