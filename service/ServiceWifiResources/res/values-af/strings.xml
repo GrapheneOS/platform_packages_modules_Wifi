@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Geen toestelle is gekoppel nie. Tik om te wysig."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi is ontkoppel"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Sit \'n <xliff:g id="CARRIER_NAME">%2$s</xliff:g>-SIM in om aan <xliff:g id="SSID">%1$s</xliff:g> te koppel"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Programkonflik"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"Program <xliff:g id="APP_0">%1$s</xliff:g> moet ’n <xliff:g id="INTERFACE">%2$s</xliff:g>-koppelvlak oproep. Dit sal veroorsaak dat ander koppelvlakke afgebreek word, wat <xliff:g id="APPS">%3$s</xliff:g> kan beïnvloed."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Ja, keur goed"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Nee, keur af"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Word hierdie netwerk vertrou?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ja, koppel"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nee, moenie koppel nie"</string>

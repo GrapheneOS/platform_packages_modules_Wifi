@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ಯಾವುದೇ ಸಾಧನಗಳನ್ನು ಕನೆಕ್ಟ್ ಮಾಡಿಲ್ಲ. ಮಾರ್ಪಡಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"ವೈ-ಫೈ ಕನೆಕ್ಷನ್ ಕಡಿತಗೊಂಡಿದೆ."</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಲು, <xliff:g id="CARRIER_NAME">%2$s</xliff:g> ಸಿಮ್‌ ಅನ್ನು ಸೇರಿಸಿ"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ಆ್ಯಪ್ ಸಂಘರ್ಷ"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> ಆ್ಯಪ್‌ಗೆ <xliff:g id="INTERFACE">%2$s</xliff:g> ಇಂಟರ್ ಫೇಸ್ ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸುವ ಅಗತ್ಯವಿದೆ. ಇದರಿಂದ ಇತರ ಇಂಟರ್ ಫೇಸ್‌ಗಳು ನಿಷ್ಕ್ರಿಯವಾಗುತ್ತವೆ ಅದು <xliff:g id="APPS">%3$s</xliff:g> ಗಳ ಮೇಲೆ ಪ್ರಭಾವ ಬೀರಬಹುದು."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ಹೌದು, ಅನುಮೋದಿಸಿ"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"ಬೇಡ, ತಿರಸ್ಕರಿಸಿ"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ಈ ನೆಟ್‌ವರ್ಕ್ ವಿಶ್ವಾಸಾರ್ಹವೇ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ಹೌದು, ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ಇಲ್ಲ, ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>

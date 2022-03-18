@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"උපාංග කිසිවක් සම්බන්ධ කර නැත. වෙනස් කිරීමට තට්ටු කරන්න."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi‑Fi විසන්ධි විය"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> වෙත සම්බන්ධ වීමට, <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM එකක් ඇතුල් කරන්න"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"යෙදුම් ගැටුම"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> යෙදුම <xliff:g id="INTERFACE">%2$s</xliff:g> අතුරුමුහුණතක් ගෙන ඒම අවශ්‍ය වේ. මෙය අනෙකුත් අතුරුමුහුණත් අක්‍රිය කිරීමට හේතු වනු ඇති අතර <xliff:g id="APPS">%3$s</xliff:g>ට බලපෑමට හැකිය."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ඔව්, අනුමත කරන්න"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"එපා, ප්‍රතික්ෂේප කරන්න"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"මෙම ජාලය විශ්වාසදායකද?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ඔව්, සම්බන්ධ වන්න"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"එපා, සම්බන්ධ වෙන්න එපා"</string>

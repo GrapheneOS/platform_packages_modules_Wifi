@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ບໍ່ມີອຸປະກອນເຊື່ອມຕໍ່. ແຕະເພື່ອແກ້ໄຂ."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"ຕັດການເຊື່ອມຕໍ່ Wi-Fi ແລ້ວ"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"ເພື່ອເຊື່ອມຕໍ່ຫາ <xliff:g id="SSID">%1$s</xliff:g>, ກະລຸນາໃສ່ຊິມ <xliff:g id="CARRIER_NAME">%2$s</xliff:g> ກ່ອນ"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ການຂັດແຍ່ງແອັບ"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"ແອັບພລິເຄຊັນ <xliff:g id="APP_0">%1$s</xliff:g> ຕ້ອງການດຶງສ່ວນຕິດຕໍ່ <xliff:g id="INTERFACE">%2$s</xliff:g> ຂຶ້ນມາ. ນີ້ຈະສົ່ງຜົນໃຫ້ສ່ວນຕິດຕໍ່ອື່ນຖືກແຍກສ່ວນເຊິ່ງອາດກະທົບກັບ <xliff:g id="APPS">%3$s</xliff:g> ໄດ້."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ແມ່ນແລ້ວ, ອະນຸມັດ"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"ບໍ່, ປະຕິເສດ"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ເຄືອຂ່າຍນີ້ເຊື່ອຖືໄດ້ບໍ່?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ແມ່ນແລ້ວ, ເຊື່ອມຕໍ່"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ບໍ່, ຢ່າເຊື່ອມຕໍ່"</string>
