@@ -1357,6 +1357,17 @@ public class WifiConfigManager {
             return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
         }
 
+        // Only allow changes in Repeater Enabled flag if the user has permission to
+        if (WifiConfigurationUtil.hasRepeaterEnabledChanged(
+                existingInternalConfig, newInternalConfig)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            Log.e(TAG, "UID " + uid
+                    + " does not have permission to modify Repeater Enabled Settings "
+                    + " , or add a network with Repeater Enabled set to true "
+                    + config.getProfileKey() + ". Must have NETWORK_SETTINGS.");
+            return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
+        }
+
         if (WifiConfigurationUtil.hasMacRandomizationSettingsChanged(existingInternalConfig,
                 newInternalConfig) && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 && !mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)

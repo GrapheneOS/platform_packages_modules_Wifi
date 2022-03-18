@@ -19,6 +19,7 @@ package android.net.wifi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresPermission;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.compat.annotation.UnsupportedAppUsage;
@@ -1621,8 +1622,12 @@ public class WifiConfiguration implements Parcelable {
      * @param isRepeaterEnabled true if this network is intended to be repeater enabled,
      *        false otherwise.
      *
+     * This request is only accepted if the caller is holding
+     * {@link android.Manifest.permission#NETWORK_SETTINGS}.
+     *
      * @hide
      */
+    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
     @SystemApi
     public void setRepeaterEnabled(boolean isRepeaterEnabled) {
         mIsRepeaterEnabled = isRepeaterEnabled;
