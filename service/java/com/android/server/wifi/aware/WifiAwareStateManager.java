@@ -221,6 +221,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_NDP_IDS = "ndp_ids";
     private static final String MESSAGE_BUNDLE_KEY_APP_INFO = "app_info";
     private static final String MESSAGE_BUNDLE_KEY_ACCEPT_STATE = "accept_state";
+    private static final String MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE = "attribution_source";
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -495,7 +496,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 if (wifiPermissionsUtil.isLocationModeEnabled()) {
                     enableUsage();
                 } else {
-                    disableUsage(false);
+                    if (SdkLevel.isAtLeastT()) {
+                        handleLocationModeDisabled();
+                    } else {
+                        disableUsage(false);
+                    }
                 }
             }
         }, intentFilter);
@@ -760,7 +765,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void connect(int clientId, int uid, int pid, String callingPackage,
             @Nullable String callingFeatureId, IWifiAwareEventCallback callback,
-            ConfigRequest configRequest, boolean notifyOnIdentityChanged) {
+            ConfigRequest configRequest, boolean notifyOnIdentityChanged, Bundle extra) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_CONNECT;
         msg.arg2 = clientId;
@@ -772,6 +777,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putString(MESSAGE_BUNDLE_KEY_CALLING_FEATURE_ID, callingFeatureId);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE,
                 notifyOnIdentityChanged);
+        msg.getData().putBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE, extra);
         mSm.sendMessage(msg);
     }
 
@@ -900,7 +906,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             if (mDbg) Log.d(TAG, "enableUsage(): while device is in IDLE mode - ignoring");
             return;
         }
-        if (!mWifiPermissionsUtil.isLocationModeEnabled()) {
+        if (!SdkLevel.isAtLeastT() && !mWifiPermissionsUtil.isLocationModeEnabled()) {
             if (mDbg) Log.d(TAG, "enableUsage(): while location is disabled - ignoring");
             return;
         }
@@ -1820,7 +1826,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
                         waitForResponse = connectLocal(mCurrentTransactionId, clientId, uid, pid,
                                 callingPackage, callingFeatureId, callback, configRequest,
-                                notifyIdentityChange);
+                                notifyIdentityChange,
+                                msg.getData().getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE));
                     } else { // InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER
                         waitForResponse = false;
                     }
@@ -2440,7 +2447,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean connectLocal(short transactionId, int clientId, int uid, int pid,
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
-            boolean notifyIdentityChange) {
+            boolean notifyIdentityChange, Bundle extra) {
         if (VDBG) {
             Log.v(TAG, "connectLocal(): transactionId=" + transactionId + ", clientId=" + clientId
                     + ", uid=" + uid + ", pid=" + pid + ", callingPackage=" + callingPackage
@@ -2492,7 +2499,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
-                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil);
+                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil, extra);
             client.enableVerboseLogging(mDbg);
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
@@ -2917,7 +2924,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
-                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil);
+                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil,
+                    data.getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE));
             client.enableVerboseLogging(mDbg);
             mClients.put(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
@@ -3694,5 +3702,19 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         pw.println("mAwareMetrics:");
         mAwareMetrics.dump(fd, pw, args);
         mInterfaceConflictMgr.dump(fd, pw, args);
+    }
+
+    private void handleLocationModeDisabled() {
+        for (int i = 0; i < mClients.size(); i++) {
+            WifiAwareClientState clientState = mClients.valueAt(i);
+            try {
+                // As location mode is disabled, only app disavowal the location can pass the check.
+                mWifiPermissionsUtil.enforceNearbyDevicesPermission(clientState.getExtra()
+                        .getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), true,
+                        "Wifi Aware location mode change.");
+            } catch (SecurityException e) {
+                disconnect(clientState.getClientId());
+            }
+        }
     }
 }

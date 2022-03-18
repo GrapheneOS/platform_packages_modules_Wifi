@@ -26,6 +26,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyByte;
@@ -36,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -47,6 +50,7 @@ import static org.mockito.Mockito.when;
 import android.app.AppOpsManager;
 import android.app.test.MockAnswerUtil;
 import android.app.test.TestAlarmManager;
+import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -67,6 +71,7 @@ import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.util.HexEncoding;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -147,6 +152,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private MockResources mResources;
+    private Bundle mExtras = new Bundle();
 
     /**
      * Pre-test configuration. Initialize and install mocks.
@@ -301,7 +307,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect 2 clients
         mDut.connect(clientId1, uid1, pid1, callingPackage, callingFeature, mockCallback1,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid1, callingPackage));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -313,7 +319,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockCallback1).onConnectSuccess(clientId1);
 
         mDut.connect(clientId2, uid2, pid2, callingPackage, callingFeature, mockCallback2,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback2).onConnectSuccess(clientId2);
         // merged requestorWs
@@ -421,7 +427,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) connect (enable Aware)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -477,7 +483,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (3) try connecting and validate that get failure callback (though app should be aware of
         // non-availability through state change broadcast and/or query API)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectFail(anyInt());
 
@@ -514,7 +520,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) connect (successfully)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -544,7 +550,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (4) try connecting again and validate that get a failure
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectFail(anyInt());
         inOrderM.verify(mAwareMetricsMock).recordAttachStatus(NanStatusType.INTERNAL_FAILURE);
@@ -564,7 +570,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (7) connect (should be successful)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -606,7 +612,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) connect with HAL failure
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -650,7 +656,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect 1st and 2nd clients
         mDut.connect(clientId1, uid, pid, callingPackage, callingFeature, mockCallback1,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionIdCapture.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -661,7 +667,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockCallback1).onConnectSuccess(clientId1);
 
         mDut.connect(clientId2, uid, pid, callingPackage, callingFeature, mockCallback2,
-                configRequest, true);
+                configRequest, true, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionIdCapture.capture(),
                 eq(configRequest), eq(true), eq(false), eq(true), eq(false), eq(false), eq(false),
@@ -740,7 +746,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect (successfully)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -805,7 +811,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -878,7 +884,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -966,7 +972,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1089,7 +1095,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1159,7 +1165,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1232,7 +1238,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1319,7 +1325,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1416,7 +1422,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1500,7 +1506,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -1635,7 +1641,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1736,7 +1742,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1828,7 +1834,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -1897,7 +1903,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -2023,7 +2029,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -2110,7 +2116,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -2198,7 +2204,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -2314,7 +2320,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId1, uid1, pid1, callingPackage1, callingFeature, mockCallback,
-                configRequest1, false);
+                configRequest1, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid1, callingPackage1));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -2326,7 +2332,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockCallback).onConnectSuccess(clientId1);
 
         mDut.connect(clientId2, uid2, pid2, callingPackage2, callingFeature, mockCallback,
-                configRequest2, false);
+                configRequest2, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectSuccess(clientId2);
         // merged requestorWs
@@ -2457,7 +2463,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -2592,7 +2598,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -2825,7 +2831,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) config1 (valid)
         mDut.connect(clientId1, uid, pid, callingPackage, callingFeature, mockCallback1,
-                configRequest1, false);
+                configRequest1, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 crCapture.capture(), eq(false), eq(true), eq(true), eq(false),
@@ -2838,14 +2844,14 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) config2 (incompatible with config1)
         mDut.connect(clientId2, uid, pid, callingPackage, callingFeature, mockCallback2,
-                configRequest2, false);
+                configRequest2, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback2).onConnectFail(NanStatusType.INTERNAL_FAILURE);
         validateInternalClientInfoCleanedUp(clientId2);
 
         // (3) config3 (compatible with config1)
         mDut.connect(clientId3, uid, pid, callingPackage, callingFeature, mockCallback3,
-                configRequest3, true);
+                configRequest3, true, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 crCapture.capture(), eq(true), eq(false), eq(true), eq(false),
@@ -2922,7 +2928,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) attach w/o identity
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 any(ConfigRequest.class), eq(false), eq(true), eq(true), eq(false),
@@ -2936,14 +2942,14 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (2) attach w/o identity
         ++clientId;
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectSuccess(clientId);
 
         // (3) attach w/ identity
         ++clientId;
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, true);
+                configRequest, true, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 any(ConfigRequest.class), eq(true), eq(false), eq(true), eq(false), eq(false),
@@ -2955,14 +2961,14 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (4) attach w/o identity
         ++clientId;
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectSuccess(clientId);
 
         // (5) attach w/ identity
         ++clientId;
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, true);
+                configRequest, true, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback).onConnectSuccess(clientId);
 
@@ -3004,7 +3010,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3081,7 +3087,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3125,7 +3131,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect (no response)
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3158,7 +3164,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect and succeed
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3213,7 +3219,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3268,7 +3274,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -3322,7 +3328,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false),
@@ -3377,7 +3383,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false),
@@ -3446,7 +3452,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -3492,10 +3498,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Validate aware enable/disable during LOCATION MODE transitions.
+     * Validate aware enable/disable during LOCATION MODE transitions on pre-T, Aware should be
+     * disabled.
      */
     @Test
-    public void testEnableDisableOnLocationModeChanges() throws Exception {
+    public void testEnableDisableOnLocationModeChangesPreT() throws Exception {
+        assumeFalse(SdkLevel.isAtLeastT());
         final int clientId = 188;
         final int uid = 1000;
         final int pid = 2000;
@@ -3517,7 +3525,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -3558,6 +3566,72 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Validate aware enable/disable during LOCATION MODE transitions on T+, Aware will not be
+     * disabled, and app with location disavowal will keep session alive.
+     */
+    @Test
+    public void testEnableDisableOnLocationModeChanges() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        final int client1 = 188;
+        final int client2 = 199;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final Bundle bundle = new Bundle();
+        final AttributionSource attributionSource = mock(AttributionSource.class);
+        bundle.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, attributionSource);
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        IWifiAwareEventCallback mockCallback2 = mock(IWifiAwareEventCallback.class);
+        InOrder inOrder = inOrder(mMockContext, mMockNativeManager, mMockNative, mockCallback,
+                mockCallback2);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).start(any(Handler.class));
+        inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(Process.WIFI_UID));
+        inOrder.verify(mMockNativeManager).releaseAware();
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+
+        // (1) connect first client without location disavowal
+        mDut.connect(client1, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false, bundle);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
+        inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
+                eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
+                anyInt());
+        mDut.onConfigSuccessResponse(transactionId.getValue());
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isDeviceAttached());
+        inOrder.verify(mockCallback).onConnectSuccess(client1);
+
+        // (2) connect second client with location disavowal
+        mDut.connect(client2, uid, pid, callingPackage, callingFeature, mockCallback2,
+                configRequest, false, mExtras);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback2).onConnectSuccess(client2);
+        inOrder.verify(mMockNativeManager).replaceRequestorWs(any());
+
+        // (3) location mode change: disable
+        doThrow(new SecurityException()).when(mWifiPermissionsUtil)
+                .enforceNearbyDevicesPermission(eq(attributionSource), eq(true), anyString());
+        simulateLocationModeChange(false);
+        mMockLooper.dispatchAll();
+        // client 1 should be terminated
+        inOrder.verify(mockCallback).onAttachTerminate();
+        inOrder.verify(mMockNativeManager).replaceRequestorWs(any());
+        // client 2 is still attached and usage is enabeld.
+        assertTrue(mDut.isDeviceAttached());
+        collector.checkThat("usage disabled", mDut.isUsageEnabled(), equalTo(true));
+        verifyNoMoreInteractions(mMockNativeManager, mMockNative, mockCallback, mockCallback2);
+    }
+
+    /**
      * Validate aware enable/disable during Wi-Fi State transitions.
      */
     @Test
@@ -3584,7 +3658,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -3649,7 +3723,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect client
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -3669,7 +3743,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (3) try reconnect client
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -3732,7 +3806,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
@@ -3827,7 +3901,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (1) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(true),
@@ -3876,10 +3950,10 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) Placing a connect -> disconnect -> connect sequence
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mDut.disconnect(clientId);
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
 
         // (3) Verify the command executed in the correct order
         // (3.1) verify the connect execution
@@ -3944,7 +4018,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) Connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -3960,7 +4034,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.disableUsage(false);
         mDut.enableUsage();
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
 
 
         // (4) Verify the command executed in the correct order
@@ -4021,7 +4095,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (0) connect
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, true);
+                configRequest, true, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(true), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -4065,7 +4139,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertFalse(mDut.isDeviceAttached());
 
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
@@ -4107,7 +4181,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                         }
                     });
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
-                configRequest, false);
+                configRequest, false, mExtras);
         mMockLooper.dispatchAll();
         inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
                 any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),

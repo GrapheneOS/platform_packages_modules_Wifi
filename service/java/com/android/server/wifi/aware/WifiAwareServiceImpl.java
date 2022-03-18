@@ -235,6 +235,10 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException("Binder must not be null");
         }
 
+        if (extras == null) {
+            throw new IllegalArgumentException("extras bundle must not be null");
+        }
+
         if (notifyOnIdentityChanged) {
             enforceNearbyOrLocationPermission(callingPackage, callingFeatureId,
                     getMockableCallingUid(), extras, "Wifi Aware attach");
@@ -293,7 +297,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         }
 
         mStateManager.connect(clientId, uid, pid, callingPackage, callingFeatureId, callback,
-                configRequest, notifyOnIdentityChanged);
+                configRequest, notifyOnIdentityChanged, extras);
     }
 
     @Override
