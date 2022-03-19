@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"कोई भी डिवाइस जुड़ा नहीं है. बदलाव करने के लिए टैप करें."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"वाई-फ़ाई डिसकनेक्ट हो गया"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> से कनेक्ट करने के लिए, <xliff:g id="CARRIER_NAME">%2$s</xliff:g> का सिम डालें"</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ऐप्लिकेशन से जुड़ी गड़बड़ी"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"ऐप्लिकेशन <xliff:g id="APP_0">%1$s</xliff:g> के लिए <xliff:g id="INTERFACE">%2$s</xliff:g> इंटरफ़ेस बनाने की ज़रूरत है. इससे दूसरे इंटरफ़ेस काम करना बंद कर सकते हैं, जिसकी वजह से <xliff:g id="APPS">%3$s</xliff:g> की परफ़ार्मेंस पर असर पड़ सकता है."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"हां, चालू करें"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"नहीं, चालू न करें"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"क्या यह भरोसेमंद नेटवर्क है?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"हां, कनेक्ट करें"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"नहीं, कनेक्ट न करें"</string>

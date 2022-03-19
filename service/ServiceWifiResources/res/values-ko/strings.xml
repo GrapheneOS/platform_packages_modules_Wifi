@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"연결된 기기가 없습니다. 수정하려면 탭하세요."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi 연결이 끊어졌습니다."</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g>에 연결하려면 <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM을 삽입하세요."</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"앱 충돌"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> 애플리케이션을 사용하려면 <xliff:g id="INTERFACE">%2$s</xliff:g> 인터페이스를 불러와야 합니다. 이렇게 하면 다른 인터페이스에 방해가 되어 <xliff:g id="APPS">%3$s</xliff:g>에 영향을 줄 수 있습니다."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"예, 승인합니다."</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"아니요, 거부합니다."</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"신뢰하는 네트워크인가요?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"예, 연결"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"연결 안 함"</string>

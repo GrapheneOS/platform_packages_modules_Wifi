@@ -218,6 +218,24 @@ public class WifiConfigurationUtil {
 
     /**
      * Compare existing and new WifiConfiguration objects after a network update and return if
+     * Repeater Enabled flag has changed or not. In case the there is no existing WifiConfiguration,
+     * checks if Repeater Enabled flag has changed from the default value of false.
+     *
+     * @param existingConfig Existing WifiConfiguration object corresponding to the network.
+     * @param newConfig      New WifiConfiguration object corresponding to the network.
+     * @return true if RepeaterEnabled flag has changed, or if there is no existing config, and
+     * the flag is set to true, false otherwise.
+     */
+    public static boolean hasRepeaterEnabledChanged(WifiConfiguration existingConfig,
+            WifiConfiguration newConfig) {
+        if (existingConfig == null) {
+            return newConfig.isRepeaterEnabled();
+        }
+        return (newConfig.isRepeaterEnabled() != existingConfig.isRepeaterEnabled());
+    }
+
+    /**
+     * Compare existing and new WifiConfiguration objects after a network update and return if
      * MAC randomization setting has changed or not.
      * @param existingConfig Existing WifiConfiguration object corresponding to the network.
      * @param newConfig      New WifiConfiguration object corresponding to the network.

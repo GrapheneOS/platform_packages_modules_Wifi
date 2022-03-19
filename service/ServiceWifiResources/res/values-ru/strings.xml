@@ -122,14 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Нет подключенных устройств. Нажмите, чтобы внести изменения."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Нет подключения к Wi-Fi"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Чтобы подключиться к сети \"<xliff:g id="SSID">%1$s</xliff:g>\", вставьте SIM-карту оператора \"<xliff:g id="CARRIER_NAME">%2$s</xliff:g>\"."</string>
-    <!-- no translation found for wifi_interface_priority_title (7630898211907901260) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (7889098392449730531) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (663213905617741493) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (8863331989004501733) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Конфликт приложений"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"Приложению \"<xliff:g id="APP_0">%1$s</xliff:g>\" необходимо использовать интерфейс \"<xliff:g id="INTERFACE">%2$s</xliff:g>\". Это приведет к отключению других интерфейсов, что может повлиять на приложения \"<xliff:g id="APPS">%3$s</xliff:g>\"."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Разрешить"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Отклонить"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Это безопасная сеть?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Да, подключить"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Нет, не подключать"</string>

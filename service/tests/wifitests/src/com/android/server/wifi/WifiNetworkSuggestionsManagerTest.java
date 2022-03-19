@@ -571,7 +571,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         TEST_PACKAGE_1, TEST_FEATURE));
     }
 
-
     @Test
     public void testAddOemPrivateNetworkSuggestionOnPreSDevices() {
         assumeFalse(SdkLevel.isAtLeastS());
