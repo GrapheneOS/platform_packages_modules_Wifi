@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback.WpsConfigError;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback.WpsErrorIndication;
+import android.net.MacAddress;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
@@ -744,5 +745,28 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(NETWORK_ID, messageCaptor.getValue().arg1);
         X509Certificate cert = (X509Certificate) messageCaptor.getValue().obj;
         assertEquals(FakeKeys.CA_CERT0, cert);
+    }
+
+    /**
+     * Broadcast Auxiliary Supplicant event.
+     */
+    @Test
+    public void testBroadcastAuxiliarySupplicantEvent() {
+        SupplicantEventInfo expectedInfo = new SupplicantEventInfo(
+                SupplicantStaIfaceHal.SUPPLICANT_EVENT_EAP_METHOD_SELECTED,
+                MacAddress.fromString(BSSID), "method=5");
+        mWifiMonitor.registerHandler(
+                WLAN_IFACE_NAME, WifiMonitor.AUXILIARY_SUPPLICANT_EVENT, mHandlerSpy);
+        mWifiMonitor.broadcastAuxiliarySupplicantEvent(WLAN_IFACE_NAME, expectedInfo.eventCode,
+                expectedInfo.bssid, expectedInfo.reasonString);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiMonitor.AUXILIARY_SUPPLICANT_EVENT, messageCaptor.getValue().what);
+        SupplicantEventInfo info = (SupplicantEventInfo) messageCaptor.getValue().obj;
+        assertEquals(expectedInfo.eventCode, info.eventCode);
+        assertEquals(expectedInfo.bssid, info.bssid);
+        assertEquals(expectedInfo.reasonString, info.reasonString);
     }
 }

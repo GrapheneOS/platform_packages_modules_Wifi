@@ -15,6 +15,7 @@
  */
 package com.android.server.wifi;
 
+import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.net.MacAddress;
@@ -25,6 +26,8 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -599,6 +602,51 @@ public class SupplicantStaIfaceHal {
                 default:
                     return "Unknown StaIfaceStatusCode: " + code;
             }
+        }
+    }
+
+    protected static final int SUPPLICANT_EVENT_CONNECTED = 0;
+    protected static final int SUPPLICANT_EVENT_DISCONNECTED = 1;
+    protected static final int SUPPLICANT_EVENT_ASSOCIATING = 2;
+    protected static final int SUPPLICANT_EVENT_ASSOCIATED = 3;
+    protected static final int SUPPLICANT_EVENT_EAP_METHOD_SELECTED = 4;
+    protected static final int SUPPLICANT_EVENT_EAP_FAILURE = 5;
+    protected static final int SUPPLICANT_EVENT_SSID_TEMP_DISABLED = 6;
+    protected static final int SUPPLICANT_EVENT_OPEN_SSL_FAILURE = 7;
+
+    @IntDef(prefix = { "SUPPLICANT_EVENT_" }, value = {
+            SUPPLICANT_EVENT_CONNECTED,
+            SUPPLICANT_EVENT_DISCONNECTED,
+            SUPPLICANT_EVENT_ASSOCIATING,
+            SUPPLICANT_EVENT_ASSOCIATED,
+            SUPPLICANT_EVENT_EAP_METHOD_SELECTED,
+            SUPPLICANT_EVENT_EAP_FAILURE,
+            SUPPLICANT_EVENT_SSID_TEMP_DISABLED,
+            SUPPLICANT_EVENT_OPEN_SSL_FAILURE,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    protected @interface SupplicantEventCode {}
+
+    protected static String supplicantEventCodeToString(@SupplicantEventCode int eventCode) {
+        switch (eventCode) {
+            case SUPPLICANT_EVENT_CONNECTED:
+                return "CONNECTED";
+            case SUPPLICANT_EVENT_DISCONNECTED:
+                return "DISCONNECTED";
+            case SUPPLICANT_EVENT_ASSOCIATING:
+                return "ASSOCIATING";
+            case SUPPLICANT_EVENT_ASSOCIATED:
+                return "ASSOCIATED";
+            case SUPPLICANT_EVENT_EAP_METHOD_SELECTED:
+                return "EAP_METHOD_SELECTED";
+            case SUPPLICANT_EVENT_EAP_FAILURE:
+                return "EAP_FAILURE";
+            case SUPPLICANT_EVENT_SSID_TEMP_DISABLED:
+                return "SSID_TEMP_DISABLED";
+            case SUPPLICANT_EVENT_OPEN_SSL_FAILURE:
+                return "OPEN_SSL_FAILURE";
+            default:
+                return "Invalid SupplicantEventCode: " + eventCode;
         }
     }
 

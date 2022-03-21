@@ -20,6 +20,7 @@ import static android.net.wifi.ScanResult.FLAG_PASSPOINT_NETWORK;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
@@ -449,5 +450,32 @@ public class ScanResultUtil {
     private static boolean validate(@Nullable ScanResult scanResult) {
         return scanResult != null && scanResult.SSID != null
                 && scanResult.capabilities != null && scanResult.BSSID != null;
+    }
+
+    /**
+     * Redact bytes from a bssid.
+     */
+    public static String redactBssid(MacAddress bssid, int numRedactedOctets) {
+        if (bssid == null) {
+            return "";
+        }
+        StringBuilder redactedBssid = new StringBuilder();
+        byte[] bssidBytes = bssid.toByteArray();
+
+        if (numRedactedOctets < 0 || numRedactedOctets > 6) {
+            // Reset to default if passed value is invalid.
+            numRedactedOctets = 4;
+        }
+        for (int i = 0; i < 6; i++) {
+            if (i < numRedactedOctets) {
+                redactedBssid.append("xx");
+            } else {
+                redactedBssid.append(String.format("%02X", bssidBytes[i]));
+            }
+            if (i != 5) {
+                redactedBssid.append(":");
+            }
+        }
+        return redactedBssid.toString();
     }
 }
