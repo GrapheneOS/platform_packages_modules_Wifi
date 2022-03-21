@@ -3645,7 +3645,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 WifiDialogManager.DialogHandle dialog = mWifiInjector.getWifiDialogManager()
                         .createSimpleDialog(
                                 null /* title */,
-                                r.getString(R.string.wifi_p2p_frequency_conflict_message),
+                                r.getString(R.string.wifi_p2p_frequency_conflict_message,
+                                        getDeviceName(mSavedPeerConfig.deviceAddress)),
                                 r.getString(R.string.dlg_ok),
                                 r.getString(R.string.decline),
                                 null /* neutralButtonText */,
