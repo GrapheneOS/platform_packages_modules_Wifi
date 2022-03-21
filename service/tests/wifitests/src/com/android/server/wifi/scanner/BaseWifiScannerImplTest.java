@@ -215,7 +215,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
                 .build();
 
         List<String> hiddenNetworkSSIDSet = new ArrayList<>();
-        for (int i = 0; i < WificondScannerImpl.MAX_HIDDEN_NETWORK_IDS_PER_SCAN; i++) {
+        for (int i = 0; i < WificondScannerTest.MAX_NUM_SCAN_SSIDS; i++) {
             hiddenNetworkSSIDSet.add(hiddenNetworkSSIDs[i]);
         }
         doSuccessfulSingleScanTest(settings, createFreqSet(5650),
