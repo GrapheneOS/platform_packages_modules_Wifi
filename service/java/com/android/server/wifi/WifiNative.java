@@ -1726,7 +1726,11 @@ public class WifiNative {
      * @param ifaceName Name of the interface.
      */
     public int getMaxSsidsPerScan(@NonNull String ifaceName) {
-        return mWifiCondManager.getMaxSsidsPerScan(ifaceName);
+        if (SdkLevel.isAtLeastT()) {
+            return mWifiCondManager.getMaxSsidsPerScan(ifaceName);
+        } else {
+            return -1;
+        }
     }
 
     private ArrayList<ScanDetail> convertNativeScanResults(@NonNull String ifaceName,
