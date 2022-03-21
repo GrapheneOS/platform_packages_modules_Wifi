@@ -84,6 +84,7 @@ import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
 import android.hardware.wifi.supplicant.WpsConfigError;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
 import android.hardware.wifi.supplicant.WpsErrorIndication;
+import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
@@ -1278,13 +1279,13 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     @Test
     public void testEapFailureCallback() throws Exception {
         int eapFailureCode = WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED;
+        MacAddress bssid = MacAddress.fromString(BSSID);
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
 
-        mISupplicantStaIfaceCallback.onEapFailure(new byte[6], eapFailureCode);
-        verify(mWifiMonitor).broadcastAuthenticationFailureEvent(
-                eq(WLAN0_IFACE_NAME), eq(WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE),
-                eq(eapFailureCode));
+        mISupplicantStaIfaceCallback.onEapFailure(bssid.toByteArray(), eapFailureCode);
+        verify(mWifiMonitor).broadcastEapFailureEvent(
+                eq(WLAN0_IFACE_NAME), eq(eapFailureCode), eq(bssid));
     }
 
     /**

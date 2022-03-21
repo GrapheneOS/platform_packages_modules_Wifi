@@ -34,6 +34,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
+import android.app.admin.SecurityLog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -127,6 +128,7 @@ import com.android.server.wifi.ActiveModeManager.ClientRole;
 import com.android.server.wifi.MboOceController.BtmFrameData;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceStatusCode;
+import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthRequestData;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthResponseData;
 import com.android.server.wifi.WifiNative.RxFateReport;
@@ -914,6 +916,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiMonitor.TRANSITION_DISABLE_INDICATION,
             WifiMonitor.NETWORK_NOT_FOUND_EVENT,
             WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
+            WifiMonitor.AUXILIARY_SUPPLICANT_EVENT,
     };
 
     private void registerForWifiMonitorEvents()  {
@@ -946,6 +949,28 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private void setMulticastFilter(boolean enabled) {
         if (mIpClient != null) {
             mIpClient.setMulticastFilter(enabled);
+        }
+    }
+
+    /*
+     * Log wifi event to SecurityLog if the event occurred on a managed network.
+     */
+    private void logEventIfManagedNetwork(@Nullable WifiConfiguration config,
+            @SupplicantEventCode int eventCode, MacAddress bssid, String reasonString) {
+        if (!SdkLevel.isAtLeastT() || config == null
+                || !mWifiPermissionsUtil.isAdmin(config.creatorUid, config.creatorName)) {
+            return;
+        }
+
+        int numRedactedOctets = mContext.getResources()
+                .getInteger(R.integer.config_wifiNumMaskedBssidOctetsInSecurityLog);
+        String redactedBssid = ScanResultUtil.redactBssid(bssid, numRedactedOctets);
+        if (eventCode == SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED) {
+            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_DISCONNECTION, redactedBssid, reasonString);
+        } else {
+            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_CONNECTION,
+                    SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode),
+                    redactedBssid, reasonString);
         }
     }
 
@@ -4728,6 +4753,30 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         log("ConnectingOrConnectedState: Supplicant State change "
                                 + stateChangeResult);
                     }
+                    @SupplicantEventCode int supplicantEvent;
+                    switch (stateChangeResult.state) {
+                        case COMPLETED:
+                            supplicantEvent = SupplicantStaIfaceHal.SUPPLICANT_EVENT_CONNECTED;
+                            break;
+                        case ASSOCIATING:
+                            supplicantEvent = SupplicantStaIfaceHal.SUPPLICANT_EVENT_ASSOCIATING;
+                            break;
+                        case ASSOCIATED:
+                            supplicantEvent = SupplicantStaIfaceHal.SUPPLICANT_EVENT_ASSOCIATED;
+                            break;
+                        default:
+                            supplicantEvent = -1;
+                    }
+                    if (supplicantEvent != -1) {
+                        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(
+                                    stateChangeResult.networkId);
+                        try {
+                            logEventIfManagedNetwork(config, supplicantEvent,
+                                    MacAddress.fromString(stateChangeResult.bssid), "");
+                        } catch (IllegalArgumentException e) {
+                            Log.i(TAG, "Invalid bssid received for state change event");
+                        }
+                    }
                     if (state == SupplicantState.DISCONNECTED && mNetworkAgent != null) {
                         if (mVerboseLoggingEnabled) {
                             log("Missed CTRL-EVENT-DISCONNECTED, disconnect");
@@ -4875,8 +4924,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 WifiLastResortWatchdog.FAILURE_CODE_AUTHENTICATION,
                                 isConnected());
                     }
-                    clearNetworkCachedDataIfNeeded(
-                            getConnectingWifiConfigurationInternal(), eventInfo.reasonCode);
+                    WifiConfiguration config = getConnectingWifiConfigurationInternal();
+                    clearNetworkCachedDataIfNeeded(config, eventInfo.reasonCode);
+                    try {
+                        logEventIfManagedNetwork(config,
+                                SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED,
+                                MacAddress.fromString(eventInfo.bssid),
+                                "reason=" + eventInfo.reasonCode);
+                    } catch (IllegalArgumentException e) {
+                        Log.e(TAG, "Invalid bssid received for disconnection event");
+                    }
                     String targetSsid = getConnectingSsidInternal();
                     // If network is removed while connecting, targetSsid can be null.
                     // The presence of a mLastNetworkId that's different from the mTargetNetworkId
@@ -4910,6 +4967,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     if (message.obj != null) {
                         mTargetBssid = (String) message.obj;
                     }
+                    break;
+                }
+                case WifiMonitor.AUXILIARY_SUPPLICANT_EVENT: {
+                    SupplicantEventInfo eventInfo = (SupplicantEventInfo) message.obj;
+                    logEventIfManagedNetwork(getConnectingWifiConfigurationInternal(),
+                            eventInfo.eventCode, eventInfo.bssid,
+                            eventInfo.reasonString);
                     break;
                 }
                 case CMD_DISCONNECT: {
@@ -5080,6 +5144,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             mWrongPasswordNotifier.onWrongPasswordError(targetedNetwork.SSID);
                         }
                     } else if (reasonCode == WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE) {
+                        logEventIfManagedNetwork(targetedNetwork,
+                                SupplicantStaIfaceHal.SUPPLICANT_EVENT_EAP_FAILURE,
+                                (MacAddress) message.obj, "error=" + errorCode);
                         if (targetedNetwork != null && targetedNetwork.enterpriseConfig != null
                                 && targetedNetwork.enterpriseConfig.isAuthenticationSimBased()) {
                             // only show EAP failure notification if primary
