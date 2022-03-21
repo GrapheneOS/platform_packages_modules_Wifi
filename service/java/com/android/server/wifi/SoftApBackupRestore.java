@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.compat.Compatibility;
 import android.content.Context;
 import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
@@ -206,11 +207,17 @@ public class SoftApBackupRestore {
             }
             if (version >= 5) {
                 configBuilder.setMaxNumberOfClients(in.readInt());
+                long shutDownMillis;
                 if (version >= 7) {
-                    configBuilder.setShutdownTimeoutMillis(in.readLong());
+                    shutDownMillis = in.readLong();
                 } else {
-                    configBuilder.setShutdownTimeoutMillis(Long.valueOf(in.readInt()));
+                    shutDownMillis = Long.valueOf(in.readInt());
                 }
+                if (shutDownMillis == 0 && Compatibility.isChangeEnabled(
+                        SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)) {
+                    shutDownMillis = SoftApConfiguration.DEFAULT_TIMEOUT;
+                }
+                configBuilder.setShutdownTimeoutMillis(shutDownMillis);
                 configBuilder.setClientControlByUserEnabled(in.readBoolean());
                 int numberOfBlockedClient = in.readInt();
                 List<MacAddress> blockedList = new ArrayList<>(
