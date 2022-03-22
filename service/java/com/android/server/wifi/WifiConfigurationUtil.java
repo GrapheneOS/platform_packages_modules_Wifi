@@ -683,13 +683,15 @@ public class WifiConfigurationUtil {
      * 9. {@link WifiConfiguration#getIpConfiguration()}
      *
      * @param config {@link WifiConfiguration} received from an external application.
+     * @param supportedFeatureSet bitmask for supported features using {@code WIFI_FEATURE_}
      * @param isAdd {@link #VALIDATE_FOR_ADD} to indicate a network config received for an add,
      *              {@link #VALIDATE_FOR_UPDATE} for a network config received for an update.
      *              These 2 cases need to be handled differently because the config received for an
      *              update could contain only the fields that are being changed.
      * @return true if the parameters are valid, false otherwise.
      */
-    public static boolean validate(WifiConfiguration config, boolean isAdd) {
+    public static boolean validate(WifiConfiguration config, long supportedFeatureSet,
+            boolean isAdd) {
         if (!validateSsid(config.SSID, isAdd)) {
             return false;
         }
@@ -715,7 +717,11 @@ public class WifiConfigurationUtil {
                 && !validatePassword(config.preSharedKey, isAdd, true)) {
             return false;
         }
-
+        if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)
+                && (supportedFeatureSet & WifiManager.WIFI_FEATURE_DPP_AKM) == 0) {
+            Log.e(TAG, "DPP AKM is not supported");
+            return false;
+        }
         if (!validateEnterpriseConfig(config, isAdd)) {
             return false;
         }

@@ -256,6 +256,7 @@ public class WifiConfigManager {
      * List of external dependencies for WifiConfigManager.
      */
     private final Context mContext;
+    private final WifiInjector mWifiInjector;
     private final Clock mClock;
     private final UserManager mUserManager;
     private final BackupManagerProxy mBackupManagerProxy;
@@ -386,37 +387,31 @@ public class WifiConfigManager {
      */
     WifiConfigManager(
             Context context,
-            Clock clock,
-            UserManager userManager,
-            WifiCarrierInfoManager wifiCarrierInfoManager,
             WifiKeyStore wifiKeyStore,
             WifiConfigStore wifiConfigStore,
-            WifiPermissionsUtil wifiPermissionsUtil,
-            MacAddressUtil macAddressUtil,
-            WifiMetrics wifiMetrics,
-            WifiBlocklistMonitor wifiBlocklistMonitor,
-            WifiLastResortWatchdog wifiLastResortWatchdog,
             NetworkListSharedStoreData networkListSharedStoreData,
             NetworkListUserStoreData networkListUserStoreData,
             RandomizedMacStoreData randomizedMacStoreData,
-            FrameworkFacade frameworkFacade,
-            DeviceConfigFacade deviceConfigFacade,
-            WifiScoreCard wifiScoreCard,
             LruConnectionTracker lruConnectionTracker,
-            BuildProperties buildProperties) {
+            WifiInjector wifiInjector) {
         mContext = context;
-        mClock = clock;
-        mUserManager = userManager;
+        mWifiInjector = wifiInjector;
+        mClock = wifiInjector.getClock();
+        mUserManager = wifiInjector.getUserManager();
+        mWifiCarrierInfoManager = wifiInjector.getWifiCarrierInfoManager();
+        mWifiMetrics = wifiInjector.getWifiMetrics();
+        mWifiBlocklistMonitor = wifiInjector.getWifiBlocklistMonitor();
+        mWifiLastResortWatchdog = wifiInjector.getWifiLastResortWatchdog();
+        mWifiScoreCard = wifiInjector.getWifiScoreCard();
+        mWifiPermissionsUtil = wifiInjector.getWifiPermissionsUtil();
+        mFrameworkFacade = wifiInjector.getFrameworkFacade();
+        mDeviceConfigFacade = wifiInjector.getDeviceConfigFacade();
+        mMacAddressUtil = wifiInjector.getMacAddressUtil();
+        mBuildProperties = wifiInjector.getBuildProperties();
+
         mBackupManagerProxy = new BackupManagerProxy();
-        mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiKeyStore = wifiKeyStore;
         mWifiConfigStore = wifiConfigStore;
-        mWifiPermissionsUtil = wifiPermissionsUtil;
-        mWifiMetrics = wifiMetrics;
-        mWifiBlocklistMonitor = wifiBlocklistMonitor;
-        mWifiLastResortWatchdog = wifiLastResortWatchdog;
-        mWifiScoreCard = wifiScoreCard;
-
         mConfiguredNetworks = new ConfigurationMap(mWifiPermissionsUtil);
         mScanDetailCaches = new HashMap<>(16, 0.75f);
         mUserTemporarilyDisabledList =
@@ -433,14 +428,9 @@ public class WifiConfigManager {
         mWifiConfigStore.registerStoreData(mNetworkListUserStoreData);
         mWifiConfigStore.registerStoreData(mRandomizedMacStoreData);
 
-        mFrameworkFacade = frameworkFacade;
-        mDeviceConfigFacade = deviceConfigFacade;
-
         mLocalLog = new LocalLog(
                 context.getSystemService(ActivityManager.class).isLowRamDevice() ? 128 : 256);
-        mMacAddressUtil = macAddressUtil;
         mLruConnectionTracker = lruConnectionTracker;
-        mBuildProperties = buildProperties;
     }
 
     /**
@@ -1306,11 +1296,15 @@ public class WifiConfigManager {
         }
         WifiConfiguration newInternalConfig = null;
 
+        long supportedFeatures = mWifiInjector.getActiveModeWarden()
+                .getPrimaryClientModeManager().getSupportedFeatures();
+
         // First check if we already have a network with the provided network id or configKey.
         WifiConfiguration existingInternalConfig = getInternalConfiguredNetwork(config);
         // No existing network found. So, potentially a network add.
         if (existingInternalConfig == null) {
-            if (!WifiConfigurationUtil.validate(config, WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
+            if (!WifiConfigurationUtil.validate(config, supportedFeatures,
+                    WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
                 Log.e(TAG, "Cannot add network with invalid config");
                 return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
             }
@@ -1325,7 +1319,7 @@ public class WifiConfigManager {
         // Existing network found. So, a network update.
         if (existingInternalConfig != null) {
             if (!WifiConfigurationUtil.validate(
-                    config, WifiConfigurationUtil.VALIDATE_FOR_UPDATE)) {
+                    config, supportedFeatures, WifiConfigurationUtil.VALIDATE_FOR_UPDATE)) {
                 Log.e(TAG, "Cannot update network with invalid config");
                 return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
             }
@@ -1394,8 +1388,6 @@ public class WifiConfigManager {
 
         // Validate an Enterprise network with Trust On First Use.
         if (config.isEnterprise() && config.enterpriseConfig.isTrustOnFirstUseEnabled()) {
-            long supportedFeatures = WifiInjector.getInstance().getActiveModeWarden()
-                    .getPrimaryClientModeManager().getSupportedFeatures();
             if ((supportedFeatures & WIFI_FEATURE_TRUST_ON_FIRST_USE) == 0) {
                 Log.e(TAG, "Trust On First Use could not be set "
                         + "when Trust On First Use is not supported.");
@@ -3192,9 +3184,13 @@ public class WifiConfigManager {
     private void loadInternalDataFromSharedStore(
             List<WifiConfiguration> configurations,
             Map<String, String> macAddressMapping) {
+
+        long supportedFeatures = mWifiInjector.getActiveModeWarden()
+                .getPrimaryClientModeManager().getSupportedFeatures();
+
         for (WifiConfiguration configuration : configurations) {
             if (!WifiConfigurationUtil.validate(
-                    configuration, WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
+                    configuration, supportedFeatures, WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
                 Log.e(TAG, "Skipping malformed network from shared store: " + configuration);
                 continue;
             }
@@ -3228,9 +3224,12 @@ public class WifiConfigManager {
      * @param configurations list of configurations retrieved from store.
      */
     private void loadInternalDataFromUserStore(List<WifiConfiguration> configurations) {
+        long supportedFeatures = mWifiInjector.getActiveModeWarden()
+                .getPrimaryClientModeManager().getSupportedFeatures();
+
         for (WifiConfiguration configuration : configurations) {
             if (!WifiConfigurationUtil.validate(
-                    configuration, WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
+                    configuration, supportedFeatures, WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
                 Log.e(TAG, "Skipping malformed network from user store: " + configuration);
                 continue;
             }
