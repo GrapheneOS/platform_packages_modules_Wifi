@@ -588,12 +588,13 @@ public final class WifiAwareNetworkSpecifier extends NetworkSpecifier implements
                 throw new IllegalStateException(
                         "Can only specify a Passphrase or a PMK - not both!");
             }
+            WifiAwareDataPathSecurityConfig securityConfig = mSecurityConfig;
             if (mPskPassphrase != null || mPmk != null) {
-                if (mSecurityConfig != null) {
+                if (securityConfig != null) {
                     throw new IllegalStateException(
                             "Can only specify a SecurityConfig or a PMK(Passphrase) - not both!");
                 }
-                mSecurityConfig = new WifiAwareDataPathSecurityConfig(
+                securityConfig = new WifiAwareDataPathSecurityConfig(
                         WIFI_AWARE_CIPHER_SUITE_NCS_SK_128, mPmk, null,
                         mPskPassphrase);
             }
@@ -608,7 +609,7 @@ public final class WifiAwareNetworkSpecifier extends NetworkSpecifier implements
                             "Port and transport protocol information can only "
                                     + "be specified on the Publisher device (which is the server");
                 }
-                if (mSecurityConfig == null) {
+                if (securityConfig == null) {
                     throw new IllegalStateException("Port and transport protocol information can "
                             + "only be specified on a secure link");
                 }
@@ -619,7 +620,7 @@ public final class WifiAwareNetworkSpecifier extends NetworkSpecifier implements
 
             return new WifiAwareNetworkSpecifier(type, role, mDiscoverySession.mClientId,
                     mDiscoverySession.mSessionId, mPeerHandle != null ? mPeerHandle.peerId : 0,
-                    null, mPort, mTransportProtocol, mChannel, mIsRequired, mSecurityConfig);
+                    null, mPort, mTransportProtocol, mChannel, mIsRequired, securityConfig);
         }
     }
 }
