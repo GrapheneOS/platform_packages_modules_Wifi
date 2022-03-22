@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import android.annotation.IntDef;
+import android.net.MacAddress;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
@@ -30,6 +31,7 @@ import android.util.SparseArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Protocol;
 import com.android.server.wifi.MboOceController.BtmFrameData;
+import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthRequestData;
 import com.android.server.wifi.hotspot2.AnqpEvent;
 import com.android.server.wifi.hotspot2.IconEvent;
@@ -107,6 +109,9 @@ public class WifiMonitor {
 
     /* Trust On First Use Root CA Certification */
     public static final int TOFU_ROOT_CA_CERTIFICATE             = BASE + 73;
+
+    /* Auxiliary supplicant event */
+    public static final int AUXILIARY_SUPPLICANT_EVENT           = BASE + 74;
 
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
@@ -504,6 +509,19 @@ public class WifiMonitor {
     }
 
     /**
+     * Broadcast the EAP failure event to all the handlers registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param errorCode Error code associated with the authentication failure event.
+     *               A value of -1 is used when no error code is reported.
+     * @param bssid BSSID of the access point.
+     */
+    public void broadcastEapFailureEvent(String iface, int errorCode, MacAddress bssid) {
+        sendMessage(iface, AUTHENTICATION_FAILURE_EVENT, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE,
+                errorCode, bssid);
+    }
+
+    /**
      * Broadcast the association rejection event to all the handlers registered for this event.
      *
      * @param iface Name of iface on which this occurred.
@@ -610,5 +628,20 @@ public class WifiMonitor {
     public void broadcastCertificationEvent(String iface, int networkId, String ssid,
             X509Certificate cert) {
         sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, 0, cert);
+    }
+
+    /**
+     * Broadcast an auxiliary supplicant event to all handlers registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param eventCode SupplicantEventCode for the event that occurred.
+     * @param bssid BSSID of the network.
+     * @param reasonString Optional string containing more information about why the
+     *                     event occurred.
+     */
+    public void broadcastAuxiliarySupplicantEvent(String iface, @SupplicantEventCode int eventCode,
+            MacAddress bssid, String reasonString) {
+        sendMessage(iface, AUXILIARY_SUPPLICANT_EVENT, 0, 0,
+                new SupplicantEventInfo(eventCode, bssid, reasonString));
     }
 }

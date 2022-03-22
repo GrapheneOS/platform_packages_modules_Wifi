@@ -32,6 +32,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.hardware.wifi.supplicant.AnqpData;
 import android.hardware.wifi.supplicant.AssociationRejectionData;
+import android.hardware.wifi.supplicant.AuxiliarySupplicantEventCode;
 import android.hardware.wifi.supplicant.BssTmData;
 import android.hardware.wifi.supplicant.BssTmDataFlagsMask;
 import android.hardware.wifi.supplicant.BssTmStatusCode;
@@ -52,6 +53,7 @@ import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
 import android.hardware.wifi.supplicant.WpsConfigError;
 import android.hardware.wifi.supplicant.WpsErrorIndication;
+import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
@@ -60,6 +62,7 @@ import android.net.wifi.WifiSsid;
 import android.os.Process;
 import android.util.Log;
 
+import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
 import com.android.server.wifi.hotspot2.AnqpEvent;
 import com.android.server.wifi.hotspot2.IconEvent;
 import com.android.server.wifi.hotspot2.WnmData;
@@ -384,8 +387,12 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public void onEapFailure(byte[/* 6 */] bssid, int errorCode) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onEapFailure");
-            mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, errorCode);
+            try {
+                mWifiMonitor.broadcastEapFailureEvent(mIfaceName, errorCode,
+                        MacAddress.fromBytes(bssid));
+            } catch (IllegalArgumentException e) {
+                Log.i(TAG, "Invalid bssid received");
+            }
         }
     }
 
@@ -1050,6 +1057,21 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         }
     }
 
+    private static @SupplicantEventCode int halAuxiliaryEventToFrameworkSupplicantEventCode(
+            int eventCode) {
+        switch (eventCode) {
+            case AuxiliarySupplicantEventCode.EAP_METHOD_SELECTED:
+                return SupplicantStaIfaceHal.SUPPLICANT_EVENT_EAP_METHOD_SELECTED;
+            case AuxiliarySupplicantEventCode.SSID_TEMP_DISABLED:
+                return SupplicantStaIfaceHal.SUPPLICANT_EVENT_SSID_TEMP_DISABLED;
+            case AuxiliarySupplicantEventCode.OPEN_SSL_FAILURE:
+                return SupplicantStaIfaceHal.SUPPLICANT_EVENT_OPEN_SSL_FAILURE;
+            default:
+                Log.e(TAG, "Invalid auxiliary event code received");
+                return -1;
+        }
+    }
+
     @Override
     public void onBssTmHandlingDone(BssTmData tmData) {
         MboOceController.BtmFrameData btmFrmData = new MboOceController.BtmFrameData();
@@ -1107,7 +1129,17 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public void onAuxiliarySupplicantEvent(int eventCode, byte[] bssid,
             String reasonString) {
         synchronized (mLock) {
-            mStaIfaceHal.logCallback("onAuxiliarySupplicantEvent");
+            @SupplicantEventCode int supplicantEventCode =
+                    halAuxiliaryEventToFrameworkSupplicantEventCode(eventCode);
+            mStaIfaceHal.logCallback("onAuxiliarySupplicantEvent event=" + supplicantEventCode);
+            if (supplicantEventCode != -1) {
+                try {
+                    mWifiMonitor.broadcastAuxiliarySupplicantEvent(mIfaceName, supplicantEventCode,
+                            MacAddress.fromBytes(bssid), reasonString);
+                } catch (IllegalArgumentException e) {
+                    Log.i(TAG, "Invalid bssid received");
+                }
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.ScanResult.InformationElement;
 import android.net.wifi.WifiConfiguration;
@@ -399,6 +400,37 @@ public class ScanResultUtilTest {
         scanResult.capabilities = "[RSN-?-CCMP]";
         config = ScanResultUtil.createNetworkFromScanResult(scanResult);
         assertNull(config);
+    }
+
+    /**
+     * Verify the logic for redacting octets from a BSSID.
+     */
+    @Test
+    public void verifyRedactBssid() throws Exception {
+        // Valid case - 0 redacted octets
+        String bssidStr = "AB:CD:01:EF:45:89";
+        MacAddress bssid = MacAddress.fromString(bssidStr);
+        String redactedBssid = ScanResultUtil.redactBssid(bssid, 0);
+        assertEquals(bssidStr, redactedBssid);
+
+        // Valid case - 4 redacted octets
+        String expectedRedactedBssid = "xx:xx:xx:xx:" + bssidStr.substring(12);
+        redactedBssid = ScanResultUtil.redactBssid(bssid, 4);
+        assertEquals(expectedRedactedBssid, redactedBssid);
+
+        // Valid case - 6 redacted octets
+        expectedRedactedBssid = "xx:xx:xx:xx:xx:xx";
+        redactedBssid = ScanResultUtil.redactBssid(bssid, 6);
+        assertEquals(expectedRedactedBssid, redactedBssid);
+
+        // Invalid number of redacted octets - should default to 4 redacted octets
+        expectedRedactedBssid = "xx:xx:xx:xx:" + bssidStr.substring(12);
+        redactedBssid = ScanResultUtil.redactBssid(bssid, 7);
+        assertEquals(expectedRedactedBssid, redactedBssid);
+
+        // Null bssid - should return an empty string
+        redactedBssid = ScanResultUtil.redactBssid(null, 4);
+        assertEquals("", redactedBssid);
     }
 
     private static InformationElement createIE(int id, byte[] bytes) {

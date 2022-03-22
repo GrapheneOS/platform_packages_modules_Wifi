@@ -17,9 +17,11 @@
 package com.android.server.wifi.scanner;
 
 import static com.android.server.wifi.ScanTestUtil.NativeScanSettingsBuilder;
+import static com.android.server.wifi.ScanTestUtil.createFreqSet;
 import static com.android.server.wifi.ScanTestUtil.setupMockChannels;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.*;
 
 import android.app.AlarmManager;
@@ -28,6 +30,7 @@ import android.net.wifi.WifiScanner;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ScanDetail;
 import com.android.server.wifi.ScanResults;
 import com.android.server.wifi.WifiMonitor;
@@ -37,7 +40,6 @@ import com.android.server.wifi.scanner.ChannelHelper.ChannelCollection;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
-
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -56,6 +58,7 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
     private static final String NATIVE_SCAN_TITLE = "Latest native scan results:";
     private static final String NATIVE_PNO_SCAN_TITLE = "Latest native pno scan results:";
     private static final String NATIVE_SCAN_IE_TITLE = "Latest native scan results IEs:";
+    public static final int MAX_NUM_SCAN_SSIDS = 16;
 
     WifiMonitor mWifiMonitorSpy;
     @Before
@@ -66,6 +69,7 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
                 new int[]{5600, 5650},
                 new int[]{5945, 5985},
                 new int[]{58320, 60480});
+        when(mWifiNative.getMaxSsidsPerScan(anyString())).thenReturn(MAX_NUM_SCAN_SSIDS + 1);
         mWifiMonitorSpy = spy(mWifiMonitor);
         mScanner = new WificondScannerImpl(mContext, BaseWifiScannerImplTest.IFACE_NAME,
                 mWifiNative, mWifiMonitorSpy, new WificondChannelHelper(mWifiNative),
@@ -348,6 +352,88 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
                 eq(WifiMonitor.PNO_SCAN_RESULTS_EVENT), any());
         verify(mWifiMonitorSpy, times(1)).deregisterHandler(anyString(),
                 eq(WifiMonitor.SCAN_RESULTS_EVENT), any());
+    }
+
+    /**
+     * Tests that for a large number of hidden networks, repeated scans cover the entire range of
+     * hidden networks in round-robin order.
+     */
+    @Test
+    public void testManyHiddenNetworksAcrossMultipleScans() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        String[] hiddenNetworkSSIDs = {
+                "test_ssid_0", "test_ssid_1", "test_ssid_2", "test_ssid_3", "test_ssid_4",
+                "test_ssid_5", "test_ssid_6", "test_ssid_7", "test_ssid_8", "test_ssid_9",
+                "test_ssid_10", "test_ssid_11", "test_ssid_12", "test_ssid_13", "test_ssid_14",
+                "test_ssid_15", "test_ssid_16", "test_ssid_17", "test_ssid_18", "test_ssid_19"
+        };
+        WifiNative.ScanSettings settings = new NativeScanSettingsBuilder()
+                .withBasePeriod(10000)
+                .withMaxApPerScan(10)
+                .withHiddenNetworkSSIDs(hiddenNetworkSSIDs)
+                .addBucketWithChannels(20000, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN, 5650)
+                .build();
+
+        // First scan should cover the first MAX_NUM_SCAN_SSIDS hidden networks.
+        ArrayList<String> hiddenNetworkSSIDSet = new ArrayList<>();
+        for (int i = 0; i < MAX_NUM_SCAN_SSIDS; i++) {
+            hiddenNetworkSSIDSet.add(hiddenNetworkSSIDs[i]);
+        }
+        doSuccessfulSingleScanTest(settings, createFreqSet(5650),
+                hiddenNetworkSSIDSet,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED,
+                        5650, 5650, 5650, 5650, 5650, 5650, 5650), false, false);
+
+        // The next scan should start from where we left off and wrap around to the
+        // beginning of hiddenNetworkSSIDs.
+        hiddenNetworkSSIDSet.clear();
+        for (int i = MAX_NUM_SCAN_SSIDS; i < hiddenNetworkSSIDs.length; i++) {
+            hiddenNetworkSSIDSet.add(hiddenNetworkSSIDs[i]);
+        }
+        int scanSetSize = hiddenNetworkSSIDSet.size();
+        for (int i = 0; scanSetSize < MAX_NUM_SCAN_SSIDS; i++, scanSetSize++) {
+            hiddenNetworkSSIDSet.add(hiddenNetworkSSIDs[i]);
+        }
+        doSuccessfulSingleScanTest(settings, createFreqSet(5650),
+                hiddenNetworkSSIDSet,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED,
+                        5650, 5650, 5650, 5650, 5650, 5650, 5650), false, false);
+    }
+
+    /**
+     * Tests that if the call to getMaxSsidsPerScan() fails, repeated scans contain the default
+     * number of SSIDs per scan and do not cycle through the SSIDs in round-robin order.
+     */
+    @Test
+    public void testFailureInGetMaxSsidsPerScan() {
+        when(mWifiNative.getMaxSsidsPerScan(anyString())).thenReturn(-1);
+        String[] hiddenNetworkSSIDs = {
+                "test_ssid_0", "test_ssid_1", "test_ssid_2", "test_ssid_3", "test_ssid_4",
+                "test_ssid_5", "test_ssid_6", "test_ssid_7", "test_ssid_8", "test_ssid_9",
+                "test_ssid_10", "test_ssid_11", "test_ssid_12", "test_ssid_13", "test_ssid_14",
+                "test_ssid_15", "test_ssid_16", "test_ssid_17", "test_ssid_18", "test_ssid_19"
+        };
+        WifiNative.ScanSettings settings = new NativeScanSettingsBuilder()
+                .withBasePeriod(10000)
+                .withMaxApPerScan(10)
+                .withHiddenNetworkSSIDs(hiddenNetworkSSIDs)
+                .addBucketWithChannels(20000, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN, 5650)
+                .build();
+
+        // If two successive scans occur, both should cover the first MAX_NUM_SCAN_SSIDS
+        // hidden networks.
+        ArrayList<String> hiddenNetworkSSIDSet = new ArrayList<>();
+        for (int i = 0; i < MAX_NUM_SCAN_SSIDS; i++) {
+            hiddenNetworkSSIDSet.add(hiddenNetworkSSIDs[i]);
+        }
+        doSuccessfulSingleScanTest(settings, createFreqSet(5650),
+                hiddenNetworkSSIDSet,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED,
+                        5650, 5650, 5650, 5650, 5650, 5650, 5650), false, false);
+        doSuccessfulSingleScanTest(settings, createFreqSet(5650),
+                hiddenNetworkSSIDSet,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED,
+                        5650, 5650, 5650, 5650, 5650, 5650, 5650), false, false);
     }
 
     private void assertLogContainsRequestPattern(Pattern logLineRegex, String log) {
