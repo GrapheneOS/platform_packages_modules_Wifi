@@ -57,6 +57,7 @@ import java.util.Set;
  */
 public class WifiNetworkSelectorTestUtil {
     private static final String TAG = "WifiNetworkSelectorTestUtil";
+    private static final long SUPPORTED_FEATURES_ALL = Long.MAX_VALUE;
     /**
      * A class that holds a list of scanDetail and their associated WifiConfiguration.
      */
@@ -291,7 +292,7 @@ public class WifiNetworkSelectorTestUtil {
                     || (securities[index] & SECURITY_WAPI_PSK) != 0) {
                 configs[index].preSharedKey = "\"PA55W0RD\""; // needed to validate with PSK
             }
-            if (!WifiConfigurationUtil.validate(configs[index], true)) {
+            if (!WifiConfigurationUtil.validate(configs[index], SUPPORTED_FEATURES_ALL, true)) {
                 throw new IllegalArgumentException("Invalid generated config: " + configs[index]);
             }
         }
