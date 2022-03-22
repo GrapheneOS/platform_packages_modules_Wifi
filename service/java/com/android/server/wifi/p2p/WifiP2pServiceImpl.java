@@ -380,7 +380,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     @VisibleForTesting
     public WakeupMessage mP2pIdleShutdownMessage;
 
-    private boolean mIsUserRejected = false;
+    private WifiP2pConfig mSavedRejectedPeerConfig = null;
 
     private boolean mIsBootComplete;
 
@@ -1837,9 +1837,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         // failure causes supplicant issues. Ignore right now.
                         break;
                     case WifiP2pMonitor.P2P_GO_NEGOTIATION_FAILURE_EVENT:
-                        if (mIsUserRejected) {
+                        if (null != mSavedRejectedPeerConfig) {
                             sendP2pRequestChangedBroadcast(false);
-                            mIsUserRejected = false;
+                            mSavedRejectedPeerConfig = null;
                         }
                         break;
                     case WifiP2pManager.FACTORY_RESET:
@@ -3228,7 +3228,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 logd("User rejected negotiation, join =  " + join
                                         + " peer = " + mSavedPeerConfig);
                             }
-                            mIsUserRejected = true;
+                            mSavedRejectedPeerConfig = new WifiP2pConfig(mSavedPeerConfig);
                             if (join) {
                                 mWifiNative.p2pCancelConnect();
                                 mWifiNative.p2pStopFind();
@@ -4422,6 +4422,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
                     | Intent.FLAG_RECEIVER_REPLACE_PENDING);
             intent.putExtra(WifiP2pManager.EXTRA_REQUEST_RESPONSE, accepted);
+            if (accepted) {
+                intent.putExtra(WifiP2pManager.EXTRA_REQUEST_CONFIG, mSavedPeerConfig);
+            } else {
+                intent.putExtra(WifiP2pManager.EXTRA_REQUEST_CONFIG, mSavedRejectedPeerConfig);
+            }
 
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
             context.sendBroadcastWithMultiplePermissions(
