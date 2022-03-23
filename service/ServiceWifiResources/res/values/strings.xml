@@ -123,6 +123,10 @@
 
     <!-- A notification is shown when eap failure happens. It should be overridden by carrier-specific overlays. An empty string will result in no notification shown.-->
     <!-- Note: the :::integer::: is a carrier identifier - it is not to be translated! -->
+    <string name="wifi_eap_error_message_code_32756"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 32756</string>
+    <string-array name="wifi_eap_error_message_code_32756_carrier_overrides">
+        <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g></item>
+    </string-array>
     <string name="wifi_eap_error_message_code_32760"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 32760</string>
     <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
       <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g><xliff:g id="ssid">%1$s</xliff:g> : You can\u2019t connect to Verizon Wi-Fi Access from outside the Verizon coverage area. (Error = 32760)</item>
@@ -154,14 +158,6 @@
     <string name="wifi_eap_error_message_code_32767"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 32767</string>
     <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
       <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g><xliff:g id="ssid">%1$s</xliff:g> : There is a problem connecting you to Verizon Wi-Fi Access. Try again later or try from a different location.</item>
-    </string-array>
-    <string name="wifi_eap_error_message_code_32768"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 32768</string>
-    <string-array name="wifi_eap_error_message_code_32768_carrier_overrides">
-      <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g></item>
-    </string-array>
-    <string name="wifi_eap_error_message_code_32769"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 32769</string>
-    <string-array name="wifi_eap_error_message_code_32769_carrier_overrides">
-      <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g></item>
     </string-array>
     <string name="wifi_eap_error_message_code_16384"><xliff:g id="ssid">%1$s</xliff:g> : EAP authentication error 16384</string>
     <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
