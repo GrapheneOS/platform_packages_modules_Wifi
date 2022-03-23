@@ -866,7 +866,6 @@ public class WifiNetworkSuggestionsManager {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Updated config in WifiConfigManager");
         }
-        mWifiConfigManager.allowAutojoin(result.getNetworkId(), newConfig.allowAutojoin);
     }
 
     /**
