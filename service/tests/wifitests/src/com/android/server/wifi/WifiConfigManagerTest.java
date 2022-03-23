@@ -306,6 +306,20 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 wifiContext, mock(WifiConfigStore.class), mock(Handler.class),
                 mWifiMetrics, mClock));
         mLruConnectionTracker = new LruConnectionTracker(100, mContext);
+
+        when(mWifiInjector.getClock()).thenReturn(mClock);
+        when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
+        when(mWifiInjector.getWifiCarrierInfoManager()).thenReturn(mWifiCarrierInfoManager);
+        when(mWifiInjector.getWifiMetrics()).thenReturn(mWifiMetrics);
+        when(mWifiInjector.getWifiBlocklistMonitor()).thenReturn(mWifiBlocklistMonitor);
+        when(mWifiInjector.getWifiLastResortWatchdog()).thenReturn(mWifiLastResortWatchdog);
+        when(mWifiInjector.getWifiScoreCard()).thenReturn(mWifiScoreCard);
+        when(mWifiInjector.getWifiPermissionsUtil()).thenReturn(mWifiPermissionsUtil);
+        when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mWifiInjector.getMacAddressUtil()).thenReturn(mMacAddressUtil);
+        when(mWifiInjector.getBuildProperties()).thenReturn(mBuildProperties);
+
         createWifiConfigManager();
         mWifiConfigManager.addOnNetworkUpdateListener(mWcmListener);
         // static mocking
@@ -5429,14 +5443,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     private void createWifiConfigManager() {
         mWifiConfigManager =
                 new WifiConfigManager(
-                        mContext, mClock, mUserManager, mWifiCarrierInfoManager,
-                        mWifiKeyStore, mWifiConfigStore,
-                        mWifiPermissionsUtil, mMacAddressUtil, mWifiMetrics, mWifiBlocklistMonitor,
-                        mWifiLastResortWatchdog,
+                        mContext, mWifiKeyStore, mWifiConfigStore,
                         mNetworkListSharedStoreData, mNetworkListUserStoreData,
-                        mRandomizedMacStoreData,
-                        mFrameworkFacade, mDeviceConfigFacade,
-                        mWifiScoreCard, mLruConnectionTracker, mBuildProperties);
+                        mRandomizedMacStoreData, mLruConnectionTracker, mWifiInjector);
         mWifiConfigManager.enableVerboseLogging(true);
     }
 

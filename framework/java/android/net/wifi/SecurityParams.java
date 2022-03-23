@@ -594,6 +594,10 @@ public class SecurityParams {
      * {@link WifiConfiguration#SECURITY_TYPE_WAPI_CERT},
      * {@link WifiConfiguration#SECURITY_TYPE_EAP_WPA3_ENTERPRISE},
      * {@link WifiConfiguration#SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT},
+     * {@link WifiConfiguration#SECURITY_TYPE_OSEN},
+     * {@link WifiConfiguration#SECURITY_TYPE_PASSPOINT_R1_R2},
+     * {@link WifiConfiguration#SECURITY_TYPE_PASSPOINT_R3},
+     * {@link WifiConfiguration#SECURITY_TYPE_DPP}
      *
      * @return the corresponding security params if the security type is valid;
      *         otherwise, throw IllegalArgumentException.
@@ -630,6 +634,8 @@ public class SecurityParams {
                 return SecurityParams.createPasspointParams(PASSPOINT_R2);
             case WifiConfiguration.SECURITY_TYPE_PASSPOINT_R3:
                 return SecurityParams.createPasspointParams(PASSPOINT_R3);
+            case WifiConfiguration.SECURITY_TYPE_DPP:
+                return SecurityParams.createDppParams();
             default:
                 throw new IllegalArgumentException("unknown security type " + securityType);
         }
@@ -892,6 +898,26 @@ public class SecurityParams {
         params.mAllowedGroupCiphers.set(GroupCipher.TKIP);
         params.mAllowedGroupCiphers.set(GroupCipher.WEP40);
         params.mAllowedGroupCiphers.set(GroupCipher.WEP104);
+        return params;
+    }
+
+    private static @NonNull SecurityParams createDppParams() {
+        SecurityParams params = new SecurityParams();
+        params.mSecurityType = WifiConfiguration.SECURITY_TYPE_DPP;
+
+        params.mAllowedKeyManagement.set(KeyMgmt.DPP);
+
+        params.mAllowedProtocols.set(Protocol.RSN);
+
+        params.mAllowedPairwiseCiphers.set(PairwiseCipher.CCMP);
+        params.mAllowedPairwiseCiphers.set(PairwiseCipher.GCMP_128);
+        params.mAllowedPairwiseCiphers.set(PairwiseCipher.GCMP_256);
+
+        params.mAllowedGroupCiphers.set(GroupCipher.CCMP);
+        params.mAllowedGroupCiphers.set(GroupCipher.GCMP_128);
+        params.mAllowedGroupCiphers.set(GroupCipher.GCMP_256);
+
+        params.mRequirePmf = true;
         return params;
     }
 }

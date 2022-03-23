@@ -421,6 +421,9 @@ public class WifiP2pManager {
      *
      * The connecting request is initiated by
      * {@link #connect(Channel, WifiP2pConfig, ActionListener)}.
+     * <p>The {@link #EXTRA_REQUEST_RESPONSE} extra indicates whether or not current
+     * request is accepted or rejected.
+     * <p>The {@link #EXTRA_REQUEST_CONFIG} extra indicates the responsed configuration.
      */
     public static final String ACTION_WIFI_P2P_REQUEST_RESPONSE_CHANGED =
             "android.net.wifi.p2p.action.WIFI_P2P_REQUEST_RESPONSE_CHANGED";
@@ -430,6 +433,12 @@ public class WifiP2pManager {
      */
     public static final String EXTRA_REQUEST_RESPONSE =
             "android.net.wifi.p2p.extra.REQUEST_RESPONSE";
+
+    /**
+     * The lookup key for the {@link WifiP2pConfig} object of a request.
+     */
+    public static final String EXTRA_REQUEST_CONFIG =
+            "android.net.wifi.p2p.extra.REQUEST_CONFIG";
 
     /**
      * The lookup key for a handover message returned by the WifiP2pService.

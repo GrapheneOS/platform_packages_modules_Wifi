@@ -1244,6 +1244,7 @@ package android.net.wifi.p2p {
     field public static final String EXTRA_DISCOVERY_STATE = "discoveryState";
     field public static final String EXTRA_NETWORK_INFO = "networkInfo";
     field public static final String EXTRA_P2P_DEVICE_LIST = "wifiP2pDeviceList";
+    field public static final String EXTRA_REQUEST_CONFIG = "android.net.wifi.p2p.extra.REQUEST_CONFIG";
     field public static final String EXTRA_REQUEST_RESPONSE = "android.net.wifi.p2p.extra.REQUEST_RESPONSE";
     field public static final String EXTRA_WIFI_P2P_DEVICE = "wifiP2pDevice";
     field public static final String EXTRA_WIFI_P2P_GROUP = "p2pGroupInfo";

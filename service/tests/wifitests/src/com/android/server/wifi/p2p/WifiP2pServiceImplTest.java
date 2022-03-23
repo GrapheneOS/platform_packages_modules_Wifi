@@ -706,6 +706,23 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
     }
 
+
+    /**
+     * Send Set Ongoing Peer Config API msg.
+     *
+     * @param replyMessenger for checking replied message.
+     * @param config options as described in {@link WifiP2pConfig} class.
+     */
+    private void sendSetOngoingPeerMsg(Messenger replyMessenger,
+            WifiP2pConfig config) throws Exception {
+        Message msg = Message.obtain();
+        msg.what = WifiP2pManager.SET_ONGOING_PEER_CONFIG;
+        msg.obj = config;
+        msg.replyTo = replyMessenger;
+        mP2pStateMachineMessenger.send(Message.obtain(msg));
+        mLooper.dispatchAll();
+    }
+
     /**
      * Send CreateGroup API msg.
      *
@@ -845,6 +862,17 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             throws Exception {
         Message msg = Message.obtain();
         msg.what = AsyncChannel.CMD_CHANNEL_HALF_CONNECTED;
+        msg.arg1 = AsyncChannel.STATUS_SUCCESSFUL;
+        msg.obj = channel;
+        msg.replyTo = replyMessenger;
+        mP2pStateMachineMessenger.send(Message.obtain(msg));
+        mLooper.dispatchAll();
+    }
+
+    private void sendOngoingPeerConfig(Messenger replyMessenger, AsyncChannel channel)
+            throws Exception {
+        Message msg = Message.obtain();
+        msg.what = WifiP2pManager.SET_ONGOING_PEER_CONFIG;
         msg.arg1 = AsyncChannel.STATUS_SUCCESSFUL;
         msg.obj = channel;
         msg.replyTo = replyMessenger;
@@ -2981,6 +3009,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
 
         mockEnterGroupNegotiationState();
+        mockPeersList();
+        sendSetOngoingPeerConfigMsg(mClientMessenger, mTestWifiP2pPeerConfig);
         mLooper.dispatchAll();
         sendGoNegotiationFailureEvent(mClientMessenger,
                 WifiP2pServiceImpl.P2pStatus.NO_COMMON_CHANNEL);
@@ -3037,6 +3067,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
 
         mockEnterGroupNegotiationState();
+        mockPeersList();
+        sendSetOngoingPeerConfigMsg(mClientMessenger, mTestWifiP2pPeerConfig);
         mLooper.dispatchAll();
         sendGoNegotiationFailureEvent(mClientMessenger,
                 WifiP2pServiceImpl.P2pStatus.NO_COMMON_CHANNEL);
@@ -3066,6 +3098,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
 
         mockEnterGroupNegotiationState();
+        mockPeersList();
+        sendSetOngoingPeerConfigMsg(mClientMessenger, mTestWifiP2pPeerConfig);
         mLooper.dispatchAll();
         sendGoNegotiationFailureEvent(mClientMessenger,
                 WifiP2pServiceImpl.P2pStatus.NO_COMMON_CHANNEL);
