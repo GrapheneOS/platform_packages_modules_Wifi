@@ -122,6 +122,15 @@ public class NetworkSuggestionNominator implements WifiNetworkSelector.NetworkNo
         WifiConfiguration config = ewns.createInternalWifiConfiguration(mWifiCarrierInfoManager);
         WifiConfiguration wCmConfiguredNetwork =
                 mWifiConfigManager.getConfiguredNetwork(config.getProfileKey());
+        if (wCmConfiguredNetwork != null) {
+            mLocalLog.log(config.getProfileKey() + "is already in the WifiConfigManager");
+            if (!wCmConfiguredNetwork.getNetworkSelectionStatus().isNetworkEnabled()
+                    && !mWifiConfigManager.tryEnableNetwork(wCmConfiguredNetwork.networkId)) {
+                mLocalLog.log("Ignoring blocked network: "
+                        + toNetworkString(wCmConfiguredNetwork));
+            }
+            return;
+        }
         NetworkUpdateResult result = mWifiConfigManager.addOrUpdateNetwork(
                 config, ewns.perAppInfo.uid, ewns.perAppInfo.packageName);
         if (!result.isSuccess()) {
@@ -129,22 +138,13 @@ public class NetworkSuggestionNominator implements WifiNetworkSelector.NetworkNo
             return;
         }
         mLocalLog.log(config.getProfileKey()
-                + " is added/updated in the WifiConfigManager");
-        mWifiConfigManager.allowAutojoin(result.getNetworkId(), config.allowAutojoin);
+                + " is added in the WifiConfigManager");
         WifiConfiguration currentWCmConfiguredNetwork =
                 mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
         // Try to enable network selection
-        if (wCmConfiguredNetwork == null) {
-            if (!mWifiConfigManager.updateNetworkSelectionStatus(result.getNetworkId(),
-                    WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE)) {
-                mLocalLog.log("Failed to make network suggestion selectable");
-            }
-        } else {
-            if (!currentWCmConfiguredNetwork.getNetworkSelectionStatus().isNetworkEnabled()
-                    && !mWifiConfigManager.tryEnableNetwork(wCmConfiguredNetwork.networkId)) {
-                mLocalLog.log("Ignoring blocked network: "
-                        + toNetworkString(wCmConfiguredNetwork));
-            }
+        if (!mWifiConfigManager.updateNetworkSelectionStatus(result.getNetworkId(),
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE)) {
+            mLocalLog.log("Failed to make network suggestion selectable");
         }
     }
 
