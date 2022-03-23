@@ -28,7 +28,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -170,7 +169,6 @@ public class WifiCarrierInfoManager {
     private final WifiContext mContext;
     private final Handler mHandler;
     private final WifiInjector mWifiInjector;
-    private final Resources mResources;
     private final TelephonyManager mTelephonyManager;
     private final SubscriptionManager mSubscriptionManager;
     private final WifiNotificationManager mNotificationManager;
@@ -516,7 +514,6 @@ public class WifiCarrierInfoManager {
             @NonNull Clock clock) {
         mTelephonyManager = telephonyManager;
         mContext = context;
-        mResources = mContext.getResources();
         mWifiInjector = wifiInjector;
         mHandler = handler;
         mSubscriptionManager = subscriptionManager;
@@ -1761,7 +1758,7 @@ public class WifiCarrierInfoManager {
         }
         Notification.Action userAllowAppNotificationAction =
                 new Notification.Action.Builder(null,
-                        mResources.getText(R.string
+                        mContext.getResources().getText(R.string
                                 .wifi_suggestion_action_allow_imsi_privacy_exemption_carrier),
                         getPrivateBroadcast(NOTIFICATION_USER_ALLOWED_CARRIER_INTENT_ACTION,
                                 Pair.create(EXTRA_CARRIER_NAME, carrierName),
@@ -1769,7 +1766,7 @@ public class WifiCarrierInfoManager {
                         .build();
         Notification.Action userDisallowAppNotificationAction =
                 new Notification.Action.Builder(null,
-                        mResources.getText(R.string
+                        mContext.getResources().getText(R.string
                                 .wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier),
                         getPrivateBroadcast(NOTIFICATION_USER_DISALLOWED_CARRIER_INTENT_ACTION,
                                 Pair.create(EXTRA_CARRIER_NAME, carrierName),
@@ -1780,12 +1777,12 @@ public class WifiCarrierInfoManager {
                 mContext, WifiService.NOTIFICATION_NETWORK_STATUS)
                 .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
                         com.android.wifi.resources.R.drawable.stat_notify_wifi_in_range))
-                .setTicker(mResources.getString(
+                .setTicker(mContext.getResources().getString(
                         R.string.wifi_suggestion_imsi_privacy_title, carrierName))
-                .setContentTitle(mResources.getString(
+                .setContentTitle(mContext.getResources().getString(
                         R.string.wifi_suggestion_imsi_privacy_title, carrierName))
                 .setStyle(new Notification.BigTextStyle()
-                        .bigText(mResources.getString(
+                        .bigText(mContext.getResources().getString(
                                 R.string.wifi_suggestion_imsi_privacy_content)))
                 .setContentIntent(getPrivateBroadcast(NOTIFICATION_USER_CLICKED_INTENT_ACTION,
                         Pair.create(EXTRA_CARRIER_NAME, carrierName),
@@ -1795,8 +1792,9 @@ public class WifiCarrierInfoManager {
                         Pair.create(EXTRA_CARRIER_ID, carrierId)))
                 .setShowWhen(false)
                 .setLocalOnly(true)
-                .setColor(mResources.getColor(android.R.color.system_notification_accent_color,
-                        mContext.getTheme()))
+                .setColor(mContext.getResources()
+                        .getColor(android.R.color.system_notification_accent_color,
+                                mContext.getTheme()))
                 .addAction(userDisallowAppNotificationAction)
                 .addAction(userAllowAppNotificationAction)
                 .setTimeoutAfter(NOTIFICATION_EXPIRY_MILLS)
@@ -1813,14 +1811,14 @@ public class WifiCarrierInfoManager {
         mWifiMetrics.addUserApprovalCarrierUiReaction(ACTION_USER_ALLOWED_CARRIER,
                 mIsLastUserApprovalUiDialog);
         mWifiInjector.getWifiDialogManager().createSimpleDialog(
-                mResources.getString(
+                mContext.getResources().getString(
                         R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_title),
-                mResources.getString(
+                mContext.getResources().getString(
                         R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_content,
                         carrierName),
-                mResources.getString(
+                mContext.getResources().getString(
                         R.string.wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation),
-                mResources.getString(R.string
+                mContext.getResources().getString(R.string
                         .wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation),
                 null /* neutralButtonText */,
                 new WifiDialogManager.SimpleDialogCallback() {

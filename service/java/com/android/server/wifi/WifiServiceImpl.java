@@ -270,7 +270,7 @@ public class WifiServiceImpl extends BaseWifiService {
     @VisibleForTesting
     public final CountryCodeTracker mCountryCodeTracker;
     private final MultiInternetManager mMultiInternetManager;
-    private final int mVerboseAlwaysOnLevel;
+    private int mVerboseAlwaysOnLevel = -1;
 
     /**
      * Callback for use with LocalOnlyHotspot to unregister requesting applications upon death.
@@ -502,8 +502,14 @@ public class WifiServiceImpl extends BaseWifiService {
         mCountryCodeTracker = new CountryCodeTracker();
         mWifiTetheringDisallowed = false;
         mMultiInternetManager = mWifiInjector.getMultiInternetManager();
-        mVerboseAlwaysOnLevel = context.getResources()
-                .getInteger(R.integer.config_wifiVerboseLoggingAlwaysOnLevel);
+    }
+
+    private int getVerboseAlwaysOnLevel() {
+        if (mVerboseAlwaysOnLevel == -1) {
+            mVerboseAlwaysOnLevel = mContext.getResources()
+                    .getInteger(R.integer.config_wifiVerboseLoggingAlwaysOnLevel);
+        }
+        return mVerboseAlwaysOnLevel;
     }
 
     /**
@@ -4858,8 +4864,9 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     private boolean isVerboseLoggingEnabled() {
-        return mFrameworkFacade.isVerboseLoggingAlwaysOn(mVerboseAlwaysOnLevel, mBuildProperties)
-                ? true : WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED != mVerboseLoggingLevel;
+        return mFrameworkFacade
+                .isVerboseLoggingAlwaysOn(getVerboseAlwaysOnLevel(), mBuildProperties)
+                || WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED != mVerboseLoggingLevel;
     }
 
     private void enableVerboseLoggingInternal(int verbose) {
