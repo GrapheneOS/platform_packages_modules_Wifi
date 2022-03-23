@@ -5437,19 +5437,26 @@ public class WifiManager {
             // Check if old info removed or not (client changed case)
             for (SoftApInfo info : mCurrentInfos.values()) {
                 String changedInstance = info.getApInstanceIdentifier();
+                List<WifiClient> changedClientList = clients.getOrDefault(
+                        changedInstance, Collections.emptyList());
                 if (!changedInfoList.contains(info)) {
                     isInfoChanged = true;
                     if (mCurrentClients.getOrDefault(changedInstance,
                               Collections.emptyList()).size() > 0) {
-                        Log.d(TAG, "SoftApCallbackProxy on mode " + mIpMode
-                                + ", info changed on client connected instance(Shut Down case)");
-                        //Here should notify client changed on old info
-                        changedInfoClients.put(info, Collections.emptyList());
+                        SoftApInfo changedInfo = infos.get(changedInstance);
+                        if (changedInfo == null || changedInfo.getFrequency() == 0) {
+                            Log.d(TAG, "SoftApCallbackProxy on mode " + mIpMode
+                                    + ", info changed on client connected instance(AP disabled)");
+                            // Send old info with empty client list for shutdown case
+                            changedInfoClients.put(info, Collections.emptyList());
+                        } else {
+                            Log.d(TAG, "SoftApCallbackProxy on mode " + mIpMode
+                                    + ", info changed on client connected instance");
+                            changedInfoClients.put(changedInfo, changedClientList);
+                        }
                     }
                 } else {
                     // info doesn't change, check client list
-                    List<WifiClient> changedClientList = clients.getOrDefault(
-                            changedInstance, Collections.emptyList());
                     if (changedClientList.size()
                             != mCurrentClients
                             .getOrDefault(changedInstance, Collections.emptyList()).size()) {

@@ -1576,6 +1576,85 @@ public class WifiManagerTest {
      * Verify client-provided callback is being called through callback proxy
      */
     @Test
+    public void softApCallbackProxyCallsOnSoftApInfoChangedWhenClientConnected() throws Exception {
+        ArgumentCaptor<ISoftApCallback.Stub> callbackCaptor =
+                ArgumentCaptor.forClass(ISoftApCallback.Stub.class);
+        mWifiManager.registerSoftApCallback(new HandlerExecutor(mHandler), mSoftApCallback);
+        verify(mWifiService).registerSoftApCallback(callbackCaptor.capture());
+        List<WifiClient> clientList;
+        // Verify the register callback in disable state.
+        callbackCaptor.getValue().onConnectedClientsOrInfoChanged(
+                (Map<String, SoftApInfo>) mTestSoftApInfoMap.clone(),
+                (Map<String, List<WifiClient>>) mTestWifiClientsMap.clone(), false, true);
+        mLooper.dispatchAll();
+        verify(mSoftApCallback).onConnectedClientsChanged(new ArrayList<WifiClient>());
+        verify(mSoftApCallback, never()).onConnectedClientsChanged(any(), any());
+        verify(mSoftApCallback).onInfoChanged(new SoftApInfo());
+        verify(mSoftApCallback).onInfoChanged(new ArrayList<SoftApInfo>());
+        // After verify, reset mSoftApCallback for nex test
+        reset(mSoftApCallback);
+
+        // Single AP mode Test
+        // Test info update
+        initTestInfoAndAddToTestMap(1);
+        callbackCaptor.getValue().onConnectedClientsOrInfoChanged(
+                (Map<String, SoftApInfo>) mTestSoftApInfoMap.clone(),
+                (Map<String, List<WifiClient>>) mTestWifiClientsMap.clone(), false, false);
+        mLooper.dispatchAll();
+        verify(mSoftApCallback).onInfoChanged(mTestApInfo1);
+        verify(mSoftApCallback).onInfoChanged(Mockito.argThat((List<SoftApInfo> infos) ->
+                        infos.contains(mTestApInfo1)));
+        verify(mSoftApCallback, never()).onConnectedClientsChanged(any());
+        verify(mSoftApCallback, never()).onConnectedClientsChanged(any(), any());
+        // After verify, reset mSoftApCallback for nex test
+        reset(mSoftApCallback);
+
+        clientList = initWifiClientAndAddToTestMap(TEST_AP_INSTANCES[0], 1, 0);
+        callbackCaptor.getValue().onConnectedClientsOrInfoChanged(
+                (Map<String, SoftApInfo>) mTestSoftApInfoMap.clone(),
+                (Map<String, List<WifiClient>>) mTestWifiClientsMap.clone(), false, false);
+        mLooper.dispatchAll();
+        // checked NO any infoChanged, includes InfoChanged(SoftApInfo)
+        // and InfoChanged(List<SoftApInfo>)
+        verify(mSoftApCallback, never()).onInfoChanged(any(SoftApInfo.class));
+        verify(mSoftApCallback, never()).onInfoChanged(any(List.class));
+        verify(mSoftApCallback).onConnectedClientsChanged(mTestApInfo1, clientList);
+        verify(mSoftApCallback).onConnectedClientsChanged(clientList);
+        // After verify, reset mSoftApCallback for nex test
+        reset(mSoftApCallback);
+
+        // Test info changed when client connected
+        SoftApInfo changedInfo = new SoftApInfo(mTestSoftApInfoMap.get(TEST_AP_INSTANCES[0]));
+        changedInfo.setFrequency(2422);
+        mTestSoftApInfoMap.put(TEST_AP_INSTANCES[0], changedInfo);
+        callbackCaptor.getValue().onConnectedClientsOrInfoChanged(
+                (Map<String, SoftApInfo>) mTestSoftApInfoMap.clone(),
+                (Map<String, List<WifiClient>>) mTestWifiClientsMap.clone(), false, false);
+        mLooper.dispatchAll();
+        verify(mSoftApCallback).onInfoChanged(changedInfo);
+        verify(mSoftApCallback).onInfoChanged(Mockito.argThat((List<SoftApInfo> infos) ->
+                        infos.contains(changedInfo)));
+        verify(mSoftApCallback).onConnectedClientsChanged(clientList);
+        verify(mSoftApCallback).onConnectedClientsChanged(changedInfo, clientList);
+        // After verify, reset mSoftApCallback for nex test
+        reset(mSoftApCallback);
+
+        // Test Stop, all of infos is empty
+        mTestSoftApInfoMap.clear();
+        callbackCaptor.getValue().onConnectedClientsOrInfoChanged(
+                (Map<String, SoftApInfo>) mTestSoftApInfoMap.clone(),
+                (Map<String, List<WifiClient>>) mTestWifiClientsMap.clone(), false, false);
+        mLooper.dispatchAll();
+        verify(mSoftApCallback).onInfoChanged(new SoftApInfo());
+        verify(mSoftApCallback).onInfoChanged(new ArrayList<SoftApInfo>());
+        verify(mSoftApCallback).onConnectedClientsChanged(any());
+        verify(mSoftApCallback).onConnectedClientsChanged(any(), any());
+    }
+
+    /*
+     * Verify client-provided callback is being called through callback proxy
+     */
+    @Test
     public void softApCallbackProxyCallsOnSoftApInfoChangedInBridgedMode() throws Exception {
         ArgumentCaptor<ISoftApCallback.Stub> callbackCaptor =
                 ArgumentCaptor.forClass(ISoftApCallback.Stub.class);
