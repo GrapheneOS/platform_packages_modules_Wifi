@@ -22,6 +22,7 @@ import android.hardware.wifi.supplicant.ISupplicantStaNetworkCallback;
 import android.hardware.wifi.supplicant.NetworkRequestEapSimGsmAuthParams;
 import android.hardware.wifi.supplicant.NetworkRequestEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.TransitionDisableIndication;
+import android.util.Log;
 
 import com.android.server.wifi.util.NativeUtil;
 
@@ -37,6 +38,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback.Stub {
+    private static final String TAG = "SupplicantStaNetworkCallbackAidlImpl";
     private final SupplicantStaNetworkHalAidlImpl mNetworkHal;
     /**
      * Current configured network's framework network id.
@@ -201,8 +203,11 @@ class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback
                         "onServerCertificateAvailable: Failed to read certificate.");
                 return;
             }
-            // Not a CA certificate, ignore it.
-            if (cert.getBasicConstraints() < 0) return;
+            // Not a CA certificate
+            if (cert.getBasicConstraints() < 0) {
+                // TODO (b/226259636): Non-CA certificate should be ignored.
+                Log.e(TAG, "Not a CA certifiate.");
+            }
 
             mNetworkHal.logCallback("onServerCertificateAvailable:"
                     + " depth=" + depth

@@ -176,6 +176,10 @@ public class InsecureEapNetworkHandler {
         if (null == mCurConfig) return false;
         if (!ssid.equals(mCurConfig.SSID)) return false;
         if (null == cert) return false;
+        if (null != mPendingCaCertSubjectInfo) {
+            Log.w(TAG, "There is already pending CA cert, ignore new one.");
+            return false;
+        }
 
         mPendingCaCertSubjectInfo = CertificateSubjectInfo.parse(
                 cert.getSubjectDN().getName());
