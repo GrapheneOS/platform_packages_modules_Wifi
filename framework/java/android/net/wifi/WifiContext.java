@@ -124,7 +124,10 @@ public class WifiContext extends ContextWrapper {
 
     private Context getResourcesApkContext() {
         try {
-            return createPackageContext(getWifiOverlayApkPkgName(), 0);
+            String packageName = getWifiOverlayApkPkgName();
+            if (packageName != null) {
+                return createPackageContext(packageName, 0);
+            }
         } catch (PackageManager.NameNotFoundException e) {
             Log.wtf(TAG, "Failed to load resources", e);
         }

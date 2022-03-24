@@ -1434,6 +1434,23 @@ public class WifiAwareManagerTest {
     }
 
     /**
+     * Validate that a valid {@link WifiAwareNetworkSpecifier.Builder} can be reusable.
+     */
+    @Test
+    public void testNetworkSpecifierBuilderReusable() throws Exception {
+        final PeerHandle peerHandle = new PeerHandle(123412);
+        final byte[] pmk = PMK_VALID;
+
+        DiscoverySession publishSession = executeSessionStartup(true);
+
+        WifiAwareNetworkSpecifier.Builder nsBuilder = new WifiAwareNetworkSpecifier
+                .Builder(publishSession, peerHandle).setPmk(pmk);
+        nsBuilder.build();
+        // Verify that calling build second time will also success.
+        nsBuilder.build();
+    }
+
+    /**
      * Validate that get an exception when creating a network specifier with an invalid port number
      * (<=0).
      */
