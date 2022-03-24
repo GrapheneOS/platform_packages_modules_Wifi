@@ -23,7 +23,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -307,6 +309,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
      */
     @Test
     public void chooseApChannel2GBandWithAllowedChannels() throws Exception {
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getString(R.string.config_wifiSoftap2gChannelList))
                 .thenReturn("1, 6, 11");
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ))
@@ -324,6 +328,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
     public void chooseApChannel5GBandWithAllowedChannels() throws Exception {
         when(mResources.getString(R.string.config_wifiSoftap5gChannelList))
                 .thenReturn("149, 36-100");
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ))
                 .thenReturn(ALLOWED_5G_FREQS); //ch# 149, 153
 
@@ -337,6 +343,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
      */
     @Test
     public void chooseApChannel60GBandWithAllowedChannels() throws Exception {
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getString(R.string.config_wifiSoftap60gChannelList))
                 .thenReturn("1-2");
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_60_GHZ))
@@ -364,8 +372,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
      */
     @Test
     public void chooseApChannelWillHighBandPrefer() throws Exception {
-        when(mResources.getString(R.string.config_wifiSoftap2gChannelList))
-                .thenReturn("1, 6, 11");
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ))
                 .thenReturn(ALLOWED_2G_FREQS); // ch#11
         when(mResources.getString(R.string.config_wifiSoftap5gChannelList))
@@ -376,7 +384,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         int freq = ApConfigUtil.chooseApChannel(
                 SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ,
                 mWifiNative, mCoexManager, mResources);
-        assertTrue(ArrayUtils.contains(ALLOWED_5G_FREQS, freq));
+        assertTrue("freq " + freq, ArrayUtils.contains(ALLOWED_5G_FREQS, freq));
     }
 
     /**
@@ -385,6 +393,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
     @Test
     public void chooseApChannelWithUnsafeChannelsPreferSafe() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getString(R.string.config_wifiSoftap2gChannelList))
             .thenReturn("1, 6, 11");
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ))
@@ -422,6 +432,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
     @Test
     public void chooseApChannelWithAllSoftUnsafePreferHighBand() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getString(R.string.config_wifiSoftap2gChannelList))
                 .thenReturn("1, 6, 11");
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ))
@@ -646,16 +658,16 @@ public class ApConfigUtilTest extends WifiBaseTest {
     public void updateApChannelConfigWithAcsDisabledOemConfigured() throws Exception {
         Builder configBuilder = new SoftApConfiguration.Builder();
         configBuilder.setBand(SoftApConfiguration.BAND_5GHZ | SoftApConfiguration.BAND_2GHZ);
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getString(R.string.config_wifiSoftap2gChannelList))
                 .thenReturn("6");
         when(mResources.getString(R.string.config_wifiSoftap5gChannelList))
                 .thenReturn("149, 36-100");
-        when(mWifiNative.isHalStarted()).thenReturn(true);
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ))
                 .thenReturn(ALLOWED_2G_FREQS); // ch# 11
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ))
                 .thenReturn(ALLOWED_5G_FREQS); // ch# 149, 153
-        when(mWifiNative.isHalStarted()).thenReturn(true);
         assertEquals(ApConfigUtil.SUCCESS,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(), false));
@@ -948,6 +960,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
     @Test
     public void testGetAvailableChannelFreqsForBandWithDfsChannelWhenDeviceSupported()
             throws Exception {
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(mResources.getBoolean(R.bool.config_wifiSoftapAcsIncludeDfs))
                 .thenReturn(true);
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY))
@@ -977,5 +991,44 @@ public class ApConfigUtilTest extends WifiBaseTest {
                 "1-6,8-9", new int[] {1, 5, 9, 10});
         assertArrayEquals(new int[]{1, 5, 9},
                 resultList.stream().mapToInt(x->x).toArray());
+    }
+
+    @Test
+    public void testGetAvailableChannelFreqsForBandWithHalNotSupported()
+            throws Exception {
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.isHalSupported()).thenReturn(false);
+        when(mResources.getBoolean(R.bool.config_wifiSoftapAcsIncludeDfs))
+                .thenReturn(false);
+        when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ))
+                .thenReturn(ALLOWED_5G_FREQS);
+        List<Integer> result = ApConfigUtil.getAvailableChannelFreqsForBand(
+                SoftApConfiguration.BAND_5GHZ, mWifiNative, mResources, true);
+        // make sure we try to get available channels from wificond.
+        verify(mWifiNative).getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ);
+        verify(mWifiNative, never()).getUsableChannels(anyInt(), anyInt(), anyInt());
+        for (int freq : result) {
+            assertTrue(Arrays.stream(ALLOWED_5G_FREQS).anyMatch(n -> n == freq));
+        }
+    }
+
+    @Test
+    public void testGetAvailableChannelFreqsForBandWithHalgetUsableChannelsNotSupported()
+            throws Exception {
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.isHalSupported()).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiSoftapAcsIncludeDfs))
+                .thenReturn(false);
+        when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ))
+                .thenReturn(ALLOWED_5G_FREQS);
+        when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
+        List<Integer> result = ApConfigUtil.getAvailableChannelFreqsForBand(
+                SoftApConfiguration.BAND_5GHZ, mWifiNative, mResources, true);
+        // make sure we try to get available channels from HAL and fallback to wificond.
+        verify(mWifiNative).getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ);
+        verify(mWifiNative).getUsableChannels(eq(WifiScanner.WIFI_BAND_5_GHZ), anyInt(), anyInt());
+        for (int freq : result) {
+            assertTrue(Arrays.stream(ALLOWED_5G_FREQS).anyMatch(n -> n == freq));
+        }
     }
 }
