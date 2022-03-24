@@ -3016,6 +3016,13 @@ public class WifiNative {
         return mWifiVendorHal.isHalStarted();
     }
 
+    /**
+     * Tests whether the HAL is supported or not
+     */
+    public boolean isHalSupported() {
+        return mWifiVendorHal.isVendorHalSupported();
+    }
+
     // TODO: Change variable names to camel style.
     public static class ScanCapabilities {
         public int  max_scan_cache_size;
