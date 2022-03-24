@@ -777,7 +777,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mContext, atLeastOnce()).registerReceiver(
                 mScreenStateBroadcastReceiverCaptor.capture(),
-                argThat(f -> f.hasAction(ACTION_SCREEN_ON) && f.hasAction(ACTION_SCREEN_OFF)));
+                argThat(f -> f.hasAction(ACTION_SCREEN_ON) && f.hasAction(ACTION_SCREEN_OFF)),
+                eq(Context.RECEIVER_NOT_EXPORTED));
     }
 
     @After

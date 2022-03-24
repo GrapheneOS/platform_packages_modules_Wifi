@@ -1117,7 +1117,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             checkAndSendP2pStateChangedBroadcast();
                         }
                     }
-                }, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION));
+                }, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION),
+                        Context.RECEIVER_NOT_EXPORTED);
                 // Register for location mode on/off broadcasts
                 mContext.registerReceiver(new BroadcastReceiver() {
                     @Override
@@ -1133,7 +1134,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             sendMessage(WifiP2pManager.STOP_DISCOVERY);
                         }
                     }
-                }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
+                }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION),
+                        Context.RECEIVER_NOT_EXPORTED);
                 // Register for tethering state
                 mContext.registerReceiver(new BroadcastReceiver() {
                     @Override
@@ -1143,7 +1145,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
                         sendMessage(TETHER_INTERFACE_STATE_CHANGED, interfaces);
                     }
-                }, new IntentFilter(TetheringManager.ACTION_TETHER_STATE_CHANGED));
+                }, new IntentFilter(TetheringManager.ACTION_TETHER_STATE_CHANGED),
+                        Context.RECEIVER_NOT_EXPORTED);
                 mSettingsConfigStore.registerChangeListener(
                         WIFI_VERBOSE_LOGGING_ENABLED,
                         (key, newValue) -> enableVerboseLogging(newValue),
@@ -1165,7 +1168,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                     onUserRestrictionsChanged();
                                 }
                             },
-                            new IntentFilter(UserManager.ACTION_USER_RESTRICTIONS_CHANGED));
+                            new IntentFilter(UserManager.ACTION_USER_RESTRICTIONS_CHANGED),
+                            Context.RECEIVER_NOT_EXPORTED);
                     mIsP2pDisallowedByAdmin = mUserManager.getUserRestrictions()
                             .getBoolean(UserManager.DISALLOW_WIFI_DIRECT);
                 }

@@ -1427,7 +1427,8 @@ public class SoftApManager implements ActiveModeManager {
                     IntentFilter filter = new IntentFilter();
                     filter.addAction(Intent.ACTION_POWER_CONNECTED);
                     filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-                    mContext.registerReceiver(mBatteryChargingReceiver, filter);
+                    mContext.registerReceiver(mBatteryChargingReceiver, filter,
+                            Context.RECEIVER_NOT_EXPORTED);
                     mIsCharging = mBatteryManager.isCharging();
                 }
                 mSarManager.setSapWifiState(WifiManager.WIFI_AP_STATE_ENABLED);

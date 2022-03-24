@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import android.app.Notification;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
@@ -332,14 +333,14 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                     mBroadcastReceiverCaptor.capture(),
                     argThat(f -> f.hasAction(InsecureEapNetworkHandler.ACTION_CERT_NOTIF_TAP)),
                     eq(null),
-                    eq(mHandler));
+                    eq(mHandler), eq(Context.RECEIVER_NOT_EXPORTED));
         } else {
             verify(mContext, atLeastOnce()).registerReceiver(
                     mBroadcastReceiverCaptor.capture(),
                     argThat(f -> f.hasAction(InsecureEapNetworkHandler.ACTION_CERT_NOTIF_ACCEPT)
                             && f.hasAction(InsecureEapNetworkHandler.ACTION_CERT_NOTIF_REJECT)),
                     eq(null),
-                    eq(mHandler));
+                    eq(mHandler), eq(Context.RECEIVER_NOT_EXPORTED));
         }
     }
 
