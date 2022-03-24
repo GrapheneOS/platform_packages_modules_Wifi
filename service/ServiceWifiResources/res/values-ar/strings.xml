@@ -122,6 +122,10 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ما مِن أجهزة متصلة. انقر للتعديل."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"‏تم قطع اتصال Wi-Fi."</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"‏للاتصال بشبكة <xliff:g id="SSID">%1$s</xliff:g>، عليك إدخال شريحة SIM من <xliff:g id="CARRIER_NAME">%2$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"تعارض التطبيقات"</string>
+    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"يحتاج تطبيق <xliff:g id="APP_0">%1$s</xliff:g> إلى عرض واجهة <xliff:g id="INTERFACE">%2$s</xliff:g>. سيؤدي هذا إلى إزالة بعض الواجهات الأخرى ما قد يؤثر على <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"نعم، أريد تفعيلها"</string>
+    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"لا، أرفض تفعيلها"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"هل هذه الشبكة موثوقة؟"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"نعم، أريد الاتصال"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"لا، عدم الاتصال"</string>
@@ -143,4 +147,8 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"تفتقد هذه الشبكة <xliff:g id="SSID">%1$s</xliff:g> شهادة. انقر للتعرّف على كيفية إضافة شهادات."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"الاتصال على أي حال"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"عدم الاتصال"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"‏هل تريد السماح لتطبيق <xliff:g id="APP_NAME">%1$s</xliff:g> بتفعيل Wi-Fi؟"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"‏يمكنك إيقاف Wi-Fi في الإعدادات السريعة."</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"السماح"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"عدم السماح"</string>
 </resources>
