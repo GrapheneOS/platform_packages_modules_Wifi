@@ -1399,4 +1399,13 @@ public class WifiNativeTest extends WifiBaseTest {
         long featureSet = mWifiNative.getSupportedFeatureSet(null);
         assertEquals(featureSet, WIFI_TEST_FEATURE);
     }
+
+    /**
+     * Verifies that isSoftApInstanceDiedHandlerSupported() calls underlying HostapdHal.
+     */
+    @Test
+    public void testIsSoftApInstanceDiedHandlerSupported() throws Exception {
+        mWifiNative.isSoftApInstanceDiedHandlerSupported();
+        verify(mHostapdHal).isSoftApInstanceDiedHandlerSupported();
+    }
 }
