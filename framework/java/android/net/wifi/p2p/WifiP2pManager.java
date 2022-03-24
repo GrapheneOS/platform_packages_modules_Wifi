@@ -1933,7 +1933,8 @@ public class WifiP2pManager {
             }, conditional = true)
     public void startListening(@NonNull Channel channel, @Nullable ActionListener listener) {
         checkChannel(channel);
-        channel.mAsyncChannel.sendMessage(START_LISTEN, 0, channel.putListener(listener));
+        Bundle extras = prepareExtrasBundle(channel);
+        channel.mAsyncChannel.sendMessage(START_LISTEN, 0, channel.putListener(listener), extras);
     }
 
     /**
