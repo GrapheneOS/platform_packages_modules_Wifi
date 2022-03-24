@@ -3983,4 +3983,26 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiManager, times(1)).setEmergencyScanRequestInProgress(false);
     }
+
+    @Test
+    public void testStopPnoScanNullSetting() throws Exception {
+        startServiceAndLoadDriver();
+        mWifiScanningServiceImpl.setWifiHandlerLogForTest(mLog);
+        Handler handler = mock(Handler.class);
+        BidirectionalAsyncChannel controlChannel = connectChannel(handler);
+        InOrder order = inOrder(handler, mWifiScannerImpl0);
+        int requestId = 12;
+
+        ScanResults scanResults = createScanResultsForPno();
+        Pair<WifiScanner.ScanSettings, WifiNative.ScanSettings> scanSettings =
+                createScanSettingsForHwPno();
+        Pair<WifiScanner.PnoSettings, WifiNative.PnoSettings> pnoSettings =
+                createPnoSettings(scanResults);
+
+        sendPnoScanRequest(controlChannel, requestId, scanSettings.first, pnoSettings.first);
+        expectHwPnoScan(order, handler, requestId, pnoSettings.second, scanResults);
+
+        controlChannel.sendMessage(Message.obtain(null, WifiScanner.CMD_STOP_PNO_SCAN, 0, 0));
+        mLooper.dispatchAll();
+    }
 }
