@@ -29,6 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.WifiContext;
@@ -126,7 +127,7 @@ public class WakeupOnboardingTest extends WifiBaseTest {
         mWakeupOnboarding.maybeShowNotification();
         ArgumentCaptor<BroadcastReceiver> captor = ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(captor.capture(), any(IntentFilter.class), any(),
-                any(Handler.class));
+                any(Handler.class), eq(Context.RECEIVER_NOT_EXPORTED));
         BroadcastReceiver broadcastReceiver = captor.getValue();
 
         broadcastReceiver.onReceive(mContext, new Intent(ACTION_DISMISS_NOTIFICATION));
@@ -147,7 +148,7 @@ public class WakeupOnboardingTest extends WifiBaseTest {
         mWakeupOnboarding.maybeShowNotification();
         ArgumentCaptor<BroadcastReceiver> captor = ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(captor.capture(), any(IntentFilter.class), any(),
-                any(Handler.class));
+                any(Handler.class), eq(Context.RECEIVER_NOT_EXPORTED));
         BroadcastReceiver broadcastReceiver = captor.getValue();
 
         broadcastReceiver.onReceive(mContext, new Intent(ACTION_TURN_OFF_WIFI_WAKE));
@@ -171,7 +172,7 @@ public class WakeupOnboardingTest extends WifiBaseTest {
         mWakeupOnboarding.maybeShowNotification();
         ArgumentCaptor<BroadcastReceiver> captor = ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(captor.capture(), any(IntentFilter.class), any(),
-                any(Handler.class));
+                any(Handler.class), eq(Context.RECEIVER_NOT_EXPORTED));
         BroadcastReceiver broadcastReceiver = captor.getValue();
 
         broadcastReceiver.onReceive(mContext, new Intent(ACTION_OPEN_WIFI_PREFERENCES));

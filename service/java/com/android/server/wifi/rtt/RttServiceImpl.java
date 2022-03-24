@@ -276,7 +276,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         }
                     }
                 }
-            }, intentFilter);
+            }, intentFilter, Context.RECEIVER_NOT_EXPORTED);
 
             settingsConfigStore.registerChangeListener(
                     WIFI_VERBOSE_LOGGING_ENABLED,
@@ -299,7 +299,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         disable();
                     }
                 }
-            }, intentFilter);
+            }, intentFilter, Context.RECEIVER_NOT_EXPORTED);
 
             rttNative.start(mRttServiceSynchronized.mHandler);
         });

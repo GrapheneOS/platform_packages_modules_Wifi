@@ -1256,11 +1256,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             // * UserManager.ACTION_USER_RESTRICTIONS_CHANGED
             if (SdkLevel.isAtLeastT()) {
                 verify(mContext, times(4)).registerReceiver(mBcastRxCaptor.capture(),
-                        any(IntentFilter.class));
+                        any(IntentFilter.class), eq(Context.RECEIVER_NOT_EXPORTED));
                 mUserRestrictionReceiver = mBcastRxCaptor.getAllValues().get(3);
             } else {
                 verify(mContext, times(3)).registerReceiver(mBcastRxCaptor.capture(),
-                        any(IntentFilter.class));
+                        any(IntentFilter.class), eq(Context.RECEIVER_NOT_EXPORTED));
             }
             mWifiStateChangedReceiver = mBcastRxCaptor.getAllValues().get(0);
             mLocationModeReceiver = mBcastRxCaptor.getAllValues().get(1);

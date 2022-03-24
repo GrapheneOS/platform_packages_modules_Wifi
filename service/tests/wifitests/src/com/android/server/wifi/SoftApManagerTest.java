@@ -3244,7 +3244,8 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
                         filter.hasAction(Intent.ACTION_POWER_CONNECTED)
-                                && filter.hasAction(Intent.ACTION_POWER_DISCONNECTED)));
+                                && filter.hasAction(Intent.ACTION_POWER_DISCONNECTED)),
+                eq(Context.RECEIVER_NOT_EXPORTED));
         mBroadcastReceiverCaptor.getValue().onReceive(mContext,
                 new Intent(Intent.ACTION_POWER_CONNECTED));
         mLooper.dispatchAll();

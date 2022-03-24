@@ -21,6 +21,7 @@ import static com.android.server.wifi.ConnectToNetworkNotificationBuilder.ACTION
 import static org.mockito.Mockito.*;
 
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.ScanResult;
 import android.net.wifi.ScanResult.InformationElement;
@@ -85,7 +86,8 @@ public class AvailableNetworkNotifierTest extends WifiBaseTest {
                 mWifiNotificationManager);
 
         ArgumentCaptor<BroadcastReceiver> captor = ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(captor.capture(), any(), any(), any());
+        verify(mContext).registerReceiver(captor.capture(), any(), any(), any(),
+                eq(Context.RECEIVER_NOT_EXPORTED));
         mBroadcastReceiver = captor.getValue();
     }
 

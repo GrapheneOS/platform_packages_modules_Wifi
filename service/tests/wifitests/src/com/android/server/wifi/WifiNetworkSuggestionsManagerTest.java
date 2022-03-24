@@ -296,7 +296,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         mWifiInjector, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore,
                         mWifiMetrics, mWifiCarrierInfoManager, mWifiKeyStore,
                         mLruConnectionTracker, mClock);
-        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any());
+        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any(),
+                eq(Context.RECEIVER_NOT_EXPORTED));
 
         ArgumentCaptor<NetworkSuggestionStoreData.DataSource> dataSourceArgumentCaptor =
                 ArgumentCaptor.forClass(NetworkSuggestionStoreData.DataSource.class);

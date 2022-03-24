@@ -292,7 +292,8 @@ public class CoexManager {
         readTableFromXml();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
-        mContext.registerReceiver(mCarrierConfigChangedReceiver, filter, null, mCallbackHandler);
+        mContext.registerReceiver(mCarrierConfigChangedReceiver, filter, null, mCallbackHandler,
+                Context.RECEIVER_NOT_EXPORTED);
         mSubscriptionManager.addOnSubscriptionsChangedListener(
                 new HandlerExecutor(mCallbackHandler), new CoexOnSubscriptionsChangedListener());
     }

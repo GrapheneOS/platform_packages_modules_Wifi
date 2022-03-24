@@ -202,7 +202,8 @@ public class AvailableNetworkNotifier {
         filter.addAction(ACTION_PICK_WIFI_NETWORK);
         filter.addAction(ACTION_PICK_WIFI_NETWORK_AFTER_CONNECT_FAILURE);
         mContext.registerReceiver(
-                mBroadcastReceiver, filter, null /* broadcastPermission */, mHandler);
+                mBroadcastReceiver, filter, null /* broadcastPermission */, mHandler,
+                Context.RECEIVER_NOT_EXPORTED);
     }
 
     private final BroadcastReceiver mBroadcastReceiver =
