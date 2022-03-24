@@ -951,15 +951,23 @@ public class SoftApManager implements ActiveModeManager {
                                     isFallbackToSingleAp = true;
                                 }
                             }
-
-                            for (int configuredBand : mCurrentSoftApConfiguration.getBands()) {
-                                int availableBand = ApConfigUtil.removeUnavailableBands(
-                                        mCurrentSoftApCapability,
-                                        configuredBand, mCoexManager);
-                                if (configuredBand != availableBand) {
-                                    isFallbackToSingleAp = true;
+                            if (mWifiNative.isSoftApInstanceDiedHandlerSupported()
+                                    && !TextUtils.equals(mCountryCode,
+                                      mCurrentSoftApCapability.getCountryCode())) {
+                                Log.i(getTag(), "CountryCode changed, bypass the supported band"
+                                        + "capability check, mCountryCode = " + mCountryCode
+                                        + ", base country in SoftApCapability = "
+                                        + mCurrentSoftApCapability.getCountryCode());
+                            } else {
+                                for (int configuredBand : mCurrentSoftApConfiguration.getBands()) {
+                                    int availableBand = ApConfigUtil.removeUnavailableBands(
+                                            mCurrentSoftApCapability,
+                                            configuredBand, mCoexManager);
+                                    if (configuredBand != availableBand) {
+                                        isFallbackToSingleAp = true;
+                                    }
+                                    newSingleApBand |= availableBand;
                                 }
-                                newSingleApBand |= availableBand;
                             }
                             // Fall back to Single AP if the current concurrency combination can't
                             // support a Bridged AP.
@@ -1600,10 +1608,14 @@ public class SoftApManager implements ActiveModeManager {
                         break;
                     case CMD_FAILURE:
                         String instance = (String) message.obj;
-                        if (instance != null && mCurrentSoftApInfoMap.size() == 2) {
-                            Log.i(TAG, "onInstanceFailure on " + instance);
+                        if (instance != null && isBridgedMode()
+                                && mCurrentSoftApInfoMap.size() >= 1) {
+                            Log.i(getTag(), "receive instanceFailure on " + instance);
                             removeIfaceInstanceFromBridgedApIface(instance);
-                            break;
+                            // there is a available instance, keep AP on.
+                            if (mCurrentSoftApInfoMap.size() == 1) {
+                                break;
+                            }
                         }
                         Log.w(getTag(), "hostapd failure, stop and report failure");
                         /* fall through */

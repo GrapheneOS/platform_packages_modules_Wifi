@@ -358,6 +358,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 SoftApConfiguration.BAND_2GHZ, TEST_SUPPORTED_24G_CHANNELS);
         mTestSoftApCapability.setSupportedChannelList(
                 SoftApConfiguration.BAND_5GHZ, TEST_SUPPORTED_5G_CHANNELS);
+        mTestSoftApCapability.setCountryCode(TEST_COUNTRY_CODE);
         when(mWifiApConfigStore.getApConfiguration()).thenReturn(mDefaultApConfig);
         when(mWifiNative.isHalStarted()).thenReturn(true);
 
@@ -3275,5 +3276,24 @@ public class SoftApManagerTest extends WifiBaseTest {
                                   + TEST_SECOND_INSTANCE_NAME),
                         any(), any());
     }
+
+    @Test
+    public void testForceToEnableBridgedModeWhenCountryCodeIsPendingToChanged()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        int[] dual_bands = {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_5GHZ};
+        SoftApCapability testCapability = new SoftApCapability(mTestSoftApCapability);
+        testCapability.setCountryCode(null);
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setSsid(TEST_SSID);
+        configBuilder.setBands(dual_bands);
+
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                testCapability);
+        startSoftApAndVerifyEnabled(apConfig, TEST_COUNTRY_CODE, configBuilder.build());
+    }
+
 }
 

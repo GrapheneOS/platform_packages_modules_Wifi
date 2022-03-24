@@ -1791,6 +1791,9 @@ public class WifiServiceImpl extends BaseWifiService {
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
                 @NonNull SoftApCapability softApCapability) {
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
+            }
             if (!mIsBootComplete) {
                 // The available channel list is from wificond.
                 // It might be a failure or stuck during wificond init.
@@ -2001,6 +2004,9 @@ public class WifiServiceImpl extends BaseWifiService {
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
                 @NonNull SoftApCapability softApCapability) {
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
+            }
             if (!mIsBootComplete) {
                 // The available channel list is from wificond.
                 // It might be a failure or stuck during wificond init.

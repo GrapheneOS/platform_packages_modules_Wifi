@@ -4259,4 +4259,11 @@ public class WifiNative {
         }
         return mCachedFeatureSet;
     }
+
+    /**
+     * Returns whether or not the hostapd HAL supports reporting single instance died event.
+     */
+    public boolean isSoftApInstanceDiedHandlerSupported() {
+        return mHostapdHal.isSoftApInstanceDiedHandlerSupported();
+    }
 }

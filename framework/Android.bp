@@ -95,6 +95,7 @@ java_defaults {
         "framework-wifi-util-lib",
         "android.hardware.wifi-V1.0-java-constants",
         "wifi-modules-utils",
+        "PlatformProperties",
     ],
     libs: [
         "androidx.annotation_annotation",
