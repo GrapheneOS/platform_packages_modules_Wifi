@@ -26,6 +26,7 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApConfiguration.BandType;
 import android.net.wifi.SoftApInfo;
+import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
@@ -336,6 +337,81 @@ public class ApConfigUtil {
         return unsafeFreqs;
     }
 
+    private static List<Integer> getConfiguredChannelList(Resources resources, @BandType int band) {
+        switch (band) {
+            case SoftApConfiguration.BAND_2GHZ:
+                return convertStringToChannelList(resources.getString(
+                        R.string.config_wifiSoftap2gChannelList));
+            case SoftApConfiguration.BAND_5GHZ:
+                return convertStringToChannelList(resources.getString(
+                        R.string.config_wifiSoftap5gChannelList));
+            case SoftApConfiguration.BAND_6GHZ:
+                return convertStringToChannelList(resources.getString(
+                        R.string.config_wifiSoftap6gChannelList));
+            case SoftApConfiguration.BAND_60GHZ:
+                return convertStringToChannelList(resources.getString(
+                        R.string.config_wifiSoftap60gChannelList));
+            default:
+                return null;
+        }
+    }
+
+    private static List<Integer> addDfsChannelsIfNeeded(List<Integer> regulatoryList,
+            @WifiScanner.WifiBand int scannerBand, WifiNative wifiNative, Resources resources,
+            boolean inFrequencyMHz) {
+        // Add DFS channels to the supported channel list if the device supports SoftAp
+        // operation in the DFS channel.
+        if (resources.getBoolean(R.bool.config_wifiSoftapAcsIncludeDfs)
+                && scannerBand == WifiScanner.WIFI_BAND_5_GHZ) {
+            int[] dfs5gBand = wifiNative.getChannelsForBand(
+                    WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY);
+            for (int freq : dfs5gBand) {
+                final int freqOrChan = inFrequencyMHz
+                        ? freq : ScanResult.convertFrequencyMhzToChannelIfSupported(freq);
+                if (!regulatoryList.contains(freqOrChan)) {
+                    regulatoryList.add(freqOrChan);
+                }
+            }
+        }
+        return regulatoryList;
+    }
+
+    private static List<Integer> getWifiCondAvailableChannelsForBand(
+            @WifiScanner.WifiBand int scannerBand, WifiNative wifiNative, Resources resources,
+            boolean inFrequencyMHz) {
+        List<Integer> regulatoryList = new ArrayList<Integer>();
+        // Get the allowed list of channel frequencies in MHz from wificond
+        int[] regulatoryArray = wifiNative.getChannelsForBand(scannerBand);
+        for (int freq : regulatoryArray) {
+            regulatoryList.add(inFrequencyMHz
+                    ? freq : ScanResult.convertFrequencyMhzToChannelIfSupported(freq));
+        }
+        return addDfsChannelsIfNeeded(regulatoryList, scannerBand, wifiNative, resources,
+                inFrequencyMHz);
+    }
+
+    private static List<Integer> getHalAvailableChannelsForBand(
+            @WifiScanner.WifiBand int scannerBand, WifiNative wifiNative, Resources resources,
+            boolean inFrequencyMHz) {
+        // Try vendor HAL API to get the usable channel list.
+        List<WifiAvailableChannel> usableChannelList = wifiNative.getUsableChannels(
+                scannerBand,
+                WifiAvailableChannel.OP_MODE_SAP,
+                WifiAvailableChannel.FILTER_REGULATORY);
+        if (usableChannelList == null) {
+            // If HAL doesn't support getUsableChannels then return null
+            return null;
+        }
+        List<Integer> regulatoryList = usableChannelList.stream()
+                .map(ch -> inFrequencyMHz
+                        ? ch.getFrequencyMhz()
+                        : ScanResult.convertFrequencyMhzToChannelIfSupported(
+                                ch.getFrequencyMhz()))
+                .collect(Collectors.toList());
+        return addDfsChannelsIfNeeded(regulatoryList, scannerBand, wifiNative, resources,
+                inFrequencyMHz);
+    }
+
     /**
      * Get channels or frequencies for band that are allowed by both regulatory
      * and OEM configuration.
@@ -353,53 +429,32 @@ public class ApConfigUtil {
             return null;
         }
 
-        List<Integer> configuredList;
-        int scannerBand;
-        switch (band) {
-            case SoftApConfiguration.BAND_2GHZ:
-                configuredList = convertStringToChannelList(resources.getString(
-                        R.string.config_wifiSoftap2gChannelList));
-                scannerBand = WifiScanner.WIFI_BAND_24_GHZ;
-                break;
-            case SoftApConfiguration.BAND_5GHZ:
-                configuredList = convertStringToChannelList(resources.getString(
-                        R.string.config_wifiSoftap5gChannelList));
-                scannerBand = WifiScanner.WIFI_BAND_5_GHZ;
-                break;
-            case SoftApConfiguration.BAND_6GHZ:
-                configuredList = convertStringToChannelList(resources.getString(
-                        R.string.config_wifiSoftap6gChannelList));
-                scannerBand = WifiScanner.WIFI_BAND_6_GHZ;
-                break;
-            case SoftApConfiguration.BAND_60GHZ:
-                configuredList = convertStringToChannelList(resources.getString(
-                        R.string.config_wifiSoftap60gChannelList));
-                scannerBand = WifiScanner.WIFI_BAND_60_GHZ;
-                break;
-            default:
+        int scannerBand = apConfig2wifiScannerBand(band);
+        List<Integer> regulatoryList = null;
+        boolean useWifiCond = false;
+        // Check if vendor HAL API for getting usable channels is available. If HAL doesn't support
+        // the API it returns null list, in that case we retrieve the list from wificond.
+        if (!wifiNative.isHalSupported()) {
+            // HAL is not supported, fallback to wificond
+            useWifiCond = true;
+        } else {
+            if (!wifiNative.isHalStarted()) {
+                // HAL is not started, return null
                 return null;
-        }
-
-        // Get the allowed list of channel frequencies in MHz
-        int[] regulatoryArray = wifiNative.getChannelsForBand(scannerBand);
-        List<Integer> regulatoryList = new ArrayList<Integer>();
-        for (int freq : regulatoryArray) {
-            regulatoryList.add(inFrequencyMHz
-                    ? freq : ScanResult.convertFrequencyMhzToChannelIfSupported(freq));
-        }
-
-        // Add DFS channels to the supported channel list if the device supports SoftAp operation
-        // in the DFS channel.
-        if (resources.getBoolean(R.bool.config_wifiSoftapAcsIncludeDfs)
-                && scannerBand == WifiScanner.WIFI_BAND_5_GHZ) {
-            regulatoryArray = wifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY);
-            for (int freq : regulatoryArray) {
-                regulatoryList.add(inFrequencyMHz
-                        ? freq : ScanResult.convertFrequencyMhzToChannelIfSupported(freq));
+            }
+            regulatoryList = getHalAvailableChannelsForBand(scannerBand, wifiNative, resources,
+                    inFrequencyMHz);
+            if (regulatoryList == null) {
+                // HAL API not supported by HAL, fallback to wificond
+                useWifiCond = true;
             }
         }
-
-        if (configuredList == null || configuredList.isEmpty()) {
+        if (useWifiCond) {
+            regulatoryList = getWifiCondAvailableChannelsForBand(scannerBand, wifiNative, resources,
+                    inFrequencyMHz);
+        }
+        List<Integer> configuredList = getConfiguredChannelList(resources, band);
+        if (configuredList == null || configuredList.isEmpty() || regulatoryList == null) {
             return regulatoryList;
         }
         List<Integer> filteredList = new ArrayList<Integer>();
@@ -414,6 +469,8 @@ public class ApConfigUtil {
                 filteredList.add(channel);
             }
         }
+        Log.d(TAG, "Filtered channel list for band " + band + " : "
+                + filteredList.stream().map(Object::toString).collect(Collectors.joining(",")));
         return filteredList;
     }
 
@@ -1281,7 +1338,8 @@ public class ApConfigUtil {
 
 
     /**
-     * Observer the available channel from native layer (wificond) and update the SoftApCapability
+     * Observer the available channel from native layer (vendor HAL if getUsableChannels is
+     * supported, or wificond if not supported) and update the SoftApCapability
      *
      * @param softApCapability the current softap capability
      * @param context the caller context used to get value from resource file
