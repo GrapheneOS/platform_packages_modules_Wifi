@@ -18,18 +18,13 @@ package com.android.server.wifi;
 
 import android.app.Notification;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
 import android.net.wifi.WifiContext;
-import android.os.UserHandle;
-import android.os.UserManager;
 import android.provider.Settings;
-import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
-import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.NativeUtil;
 
 /**
@@ -91,16 +86,6 @@ public class WrongPasswordNotifier {
                 .putExtra("wifi_start_connect_ssid", NativeUtil.removeEnclosingQuotes(ssid));
         CharSequence title = mContext.getString(
                 com.android.wifi.resources.R.string.wifi_available_title_failed_to_connect);
-
-        Context userContext = mContext;
-        if (SdkLevel.isAtLeastS() && UserManager.isHeadlessSystemUserMode()) {
-            // Need to pass the context of the current user to the activity that's launched when
-            // the notification is tapped
-            userContext = mContext.createContextAsUser(UserHandle.CURRENT, /* flags= */ 0);
-        }
-
-        Log.i(TAG, "Showing '" + title + "' notification for user " + userContext.getUser()
-                + " and package " + settingsPackage);
         Notification.Builder builder = mFrameworkFacade.makeNotificationBuilder(mContext,
                 WifiService.NOTIFICATION_NETWORK_ALERTS)
                 .setAutoCancel(true)
@@ -111,7 +96,7 @@ public class WrongPasswordNotifier {
                 .setContentTitle(title)
                 .setContentText(ssid)
                 .setContentIntent(mFrameworkFacade.getActivity(
-                        userContext, 0, intent,
+                        mContext, 0, intent,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
                 .setColor(mContext.getResources().getColor(
                         android.R.color.system_notification_accent_color));

@@ -185,10 +185,11 @@ public class FrameworkFacade {
     }
 
     /**
-     * Wrapper for {@link PendingIntent#getActivity}.
+     * Wrapper for {@link PendingIntent#getActivity} using the current foreground user.
      */
     public PendingIntent getActivity(Context context, int requestCode, Intent intent, int flags) {
-        return PendingIntent.getActivity(context, requestCode, intent, flags);
+        return PendingIntent.getActivity(context.createContextAsUser(UserHandle.CURRENT, 0),
+                requestCode, intent, flags);
     }
 
     public boolean getConfigWiFiDisableInECBM(Context context) {
