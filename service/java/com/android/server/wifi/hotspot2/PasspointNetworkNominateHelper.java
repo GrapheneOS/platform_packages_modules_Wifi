@@ -227,7 +227,6 @@ public class PasspointNetworkNominateHelper {
             mLocalLog.log("Failed to add passpoint network");
             return existingNetwork;
         }
-        mWifiConfigManager.allowAutojoin(result.getNetworkId(), config.allowAutojoin);
         mWifiConfigManager.enableNetwork(result.getNetworkId(), false, config.creatorUid, null);
         mWifiConfigManager.setNetworkCandidateScanResult(result.getNetworkId(),
                 candidate.mScanDetail.getScanResult(), 0, null);
