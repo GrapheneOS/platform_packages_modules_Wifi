@@ -3554,14 +3554,22 @@ public class WifiConfigManager {
     /**
      * Add the network update event listener
      */
-    public void addOnNetworkUpdateListener(OnNetworkUpdateListener listener) {
+    public void addOnNetworkUpdateListener(@NonNull OnNetworkUpdateListener listener) {
+        if (listener == null) {
+            Log.wtf(TAG, "addOnNetworkUpdateListener: listener must not be null");
+            return;
+        }
         mListeners.add(listener);
     }
 
     /**
      * Remove the network update event listener
      */
-    public void removeOnNetworkUpdateListener(OnNetworkUpdateListener listener) {
+    public void removeOnNetworkUpdateListener(@NonNull OnNetworkUpdateListener listener) {
+        if (listener == null) {
+            Log.wtf(TAG, "removeOnNetworkUpdateListener: listener must not be null");
+            return;
+        }
         mListeners.remove(listener);
     }
 
