@@ -77,6 +77,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Manage WiFi in AP mode.
@@ -531,17 +532,17 @@ public class SoftApManager implements ActiveModeManager {
         pw.println("mSoftApCountryCode: " + mCountryCode);
         pw.println("mOriginalModeConfiguration.targetMode: "
                 + mOriginalModeConfiguration.getTargetMode());
-        pw.println("mCurrentSoftApConfiguration.mWifiSsid: "
-                + mCurrentSoftApConfiguration.getWifiSsid());
-        pw.println("mCurrentSoftApConfiguration.mBand: " + mCurrentSoftApConfiguration.getBand());
-        pw.println("mCurrentSoftApConfiguration.hiddenSSID: "
-                + mCurrentSoftApConfiguration.isHiddenSsid());
+        pw.println("mCurrentSoftApConfiguration: " + mCurrentSoftApConfiguration);
+        pw.println("mCurrentSoftApCapability: " + mCurrentSoftApCapability);
         pw.println("getConnectedClientList().size(): " + getConnectedClientList().size());
         pw.println("mTimeoutEnabled: " + mTimeoutEnabled);
         pw.println("mBridgedModeOpportunisticsShutdownTimeoutEnabled: "
                 + mBridgedModeOpportunisticsShutdownTimeoutEnabled);
         pw.println("mCurrentSoftApInfoMap " + mCurrentSoftApInfoMap);
         pw.println("mStartTimestamp: " + mStartTimestamp);
+        pw.println("mSafeChannelFrequencyList: " + mSafeChannelFrequencyList.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",")));
         mStateMachine.dump(fd, pw, args);
     }
 
@@ -681,8 +682,8 @@ public class SoftApManager implements ActiveModeManager {
      * @return integer result code
      */
     private int startSoftAp() {
-        Log.d(getTag(), "band " + mCurrentSoftApConfiguration.getBand() + " iface "
-                + mApInterfaceName + " country " + mCountryCode);
+        Log.d(getTag(), "startSoftAp: band " + mCurrentSoftApConfiguration.getBand()
+                + " iface " + mApInterfaceName + " country " + mCountryCode);
 
         int result = setMacAddress();
         if (result != SUCCESS) {
@@ -698,12 +699,9 @@ public class SoftApManager implements ActiveModeManager {
         SoftApConfiguration.Builder localConfigBuilder =
                 new SoftApConfiguration.Builder(mCurrentSoftApConfiguration);
 
-        boolean acsEnabled = mCurrentSoftApCapability.areFeaturesSupported(
-                SoftApCapability.SOFTAP_FEATURE_ACS_OFFLOAD);
-
         result = ApConfigUtil.updateApChannelConfig(
                 mWifiNative, mCoexManager, mContext.getResources(), mCountryCode,
-                localConfigBuilder, mCurrentSoftApConfiguration, acsEnabled);
+                localConfigBuilder, mCurrentSoftApConfiguration, mCurrentSoftApCapability);
         if (result != SUCCESS) {
             Log.e(getTag(), "Failed to update AP band and channel");
             return result;

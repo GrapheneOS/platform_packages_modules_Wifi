@@ -366,12 +366,12 @@ public final class SoftApCapability implements Parcelable {
     public String toString() {
         StringBuilder sbuf = new StringBuilder();
         sbuf.append("SupportedFeatures=").append(mSupportedFeatures);
-        sbuf.append("MaximumSupportedClientNumber=").append(mMaximumSupportedClientNumber);
-        sbuf.append("SupportedChannelListIn24g")
+        sbuf.append(" MaximumSupportedClientNumber=").append(mMaximumSupportedClientNumber);
+        sbuf.append(" SupportedChannelListIn24g")
                 .append(Arrays.toString(mSupportedChannelListIn24g));
-        sbuf.append("SupportedChannelListIn5g").append(Arrays.toString(mSupportedChannelListIn5g));
-        sbuf.append("SupportedChannelListIn6g").append(Arrays.toString(mSupportedChannelListIn6g));
-        sbuf.append("SupportedChannelListIn60g")
+        sbuf.append(" SupportedChannelListIn5g").append(Arrays.toString(mSupportedChannelListIn5g));
+        sbuf.append(" SupportedChannelListIn6g").append(Arrays.toString(mSupportedChannelListIn6g));
+        sbuf.append(" SupportedChannelListIn60g")
                 .append(Arrays.toString(mSupportedChannelListIn60g));
         return sbuf.toString();
     }
