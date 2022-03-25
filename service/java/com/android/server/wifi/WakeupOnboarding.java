@@ -131,7 +131,7 @@ public class WakeupOnboarding {
         mLastShownTimestamp = timestamp;
 
         mContext.registerReceiver(mBroadcastReceiver, mIntentFilter,
-                null /* broadcastPermission */, mHandler);
+                null /* broadcastPermission */, mHandler, Context.RECEIVER_NOT_EXPORTED);
         mNotificationManager.notify(WakeupNotificationFactory.ONBOARD_ID,
                 mWakeupNotificationFactory.createOnboardingNotification());
     }

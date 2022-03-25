@@ -22,6 +22,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGI
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.AlertDialog;
 import android.app.BroadcastOptions;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
@@ -30,6 +31,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -86,9 +88,12 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
@@ -1117,7 +1122,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             checkAndSendP2pStateChangedBroadcast();
                         }
                     }
-                }, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION));
+                }, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION),
+                        Context.RECEIVER_NOT_EXPORTED);
                 // Register for location mode on/off broadcasts
                 mContext.registerReceiver(new BroadcastReceiver() {
                     @Override
@@ -1133,7 +1139,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             sendMessage(WifiP2pManager.STOP_DISCOVERY);
                         }
                     }
-                }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
+                }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION),
+                        Context.RECEIVER_NOT_EXPORTED);
                 // Register for tethering state
                 mContext.registerReceiver(new BroadcastReceiver() {
                     @Override
@@ -1143,7 +1150,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
                         sendMessage(TETHER_INTERFACE_STATE_CHANGED, interfaces);
                     }
-                }, new IntentFilter(TetheringManager.ACTION_TETHER_STATE_CHANGED));
+                }, new IntentFilter(TetheringManager.ACTION_TETHER_STATE_CHANGED),
+                        Context.RECEIVER_NOT_EXPORTED);
                 mSettingsConfigStore.registerChangeListener(
                         WIFI_VERBOSE_LOGGING_ENABLED,
                         (key, newValue) -> enableVerboseLogging(newValue),
@@ -1165,7 +1173,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                     onUserRestrictionsChanged();
                                 }
                             },
-                            new IntentFilter(UserManager.ACTION_USER_RESTRICTIONS_CHANGED));
+                            new IntentFilter(UserManager.ACTION_USER_RESTRICTIONS_CHANGED),
+                            Context.RECEIVER_NOT_EXPORTED);
                     mIsP2pDisallowedByAdmin = mUserManager.getUserRestrictions()
                             .getBoolean(UserManager.DISALLOW_WIFI_DIRECT);
                 }
@@ -3633,14 +3642,35 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         class FrequencyConflictState extends State {
             private WifiDialogManager.DialogHandle mFrequencyConflictDialog;
+            private AlertDialog mFrequencyConflictDialogPreT;
+
             @Override
             public void enter() {
                 if (isVerboseLoggingEnabled()) logd(getName());
                 notifyFrequencyConflict();
             }
 
-            private void notifyFrequencyConflict() {
-                logd("Notify frequency conflict");
+            private void showFrequencyConflictDialogPreT() {
+                Resources r = mContext.getResources();
+                AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+                        .setMessage(r.getString(R.string.wifi_p2p_frequency_conflict_message,
+                                getDeviceName(mSavedPeerConfig.deviceAddress)))
+                        .setPositiveButton(r.getString(R.string.dlg_ok), (dialog1, which) ->
+                                sendMessage(DROP_WIFI_USER_ACCEPT))
+                        .setNegativeButton(r.getString(R.string.decline), (dialog2, which) ->
+                                sendMessage(DROP_WIFI_USER_REJECT))
+                        .setOnCancelListener(arg0 -> sendMessage(DROP_WIFI_USER_REJECT))
+                        .create();
+                dialog.setCanceledOnTouchOutside(false);
+
+                dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                dialog.getWindow().addSystemFlags(
+                        WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
+                dialog.show();
+                mFrequencyConflictDialogPreT = dialog;
+            }
+
+            private void showFrequencyConflictDialog() {
                 Resources r = mContext.getResources();
                 WifiDialogManager.DialogHandle dialog = mWifiInjector.getWifiDialogManager()
                         .createSimpleDialog(
@@ -3677,6 +3707,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 dialog.launchDialog();
             }
 
+            private void notifyFrequencyConflict() {
+                logd("Notify frequency conflict");
+                if (!SdkLevel.isAtLeastT()) {
+                    showFrequencyConflictDialogPreT();
+                } else {
+                    showFrequencyConflictDialog();
+                }
+            }
+
             @Override
             public boolean processMessage(Message message) {
                 if (isVerboseLoggingEnabled()) logd(getName() + message.toString());
@@ -3698,6 +3737,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case DROP_WIFI_USER_REJECT:
                         // User rejected dropping wifi in favour of p2p
                         mFrequencyConflictDialog = null;
+                        mFrequencyConflictDialogPreT = null;
                         mWifiP2pMetrics.endConnectionEvent(
                                 P2pConnectionEvent.CLF_USER_REJECT);
                         handleGroupCreationFailure();
@@ -3705,6 +3745,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     case DROP_WIFI_USER_ACCEPT:
                         mFrequencyConflictDialog = null;
+                        mFrequencyConflictDialogPreT = null;
                         // User accepted dropping wifi in favour of p2p
                         sendDisconnectWifiRequest(true);
                         break;
@@ -3728,7 +3769,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
 
             public void exit() {
-                if (mFrequencyConflictDialog != null) mFrequencyConflictDialog.dismissDialog();
+                if (mFrequencyConflictDialogPreT != null) {
+                    mFrequencyConflictDialogPreT.dismiss();
+                }
+                if (mFrequencyConflictDialog != null) {
+                    mFrequencyConflictDialog.dismissDialog();
+                }
             }
         }
 
@@ -4345,6 +4391,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         private boolean checkNearbyDevicesPermission(int uid, String packageName, Bundle extras,
                 String message) {
+            if (extras == null) {
+                return false;
+            }
             if (extras.getBoolean(WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE)) {
                 // bypass permission check for internal call.
                 return true;
@@ -4442,6 +4491,46 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             group.addView(row);
         }
 
+        // Legacy dialog behavior to avoid WifiDialogActivity invoking onPause() of pre-T
+        // Settings/Apps, which might trigger P2P teardown.
+        private void showInvitationSentDialogPreT(@NonNull String deviceName,
+                @Nullable String pin) {
+            Resources r = mContext.getResources();
+
+            final View textEntryView = LayoutInflater.from(mContext).cloneInContext(mContext)
+                    .inflate(R.layout.wifi_p2p_dialog, null);
+
+            ViewGroup group = textEntryView.findViewById(R.id.info);
+            addRowToDialog(group, R.string.wifi_p2p_to_message, deviceName);
+            addRowToDialog(group, R.string.wifi_p2p_show_pin_message, pin);
+
+            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+                    .setTitle(r.getString(R.string.wifi_p2p_invitation_sent_title))
+                    .setView(textEntryView)
+                    .setPositiveButton(r.getString(R.string.ok), null)
+                    .create();
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            dialog.getWindow().addSystemFlags(
+                    WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
+            dialog.show();
+        }
+
+        private void showInvitationSentDialog(@NonNull String deviceName, @Nullable String pin) {
+            int displayId = mDeathDataByBinder.values().stream()
+                    .filter(d -> d.mDisplayId != Display.DEFAULT_DISPLAY)
+                    .findAny()
+                    .map((dhd) -> dhd.mDisplayId)
+                    .orElse(Display.DEFAULT_DISPLAY);
+            WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
+                    .createP2pInvitationSentDialog(deviceName, pin, displayId);
+            if (dialogHandle == null) {
+                loge("Could not create invitation sent dialog!");
+                return;
+            }
+            dialogHandle.launchDialog();
+        }
+
         private void notifyInvitationSent(String pin, String peerAddress) {
             ApproverEntry entry = mExternalApproverManager.get(MacAddress.fromString(peerAddress));
             if (null != entry) {
@@ -4454,48 +4543,49 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         extras);
                 return;
             }
-            int displayId = mDeathDataByBinder.values().stream()
-                    .filter(d -> d.mDisplayId != Display.DEFAULT_DISPLAY)
-                    .findAny()
-                    .map((dhd) -> dhd.mDisplayId)
-                    .orElse(Display.DEFAULT_DISPLAY);
-
-            WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
-                    .createP2pInvitationSentDialog(getDeviceName(peerAddress), pin, displayId);
-            if (dialogHandle == null) {
-                loge("Could not create invitation sent dialog!");
-                return;
+            String deviceName = getDeviceName(peerAddress);
+            if (!SdkLevel.isAtLeastT()) {
+                showInvitationSentDialogPreT(deviceName, pin);
+            } else {
+                showInvitationSentDialog(deviceName, pin);
             }
-            dialogHandle.launchDialog();
         }
 
-        private void notifyP2pProvDiscShowPinRequest(String pin, String peerAddress) {
-            ExternalApproverManager.ApproverEntry entry = mExternalApproverManager.get(
-                    MacAddress.fromString(peerAddress));
-            if (null != entry) {
-                logd("Received provision discovery request - Send request from "
-                        + mSavedPeerConfig.deviceAddress + " to the approver " + entry);
-                Bundle extras = new Bundle();
-                extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_DEVICE,
-                        mPeers.get(mSavedPeerConfig.deviceAddress));
-                extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG, mSavedPeerConfig);
-                replyToMessage(entry.getMessage(),
-                        WifiP2pManager.EXTERNAL_APPROVER_CONNECTION_REQUESTED,
-                        WifiP2pManager.ExternalApproverRequestListener.REQUEST_TYPE_NEGOTIATION,
-                        extras);
-                return;
-            }
+        // Legacy dialog behavior to avoid WifiDialogActivity invoking onPause() of pre-T
+        // Settings/Apps, which might trigger P2P teardown.
+        private void showP2pProvDiscShowPinRequestDialogPreT(String deviceName, String pin) {
+            Resources r = mContext.getResources();
+            final View textEntryView = LayoutInflater.from(mContext).cloneInContext(mContext)
+                    .inflate(R.layout.wifi_p2p_dialog, null);
 
+            ViewGroup group = textEntryView.findViewById(R.id.info);
+            addRowToDialog(group, R.string.wifi_p2p_to_message, deviceName);
+            addRowToDialog(group, R.string.wifi_p2p_show_pin_message, pin);
+
+            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+                    .setTitle(r.getString(R.string.wifi_p2p_invitation_sent_title))
+                    .setView(textEntryView)
+                    .setPositiveButton(r.getString(R.string.accept),
+                            (dialog1, which) -> sendMessage(PEER_CONNECTION_USER_CONFIRM))
+                    .create();
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            dialog.getWindow().addSystemFlags(
+                    WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
+            dialog.show();
+        }
+
+        private void showP2pProvDiscShowPinRequestDialog(String deviceName, String pin) {
             int displayId = mDeathDataByBinder.values().stream()
                     .filter(d -> d.mDisplayId != Display.DEFAULT_DISPLAY)
                     .findAny()
                     .map((dhd) -> dhd.mDisplayId)
                     .orElse(Display.DEFAULT_DISPLAY);
-            // TODO(b/222115086): This dialog only makes sense for the provision discovery receiver.
-            //                    Use WifiDialogManager.createP2pInvitationSentDialog(...) for the
-            //                    initiator.
+            // TODO(b/222115086): This dialog only makes sense for the prov disc receiver.
+            //                    Use WifiDialogManager.createP2pInvitationSentDialog(...) for
+            //                    the initiator.
             mWifiInjector.getWifiDialogManager().createP2pInvitationReceivedDialog(
-                    getDeviceName(peerAddress),
+                    deviceName,
                     false /* isPinRequested */,
                     pin,
                     displayId,
@@ -4514,12 +4604,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     new WifiThreadRunner(getHandler())).launchDialog();
         }
 
-        private void notifyInvitationReceived(
-                @WifiP2pManager.ExternalApproverRequestListener.RequestType int requestType) {
-            ApproverEntry entry = mExternalApproverManager.get(
-                    MacAddress.fromString(mSavedPeerConfig.deviceAddress));
+        private void notifyP2pProvDiscShowPinRequest(String pin, String peerAddress) {
+            ExternalApproverManager.ApproverEntry entry = mExternalApproverManager.get(
+                    MacAddress.fromString(peerAddress));
             if (null != entry) {
-                logd("Received Invitation request - Send request " + requestType + " from "
+                logd("Received provision discovery request - Send request from "
                         + mSavedPeerConfig.deviceAddress + " to the approver " + entry);
                 Bundle extras = new Bundle();
                 extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_DEVICE,
@@ -4527,10 +4616,88 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG, mSavedPeerConfig);
                 replyToMessage(entry.getMessage(),
                         WifiP2pManager.EXTERNAL_APPROVER_CONNECTION_REQUESTED,
-                        requestType, extras);
+                        WifiP2pManager.ExternalApproverRequestListener.REQUEST_TYPE_NEGOTIATION,
+                        extras);
                 return;
             }
+            String deviceName = getDeviceName(peerAddress);
+            if (!SdkLevel.isAtLeastT()) {
+                showP2pProvDiscShowPinRequestDialogPreT(deviceName, pin);
+            } else {
+                showP2pProvDiscShowPinRequestDialog(deviceName, pin);
+            }
+        }
 
+        // Legacy dialog behavior to avoid WifiDialogActivity invoking onPause() of pre-T
+        // Settings/Apps, which might trigger P2P teardown.
+        private void showInvitationReceivedDialogPreT() {
+            Resources r = mContext.getResources();
+            final WpsInfo wps = mSavedPeerConfig.wps;
+            final View textEntryView = LayoutInflater.from(mContext).cloneInContext(mContext)
+                    .inflate(R.layout.wifi_p2p_dialog, null);
+
+            ViewGroup group = textEntryView.findViewById(R.id.info);
+            addRowToDialog(group, R.string.wifi_p2p_from_message, getDeviceName(
+                    mSavedPeerConfig.deviceAddress));
+
+            final EditText pin = textEntryView.findViewById(R.id.wifi_p2p_wps_pin);
+
+            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+                    .setTitle(r.getString(R.string.wifi_p2p_invitation_to_connect_title))
+                    .setView(textEntryView)
+                    .setPositiveButton(r.getString(R.string.accept), (dialog1, which) -> {
+                        if (wps.setup == WpsInfo.KEYPAD) {
+                            mSavedPeerConfig.wps.pin = pin.getText().toString();
+                        }
+                        if (isVerboseLoggingEnabled()) {
+                            logd(getName() + " accept invitation " + mSavedPeerConfig);
+                        }
+                        sendMessage(PEER_CONNECTION_USER_ACCEPT);
+                    })
+                    .setNegativeButton(r.getString(R.string.decline), (dialog2, which) -> {
+                        if (isVerboseLoggingEnabled()) logd(getName() + " ignore connect");
+                        sendMessage(PEER_CONNECTION_USER_REJECT);
+                    })
+                    .setOnCancelListener(arg0 -> {
+                        if (isVerboseLoggingEnabled()) logd(getName() + " ignore connect");
+                        sendMessage(PEER_CONNECTION_USER_REJECT);
+                    })
+                    .create();
+            dialog.setCanceledOnTouchOutside(false);
+
+            // make the enter pin area or the display pin area visible
+            switch (wps.setup) {
+                case WpsInfo.KEYPAD:
+                    if (isVerboseLoggingEnabled()) logd("Enter pin section visible");
+                    textEntryView.findViewById(R.id.enter_pin_section).setVisibility(View.VISIBLE);
+                    break;
+                case WpsInfo.DISPLAY:
+                    if (isVerboseLoggingEnabled()) logd("Shown pin section visible");
+                    addRowToDialog(group, R.string.wifi_p2p_show_pin_message, wps.pin);
+                    break;
+                default:
+                    break;
+            }
+
+            if ((r.getConfiguration().uiMode & Configuration.UI_MODE_TYPE_APPLIANCE)
+                    == Configuration.UI_MODE_TYPE_APPLIANCE) {
+                dialog.setOnKeyListener((dialog3, keyCode, event) -> {
+                    if (keyCode == KeyEvent.KEYCODE_VOLUME_MUTE) {
+                        sendMessage(PEER_CONNECTION_USER_ACCEPT);
+                        dialog3.dismiss();
+                        return true;
+                    }
+                    return false;
+                });
+            }
+
+            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            dialog.getWindow().addSystemFlags(
+                    WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
+            dialog.show();
+        }
+
+        private void showInvitationReceivedDialog() {
             String deviceName = getDeviceName(mSavedPeerConfig.deviceAddress);
             boolean isPinRequested = false;
             String displayPin = null;
@@ -4554,27 +4721,27 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             WifiDialogManager.P2pInvitationReceivedDialogCallback callback =
                     new WifiDialogManager.P2pInvitationReceivedDialogCallback() {
-                @Override
-                public void onAccepted(@Nullable String optionalPin) {
-                    if (optionalPin != null) {
-                        mSavedPeerConfig.wps.pin = optionalPin;
-                    }
-                    if (isVerboseLoggingEnabled()) {
-                        logd(getName() + " accept invitation " + mSavedPeerConfig);
-                    }
-                    sendMessage(PEER_CONNECTION_USER_ACCEPT);
-                    mInvitationDialogHandle = null;
-                }
+                        @Override
+                        public void onAccepted(@Nullable String optionalPin) {
+                            if (optionalPin != null) {
+                                mSavedPeerConfig.wps.pin = optionalPin;
+                            }
+                            if (isVerboseLoggingEnabled()) {
+                                logd(getName() + " accept invitation " + mSavedPeerConfig);
+                            }
+                            sendMessage(PEER_CONNECTION_USER_ACCEPT);
+                            mInvitationDialogHandle = null;
+                        }
 
-                @Override
-                public void onDeclined() {
-                    if (isVerboseLoggingEnabled()) {
-                        logd(getName() + " ignore connect");
-                    }
-                    sendMessage(PEER_CONNECTION_USER_REJECT);
-                    mInvitationDialogHandle = null;
-                }
-            };
+                        @Override
+                        public void onDeclined() {
+                            if (isVerboseLoggingEnabled()) {
+                                logd(getName() + " ignore connect");
+                            }
+                            sendMessage(PEER_CONNECTION_USER_REJECT);
+                            mInvitationDialogHandle = null;
+                        }
+                    };
 
             WifiDialogManager.DialogHandle mInvitationDialogHandle =
                     mWifiInjector.getWifiDialogManager().createP2pInvitationReceivedDialog(
@@ -4586,6 +4753,29 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             new WifiThreadRunner(getHandler()));
             mInvitationDialogHandle.launchDialog(mContext.getResources().getInteger(
                     R.integer.config_p2pInvitationReceivedDialogTimeoutMs));
+        }
+
+        private void notifyInvitationReceived(
+                @WifiP2pManager.ExternalApproverRequestListener.RequestType int requestType) {
+            ApproverEntry entry = mExternalApproverManager.get(
+                    MacAddress.fromString(mSavedPeerConfig.deviceAddress));
+            if (null != entry) {
+                logd("Received Invitation request - Send request " + requestType + " from "
+                        + mSavedPeerConfig.deviceAddress + " to the approver " + entry);
+                Bundle extras = new Bundle();
+                extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_DEVICE,
+                        mPeers.get(mSavedPeerConfig.deviceAddress));
+                extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG, mSavedPeerConfig);
+                replyToMessage(entry.getMessage(),
+                        WifiP2pManager.EXTERNAL_APPROVER_CONNECTION_REQUESTED,
+                        requestType, extras);
+                return;
+            }
+            if (!SdkLevel.isAtLeastT()) {
+                showInvitationReceivedDialogPreT();
+            } else {
+                showInvitationReceivedDialog();
+            }
         }
 
         /**

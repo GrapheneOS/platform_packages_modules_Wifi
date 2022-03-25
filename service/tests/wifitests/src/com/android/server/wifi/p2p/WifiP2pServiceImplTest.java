@@ -64,9 +64,11 @@ import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -218,6 +220,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock NetdWrapper mNetdWrapper;
     @Mock PackageManager mPackageManager;
     @Mock Resources mResources;
+    @Mock Configuration mConfiguration;
     @Mock NetworkInterface mP2pNetworkInterface;
     @Mock WifiInjector mWifiInjector;
     @Mock BroadcastOptions mBroadcastOptions;
@@ -1174,6 +1177,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 .thenReturn("10-0050F204-5");
         when(mResources.getInteger(R.integer.config_p2pInvitationReceivedDialogTimeoutMs))
                 .thenReturn(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+        when(mResources.getConfiguration()).thenReturn(mConfiguration);
         when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
         when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
         when(mWifiInjector.getWifiP2pMetrics()).thenReturn(mWifiP2pMetrics);
@@ -1215,6 +1219,10 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mFrameworkFacade.makeAlertDialogBuilder(any())).thenReturn(mAlertDialogBuilder);
         when(mAlertDialogBuilder.setTitle(any())).thenReturn(mAlertDialogBuilder);
         when(mAlertDialogBuilder.setView(any())).thenReturn(mAlertDialogBuilder);
+        when(mAlertDialogBuilder.setMessage(any())).thenReturn(mAlertDialogBuilder);
+        when(mAlertDialogBuilder.setPositiveButton(any(), any())).thenReturn(mAlertDialogBuilder);
+        when(mAlertDialogBuilder.setNegativeButton(any(), any())).thenReturn(mAlertDialogBuilder);
+        when(mAlertDialogBuilder.setOnCancelListener(any())).thenReturn(mAlertDialogBuilder);
         when(mAlertDialogBuilder.setPositiveButton(any(), any())).thenReturn(mAlertDialogBuilder);
         when(mAlertDialogBuilder.create()).thenReturn(mAlertDialog);
         when(mAlertDialog.getWindow()).thenReturn(mock(Window.class));
@@ -1256,11 +1264,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             // * UserManager.ACTION_USER_RESTRICTIONS_CHANGED
             if (SdkLevel.isAtLeastT()) {
                 verify(mContext, times(4)).registerReceiver(mBcastRxCaptor.capture(),
-                        any(IntentFilter.class));
+                        any(IntentFilter.class), eq(Context.RECEIVER_NOT_EXPORTED));
                 mUserRestrictionReceiver = mBcastRxCaptor.getAllValues().get(3);
             } else {
                 verify(mContext, times(3)).registerReceiver(mBcastRxCaptor.capture(),
-                        any(IntentFilter.class));
+                        any(IntentFilter.class), eq(Context.RECEIVER_NOT_EXPORTED));
             }
             mWifiStateChangedReceiver = mBcastRxCaptor.getAllValues().get(0);
             mLocationModeReceiver = mBcastRxCaptor.getAllValues().get(1);
@@ -3015,10 +3023,18 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendGoNegotiationFailureEvent(mClientMessenger,
                 WifiP2pServiceImpl.P2pStatus.NO_COMMON_CHANNEL);
 
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
-        verify(dialogHandle).launchDialog();
-        callbackCaptor.getValue().onPositiveButtonClicked();
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+            ArgumentCaptor<DialogInterface.OnClickListener> clickListener = ArgumentCaptor.forClass(
+                    DialogInterface.OnClickListener.class);
+            verify(mAlertDialogBuilder).setPositiveButton(any(), clickListener.capture());
+            clickListener.getValue().onClick(mAlertDialog, DialogInterface.BUTTON_POSITIVE);
+        } else {
+            verify(mWifiDialogManager).createSimpleDialog(
+                    any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
+            verify(dialogHandle).launchDialog();
+            callbackCaptor.getValue().onPositiveButtonClicked();
+        }
         mLooper.dispatchAll();
         verify(wifiChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 1);
     }
@@ -3073,10 +3089,19 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendGoNegotiationFailureEvent(mClientMessenger,
                 WifiP2pServiceImpl.P2pStatus.NO_COMMON_CHANNEL);
 
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
-        verify(dialogHandle).launchDialog();
-        callbackCaptor.getValue().onNegativeButtonClicked();
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+            ArgumentCaptor<DialogInterface.OnClickListener> clickListener = ArgumentCaptor.forClass(
+                    DialogInterface.OnClickListener.class);
+            verify(mAlertDialogBuilder).setNegativeButton(any(), clickListener.capture());
+            clickListener.getValue().onClick(mAlertDialog, DialogInterface.BUTTON_NEGATIVE);
+        } else {
+            verify(mWifiDialogManager).createSimpleDialog(
+                    any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
+            verify(dialogHandle).launchDialog();
+            callbackCaptor.getValue().onNegativeButtonClicked();
+
+        }
         mLooper.dispatchAll();
         verify(mWifiP2pMetrics).endConnectionEvent(P2pConnectionEvent.CLF_USER_REJECT);
     }
@@ -3111,10 +3136,15 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         group.setInterface(IFACE_NAME_P2P);
         sendGroupStartedMsg(group);
 
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
-        verify(dialogHandle).launchDialog();
-        verify(dialogHandle).dismissDialog();
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+            verify(mAlertDialog).dismiss();
+        } else {
+            verify(mWifiDialogManager).createSimpleDialog(
+                    any(), any(), any(), any(), any(), callbackCaptor.capture(), any());
+            verify(dialogHandle).launchDialog();
+            verify(dialogHandle).dismissDialog();
+        }
     }
 
     /**
@@ -5303,9 +5333,13 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 pdEvent);
 
         verify(mWifiNative).p2pConnect(any(), anyBoolean());
-        verify(mWifiDialogManager).createP2pInvitationSentDialog(
-                pdEvent.device.deviceName, pdEvent.pin, Display.DEFAULT_DISPLAY);
-        verify(mDialogHandle).launchDialog();
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+        } else {
+            verify(mWifiDialogManager).createP2pInvitationSentDialog(
+                    pdEvent.device.deviceName, pdEvent.pin, Display.DEFAULT_DISPLAY);
+            verify(mDialogHandle).launchDialog();
+        }
     }
 
     /**
@@ -5329,9 +5363,14 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 WifiP2pMonitor.P2P_PROV_DISC_SHOW_PIN_EVENT,
                 pdEvent);
 
-        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
-                eq(pdEvent.device.deviceName), eq(false), eq(pdEvent.pin), anyInt(), any(), any());
-        verify(mDialogHandle).launchDialog();
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+        } else {
+            verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                    eq(pdEvent.device.deviceName), eq(false), eq(pdEvent.pin),
+                    anyInt(), any(), any());
+            verify(mDialogHandle).launchDialog();
+        }
     }
 
     /**
@@ -5929,9 +5968,13 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // "simple" client connect (no display ID)
         sendNegotiationRequestEvent(config);
-        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(anyString(), anyBoolean(),
-                any(), eq(Display.DEFAULT_DISPLAY), any(), any());
-        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mAlertDialog).show();
+        } else {
+            verify(mWifiDialogManager).createP2pInvitationReceivedDialog(anyString(), anyBoolean(),
+                    any(), eq(Display.DEFAULT_DISPLAY), any(), any());
+            verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+        }
     }
 
     /**
@@ -5939,6 +5982,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testInvitationReceivedDialogTriggerWithDisplayId() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         final int someNonDefaultDisplayId = 123;
 
         forceP2pEnabled(mClient1);
@@ -5966,6 +6010,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testInvitationReceivedDialogTriggerWithDisplayIdDeleted() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         forceP2pEnabled(mClient1);
         mockPeersList();
         WifiP2pConfig config = new WifiP2pConfig();

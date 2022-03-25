@@ -589,7 +589,7 @@ public class WifiServiceImpl extends BaseWifiService {
                     },
                     new IntentFilter(TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED),
                     null,
-                    new Handler(mWifiHandlerThread.getLooper()));
+                    new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
 
             mContext.registerReceiver(
                     new BroadcastReceiver() {
@@ -616,7 +616,7 @@ public class WifiServiceImpl extends BaseWifiService {
                     },
                     new IntentFilter(Intent.ACTION_LOCALE_CHANGED),
                     null,
-                    new Handler(mWifiHandlerThread.getLooper()));
+                    new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
 
             mContext.registerReceiver(
                     new BroadcastReceiver() {
@@ -630,7 +630,7 @@ public class WifiServiceImpl extends BaseWifiService {
                     },
                     new IntentFilter(LocationManager.MODE_CHANGED_ACTION),
                     null,
-                    new Handler(mWifiHandlerThread.getLooper()));
+                    new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
             updateLocationMode();
 
             if (SdkLevel.isAtLeastT()) {
@@ -644,7 +644,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         },
                         new IntentFilter(UserManager.ACTION_USER_RESTRICTIONS_CHANGED),
                         null,
-                        new Handler(mWifiHandlerThread.getLooper()));
+                        new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
                 mWifiTetheringDisallowed = mUserManager.getUserRestrictions()
                         .getBoolean(UserManager.DISALLOW_WIFI_TETHERING);
             }
@@ -775,7 +775,7 @@ public class WifiServiceImpl extends BaseWifiService {
                     },
                     intentFilter,
                     null,
-                    new Handler(mWifiHandlerThread.getLooper()));
+                    new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
             mMemoryStoreImpl.start();
             mPasspointManager.initializeProvisioner(
                     mWifiInjector.getPasspointProvisionerHandlerThread().getLooper());
@@ -1791,6 +1791,9 @@ public class WifiServiceImpl extends BaseWifiService {
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
                 @NonNull SoftApCapability softApCapability) {
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
+            }
             if (!mIsBootComplete) {
                 // The available channel list is from wificond.
                 // It might be a failure or stuck during wificond init.
@@ -2001,6 +2004,9 @@ public class WifiServiceImpl extends BaseWifiService {
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
                 @NonNull SoftApCapability softApCapability) {
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
+            }
             if (!mIsBootComplete) {
                 // The available channel list is from wificond.
                 // It might be a failure or stuck during wificond init.
@@ -4595,7 +4601,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 },
                 intentFilter,
                 null,
-                new Handler(mWifiHandlerThread.getLooper()));
+                new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
     }
 
     private void registerForCarrierConfigChange() {
@@ -4617,7 +4623,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 },
                 filter,
                 null,
-                new Handler(mWifiHandlerThread.getLooper()));
+                new Handler(mWifiHandlerThread.getLooper()), Context.RECEIVER_NOT_EXPORTED);
 
         WifiPhoneStateListener phoneStateListener = new WifiPhoneStateListener(
                 mWifiHandlerThread.getLooper());

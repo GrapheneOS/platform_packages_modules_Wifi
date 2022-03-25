@@ -674,7 +674,8 @@ public class WifiNetworkSuggestionsManager {
         mIntentFilter.addAction(NOTIFICATION_USER_DISALLOWED_APP_INTENT_ACTION);
         mIntentFilter.addAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION);
 
-        mContext.registerReceiver(mBroadcastReceiver, mIntentFilter, null, handler);
+        mContext.registerReceiver(mBroadcastReceiver, mIntentFilter, null, handler,
+                Context.RECEIVER_NOT_EXPORTED);
         mLruConnectionTracker = lruConnectionTracker;
         mWifiConfigManager.addOnNetworkUpdateListener(
                 new WifiNetworkSuggestionsManager.OnNetworkUpdateListener());
