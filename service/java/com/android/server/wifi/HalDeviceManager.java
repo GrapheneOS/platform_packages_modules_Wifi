@@ -34,9 +34,13 @@ import android.hardware.wifi.V1_0.IfaceType;
 import android.hardware.wifi.V1_0.WifiDebugRingBufferStatus;
 import android.hardware.wifi.V1_0.WifiStatus;
 import android.hardware.wifi.V1_0.WifiStatusCode;
+import android.hardware.wifi.V1_5.WifiBand;
 import android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination;
 import android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit;
 import android.hardware.wifi.V1_6.IfaceConcurrencyType;
+import android.hardware.wifi.V1_6.WifiRadioCombination;
+import android.hardware.wifi.V1_6.WifiRadioCombinationMatrix;
+import android.hardware.wifi.V1_6.WifiRadioConfiguration;
 import android.hidl.manager.V1_0.IServiceNotification;
 import android.hidl.manager.V1_2.IServiceManager;
 import android.net.wifi.WifiContext;
@@ -48,6 +52,7 @@ import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -80,6 +85,11 @@ public class HalDeviceManager {
 
     public static final long CHIP_CAPABILITY_ANY = 0L;
     private static final long CHIP_CAPABILITY_UNINITIALIZED = -1L;
+
+    private static final int DBS_24G_5G_MASK =
+            (1 << WifiBand.BAND_24GHZ) | (1 << WifiBand.BAND_5GHZ);
+    private static final int DBS_5G_6G_MASK =
+            (1 << WifiBand.BAND_5GHZ) | (1 << WifiBand.BAND_6GHZ);
 
     private static final int START_HAL_RETRY_INTERVAL_MS = 20;
     // Number of attempts a start() is re-tried. A value of 0 means no retries after a single
@@ -390,6 +400,22 @@ public class HalDeviceManager {
         return success;
     }
 
+    private InterfaceCacheEntry getInterfaceCacheEntry(IWifiIface iface) {
+        String name = getName(iface);
+        int type = getType(iface);
+        if (VDBG) Log.d(TAG, "getInterfaceCacheEntry: iface(name)=" + name);
+
+        synchronized (mLock) {
+            InterfaceCacheEntry cacheEntry = mInterfaceInfoCache.get(Pair.create(name, type));
+            if (cacheEntry == null) {
+                Log.e(TAG, "getInterfaceCacheEntry: no entry for iface(name)=" + name);
+                return null;
+            }
+
+            return cacheEntry;
+        }
+    }
+
     /**
      * Returns the IWifiChip corresponding to the specified interface (or null on error).
      *
@@ -398,19 +424,68 @@ public class HalDeviceManager {
      * other functions - e.g. calling the debug/trace methods.
      */
     public IWifiChip getChip(IWifiIface iface) {
-        String name = getName(iface);
-        int type = getType(iface);
-        if (VDBG) Log.d(TAG, "getChip: iface(name)=" + name);
-
         synchronized (mLock) {
-            InterfaceCacheEntry cacheEntry = mInterfaceInfoCache.get(Pair.create(name, type));
-            if (cacheEntry == null) {
-                Log.e(TAG, "getChip: no entry for iface(name)=" + name);
-                return null;
-            }
-
-            return cacheEntry.chip;
+            InterfaceCacheEntry cacheEntry = getInterfaceCacheEntry(iface);
+            return (cacheEntry == null) ? null : cacheEntry.chip;
         }
+    }
+
+    private WifiChipInfo getChipInfo(IWifiIface iface) {
+        synchronized (mLock) {
+            InterfaceCacheEntry cacheEntry = getInterfaceCacheEntry(iface);
+            if (null == cacheEntry) return null;
+
+            WifiChipInfo[] chipInfos = getAllChipInfoCached();
+            if (null == chipInfos) return null;
+
+            for (WifiChipInfo info: chipInfos) {
+                if (info.chipId == cacheEntry.chipId) {
+                    return info;
+                }
+            }
+            return null;
+        }
+    }
+
+    private boolean isDbsSupported(IWifiIface iface, int dbsMask) {
+        synchronized (mLock) {
+            WifiChipInfo info = getChipInfo(iface);
+            if (null == info) return false;
+            // If there is no radio combination information, cache it.
+            if (null == info.radioCombinationMatrix) {
+                IWifiChip chip = getChip(iface);
+                if (null == chip) return false;
+
+                info.radioCombinationMatrix = getChipSupportedRadioCombinationsMatrix(chip);
+                info.radioCombinationLookupTable = convertRadioCombinationMatrixToLookupTable(
+                        info.radioCombinationMatrix);
+                if (mDbg) {
+                    Log.d(TAG, "radioCombinationMatrix=" + info.radioCombinationMatrix
+                            + "radioCombinationLookupTable=" + info.radioCombinationLookupTable);
+                }
+            }
+            return info.radioCombinationLookupTable.get(dbsMask);
+        }
+    }
+
+    /**
+     * Indicate whether or not 2.4GHz/5GHz DBS is supported.
+     *
+     * @param iface The interface on the chip.
+     * @return true if supported; false, otherwise;
+     */
+    public boolean is24g5gDbsSupported(IWifiIface iface) {
+        return isDbsSupported(iface, DBS_24G_5G_MASK);
+    }
+
+    /**
+     * Indicate whether or not 5GHz/6GHz DBS is supported.
+     *
+     * @param iface The interface on the chip.
+     * @return true if supported; false, otherwise;
+     */
+    public boolean is5g6gDbsSupported(IWifiIface iface) {
+        return isDbsSupported(iface, DBS_5G_6G_MASK);
     }
 
     /**
@@ -856,6 +931,8 @@ public class HalDeviceManager {
         public int currentModeId;
         public WifiIfaceInfo[][] ifaces = new WifiIfaceInfo[IFACE_TYPES_BY_PRIORITY.length][];
         public long chipCapabilities;
+        public WifiRadioCombinationMatrix radioCombinationMatrix = null;
+        public SparseBooleanArray radioCombinationLookupTable = new SparseBooleanArray();
 
         @Override
         public String toString() {
@@ -3031,6 +3108,25 @@ public class HalDeviceManager {
         return false;
     }
 
+    private static SparseBooleanArray convertRadioCombinationMatrixToLookupTable(
+            WifiRadioCombinationMatrix matrix) {
+        SparseBooleanArray lookupTable = new SparseBooleanArray();
+        if (null == matrix) return lookupTable;
+
+        for (WifiRadioCombination combination: matrix.radioCombinations) {
+            int bandMask = 0;
+            for (WifiRadioConfiguration config: combination.radioConfigurations) {
+                bandMask |= 1 << config.bandInfo;
+            }
+            if ((bandMask & DBS_24G_5G_MASK) == DBS_24G_5G_MASK) {
+                lookupTable.put(DBS_24G_5G_MASK, true);
+            } else if ((bandMask & DBS_5G_6G_MASK) == DBS_5G_6G_MASK) {
+                lookupTable.put(DBS_5G_6G_MASK, true);
+            }
+        }
+        return lookupTable;
+    }
+
     /**
      * Get the chip capabilities
      *
@@ -3062,6 +3158,46 @@ public class HalDeviceManager {
             return 0;
         }
         return featureSet;
+    }
+
+    /**
+     * Get the supported radio combination matrix.
+     *
+     * This is called after creating an interface and need at least v1.6 HAL.
+     *
+     * @param wifiChip WifiChip
+     * @return Wifi radio combinmation matrix
+     */
+    private WifiRadioCombinationMatrix getChipSupportedRadioCombinationsMatrix(
+            @NonNull IWifiChip wifiChip) {
+        synchronized (mLock) {
+            if (null == wifiChip) return null;
+            android.hardware.wifi.V1_6.IWifiChip chipV16 =
+                    getWifiChipForV1_6Mockable(wifiChip);
+            if (null == chipV16) return null;
+
+            Mutable<WifiRadioCombinationMatrix> radioCombinationMatrixResp =
+                    new Mutable<>();
+            radioCombinationMatrixResp.value = null;
+            try {
+                chipV16.getSupportedRadioCombinationsMatrix((WifiStatus status,
+                            WifiRadioCombinationMatrix matrix) -> {
+                    if (status.code == WifiStatusCode.SUCCESS) {
+                        radioCombinationMatrixResp.value = matrix;
+                        if (mDbg) {
+                            Log.d(TAG, "radioCombinationMatrix=" + matrix);
+                        }
+                    } else {
+                        Log.e(TAG, "getSupportedRadioCombinationsMatrix failed: "
+                                + statusString(status));
+                    }
+                });
+            } catch (RemoteException e) {
+                Log.e(TAG, "Exception on getSupportedRadioCombinationsMatrix: " + e);
+                radioCombinationMatrixResp.value = null;
+            }
+            return radioCombinationMatrixResp.value;
+        }
     }
 
     /**
