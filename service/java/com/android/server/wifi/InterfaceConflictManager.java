@@ -308,7 +308,7 @@ public class InterfaceConflictManager {
         String impactedPackages = TextUtils.join(",", impactedPackagesSet);
 
         mWifiDialogManager.createSimpleDialog(
-                mResources.getString(R.string.wifi_interface_priority_title),
+                mResources.getString(R.string.wifi_interface_priority_title, requestorAppName),
                 mResources.getString(R.string.wifi_interface_priority_message, requestorAppName,
                         requestedInterface, impactedPackages),
                 mResources.getString(R.string.wifi_interface_priority_approve),
