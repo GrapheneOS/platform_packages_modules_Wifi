@@ -129,7 +129,7 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"신뢰하는 네트워크인가요?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"예, 연결"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"연결 안 함"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"아래 정보가 올바른 경우에만 이 네트워크에 연결하도록 허용합니다.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"아래 정보가 올바른 경우에만 이 네트워크에 연결하도록 허용하세요.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"서버 이름:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"발급기관 이름:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"조직:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

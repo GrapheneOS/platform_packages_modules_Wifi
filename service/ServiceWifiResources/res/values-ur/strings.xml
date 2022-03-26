@@ -135,7 +135,7 @@
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"تنظیم:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"رابطہ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"دستخط:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"نیٹ ورک کو توثیق کرنے کی ضرورت ہے"</string>
+    <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"نیٹ ورک کی تصدیق کی ضرورت ہے"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"منسلک ہونے سے قبل <xliff:g id="SSID">%1$s</xliff:g> کے لیے نیٹ ورک کی تفصیلات کا جائزہ لیں۔ جاری رکھنے کیلئے تھپتھپائیں۔"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"سرٹیفکیٹ انسٹالیشن ناکام ہو گیا۔"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"اس نیٹ ورک کی توثیق نہیں کر سکتے"</string>

@@ -126,7 +126,7 @@
     <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> ଆପ୍ଲିକେସନ ଏକ <xliff:g id="INTERFACE">%2$s</xliff:g> ଇଣ୍ଟରଫେସ ସକ୍ରିୟ ହେବା ଆବଶ୍ୟକ କରେ। ଏହା ଅନ୍ୟ ଇଣ୍ଟରଫେସଗୁଡ଼ିକୁ ନିଷ୍କ୍ରିୟ କରିବ ଯାହା <xliff:g id="APPS">%3$s</xliff:g>କୁ ପ୍ରଭାବିତ କରିପାରେ।"</string>
     <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ହଁ, ଅନୁମୋଦନ କରନ୍ତୁ"</string>
     <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"ନା, ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
-    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ଏହି ନେଟୱାର୍କ ବିଶ୍ୱସ୍ତ ଅଟେ?"</string>
+    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ଏହି ନେଟୱାର୍କଟି ବିଶ୍ୱସ୍ତ ଅଟେ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ହଁ, ସଂଯୋଗ କରନ୍ତୁ"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ନା, ସଂଯୋଗ କରନ୍ତୁ ନାହିଁ"</string>
     <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"ଯଦି ନିମ୍ନୋକ୍ତ ସୂଚନା ଠିକ୍ ଲାଗେ, ତେବେ ହିଁ ଏହି ନେଟୱାର୍କକୁ ସଂଯୋଗ କରିବା ପାଇଁ ଅନୁମତି ଦିଅନ୍ତୁ।\n\n"</string>

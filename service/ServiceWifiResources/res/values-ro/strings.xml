@@ -129,7 +129,7 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Această rețea este de încredere?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Da, conectează"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nu, nu conecta"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Permite conectarea la această rețea numai dacă informațiile de mai jos par corecte.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Permite conectarea la această rețea numai dacă informațiile de mai jos sunt corecte.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Numele serverului:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Numele emitentului:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Organizație:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
