@@ -4129,7 +4129,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 .thenReturn(true);
         verify(mPasspointManager).enableAutojoin(anyString(), any(), eq(true));
         verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt(), anyString());
-        verify(mWifiConfigManager).allowAutojoin(anyInt(), eq(true));
         matchedSuggestions = mWifiNetworkSuggestionsManager
                 .getNetworkSuggestionsForScanDetail(createScanDetailForNetwork(eapSimConfig));
 
