@@ -182,10 +182,14 @@
     <string name="wifi_sim_required_message">To connect to <xliff:g id="ssid">%1$s</xliff:g>, insert a <xliff:g id="carrier_name">%2$s</xliff:g> SIM</string>
 
     <!-- External approver for interface priority calls. -->
-    <string name="wifi_interface_priority_title">App conflict</string>
-    <string name="wifi_interface_priority_message">Application <xliff:g id="app">%1$s</xliff:g> needs to bring up a <xliff:g id="interface">%2$s</xliff:g> interface. This will result in other interfaces being torn down which may impact <xliff:g id="apps">%3$s</xliff:g>.</string>
-    <string name="wifi_interface_priority_approve">Yes, approve</string>
-    <string name="wifi_interface_priority_reject">No, reject</string>
+    <string name="wifi_interface_priority_title"><xliff:g id="app">%1$s</xliff:g> wants to use a networking resource</string>
+    <!-- Note: additional available arguments for customized strings (not used in default string):
+          %1$s: application name
+          %2$s: interface name
+     -->
+    <string name="wifi_interface_priority_message">This may cause problems for <xliff:g id="apps">%3$s</xliff:g>.</string>
+    <string name="wifi_interface_priority_approve">Allow</string>
+    <string name="wifi_interface_priority_reject">Don\'t allow</string>
 
     <!-- Trust On First Use dialog and notification text. -->
     <string name="wifi_ca_cert_dialog_title">Is this network trusted?</string>
