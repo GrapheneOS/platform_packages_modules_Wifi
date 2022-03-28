@@ -5285,13 +5285,10 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         }
     }
 
-    /**
-     * Verify the group owner intent value is selected correctly when no STA connection.
-     */
-    @Test
-    public void testGroupOwnerIntentSelectionWithoutStaConnection() throws Exception {
-        when(mWifiInfo.getNetworkId()).thenReturn(WifiConfiguration.INVALID_NETWORK_ID);
-        when(mWifiInfo.getFrequency()).thenReturn(2412);
+    private void verifyGroupOwnerIntentSelection(int netId, int freq, int expectedGoIntent)
+            throws Exception {
+        when(mWifiInfo.getNetworkId()).thenReturn(netId);
+        when(mWifiInfo.getFrequency()).thenReturn(freq);
         forceP2pEnabled(mClient1);
         sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
 
@@ -5307,8 +5304,89 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiNative).p2pConnect(configCaptor.capture(), anyBoolean());
         WifiP2pConfig config = configCaptor.getValue();
-        assertEquals(WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT + 1,
-                config.groupOwnerIntent);
+        assertEquals(expectedGoIntent, config.groupOwnerIntent);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when no STA connection.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWithoutStaConnection() throws Exception {
+        verifyGroupOwnerIntentSelection(WifiConfiguration.INVALID_NETWORK_ID, 2412,
+                WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 2.4GHz STA connection
+     * without 2.4GHz/5GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith24GStaConnectionWithout24g5gDbs()
+            throws Exception {
+        verifyGroupOwnerIntentSelection(1, 2412, 5);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 2.4GHz STA connection
+     * with 2.4GHz/5GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith24GStaConnectionWith24g5gDbs() throws Exception {
+        when(mWifiNative.is24g5gDbsSupported()).thenReturn(true);
+        verifyGroupOwnerIntentSelection(1, 2412, 7);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 5GHz STA connection
+     * without 2.4GHz/5GHz DBS and 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith5GHzStaConnectionWithout24g5gDbs5g6gDbs()
+            throws Exception {
+        verifyGroupOwnerIntentSelection(1, 5200, 10);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 5GHz STA connection
+     * with 2.4GHz/5GHz DBS and without 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith5GHzStaConnectionWith24g5gDbsWithout5g6gDbs()
+            throws Exception {
+        when(mWifiNative.is24g5gDbsSupported()).thenReturn(true);
+        verifyGroupOwnerIntentSelection(1, 5200, 8);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 5GHz STA connection
+     * with 2.4GHz/5GHz DBS and 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith5GHzStaConnectionWith24g5gDbs5g6gDbs()
+            throws Exception {
+        when(mWifiNative.is24g5gDbsSupported()).thenReturn(true);
+        when(mWifiNative.is5g6gDbsSupported()).thenReturn(true);
+        verifyGroupOwnerIntentSelection(1, 5200, 9);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 6GHz STA connection
+     * without 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith6GHzStaConnectionWithout5g6gDbs()
+            throws Exception {
+        verifyGroupOwnerIntentSelection(1, 6000, 11);
+    }
+
+    /**
+     * Verify the group owner intent value is selected correctly when 6GHz STA connection
+     * with 5GHz/6GHz DBS support.
+     */
+    @Test
+    public void testGroupOwnerIntentSelectionWith6GHzStaConnectionWith5g6gDbs() throws Exception {
+        when(mWifiNative.is5g6gDbsSupported()).thenReturn(true);
+        verifyGroupOwnerIntentSelection(1, 6000, 12);
     }
 
     /**
@@ -5371,84 +5449,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     anyInt(), any(), any());
             verify(mDialogHandle).launchDialog();
         }
-    }
-
-    /**
-     * Verify the group owner intent value is selected correctly when 2.4GHz STA connection.
-     */
-    @Test
-    public void testGroupOwnerIntentSelectionWith24GStaConnection() throws Exception {
-        when(mWifiInfo.getNetworkId()).thenReturn(1);
-        when(mWifiInfo.getFrequency()).thenReturn(2412);
-        forceP2pEnabled(mClient1);
-        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
-
-        mockEnterProvisionDiscoveryState();
-
-        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
-        pdEvent.device = mTestWifiP2pDevice;
-        sendSimpleMsg(null,
-                WifiP2pMonitor.P2P_PROV_DISC_PBC_RSP_EVENT,
-                pdEvent);
-
-        ArgumentCaptor<WifiP2pConfig> configCaptor =
-                ArgumentCaptor.forClass(WifiP2pConfig.class);
-        verify(mWifiNative).p2pConnect(configCaptor.capture(), anyBoolean());
-        WifiP2pConfig config = configCaptor.getValue();
-        assertEquals(WifiP2pConfig.GROUP_OWNER_INTENT_MIN,
-                config.groupOwnerIntent);
-    }
-
-    /**
-     * Verify the group owner intent value is selected correctly when 5GHz STA connection.
-     */
-    @Test
-    public void testGroupOwnerIntentSelectionWith5GHzStaConnection() throws Exception {
-        when(mWifiInfo.getNetworkId()).thenReturn(1);
-        when(mWifiInfo.getFrequency()).thenReturn(5200);
-        forceP2pEnabled(mClient1);
-        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
-
-        mockEnterProvisionDiscoveryState();
-
-        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
-        pdEvent.device = mTestWifiP2pDevice;
-        sendSimpleMsg(null,
-                WifiP2pMonitor.P2P_PROV_DISC_PBC_RSP_EVENT,
-                pdEvent);
-
-        ArgumentCaptor<WifiP2pConfig> configCaptor =
-                ArgumentCaptor.forClass(WifiP2pConfig.class);
-        verify(mWifiNative).p2pConnect(configCaptor.capture(), anyBoolean());
-        WifiP2pConfig config = configCaptor.getValue();
-        assertEquals(WifiP2pConfig.GROUP_OWNER_INTENT_MAX - 1,
-                config.groupOwnerIntent);
-    }
-
-    /**
-     * Verify the group owner intent value is selected correctly when 6GHz STA connection.
-     */
-    @Test
-    public void testGroupOwnerIntentSelectionWith6GHzStaConnection() throws Exception {
-        when(mWifiInfo.getNetworkId()).thenReturn(1);
-        when(mWifiInfo.getFrequency()).thenReturn(6000);
-        forceP2pEnabled(mClient1);
-        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
-
-        mockEnterProvisionDiscoveryState();
-
-        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
-        pdEvent.device = mTestWifiP2pDevice;
-        sendSimpleMsg(null,
-                WifiP2pMonitor.P2P_PROV_DISC_PBC_RSP_EVENT,
-                pdEvent);
-
-        ArgumentCaptor<WifiP2pConfig> configCaptor =
-                ArgumentCaptor.forClass(WifiP2pConfig.class);
-        verify(mWifiNative).p2pConnect(configCaptor.capture(), anyBoolean());
-        WifiP2pConfig config = configCaptor.getValue();
-        assertEquals(WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT,
-                config.groupOwnerIntent);
     }
 
     private List<CoexUnsafeChannel> setupCoexMock(int restrictionBits) {
