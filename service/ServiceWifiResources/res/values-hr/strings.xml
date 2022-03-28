@@ -126,7 +126,7 @@
     <string name="wifi_interface_priority_message" msgid="7889098392449730531">"Aplikacija <xliff:g id="APP_0">%1$s</xliff:g> treba prikazati sučelje <xliff:g id="INTERFACE">%2$s</xliff:g>. To će rezultirati uklanjanjem ostalih sučelja, što može utjecati na aplikacije <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Da, odobri"</string>
     <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Ne, odbij"</string>
-    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je li ta mreža pouzdana?"</string>
+    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je li ova mreža pouzdana?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Da, poveži"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Ne, nemoj povezati"</string>
     <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Dopustite toj mreži da se poveže samo ako informacije u nastavku izgledaju ispravno.\n\n"</string>
@@ -136,7 +136,7 @@
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Kontakt:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"Potpis:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Mrežu je potrebno potvrditi"</string>
-    <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Prije povezivanja pregledajte pojedinosti o mreži za <xliff:g id="SSID">%1$s</xliff:g>. Dodirnite za nastavak."</string>
+    <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Prije povezivanja pregledajte pojedinosti za <xliff:g id="SSID">%1$s</xliff:g>. Dodirnite za nastavak."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Instalacija certifikata nije uspjela."</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Ta se mreža ne može potvrditi"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Svejedno poveži"</string>

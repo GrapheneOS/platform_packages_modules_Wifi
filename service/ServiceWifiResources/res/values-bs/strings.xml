@@ -127,11 +127,11 @@
     <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Da, odobri"</string>
     <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Ne, odbaci"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je li ova mreža pouzdana?"</string>
-    <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Da, poveži se"</string>
-    <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Ne, nemoj se povezati"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Dopustite ovoj mreži da se poveže samo ako informacije u nastavku izgledaju ispravno.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Da, poveži"</string>
+    <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Ne, nemoj povezati"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Dozvolite ovoj mreži da se poveže samo ako informacije u nastavku izgledaju ispravno.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Naziv servera:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Ime izdavača:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Naziv izdavača:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Organizacija:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Kontakt:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"Potpis:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

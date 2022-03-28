@@ -129,14 +129,14 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ဤကွန်ရက်ကို ယုံကြည်ရပါသလား။"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ချိတ်ဆက်ရန်"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"မချိတ်ဆက်ပါနှင့်"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"အောက်ပါအချက်အလက်များ မှန်ကန်ပါက ဤကွန်ရက်ကိုသာ ချိတ်ဆက်ရန်ခွင့်ပြုပါ။\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"အောက်ပါအချက်အလက်များ မှန်ကန်မှသာ ဤကွန်ရက်ကို ချိတ်ဆက်ရန်ခွင့်ပြုပါ။\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"ဆာဗာအမည်-\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"ထုတ်ပေးသူ အမည်-\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"အဖွဲ့အစည်း-\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"အဆက်အသွယ်-\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"လက်မှတ်-\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"ကွန်ရက်ကို စိစစ်ရမည်"</string>
-    <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"<xliff:g id="SSID">%1$s</xliff:g> အတွက် ကွန်ရက်အသေးစိတ်ကို မချိတ်ဆက်မီ ကြည့်ရှုပါ။ ဆက်လုပ်ရန် တို့ပါ"</string>
+    <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"မချိတ်ဆက်မီ <xliff:g id="SSID">%1$s</xliff:g> အတွက် ကွန်ရက်အသေးစိတ်ကို ကြည့်ရှုပါ။ ဆက်လုပ်ရန် တို့ပါ"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"အသိအမှတ်ပြုလက်မှတ် ထည့်သွင်း၍မရပါ။"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ဤကွန်ရက်ကို စိစစ်၍မရပါ"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"မည်သို့ပင်ဖြစ်စေ ချိတ်ဆက်ရန်"</string>

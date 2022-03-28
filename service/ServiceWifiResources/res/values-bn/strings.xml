@@ -129,7 +129,7 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"এই নেটওয়ার্কটি কি বিশ্বস্ত?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"হ্যাঁ, কানেক্ট করুন"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"না, কানেক্ট করবেন না"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"নিচের তথ্য ঠিক মনে হলে শুধু এই নেটওয়ার্ককে কানেক্ট করার অনুমতি।\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"নিচে দেওয়া তথ্য যদি সঠিক হয় তাহলেই এই নেটওয়ার্ককে কানেক্ট করার অনুমতি দিন।\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"সার্ভারের নাম:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"ইস্যুকারীর নাম:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"সংস্থা:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

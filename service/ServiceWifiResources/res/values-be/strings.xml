@@ -126,10 +126,10 @@
     <string name="wifi_interface_priority_message" msgid="7889098392449730531">"Праграма \"<xliff:g id="APP_0">%1$s</xliff:g>\" выкарыстоўвае інтэрфейс \"<xliff:g id="INTERFACE">%2$s</xliff:g>\". У выніку гэтага іншыя інтэрфейсы будуць адключаны, што можа паўплываць на праграмы \"<xliff:g id="APPS">%3$s</xliff:g>\"."</string>
     <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Так, ухваліць"</string>
     <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Не, адхіліць"</string>
-    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Ці з\'яўляецца гэта сетка даверанай?"</string>
+    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Гэта бяспечная сетка?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Падключыцца"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Не падключацца"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Дазвольце падключэнне да гэтай сеткі, толькі калі прыведзеная ніжэй інфармацыя адпавядае рэчаіснасці.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Падключайцеся да гэтай сеткі, толькі калі прыведзеная ніжэй інфармацыя правільная.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Сервер:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Эмітэнт:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Арганізацыя:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

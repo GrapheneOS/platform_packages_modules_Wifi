@@ -129,7 +129,7 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"តើជឿទុកចិត្ត​បណ្តាញនេះ​បានទេ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"បាទ/ចាស ភ្ជាប់"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ទេ កុំភ្ជាប់"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"អនុញ្ញាតឱ្យតែ​បណ្ដាញនេះ​ភ្ជាប់ប៉ុណ្ណោះ ប្រសិនបើ​ព័ត៌មានខាងក្រោម​ត្រឹមត្រូវ។\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"អនុញ្ញាតឱ្យ​បណ្ដាញនេះ​ភ្ជាប់ លុះត្រាតែ​ព័ត៌មានខាងក្រោម​ត្រឹមត្រូវ​តែប៉ុណ្ណោះ។\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"ឈ្មោះ​ម៉ាស៊ីនមេ៖\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"ឈ្មោះស្ថាប័ន​ចេញ​វិញ្ញាបនបត្រ៖\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"ស្ថាប័ន៖\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

@@ -129,7 +129,7 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"هل هذه الشبكة موثوقة؟"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"نعم، أريد الاتصال"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"لا، عدم الاتصال"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"عدم السماح لهذه الشبكة بالاتصال إلا إذا كانت المعلومات أدناه تبدو صحيحة.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"ننصحك بعدم السماح لهذه الشبكة بالاتصال إلا إذا كانت المعلومات أدناه تبدو صحيحة:\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"اسم الخادم:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"اسم جهة الإصدار:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"المؤسسة:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

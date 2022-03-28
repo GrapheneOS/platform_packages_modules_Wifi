@@ -128,7 +128,7 @@
     <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Hindi, tanggihan"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Pinagkakatiwalaan ba ang network na ito?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Oo, kumonekta"</string>
-    <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Hindi, huwag itama"</string>
+    <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Hindi, huwag kumonekta"</string>
     <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Payagan lang ang network na ito na kumonekta kung mukhang tama ang impormasyon sa ibaba.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Pangalan ng Server:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Pangalan ng Nagbigay:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>

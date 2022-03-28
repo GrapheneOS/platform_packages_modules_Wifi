@@ -129,9 +129,9 @@
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Дали мрежава е доверлива?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Поврзи се"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Не поврзувај се"</string>
-    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Дозволете поврзување само со оваа мрежа ако податоците долу изгледаат точни.\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"Дозволете поврзување со мрежава само ако податоците долу изгледаат точни.\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Име на сервер:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Име на издавачот:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Име на издавач:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Организација:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Контактирајте со:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"Потпис:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
