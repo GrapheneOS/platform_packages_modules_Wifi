@@ -84,7 +84,7 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
     public void update(List<ScanDetail> scanDetails) {
         // Update the matching profiles into WifiConfigManager, help displaying Passpoint networks
         // in Wifi Picker
-        mPasspointNetworkNominateHelper.getPasspointNetworkCandidates(scanDetails, false);
+        mPasspointNetworkNominateHelper.updatePasspointConfig(scanDetails);
     }
 
     /**
