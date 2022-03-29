@@ -6228,7 +6228,7 @@ public class WifiManager {
      *
      * Available for DO/PO apps.
      * Other apps require {@code android.Manifest.permission#NETWORK_SETTINGS} or
-     * {@code android.Manifest.permission#MANAGE_WIFI_AUTO_JOIN} permission.
+     * {@code android.Manifest.permission#MANAGE_WIFI_NETWORK_SELECTION} permission.
      *
      * @param executor The executor on which callback will be invoked.
      * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
