@@ -2871,6 +2871,26 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         return additionalClientListener.value;
     }
 
+    @Test
+    public void testRemoveDefaultClientModeManager() throws Exception {
+        // Ensure that we can create more client ifaces.
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
+                .thenReturn(true);
+        assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+
+        // Verify removing a non DefaultClientModeManager works properly.
+        requestRemoveAdditionalClientModeManager(ROLE_CLIENT_LOCAL_ONLY);
+
+        // Verify that a request to remove DefaultClientModeManager is ignored.
+        ClientModeManager defaultClientModeManager = mock(DefaultClientModeManager.class);
+
+        mActiveModeWarden.removeClientModeManager(defaultClientModeManager);
+        mLooper.dispatchAll();
+        verify(defaultClientModeManager, never()).stop();
+    }
+
     private void requestRemoveAdditionalClientModeManager(
             ClientConnectivityRole role) throws Exception {
         ConcreteClientModeManager additionalClientModeManager =

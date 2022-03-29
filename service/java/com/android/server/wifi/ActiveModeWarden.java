@@ -1147,10 +1147,11 @@ public class ActiveModeWarden {
     }
 
     /**
-     * Method to stop client mode manger.
+     * Method to stop client mode manager.
      */
     private void stopAdditionalClientModeManager(ClientModeManager clientModeManager) {
-        if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY
+        if (clientModeManager instanceof DefaultClientModeManager
+                || clientModeManager.getRole() == ROLE_CLIENT_PRIMARY
                 || clientModeManager.getRole() == ROLE_CLIENT_SCAN_ONLY) return;
         Log.d(TAG, "Shutting down additional client mode manager: " + clientModeManager);
         clientModeManager.stop();
@@ -1977,6 +1978,9 @@ public class ActiveModeWarden {
             private void handleAdditionalClientModeManagerRequest(
                     @NonNull AdditionalClientModeManagerRequestInfo requestInfo) {
                 ClientModeManager primaryManager = getPrimaryClientModeManager();
+                if (primaryManager instanceof DefaultClientModeManager) {
+                    primaryManager = null;
+                }
                 if (requestInfo.clientRole == ROLE_CLIENT_SECONDARY_TRANSIENT
                         && mDppManager.isSessionInProgress()) {
                     // When MBB is triggered, we could end up switching the primary interface
