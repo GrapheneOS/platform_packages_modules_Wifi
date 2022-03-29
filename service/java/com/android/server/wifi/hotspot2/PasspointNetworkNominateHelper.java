@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.hotspot2;
 
+import static com.android.server.wifi.hotspot2.PasspointMatch.HomeProvider;
+
 import android.annotation.NonNull;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.util.ScanResultUtil;
@@ -32,9 +34,11 @@ import com.android.server.wifi.hotspot2.anqp.HSWanMetricsElement;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -45,7 +49,7 @@ public class PasspointNetworkNominateHelper {
     @NonNull private final PasspointManager mPasspointManager;
     @NonNull private final WifiConfigManager mWifiConfigManager;
     @NonNull private final List<ScanDetail> mCachedScanDetails = new ArrayList<>();
-    @NonNull private LocalLog mLocalLog;
+    @NonNull private final LocalLog mLocalLog;
 
     /**
      * Contained information for a Passpoint network candidate.
@@ -70,6 +74,15 @@ public class PasspointNetworkNominateHelper {
     }
 
     /**
+     * Update the matched passpoint network to the WifiConfigManager.
+     * Should be called each time have new scan details.
+     */
+    public void updatePasspointConfig(List<ScanDetail> scanDetails) {
+        filterAndUpdateScanDetails(scanDetails);
+        updateBestMatchScanDetailForProviders();
+    }
+
+    /**
      * Get best matched available Passpoint network candidates for scanDetails.
      * @param scanDetails List of ScanDetail.
      * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
@@ -77,6 +90,14 @@ public class PasspointNetworkNominateHelper {
      */
     public List<Pair<ScanDetail, WifiConfiguration>> getPasspointNetworkCandidates(
             List<ScanDetail> scanDetails, boolean isFromSuggestion) {
+        filterAndUpdateScanDetails(scanDetails);
+        return findBestMatchScanDetailForProviders(isFromSuggestion);
+    }
+
+    /**
+     * Filter out non-passpoint networks
+     */
+    private void filterAndUpdateScanDetails(List<ScanDetail> scanDetails) {
         // Sweep the ANQP cache to remove any expired ANQP entries.
         mPasspointManager.sweepCache();
         List<ScanDetail> filteredScanDetails = new ArrayList<>();
@@ -94,18 +115,6 @@ public class PasspointNetworkNominateHelper {
             mCachedScanDetails.clear();
             mCachedScanDetails.addAll(filteredScanDetails);
         }
-        return findBestMatchScanDetailForProviders(filteredScanDetails, isFromSuggestion);
-    }
-
-    /**
-     * Refresh the best matched available Passpoint network candidates in WifiConfigManager for the
-     * last seen scanDetails. This should be used if new profiles have been added but scan results
-     * remain the same.
-     * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
-     */
-    public void refreshPasspointNetworkCandidates(boolean isFromSuggestion) {
-        // This method will add the provider wifi configs to WifiConfigManager
-        findBestMatchScanDetailForProviders(mCachedScanDetails, isFromSuggestion);
     }
 
     /**
@@ -135,46 +144,62 @@ public class PasspointNetworkNominateHelper {
     }
 
     /**
+     * Use the latest scan details to add/update the matched passpoint to WifiConfigManager.  This
+     * should be used if new profiles have been added but scan results remain the same, or new
+     * ScanDetails available.
+     */
+    public void updateBestMatchScanDetailForProviders() {
+        if (mPasspointManager.isProvidersListEmpty()
+                || !mPasspointManager.isWifiPasspointEnabled() || mCachedScanDetails.isEmpty()) {
+            return;
+        }
+        Map<PasspointProvider, List<PasspointNetworkCandidate>> candidatesPerProvider =
+                getMatchedCandidateGroupByProvider(mCachedScanDetails, false);
+        // For each provider find the best scanDetail(prefer home, higher RSSI) for it and update
+        // it to the WifiConfigManager.
+        for (List<PasspointNetworkCandidate> candidates : candidatesPerProvider.values()) {
+            List<PasspointNetworkCandidate> bestCandidates = findHomeNetworksIfPossible(candidates);
+            Optional<PasspointNetworkCandidate> highestRssi = bestCandidates.stream().max(
+                    Comparator.comparingInt(a -> a.mScanDetail.getScanResult().level));
+            if (!highestRssi.isEmpty()) {
+                createWifiConfigForProvider(highestRssi.get());
+            }
+        }
+    }
+
+    /**
      * Match available providers for each scan detail and add their configs to WifiConfigManager.
      * Then for each available provider, find the best scan detail for it.
-     * @param scanDetails all details for this scan.
      * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
      * @return List of pair of scanDetail and WifiConfig from matched available provider.
      */
     private @NonNull List<Pair<ScanDetail, WifiConfiguration>> findBestMatchScanDetailForProviders(
-            List<ScanDetail> scanDetails, boolean isFromSuggestion) {
+            boolean isFromSuggestion) {
+        List<ScanDetail> scanDetails = mCachedScanDetails.stream()
+                .filter(a -> !isApWanLinkStatusDown(a))
+                .collect(Collectors.toList());
         if (mPasspointManager.isProvidersListEmpty()
-                || !mPasspointManager.isWifiPasspointEnabled()) {
+                || !mPasspointManager.isWifiPasspointEnabled() || scanDetails.isEmpty()) {
             return Collections.emptyList();
         }
         List<Pair<ScanDetail, WifiConfiguration>> results = new ArrayList<>();
         Map<PasspointProvider, List<PasspointNetworkCandidate>> candidatesPerProvider =
-                new HashMap<>();
-        // Match each scanDetail with best provider (home > roaming), and grouped by FQDN.
-        for (ScanDetail scanDetail : scanDetails) {
-            List<Pair<PasspointProvider, PasspointMatch>> matchedProviders =
-                    mPasspointManager.matchProvider(scanDetail.getScanResult());
-            if (matchedProviders == null) {
+                getMatchedCandidateGroupByProvider(mCachedScanDetails, true);
+        // For each provider find the best scanDetails(prefer home) for it and create selection
+        // candidate pair.
+        for (Map.Entry<PasspointProvider, List<PasspointNetworkCandidate>> candidates :
+                candidatesPerProvider.entrySet()) {
+            if (candidates.getKey().isFromSuggestion() != isFromSuggestion) {
                 continue;
             }
-            for (Pair<PasspointProvider, PasspointMatch> matchedProvider : matchedProviders) {
-                if (matchedProvider.first.isFromSuggestion() != isFromSuggestion) {
-                    continue;
-                }
-                List<PasspointNetworkCandidate> candidates = candidatesPerProvider
-                        .computeIfAbsent(matchedProvider.first, k -> new ArrayList<>());
-                candidates.add(new PasspointNetworkCandidate(matchedProvider.first,
-                        matchedProvider.second, scanDetail));
-            }
-        }
-        // For each provider find the best scanDetail for it and create selection candidate pair.
-        for (List<PasspointNetworkCandidate> candidates : candidatesPerProvider.values()) {
-            List<PasspointNetworkCandidate> bestCandidates = findHomeNetworksIfPossible(candidates);
+            List<PasspointNetworkCandidate> bestCandidates =
+                    findHomeNetworksIfPossible(candidates.getValue());
             for (PasspointNetworkCandidate candidate : bestCandidates) {
                 WifiConfiguration config = createWifiConfigForProvider(candidate);
                 if (config == null) {
                     continue;
                 }
+
                 if (mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(config)) {
                     mLocalLog.log("Ignoring non-carrier-merged SSID: " + config.FQDN);
                     continue;
@@ -189,6 +214,37 @@ public class PasspointNetworkNominateHelper {
         return results;
     }
 
+    private Map<PasspointProvider, List<PasspointNetworkCandidate>>
+            getMatchedCandidateGroupByProvider(List<ScanDetail> scanDetails,
+            boolean onlyHomeIfAvailable) {
+        Map<PasspointProvider, List<PasspointNetworkCandidate>> candidatesPerProvider =
+                new HashMap<>();
+        // Match each scanDetail with the best provider (home > roaming), and grouped by provider.
+        for (ScanDetail scanDetail : scanDetails) {
+            List<Pair<PasspointProvider, PasspointMatch>> matchedProviders =
+                    mPasspointManager.matchProvider(scanDetail.getScanResult());
+            if (matchedProviders == null) {
+                continue;
+            }
+            if (onlyHomeIfAvailable) {
+                List<Pair<PasspointProvider, PasspointMatch>> homeProviders =
+                        matchedProviders.stream()
+                                .filter(a -> a.second == HomeProvider)
+                                .collect(Collectors.toList());
+                if (!homeProviders.isEmpty()) {
+                    matchedProviders = homeProviders;
+                }
+            }
+            for (Pair<PasspointProvider, PasspointMatch> matchedProvider : matchedProviders) {
+                List<PasspointNetworkCandidate> candidates = candidatesPerProvider
+                        .computeIfAbsent(matchedProvider.first, k -> new ArrayList<>());
+                candidates.add(new PasspointNetworkCandidate(matchedProvider.first,
+                        matchedProvider.second, scanDetail));
+            }
+        }
+        return candidatesPerProvider;
+    }
+
     /**
      * Create and return a WifiConfiguration for the given ScanDetail and PasspointProvider.
      * The newly created WifiConfiguration will also be added to WifiConfigManager.
@@ -199,7 +255,7 @@ public class PasspointNetworkNominateHelper {
             PasspointNetworkCandidate candidate) {
         WifiConfiguration config = candidate.mProvider.getWifiConfig();
         config.SSID = ScanResultUtil.createQuotedSsid(candidate.mScanDetail.getSSID());
-        config.isHomeProviderNetwork = candidate.mMatchStatus == PasspointMatch.HomeProvider;
+        config.isHomeProviderNetwork = candidate.mMatchStatus == HomeProvider;
         if (candidate.mScanDetail.getNetworkDetail().getAnt()
                 == NetworkDetail.Ant.ChargeablePublic) {
             config.meteredHint = true;
@@ -255,7 +311,7 @@ public class PasspointNetworkNominateHelper {
     private @NonNull List<PasspointNetworkCandidate> findHomeNetworksIfPossible(
             @NonNull List<PasspointNetworkCandidate> networkList) {
         List<PasspointNetworkCandidate> homeProviderCandidates = networkList.stream()
-                .filter(candidate -> candidate.mMatchStatus == PasspointMatch.HomeProvider)
+                .filter(candidate -> candidate.mMatchStatus == HomeProvider)
                 .collect(Collectors.toList());
         if (homeProviderCandidates.isEmpty()) {
             return networkList;
