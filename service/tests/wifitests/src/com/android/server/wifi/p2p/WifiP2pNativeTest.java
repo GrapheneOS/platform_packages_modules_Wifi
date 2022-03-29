@@ -25,10 +25,13 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
+import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.net.wifi.WifiManager;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pConfig;
@@ -39,20 +42,25 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.os.Handler;
+import android.os.WorkSource;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.PropertyService;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiVendorHal;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -91,6 +99,7 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     @Mock private PropertyService mPropertyServiceMock;
     @Mock private Handler mHandler;
 
+    private MockitoSession mSession;
     private WifiP2pNative mWifiP2pNative;
     private WifiP2pGroupList mWifiP2pGroupList = new WifiP2pGroupList();
     private Set<String> mWifiClientInterfaceNames = new HashSet<String>();
@@ -109,6 +118,13 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(HalDeviceManager.class, withSettings().lenient())
+                .strictness(Strictness.LENIENT)
+                .startMocking();
+
+        when(HalDeviceManager.getName(any())).thenReturn(TEST_IFACE);
 
         mWifiClientInterfaceNames.add("wlan0");
         mWifiClientInterfaceNames.add("wlan1");
@@ -144,6 +160,11 @@ public class WifiP2pNativeTest extends WifiBaseTest {
                 }
         }).when(mSupplicantP2pIfaceHalMock).loadGroups(any());
 
+    }
+
+    @After
+    public void tearDown() {
+        mSession.finishMocking();
     }
 
     /**
@@ -735,5 +756,52 @@ public class WifiP2pNativeTest extends WifiBaseTest {
         when(mSupplicantP2pIfaceHalMock.removeClient(anyString(), anyBoolean())).thenReturn(true);
         assertTrue(mWifiP2pNative.removeClient(TEST_BSSID));
         verify(mSupplicantP2pIfaceHalMock).removeClient(eq(TEST_BSSID), anyBoolean());
+    }
+
+    void prepareDbsMock(boolean isHalDeviceManagerSupported) throws Exception {
+        when(mHalDeviceManagerMock.isSupported()).thenReturn(isHalDeviceManagerSupported);
+        when(mHalDeviceManagerMock.createP2pIface(any(), any(), any()))
+                .thenReturn(mock(IWifiP2pIface.class));
+        when(mSupplicantP2pIfaceHalMock.isInitializationStarted()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.setupIface(any())).thenReturn(true);
+        mWifiP2pNative.setupInterface(null, mHandler, mock(WorkSource.class));
+    }
+
+    /**
+     * Verify DBS support inquiry.
+     */
+    @Test
+    public void testDbsSupport() throws Exception {
+        prepareDbsMock(true);
+
+        when(mHalDeviceManagerMock.is24g5gDbsSupported(any())).thenReturn(true);
+        assertTrue(mWifiP2pNative.is24g5gDbsSupported());
+        when(mHalDeviceManagerMock.is24g5gDbsSupported(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
+
+        when(mHalDeviceManagerMock.is5g6gDbsSupported(any())).thenReturn(true);
+        assertTrue(mWifiP2pNative.is5g6gDbsSupported());
+        when(mHalDeviceManagerMock.is5g6gDbsSupported(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is5g6gDbsSupported());
+    }
+
+    /**
+     * Verify DBS support inquiry when HalDeviceManager is not supported.
+     */
+    @Test
+    public void testDbsSupportWhenHalDeviceManagerNotSupported() throws Exception {
+        prepareDbsMock(false);
+
+        when(mHalDeviceManagerMock.is24g5gDbsSupported(any())).thenReturn(true);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
+        when(mHalDeviceManagerMock.is24g5gDbsSupported(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
+
+        when(mHalDeviceManagerMock.is5g6gDbsSupported(any())).thenReturn(true);
+        assertFalse(mWifiP2pNative.is5g6gDbsSupported());
+        when(mHalDeviceManagerMock.is5g6gDbsSupported(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is5g6gDbsSupported());
     }
 }
