@@ -3974,6 +3974,7 @@ public class WifiConfigManager {
         newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
         newConfig.enterpriseConfig.setCaCertificate(cert);
         newConfig.enterpriseConfig.setDomainSuffixMatch(info.commonName);
+        newConfig.enterpriseConfig.setUserApproveNoCaCert(false);
         // Trigger an update to install CA certifiate and the corresponding configuration.
         NetworkUpdateResult result = addOrUpdateNetwork(newConfig, internalConfig.creatorUid);
         if (!result.isSuccess()) {
