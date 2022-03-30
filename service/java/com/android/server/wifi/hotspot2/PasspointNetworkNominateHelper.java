@@ -27,7 +27,6 @@ import android.util.Pair;
 import com.android.server.wifi.NetworkUpdateResult;
 import com.android.server.wifi.ScanDetail;
 import com.android.server.wifi.WifiConfigManager;
-import com.android.server.wifi.WifiNetworkSelector;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
 import com.android.server.wifi.hotspot2.anqp.Constants;
 import com.android.server.wifi.hotspot2.anqp.HSWanMetricsElement;
@@ -288,15 +287,6 @@ public class PasspointNetworkNominateHelper {
                 candidate.mScanDetail.getScanResult(), 0, null);
         mWifiConfigManager.updateScanDetailForNetwork(
                 result.getNetworkId(), candidate.mScanDetail);
-        if (isApWanLinkStatusDown(candidate.mScanDetail)) {
-            // If scanDetail has no internet connection, mark No Internet and
-            // still report to the upper layer.
-            mLocalLog.log("Mark no internet connection Passpoint AP: "
-                    + WifiNetworkSelector.toScanId(candidate.mScanDetail.getScanResult()));
-            mWifiConfigManager.incrementNetworkNoInternetAccessReports(result.getNetworkId());
-            mWifiConfigManager.updateNetworkSelectionStatus(result.getNetworkId(),
-                    WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT);
-        }
         return mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
     }
 
