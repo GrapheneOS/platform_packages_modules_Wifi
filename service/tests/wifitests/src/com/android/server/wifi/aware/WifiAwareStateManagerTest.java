@@ -951,6 +951,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      */
     @Test
     public void testPublishSuccessInstantCommunicationMode() throws Exception {
+        assertTrue(SdkLevel.isAtLeastT());
         final int clientId = 2005;
         final int uid = 1000;
         final int pid = 2000;
@@ -1034,6 +1035,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      */
     @Test
     public void testSubscribeSuccessInstantCommunicationMode() throws Exception {
+        assertTrue(SdkLevel.isAtLeastT());
         final int clientId = 2005;
         final int uid = 1000;
         final int pid = 2000;
