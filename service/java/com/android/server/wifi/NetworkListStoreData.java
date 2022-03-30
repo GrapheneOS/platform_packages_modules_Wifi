@@ -291,7 +291,6 @@ public abstract class NetworkListStoreData implements WifiConfigStore.StoreData 
         if (configuration.preSharedKey != null && !configuration.needsPreSharedKey()) {
             Log.e(TAG, "preSharedKey set with an invalid KeyMgmt, resetting KeyMgmt to WPA_PSK");
             configuration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
-            WifiConfigurationUtil.addUpgradableSecurityTypeIfNecessary(configuration);
             // Recreate configKey to pass the check below.
             configKeyParsed = configuration.getKey();
         }
@@ -323,6 +322,7 @@ public abstract class NetworkListStoreData implements WifiConfigStore.StoreData 
         if (enterpriseConfig != null) {
             configuration.enterpriseConfig = enterpriseConfig;
         }
+        WifiConfigurationUtil.addUpgradableSecurityTypeIfNecessary(configuration);
         return configuration;
     }
 }

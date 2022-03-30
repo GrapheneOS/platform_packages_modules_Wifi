@@ -45,7 +45,6 @@ import android.util.Pair;
 import android.util.SparseIntArray;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.server.wifi.WifiConfigurationUtil;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -941,7 +940,6 @@ public class XmlUtil {
                 configuration.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
             }
             configuration.convertLegacyFieldsToSecurityParamsIfNeeded();
-            WifiConfigurationUtil.addUpgradableSecurityTypeIfNecessary(configuration);
             return Pair.create(configKeyInData, configuration);
         }
     }
