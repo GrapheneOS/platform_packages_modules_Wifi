@@ -607,6 +607,11 @@ public final class ResponderConfig implements Parcelable {
 
         /**
          * Sets the frequency of the channel in MHz.
+         * <p>
+         * Note: The frequency is used as a hint, and the underlying WiFi subsystem may use it, or
+         * select an alternate if its own connectivity scans have determined the frequency of the
+         * access point has changed.
+         * </p>
          *
          * @param frequency the frequency of the channel in MHz
          * @return the builder to facilitate chaining
@@ -620,6 +625,11 @@ public final class ResponderConfig implements Parcelable {
 
         /**
          * Sets the center frequency in MHz of the first segment of the channel.
+         * <p>
+         * Note: The frequency is used as a hint, and the underlying WiFi subsystem may use it, or
+         * select an alternate if its own connectivity scans have determined the frequency of the
+         * access point has changed.
+         * </p>
          *
          * @param centerFreq0 the center frequency in MHz of first channel segment
          * @return the builder to facilitate chaining
@@ -633,6 +643,11 @@ public final class ResponderConfig implements Parcelable {
 
         /**
          * Sets the center frequency in MHz of the second segment of the channel, if used.
+         * <p>
+         * Note: The frequency is used as a hint, and the underlying WiFi subsystem may use it, or
+         * select an alternate if its own connectivity scans have determined the frequency of the
+         * access point has changed.
+         * </p>
          *
          * @param centerFreq1 the center frequency in MHz of second channel segment
          * @return the builder to facilitate chaining

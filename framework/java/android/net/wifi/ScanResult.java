@@ -416,9 +416,10 @@ public final class ScanResult implements Parcelable {
      * an absolute signal level which can be displayed to a user.
      */
     public int level;
+
     /**
-     * The primary 20 MHz frequency (in MHz) of the channel over which the client is communicating
-     * with the access point.
+     * The center frequency of the primary 20 MHz frequency (in MHz) of the channel over which the
+     * client is communicating with the access point.
      */
     public int frequency;
 
