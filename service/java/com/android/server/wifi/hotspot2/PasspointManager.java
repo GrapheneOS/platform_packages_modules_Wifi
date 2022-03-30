@@ -571,7 +571,7 @@ public class PasspointManager {
         }
         mWifiMetrics.incrementNumPasspointProviderInstallSuccess();
         if (mPasspointNetworkNominateHelper != null) {
-            mPasspointNetworkNominateHelper.refreshPasspointNetworkCandidates(isFromSuggestion);
+            mPasspointNetworkNominateHelper.updateBestMatchScanDetailForProviders();
         }
         return true;
     }
@@ -825,9 +825,6 @@ public class PasspointManager {
      * Find all providers that can provide service through the given AP, which means the
      * providers contained credential to authenticate with the given AP.
      *
-     * If there is any home provider available, will return a list of matched home providers.
-     * Otherwise will return a list of matched roaming providers.
-     *
      * A empty list will be returned if no matching is found.
      *
      * @param scanResult The scan result associated with the AP
@@ -840,39 +837,15 @@ public class PasspointManager {
             return Collections.emptyList();
         }
         List<Pair<PasspointProvider, PasspointMatch>> allMatches = getAllMatchedProviders(
-                scanResult, anqpRequestAllowed);
+                scanResult, anqpRequestAllowed).stream()
+                .filter(a -> !isExpired(a.first.getConfig()))
+                .collect(Collectors.toList());
         if (allMatches.isEmpty()) {
-            return allMatches;
-        }
-        List<Pair<PasspointProvider, PasspointMatch>> homeProviders = new ArrayList<>();
-        List<Pair<PasspointProvider, PasspointMatch>> roamingProviders = new ArrayList<>();
-        for (Pair<PasspointProvider, PasspointMatch> match : allMatches) {
-            if (isExpired(match.first.getConfig())) {
-                continue;
-            }
-            if (match.second == PasspointMatch.HomeProvider) {
-                homeProviders.add(match);
-            } else {
-                roamingProviders.add(match);
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "No service provider found for " + scanResult.SSID);
             }
         }
-
-        if (!homeProviders.isEmpty()) {
-            Log.d(TAG, String.format("Matched %s to %s providers as %s", scanResult.SSID,
-                    homeProviders.size(), "Home Provider"));
-            return homeProviders;
-        }
-
-        if (!roamingProviders.isEmpty()) {
-            Log.d(TAG, String.format("Matched %s to %s providers as %s", scanResult.SSID,
-                    roamingProviders.size(), "Roaming Provider"));
-            return roamingProviders;
-        }
-
-        if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "No service provider found for " + scanResult.SSID);
-        }
-        return new ArrayList<>();
+        return allMatches;
     }
 
     /**
