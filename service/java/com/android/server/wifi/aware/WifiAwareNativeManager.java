@@ -109,7 +109,7 @@ public class WifiAwareNativeManager {
                         if (mHalDeviceManager.isStarted()) {
                             mWifiAwareStateManager.tryToGetAwareCapability();
                         } else {
-                            awareIsDown();
+                            awareIsDown(false);
                         }
                     }
                 }, mHandler);
@@ -145,7 +145,7 @@ public class WifiAwareNativeManager {
             }
             if (mHalDeviceManager == null) {
                 Log.e(TAG, "tryToGetAware: mHalDeviceManager is null!?");
-                awareIsDown();
+                awareIsDown(false);
                 return;
             }
 
@@ -154,7 +154,7 @@ public class WifiAwareNativeManager {
                     mHandler, requestorWs);
             if (iface == null) {
                 Log.e(TAG, "Was not able to obtain an IWifiNanIface (even though enabled!?)");
-                awareIsDown();
+                awareIsDown(true);
             } else {
                 if (mDbg) Log.v(TAG, "Obtained an IWifiNanIface");
 
@@ -182,12 +182,12 @@ public class WifiAwareNativeManager {
                         Log.e(TAG, "IWifiNanIface.registerEventCallback error: " + statusString(
                                 status));
                         mHalDeviceManager.removeIface(iface);
-                        awareIsDown();
+                        awareIsDown(false);
                         return;
                     }
                 } catch (RemoteException e) {
                     Log.e(TAG, "IWifiNanIface.registerEventCallback exception: " + e);
-                    awareIsDown();
+                    awareIsDown(false);
                     return;
                 }
                 mWifiNanIface = iface;
@@ -241,7 +241,7 @@ public class WifiAwareNativeManager {
             }
             if (mHalDeviceManager == null) {
                 Log.e(TAG, "tryToGetAware: mHalDeviceManager is null!?");
-                awareIsDown();
+                awareIsDown(false);
                 return false;
             }
 
@@ -249,7 +249,7 @@ public class WifiAwareNativeManager {
         }
     }
 
-    private void awareIsDown() {
+    private void awareIsDown(boolean markAsAvailable) {
         synchronized (mLock) {
             if (mDbg) {
                 Log.d(TAG, "awareIsDown: mWifiNanIface=" + mWifiNanIface + ", mReferenceCount ="
@@ -257,7 +257,7 @@ public class WifiAwareNativeManager {
             }
             mWifiNanIface = null;
             mReferenceCount = 0;
-            mWifiAwareStateManager.disableUsage(true);
+            mWifiAwareStateManager.disableUsage(markAsAvailable);
         }
     }
 
@@ -272,7 +272,7 @@ public class WifiAwareNativeManager {
                         + active);
             }
             if (active && mWifiNanIface != null) {
-                awareIsDown();
+                awareIsDown(true);
             } // else: we released it locally so no need to disable usage
         }
     }
