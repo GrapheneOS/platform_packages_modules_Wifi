@@ -532,9 +532,12 @@ public class WifiCountryCodeTest extends WifiBaseTest {
             throws Exception {
         // Supplicant started.
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
+        mChangeListenerCaptor.getValue().onSetCountryCodeSucceeded(mDefaultCountryCode);
         verify(mClientModeManager).setCountryCode(anyString());
 
-        // SoftApManager actived, it shouldn't impact to client mode, the times keep 1.
+        // SoftApManager activated, it shouldn't impact to client mode, the times keep 1.
+        when(mSoftApManager.getRole()).thenReturn(ActiveModeManager.ROLE_SOFTAP_TETHERED);
+        when(mSoftApManager.updateCountryCode(anyString())).thenReturn(true);
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mSoftApManager);
         verify(mClientModeManager).setCountryCode(anyString());
         // Verify the SoftAp enable shouldn't trigger the update CC event.
@@ -545,7 +548,13 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
         // Verify the SoftApManager doesn't impact when client mode changed
         verify(mSoftApManager, never()).updateCountryCode(anyString());
+        verify(mClientModeManager, times(2)).setCountryCode(anyString());
 
+        // Override the mClientModeManager.setCountryCode mock in setUp, do not update driver
+        // country code, so both client mode manager and ap mode manager will update country code.
+        doAnswer((invocation) -> {
+            return true;
+        }).when(mClientModeManager).setCountryCode(mSetCountryCodeCaptor.capture());
         // Test telephony CC changed, check both of client mode and softap mode update the CC.
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         verify(mClientModeManager).setCountryCode(mTelephonyCountryCode);
