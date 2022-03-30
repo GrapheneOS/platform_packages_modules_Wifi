@@ -764,7 +764,7 @@ public class PasspointNetworkNominateHelperTest {
 
     /**
      * Verify that when the WAN metrics status is 'LINK_STATUS_DOWN', it should be added to the
-     * WifiConfigManager and set No Internet.
+     * WifiConfigManager and NOT set No Internet.
      */
     @Test
     public void updateScansWithNetworkMatchingHomeProviderWithAnqpLinkDown() {
@@ -787,8 +787,9 @@ public class PasspointNetworkNominateHelperTest {
         when(wm.isElementInitialized()).thenReturn(true);
 
         mNominateHelper.updatePasspointConfig(scanDetails);
-        verify(mWifiConfigManager).incrementNetworkNoInternetAccessReports(eq(TEST_NETWORK_ID));
-        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(TEST_NETWORK_ID),
+        verify(mWifiConfigManager, never())
+                .incrementNetworkNoInternetAccessReports(eq(TEST_NETWORK_ID));
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(eq(TEST_NETWORK_ID),
                 eq(WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT));
     }
 
