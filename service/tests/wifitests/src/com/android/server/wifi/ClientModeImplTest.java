@@ -2209,7 +2209,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
 
-        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(anyString());
+        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(any());
         verify(mWifiConfigManager).updateNetworkSelectionStatus(anyInt(),
                 eq(WifiConfiguration.NetworkSelectionStatus.DISABLED_AUTHENTICATION_FAILURE));
 
@@ -2240,7 +2240,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
 
-        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(anyString());
+        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(any());
         assertEquals("DisconnectedState", getCurrentState().getName());
     }
 
@@ -2268,7 +2268,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
 
-        verify(mWrongPasswordNotifier).onWrongPasswordError(anyString());
+        verify(mWrongPasswordNotifier).onWrongPasswordError(any());
         assertEquals("DisconnectedState", getCurrentState().getName());
     }
 
@@ -2335,7 +2335,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
 
-        verify(mWrongPasswordNotifier).onWrongPasswordError(eq(TEST_SSID));
+        verify(mWrongPasswordNotifier).onWrongPasswordError(config);
         verify(mWifiConfigManager).updateNetworkSelectionStatus(anyInt(),
                 eq(WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD));
         verify(mWifiMetrics).incrementNumOfCarrierWifiConnectionAuthFailure();
