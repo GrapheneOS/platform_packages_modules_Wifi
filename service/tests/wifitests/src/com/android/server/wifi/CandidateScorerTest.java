@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 import android.net.wifi.ScanResult;
 
@@ -109,6 +111,10 @@ public class CandidateScorerTest extends WifiBaseTest {
      */
     @Before
     public void setUp() throws Exception {
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            mScoringParams = spy(new ScoringParams());
+            mCandidateScorer = new ThroughputScorer(mScoringParams);
+        }
         mScoringParams.update("");
         mCandidate1 = new ConcreteCandidate().setNominatorId(0)
                 .setScanRssi(-50).setFrequency(5180);
@@ -490,6 +496,31 @@ public class CandidateScorerTest extends WifiBaseTest {
                     1200 * mScoringParams.getThroughputBonusNumeratorAfter800Mbps()
                     / mScoringParams.getThroughputBonusDenominatorAfter800Mbps(),
                     scoreThroughput2800Mbps - scoreThroughput800Mbps, TOL);
+        }
+    }
+
+    @Test
+    public void testBand6GhzBonusIsCapped() {
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            doReturn(0).when(mScoringParams).getBand6GhzBonus();
+            doReturn(500).when(mScoringParams).getScoringBucketStepSize();
+
+            // setup a 6Ghz candidate
+            mCandidate1 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-77).setFrequency(5975);
+            double scoreNoBandBonus = evaluate(mCandidate1);
+
+            // Verify the 6Ghz band specific bonus is applied.
+            doReturn(5).when(mScoringParams).getBand6GhzBonus();
+            assertEquals(scoreNoBandBonus + 5, evaluate(mCandidate1), TOL);
+
+            // Verify the band bonus is capped by the scoring bucket size.
+            doReturn(500).when(mScoringParams).getBand6GhzBonus();
+            assertTrue(evaluate(mCandidate1) < scoreNoBandBonus + 500);
+
+            // Increasing the scoring bucket size should allow more band bonus to get applied.
+            doReturn(1000).when(mScoringParams).getScoringBucketStepSize();
+            assertEquals(scoreNoBandBonus + 500, evaluate(mCandidate1), TOL);
         }
     }
 }
