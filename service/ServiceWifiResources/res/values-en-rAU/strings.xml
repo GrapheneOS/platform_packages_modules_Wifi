@@ -70,8 +70,7 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Setting updated. Try connecting again."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Can\'t change privacy setting"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Network not found"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32756 (2620877003804313434) -->
-    <skip />
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g>: EAP authentication error 32756"</string>
     <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP authentication error 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
@@ -121,14 +120,12 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"No devices connected. Tap to modify."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi‑Fi disconnected"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"To connect to <xliff:g id="SSID">%1$s</xliff:g>, insert a <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM"</string>
-    <!-- no translation found for wifi_interface_priority_title (5117627874976875544) -->
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> wants to use a networking resource"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"This may cause problems for <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
     <skip />
-    <!-- no translation found for wifi_interface_priority_message (4253391172756140313) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (7877379614986261096) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (1378461018835886777) -->
-    <skip />
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Allow"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Don\'t allow"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Is this network trusted?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Yes, connect"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"No, don\'t connect"</string>
