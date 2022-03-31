@@ -3411,7 +3411,7 @@ public class WifiVendorHal {
      */
     public boolean isStaApConcurrencySupported() {
         synchronized (sLock) {
-            return mHalDeviceManager.canSupportCreateTypeCombo(new SparseArray<Integer>() {{
+            return mHalDeviceManager.canDeviceSupportCreateTypeCombo(new SparseArray<Integer>() {{
                     put(HDM_CREATE_IFACE_STA, 1);
                     put(HDM_CREATE_IFACE_AP, 1);
                 }});
@@ -3423,7 +3423,7 @@ public class WifiVendorHal {
      */
     public boolean isStaStaConcurrencySupported() {
         synchronized (sLock) {
-            return mHalDeviceManager.canSupportCreateTypeCombo(new SparseArray<Integer>() {{
+            return mHalDeviceManager.canDeviceSupportCreateTypeCombo(new SparseArray<Integer>() {{
                     put(HDM_CREATE_IFACE_STA, 2);
                 }});
         }
