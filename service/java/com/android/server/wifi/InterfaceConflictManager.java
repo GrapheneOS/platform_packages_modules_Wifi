@@ -305,12 +305,15 @@ public class InterfaceConflictManager {
                                 detail.second.getUid(j)).toString());
             }
         }
-        String impactedPackages = TextUtils.join(",", impactedPackagesSet);
+        String impactedPackages = TextUtils.join(", ", impactedPackagesSet);
 
         mWifiDialogManager.createSimpleDialog(
                 mResources.getString(R.string.wifi_interface_priority_title, requestorAppName),
-                mResources.getString(R.string.wifi_interface_priority_message, requestorAppName,
-                        requestedInterface, impactedPackages),
+                impactedPackagesSet.size() == 1 ? mResources.getString(
+                        R.string.wifi_interface_priority_message, requestorAppName,
+                        requestedInterface, impactedPackages)
+                        : mResources.getString(R.string.wifi_interface_priority_message_plural,
+                                requestorAppName, requestedInterface, impactedPackages),
                 mResources.getString(R.string.wifi_interface_priority_approve),
                 mResources.getString(R.string.wifi_interface_priority_reject),
                 null,

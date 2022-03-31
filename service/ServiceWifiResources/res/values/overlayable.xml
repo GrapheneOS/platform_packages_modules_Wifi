@@ -309,6 +309,7 @@
           <item type="string" name="wifi_enable_request_dialog_negative_button" />
           <item type="string" name="wifi_interface_priority_title" />
           <item type="string" name="wifi_interface_priority_message" />
+          <item type="string" name="wifi_interface_priority_message_plural" />
           <item type="string" name="wifi_interface_priority_approve" />
           <item type="string" name="wifi_interface_priority_reject" />
           <!-- Params from strings.xml that can be overlayed -->
