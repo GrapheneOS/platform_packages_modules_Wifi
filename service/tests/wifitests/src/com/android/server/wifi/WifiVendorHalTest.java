@@ -3846,7 +3846,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
     @Test
     public void testIsStaApConcurrencySupported() {
-        when(mHalDeviceManager.canSupportCreateTypeCombo(
+        when(mHalDeviceManager.canDeviceSupportCreateTypeCombo(
                 argThat(ifaceCombo -> ifaceCombo.get(IfaceType.STA) == 1
                         && ifaceCombo.get(IfaceType.AP) == 1))).thenReturn(true);
         assertTrue(mWifiVendorHal.isStaApConcurrencySupported());
@@ -3854,7 +3854,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
     @Test
     public void testIsStaStaConcurrencySupported() {
-        when(mHalDeviceManager.canSupportCreateTypeCombo(
+        when(mHalDeviceManager.canDeviceSupportCreateTypeCombo(
                 argThat(ifaceCombo -> ifaceCombo.get(IfaceType.STA) == 2))).thenReturn(true);
         assertTrue(mWifiVendorHal.isStaStaConcurrencySupported());
     }

@@ -16,6 +16,10 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.HalDeviceManagerUtil.jsonToStaticChipInfo;
+import static com.android.server.wifi.HalDeviceManagerUtil.staticChipInfoToJson;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STATIC_CHIP_INFO;
+
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -48,6 +52,7 @@ import android.os.Handler;
 import android.os.IHwBinder.DeathRecipient;
 import android.os.RemoteException;
 import android.os.WorkSource;
+import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
@@ -57,9 +62,13 @@ import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.HalDeviceManagerUtil.StaticChipInfo;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
 import com.android.server.wifi.util.WorkSourceHelper;
 import com.android.wifi.resources.R;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -173,7 +182,10 @@ public class HalDeviceManager {
         mServiceManagerDeathRecipient = new ServiceManagerDeathRecipient();
     }
 
-    /* package */ void enableVerboseLogging(boolean verboseEnabled) {
+    /**
+     * Enables verbose logging.
+     */
+    public void enableVerboseLogging(boolean verboseEnabled) {
         mDbg = verboseEnabled;
 
         if (VDBG) {
@@ -672,43 +684,44 @@ public class HalDeviceManager {
      *
      * @param createTypeCombo SparseArray keyed in by @HdmIfaceTypeForCreation to number of ifaces
      *                         needed.
-     * @param requiredChipCapabilities The bitmask of Capabilities which are required.
-     *                                 See IWifiChip.hal for documentation.
      * @return true if the device supports the provided combo, false otherwise.
      */
-    public boolean canSupportCreateTypeCombo(SparseArray<Integer> createTypeCombo,
-            long requiredChipCapabilities) {
+    public boolean canDeviceSupportCreateTypeCombo(SparseArray<Integer> createTypeCombo) {
         if (VDBG) {
-            Log.d(TAG, "canSupportCreateTypeCombo: createTypeCombo=" + createTypeCombo
-                    + ", requiredChipCapabilities=" + requiredChipCapabilities);
+            Log.d(TAG, "canDeviceSupportCreateTypeCombo: createTypeCombo=" + createTypeCombo);
         }
 
         synchronized (mLock) {
-            if (mWifi == null) return false;
-            int[] createTypeComboArray =
-                    new int[CREATE_TYPES_BY_PRIORITY.length];
+            int[] requestedCombo = new int[CREATE_TYPES_BY_PRIORITY.length];
             for (int createType : CREATE_TYPES_BY_PRIORITY) {
-                createTypeComboArray[createType] = createTypeCombo.get(createType, 0);
+                requestedCombo[createType] = createTypeCombo.get(createType, 0);
             }
-            WifiChipInfo[] chipInfos = getAllChipInfoCached();
-            if (chipInfos == null) return false;
-            return isItPossibleToCreateCreateTypeCombo(
-                    chipInfos, requiredChipCapabilities, createTypeComboArray);
+            for (StaticChipInfo staticChipInfo : getStaticChipInfos()) {
+                SparseArray<List<int[][]>> expandedCreateTypeCombosPerChipModeId =
+                        getExpandedCreateTypeCombosPerChipModeId(
+                                staticChipInfo.getAvailableModes());
+                for (int i = 0; i < expandedCreateTypeCombosPerChipModeId.size(); i++) {
+                    int chipModeId = expandedCreateTypeCombosPerChipModeId.keyAt(i);
+                    for (int[][] expandedCreateTypeCombo
+                            : expandedCreateTypeCombosPerChipModeId.get(chipModeId)) {
+                        for (int[] supportedCombo : expandedCreateTypeCombo) {
+                            if (canCreateTypeComboSupportRequestedCreateTypeCombo(
+                                    supportedCombo, requestedCombo)) {
+                                if (VDBG) {
+                                    Log.d(TAG, "Device can support createTypeCombo="
+                                            + createTypeCombo);
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (VDBG) {
+                Log.d(TAG, "Device cannot support createTypeCombo=" + createTypeCombo);
+            }
+            return false;
         }
-    }
-
-    /**
-     * Returns whether the provided @HdmIfaceTypeForCreation combo can be supported by the device.
-     * Note: This only returns an answer based on the create type combination exposed by the HAL.
-     * The actual iface creation/deletion rules depend on the iface priorities set in
-     * {@link #allowedToDeleteIfaceTypeForRequestedType(int, WorkSource, int, WifiIfaceInfo[][])}
-     *
-     * @param createTypeCombo SparseArray keyed in by @HdmIfaceTypeForCreation to number of ifaces
-     *                         needed.
-     * @return true if the device supports the provided combo, false otherwise.
-     */
-    public boolean canSupportCreateTypeCombo(SparseArray<Integer> createTypeCombo) {
-        return canSupportCreateTypeCombo(createTypeCombo, CHIP_CAPABILITY_ANY);
     }
 
     /**
@@ -925,10 +938,10 @@ public class HalDeviceManager {
 
     private class WifiChipInfo {
         public IWifiChip chip;
-        public int chipId;
+        public int chipId = -1;
         public ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> availableModes;
-        public boolean currentModeIdValid;
-        public int currentModeId;
+        public boolean currentModeIdValid = false;
+        public int currentModeId = -1;
         public WifiIfaceInfo[][] ifaces = new WifiIfaceInfo[IFACE_TYPES_BY_PRIORITY.length][];
         public long chipCapabilities;
         public WifiRadioCombinationMatrix radioCombinationMatrix = null;
@@ -1612,6 +1625,61 @@ public class HalDeviceManager {
         return newChipModes;
     }
 
+    @Nullable
+    private StaticChipInfo[] mCachedStaticChipInfos = null;
+
+    @NonNull
+    private StaticChipInfo[] getStaticChipInfos() {
+        if (mCachedStaticChipInfos == null) {
+            mCachedStaticChipInfos = loadStaticChipInfoFromStore();
+        }
+        return mCachedStaticChipInfos;
+    }
+
+    private void saveStaticChipInfoToStore(StaticChipInfo[] staticChipInfos) {
+        try {
+            JSONArray staticChipInfosJson = new JSONArray();
+            for (StaticChipInfo staticChipInfo : staticChipInfos) {
+                staticChipInfosJson.put(staticChipInfoToJson(staticChipInfo));
+            }
+            mWifiInjector.getSettingsConfigStore().put(WIFI_STATIC_CHIP_INFO,
+                    staticChipInfosJson.toString());
+        } catch (JSONException e) {
+            Log.e(TAG, "JSONException while converting StaticChipInfo to JSON: " + e);
+        }
+    }
+
+    private StaticChipInfo[] loadStaticChipInfoFromStore() {
+        StaticChipInfo[] staticChipInfos = new StaticChipInfo[0];
+        String configString = mWifiInjector.getSettingsConfigStore().get(WIFI_STATIC_CHIP_INFO);
+        if (TextUtils.isEmpty(configString)) {
+            return staticChipInfos;
+        }
+        try {
+            JSONArray staticChipInfosJson = new JSONArray(
+                    mWifiInjector.getSettingsConfigStore().get(WIFI_STATIC_CHIP_INFO));
+            staticChipInfos = new StaticChipInfo[staticChipInfosJson.length()];
+            for (int i = 0; i < staticChipInfosJson.length(); i++) {
+                staticChipInfos[i] = jsonToStaticChipInfo(staticChipInfosJson.getJSONObject(i));
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to load static chip info from store: " + e);
+        }
+        return staticChipInfos;
+    }
+
+    private StaticChipInfo[] convertWifiChipInfoToStaticChipInfos(WifiChipInfo[] chipInfos) {
+        StaticChipInfo[] staticChipInfos = new StaticChipInfo[chipInfos.length];
+        for (int i = 0; i < chipInfos.length; i++) {
+            WifiChipInfo chipInfo = chipInfos[i];
+            staticChipInfos[i] = new StaticChipInfo(
+                    chipInfo.chipId,
+                    chipInfo.chipCapabilities,
+                    chipInfo.availableModes);
+        }
+        return staticChipInfos;
+    }
+
     /**
      * Checks the local state of this object (the cached state) against the input 'chipInfos'
      * state (which is a live representation of the Wi-Fi firmware status - read through the HAL).
@@ -1700,6 +1768,14 @@ public class HalDeviceManager {
                             if (triedCount != 0) {
                                 Log.d(TAG, "start IWifi succeeded after trying "
                                          + triedCount + " times");
+                            }
+                            WifiChipInfo[] wifiChipInfos = getAllChipInfo();
+                            if (wifiChipInfos != null) {
+                                mCachedStaticChipInfos =
+                                        convertWifiChipInfoToStaticChipInfos(getAllChipInfo());
+                                saveStaticChipInfoToStore(mCachedStaticChipInfos);
+                            } else {
+                                Log.e(TAG, "Started wifi but could not get current chip info.");
                             }
                             return true;
                         } else if (status.code == WifiStatusCode.ERROR_NOT_AVAILABLE) {
@@ -1920,15 +1996,13 @@ public class HalDeviceManager {
         }
     }
 
-    private static boolean isChipCapabilitiesSupported(@NonNull WifiChipInfo chipInfo,
+    private static boolean isChipCapabilitiesSupported(long currentChipCapabilities,
             long requiredChipCapabilities) {
-        if (chipInfo == null) return false;
-
         if (requiredChipCapabilities == CHIP_CAPABILITY_ANY) return true;
 
-        if (CHIP_CAPABILITY_UNINITIALIZED == chipInfo.chipCapabilities) return true;
+        if (CHIP_CAPABILITY_UNINITIALIZED == currentChipCapabilities) return true;
 
-        return (chipInfo.chipCapabilities & requiredChipCapabilities)
+        return (currentChipCapabilities & requiredChipCapabilities)
                 == requiredChipCapabilities;
     }
 
@@ -1946,10 +2020,13 @@ public class HalDeviceManager {
         synchronized (mLock) {
             IfaceCreationData bestIfaceCreationProposal = null;
             for (WifiChipInfo chipInfo : chipInfos) {
-                if (!isChipCapabilitiesSupported(chipInfo, requiredChipCapabilities)) continue;
+                if (!isChipCapabilitiesSupported(
+                        chipInfo.chipCapabilities, requiredChipCapabilities)) {
+                    continue;
+                }
 
                 SparseArray<List<int[][]>> expandedCreateTypeCombosPerChipModeId =
-                        getExpandedCreateTypeCombosPerChipModeId(chipInfo);
+                        getExpandedCreateTypeCombosPerChipModeId(chipInfo.availableModes);
                 for (int i = 0; i < expandedCreateTypeCombosPerChipModeId.size(); i++) {
                     int chipModeId = expandedCreateTypeCombosPerChipModeId.keyAt(i);
                     for (int[][] expandedCreateTypeCombo :
@@ -1972,15 +2049,13 @@ public class HalDeviceManager {
     }
 
     /**
-     * Returns a SparseArray indexed by ChipModeId, containing Lists of I
-     * @param chipInfo
-     * @return
+     * Returns a SparseArray indexed by ChipModeId, containing Lists of expanded create type combos
+     * supported by that id.
      */
     private SparseArray<List<int[][]>> getExpandedCreateTypeCombosPerChipModeId(
-            WifiChipInfo chipInfo) {
+            ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> chipModes) {
         SparseArray<List<int[][]>> combosPerChipModeId = new SparseArray<>();
-        for (android.hardware.wifi.V1_6.IWifiChip.ChipMode chipMode
-                : chipInfo.availableModes) {
+        for (android.hardware.wifi.V1_6.IWifiChip.ChipMode chipMode : chipModes) {
             List<int[][]> expandedCreateTypeCombos = new ArrayList<>();
             for (ChipConcurrencyCombination chipConcurrencyCombo
                     : chipMode.availableCombinations) {
@@ -2517,37 +2592,6 @@ public class HalDeviceManager {
             }
         }
         return true;
-    }
-
-    // Is it possible to create a @HdmIfaceTypeForCreation combo just looking at the device
-    // capabilities.
-    private boolean isItPossibleToCreateCreateTypeCombo(WifiChipInfo[] chipInfos,
-            long requiredChipCapabilities, int[] requestedCombo) {
-        if (VDBG) {
-            Log.d(TAG, "isItPossibleToCreateCreateTypeCombo: chipInfos="
-                    + Arrays.deepToString(chipInfos)
-                    + ", requestedCombo=" + Arrays.toString(requestedCombo)
-                    + ", requiredChipCapabilities=" + requiredChipCapabilities);
-        }
-
-        for (WifiChipInfo chipInfo: chipInfos) {
-            if (!isChipCapabilitiesSupported(chipInfo, requiredChipCapabilities)) continue;
-            SparseArray<List<int[][]>> expandedCreateTypeCombosPerChipModeId =
-                    getExpandedCreateTypeCombosPerChipModeId(chipInfo);
-            for (int i = 0; i < expandedCreateTypeCombosPerChipModeId.size(); i++) {
-                int chipModeId = expandedCreateTypeCombosPerChipModeId.keyAt(i);
-                for (int[][] expandedCreateTypeCombo
-                        : expandedCreateTypeCombosPerChipModeId.get(chipModeId)) {
-                    for (int[] createTypeCombo : expandedCreateTypeCombo) {
-                        if (canCreateTypeComboSupportRequestedCreateTypeCombo(
-                                createTypeCombo, requestedCombo)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     /**

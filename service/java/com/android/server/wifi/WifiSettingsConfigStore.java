@@ -120,6 +120,11 @@ public class WifiSettingsConfigStore {
     public static final Key<Long> WIFI_NATIVE_SUPPORTED_FEATURES =
             new Key<>("wifi_native_supported_features", 0L);
 
+    /**
+     * Store the static chip info retrieved from WiFi HAL
+     */
+    public static final Key<String> WIFI_STATIC_CHIP_INFO = new Key<>("wifi_static_chip_info", "");
+
     /******** Wifi shared pref keys ***************/
 
     private final Context mContext;
