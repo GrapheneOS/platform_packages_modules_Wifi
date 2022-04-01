@@ -143,7 +143,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         when(mHalDeviceManager.isStarted()).thenReturn(false);
         mManagerStatusListenerCaptor.getValue().onStatusChanged();
 
-        mInOrder.verify(mWifiAwareStateManagerMock).disableUsage(true);
+        mInOrder.verify(mWifiAwareStateManagerMock).disableUsage(false);
 
         // 3. onStatusChange (ready/started) + available -> enableUsage
         when(mHalDeviceManager.isStarted()).thenReturn(true);

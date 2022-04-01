@@ -47,6 +47,8 @@
           <item type="integer" name="config_wifiFrameworkCurrentNetworkBonusMin" />
           <item type="integer" name="config_wifiFrameworkCurrentNetworkBonusPercent" />
           <item type="integer" name="config_wifiFrameworkSecureNetworkBonus" />
+          <item type="integer" name="config_wifiBand6GhzBonus" />
+          <item type="integer" name="config_wifiScoringBucketStepSize" />
           <item type="integer" name="config_wifiFrameworkLastSelectionMinutes" />
           <item type="integer" name="config_wifiFrameworkMinPacketPerSecondActiveTraffic" />
           <item type="integer" name="config_wifiFrameworkMinPacketPerSecondHighTraffic" />

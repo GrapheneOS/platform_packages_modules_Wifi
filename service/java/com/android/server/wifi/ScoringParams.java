@@ -95,6 +95,8 @@ public class ScoringParams {
         public int currentNetworkBonusMin = 16;
         public int currentNetworkBonusPercent = 20;
         public int secureNetworkBonus = 40;
+        public int band6GhzBonus = 0;
+        public int scoringBucketStepSize = 500;
         public int lastSelectionMinutes = 480;
         public int estimateRssiErrorMargin = 5;
         public static final int MIN_MINUTES = 1;
@@ -289,6 +291,9 @@ public class ScoringParams {
             R.integer.config_wifiFrameworkCurrentNetworkBonusPercent);
         mVal.secureNetworkBonus = context.getResources().getInteger(
                 R.integer.config_wifiFrameworkSecureNetworkBonus);
+        mVal.band6GhzBonus = context.getResources().getInteger(R.integer.config_wifiBand6GhzBonus);
+        mVal.scoringBucketStepSize = context.getResources().getInteger(
+                R.integer.config_wifiScoringBucketStepSize);
         mVal.lastSelectionMinutes = context.getResources().getInteger(
                 R.integer.config_wifiFrameworkLastSelectionMinutes);
         mVal.estimateRssiErrorMargin = context.getResources().getInteger(
@@ -506,6 +511,23 @@ public class ScoringParams {
      */
     public int getSecureNetworkBonus() {
         return mVal.secureNetworkBonus;
+    }
+
+    /**
+     * Returns the bonus given if the network belongs to the 6Ghz band.
+     */
+    public int getBand6GhzBonus() {
+        return mVal.band6GhzBonus;
+    }
+
+    /**
+     * Returns the expected amount of score to reach the next tier during candidate scoring. This
+     * value should be configured according to the value of parameters that determine the
+     * scoring buckets such as {@code config_wifiFrameworkSavedNetworkBonus} and
+     * {@code config_wifiFrameworkUnmeteredNetworkBonus}.
+     */
+    public int getScoringBucketStepSize() {
+        return mVal.scoringBucketStepSize;
     }
 
     /*

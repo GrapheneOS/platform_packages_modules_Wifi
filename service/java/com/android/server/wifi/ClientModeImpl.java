@@ -5145,7 +5145,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         final boolean needNotifyError = isPrimary() ? !isForLocalOnly
                                 : isSecondaryInternet();
                         if (targetedNetwork != null && needNotifyError) {
-                            mWrongPasswordNotifier.onWrongPasswordError(targetedNetwork.SSID);
+                            mWrongPasswordNotifier.onWrongPasswordError(targetedNetwork);
                         }
                     } else if (reasonCode == WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE) {
                         logEventIfManagedNetwork(targetedNetwork,

@@ -126,6 +126,13 @@
          the sum of rssi base score and throughput score-->
     <integer translatable="false" name="config_wifiFrameworkCurrentNetworkBonusPercent">20</integer>
     <integer translatable="false" name="config_wifiFrameworkSecureNetworkBonus">40</integer>
+    <!-- Integer specifying the bonus to give to a 6Ghz candidate during network selection scoring -->
+    <integer translatable="false" name="config_wifiBand6GhzBonus">0</integer>
+    <!-- Integer specifying the expected amount of score to reach the next tier during candidate
+         scoring. This value should be configured according to the value of parameters that
+         determine the scoring buckets such as config_wifiFrameworkSavedNetworkBonus and
+         config_wifiFrameworkUnmeteredNetworkBonus. -->
+    <integer translatable="false" name="config_wifiScoringBucketStepSize">500</integer>
 
     <!-- The duration in minutes to strongly favor the last-selected network over other options. -->
     <integer translatable="false" name="config_wifiFrameworkLastSelectionMinutes">480</integer>

@@ -93,6 +93,8 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
         int currentNetworkBonusMin = mScoringParams.getCurrentNetworkBonusMin();
         int currentNetworkBonus = Math.max(currentNetworkBonusMin, rssiAndThroughputScore
                 * mScoringParams.getCurrentNetworkBonusPercent() / 100);
+        int bandSpecificBonus = ScanResult.is6GHz(candidate.getFrequency())
+                ? mScoringParams.getBand6GhzBonus() : 0;
         int currentNetworkBoost = (candidate.isCurrentNetwork() && !unExpectedNoInternet)
                 ? currentNetworkBonus : 0;
 
@@ -138,9 +140,19 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
             notOemPrivateAward = 0;
         }
 
-        int score = rssiBaseScore + throughputBonusScore
-                + currentNetworkBoost + securityAward + unmeteredAward + savedNetworkAward
-                + trustedAward + notOemPaidAward + notOemPrivateAward;
+        // These scores determine which scoring bucket the candidate falls into. The scoring buckets
+        // should not overlap so candidate in a higher bucket should always win against candidate in
+        // a lower bucket.
+        // Note: securityAward can be configured per carrier requirement to adjust the priority
+        // bucket of non-open network.
+        int scoreToDetermineBucket = unmeteredAward + savedNetworkAward + trustedAward
+                + notOemPaidAward + notOemPrivateAward + securityAward;
+        // Within the same scoring bucket, ties are broken by the following bonus scores. The sum
+        // of these scores should be capped to the buket step size to prevent overlapping bucket.
+        int scoreWithinBucket = rssiBaseScore + throughputBonusScore + currentNetworkBoost
+                + bandSpecificBonus;
+        int score = scoreToDetermineBucket
+                + Math.min(mScoringParams.getScoringBucketStepSize(), scoreWithinBucket);
 
         // do not select a network that has no internet when the current network has internet.
         if (currentNetworkHasInternet && !candidate.isCurrentNetwork() && unExpectedNoInternet) {

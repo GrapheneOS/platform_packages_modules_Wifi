@@ -2847,7 +2847,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
         deferDisableAware();
         sendAwareStateChangedBroadcast(markAsAvailable);
-        mAwareMetrics.recordDisableUsage();
+        if (!markAsAvailable) {
+            mAwareMetrics.recordDisableUsage();
+        }
     }
 
     private boolean initiateDataPathSetupLocal(short transactionId,
