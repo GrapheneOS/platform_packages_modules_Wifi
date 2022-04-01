@@ -221,6 +221,11 @@ public class WifiCountryCode {
      */
     public interface ChangeListener {
         /**
+         * Called when receiving new country code change pending.
+         */
+        default void onCountryCodeChangePending(@NonNull String countryCode) {};
+
+        /**
          * Called when receiving country code changed from driver.
          */
         void onDriverCountryCodeChanged(String countryCode);
@@ -573,6 +578,13 @@ public class WifiCountryCode {
                     } else {
                         anyAmmConfigured = true;
                     }
+                }
+            }
+        }
+        if (!anyAmmConfigured) {
+            for (ChangeListener listener : mListeners) {
+                if (country != null) {
+                    listener.onCountryCodeChangePending(country);
                 }
             }
         }

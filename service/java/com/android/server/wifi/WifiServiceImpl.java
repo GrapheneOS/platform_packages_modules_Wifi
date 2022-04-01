@@ -1664,6 +1664,19 @@ public class WifiServiceImpl extends BaseWifiService {
         }
 
         @Override
+        public void onCountryCodeChangePending(@NonNull String countryCode) {
+            // post operation to handler thread
+            mWifiThreadRunner.post(() -> {
+                if (mTetheredSoftApTracker != null) {
+                    mTetheredSoftApTracker.notifyNewCountryCodeChangePending(countryCode);
+                }
+                if (mLohsSoftApTracker != null) {
+                    mLohsSoftApTracker.notifyNewCountryCodeChangePending(countryCode);
+                }
+            });
+        }
+
+        @Override
         public void onDriverCountryCodeChanged(@Nullable String countryCode) {
             // post operation to handler thread
             mWifiThreadRunner.post(() -> {
@@ -1672,7 +1685,12 @@ public class WifiServiceImpl extends BaseWifiService {
                 // Update channel capability when country code is not null.
                 // Because the driver country code will reset to null when driver is non-active.
                 if (countryCode != null) {
-                    mTetheredSoftApTracker.updateAvailChannelListInSoftApCapability();
+                    if (TextUtils.equals(countryCode, mCountryCode.getCurrentDriverCountryCode())) {
+                        Log.e(TAG, "Country code not consistent! expect " + countryCode + " actual "
+                                + mCountryCode.getCurrentDriverCountryCode());
+                    }
+                    mTetheredSoftApTracker.updateAvailChannelListInSoftApCapability(countryCode);
+                    mLohsSoftApTracker.updateAvailChannelListInSoftApCapability(countryCode);
                     mActiveModeWarden.updateSoftApCapability(
                             mTetheredSoftApTracker.getSoftApCapability(),
                             WifiManager.IFACE_IP_MODE_TETHERED);
@@ -1731,7 +1749,7 @@ public class WifiServiceImpl extends BaseWifiService {
         private SoftApCapability mTetheredSoftApCapability = null;
 
         public void handleBootCompleted() {
-            updateAvailChannelListInSoftApCapability();
+            updateAvailChannelListInSoftApCapability(mCountryCode.getCurrentDriverCountryCode());
         }
 
         public int getState() {
@@ -1777,35 +1795,50 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         }
 
+        public void notifyNewCountryCodeChangePending(@NonNull String countryCode) {
+            // If country code not changed, no need to update.
+            if (!TextUtils.equals(mTetheredSoftApCapability.getCountryCode(), countryCode)) {
+                // Country code changed when we can't update channels from HAL, invalidate the soft
+                // ap capability for supported channels.
+                SoftApCapability newSoftApCapability = new SoftApCapability(
+                        mTetheredSoftApCapability);
+                for (int b : SoftApConfiguration.BAND_TYPES) {
+                    newSoftApCapability.setSupportedChannelList(b, new int[0]);
+                }
+                // Notify the capability change
+                onCapabilityChanged(newSoftApCapability);
+            }
+        }
+
         public SoftApCapability getSoftApCapability() {
             synchronized (mLock) {
                 if (mTetheredSoftApCapability == null) {
                     mTetheredSoftApCapability = ApConfigUtil.updateCapabilityFromResource(mContext);
                     // Default country code
                     mTetheredSoftApCapability = updateSoftApCapabilityWithAvailableChannelList(
-                            mTetheredSoftApCapability);
+                            mTetheredSoftApCapability, mCountryCode.getCountryCode());
                 }
                 return mTetheredSoftApCapability;
             }
         }
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
-                @NonNull SoftApCapability softApCapability) {
-            if (mCountryCode.getCurrentDriverCountryCode() != null) {
-                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
-            }
+                @NonNull SoftApCapability softApCapability, @Nullable String countryCode) {
             if (!mIsBootComplete) {
-                // The available channel list is from wificond.
-                // It might be a failure or stuck during wificond init.
+                // The available channel list is from wificond or HAL.
+                // It might be a failure or stuck during wificond or HAL init.
                 return softApCapability;
             }
-            return ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(softApCapability,
-                    mContext, mWifiNative);
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                mTetheredSoftApCapability.setCountryCode(countryCode);
+            }
+            return ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(
+                    softApCapability, mContext, mWifiNative);
         }
 
-        public void updateAvailChannelListInSoftApCapability() {
+        public void updateAvailChannelListInSoftApCapability(@Nullable String countryCode) {
             onCapabilityChanged(updateSoftApCapabilityWithAvailableChannelList(
-                    getSoftApCapability()));
+                    getSoftApCapability(), countryCode));
         }
 
         public void updateSoftApCapabilityWhenCarrierConfigChanged(int subId) {
@@ -1953,6 +1986,7 @@ public class WifiServiceImpl extends BaseWifiService {
         private Map<String, List<WifiClient>> mLohsConnectedClientsMap = new HashMap();
         private Map<String, SoftApInfo> mLohsInfoMap = new HashMap();
         private boolean mIsBridgedMode = false;
+
         private final RemoteCallbackList<ISoftApCallback> mRegisteredLohsSoftApCallbacks =
                 new RemoteCallbackList<>();
 
@@ -1993,27 +2027,50 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         }
 
+        public void notifyNewCountryCodeChangePending(@NonNull String countryCode) {
+            if (mLohsSoftApCapability == null) {
+                return;
+            }
+            // If country code not changed, no need to update.
+            if (!TextUtils.equals(mLohsSoftApCapability.getCountryCode(), countryCode)) {
+                // Country code changed when we can't update channels from HAL, invalidate the soft
+                // ap capability for supported channels.
+                SoftApCapability newSoftApCapability = new SoftApCapability(
+                        mLohsSoftApCapability);
+                for (int b : SoftApConfiguration.BAND_TYPES) {
+                    newSoftApCapability.setSupportedChannelList(b, new int[0]);
+                }
+                // Notify the capability change
+                onCapabilityChanged(newSoftApCapability);
+            }
+        }
+
         public SoftApCapability getSoftApCapability() {
             if (mLohsSoftApCapability == null) {
-                mLohsSoftApCapability =  ApConfigUtil.updateCapabilityFromResource(mContext);
+                mLohsSoftApCapability = ApConfigUtil.updateCapabilityFromResource(mContext);
                 mLohsSoftApCapability = updateSoftApCapabilityWithAvailableChannelList(
-                        mLohsSoftApCapability);
+                        mLohsSoftApCapability, mCountryCode.getCountryCode());
             }
             return mLohsSoftApCapability;
         }
 
         private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
-                @NonNull SoftApCapability softApCapability) {
-            if (mCountryCode.getCurrentDriverCountryCode() != null) {
-                softApCapability.setCountryCode(mCountryCode.getCurrentDriverCountryCode());
-            }
+                @NonNull SoftApCapability softApCapability, @Nullable String countryCode) {
             if (!mIsBootComplete) {
-                // The available channel list is from wificond.
-                // It might be a failure or stuck during wificond init.
+                // The available channel list is from wificond or HAL.
+                // It might be a failure or stuck during wificond or HAL init.
                 return softApCapability;
+            }
+            if (mCountryCode.getCurrentDriverCountryCode() != null) {
+                softApCapability.setCountryCode(countryCode);
             }
             return ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(softApCapability,
                     mContext, mWifiNative);
+        }
+
+        public void updateAvailChannelListInSoftApCapability(@Nullable String countryCode) {
+            onCapabilityChanged(updateSoftApCapabilityWithAvailableChannelList(
+                    getSoftApCapability(), countryCode));
         }
 
         public void updateInterfaceIpState(String ifaceName, int mode) {
