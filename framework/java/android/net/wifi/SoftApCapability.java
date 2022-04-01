@@ -276,7 +276,9 @@ public final class SoftApCapability implements Parcelable {
      * @param band One of the following band types:
      * {@link SoftApConfiguration#BAND_2GHZ}, {@link SoftApConfiguration#BAND_5GHZ},
      * {@link SoftApConfiguration#BAND_6GHZ}, {@link SoftApConfiguration#BAND_60GHZ}.
-     * @return List of supported channels for the band.
+     * @return List of supported channels for the band. An empty list will be returned if the
+     * channels are obsolete. This happens when country code has changed but the channels
+     * are not updated from HAL when Wifi is disabled.
      *
      * @throws IllegalArgumentException when band type is invalid.
      */
@@ -373,6 +375,7 @@ public final class SoftApCapability implements Parcelable {
         sbuf.append(" SupportedChannelListIn6g").append(Arrays.toString(mSupportedChannelListIn6g));
         sbuf.append(" SupportedChannelListIn60g")
                 .append(Arrays.toString(mSupportedChannelListIn60g));
+        sbuf.append(" mCountryCodeFromDriver").append(mCountryCodeFromDriver);
         return sbuf.toString();
     }
 
