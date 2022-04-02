@@ -68,11 +68,15 @@ public class ThroughputPredictorTest extends WifiBaseTest {
                 .thenReturn(true);
         when(mDeviceCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX))
                 .thenReturn(false);
+        when(mDeviceCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE))
+                .thenReturn(false);
         when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_40MHZ))
                 .thenReturn(true);
         when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ))
                 .thenReturn(true);
         when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ))
+                .thenReturn(false);
+        when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ))
                 .thenReturn(false);
         when(mDeviceCapabilities.getMaxNumberTxSpatialStreams()).thenReturn(2);
         when(mDeviceCapabilities.getMaxNumberRxSpatialStreams()).thenReturn(2);
@@ -179,19 +183,19 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     }
 
     @Test
-    public void verifyHighRssiMinChannelUtilizationAx5g160Mhz4ss() {
-        when(mDeviceCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX))
+    public void verifyHighRssiMinChannelUtilizationAx6g320Mhz4ss() {
+        when(mDeviceCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE))
                 .thenReturn(true);
-        when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ))
+        when(mDeviceCapabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ))
                 .thenReturn(true);
         when(mDeviceCapabilities.getMaxNumberTxSpatialStreams()).thenReturn(4);
         when(mDeviceCapabilities.getMaxNumberRxSpatialStreams()).thenReturn(4);
 
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
-                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_160MHZ, 0, 5180, 4,
+                ScanResult.WIFI_STANDARD_11BE, ScanResult.CHANNEL_WIDTH_320MHZ, 0, 6180, 4,
                 MIN_CHANNEL_UTILIZATION, INVALID, false);
 
-        assertEquals(4803, predictedThroughputMbps);
+        assertEquals(11529, predictedThroughputMbps);
     }
 
     @Test
@@ -389,6 +393,14 @@ public class ThroughputPredictorTest extends WifiBaseTest {
         mConnectionCap.channelBandwidth = ScanResult.CHANNEL_WIDTH_80MHZ;
         mConnectionCap.maxNumberRxSpatialStreams = 2;
         assertEquals(1200, mThroughputPredictor.predictMaxRxThroughput(mConnectionCap));
+    }
+
+    @Test
+    public void verifyMaxThroughputBe320Mhz2ss() {
+        mConnectionCap.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        mConnectionCap.channelBandwidth = ScanResult.CHANNEL_WIDTH_320MHZ;
+        mConnectionCap.maxNumberRxSpatialStreams = 2;
+        assertEquals(5764, mThroughputPredictor.predictMaxRxThroughput(mConnectionCap));
     }
 
     @Test
