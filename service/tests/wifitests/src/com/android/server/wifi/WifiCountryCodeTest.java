@@ -608,4 +608,12 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         verify(mActiveModeWarden).stopSoftAp(anyInt());
         verify(mActiveModeWarden).startSoftAp(eq(mSoftApModeConfiguration), any());
     }
+
+    @Test
+    public void testSetOverrideCountryCodeAndOnCountryCodeChangePending() {
+        // External caller register the listener
+        mWifiCountryCode.registerListener(mExternalChangeListener);
+        mWifiCountryCode.setOverrideCountryCode(TEST_COUNTRY_CODE);
+        verify(mExternalChangeListener).onCountryCodeChangePending(TEST_COUNTRY_CODE);
+    }
 }
