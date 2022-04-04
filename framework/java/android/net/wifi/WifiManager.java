@@ -8164,6 +8164,12 @@ public class WifiManager {
     public List<WifiAvailableChannel> getUsableChannels(
             @WifiScanner.WifiBand int band,
             @WifiAvailableChannel.OpMode int mode) {
+        if (GmsCompat.isEnabled()) {
+            // GMS Core versions since at least 22.09.20
+            // handle the SecurityException and thus don't need this shim
+            throw new UnsupportedOperationException();
+        }
+
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
         }
