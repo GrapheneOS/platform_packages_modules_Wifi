@@ -2923,6 +2923,45 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Test that admin may retrieve all networks but mac address is set to default for networks
+     * they do not own.
+     */
+    @Test
+    public void testGetConfiguredNetworksAdmin_ReturnsNetworksWithDefaultMac() {
+        final int callerUid = Binder.getCallingUid();
+        WifiConfiguration callerNetwork = WifiConfigurationTestUtil.generateWifiConfig(
+                0, callerUid, "\"red\"", true, true, null, null, SECURITY_NONE);
+        WifiConfiguration nonCallerNetwork = WifiConfigurationTestUtil.generateWifiConfig(
+                2, 1200000, "\"blue\"", true, true, null, null, SECURITY_NONE);
+        callerNetwork.setRandomizedMacAddress(TEST_FACTORY_MAC_ADDR);
+
+        when(mWifiConfigManager.getSavedNetworks(callerUid)).thenReturn(Arrays.asList(
+                callerNetwork, nonCallerNetwork));
+
+        when(mWifiPermissionsUtil.isProfileOwner(Binder.getCallingUid(), TEST_PACKAGE_NAME))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isAdmin(Binder.getCallingUid(), TEST_PACKAGE_NAME))
+                .thenReturn(true);
+
+        mLooper.startAutoDispatch();
+        ParceledListSlice<WifiConfiguration> configs =
+                mWifiServiceImpl.getConfiguredNetworks(TEST_PACKAGE_NAME, TEST_FEATURE_ID, false);
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
+                Arrays.asList(callerNetwork, nonCallerNetwork), configs.getList());
+
+        for (WifiConfiguration config : configs.getList()) {
+            if (config.getProfileKey().equals(callerNetwork.getProfileKey())) {
+                assertEquals(TEST_FACTORY_MAC, config.getRandomizedMacAddress().toString());
+            } else {
+                assertEquals(WifiInfo.DEFAULT_MAC_ADDRESS,
+                        config.getRandomizedMacAddress().toString());
+            }
+        }
+    }
+
+    /**
      * Test that privileged network list are exposed null to an app that targets T or later and does
      * not have nearby devices permission.
      */
