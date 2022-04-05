@@ -1389,8 +1389,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(
                 bcastRxCaptor.capture(),
-                argThat(filter -> filter.hasAction(LocationManager.MODE_CHANGED_ACTION)),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                argThat(filter -> filter.hasAction(LocationManager.MODE_CHANGED_ACTION)));
         BroadcastReceiver broadcastReceiver = bcastRxCaptor.getValue();
 
         assertInDisabledState();
@@ -1424,8 +1423,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(
                 bcastRxCaptor.capture(),
-                argThat(filter -> filter.hasAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                argThat(filter -> filter.hasAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)));
         BroadcastReceiver broadcastReceiver = bcastRxCaptor.getValue();
 
         Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
@@ -1464,8 +1462,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(
                 bcastRxCaptor.capture(),
-                argThat(filter -> filter.hasAction(LocationManager.MODE_CHANGED_ACTION)),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                argThat(filter -> filter.hasAction(LocationManager.MODE_CHANGED_ACTION)));
         BroadcastReceiver broadcastReceiver = bcastRxCaptor.getValue();
 
         assertInEnabledState();

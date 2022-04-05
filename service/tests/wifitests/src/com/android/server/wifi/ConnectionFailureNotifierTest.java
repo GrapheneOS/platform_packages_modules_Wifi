@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 
 import android.app.Notification;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -93,8 +92,7 @@ public class ConnectionFailureNotifierTest extends WifiBaseTest {
                 eq(R.string.wifi_disable_mac_randomization_dialog_message), anyString()))
                 .thenAnswer(s -> "blah" + s.getArguments()[1]);
 
-        verify(mContext).registerReceiver(mBroadCastReceiverCaptor.capture(), any(),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(mBroadCastReceiverCaptor.capture(), any());
     }
 
     private class DisableMacRandomizationMatcher implements ArgumentMatcher<WifiConfiguration> {

@@ -492,7 +492,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
                 }
             }
-        }, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+        }, intentFilter);
 
         intentFilter = new IntentFilter();
         intentFilter.addAction(LocationManager.MODE_CHANGED_ACTION);
@@ -510,7 +510,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
                 }
             }
-        }, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+        }, intentFilter);
 
         intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
@@ -526,7 +526,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     disableUsage(false);
                 }
             }
-        }, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+        }, intentFilter);
     }
 
     private class CountryCodeChangeCallback implements

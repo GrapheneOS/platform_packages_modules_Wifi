@@ -3867,8 +3867,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             filter.addAction(Intent.ACTION_SCREEN_ON);
             filter.addAction(Intent.ACTION_SCREEN_OFF);
             if (!mIsScreenStateChangeReceiverRegistered) {
-                mContext.registerReceiver(mScreenStateChangeReceiver, filter,
-                        Context.RECEIVER_NOT_EXPORTED);
+                mContext.registerReceiver(mScreenStateChangeReceiver, filter);
                 mIsScreenStateChangeReceiverRegistered = true;
             }
             // Learn the initial state of whether the screen is on.

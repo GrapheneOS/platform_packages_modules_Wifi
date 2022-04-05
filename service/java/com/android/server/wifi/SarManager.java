@@ -253,7 +253,7 @@ public class SarManager {
                             handleScreenStateChanged(false);
                         }
                     }
-                }, filter, null, mHandler, Context.RECEIVER_NOT_EXPORTED);
+                }, filter, null, mHandler);
         PowerManager powerManager = mContext.getSystemService(PowerManager.class);
         handleScreenStateChanged(powerManager.isInteractive());
     }
@@ -303,7 +303,7 @@ public class SarManager {
                             }
                         }
                     }
-                }, filter, null, mHandler, Context.RECEIVER_NOT_EXPORTED);
+                }, filter, null, mHandler);
     }
 
     /**
