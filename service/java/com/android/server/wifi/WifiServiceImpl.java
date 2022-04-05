@@ -4727,96 +4727,90 @@ public class WifiServiceImpl extends BaseWifiService {
                     + ", uid=" + Binder.getCallingUid());
             return;
         }
-        if (args != null && args.length > 0 && WifiMetrics.PROTO_DUMP_ARG.equals(args[0])) {
-            // WifiMetrics proto bytes were requested. Dump only these.
-            updateWifiMetrics();
-            mWifiMetrics.dump(fd, pw, args);
-        } else if (args != null && args.length > 0 && IpClientUtil.DUMP_ARG.equals(args[0])) {
-            // IpClient dump was requested. Pass it along and take no further action.
-            String[] ipClientArgs = new String[args.length - 1];
-            System.arraycopy(args, 1, ipClientArgs, 0, ipClientArgs.length);
-            mActiveModeWarden.getPrimaryClientModeManager().dumpIpClient(fd, pw, ipClientArgs);
-        } else if (args != null && args.length > 0 && WifiScoreReport.DUMP_ARG.equals(args[0])) {
-            mActiveModeWarden.getPrimaryClientModeManager().dumpWifiScoreReport(fd, pw, args);
-        } else if (args != null && args.length > 0 && WifiScoreCard.DUMP_ARG.equals(args[0])) {
-            WifiScoreCard wifiScoreCard = mWifiInjector.getWifiScoreCard();
-            String networkListBase64 = mWifiThreadRunner.call(() ->
-                    wifiScoreCard.getNetworkListBase64(true), "");
-            pw.println(networkListBase64);
-        } else {
-            pw.println("Verbose logging is " + (isVerboseLoggingEnabled() ? "on" : "off"));
-            pw.println("mVerboseLoggingLevel " + mVerboseLoggingLevel);
-            pw.println("Stay-awake conditions: " +
-                    mFacade.getIntegerSetting(mContext,
-                            Settings.Global.STAY_ON_WHILE_PLUGGED_IN, 0));
-            pw.println("mInIdleMode " + mInIdleMode);
-            pw.println("mScanPending " + mScanPending);
-            pw.println("SettingsStore:");
-            mSettingsStore.dump(fd, pw, args);
-            mActiveModeWarden.dump(fd, pw, args);
-            mMakeBeforeBreakManager.dump(fd, pw, args);
-            pw.println();
-            mWifiTrafficPoller.dump(fd, pw, args);
-            pw.println();
-            pw.println("Locks held:");
-            mWifiLockManager.dump(pw);
-            pw.println();
-            mWifiMulticastLockManager.dump(pw);
-            pw.println();
-            WifiScoreCard wifiScoreCard = mWifiInjector.getWifiScoreCard();
-            String networkListBase64 = mWifiThreadRunner.call(() ->
-                    wifiScoreCard.getNetworkListBase64(true), "");
-            pw.println("WifiScoreCard:");
-            pw.println(networkListBase64);
+        mWifiThreadRunner.run(() -> {
+            String arg0 = args != null && args.length > 0 ? args[0] : null;
+            if (WifiMetrics.PROTO_DUMP_ARG.equals(arg0)) {
+                // WifiMetrics proto bytes were requested. Dump only these.
+                updateWifiMetrics();
+                mWifiMetrics.dump(fd, pw, args);
+            } else if (IpClientUtil.DUMP_ARG.equals(arg0)) {
+                // IpClient dump was requested. Pass it along and take no further action.
+                String[] ipClientArgs = new String[args.length - 1];
+                System.arraycopy(args, 1, ipClientArgs, 0, ipClientArgs.length);
+                mActiveModeWarden.getPrimaryClientModeManager().dumpIpClient(fd, pw, ipClientArgs);
+            } else if (WifiScoreReport.DUMP_ARG.equals(arg0)) {
+                mActiveModeWarden.getPrimaryClientModeManager().dumpWifiScoreReport(fd, pw, args);
+            } else if (WifiScoreCard.DUMP_ARG.equals(arg0)) {
+                WifiScoreCard wifiScoreCard = mWifiInjector.getWifiScoreCard();
+                String networkListBase64 = wifiScoreCard.getNetworkListBase64(true);
+                pw.println(networkListBase64);
+            } else {
+                pw.println("Verbose logging is " + (isVerboseLoggingEnabled() ? "on" : "off"));
+                pw.println("mVerboseLoggingLevel " + mVerboseLoggingLevel);
+                pw.println("Stay-awake conditions: " + mFacade.getIntegerSetting(
+                        mContext, Settings.Global.STAY_ON_WHILE_PLUGGED_IN, 0));
+                pw.println("mInIdleMode " + mInIdleMode);
+                pw.println("mScanPending " + mScanPending);
+                pw.println("SettingsStore:");
+                mSettingsStore.dump(fd, pw, args);
+                mActiveModeWarden.dump(fd, pw, args);
+                mMakeBeforeBreakManager.dump(fd, pw, args);
+                pw.println();
+                mWifiTrafficPoller.dump(fd, pw, args);
+                pw.println();
+                pw.println("Locks held:");
+                mWifiLockManager.dump(pw);
+                pw.println();
+                mWifiMulticastLockManager.dump(pw);
+                pw.println();
+                WifiScoreCard wifiScoreCard = mWifiInjector.getWifiScoreCard();
+                String networkListBase64 = wifiScoreCard.getNetworkListBase64(true);
+                pw.println("WifiScoreCard:");
+                pw.println(networkListBase64);
 
-            updateWifiMetrics();
-            mWifiMetrics.dump(fd, pw, args);
+                updateWifiMetrics();
+                mWifiMetrics.dump(fd, pw, args);
 
-            pw.println();
-            mWifiThreadRunner.run(() -> mWifiNetworkSuggestionsManager.dump(fd, pw, args));
-            pw.println();
-            mWifiBackupRestore.dump(fd, pw, args);
-            pw.println();
-            pw.println("ScoringParams: " + mWifiInjector.getScoringParams());
-            pw.println();
-            mWifiThreadRunner.run(() -> {
+                pw.println();
+                mWifiNetworkSuggestionsManager.dump(fd, pw, args);
+                pw.println();
+                mWifiBackupRestore.dump(fd, pw, args);
+                pw.println();
+                pw.println("ScoringParams: " + mWifiInjector.getScoringParams());
+                pw.println();
                 mWifiInjector.getSettingsConfigStore().dump(fd, pw, args);
-            });
-            pw.println();
-            mCountryCode.dump(fd, pw, args);
-            mWifiInjector.getWifiNetworkFactory().dump(fd, pw, args);
-            mWifiInjector.getUntrustedWifiNetworkFactory().dump(fd, pw, args);
-            mWifiInjector.getOemWifiNetworkFactory().dump(fd, pw, args);
-            mWifiInjector.getRestrictedWifiNetworkFactory().dump(fd, pw, args);
-            mWifiInjector.getMultiInternetWifiNetworkFactory().dump(fd, pw, args);
-            pw.println("Wlan Wake Reasons:" + mWifiNative.getWlanWakeReasonCount());
-            pw.println();
-            mWifiConfigManager.dump(fd, pw, args);
-            pw.println();
-            mPasspointManager.dump(pw);
-            pw.println();
-            mWifiInjector.getWifiDiagnostics().captureBugReportData(
-                    WifiDiagnostics.REPORT_REASON_USER_ACTION);
-            mWifiInjector.getWifiDiagnostics().dump(fd, pw, args);
-            mWifiConnectivityManager.dump(fd, pw, args);
-            mWifiThreadRunner.run(() -> {
+                pw.println();
+                mCountryCode.dump(fd, pw, args);
+                mWifiInjector.getWifiNetworkFactory().dump(fd, pw, args);
+                mWifiInjector.getUntrustedWifiNetworkFactory().dump(fd, pw, args);
+                mWifiInjector.getOemWifiNetworkFactory().dump(fd, pw, args);
+                mWifiInjector.getRestrictedWifiNetworkFactory().dump(fd, pw, args);
+                mWifiInjector.getMultiInternetWifiNetworkFactory().dump(fd, pw, args);
+                pw.println("Wlan Wake Reasons:" + mWifiNative.getWlanWakeReasonCount());
+                pw.println();
+                mWifiConfigManager.dump(fd, pw, args);
+                pw.println();
+                mPasspointManager.dump(pw);
+                pw.println();
+                mWifiInjector.getWifiDiagnostics().captureBugReportData(
+                        WifiDiagnostics.REPORT_REASON_USER_ACTION);
+                mWifiInjector.getWifiDiagnostics().dump(fd, pw, args);
+                mWifiConnectivityManager.dump(fd, pw, args);
                 mWifiHealthMonitor.dump(fd, pw, args);
-            });
-            mWifiThreadRunner.run(() -> {
                 mWifiScoreCard.dump(fd, pw, args);
-            });
-            mWifiInjector.getWakeupController().dump(fd, pw, args);
-            mWifiInjector.getWifiLastResortWatchdog().dump(fd, pw, args);
-            mWifiInjector.getAdaptiveConnectivityEnabledSettingObserver().dump(fd, pw, args);
-            mWifiInjector.getWifiGlobals().dump(fd, pw, args);
-            mWifiInjector.getSarManager().dump(fd, pw, args);
-            pw.println();
-            mLastCallerInfoManager.dump(pw);
-            pw.println();
-            mWifiInjector.getLinkProbeManager().dump(fd, pw, args);
-            pw.println();
-            mWifiNative.dump(pw);
-        }
+                mWifiInjector.getWakeupController().dump(fd, pw, args);
+                mWifiInjector.getWifiLastResortWatchdog().dump(fd, pw, args);
+                mWifiInjector.getAdaptiveConnectivityEnabledSettingObserver().dump(fd, pw, args);
+                mWifiInjector.getWifiGlobals().dump(fd, pw, args);
+                mWifiInjector.getSarManager().dump(fd, pw, args);
+                pw.println();
+                mLastCallerInfoManager.dump(pw);
+                pw.println();
+                mWifiInjector.getLinkProbeManager().dump(fd, pw, args);
+                pw.println();
+                mWifiNative.dump(pw);
+            }
+        });
     }
 
     @Override
