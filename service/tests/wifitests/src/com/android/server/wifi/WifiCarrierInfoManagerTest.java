@@ -54,7 +54,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
@@ -220,8 +219,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         ArgumentCaptor<ImsiPrivacyProtectionExemptionStoreData.DataSource>
                 imsiDataSourceArgumentCaptor =
                 ArgumentCaptor.forClass(ImsiPrivacyProtectionExemptionStoreData.DataSource.class);
-        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any(),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any());
         verify(mWifiInjector).makeWifiCarrierInfoStoreManagerData(carrierInfoSourceArgumentCaptor
                 .capture());
         verify(mWifiInjector).makeImsiPrivacyProtectionExemptionStoreData(
@@ -320,8 +318,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     public void receivedNonCarrierConfigChangedIntent() throws Exception {
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
         receiver.getValue().onReceive(mContext, new Intent("placeholderIntent"));
         verify(mCarrierConfigManager, never()).getConfig();
     }
@@ -357,8 +354,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -383,8 +379,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID)).thenReturn(bundle);
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -418,8 +413,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(true));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1106,8 +1100,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mCarrierConfigManager.getConfigForSubId(anyInt())).thenReturn(null);
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
 
@@ -1523,8 +1516,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1670,8 +1662,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1701,8 +1692,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1732,8 +1722,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1770,8 +1759,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1810,8 +1798,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1855,8 +1842,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1895,8 +1881,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1918,8 +1903,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
@@ -1939,8 +1923,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(generateTestCarrierConfig(false));
         ArgumentCaptor<BroadcastReceiver> receiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
 
         receiver.getValue().onReceive(mContext,
                 new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));

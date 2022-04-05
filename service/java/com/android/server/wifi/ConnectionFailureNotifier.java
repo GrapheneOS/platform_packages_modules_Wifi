@@ -84,7 +84,7 @@ public class ConnectionFailureNotifier {
                             showRandomizationSettingsDialog(networkId, ssidAndSecurityType);
                         }
                     }
-                }, filter, Context.RECEIVER_NOT_EXPORTED);
+                }, filter);
     }
 
     /**

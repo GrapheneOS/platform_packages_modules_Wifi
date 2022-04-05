@@ -36,7 +36,6 @@ import static org.mockito.Mockito.when;
 
 import android.app.test.MockAnswerUtil;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.ContentObserver;
@@ -128,8 +127,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
                 mMakeBeforeBreakManager, mWifiNotificationManager);
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), any(), any(),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+        verify(mContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), any(), any());
         mBroadcastReceiver = broadcastReceiverCaptor.getValue();
         ArgumentCaptor<ContentObserver> observerCaptor =
                 ArgumentCaptor.forClass(ContentObserver.class);

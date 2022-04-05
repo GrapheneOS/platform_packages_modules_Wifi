@@ -756,8 +756,7 @@ public class CoexManagerTest extends WifiBaseTest {
         verify(telephonyManager).registerTelephonyCallback(
                 any(Executor.class), telephonyCallbackCaptor.capture());
         verify(mMockContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
-                any(IntentFilter.class), eq(null), any(Handler.class),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                any(IntentFilter.class), eq(null), any(Handler.class));
         telephonyCallbackCaptor.getValue().onPhysicalChannelConfigChanged(Arrays.asList(
                 createMockPhysicalChannelConfig(
                         NETWORK_TYPE_LTE, AccessNetworkConstants.EutranBand.BAND_46,

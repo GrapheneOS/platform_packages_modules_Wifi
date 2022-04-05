@@ -1264,7 +1264,7 @@ public class WifiConnectivityManager {
                             handleScreenStateChanged(false);
                         }
                     }
-                }, filter, null, mEventHandler, Context.RECEIVER_NOT_EXPORTED);
+                }, filter, null, mEventHandler);
         handleScreenStateChanged(mPowerManager.isInteractive());
 
         // Listen to WifiConfigManager network update events

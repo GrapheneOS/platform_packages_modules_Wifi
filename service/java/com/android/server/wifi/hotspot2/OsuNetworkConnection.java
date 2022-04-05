@@ -118,7 +118,7 @@ public class OsuNetworkConnection {
             }
         };
         mWifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
-        mContext.registerReceiver(receiver, filter, null, handler, Context.RECEIVER_NOT_EXPORTED);
+        mContext.registerReceiver(receiver, filter, null, handler);
         mWifiEnabled = mWifiManager.isWifiEnabled();
         mConnectivityManager =
                 (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);

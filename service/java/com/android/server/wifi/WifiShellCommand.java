@@ -1948,7 +1948,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-        mContext.registerReceiver(broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        mContext.registerReceiver(broadcastReceiver, filter);
         mWifiService.setWifiEnabled(SHELL_PACKAGE_NAME, enabled);
         countDownLatch.await(5000, TimeUnit.MILLISECONDS);
         mContext.unregisterReceiver(broadcastReceiver);
