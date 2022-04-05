@@ -3079,10 +3079,10 @@ public class WifiServiceImpl extends BaseWifiService {
         }
 
         int targetConfigUid = Process.INVALID_UID; // don't expose any MAC addresses
-        if (isPrivileged || isDeviceOrProfileOwner) {
+        if (isPrivileged) {
             targetConfigUid = Process.WIFI_UID; // expose all MAC addresses
-        } else if (isCarrierApp) {
-            targetConfigUid = callingUid; // expose only those configs created by the Carrier App
+        } else if (isCarrierApp || isDeviceOrProfileOwner) {
+            targetConfigUid = callingUid; // expose only those configs created by the calling App
         }
         int finalTargetConfigUid = targetConfigUid;
         List<WifiConfiguration> configs = mWifiThreadRunner.call(
@@ -3987,7 +3987,8 @@ public class WifiServiceImpl extends BaseWifiService {
                 }
                 redactions &= ~NetworkCapabilities.REDACT_FOR_LOCAL_MAC_ADDRESS;
             }
-            if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                    || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
                 if (isVerboseLoggingEnabled()) {
                     Log.v(TAG, "Clearing REDACT_FOR_NETWORK_SETTINGS for " + callingPackage
                             + "(uid=" + uid + ")");
