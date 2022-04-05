@@ -2929,7 +2929,8 @@ public class WifiManagerTest {
 
         ArgumentCaptor<IActionListener> binderListenerCaptor =
                 ArgumentCaptor.forClass(IActionListener.class);
-        verify(mWifiService).connect(eq(null), eq(TEST_NETWORK_ID), binderListenerCaptor.capture());
+        verify(mWifiService).connect(eq(null), eq(TEST_NETWORK_ID), binderListenerCaptor.capture(),
+                anyString());
         assertNotNull(binderListenerCaptor.getValue());
 
         // Trigger on success.
@@ -2949,7 +2950,7 @@ public class WifiManagerTest {
     @Test
     public void testConnectWithListenerHandleSecurityException() throws Exception {
         doThrow(new SecurityException()).when(mWifiService)
-                .connect(eq(null), anyInt(), any(IActionListener.class));
+                .connect(eq(null), anyInt(), any(IActionListener.class), anyString());
         ActionListener externalListener = mock(ActionListener.class);
         mWifiManager.connect(TEST_NETWORK_ID, externalListener);
 
@@ -2963,7 +2964,7 @@ public class WifiManagerTest {
     @Test
     public void testConnectWithListenerHandleRemoteException() throws Exception {
         doThrow(new RemoteException()).when(mWifiService)
-                .connect(eq(null), anyInt(), any(IActionListener.class));
+                .connect(eq(null), anyInt(), any(IActionListener.class), anyString());
         ActionListener externalListener = mock(ActionListener.class);
         mWifiManager.connect(TEST_NETWORK_ID, externalListener);
 
@@ -2979,7 +2980,8 @@ public class WifiManagerTest {
         WifiConfiguration configuration = new WifiConfiguration();
         mWifiManager.connect(configuration, null);
 
-        verify(mWifiService).connect(configuration, WifiConfiguration.INVALID_NETWORK_ID, null);
+        verify(mWifiService).connect(eq(configuration), eq(WifiConfiguration.INVALID_NETWORK_ID),
+                eq(null), anyString());
     }
 
     /**

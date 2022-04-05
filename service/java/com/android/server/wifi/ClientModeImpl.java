@@ -1295,10 +1295,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * @param uid UID of the app requesting the connection.
      * @param forceReconnect Whether to force a connection even if we're connected to the same
      *                       network currently.
+     * @param packageName package name of the app requesting the connection.
      */
-    private void connectToUserSelectNetwork(int netId, int uid, boolean forceReconnect) {
-        logd("connectToUserSelectNetwork netId " + netId + ", uid " + uid
-                + ", forceReconnect = " + forceReconnect);
+    private void connectToUserSelectNetwork(int netId, int uid, boolean forceReconnect,
+            @NonNull String packageName) {
+        logd("connectToUserSelectNetwork netId " + netId + ", uid " + uid + ", package "
+                + packageName + ", forceReconnect = " + forceReconnect);
         if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
             mIsUserSelected = true;
@@ -4049,7 +4051,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     NetworkUpdateResult result = cnm.result;
                     int netId = result.getNetworkId();
                     connectToUserSelectNetwork(
-                            netId, message.sendingUid, result.hasCredentialChanged());
+                            netId, message.sendingUid, result.hasCredentialChanged(),
+                            cnm.packageName);
                     mWifiMetrics.logStaEvent(mInterfaceName, StaEvent.TYPE_CONNECT_NETWORK,
                             mWifiConfigManager.getConfiguredNetwork(netId));
                     cnm.listener.sendSuccess();
@@ -6588,27 +6591,32 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static class ConnectNetworkMessage {
         public final NetworkUpdateResult result;
         public final ActionListenerWrapper listener;
+        public final String packageName;
 
-        ConnectNetworkMessage(NetworkUpdateResult result, ActionListenerWrapper listener) {
+        ConnectNetworkMessage(NetworkUpdateResult result, ActionListenerWrapper listener,
+                String packageName) {
             this.result = result;
             this.listener = listener;
+            this.packageName = packageName;
         }
     }
 
     /** Trigger network connection and provide status via the provided callback. */
     public void connectNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper,
-            int callingUid) {
+            int callingUid, @NonNull String packageName) {
         Message message =
-                obtainMessage(CMD_CONNECT_NETWORK, new ConnectNetworkMessage(result, wrapper));
+                obtainMessage(CMD_CONNECT_NETWORK,
+                new ConnectNetworkMessage(result, wrapper, packageName));
         message.sendingUid = callingUid;
         sendMessage(message);
     }
 
     /** Trigger network save and provide status via the provided callback. */
     public void saveNetwork(NetworkUpdateResult result, ActionListenerWrapper wrapper,
-            int callingUid) {
+            int callingUid, @NonNull String packageName) {
         Message message =
-                obtainMessage(CMD_SAVE_NETWORK, new ConnectNetworkMessage(result, wrapper));
+                obtainMessage(CMD_SAVE_NETWORK,
+                new ConnectNetworkMessage(result, wrapper, packageName));
         message.sendingUid = callingUid;
         sendMessage(message);
     }

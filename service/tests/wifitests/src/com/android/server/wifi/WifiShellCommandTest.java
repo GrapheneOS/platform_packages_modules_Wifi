@@ -847,7 +847,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
             return (wifiConfiguration.SSID.equals("\"ssid1234\"")
                     && wifiConfiguration.macRandomizationSetting
                     == WifiConfiguration.RANDOMIZATION_NONE);
-        }), eq(-1), any());
+        }), eq(-1), any(), any());
     }
 
     @Test
@@ -862,7 +862,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
             return (wifiConfiguration.SSID.equals("\"ssid1234\"")
                     && wifiConfiguration.macRandomizationSetting
                     == WifiConfiguration.RANDOMIZATION_NON_PERSISTENT);
-        }), eq(-1), any());
+        }), eq(-1), any(), any());
     }
 
     @Test
@@ -888,7 +888,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"connect-network", "012345", "open", "-x"});
         verify(mWifiService).connect(argThat(wifiConfiguration ->
-                (wifiConfiguration.SSID.equals("012345"))), eq(-1), any());
+                (wifiConfiguration.SSID.equals("012345"))), eq(-1), any(), any());
     }
 
     @Test
@@ -904,7 +904,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"add-network", "012345", "open", "-x"});
         verify(mWifiService).save(argThat(wifiConfiguration ->
-                (wifiConfiguration.SSID.equals("012345"))), any());
+                (wifiConfiguration.SSID.equals("012345"))), any(), any());
     }
 
     @Test

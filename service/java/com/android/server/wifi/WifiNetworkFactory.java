@@ -1073,7 +1073,8 @@ public class WifiNetworkFactory extends NetworkFactory {
                 mClientModeManager,
                 new NetworkUpdateResult(networkId),
                 new ActionListenerWrapper(listener),
-                mActiveSpecificNetworkRequest.getRequestorUid());
+                mActiveSpecificNetworkRequest.getRequestorUid(),
+                mActiveSpecificNetworkRequest.getRequestorPackageName());
 
         // Post an alarm to handle connection timeout.
         scheduleConnectionTimeout();
