@@ -122,8 +122,7 @@
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Para se conectar a <xliff:g id="SSID">%1$s</xliff:g>, insira um chip da <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
     <string name="wifi_interface_priority_title" msgid="5117627874976875544">"O app <xliff:g id="APP">%1$s</xliff:g> quer usar um recurso de rede"</string>
     <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Isso pode causar problemas para <xliff:g id="APPS">%3$s</xliff:g>."</string>
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Isso pode causar problemas para estes apps: <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Permitir"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Não permitir"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Esta rede é confiável?"</string>

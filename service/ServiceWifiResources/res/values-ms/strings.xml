@@ -70,8 +70,7 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Tetapan dikemas kini. Cuba sambung lagi."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Tidak boleh menukar tetapan privasi"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Rangkaian tidak ditemukan"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32756 (2620877003804313434) -->
-    <skip />
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : Ralat pengesahan EAP 32756"</string>
     <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : Ralat pengesahan EAP 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
@@ -121,16 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Tiada peranti disambungkan. Ketik untuk mengubah suai."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi diputuskan sambungannya"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Untuk menyambung kepada <xliff:g id="SSID">%1$s</xliff:g>, masukkan SIM <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
-    <!-- no translation found for wifi_interface_priority_title (5117627874976875544) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (4253391172756140313) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (7877379614986261096) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (1378461018835886777) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> ingin menggunakan sumber perangkaian"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Tindakan ini mungkin menyebabkan masalah untuk <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Hal ini mungkin menyebabkan masalah untuk apl ini: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Benarkan"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Jangan benarkan"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Adakah rangkaian ini dipercayai?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ya, sambung"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Tidak, jangan sambung"</string>

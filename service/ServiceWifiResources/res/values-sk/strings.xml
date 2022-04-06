@@ -122,8 +122,7 @@
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Ak sa chcete pripojiť k sieti <xliff:g id="SSID">%1$s</xliff:g>, vložte SIM kartu operátora <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
     <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> chce použiť sieťový zdroj"</string>
     <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Môže to spôsobovať problémy aplikáciám <xliff:g id="APPS">%3$s</xliff:g>."</string>
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Môže to spôsobiť problémy týmto aplikáciám: <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Povoliť"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Nepovoliť"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je táto sieť dôveryhodná?"</string>
