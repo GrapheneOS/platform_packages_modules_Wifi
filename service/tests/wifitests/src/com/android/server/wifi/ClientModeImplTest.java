@@ -4745,6 +4745,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertTrue(networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
 
         assertEquals(mConnectedNetwork.creatorUid, networkCapabilities.getOwnerUid());
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(Set.of(mConnectedNetwork.creatorUid),
+                    networkCapabilities.getAllowedUids());
+        }
         assertArrayEquals(
                 new int[] {mConnectedNetwork.creatorUid},
                 networkCapabilities.getAdministratorUids());
