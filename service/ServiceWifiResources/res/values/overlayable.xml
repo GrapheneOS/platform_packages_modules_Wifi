@@ -197,6 +197,8 @@
           <item type="bool" name="config_wifiMultiStaRestrictedConcurrencyEnabled" />
           <item type="bool" name="config_wifiMultiStaMultiInternetConcurrencyEnabled" />
           <item type="bool" name="config_wifiDefaultCoexAlgorithmEnabled"/>
+          <item type="bool" name="config_wifiCoexForGpsL1"/>
+          <item type="integer" name="config_wifiCoexGpsL1ThresholdKhz"/>
           <item type="string" name="config_wifiCoexTableFilepath"/>
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold" />
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs" />

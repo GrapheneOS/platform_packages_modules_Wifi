@@ -33,6 +33,7 @@ import static com.android.server.wifi.coex.CoexUtils.CHANNEL_SET_5_GHZ_80_MHZ;
 import static com.android.server.wifi.coex.CoexUtils.NUM_24_GHZ_CHANNELS;
 import static com.android.server.wifi.coex.CoexUtils.get2gHarmonicCoexUnsafeChannels;
 import static com.android.server.wifi.coex.CoexUtils.get5gHarmonicCoexUnsafeChannels;
+import static com.android.server.wifi.coex.CoexUtils.getCoexUnsafeChannelsForGpsL1;
 import static com.android.server.wifi.coex.CoexUtils.getIntermodCoexUnsafeChannels;
 import static com.android.server.wifi.coex.CoexUtils.getNeighboringCoexUnsafeChannels;
 
@@ -43,6 +44,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.WifiManager;
@@ -480,6 +482,10 @@ public class CoexManager {
                 default:
                     entry = null;
             }
+            final int downlinkFreqKhz = cellChannel.getDownlinkFreqKhz();
+            final int downlinkBandwidthKhz = cellChannel.getDownlinkBandwidthKhz();
+            final int uplinkFreqKhz = cellChannel.getUplinkFreqKhz();
+            final int uplinkBandwidthKhz = cellChannel.getUplinkBandwidthKhz();
             final List<CoexUnsafeChannel> currentBandUnsafeChannels = new ArrayList<>();
             if (entry != null) {
                 final int powerCapDbm;
@@ -495,10 +501,6 @@ public class CoexManager {
                 final Override override = entry.getOverride();
                 if (params != null) {
                     // Add all of the CoexUnsafeChannels calculated with the given parameters.
-                    final int downlinkFreqKhz = cellChannel.getDownlinkFreqKhz();
-                    final int downlinkBandwidthKhz = cellChannel.getDownlinkBandwidthKhz();
-                    final int uplinkFreqKhz = cellChannel.getUplinkFreqKhz();
-                    final int uplinkBandwidthKhz = cellChannel.getUplinkBandwidthKhz();
                     final NeighborThresholds neighborThresholds = params.getNeighborThresholds();
                     final HarmonicParams harmonicParams2g = params.getHarmonicParams2g();
                     final HarmonicParams harmonicParams5g = params.getHarmonicParams5g();
@@ -718,6 +720,16 @@ public class CoexManager {
                         }
                         coexRestrictions |= COEX_RESTRICTION_WIFI_DIRECT;
                     }
+                }
+            }
+            // Add all of the CoexUnsafeChannels that cause intermod on GPS L1 with the current
+            // uplink cell channels.
+            Resources res = mContext.getResources();
+            if (res.getBoolean(R.bool.config_wifiCoexForGpsL1)) {
+                if (uplinkFreqKhz >= 0 && uplinkBandwidthKhz >= 0) {
+                    currentBandUnsafeChannels.addAll(getCoexUnsafeChannelsForGpsL1(
+                            uplinkFreqKhz, uplinkBandwidthKhz,
+                            res.getInteger(R.integer.config_wifiCoexGpsL1ThresholdKhz)));
                 }
             }
             // Add all of the CoexUnsafeChannels calculated from this cell channel to the total.
