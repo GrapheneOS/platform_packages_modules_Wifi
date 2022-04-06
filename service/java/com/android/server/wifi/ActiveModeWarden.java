@@ -527,7 +527,7 @@ public class ActiveModeWarden {
                 // update to make sure we are in the correct mode
                 scanAlwaysModeChanged();
             }
-        }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION), Context.RECEIVER_NOT_EXPORTED);
+        }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
         mContext.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -541,7 +541,7 @@ public class ActiveModeWarden {
                     airplaneModeToggled();
                 }
             }
-        }, new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED), Context.RECEIVER_NOT_EXPORTED);
+        }, new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED));
         mContext.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {

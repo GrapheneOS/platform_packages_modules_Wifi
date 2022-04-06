@@ -124,8 +124,7 @@ public class OsuNetworkConnectionTest extends WifiBaseTest {
         ArgumentCaptor<IntentFilter> intentFilterCaptor =
                 ArgumentCaptor.forClass(IntentFilter.class);
         verify(mContext).registerReceiver(any(BroadcastReceiver.class),
-                intentFilterCaptor.capture(), any(), eq(mHandler),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                intentFilterCaptor.capture(), any(), eq(mHandler));
         verify(mWifiManager).isWifiEnabled();
         IntentFilter intentFilter = intentFilterCaptor.getValue();
         assertEquals(intentFilter.countActions(), 1);
@@ -142,7 +141,7 @@ public class OsuNetworkConnectionTest extends WifiBaseTest {
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(broadcastReceiverCaptor.capture(),
-                any(IntentFilter.class), any(), eq(mHandler), eq(Context.RECEIVER_NOT_EXPORTED));
+                any(IntentFilter.class), any(), eq(mHandler));
         BroadcastReceiver broadcastReceiver = broadcastReceiverCaptor.getValue();
         mLooper.dispatchAll();
         mNetworkConnection.setEventCallback(mNetworkCallbacks);

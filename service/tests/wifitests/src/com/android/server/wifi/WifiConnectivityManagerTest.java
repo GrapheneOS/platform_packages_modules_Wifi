@@ -62,7 +62,6 @@ import android.app.AlarmManager;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.app.test.TestAlarmManager;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
@@ -568,8 +567,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
         verify(mContext, atLeastOnce()).registerReceiver(
-                mBroadcastReceiverCaptor.capture(), any(), any(), any(),
-                eq(Context.RECEIVER_NOT_EXPORTED));
+                mBroadcastReceiverCaptor.capture(), any(), any(), any());
         verify(mWifiConfigManager, atLeastOnce()).addOnNetworkUpdateListener(
                 mNetworkUpdateListenerCaptor.capture());
         verify(mWifiNetworkSuggestionsManager, atLeastOnce()).addOnSuggestionUpdateListener(

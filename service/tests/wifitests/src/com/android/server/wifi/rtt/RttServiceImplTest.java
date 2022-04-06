@@ -237,7 +237,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         verify(mockContext, times(2)).registerReceiver(bcastRxCaptor.capture(),
-                any(IntentFilter.class), eq(Context.RECEIVER_NOT_EXPORTED));
+                any(IntentFilter.class));
         verify(mockNative).start(any());
         mPowerBcastReceiver = bcastRxCaptor.getAllValues().get(0);
         mLocationModeReceiver = bcastRxCaptor.getAllValues().get(1);

@@ -254,8 +254,7 @@ public class InsecureEapNetworkHandler {
             filter.addAction(ACTION_CERT_NOTIF_ACCEPT);
             filter.addAction(ACTION_CERT_NOTIF_REJECT);
         }
-        mContext.registerReceiver(mCertNotificationReceiver, filter, null, mHandler,
-                Context.RECEIVER_NOT_EXPORTED);
+        mContext.registerReceiver(mCertNotificationReceiver, filter, null, mHandler);
         mIsCertNotificationReceiverRegistered = true;
     }
 
