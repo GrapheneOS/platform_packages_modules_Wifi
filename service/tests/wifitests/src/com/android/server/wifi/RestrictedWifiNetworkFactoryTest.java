@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -31,6 +32,7 @@ import android.test.suitebuilder.annotation.SmallTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -85,7 +87,7 @@ public class RestrictedWifiNetworkFactoryTest extends WifiBaseTest {
         mRestrictedWifiNetworkFactory.needNetworkFor(mNetworkRequest);
 
         // First network request should turn on auto-join.
-        verify(mWifiConnectivityManager).setRestrictionConnectionAllowed(true);
+        verify(mWifiConnectivityManager).addRestrictionConnectionAllowedUid(anyInt());
         assertTrue(mRestrictedWifiNetworkFactory.hasConnectionRequests());
 
         // Subsequent ones should do nothing.
@@ -102,13 +104,14 @@ public class RestrictedWifiNetworkFactoryTest extends WifiBaseTest {
         mRestrictedWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
         assertFalse(mRestrictedWifiNetworkFactory.hasConnectionRequests());
 
+        ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
         // Now request & then release the network request
         mRestrictedWifiNetworkFactory.needNetworkFor(mNetworkRequest);
         assertTrue(mRestrictedWifiNetworkFactory.hasConnectionRequests());
-        verify(mWifiConnectivityManager).setRestrictionConnectionAllowed(true);
+        verify(mWifiConnectivityManager).addRestrictionConnectionAllowedUid(captor.capture());
 
         mRestrictedWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
         assertFalse(mRestrictedWifiNetworkFactory.hasConnectionRequests());
-        verify(mWifiConnectivityManager).setRestrictionConnectionAllowed(false);
+        verify(mWifiConnectivityManager).addRestrictionConnectionAllowedUid(captor.getValue());
     }
 }
