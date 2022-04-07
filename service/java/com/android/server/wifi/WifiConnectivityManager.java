@@ -52,6 +52,7 @@ import android.os.Process;
 import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.LocalLog;
 import android.util.Log;
 
@@ -183,7 +184,7 @@ public class WifiConnectivityManager {
     private int mInitialScanState = INITIAL_SCAN_STATE_COMPLETE;
     private boolean mAutoJoinEnabledExternal = true; // enabled by default
     private boolean mUntrustedConnectionAllowed = false;
-    private boolean mRestrictedConnectionAllowed = false;
+    private Set<Integer> mRestrictedConnectionAllowedUids = new ArraySet<>();
     private boolean mOemPaidConnectionAllowed = false;
     private boolean mOemPrivateConnectionAllowed = false;
     @MultiInternetManager.MultiInternetState
@@ -556,7 +557,7 @@ public class WifiConnectivityManager {
         List<WifiCandidates.Candidate> candidates = mNetworkSelector.getCandidatesFromScan(
                 scanDetails, bssidBlocklist, cmmStates, mUntrustedConnectionAllowed,
                 mOemPaidConnectionAllowed, mOemPrivateConnectionAllowed,
-                mRestrictedConnectionAllowed, isMultiInternetConnectionRequested());
+                mRestrictedConnectionAllowedUids, isMultiInternetConnectionRequested());
         mLatestCandidates = candidates;
         mLatestCandidatesTimestampMs = mClock.getElapsedSinceBootMillis();
 
@@ -2754,7 +2755,7 @@ public class WifiConnectivityManager {
         setAutoJoinEnabled(mAutoJoinEnabledExternal
                 && (mUntrustedConnectionAllowed || mOemPaidConnectionAllowed
                 || mOemPrivateConnectionAllowed || mTrustedConnectionAllowed
-                || mRestrictedConnectionAllowed || hasMultiInternetConnection())
+                || mRestrictedConnectionAllowedUids.size() != 0 || hasMultiInternetConnection())
                 && !mSpecificNetworkRequestInProgress);
         startConnectivityScan(SCAN_IMMEDIATELY);
     }
@@ -2784,13 +2785,29 @@ public class WifiConnectivityManager {
     }
 
     /**
-     * Triggered when {@link RestrictedWifiNetworkFactory} has a pending ephemeral network request.
+     * Triggered when {@link RestrictedWifiNetworkFactory} has a new pending restricted network
+     * request.
+     * @param uid the uid of the latest requestor
      */
-    public void setRestrictionConnectionAllowed(boolean allowed) {
-        localLog("setRestrictionConnectionAllowed: allowed=" + allowed);
+    public void addRestrictionConnectionAllowedUid(int uid) {
+        localLog("addRestrictionConnectionAllowedUid: allowedUid=" + uid);
 
-        if (mRestrictedConnectionAllowed != allowed) {
-            mRestrictedConnectionAllowed = allowed;
+        int size = mRestrictedConnectionAllowedUids.size();
+        mRestrictedConnectionAllowedUids.add(uid);
+        if (size == 0) {
+            checkAllStatesAndEnableAutoJoin();
+        }
+    }
+
+    /**
+     * Triggered when {@link RestrictedWifiNetworkFactory} release a restricted network request.
+     * @param uid the uid of the latest released requestor
+     */
+    public void removeRestrictionConnectionAllowedUid(int uid) {
+        localLog("removeRestrictionConnectionAllowedUid: allowedUid=" + uid);
+
+        mRestrictedConnectionAllowedUids.remove(uid);
+        if (mRestrictedConnectionAllowedUids.size() == 0) {
             checkAllStatesAndEnableAutoJoin();
         }
     }

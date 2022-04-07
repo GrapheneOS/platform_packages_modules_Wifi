@@ -21,10 +21,12 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkFactory;
 import android.net.NetworkRequest;
 import android.os.Looper;
+import android.util.ArraySet;
 import android.util.Log;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.Set;
 
 /**
  * Network factory to handle restricted wifi network requests.
@@ -35,7 +37,7 @@ public class RestrictedWifiNetworkFactory extends NetworkFactory {
     private static final int SCORE_FILTER = Integer.MAX_VALUE;
 
     private final WifiConnectivityManager mWifiConnectivityManager;
-    private int mConnectionReqCount = 0;
+    private Set<Integer> mRequestUids = new ArraySet<>();
 
     public RestrictedWifiNetworkFactory(Looper l, Context c, NetworkCapabilities f,
                                        WifiConnectivityManager connectivityManager) {
@@ -48,8 +50,9 @@ public class RestrictedWifiNetworkFactory extends NetworkFactory {
     @Override
     protected void needNetworkFor(NetworkRequest networkRequest) {
         if (!networkRequest.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)) {
-            if (++mConnectionReqCount == 1) {
-                mWifiConnectivityManager.setRestrictionConnectionAllowed(true);
+            if (mRequestUids.add(networkRequest.getRequestorUid())) {
+                mWifiConnectivityManager.addRestrictionConnectionAllowedUid(networkRequest
+                        .getRequestorUid());
             }
         }
     }
@@ -57,12 +60,13 @@ public class RestrictedWifiNetworkFactory extends NetworkFactory {
     @Override
     protected void releaseNetworkFor(NetworkRequest networkRequest) {
         if (!networkRequest.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)) {
-            if (mConnectionReqCount == 0) {
+            if (mRequestUids.size() == 0) {
                 Log.e(TAG, "No valid network request to release");
                 return;
             }
-            if (--mConnectionReqCount == 0) {
-                mWifiConnectivityManager.setRestrictionConnectionAllowed(false);
+            if (mRequestUids.remove(networkRequest.getRequestorUid())) {
+                mWifiConnectivityManager.removeRestrictionConnectionAllowedUid(networkRequest
+                        .getRequestorUid());
             }
         }
     }
@@ -70,14 +74,14 @@ public class RestrictedWifiNetworkFactory extends NetworkFactory {
     @Override
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         super.dump(fd, pw, args);
-        pw.println(TAG + ": mConnectionReqCount " + mConnectionReqCount);
+        pw.println(TAG + ": mConnectionReqCount " + mRequestUids.size());
     }
 
     /**
      * Check if there is at-least one connection request.
      */
     public boolean hasConnectionRequests() {
-        return mConnectionReqCount > 0;
+        return mRequestUids.size() > 0;
     }
 }
 
