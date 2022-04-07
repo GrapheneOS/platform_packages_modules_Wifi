@@ -70,6 +70,8 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"සැකසීම යාවත්කාලීනයි. නැවත සබැඳීමට උත්සාහ කරන්න."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"රහස්‍යතා සැකසීම වෙනස් කළ නොහැකිය"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"ජාලය හමු වූයේ නැත"</string>
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : EAP සත්‍යාපනය කිරීමේ දෝෂය 32756"</string>
+    <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP සත්‍යාපනය කිරීමේ දෝෂය 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
     <item msgid="7582366019846559418">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon ආවරණ ප්‍රදේශයට පිටතින් ඔබට Verizon Wi-Fi ප්‍රවේශය වෙත සම්බන්ධ විය නොහැකිය. (දෝෂය = 32760)"</item>
@@ -102,10 +104,6 @@
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
     <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ඔබව Verizon Wi-Fi ප්‍රවේශය වෙත සම්බන්ධ කිරීමේ ගැටලුවක් තිබේ. පසුව නැවත උත්සාහ කරන්න නැතහොත් වෙනත් ස්ථානයකින් උත්සාහ කරන්න."</item>
   </string-array>
-    <string name="wifi_eap_error_message_code_32768" msgid="8606872176767773962">"<xliff:g id="SSID">%1$s</xliff:g> : EAP සත්‍යාපනය කිරීමේ දෝෂය 32768"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32768_carrier_overrides:0 (5947740234116715195) -->
-    <string name="wifi_eap_error_message_code_32769" msgid="5805559627556918450">"<xliff:g id="SSID">%1$s</xliff:g> : EAP සත්‍යාපනය කිරීමේ දෝෂය 32769"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32769_carrier_overrides:0 (3136023469902387052) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP සත්‍යාපනය කිරීමේ දෝෂය 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
     <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 16384 දෝෂය හේතුවෙන් ඔබව Verizon Wi-Fi ප්‍රවේශය වෙත සම්බන්ධ කිරීමේ ගැටලුවක් තිබේ."</item>
@@ -122,10 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"උපාංග කිසිවක් සම්බන්ධ කර නැත. වෙනස් කිරීමට තට්ටු කරන්න."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi‑Fi විසන්ධි විය"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> වෙත සම්බන්ධ වීමට, <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM එකක් ඇතුල් කරන්න"</string>
-    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"යෙදුම් ගැටුම"</string>
-    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> යෙදුම <xliff:g id="INTERFACE">%2$s</xliff:g> අතුරුමුහුණතක් ගෙන ඒම අවශ්‍ය වේ. මෙය අනෙකුත් අතුරුමුහුණත් අක්‍රිය කිරීමට හේතු වනු ඇති අතර <xliff:g id="APPS">%3$s</xliff:g>ට බලපෑමට හැකිය."</string>
-    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ඔව්, අනුමත කරන්න"</string>
-    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"එපා, ප්‍රතික්ෂේප කරන්න"</string>
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> හට ජාලකරණ සම්පතක් භාවිත කිරීමට අවශ්‍යයි"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"මෙය <xliff:g id="APPS">%3$s</xliff:g> සඳහා ගැටලු ඇති කළ හැකිය."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"මෙය මෙම යෙදුම් සඳහා ගැටලු ඇති කළ හැකිය: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"ඉඩ දෙන්න"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"ඉඩ නොදෙන්න"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"මෙම ජාලය විශ්වාසදායකද?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ඔව්, සම්බන්ධ වන්න"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"එපා, සම්බන්ධ වෙන්න එපා"</string>

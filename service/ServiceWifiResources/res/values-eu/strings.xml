@@ -70,6 +70,8 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Eguneratu da ezarpena. Saiatu berriro konektatzen."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Ezin da aldatu pribatutasun-ezarpena"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Ez da aurkitu sarea"</string>
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : EAPen autentifikazio-errorea (32756)"</string>
+    <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP metodoaren autentifikazio-errorea 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
     <item msgid="7582366019846559418">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: ezin zara konektatu Verizon-en wifi-sarbidera Verizon-en estaldura-eremutik kanpo bazaude. (Errorea: 32760)"</item>
@@ -102,10 +104,6 @@
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
     <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: arazo bat dago Verizon-en wifi-sarbidera konektatzeko. Saiatu berriro geroago edo beste kokapen batetik."</item>
   </string-array>
-    <string name="wifi_eap_error_message_code_32768" msgid="8606872176767773962">"<xliff:g id="SSID">%1$s</xliff:g>: EAPen autentifikazio-errorea (32768)"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32768_carrier_overrides:0 (5947740234116715195) -->
-    <string name="wifi_eap_error_message_code_32769" msgid="5805559627556918450">"<xliff:g id="SSID">%1$s</xliff:g>: EAPen autentifikazio-errorea (32769)"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32769_carrier_overrides:0 (3136023469902387052) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>: EAPen autentifikazio-errorea (16384)"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
     <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: 16384 errorea dela eta, arazo bat dago Verizon-en wifi-sarbidera konektatzeko."</item>
@@ -122,10 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Ez dago gailurik konektatuta. Sakatu aldatzeko."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Deskonektatu egin da wifia"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> sarera konektatzeko, sartu <xliff:g id="CARRIER_NAME">%2$s</xliff:g> operadorearen SIM txartel bat"</string>
-    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Aplikazioen arteko gatazka"</string>
-    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> aplikazioak <xliff:g id="INTERFACE">%2$s</xliff:g> interfazea abiarazi behar du. Ondorioz, beste interfaze batzuk desaktibatuko dira, eta baliteke horrek <xliff:g id="APPS">%3$s</xliff:g> aplikazioei eragitea."</string>
-    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Bai"</string>
-    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Ez"</string>
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> aplikazioak sareko baliabide bat erabili behar du"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Baliteke horrek arazoak eragitea <xliff:g id="APPS">%3$s</xliff:g> aplikazioan."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Arazoak eragin diezazkieke aplikazio hauei: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Eman baimena"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Ez eman baimenik"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Fidagarria al da sarea?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Bai, konektatu nahi dut"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Ez, ez dut konektatu nahi"</string>
