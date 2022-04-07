@@ -62,6 +62,7 @@ import android.net.wifi.WifiSsid;
 import android.os.Process;
 import android.util.Log;
 
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
 import com.android.server.wifi.hotspot2.AnqpEvent;
 import com.android.server.wifi.hotspot2.IconEvent;
@@ -74,8 +75,10 @@ import com.android.server.wifi.util.NativeUtil;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stub {
@@ -1115,6 +1118,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public void onQosPolicyReset() {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onQosPolicyReset");
+            mWifiMonitor.broadcastQosPolicyResetEvent(mIfaceName);
         }
     }
 
@@ -1122,6 +1126,16 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public void onQosPolicyRequest(int qosPolicyRequestId, QosPolicyData[] qosPolicyData) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onQosPolicyRequest");
+            // Convert QoS policies from HAL to framework representation.
+            List<QosPolicyRequest> frameworkQosPolicies = new ArrayList();
+            if (qosPolicyData != null) {
+                for (QosPolicyData halPolicy : qosPolicyData) {
+                    frameworkQosPolicies.add(
+                            SupplicantStaIfaceHalAidlImpl.halToFrameworkQosPolicy(halPolicy));
+                }
+            }
+            mWifiMonitor.broadcastQosPolicyRequestEvent(mIfaceName, qosPolicyRequestId,
+                    frameworkQosPolicies);
         }
     }
 

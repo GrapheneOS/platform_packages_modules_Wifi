@@ -858,4 +858,6 @@
     <!-- Indicates the number of octets to mask for each BSSID in the SecurityLog output.
          The first N octets will each be replaced with 'xx' in the formatted BSSID string. -->
     <integer translatable="false" name="config_wifiNumMaskedBssidOctetsInSecurityLog">4</integer>
+    <!-- Indicates whether or not the network-centric QoS policy feature is enabled. -->
+    <bool translatable="false" name="config_wifiNetworkCentricQosPolicyFeatureEnabled">false</bool>
 </resources>

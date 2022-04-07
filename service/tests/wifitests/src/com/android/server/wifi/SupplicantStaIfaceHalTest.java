@@ -31,10 +31,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.net.DscpPolicy;
 import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.os.Handler;
+import android.util.Range;
+
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyClassifierParams;
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +47,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,6 +80,14 @@ public class SupplicantStaIfaceHalTest {
     private static final int PEER_ID = 3;
     private static final int OWN_ID = 4;
     private static final int MODE = 5;
+
+    private static final byte QOS_POLICY_ID = 12;
+    private static final int QOS_POLICY_REQUEST_TYPE =
+            SupplicantStaIfaceHal.QOS_POLICY_REQUEST_ADD;
+    private static final byte QOS_POLICY_DSCP = 0;
+    private static final int QOS_POLICY_SRC_PORT = DscpPolicy.SOURCE_PORT_ANY;
+    private static final int[] QOS_POLICY_DST_PORT_RANGE = new int[]{0, 65535};
+    private static final int QOS_POLICY_PROTOCOL = DscpPolicy.PROTOCOL_ANY;
 
     private class SupplicantStaIfaceHalSpy extends SupplicantStaIfaceHal {
         SupplicantStaIfaceHalSpy() {
@@ -1108,5 +1122,81 @@ public class SupplicantStaIfaceHalTest {
         when(mStaIfaceHalAidlMock.getCurrentNetworkSecurityParams(anyString())).thenReturn(params);
         assertEquals(params, mDut.getCurrentNetworkSecurityParams(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).getCurrentNetworkSecurityParams(eq(IFACE_NAME));
+    }
+
+    /*
+     * Test the creation of a valid QosPolicyRequest object.
+     */
+    @Test
+    public void testCreateValidQosPolicyRequest() {
+        byte[] srcIp = new byte[]{127, 0, 0, 1};
+        QosPolicyRequest request = new QosPolicyRequest(QOS_POLICY_ID, QOS_POLICY_REQUEST_TYPE,
+                QOS_POLICY_DSCP, new QosPolicyClassifierParams(true, srcIp, false, null,
+                        QOS_POLICY_SRC_PORT, QOS_POLICY_DST_PORT_RANGE, QOS_POLICY_PROTOCOL));
+        assertEquals(QOS_POLICY_ID, request.policyId);
+        assertEquals(QOS_POLICY_DSCP, request.dscp);
+        assertTrue(request.isAddRequest());
+        assertFalse(request.isRemoveRequest());
+
+        assertTrue(request.classifierParams.isValid);
+        assertTrue(request.classifierParams.hasSrcIp);
+        assertFalse(request.classifierParams.hasDstIp);
+
+        assertEquals(QOS_POLICY_SRC_PORT, request.classifierParams.srcPort);
+        assertEquals(QOS_POLICY_PROTOCOL, request.classifierParams.protocol);
+        assertEquals(new Range(QOS_POLICY_DST_PORT_RANGE[0], QOS_POLICY_DST_PORT_RANGE[1]),
+                request.classifierParams.dstPortRange);
+        assertTrue(Arrays.equals(srcIp, request.classifierParams.srcIp.getAddress()));
+    }
+
+    /*
+     * Test that a QosPolicyRequest object is marked as invalid if an invalid
+     * srcIp is passed in during construction.
+     */
+    @Test
+    public void testCreateQosPolicyRequestWithInvalidSrcIp() {
+        byte[] srcIp = new byte[]{53};
+        QosPolicyRequest request = new QosPolicyRequest(QOS_POLICY_ID, QOS_POLICY_REQUEST_TYPE,
+                QOS_POLICY_DSCP, new QosPolicyClassifierParams(true, srcIp, false, null,
+                QOS_POLICY_SRC_PORT, QOS_POLICY_DST_PORT_RANGE, QOS_POLICY_PROTOCOL));
+        assertEquals(QOS_POLICY_ID, request.policyId);
+        assertEquals(QOS_POLICY_DSCP, request.dscp);
+        assertTrue(request.isAddRequest());
+        assertFalse(request.isRemoveRequest());
+        assertFalse(request.classifierParams.isValid);
+    }
+
+    /*
+     * Test that a QosPolicyRequest object is marked as invalid if an invalid
+     * dstIp is passed in during construction.
+     */
+    @Test
+    public void testCreateQosPolicyRequestWithInvalidDstIp() {
+        byte[] dstIp = new byte[]{53};
+        QosPolicyRequest request = new QosPolicyRequest(QOS_POLICY_ID, QOS_POLICY_REQUEST_TYPE,
+                QOS_POLICY_DSCP, new QosPolicyClassifierParams(false, null, true, dstIp,
+                QOS_POLICY_SRC_PORT, QOS_POLICY_DST_PORT_RANGE, QOS_POLICY_PROTOCOL));
+        assertEquals(QOS_POLICY_ID, request.policyId);
+        assertEquals(QOS_POLICY_DSCP, request.dscp);
+        assertTrue(request.isAddRequest());
+        assertFalse(request.isRemoveRequest());
+        assertFalse(request.classifierParams.isValid);
+    }
+
+    /*
+     * Test that a QosPolicyRequest object is marked as invalid if an invalid
+     * dstPortRange is passed in during construction.
+     */
+    @Test
+    public void testCreateQosPolicyRequestWithInvalidDstPortRange() {
+        int[] dstPortRange = new int[]{250, 131};
+        QosPolicyRequest request = new QosPolicyRequest(QOS_POLICY_ID, QOS_POLICY_REQUEST_TYPE,
+                QOS_POLICY_DSCP, new QosPolicyClassifierParams(false, null, false, null,
+                QOS_POLICY_SRC_PORT, dstPortRange, QOS_POLICY_PROTOCOL));
+        assertEquals(QOS_POLICY_ID, request.policyId);
+        assertEquals(QOS_POLICY_DSCP, request.dscp);
+        assertTrue(request.isAddRequest());
+        assertFalse(request.isRemoveRequest());
+        assertFalse(request.classifierParams.isValid);
     }
 }

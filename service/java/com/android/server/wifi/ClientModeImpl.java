@@ -126,6 +126,7 @@ import com.android.net.module.util.MacAddressUtils;
 import com.android.net.module.util.NetUtils;
 import com.android.server.wifi.ActiveModeManager.ClientRole;
 import com.android.server.wifi.MboOceController.BtmFrameData;
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceStatusCode;
 import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
@@ -263,6 +264,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final ConcreteClientModeManager mClientModeManager;
 
     private final WifiNotificationManager mNotificationManager;
+    private final QosPolicyRequestHandler mQosPolicyRequestHandler;
 
     private boolean mFailedToResetMacAddress = false;
     private int mLastSignalLevel = -1;
@@ -832,6 +834,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mWifiNetworkSelector = wifiNetworkSelector;
         mWifiInjector = wifiInjector;
+        mQosPolicyRequestHandler = new QosPolicyRequestHandler(mInterfaceName, mWifiNative,
+                mWifiInjector.getWifiHandlerThread());
 
         enableVerboseLogging(verboseLoggingEnabled);
 
@@ -917,6 +921,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiMonitor.NETWORK_NOT_FOUND_EVENT,
             WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
             WifiMonitor.AUXILIARY_SUPPLICANT_EVENT,
+            WifiMonitor.QOS_POLICY_RESET_EVENT,
+            WifiMonitor.QOS_POLICY_REQUEST_EVENT,
     };
 
     private void registerForWifiMonitorEvents()  {
@@ -1259,6 +1265,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mWifiScoreReport.enableVerboseLogging(mVerboseLoggingEnabled);
         mSupplicantStateTracker.enableVerboseLogging(mVerboseLoggingEnabled);
+        mQosPolicyRequestHandler.enableVerboseLogging(mVerboseLoggingEnabled);
     }
 
     /**
@@ -1851,6 +1858,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         dumpIpClient(fd, pw, args);
         pw.println("WifiScoreReport:");
         mWifiScoreReport.dump(fd, pw, args);
+        pw.println("QosPolicyRequestHandler:");
+        mQosPolicyRequestHandler.dump(fd, pw, args);
         pw.println();
     }
 
@@ -2933,6 +2942,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mNetworkAgent != null) {
             mNetworkAgent.unregister();
             mNetworkAgent = null;
+            mQosPolicyRequestHandler.setNetworkAgent(null);
         }
 
         /* Clear network properties */
@@ -3423,6 +3433,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mNetworkAgent = mWifiInjector.makeWifiNetworkAgent(nc, mLinkProperties, naConfig,
                     mNetworkFactory.getProvider(), new WifiNetworkAgentCallback());
             mWifiScoreReport.setNetworkAgent(mNetworkAgent);
+            mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
 
             transitionTo(mL3ProvisioningState);
         } else {
@@ -4683,6 +4694,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (!isThisCallbackActive()) return;
             unwantedNetwork(NETWORK_STATUS_UNWANTED_DISABLE_AUTOJOIN);
         }
+
+        @Override
+        public void onDscpPolicyStatusUpdated(int policyId, int status) {
+            mQosPolicyRequestHandler.setQosPolicyStatus(policyId, status);
+        }
     }
 
     private void unwantedNetwork(int reason) {
@@ -5001,6 +5017,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     log("Received TRANSITION_DISABLE_INDICATION: networkId=" + message.arg1
                             + ", indication=" + message.arg2);
                     mWifiConfigManager.updateNetworkTransitionDisable(message.arg1, message.arg2);
+                    break;
+                }
+                case WifiMonitor.QOS_POLICY_RESET_EVENT: {
+                    if (mNetworkAgent != null) {
+                        mNetworkAgent.sendRemoveAllDscpPolicies();
+                    }
+                    break;
+                }
+                case WifiMonitor.QOS_POLICY_REQUEST_EVENT: {
+                    mQosPolicyRequestHandler.queueQosPolicyRequest(
+                            message.arg1, (List<QosPolicyRequest>) message.obj);
                     break;
                 }
                 default: {
@@ -5375,6 +5402,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mNetworkAgent = mWifiInjector.makeWifiNetworkAgent(nc, mLinkProperties, naConfig,
                     mNetworkFactory.getProvider(), new WifiNetworkAgentCallback());
             mWifiScoreReport.setNetworkAgent(mNetworkAgent);
+            mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
 
             // We must clear the config BSSID, as the wifi chipset may decide to roam
             // from this point on and having the BSSID specified in the network block would
