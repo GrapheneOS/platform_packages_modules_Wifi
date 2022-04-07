@@ -3937,13 +3937,16 @@ public class WifiConfigManager {
     }
 
     /**
-     * This method updates the Root CA certifiate in the internal network.
+     * This method updates the Root CA certifiate and the domain name of the
+     * server in the internal network.
      *
      * @param networkId networkId corresponding to the network to be updated.
-     * @param cert Root CA certificate to be updated.
+     * @param caCert Root CA certificate to be updated.
+     * @param serverCert Server certificate to be updated.
      * @return true if updating Root CA certificate successfully; otherwise, false.
      */
-    public boolean updateCaCertificate(int networkId, @NonNull X509Certificate cert) {
+    public boolean updateCaCertificate(int networkId, @NonNull X509Certificate caCert,
+            @NonNull X509Certificate serverCert) {
         WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
         if (internalConfig == null) {
             Log.e(TAG, "No network for network ID " + networkId);
@@ -3957,13 +3960,18 @@ public class WifiConfigManager {
             Log.e(TAG, "Network " + networkId + " does not need verifying server cert");
             return false;
         }
-        if (null == cert) {
+        if (null == caCert) {
             Log.e(TAG, "Root CA cert is null");
             return false;
         }
-        CertificateSubjectInfo info = CertificateSubjectInfo.parse(cert.getSubjectDN().getName());
-        if (null == info) {
-            Log.e(TAG, "Invalid Root CA cert subject");
+        if (null == serverCert) {
+            Log.e(TAG, "Server cert is null");
+            return false;
+        }
+        CertificateSubjectInfo serverCertInfo = CertificateSubjectInfo.parse(
+                serverCert.getSubjectDN().getName());
+        if (null == serverCertInfo) {
+            Log.e(TAG, "Invalid Server CA cert subject");
             return false;
         }
 
@@ -3971,8 +3979,13 @@ public class WifiConfigManager {
         // setCaCertificate will mark that this CA certifiate should be removed on
         // removing this configuration.
         newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
-        newConfig.enterpriseConfig.setCaCertificate(cert);
-        newConfig.enterpriseConfig.setDomainSuffixMatch(info.commonName);
+        try {
+            newConfig.enterpriseConfig.setCaCertificate(caCert);
+        } catch (IllegalArgumentException ex) {
+            Log.e(TAG, "Failed to set CA cert: " + caCert);
+            return false;
+        }
+        newConfig.enterpriseConfig.setDomainSuffixMatch(serverCertInfo.commonName);
         newConfig.enterpriseConfig.setUserApproveNoCaCert(false);
         // Trigger an update to install CA certifiate and the corresponding configuration.
         NetworkUpdateResult result = addOrUpdateNetwork(newConfig, internalConfig.creatorUid);

@@ -7401,7 +7401,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.NONE), true);
         int eapSimNetId = verifyAddNetwork(WifiConfigurationTestUtil.createEapNetwork(
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
-        assertTrue(mWifiConfigManager.updateCaCertificate(eapPeapNetId, FakeKeys.CA_CERT0));
+        assertTrue(mWifiConfigManager.updateCaCertificate(eapPeapNetId, FakeKeys.CA_CERT0,
+                FakeKeys.CA_CERT1));
         WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(eapPeapNetId);
         assertFalse(config.enterpriseConfig.isTrustOnFirstUseEnabled());
         assertFalse(config.enterpriseConfig.isUserApproveNoCaCert());
@@ -7420,22 +7421,26 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
 
         // Invalid network id
-        assertFalse(mWifiConfigManager.updateCaCertificate(-1, FakeKeys.CA_CERT0));
+        assertFalse(mWifiConfigManager.updateCaCertificate(-1, FakeKeys.CA_CERT0,
+                FakeKeys.CA_CERT1));
 
         // Not an enterprise network
-        assertFalse(mWifiConfigManager.updateCaCertificate(openNetId, FakeKeys.CA_CERT0));
+        assertFalse(mWifiConfigManager.updateCaCertificate(openNetId, FakeKeys.CA_CERT0,
+                FakeKeys.CA_CERT1));
 
         // Not a certificate baseed enterprise network
-        assertFalse(mWifiConfigManager.updateCaCertificate(eapSimNetId, FakeKeys.CA_CERT0));
+        assertFalse(mWifiConfigManager.updateCaCertificate(eapSimNetId, FakeKeys.CA_CERT0,
+                FakeKeys.CA_CERT1));
 
         // No cert
-        assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, null));
+        assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, null, null));
 
         // No valid subject
-        X509Certificate mockCert = mock(X509Certificate.class);
+        X509Certificate mockServerCert = mock(X509Certificate.class);
         Principal mockSubjectDn = mock(Principal.class);
-        when(mockCert.getSubjectDN()).thenReturn(mockSubjectDn);
+        when(mockServerCert.getSubjectDN()).thenReturn(mockSubjectDn);
         when(mockSubjectDn.getName()).thenReturn("");
-        assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, mockCert));
+        assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, FakeKeys.CA_CERT0,
+                mockServerCert));
     }
 }
