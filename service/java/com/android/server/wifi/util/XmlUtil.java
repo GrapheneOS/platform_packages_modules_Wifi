@@ -1681,6 +1681,8 @@ public class XmlUtil {
                 "BridgedModeOpportunisticShutdownTimeoutMillis";
         public static final String XML_TAG_VENDOR_ELEMENT = "VendorElement";
         public static final String XML_TAG_VENDOR_ELEMENTS = "VendorElements";
+        public static final String XML_TAG_PERSISTENT_RANDOMIZED_MAC_ADDRESS =
+                "PersistentRandomizedMacAddress";
 
 
         /**
@@ -1896,6 +1898,10 @@ public class XmlUtil {
                 XmlUtil.writeNextSectionEnd(out, XML_TAG_VENDOR_ELEMENTS);
                 XmlUtil.writeNextValue(out, XML_TAG_80211_BE_ENABLED,
                         softApConfig.isIeee80211beEnabled());
+                if (softApConfig.getPersistentRandomizedMacAddress() != null) {
+                    XmlUtil.writeNextValue(out, XML_TAG_PERSISTENT_RANDOMIZED_MAC_ADDRESS,
+                            softApConfig.getPersistentRandomizedMacAddress().toString());
+                }
             }
         } // End of writeSoftApConfigurationToXml
 
@@ -2036,6 +2042,12 @@ public class XmlUtil {
                                     softApConfigBuilder
                                             .setBridgedModeOpportunisticShutdownTimeoutMillis(
                                                     bridgedTimeout);
+                                }
+                                break;
+                            case XML_TAG_PERSISTENT_RANDOMIZED_MAC_ADDRESS:
+                                if (SdkLevel.isAtLeastT()) {
+                                    softApConfigBuilder.setRandomizedMacAddress(
+                                            MacAddress.fromString((String) value));
                                 }
                                 break;
                             default:
