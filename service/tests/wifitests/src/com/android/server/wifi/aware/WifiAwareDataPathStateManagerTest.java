@@ -88,6 +88,7 @@ import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.aware.WifiAwareDataPathStateManager.WifiAwareNetworkAgent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -146,6 +147,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     @Mock private WifiManager mMockWifiManager;
     TestAlarmManager mAlarmManager;
     @Mock private PowerManager mMockPowerManager;
+    @Mock private WifiInjector mWifiInjector;
 
     @Rule
     public ErrorCollector collector = new ErrorCollector();
@@ -185,7 +187,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             .thenReturn(true);
         when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
 
-        mDut = new WifiAwareStateManager();
+        mDut = new WifiAwareStateManager(mWifiInjector);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
                 mWifiPermissionsUtil, mPermissionsWrapperMock, mClock, mMockNetdWrapper,

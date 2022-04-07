@@ -17,6 +17,7 @@
 package com.android.server.wifi.aware;
 
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
+import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -72,6 +73,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -250,6 +252,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private InterfaceConflictManager mInterfaceConflictMgr;
     private WifiManager mWifiManager;
     private Handler mHandler;
+    private final WifiInjector mWifiInjector;
 
     private final SparseArray<WifiAwareClientState> mClients = new SparseArray<>();
     private ConfigRequest mCurrentAwareConfiguration = null;
@@ -266,7 +269,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     // condition.
     private boolean mAwareIsDisabling = false;
 
-    public WifiAwareStateManager() {
+    public WifiAwareStateManager(WifiInjector wifiInjector) {
+        mWifiInjector = wifiInjector;
         onReset();
     }
 
@@ -3744,22 +3748,20 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (mAwareBand5InstantCommunicationChannelFreq > 0) {
             return mAwareBand5InstantCommunicationChannelFreq;
         }
-        try {
-            List<WifiAvailableChannel> channels = mWifiManager
-                    .getAwareDiscoveryChannels(WifiScanner.WIFI_BAND_5_GHZ);
-            if (channels.isEmpty()) {
-                mAwareBand5InstantCommunicationChannelFreq = 0;
-            } else {
-                if (channels.size() > 1) {
-                    Log.wtf(TAG, "should have only one 5G instant communication channel, but size="
-                            + channels.size());
-                }
-                mAwareBand5InstantCommunicationChannelFreq = channels.get(0).getFrequencyMhz();
+        List<WifiAvailableChannel> channels = mWifiInjector.getWifiThreadRunner().call(
+                () -> mWifiInjector.getWifiNative().getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ,
+                        OP_MODE_WIFI_AWARE, WifiAvailableChannel.FILTER_NAN_INSTANT_MODE), null);
+        if (channels == null || channels.isEmpty()) {
+            if (mDbg) {
+                Log.v(TAG, "No available instant communication mode channel");
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Fail to get the instant communication channel");
-            e.printStackTrace();
             mAwareBand5InstantCommunicationChannelFreq = 0;
+        } else {
+            if (channels.size() > 1) {
+                Log.wtf(TAG, "should have only one 5G instant communication channel, but size="
+                        + channels.size());
+            }
+            mAwareBand5InstantCommunicationChannelFreq = channels.get(0).getFrequencyMhz();
         }
         return mAwareBand5InstantCommunicationChannelFreq == 0
                 ? AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ

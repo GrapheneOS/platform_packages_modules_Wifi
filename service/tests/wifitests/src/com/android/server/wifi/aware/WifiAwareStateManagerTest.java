@@ -17,6 +17,7 @@
 package com.android.server.wifi.aware;
 
 import static android.hardware.wifi.V1_0.NanRangingIndication.EGRESS_MET_MASK;
+import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -75,7 +76,9 @@ import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.util.HexEncoding;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
@@ -96,6 +99,9 @@ import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiNative;
+import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -145,10 +151,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     TestAlarmManager mAlarmManager;
     @Mock private PowerManager mMockPowerManager;
     @Mock private WifiManager mMockWifiManager;
+    @Mock private WifiNative mWifiNative;
     private BroadcastReceiver mPowerBcastReceiver;
     private BroadcastReceiver mLocationModeReceiver;
     private BroadcastReceiver mWifiStateChangedReceiver;
     @Mock private WifiAwareDataPathStateManager mMockAwareDataPathStatemanager;
+    @Mock private WifiInjector mWifiInjector;
 
     @Rule
     public ErrorCollector collector = new ErrorCollector();
@@ -157,6 +165,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     private MockResources mResources;
     private Bundle mExtras = new Bundle();
     private WifiManager.ActiveCountryCodeChangedCallback mActiveCountryCodeChangedCallback;
+    private HandlerThread mWifiHandlerThread;
 
     /**
      * Pre-test configuration. Initialize and install mocks.
@@ -200,7 +209,14 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
-        mDut = new WifiAwareStateManager();
+        mWifiHandlerThread = new HandlerThread("WifiHandlerThread");
+        mWifiHandlerThread.start();
+        Looper wifiLooper = mWifiHandlerThread.getLooper();
+        Handler wifiHandler = new Handler(wifiLooper);
+        WifiThreadRunner wifiThreadRunner = new WifiThreadRunner(wifiHandler);
+        when(mWifiInjector.getWifiNative()).thenReturn(mWifiNative);
+        when(mWifiInjector.getWifiThreadRunner()).thenReturn(wifiThreadRunner);
+        mDut = new WifiAwareStateManager(mWifiInjector);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
                 mWifiPermissionsUtil, mPermissionsWrapperMock, new Clock(),
@@ -234,6 +250,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     @After
     public void tearDown() throws Exception {
         mMockNative.validateUniqueTransactionIds();
+        mWifiHandlerThread.quit();
     }
 
     /**
@@ -1016,7 +1033,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         // (4) country code change, 5G is valid
-        when(mMockWifiManager.getAwareDiscoveryChannels(WifiScanner.WIFI_BAND_5_GHZ))
+        when(mWifiNative.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ, OP_MODE_WIFI_AWARE,
+                WifiAvailableChannel.FILTER_NAN_INSTANT_MODE))
                 .thenReturn(List.of(new WifiAvailableChannel(5745,
                         WifiAvailableChannel.OP_MODE_WIFI_AWARE)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
@@ -1100,7 +1118,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         // (4) country code change, 5G is valid
-        when(mMockWifiManager.getAwareDiscoveryChannels(WifiScanner.WIFI_BAND_5_GHZ))
+        when(mWifiNative.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ, OP_MODE_WIFI_AWARE,
+                WifiAvailableChannel.FILTER_NAN_INSTANT_MODE))
                 .thenReturn(List.of(new WifiAvailableChannel(5745,
                         WifiAvailableChannel.OP_MODE_WIFI_AWARE)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
