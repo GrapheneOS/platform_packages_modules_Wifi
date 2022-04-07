@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
 
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 
@@ -41,8 +42,6 @@ import android.os.test.TestLooper;
 
 import androidx.test.filters.SmallTest;
 
-import com.android.server.wifi.ActiveModeWarden.PrimaryClientModeManagerChangedCallback;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -53,6 +52,8 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /** Unit tests for {@link WifiLockManager}. */
@@ -86,7 +87,6 @@ public class WifiLockManagerTest extends WifiBaseTest {
     TestLooper mLooper;
     Handler mHandler;
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
-    @Captor ArgumentCaptor<PrimaryClientModeManagerChangedCallback> mPrimaryChangedCallbackCaptor;
 
     /**
      * Method to setup a WifiLockManager for the tests.
@@ -115,8 +115,6 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics);
         verify(mContext, atLeastOnce()).registerReceiver(
                 mBroadcastReceiverCaptor.capture(), any(), any(), any());
-        verify(mActiveModeWarden).registerPrimaryClientModeManagerChangedCallback(
-                mPrimaryChangedCallbackCaptor.capture());
     }
 
     private void acquireWifiLockSuccessful(int lockMode, String tag, IBinder binder, WorkSource ws)
@@ -1340,57 +1338,44 @@ public class WifiLockManagerTest extends WifiBaseTest {
         verify(mBatteryStats).reportFullWifiLockReleasedFromSource(mWorkSource);
     }
 
-    /**
-     * Test acquiring locks while device is connected, then disconnecting from the AP
-     * Expected: Upon disconnection, lock becomes ineffective
-     */
     @Test
-    public void testSwitchPrimaryClientModeManagerWhileConnected() throws Exception {
-        // Set screen on, and app foreground
-        setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+    public void testWifiLockActiveWithAnyConnection() {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
+        List<ClientModeManager> clientModeManagers = new ArrayList<>();
+        clientModeManagers.add(mClientModeManager);
+        clientModeManagers.add(mClientModeManager2);
+        when(mActiveModeWarden.getClientModeManagers()).thenReturn(clientModeManagers);
 
-        // all operations succeed
-        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
-        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
-                anyBoolean())).thenReturn(true);
-        when(mClientModeManager.getSupportedFeatures())
-                .thenReturn(WifiManager.WIFI_FEATURE_LOW_LATENCY);
-        when(mClientModeManager2.setLowLatencyMode(anyBoolean())).thenReturn(true);
-        when(mClientModeManager2.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
-                anyBoolean())).thenReturn(true);
-        when(mClientModeManager2.getSupportedFeatures())
-                .thenReturn(WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        // acquire the lock and assert it's not active since there's no wifi connection yet.
+        mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder,
+                mWorkSource);
+        assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
 
-        // CMM1 is created
-        mPrimaryChangedCallbackCaptor.getValue().onChange(null, mClientModeManager);
-        // acquire low latency lock
-        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
-        // verify CMM1 enabled low latency mode
-        verify(mClientModeManager).setLowLatencyMode(true);
-
-        // CMM2 is connected
+        // mock a single connection on the local only CMM and verify the lock is active
+        when(mClientModeManager.isConnected()).thenReturn(false);
         when(mClientModeManager2.isConnected()).thenReturn(true);
         mWifiLockManager.updateWifiClientConnected(mClientModeManager2, true);
-        // verify CMM1 didn't disable low latency mode
-        verify(mClientModeManager, never()).setLowLatencyMode(false);
-        // verify CMM2 didn't enable low latency mode
-        verify(mClientModeManager2, never()).setLowLatencyMode(anyBoolean());
+        assertEquals(WifiManager.WIFI_MODE_FULL_HIGH_PERF, mWifiLockManager.getStrongestLockMode());
 
-        // CMM1 becomes secondary transient
-        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
-        mPrimaryChangedCallbackCaptor.getValue().onChange(mClientModeManager, null);
+        // make another connection and verify the lock is still active.
+        when(mClientModeManager.isConnected()).thenReturn(true);
+        when(mClientModeManager2.isConnected()).thenReturn(true);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+        assertEquals(WifiManager.WIFI_MODE_FULL_HIGH_PERF, mWifiLockManager.getStrongestLockMode());
 
-        // CMM1 low latency disabled
-        verify(mClientModeManager).setLowLatencyMode(false);
+        // disconnect the primary, but keep the secondary connected. Verify that the lock is still
+        // active.
+        when(mClientModeManager.isConnected()).thenReturn(false);
+        when(mClientModeManager2.isConnected()).thenReturn(true);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, false);
+        assertEquals(WifiManager.WIFI_MODE_FULL_HIGH_PERF, mWifiLockManager.getStrongestLockMode());
 
-        // CMM2 becomes primary
-        when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
-        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager2);
-        mPrimaryChangedCallbackCaptor.getValue().onChange(null, mClientModeManager2);
-
-        // CMM2 low latency enabled
-        verify(mClientModeManager2).setLowLatencyMode(true);
+        // disconnect the secondary. Now verify no more lock is held.
+        when(mClientModeManager.isConnected()).thenReturn(false);
+        when(mClientModeManager2.isConnected()).thenReturn(false);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager2, false);
+        assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
     }
 
     /**
