@@ -4372,6 +4372,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         builder.setOwnerUid(currentWifiConfiguration.creatorUid);
         builder.setAdministratorUids(new int[]{currentWifiConfiguration.creatorUid});
+        if (SdkLevel.isAtLeastT()) {
+            builder.setAllowedUids(Set.of(currentWifiConfiguration.creatorUid));
+        }
 
         if (!WifiConfiguration.isMetered(currentWifiConfiguration, mWifiInfo)) {
             builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
