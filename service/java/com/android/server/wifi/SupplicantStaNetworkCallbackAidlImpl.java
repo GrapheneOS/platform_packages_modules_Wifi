@@ -22,7 +22,6 @@ import android.hardware.wifi.supplicant.ISupplicantStaNetworkCallback;
 import android.hardware.wifi.supplicant.NetworkRequestEapSimGsmAuthParams;
 import android.hardware.wifi.supplicant.NetworkRequestEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.TransitionDisableIndication;
-import android.util.Log;
 
 import com.android.server.wifi.util.NativeUtil;
 
@@ -203,11 +202,6 @@ class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback
                         "onServerCertificateAvailable: Failed to read certificate.");
                 return;
             }
-            // Not a CA certificate
-            if (cert.getBasicConstraints() < 0) {
-                // TODO (b/226259636): Non-CA certificate should be ignored.
-                Log.e(TAG, "Not a CA certifiate.");
-            }
 
             mNetworkHal.logCallback("onServerCertificateAvailable:"
                     + " depth=" + depth
@@ -215,7 +209,7 @@ class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback
                     + " certHash=" + certHash
                     + " cert=" + cert);
             mWifiMonitor.broadcastCertificationEvent(
-                    mIfaceName, mFrameworkNetworkId, mSsid, cert);
+                    mIfaceName, mFrameworkNetworkId, mSsid, depth, cert);
         }
     }
 }

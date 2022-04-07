@@ -5318,10 +5318,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
                 case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
                     if (null == mTargetWifiConfiguration) break;
-                    if (!mInsecureEapNetworkHandler.setPendingCaCertificate(
-                            mTargetWifiConfiguration.SSID,
+                    if (!mInsecureEapNetworkHandler.setPendingCertificate(
+                            mTargetWifiConfiguration.SSID, message.arg2,
                             (X509Certificate) message.obj)) {
-                        Log.d(TAG, "Cannot set pending Root CA cert.");
+                        Log.d(TAG, "Cannot set pending cert.");
                     }
                     break;
                 default: {

@@ -7785,8 +7785,8 @@ public class ClientModeImplTest extends WifiBaseTest {
             mCmi.sendMessage(WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
                     FRAMEWORK_NETWORK_ID, 0, FakeKeys.CA_CERT0);
             mLooper.dispatchAll();
-            verify(mInsecureEapNetworkHandler).setPendingCaCertificate(
-                    eq(eapTlsConfig.SSID), eq(FakeKeys.CA_CERT0));
+            verify(mInsecureEapNetworkHandler).setPendingCertificate(
+                    eq(eapTlsConfig.SSID), eq(0), eq(FakeKeys.CA_CERT0));
         }
 
         mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
