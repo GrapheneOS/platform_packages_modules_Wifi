@@ -94,7 +94,7 @@ public class SupplicantStaNetworkCallbackAidlImplTest extends WifiBaseTest {
                 0, "subject".getBytes(), "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor).broadcastCertificationEvent(
                 eq(TEST_INTERFACE), eq(TEST_NETWORK_ID),
-                eq(TEST_SSID), eq(mX509Certificate));
+                eq(TEST_SSID), eq(0), eq(mX509Certificate));
     }
 
     /** verify onServerCertificateAvailable with illegal arguments. */
@@ -104,31 +104,31 @@ public class SupplicantStaNetworkCallbackAidlImplTest extends WifiBaseTest {
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 -1, "subject".getBytes(), "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
 
         // Illegal argument: depth over 100.
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 101, "subject".getBytes(), "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
 
         // Illegal argument: null subject
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 0, null, "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
 
         // Illegal argument: null cert hash
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 0, "subject".getBytes(), null, "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
 
         // Illegal argument: null cert.
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 0, "subject".getBytes(), "certHash".getBytes(), null);
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
     }
 
     /** verify onServerCertificateAvailable with CertificateException. */
@@ -139,7 +139,7 @@ public class SupplicantStaNetworkCallbackAidlImplTest extends WifiBaseTest {
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 0, "subject".getBytes(), "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
     }
 
     /** verify onServerCertificateAvailable with IllegalArgumentException. */
@@ -150,6 +150,6 @@ public class SupplicantStaNetworkCallbackAidlImplTest extends WifiBaseTest {
         mSupplicantStaNetworkCallbackAidlImpl.onServerCertificateAvailable(
                 0, "subject".getBytes(), "certHash".getBytes(), "cert".getBytes());
         verify(mWifiMonitor, never()).broadcastCertificationEvent(
-                any(), anyInt(), any(), any());
+                any(), anyInt(), any(), anyInt(), any());
     }
 }
