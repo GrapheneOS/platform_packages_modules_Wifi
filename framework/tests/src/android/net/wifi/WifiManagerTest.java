@@ -16,8 +16,6 @@
 
 package android.net.wifi;
 
-import static android.net.wifi.WifiAvailableChannel.FILTER_NAN_INSTANT_MODE;
-import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_LINGER;
@@ -3884,16 +3882,5 @@ public class WifiManagerTest {
         cbCaptor.getValue().onResults(canCreate, interfaces, packagesForInterfaces);
         verify(resultCallback).accept(eq(canCreate), resultCaptor.capture());
         assertEquals(interfacePairs, resultCaptor.getValue());
-    }
-
-    @Test
-    public void testGetAwareInstantCommunicationChannels() throws RemoteException {
-        when(mWifiService.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ, OP_MODE_WIFI_AWARE,
-                FILTER_NAN_INSTANT_MODE)).thenReturn(List.of(
-                        new WifiAvailableChannel(5745, OP_MODE_WIFI_AWARE)));
-        List<WifiAvailableChannel> channels = mWifiManager
-                .getAwareDiscoveryChannels(WifiScanner.WIFI_BAND_5_GHZ);
-        assertEquals(1, channels.size());
-        assertEquals(5745, channels.get(0).getFrequencyMhz());
     }
 }
