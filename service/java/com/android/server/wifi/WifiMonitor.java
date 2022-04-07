@@ -629,11 +629,12 @@ public class WifiMonitor {
      * @param iface Name of iface on which this occurred.
      * @param networkId ID of the network in wpa_supplicant.
      * @param ssid SSID of the network.
+     * @param depth the depth of this cert in the chain, 0 is the leaf, i.e. the server cert.
      * @param cert the certificate data.
      */
     public void broadcastCertificationEvent(String iface, int networkId, String ssid,
-            X509Certificate cert) {
-        sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, 0, cert);
+            int depth, X509Certificate cert) {
+        sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, depth, cert);
     }
 
     /**
