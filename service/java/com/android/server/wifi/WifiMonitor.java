@@ -31,6 +31,7 @@ import android.util.SparseArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Protocol;
 import com.android.server.wifi.MboOceController.BtmFrameData;
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.SupplicantEventCode;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthRequestData;
 import com.android.server.wifi.hotspot2.AnqpEvent;
@@ -41,6 +42,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -112,6 +114,10 @@ public class WifiMonitor {
 
     /* Auxiliary supplicant event */
     public static final int AUXILIARY_SUPPLICANT_EVENT           = BASE + 74;
+
+    /* Quality of Service (QoS) events */
+    public static final int QOS_POLICY_RESET_EVENT               = BASE + 75;
+    public static final int QOS_POLICY_REQUEST_EVENT             = BASE + 76;
 
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
@@ -643,5 +649,28 @@ public class WifiMonitor {
             MacAddress bssid, String reasonString) {
         sendMessage(iface, AUXILIARY_SUPPLICANT_EVENT, 0, 0,
                 new SupplicantEventInfo(eventCode, bssid, reasonString));
+    }
+
+    /**
+     * Broadcast the QoS policy reset event to all the handlers
+     * registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     */
+    public void broadcastQosPolicyResetEvent(String iface) {
+        sendMessage(iface, QOS_POLICY_RESET_EVENT);
+    }
+
+    /**
+     * Broadcast the QoS policy request event to all the handlers
+     * registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param qosPolicyRequestId Dialog token to identify the request.
+     * @param qosPolicyData List of QoS policies requested by the AP.
+     */
+    public void broadcastQosPolicyRequestEvent(String iface, int qosPolicyRequestId,
+            List<QosPolicyRequest> qosPolicyData) {
+        sendMessage(iface, QOS_POLICY_REQUEST_EVENT, qosPolicyRequestId, 0, qosPolicyData);
     }
 }

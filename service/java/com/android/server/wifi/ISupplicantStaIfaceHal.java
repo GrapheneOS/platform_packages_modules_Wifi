@@ -23,6 +23,7 @@ import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /** Abstraction of Supplicant STA Iface HAL interface */
@@ -714,4 +715,25 @@ interface ISupplicantStaIfaceHal {
      * @return Security params of the current network associated with the interface
      */
     SecurityParams getCurrentNetworkSecurityParams(@NonNull String ifaceName);
+
+    /**
+     * Set whether the network-centric QoS policy feature is enabled or not for this interface.
+     *
+     * @param ifaceName name of the interface.
+     * @param isEnabled true if the feature is enabled, false otherwise.
+     * @return true if operation is successful, false otherwise.
+     */
+    boolean setNetworkCentricQosPolicyFeatureEnabled(@NonNull String ifaceName, boolean isEnabled);
+
+    /**
+     * Sends a QoS policy response.
+     *
+     * @param ifaceName Name of the interface.
+     * @param qosPolicyRequestId Dialog token to identify the request.
+     * @param morePolicies Flag to indicate more QoS policies can be accommodated.
+     * @param qosPolicyStatusList List of framework QosPolicyStatus objects.
+     * @return true if response is sent successfully, false otherwise.
+     */
+    boolean sendQosPolicyResponse(String ifaceName, int qosPolicyRequestId, boolean morePolicies,
+            @NonNull List<SupplicantStaIfaceHal.QosPolicyStatus> qosPolicyStatusList);
 }

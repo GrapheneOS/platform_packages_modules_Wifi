@@ -46,6 +46,7 @@ import android.net.MacAddress;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.RadioChainInfo;
@@ -62,6 +63,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.wifi.resources.R;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -244,6 +246,9 @@ public class WifiNativeTest extends WifiBaseTest {
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
     private static final WorkSource TEST_WORKSOURCE2 = new WorkSource();
 
+    MockResources mResources;
+
+    @Mock private WifiContext mContext;
     @Mock private WifiVendorHal mWifiVendorHal;
     @Mock private WifiNl80211Manager mWificondControl;
     @Mock private SupplicantStaIfaceHal mStaIfaceHal;
@@ -295,6 +300,10 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiInjector.getCoexManager()).thenReturn(mCoexManager);
 
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mSettingsConfigStore);
+        when(mWifiInjector.getContext()).thenReturn(mContext);
+        mResources = getMockResources();
+        mResources.setBoolean(R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled, false);
+        when(mContext.getResources()).thenReturn(mResources);
         when(mSettingsConfigStore.get(eq(WIFI_NATIVE_SUPPORTED_FEATURES)))
                 .thenReturn(WIFI_TEST_FEATURE);
 
@@ -303,6 +312,11 @@ public class WifiNativeTest extends WifiBaseTest {
                 mWifiMonitor, mPropertyService, mWifiMetrics,
                 mHandler, mRandom, mBuildProperties, mWifiInjector);
         mWifiNative.initialize();
+    }
+
+    private MockResources getMockResources() {
+        MockResources resources = new MockResources();
+        return resources;
     }
 
     /**

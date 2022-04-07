@@ -1133,6 +1133,10 @@ public class WifiInjector {
         return mMultiInternetManager;
     }
 
+    public WifiContext getContext() {
+        return mContext;
+    }
+
     /**
      * Creates a BufferedReader for the given filename. Useful for unit tests that depend on IO.
      */
