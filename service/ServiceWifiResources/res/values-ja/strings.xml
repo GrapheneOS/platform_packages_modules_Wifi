@@ -122,8 +122,7 @@
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> に接続するには、<xliff:g id="CARRIER_NAME">%2$s</xliff:g> の SIM を挿入します"</string>
     <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> がネットワーク リソースの使用を求めています"</string>
     <string name="wifi_interface_priority_message" msgid="4253391172756140313">"このために <xliff:g id="APPS">%3$s</xliff:g> で問題が発生することがあります。"</string>
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"次のアプリに問題が発生する可能性があります。<xliff:g id="APPS">%3$s</xliff:g>。"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"許可"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"許可しない"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"このネットワークは信頼できますか？"</string>

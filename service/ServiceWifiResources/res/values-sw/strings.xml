@@ -70,8 +70,7 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Imesasisha mipangilio. Jaribu kuunganisha tena."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Imeshindwa kubadilisha mipangilio ya faragha"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Mtandao haupatikani"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32756 (2620877003804313434) -->
-    <skip />
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : Hitilafu ya 32756 ya uthibitishaji wa EAP"</string>
     <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : Hitilafu ya 32760 ya uthibitishaji wa EAP"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
@@ -121,16 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Hakuna vifaa vilivyounganishwa. Gusa ili ubadilishe."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi imeondolewa"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"Ili uunganishe kwenye <xliff:g id="SSID">%1$s</xliff:g>, weka SIM ya <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
-    <!-- no translation found for wifi_interface_priority_title (5117627874976875544) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (4253391172756140313) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (7877379614986261096) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (1378461018835886777) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> inataka kutumia nyenzo ya mtandao"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Hii inaweza kusababisha tatizo kwenye <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Huenda hali hii ikasababisha matatizo kwenye programu hizi: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Ruhusu"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Usiruhusu"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je, unaamini mtandao huu?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Ndiyo, unganisha"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Hapana, usiunganishe"</string>

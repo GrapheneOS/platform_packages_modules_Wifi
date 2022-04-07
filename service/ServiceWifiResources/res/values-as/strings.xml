@@ -122,8 +122,7 @@
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g>ৰ সৈতে সংযোগ কৰিবলৈ এখন <xliff:g id="CARRIER_NAME">%2$s</xliff:g> ছিম ভৰাওক"</string>
     <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g>এ এটা নেটৱৰ্কিং সম্পদ ব্যৱহাৰ কৰিব বিচাৰে"</string>
     <string name="wifi_interface_priority_message" msgid="4253391172756140313">"এইটোৱে হয়তো <xliff:g id="APPS">%3$s</xliff:g>ৰ বাবে সমস্যাৰ সৃষ্টি কৰিব পাৰে।"</string>
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"এইটোৱে এই এপ্‌সমূহৰ বাবে সমস্যাৰ সৃষ্টি কৰিব পাৰে: <xliff:g id="APPS">%3$s</xliff:g>।"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"অনুমতি দিয়ক"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"অনুমতি নিদিব"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"এই নেটৱৰ্কটো বিশ্বাসী হয়নে?"</string>

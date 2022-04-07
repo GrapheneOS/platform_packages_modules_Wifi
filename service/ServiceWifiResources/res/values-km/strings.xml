@@ -70,8 +70,7 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"បាន​ធ្វើ​បច្ចុប្បន្នភាព​ការ​កំណត់។ សូម​សាកល្បង​ភ្ជាប់ម្ដងទៀត។"</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"មិនអាច​ប្ដូរ​ការកំណត់​ឯកជនភាព​បានទេ"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"រក​មិនឃើញ​បណ្ដាញ​ទេ"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32756 (2620877003804313434) -->
-    <skip />
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g>៖ បញ្ហាក្នុងការ​ផ្ទៀងផ្ទាត់ EAP 32756"</string>
     <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : បញ្ហាក្នុង​ការផ្ទៀងផ្ទាត់ EAP 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
@@ -121,16 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"មិនមាន​ឧបករណ៍​ដែល​បានភ្ជាប់ទេ។ សូមចុច ដើម្បី​កែ។"</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"បានផ្តាច់ Wi-Fi"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"ដើម្បី​ភ្ជាប់ <xliff:g id="SSID">%1$s</xliff:g> សូមបញ្ចូល​ស៊ីម <xliff:g id="CARRIER_NAME">%2$s</xliff:g>"</string>
-    <!-- no translation found for wifi_interface_priority_title (5117627874976875544) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (4253391172756140313) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (7877379614986261096) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (1378461018835886777) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> ចង់ប្រើ​ធនធាន​បណ្ដាញ"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"សកម្មភាពនេះអាច​បណ្ដាលឱ្យមាន​បញ្ហាសម្រាប់ <xliff:g id="APPS">%3$s</xliff:g>។"</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"វាអាចបណ្ដាលឱ្យមានបញ្ហាសម្រាប់កម្មវិធីទាំងនេះ៖ <xliff:g id="APPS">%3$s</xliff:g>។"</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"អនុញ្ញាត"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"កុំអនុញ្ញាត"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"តើជឿទុកចិត្ត​បណ្តាញនេះ​បានទេ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"បាទ/ចាស ភ្ជាប់"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ទេ កុំភ្ជាប់"</string>

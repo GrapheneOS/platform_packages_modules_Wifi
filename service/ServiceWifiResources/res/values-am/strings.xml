@@ -70,8 +70,7 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"ቅንብር ተዘምኗል። እንደገና ለማገናኘት ይሞክሩ።"</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"የግላዊነት ቅንብርን መቀየር አይቻልም"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"አውታረ መረብ አልተገኘም"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32756 (2620877003804313434) -->
-    <skip />
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g>፦ የEAP ማረጋገጥ ስህተት 32756"</string>
     <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g>፦ የEAP ማረጋገጥ ስህተት 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
@@ -121,16 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ምንም መሣሪያ አልተገናኘም። ለመቀየር መታ ያድርጉ።"</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"የWifi ግንኙነት ተቋርጧል"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"ክ<xliff:g id="SSID">%1$s</xliff:g> ጋር ለመገናኘት የ<xliff:g id="CARRIER_NAME">%2$s</xliff:g> ሲም ያስገቡ"</string>
-    <!-- no translation found for wifi_interface_priority_title (5117627874976875544) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message (4253391172756140313) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_message_plural (8178086373318831859) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_approve (7877379614986261096) -->
-    <skip />
-    <!-- no translation found for wifi_interface_priority_reject (1378461018835886777) -->
-    <skip />
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> የአውታረ መረብ ንብረትን መጠቀም ይፈልጋል"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"ይህ ለ<xliff:g id="APPS">%3$s</xliff:g> ችግሮችን ሊያስከትል ይችላል።"</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"ይህ ለእነዚህ መተግበሪያዎች ችግር ሊፈጥር ይችላል፦ <xliff:g id="APPS">%3$s</xliff:g>።"</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"ፍቀድ"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"አትፍቀድ"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ይህ አውታረ መረብ የታመነ ነው?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"አዎ፣ አገናኝ"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"አይ፣ አታገናኝ"</string>
