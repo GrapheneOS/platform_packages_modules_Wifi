@@ -24,6 +24,7 @@ import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
 
@@ -187,39 +188,41 @@ public class QosPolicyRequestHandler {
             return;
         }
 
-        for (QosPolicyRequest policy : policies) {
-            if (policy.isRemoveRequest()) {
-                mNetworkAgent.sendRemoveDscpPolicy(policy.policyId);
-            } else if (policy.isAddRequest()) {
-                if (!policy.classifierParams.isValid) {
+        if (SdkLevel.isAtLeastT()) {
+            for (QosPolicyRequest policy : policies) {
+                if (policy.isRemoveRequest()) {
+                    mNetworkAgent.sendRemoveDscpPolicy(policy.policyId);
+                } else if (policy.isAddRequest()) {
+                    if (!policy.classifierParams.isValid) {
+                        rejectQosPolicy(policy.policyId);
+                        continue;
+                    }
+                    DscpPolicy.Builder builder = new DscpPolicy.Builder(
+                            policy.policyId, policy.dscp)
+                            .setSourcePort(policy.classifierParams.srcPort)
+                            .setProtocol(policy.classifierParams.protocol)
+                            .setDestinationPortRange(policy.classifierParams.dstPortRange);
+
+                    // Only set src and dest IP if a value exists in classifierParams.
+                    if (policy.classifierParams.hasSrcIp) {
+                        builder.setSourceAddress(policy.classifierParams.srcIp);
+                    }
+                    if (policy.classifierParams.hasDstIp) {
+                        builder.setDestinationAddress(policy.classifierParams.dstIp);
+                    }
+
+                    try {
+                        mNetworkAgent.sendAddDscpPolicy(builder.build());
+                    } catch (IllegalArgumentException e) {
+                        Log.e(TAG, "Unable to send DSCP policy ", e);
+                        rejectQosPolicy(policy.policyId);
+                        continue;
+                    }
+                } else {
+                    Log.e(TAG, "Unknown request type received");
                     rejectQosPolicy(policy.policyId);
                     continue;
                 }
-                DscpPolicy.Builder builder = new DscpPolicy.Builder(
-                        policy.policyId, policy.dscp)
-                        .setSourcePort(policy.classifierParams.srcPort)
-                        .setProtocol(policy.classifierParams.protocol)
-                        .setDestinationPortRange(policy.classifierParams.dstPortRange);
-
-                // Only set src and dest IP if a value exists in classifierParams.
-                if (policy.classifierParams.hasSrcIp) {
-                    builder.setSourceAddress(policy.classifierParams.srcIp);
-                }
-                if (policy.classifierParams.hasDstIp) {
-                    builder.setDestinationAddress(policy.classifierParams.dstIp);
-                }
-
-                try {
-                    mNetworkAgent.sendAddDscpPolicy(builder.build());
-                } catch (IllegalArgumentException e) {
-                    Log.e(TAG, "Unable to send DSCP policy ", e);
-                    rejectQosPolicy(policy.policyId);
-                    continue;
-                }
-            } else {
-                Log.e(TAG, "Unknown request type received");
-                rejectQosPolicy(policy.policyId);
-                continue;
             }
         }
     }
