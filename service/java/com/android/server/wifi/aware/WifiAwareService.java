@@ -55,7 +55,7 @@ public final class WifiAwareService extends SystemService {
 
             HalDeviceManager halDeviceManager = wifiInjector.getHalDeviceManager();
 
-            WifiAwareStateManager wifiAwareStateManager = new WifiAwareStateManager();
+            WifiAwareStateManager wifiAwareStateManager = new WifiAwareStateManager(wifiInjector);
             WifiAwareNativeCallback wifiAwareNativeCallback = new WifiAwareNativeCallback(
                     wifiAwareStateManager);
             WifiAwareNativeManager wifiAwareNativeManager = new WifiAwareNativeManager(

@@ -3991,7 +3991,7 @@ public class WifiConfiguration implements Parcelable {
     }
 
     /** Implement the Parcelable interface {@hide} */
-    @UnsupportedAppUsage
+    @SystemApi
     public static final @android.annotation.NonNull Creator<WifiConfiguration> CREATOR =
         new Creator<WifiConfiguration>() {
             public WifiConfiguration createFromParcel(Parcel in) {

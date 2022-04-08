@@ -55,6 +55,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.test.MockAnswerUtil;
 import android.content.Context;
 import android.hardware.wifi.V1_0.WifiChannelWidthInMhz;
@@ -75,6 +76,13 @@ import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.LegacyMode;
 import android.hardware.wifi.supplicant.OceRssiBasedAssocRejectAttr;
 import android.hardware.wifi.supplicant.OsuMethod;
+import android.hardware.wifi.supplicant.PortRange;
+import android.hardware.wifi.supplicant.QosPolicyClassifierParams;
+import android.hardware.wifi.supplicant.QosPolicyClassifierParamsMask;
+import android.hardware.wifi.supplicant.QosPolicyData;
+import android.hardware.wifi.supplicant.QosPolicyRequestType;
+import android.hardware.wifi.supplicant.QosPolicyStatus;
+import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
@@ -85,6 +93,7 @@ import android.hardware.wifi.supplicant.WpsConfigError;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
 import android.hardware.wifi.supplicant.WpsErrorIndication;
 import android.net.MacAddress;
+import android.net.NetworkAgent;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
@@ -109,6 +118,7 @@ import com.android.server.wifi.util.NativeUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -116,6 +126,9 @@ import org.mockito.MockitoAnnotations;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,6 +169,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     private @Mock WifiMetrics mWifiMetrics;
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock PmkCacheManager mPmkCacheManager;
+
+    private @Captor ArgumentCaptor<List<SupplicantStaIfaceHal.QosPolicyRequest>>
+            mQosPolicyRequestListCaptor;
 
     IfaceInfo[] mIfaceInfoList;
     ISupplicantStaIfaceCallback mISupplicantStaIfaceCallback;
@@ -2107,10 +2123,139 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 .isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK));
     }
 
+    /**
+     * Tests the behavior of
+     * {@link SupplicantStaIfaceHal#sendQosPolicyResponse(String, int, boolean, List)}
+     * @throws Exception
+     */
+    @Test
+    public void testSendQosPolicyResponse() throws Exception {
+        final int policyRequestId = 124;
+        final boolean morePolicies = true;
+        ArgumentCaptor<QosPolicyStatus[]> policyStatusListCaptor =
+                ArgumentCaptor.forClass(QosPolicyStatus[].class);
+
+        List<SupplicantStaIfaceHal.QosPolicyStatus> policyStatusList = new ArrayList();
+        policyStatusList.add(new SupplicantStaIfaceHal.QosPolicyStatus(
+                1, NetworkAgent.DSCP_POLICY_STATUS_SUCCESS));
+        policyStatusList.add(new SupplicantStaIfaceHal.QosPolicyStatus(
+                2, NetworkAgent.DSCP_POLICY_STATUS_REQUEST_DECLINED));
+        policyStatusList.add(new SupplicantStaIfaceHal.QosPolicyStatus(
+                3, NetworkAgent.DSCP_POLICY_STATUS_REQUESTED_CLASSIFIER_NOT_SUPPORTED));
+
+        QosPolicyStatus[] expectedHalPolicyStatusList = {
+                createQosPolicyStatus(1, QosPolicyStatusCode.QOS_POLICY_SUCCESS),
+                createQosPolicyStatus(2, QosPolicyStatusCode.QOS_POLICY_REQUEST_DECLINED),
+                createQosPolicyStatus(3, QosPolicyStatusCode.QOS_POLICY_CLASSIFIER_NOT_SUPPORTED)};
+
+        executeAndValidateInitializationSequence();
+        mDut.sendQosPolicyResponse(WLAN0_IFACE_NAME, policyRequestId, morePolicies,
+                policyStatusList);
+        verify(mISupplicantStaIfaceMock).sendQosPolicyResponse(eq(policyRequestId),
+                eq(morePolicies), policyStatusListCaptor.capture());
+        assertTrue(qosPolicyStatusListsAreEqual(expectedHalPolicyStatusList,
+                policyStatusListCaptor.getValue()));
+    }
+
+    /**
+     * Tests the behavior of
+     * {@link SupplicantStaIfaceCallbackAidlImpl#onQosPolicyReset()}
+     * @throws Exception
+     */
+    @Test
+    public void executeAndValidateQosPolicyResetCallback() throws Exception {
+        executeAndValidateInitializationSequence();
+        assertNotNull(mISupplicantStaIfaceCallback);
+
+        mISupplicantStaIfaceCallback.onQosPolicyReset();
+        verify(mWifiMonitor).broadcastQosPolicyResetEvent(eq(WLAN0_IFACE_NAME));
+    }
+
+    /**
+     * Tests the behavior of
+     * {@link SupplicantStaIfaceCallbackAidlImpl#onQosPolicyRequest(int, QosPolicyData[])}
+     * @throws Exception
+     */
+    @Test
+    public void executeAndValidateQosPolicyRequestCallback() throws Exception {
+        executeAndValidateInitializationSequence();
+        assertNotNull(mISupplicantStaIfaceCallback);
+
+        final int dialogToken = 124;
+        final int srcPort = 1337;
+        QosPolicyData qosPolicyData1 = createQosPolicyData(0,
+                QosPolicyRequestType.QOS_POLICY_ADD, 0, null, null, srcPort, null, null);
+        QosPolicyData qosPolicyData2 = createQosPolicyData(1,
+                QosPolicyRequestType.QOS_POLICY_REMOVE, 0, null, null, null, null, null);
+        QosPolicyData[] qosPolicyDataList = new QosPolicyData[]{qosPolicyData1, qosPolicyData2};
+
+        mISupplicantStaIfaceCallback.onQosPolicyRequest(dialogToken, qosPolicyDataList);
+        verify(mWifiMonitor).broadcastQosPolicyRequestEvent(eq(WLAN0_IFACE_NAME),
+                eq(dialogToken), mQosPolicyRequestListCaptor.capture());
+
+        List<SupplicantStaIfaceHal.QosPolicyRequest> qosPolicyRequestList =
+                mQosPolicyRequestListCaptor.getValue();
+        assertEquals(qosPolicyRequestList.size(), qosPolicyDataList.length);
+
+        assertEquals(0, qosPolicyRequestList.get(0).policyId);
+        assertEquals(SupplicantStaIfaceHal.QOS_POLICY_REQUEST_ADD,
+                qosPolicyRequestList.get(0).requestType);
+        assertEquals(srcPort, qosPolicyRequestList.get(0).classifierParams.srcPort);
+
+        assertEquals(1, qosPolicyRequestList.get(1).policyId);
+        assertEquals(SupplicantStaIfaceHal.QOS_POLICY_REQUEST_REMOVE,
+                qosPolicyRequestList.get(1).requestType);
+    }
+
     private WifiConfiguration createTestWifiConfiguration() {
         WifiConfiguration config = new WifiConfiguration();
         config.networkId = SUPPLICANT_NETWORK_ID;
         return config;
+    }
+
+    private QosPolicyStatus createQosPolicyStatus(int policyId, int status) {
+        QosPolicyStatus policyStatus = new QosPolicyStatus();
+        policyStatus.policyId = (byte) policyId;
+        policyStatus.status = (byte) status;
+        return policyStatus;
+    }
+
+    private QosPolicyData createQosPolicyData(int policyId, int requestType, int dscp,
+            @Nullable byte[] srcIp, @Nullable byte[] dstIp, @Nullable Integer srcPort,
+            @Nullable int[] dstPortRange, @Nullable Integer protocol) {
+        QosPolicyClassifierParams classifierParams = new QosPolicyClassifierParams();
+        int paramMask = 0;
+        if (srcIp != null) {
+            classifierParams.srcIp = srcIp;
+            paramMask |= QosPolicyClassifierParamsMask.SRC_IP;
+        }
+        if (dstIp != null) {
+            classifierParams.dstIp = dstIp;
+            paramMask |= QosPolicyClassifierParamsMask.DST_IP;
+        }
+        if (srcPort != null) {
+            classifierParams.srcPort = srcPort;
+            paramMask |= QosPolicyClassifierParamsMask.SRC_PORT;
+        }
+        if (dstPortRange != null && dstPortRange.length == 2) {
+            PortRange portRange = new PortRange();
+            portRange.startPort = dstPortRange[0];
+            portRange.endPort = dstPortRange[1];
+            classifierParams.dstPortRange = portRange;
+            paramMask |= QosPolicyClassifierParamsMask.DST_PORT_RANGE;
+        }
+        if (protocol != null) {
+            classifierParams.protocolNextHdr = protocol.byteValue();
+            paramMask |= QosPolicyClassifierParamsMask.PROTOCOL_NEXT_HEADER;
+        }
+        classifierParams.classifierParamMask = paramMask;
+
+        QosPolicyData qosPolicyData = new QosPolicyData();
+        qosPolicyData.policyId = (byte) policyId;
+        qosPolicyData.requestType = (byte) requestType;
+        qosPolicyData.dscp = (byte) dscp;
+        qosPolicyData.classifierParams = classifierParams;
+        return qosPolicyData;
     }
 
     /**
@@ -2429,5 +2574,38 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
             }
         }).when(mSupplicantStaNetworkMock)
                 .setPmkCache(any(byte[].class));
+    }
+
+    /**
+     * Check that two unsorted QoS policy status lists contain the same entries.
+     * @return true if lists contain the same entries, false otherwise.
+     */
+    private boolean qosPolicyStatusListsAreEqual(
+            QosPolicyStatus[] expected, QosPolicyStatus[] actual) {
+        if (expected.length != actual.length) {
+            return false;
+        }
+
+        class PolicyStatusComparator implements Comparator<QosPolicyStatus> {
+            public int compare(QosPolicyStatus a, QosPolicyStatus b) {
+                if (a.policyId == b.policyId) {
+                    return 0;
+                }
+                return a.policyId < b.policyId ? -1 : 1;
+            }
+        }
+
+        List<QosPolicyStatus> expectedList = Arrays.asList(expected);
+        List<QosPolicyStatus> actualList = Arrays.asList(actual);
+        Collections.sort(expectedList, new PolicyStatusComparator());
+        Collections.sort(actualList, new PolicyStatusComparator());
+
+        for (int i = 0; i < expectedList.size(); i++) {
+            if (expectedList.get(i).policyId != actualList.get(i).policyId
+                    || expectedList.get(i).status != actualList.get(i).status) {
+                return false;
+            }
+        }
+        return true;
     }
 }

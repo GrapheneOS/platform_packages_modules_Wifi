@@ -70,6 +70,8 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"ସେଟିଂକୁ ଅପଡେଟ୍ କରାଯାଇଛି। ପୁଣି ସଂଯୋଗ କରିବାକୁ ଚେଷ୍ଟା କରନ୍ତୁ।"</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"ଗୋପନୀୟତା ସେଟିଂ ବଦଳିପାରିବ ନାହିଁ"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"ନେଟ୍‌ୱାର୍କ ମିଳିଲା ନାହିଁ"</string>
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ପ୍ରମାଣୀକରଣ ତ୍ରୁଟି 32756"</string>
+    <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ପ୍ରମାଣିକତାରେ ତ୍ରୁଟି 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
     <item msgid="7582366019846559418">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ଆପଣ Verizon କଭରେଜ କ୍ଷେତ୍ରର ବାହାରେ Verizon Wi-Fi Access ସହ ସଂଯୋଗ କରିପାରିବେ ନାହିଁ। (ତ୍ରୁଟି = 32760)"</item>
@@ -102,10 +104,6 @@
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
     <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ଆପଣଙ୍କୁ Verizon Wi-Fi Access ସହ ସଂଯୋଗ କରିବାରେ ଏକ ସମସ୍ୟା ହୋଇଛି। ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ କିମ୍ବା ଏକ ଭିନ୍ନ ଲୋକେସନରୁ ଚେଷ୍ଟା କରନ୍ତୁ।"</item>
   </string-array>
-    <string name="wifi_eap_error_message_code_32768" msgid="8606872176767773962">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ପ୍ରମାଣୀକରଣ ତ୍ରୁଟି 32768"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32768_carrier_overrides:0 (5947740234116715195) -->
-    <string name="wifi_eap_error_message_code_32769" msgid="5805559627556918450">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ପ୍ରମାଣୀକରଣ ତ୍ରୁଟି 32769"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32769_carrier_overrides:0 (3136023469902387052) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ପ୍ରମାଣୀକରଣ ତ୍ରୁଟି 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
     <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ତ୍ରୁଟି 16384 ଯୋଗୁଁ ଆପଣଙ୍କୁ Verizon Wi-Fi Access ସହ ସଂଯୋଗ କରିବାରେ ଏକ ସମସ୍ୟା ହୋଇଛି।"</item>
@@ -122,11 +120,12 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"କୌଣସି ଡିଭାଇସ୍ ସଂଯୁକ୍ତ ନାହିଁ। ପରିବର୍ତ୍ତନ କରିବାକୁ ଟାପ୍ କରନ୍ତୁ।"</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"ୱାଇ-ଫାଇ ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ ହୋଇଛି"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g>କୁ ସଂଯୋଗ କରିବା ପାଇଁ ଏକ <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM ଭର୍ତ୍ତି କରନ୍ତୁ"</string>
-    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ଆପ ବିବାଦ"</string>
-    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> ଆପ୍ଲିକେସନ ଏକ <xliff:g id="INTERFACE">%2$s</xliff:g> ଇଣ୍ଟରଫେସ ସକ୍ରିୟ ହେବା ଆବଶ୍ୟକ କରେ। ଏହା ଅନ୍ୟ ଇଣ୍ଟରଫେସଗୁଡ଼ିକୁ ନିଷ୍କ୍ରିୟ କରିବ ଯାହା <xliff:g id="APPS">%3$s</xliff:g>କୁ ପ୍ରଭାବିତ କରିପାରେ।"</string>
-    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ହଁ, ଅନୁମୋଦନ କରନ୍ତୁ"</string>
-    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"ନା, ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
-    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ଏହି ନେଟୱାର୍କ ବିଶ୍ୱସ୍ତ ଅଟେ?"</string>
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> ଏକ ନେଟୱାର୍କିଂ ରିସୋର୍ସ ବ୍ୟବହାର କରିବାକୁ ଚାହୁଁଛି"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"ଏହା <xliff:g id="APPS">%3$s</xliff:g> ପାଇଁ ସମସ୍ୟାର କାରଣ ହୋଇପାରେ।"</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"ଏହି ଆପ୍ସ ପାଇଁ ଏହା ସମସ୍ୟାର କାରଣ ହୋଇପାରେ: <xliff:g id="APPS">%3$s</xliff:g>।"</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"ଅନୁମତି ଦିଅନ୍ତୁ ନାହିଁ"</string>
+    <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ଏହି ନେଟୱାର୍କଟି ବିଶ୍ୱସ୍ତ ଅଟେ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ହଁ, ସଂଯୋଗ କରନ୍ତୁ"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ନା, ସଂଯୋଗ କରନ୍ତୁ ନାହିଁ"</string>
     <string name="wifi_ca_cert_dialog_message_hint" msgid="5969214285536370126">"ଯଦି ନିମ୍ନୋକ୍ତ ସୂଚନା ଠିକ୍ ଲାଗେ, ତେବେ ହିଁ ଏହି ନେଟୱାର୍କକୁ ସଂଯୋଗ କରିବା ପାଇଁ ଅନୁମତି ଦିଅନ୍ତୁ।\n\n"</string>

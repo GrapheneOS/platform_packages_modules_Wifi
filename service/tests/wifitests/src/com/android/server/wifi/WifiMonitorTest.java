@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback.WpsConfigError;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback.WpsErrorIndication;
+import android.net.DscpPolicy;
 import android.net.MacAddress;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiEnterpriseConfig;
@@ -40,6 +41,8 @@ import android.os.test.TestLooper;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.MboOceController.BtmFrameData;
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyClassifierParams;
+import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.hotspot2.AnqpEvent;
 import com.android.server.wifi.hotspot2.IconEvent;
 import com.android.server.wifi.hotspot2.WnmData;
@@ -49,6 +52,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Unit tests for {@link com.android.server.wifi.WifiMonitor}.
@@ -733,16 +738,18 @@ public class WifiMonitorTest extends WifiBaseTest {
      */
     @Test
     public void testBroadcastCertificateEvent() {
+        final int depth = 2;
         mWifiMonitor.registerHandler(
                 WLAN_IFACE_NAME, WifiMonitor.TOFU_ROOT_CA_CERTIFICATE, mHandlerSpy);
         mWifiMonitor.broadcastCertificationEvent(
-                WLAN_IFACE_NAME, NETWORK_ID, SSID, FakeKeys.CA_CERT0);
+                WLAN_IFACE_NAME, NETWORK_ID, SSID, depth, FakeKeys.CA_CERT0);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         verify(mHandlerSpy).handleMessage(messageCaptor.capture());
         assertEquals(WifiMonitor.TOFU_ROOT_CA_CERTIFICATE, messageCaptor.getValue().what);
         assertEquals(NETWORK_ID, messageCaptor.getValue().arg1);
+        assertEquals(depth, messageCaptor.getValue().arg2);
         X509Certificate cert = (X509Certificate) messageCaptor.getValue().obj;
         assertEquals(FakeKeys.CA_CERT0, cert);
     }
@@ -768,5 +775,50 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(expectedInfo.eventCode, info.eventCode);
         assertEquals(expectedInfo.bssid, info.bssid);
         assertEquals(expectedInfo.reasonString, info.reasonString);
+    }
+
+    /**
+     * Broadcast QoS policy reset event.
+     */
+    @Test
+    public void testBroadcastQosPolicyResetEvent() {
+        mWifiMonitor.registerHandler(
+                WLAN_IFACE_NAME, WifiMonitor.QOS_POLICY_RESET_EVENT, mHandlerSpy);
+        mWifiMonitor.broadcastQosPolicyResetEvent(WLAN_IFACE_NAME);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiMonitor.QOS_POLICY_RESET_EVENT, messageCaptor.getValue().what);
+    }
+
+    /**
+     * Broadcast QoS policy request event.
+     */
+    @Test
+    public void testBroadcastQosPolicyRequestEvent() {
+        int dialogToken = 124;
+        int numPolicyRequests = 5;
+        List<QosPolicyRequest> policyRequestList = new ArrayList();
+        for (int i = 0; i < numPolicyRequests; i++) {
+            policyRequestList.add(new QosPolicyRequest(
+                    (byte) i, SupplicantStaIfaceHal.QOS_POLICY_REQUEST_ADD, (byte) 0,
+                    new QosPolicyClassifierParams(false, null, false, null,
+                            DscpPolicy.SOURCE_PORT_ANY, new int[]{125, 150},
+                            DscpPolicy.PROTOCOL_ANY)));
+        }
+
+        mWifiMonitor.registerHandler(
+                WLAN_IFACE_NAME, WifiMonitor.QOS_POLICY_REQUEST_EVENT, mHandlerSpy);
+        mWifiMonitor.broadcastQosPolicyRequestEvent(
+                WLAN_IFACE_NAME, dialogToken, policyRequestList);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiMonitor.QOS_POLICY_REQUEST_EVENT, messageCaptor.getValue().what);
+        assertEquals(dialogToken, messageCaptor.getValue().arg1);
+        assertEquals(numPolicyRequests,
+                ((List<QosPolicyRequest>) messageCaptor.getValue().obj).size());
     }
 }

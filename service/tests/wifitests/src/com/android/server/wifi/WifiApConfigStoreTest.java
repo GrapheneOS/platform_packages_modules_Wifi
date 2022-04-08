@@ -349,6 +349,9 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
                 true                              /* Hidden SSID */);
         store.setApConfiguration(expectedConfig);
         verifyApConfig(expectedConfig, store.getApConfiguration());
+        // Verify the persistent randomized MAC address has been added
+        assertEquals(TEST_RANDOMIZED_MAC, store.getApConfiguration()
+                .getPersistentRandomizedMacAddress());
         verifyApConfig(expectedConfig, mDataStoreSource.toSerialize());
         verify(mWifiConfigManager, times(2)).saveToStore(true);
         verify(mBackupManagerProxy, times(2)).notifyDataChanged();
@@ -1338,11 +1341,28 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     }
 
     @Test
-    public void testRandomizedMacAddress() throws Exception {
+    public void testPersistentRandomizedMacAddress() throws Exception {
+        WifiApConfigStore store = createWifiApConfigStore();
+        assertEquals(TEST_RANDOMIZED_MAC, store.getApConfiguration()
+                .getPersistentRandomizedMacAddress());
+        assertEquals(TEST_RANDOMIZED_MAC,
+                store.generateLocalOnlyHotspotConfig(mContext, null, mSoftApCapability)
+                .getPersistentRandomizedMacAddress());
+        assertEquals(TEST_RANDOMIZED_MAC,
+                store.generateLocalOnlyHotspotConfig(mContext, store.getApConfiguration(),
+                mSoftApCapability).getPersistentRandomizedMacAddress());
+    }
+
+    @Test
+    public void testPersistentRandomizedMacAddressWhenCalculatedMacIsNull() throws Exception {
+        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(null);
         WifiApConfigStore store = createWifiApConfigStore();
         assertNotNull(store.getApConfiguration().getPersistentRandomizedMacAddress());
-        assertNotNull(store.generateLocalOnlyHotspotConfig(mContext, null, mSoftApCapability));
-        assertNotNull(store.generateLocalOnlyHotspotConfig(mContext, store.getApConfiguration(),
-                mSoftApCapability));
+        assertNotNull(
+                store.generateLocalOnlyHotspotConfig(mContext, null, mSoftApCapability)
+                .getPersistentRandomizedMacAddress());
+        assertNotNull(
+                store.generateLocalOnlyHotspotConfig(mContext, store.getApConfiguration(),
+                mSoftApCapability).getPersistentRandomizedMacAddress());
     }
 }

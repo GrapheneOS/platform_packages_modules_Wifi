@@ -536,6 +536,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiNotificationManager mWifiNotificationManager;
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
     @Mock ScanResult mScanResult;
+    @Mock HandlerThread mWifiHandlerThread;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -647,6 +648,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(
                 WifiManager.WIFI_FEATURE_WPA3_SAE | WifiManager.WIFI_FEATURE_OWE);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(mWifiInjector.getWifiHandlerThread()).thenReturn(mWifiHandlerThread);
+        when(mWifiHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.getClientModeImplNumLogRecs()).thenReturn(100);
@@ -7785,8 +7788,8 @@ public class ClientModeImplTest extends WifiBaseTest {
             mCmi.sendMessage(WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
                     FRAMEWORK_NETWORK_ID, 0, FakeKeys.CA_CERT0);
             mLooper.dispatchAll();
-            verify(mInsecureEapNetworkHandler).setPendingCaCertificate(
-                    eq(eapTlsConfig.SSID), eq(FakeKeys.CA_CERT0));
+            verify(mInsecureEapNetworkHandler).setPendingCertificate(
+                    eq(eapTlsConfig.SSID), eq(0), eq(FakeKeys.CA_CERT0));
         }
 
         mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
@@ -8109,5 +8112,56 @@ public class ClientModeImplTest extends WifiBaseTest {
         ExtendedMockito.verify(() ->
                 ScanResultUtil.redactBssid(bssid, numMaskedOctets), times(2));
         scanResultUtilSession.finishMocking();
+    }
+
+    /**
+     * Verify that QoS policy reset events are handled when mNetworkAgent is non-null.
+     */
+    @Test
+    public void verifyQosPolicyResetEventWithNonNullNetworkAgent() throws Exception {
+        connect();
+        assertNotNull(mCmi.mNetworkAgent);
+        mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkAgent).sendRemoveAllDscpPolicies();
+    }
+
+    /**
+     * Verify that QoS policy reset events are not handled when mNetworkAgent is null.
+     */
+    @Test
+    public void verifyQosPolicyResetEventWithNullNetworkAgent() throws Exception {
+        assertNull(mCmi.mNetworkAgent);
+        mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkAgent, never()).sendRemoveAllDscpPolicies();
+    }
+
+    /**
+     * Verify that QoS policy request events are handled when mNetworkAgent is non-null.
+     */
+    @Test
+    public void verifyQosPolicyRequestEvent() throws Exception {
+        final int dialogToken = 124;
+
+        // Event should be ignored by the QosPolicyRequestHandler if no network is connected,
+        // since mNetworkAgent is null.
+        assertNull(mCmi.mNetworkAgent);
+        mCmi.sendMessage(WifiMonitor.QOS_POLICY_REQUEST_EVENT, dialogToken, 0,
+                new ArrayList<SupplicantStaIfaceHal.QosPolicyRequest>());
+        mLooper.dispatchAll();
+
+        // New events should be processed after connecting to a network,
+        // since mNetworkAgent is not null.
+        connect();
+        assertNotNull(mCmi.mNetworkAgent);
+        mCmi.sendMessage(WifiMonitor.QOS_POLICY_REQUEST_EVENT, dialogToken + 1, 0,
+                new ArrayList<SupplicantStaIfaceHal.QosPolicyRequest>());
+        mLooper.dispatchAll();
+
+        verify(mWifiNative, never()).sendQosPolicyResponse(
+                eq(WIFI_IFACE_NAME), eq(dialogToken), eq(true), any());
+        verify(mWifiNative).sendQosPolicyResponse(
+                eq(WIFI_IFACE_NAME), eq(dialogToken + 1), eq(true), any());
     }
 }

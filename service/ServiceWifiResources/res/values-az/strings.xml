@@ -70,6 +70,8 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Ayar güncəlləndi. Yenidən qoşulmağa çalışın."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Məxfilik ayarını dəyişmək mümkün deyil"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Şəbəkə tapılmadı"</string>
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : EAP doğrulama xətası: 32756"</string>
+    <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP doğrulama xətası 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
     <item msgid="7582366019846559418">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: Verizon əhatə dairəsindən kənarda Verizon Wi-Fi Access\'ə qoşula bilməzsiniz. (Xəta = 32760)"</item>
@@ -102,10 +104,6 @@
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
     <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: Sizi Verizon Wi-Fi Access\'ə qoşmaqla bağlı problem var. Sonra cəhd edin, ya da fərqli məkandan yoxlayın."</item>
   </string-array>
-    <string name="wifi_eap_error_message_code_32768" msgid="8606872176767773962">"<xliff:g id="SSID">%1$s</xliff:g> : EAP doğrulama xətası: 32768"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32768_carrier_overrides:0 (5947740234116715195) -->
-    <string name="wifi_eap_error_message_code_32769" msgid="5805559627556918450">"<xliff:g id="SSID">%1$s</xliff:g> : EAP doğrulama xətası: 32769"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32769_carrier_overrides:0 (3136023469902387052) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP doğrulama xətası: 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
     <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>: 16384 saylı xətaya görə Verizon Wi-Fi Access\'ə qoşmaq olmur."</item>
@@ -122,10 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Heç bir cihaz qoşulmayıb. Dəyişiklik etmək üçün toxunun."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi‑Fi bağlantısı kəsildi"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> şəbəkəsinə qoşulmaq üçün <xliff:g id="CARRIER_NAME">%2$s</xliff:g> SIM kartı daxil edin"</string>
-    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"Tətbiq xətası"</string>
-    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> tətbiqi <xliff:g id="INTERFACE">%2$s</xliff:g> interfeysini irəli çəkməyi tələb edir. Bu, digər interfeyslərin qüvvədən düşməsinə gətirərək <xliff:g id="APPS">%3$s</xliff:g> tətbiqlərinə təsir edə bilər."</string>
-    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"Bəli, təsdiq edilsin"</string>
-    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"Xeyr, təsdiq edilməsin"</string>
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> şəbəkə resursundan istifadə etmək istəyir"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"Bu, <xliff:g id="APPS">%3$s</xliff:g> üçün problemlərə səbəb ola bilər."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Bu tətbiqlər üçün problem yarana bilər: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"İcazə verin"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"İcazə verməyin"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Bu şəbəkə etibarlıdır?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Bəli, qoşulun"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Xeyr, qoşulmayın"</string>

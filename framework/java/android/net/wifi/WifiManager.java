@@ -23,7 +23,6 @@ import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.READ_WIFI_CREDENTIAL;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
-import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 
 import android.annotation.CallbackExecutor;
 import android.annotation.IntDef;
@@ -9801,21 +9800,6 @@ public class WifiManager {
                             executor.execute(() -> resultCallback.accept(canCreate, finalSet));
                         }
                     });
-        } catch (RemoteException e) {
-            throw e.rethrowFromSystemServer();
-        }
-    }
-
-    /**
-     * Get Wi-Fi Aware discovery channel on target band. Defined as per Wi-Fi Alliance (WFA) Wi-Fi
-     * Aware specifications version 3.1 Section 3.2
-     * @hide
-     */
-    public List<WifiAvailableChannel> getAwareDiscoveryChannels(
-            @WifiScanner.WifiBand int band) {
-        try {
-            return mService.getUsableChannels(band, OP_MODE_WIFI_AWARE,
-                    WifiAvailableChannel.FILTER_NAN_INSTANT_MODE);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

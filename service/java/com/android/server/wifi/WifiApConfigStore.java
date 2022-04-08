@@ -92,6 +92,9 @@ public class WifiApConfigStore {
         }
 
         public void fromDeserialized(SoftApConfiguration config) {
+            if (config.getPersistentRandomizedMacAddress() == null) {
+                config = updatePersistentRandomizedMacAddress(config);
+            }
             mPersistentWifiApConfig = new SoftApConfiguration.Builder(config).build();
         }
 
@@ -135,7 +138,8 @@ public class WifiApConfigStore {
         if (mPersistentWifiApConfig == null) {
             /* Use default configuration. */
             Log.d(TAG, "Fallback to use default AP configuration");
-            persistConfigAndTriggerBackupManagerProxy(getDefaultApConfiguration());
+            persistConfigAndTriggerBackupManagerProxy(
+                    updatePersistentRandomizedMacAddress(getDefaultApConfiguration()));
         }
         SoftApConfiguration sanitizedPersistentconfig =
                 sanitizePersistentApConfig(mPersistentWifiApConfig);
@@ -153,7 +157,7 @@ public class WifiApConfigStore {
                     : new SoftApConfiguration.Builder(mPersistentWifiApConfig)
                             .setChannel(mForcedApChannel, mForcedApBand).build();
         }
-        return updatePersistentRandomizedMacAddress(mPersistentWifiApConfig);
+        return mPersistentWifiApConfig;
     }
 
     /**
@@ -169,7 +173,8 @@ public class WifiApConfigStore {
             config = sanitizePersistentApConfig(config);
         }
         persistConfigAndTriggerBackupManagerProxy(
-                new SoftApConfiguration.Builder(config).setUserConfiguration(true).build());
+                new SoftApConfiguration.Builder(updatePersistentRandomizedMacAddress(config))
+                    .setUserConfiguration(true).build());
     }
 
     /**
@@ -477,13 +482,16 @@ public class WifiApConfigStore {
             MacAddress macAddress = null;
             if (config.getMacRandomizationSettingInternal()
                     == SoftApConfiguration.RANDOMIZATION_PERSISTENT) {
-                WifiSsid ssid = config.getWifiSsid();
-                macAddress = mMacAddressUtil.calculatePersistentMac(
-                        ssid != null ? ssid.toString() : null,
-                        mMacAddressUtil.obtainMacRandHashFunctionForSap(Process.WIFI_UID));
+                macAddress = config.getPersistentRandomizedMacAddress();
                 if (macAddress == null) {
-                    Log.e(TAG, "Failed to calculate MAC from SSID. "
-                            + "Generating new random MAC instead.");
+                    WifiSsid ssid = config.getWifiSsid();
+                    macAddress = mMacAddressUtil.calculatePersistentMac(
+                            ssid != null ? ssid.toString() : null,
+                            mMacAddressUtil.obtainMacRandHashFunctionForSap(Process.WIFI_UID));
+                    if (macAddress == null) {
+                        Log.e(TAG, "Failed to calculate MAC from SSID. "
+                                + "Generating new random MAC instead.");
+                    }
                 }
             }
             if (macAddress == null) {
@@ -679,6 +687,16 @@ public class WifiApConfigStore {
         MacAddress randomizedMacAddress = mMacAddressUtil.calculatePersistentMac(
                 ssid != null ? ssid.toString() : null,
                 mMacAddressUtil.obtainMacRandHashFunctionForSap(Process.WIFI_UID));
+        if (randomizedMacAddress != null) {
+            return new SoftApConfiguration.Builder(config)
+                    .setRandomizedMacAddress(randomizedMacAddress).build();
+        }
+
+        if (config.getPersistentRandomizedMacAddress() != null) {
+            return config;
+        }
+
+        randomizedMacAddress = MacAddressUtils.createRandomUnicastAddress();
         return new SoftApConfiguration.Builder(config)
                 .setRandomizedMacAddress(randomizedMacAddress).build();
     }

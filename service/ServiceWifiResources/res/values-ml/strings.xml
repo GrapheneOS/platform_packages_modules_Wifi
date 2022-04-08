@@ -70,6 +70,8 @@
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"ക്രമീകരണം അപ്‌ഡേറ്റ് ചെയ്തു. വീണ്ടും കണക്‌റ്റ് ചെയ്യാൻ ശ്രമിക്കുക."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"സ്വകാര്യതാ ക്രമീകരണം മാറ്റാനാവില്ല"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"നെറ്റ്‌വർക്ക് കണ്ടെത്തിയില്ല"</string>
+    <string name="wifi_eap_error_message_code_32756" msgid="2620877003804313434">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്‌നം 32756"</string>
+    <!-- no translation found for wifi_eap_error_message_code_32756_carrier_overrides:0 (9114567205305206743) -->
     <string name="wifi_eap_error_message_code_32760" msgid="5258191595973470188">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 32760"</string>
   <string-array name="wifi_eap_error_message_code_32760_carrier_overrides">
     <item msgid="7582366019846559418">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon കവറേജ് ഏരിയയ്‌ക്ക് പുറത്ത് നിന്ന് നിങ്ങൾക്ക് Verizon വൈഫൈ ആക്‌സസിലേക്ക് കണക്റ്റ് ചെയ്യാനാകില്ല. (പിശക് = 32760)"</item>
@@ -102,10 +104,6 @@
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
     <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈ ആക്‌സസിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്. പിന്നീട് വീണ്ടും ശ്രമിക്കുക അല്ലെങ്കിൽ മറ്റൊരു ലൊക്കേഷനിൽ നിന്ന് ശ്രമിക്കുക."</item>
   </string-array>
-    <string name="wifi_eap_error_message_code_32768" msgid="8606872176767773962">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 32768"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32768_carrier_overrides:0 (5947740234116715195) -->
-    <string name="wifi_eap_error_message_code_32769" msgid="5805559627556918450">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 32769"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32769_carrier_overrides:0 (3136023469902387052) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
     <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 16384 പിശക് കാരണം Verizon വൈഫൈ ആക്‌സസിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്."</item>
@@ -122,10 +120,11 @@
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ഉപകരണങ്ങളൊന്നും കണക്‌റ്റ് ചെയ്തിട്ടില്ല. പരിഷ്‌കരിക്കാൻ ടാപ്പ് ചെയ്യുക."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"വൈഫൈ വിച്ഛേദിച്ചു"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> എന്നതിലേക്ക് കണക്‌റ്റ് ചെയ്യാൻ <xliff:g id="CARRIER_NAME">%2$s</xliff:g> സിം ഇടുക"</string>
-    <string name="wifi_interface_priority_title" msgid="7630898211907901260">"ആപ്പ് വെെരുദ്ധ്യം"</string>
-    <string name="wifi_interface_priority_message" msgid="7889098392449730531">"<xliff:g id="APP_0">%1$s</xliff:g> ആപ്പ് ഒരു <xliff:g id="INTERFACE">%2$s</xliff:g> ഇന്റർഫേസ് ലഭ്യമാക്കേണ്ടതുണ്ട്. ഇത് മറ്റുള്ള ഇന്റർഫേസുകൾ പ്രവർത്തനരഹിതമാകാൻ കാരണമാകും, ഇത് <xliff:g id="APPS">%3$s</xliff:g> എന്നിവയെ ബാധിച്ചേക്കാം."</string>
-    <string name="wifi_interface_priority_approve" msgid="663213905617741493">"ഉവ്വ്, അനുമതി നൽകുക"</string>
-    <string name="wifi_interface_priority_reject" msgid="8863331989004501733">"വേണ്ട, നിരസിക്കുക"</string>
+    <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> എന്നത് ഒരു നെറ്റ്‌വർക്കിംഗ് ഉറവിടം ഉപയോഗിക്കാൻ ആഗ്രഹിക്കുന്നു"</string>
+    <string name="wifi_interface_priority_message" msgid="4253391172756140313">"ഇത് <xliff:g id="APPS">%3$s</xliff:g> എന്നതിന് പ്രശ്‌നങ്ങൾ സൃഷ്‌ടിച്ചേക്കാം."</string>
+    <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"ഇത് ഈ ആപ്പുകൾക്ക് പ്രശ്‌നം സൃഷ്‌ടിച്ചേക്കാം: <xliff:g id="APPS">%3$s</xliff:g>."</string>
+    <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"അനുവദിക്കുക"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"അനുവദിക്കരുത്"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ഈ നെറ്റ്‌വർക്ക് വിശ്വസനീയമാണോ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ഉവ്വ്, കണക്റ്റ് ചെയ്യുക"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"വേണ്ട, കണക്റ്റ് ചെയ്യരുത്"</string>
