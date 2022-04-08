@@ -3433,7 +3433,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mNetworkAgent = mWifiInjector.makeWifiNetworkAgent(nc, mLinkProperties, naConfig,
                     mNetworkFactory.getProvider(), new WifiNetworkAgentCallback());
             mWifiScoreReport.setNetworkAgent(mNetworkAgent);
-            mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
+            if (SdkLevel.isAtLeastT()) {
+                mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
+            }
 
             transitionTo(mL3ProvisioningState);
         } else {
@@ -5020,14 +5022,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case WifiMonitor.QOS_POLICY_RESET_EVENT: {
-                    if (mNetworkAgent != null) {
+                    if (SdkLevel.isAtLeastT() && mNetworkAgent != null) {
                         mNetworkAgent.sendRemoveAllDscpPolicies();
                     }
                     break;
                 }
                 case WifiMonitor.QOS_POLICY_REQUEST_EVENT: {
-                    mQosPolicyRequestHandler.queueQosPolicyRequest(
-                            message.arg1, (List<QosPolicyRequest>) message.obj);
+                    if (SdkLevel.isAtLeastT()) {
+                        mQosPolicyRequestHandler.queueQosPolicyRequest(
+                                message.arg1, (List<QosPolicyRequest>) message.obj);
+                    }
                     break;
                 }
                 default: {
@@ -5402,7 +5406,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mNetworkAgent = mWifiInjector.makeWifiNetworkAgent(nc, mLinkProperties, naConfig,
                     mNetworkFactory.getProvider(), new WifiNetworkAgentCallback());
             mWifiScoreReport.setNetworkAgent(mNetworkAgent);
-            mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
+            if (SdkLevel.isAtLeastT()) {
+                mQosPolicyRequestHandler.setNetworkAgent(mNetworkAgent);
+            }
 
             // We must clear the config BSSID, as the wifi chipset may decide to roam
             // from this point on and having the BSSID specified in the network block would
