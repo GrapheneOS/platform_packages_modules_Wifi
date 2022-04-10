@@ -8119,6 +8119,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void verifyQosPolicyResetEventWithNonNullNetworkAgent() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         connect();
         assertNotNull(mCmi.mNetworkAgent);
         mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
@@ -8131,6 +8132,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void verifyQosPolicyResetEventWithNullNetworkAgent() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         assertNull(mCmi.mNetworkAgent);
         mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
         mLooper.dispatchAll();
@@ -8142,6 +8144,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void verifyQosPolicyRequestEvent() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         final int dialogToken = 124;
 
         // Event should be ignored by the QosPolicyRequestHandler if no network is connected,

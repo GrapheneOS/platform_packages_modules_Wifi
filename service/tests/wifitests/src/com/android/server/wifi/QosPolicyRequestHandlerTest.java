@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,6 +35,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.test.TestLooper;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyClassifierParams;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequestType;
@@ -68,6 +70,7 @@ public class QosPolicyRequestHandlerTest {
 
     @Before
     public void setUp() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         MockitoAnnotations.initMocks(this);
         mLooper = new TestLooper();
         when(mHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
