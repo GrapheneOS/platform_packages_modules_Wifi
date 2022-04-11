@@ -3667,6 +3667,66 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     }
 
     @Test
+    public void testRequestForSecondaryLocalOnlyForEnterCarModePrioritized() throws Exception {
+        // mock caller to have ENTER_CAR_MODE_PRIORITIZED
+        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(anyInt())).thenReturn(true);
+        // Ensure that we can create more client ifaces.
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
+                .thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
+                .thenReturn(true);
+        assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+        assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+
+        enterClientModeActiveState();
+        ArgumentCaptor<ClientModeManager> requestedClientModeManager =
+                ArgumentCaptor.forClass(ClientModeManager.class);
+        ExternalClientModeManagerRequestListener externalRequestListener = mock(
+                ExternalClientModeManagerRequestListener.class);
+        Mutable<Listener<ConcreteClientModeManager>> additionalClientListener =
+                new Mutable<>();
+        ConcreteClientModeManager additionalClientModeManager =
+                mock(ConcreteClientModeManager.class);
+        doAnswer((invocation) -> {
+            Object[] args = invocation.getArguments();
+            additionalClientListener.value =
+                    (Listener<ConcreteClientModeManager>) args[0];
+            return additionalClientModeManager;
+        }).when(mWifiInjector).makeClientModeManager(
+                any(Listener.class), any(), any(), anyBoolean());
+        when(additionalClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME_1);
+        when(additionalClientModeManager.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
+
+        // mock requesting local only secondary
+        mActiveModeWarden.requestLocalOnlyClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+        mLooper.dispatchAll();
+        // Verify the primary is given to the externalRequestListener
+        verify(externalRequestListener).onAnswer(requestedClientModeManager.capture());
+        verify(mWifiInjector, never()).makeClientModeManager(
+                any(), any(), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
+        assertEquals(ROLE_CLIENT_PRIMARY, requestedClientModeManager.getValue().getRole());
+
+        // Request for non local-only STA and verify the secondary STA is provided instead.
+        when(additionalClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+        mLooper.dispatchAll();
+        verify(mWifiInjector).makeClientModeManager(any(), any(),
+                eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), anyBoolean());
+
+        additionalClientListener.value.onStarted(additionalClientModeManager);
+        mLooper.dispatchAll();
+        verify(externalRequestListener, times(2)).onAnswer(
+                requestedClientModeManager.capture());
+        assertEquals(ROLE_CLIENT_SECONDARY_LONG_LIVED,
+                requestedClientModeManager.getValue().getRole());
+    }
+
+    @Test
     public void configureHwOnMbbSwitch()
             throws Exception {
         // Ensure that we can create more client ifaces.

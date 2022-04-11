@@ -17,6 +17,7 @@
 package com.android.server.wifi.util;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.ENTER_CAR_MODE_PRIORITIZED;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.RENOUNCE_PERMISSIONS;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
@@ -723,6 +724,14 @@ public class WifiPermissionsUtil {
     public boolean checkRequestCompanionProfileAutomotiveProjectionPermission(int uid) {
         return mWifiPermissionsWrapper.getUidPermission(
                 REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns true if the |uid| holds ENTER_CAR_MODE_PRIORITIZED permission.
+     */
+    public boolean checkEnterCarModePrioritized(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(ENTER_CAR_MODE_PRIORITIZED, uid)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
