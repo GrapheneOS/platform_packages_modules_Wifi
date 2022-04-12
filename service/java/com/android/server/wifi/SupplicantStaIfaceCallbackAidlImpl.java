@@ -1156,4 +1156,14 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             }
         }
     }
+
+    @Override
+    public String getInterfaceHash() {
+        return ISupplicantStaIfaceCallback.HASH;
+    }
+
+    @Override
+    public int getInterfaceVersion() {
+        return ISupplicantStaIfaceCallback.VERSION;
+    }
 }
