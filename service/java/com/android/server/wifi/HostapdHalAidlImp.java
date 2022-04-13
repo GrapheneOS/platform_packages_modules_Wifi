@@ -416,6 +416,16 @@ public class HostapdHalAidlImp implements IHostapdHal {
                 Log.e(TAG, " Invalid clientAddress, " + iae);
             }
         }
+
+        @Override
+        public String getInterfaceHash() {
+            return IHostapdCallback.HASH;
+        }
+
+        @Override
+        public int getInterfaceVersion() {
+            return IHostapdCallback.VERSION;
+        }
     }
 
     /**
