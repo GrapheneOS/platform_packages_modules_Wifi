@@ -736,4 +736,11 @@ interface ISupplicantStaIfaceHal {
      */
     boolean sendQosPolicyResponse(String ifaceName, int qosPolicyRequestId, boolean morePolicies,
             @NonNull List<SupplicantStaIfaceHal.QosPolicyStatus> qosPolicyStatusList);
+
+    /**
+     * Indicates the removal of all active QoS policies configured by the AP.
+     *
+     * @param ifaceName Name of the interface.
+     */
+    boolean removeAllQosPolicies(String ifaceName);
 }

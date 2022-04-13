@@ -2174,6 +2174,19 @@ public class SupplicantStaIfaceHal {
                 morePolicies, qosPolicyStatusList);
     }
 
+    /**
+     * Indicates the removal of all active QoS policies configured by the AP.
+     *
+     * @param ifaceName Name of the interface.
+     */
+    public boolean removeAllQosPolicies(String ifaceName) {
+        String methodStr = "removeAllQosPolicies";
+        if (mStaIfaceHal == null) {
+            return handleNullHal(methodStr);
+        }
+        return mStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
     private boolean handleNullHal(String methodStr) {
         Log.e(TAG, "Cannot call " + methodStr + " because HAL object is null.");
         return false;
