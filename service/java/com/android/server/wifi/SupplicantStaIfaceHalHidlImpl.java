@@ -3928,4 +3928,14 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         Log.e(TAG, "sendQosPolicyResponse is not supported by the HIDL HAL");
         return false;
     }
+
+    /**
+     * Indicates the removal of all active QoS policies configured by the AP.
+     *
+     * @param ifaceName Name of the interface.
+     */
+    public boolean removeAllQosPolicies(String ifaceName) {
+        Log.e(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
+        return false;
+    }
 }

@@ -4265,6 +4265,15 @@ public class WifiNative {
     }
 
     /**
+     * Indicates the removal of all active QoS policies configured by the AP.
+     *
+     * @param ifaceName Name of the interface.
+     */
+    public boolean removeAllQosPolicies(String ifaceName) {
+        return mSupplicantStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
+    /**
      * Notify wificond daemon of country code have changed.
      */
     public void countryCodeChanged(String countryCode) {
