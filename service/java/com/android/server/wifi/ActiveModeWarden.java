@@ -1979,6 +1979,22 @@ public class ActiveModeWarden {
                 if (primaryManager instanceof DefaultClientModeManager) {
                     primaryManager = null;
                 }
+                // TODO(b/228529090): Remove this special code once root cause is resolved.
+                // Special case for holders with ENTER_CAR_MODE_PRIORITIZED. Only give them the
+                // primary STA to avoid the device getting into STA+STA state.
+                // In STA+STA wifi scans will result in high latency in the secondary STA.
+                if (requestInfo.clientRole == ROLE_CLIENT_LOCAL_ONLY
+                        && requestInfo.requestorWs != null) {
+                    WorkSource workSource = requestInfo.requestorWs;
+                    for (int i = 0; i < workSource.size(); i++) {
+                        int curUid = workSource.getUid(i);
+                        if (curUid != Process.SYSTEM_UID
+                                && mWifiPermissionsUtil.checkEnterCarModePrioritized(curUid)) {
+                            requestInfo.listener.onAnswer(primaryManager);
+                            return;
+                        }
+                    }
+                }
                 if (requestInfo.clientRole == ROLE_CLIENT_SECONDARY_TRANSIENT
                         && mDppManager.isSessionInProgress()) {
                     // When MBB is triggered, we could end up switching the primary interface
