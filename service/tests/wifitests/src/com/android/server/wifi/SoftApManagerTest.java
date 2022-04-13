@@ -3189,7 +3189,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void testFallbackToSingleModeDueToCurrentConcurrencyCombo()
+    public void testFallbackToSingleModeDueToUnableToCreateBridgedAp()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
         Builder configBuilder = new SoftApConfiguration.Builder(
@@ -3201,6 +3201,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         // Reset band to 2.4G | 5G to generate expected configuration since it should fallback to
         // single AP mode
         configBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ);
+        when(mWifiNative.isHalStarted()).thenReturn(true);
         when(mWifiNative.isItPossibleToCreateBridgedApIface(any())).thenReturn(false);
         startSoftApAndVerifyEnabled(apConfig, TEST_COUNTRY_CODE, configBuilder.build());
     }
