@@ -3407,6 +3407,15 @@ public class WifiVendorHal {
     }
 
     /**
+     * Returns whether the given HdmIfaceTypeForCreation combo is supported or not.
+     */
+    public boolean canDeviceSupportCreateTypeCombo(SparseArray<Integer> combo) {
+        synchronized (sLock) {
+            return mHalDeviceManager.canDeviceSupportCreateTypeCombo(combo);
+        }
+    }
+
+    /**
      * Returns whether STA + AP concurrency is supported or not.
      */
     public boolean isStaApConcurrencySupported() {
