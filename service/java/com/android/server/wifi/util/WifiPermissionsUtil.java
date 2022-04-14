@@ -993,7 +993,7 @@ public class WifiPermissionsUtil {
                 .getStringArray(R.array.config_oemPrivilegedWifiAdminPackages));
         PackageManager pm = mContext.getPackageManager();
         String[] packages = pm.getPackagesForUid(uid);
-        if (Arrays.stream(packages).noneMatch(oemPrivilegedAdmins::contains)) {
+        if (packages == null || Arrays.stream(packages).noneMatch(oemPrivilegedAdmins::contains)) {
             return false;
         }
 
