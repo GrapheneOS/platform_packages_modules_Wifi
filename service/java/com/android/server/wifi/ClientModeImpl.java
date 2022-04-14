@@ -6158,11 +6158,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 // selection status to temporarily disable the network.
                                 if (!isRecentlySelectedByTheUser(config)
                                         && !config.noInternetAccessExpected) {
-                                    Log.i(getTag(), "Temporarily disabling network because of"
-                                            + " no-internet access");
-                                    mWifiConfigManager.updateNetworkSelectionStatus(
-                                            config.networkId,
-                                            DISABLED_NO_INTERNET_TEMPORARY);
+                                    if (config.getNetworkSelectionStatus()
+                                            .getNetworkSelectionDisableReason()
+                                            != DISABLED_NO_INTERNET_PERMANENT) {
+                                        Log.i(getTag(), "Temporarily disabling network "
+                                                + "because of no-internet access");
+                                        mWifiConfigManager.updateNetworkSelectionStatus(
+                                                config.networkId,
+                                                DISABLED_NO_INTERNET_TEMPORARY);
+                                    }
                                     mWifiBlocklistMonitor.handleBssidConnectionFailure(
                                             mLastBssid, config,
                                             WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE,
