@@ -48,6 +48,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
@@ -80,12 +81,16 @@ public class QosPolicyRequestHandlerTest {
         mNetworkAgentHandler = new Handler(mLooper.getLooper());
 
         // Accept any policy sent to the NetworkAgent.
-        doAnswer((Answer<Void>) invocation -> {
-            Object[] args = invocation.getArguments();
-            DscpPolicy policy = (DscpPolicy) args[0];
-            mNetworkAgentHandler.post(() -> mQosPolicyRequestHandler.setQosPolicyStatus(
-                    policy.getPolicyId(), NetworkAgent.DSCP_POLICY_STATUS_SUCCESS));
-            return null;
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+
+                Object[] args = invocation.getArguments();
+                DscpPolicy policy = (DscpPolicy) args[0];
+                mNetworkAgentHandler.post(() -> mQosPolicyRequestHandler.setQosPolicyStatus(
+                        policy.getPolicyId(), NetworkAgent.DSCP_POLICY_STATUS_SUCCESS));
+                return null;
+            }
         }).when(mWifiNetworkAgent).sendAddDscpPolicy(any(DscpPolicy.class));
         doAnswer((Answer<Void>) invocation -> {
             Object[] args = invocation.getArguments();
