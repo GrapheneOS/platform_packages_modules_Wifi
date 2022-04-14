@@ -3207,6 +3207,25 @@ public class SoftApManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void testFallbackToSingleModeIfBridgedApWillTearDownExistingIface()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        Builder configBuilder = new SoftApConfiguration.Builder(
+                generateBridgedModeSoftApConfig(null));
+
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                mTestSoftApCapability);
+        // Reset band to 2.4G | 5G to generate expected configuration since it should fallback to
+        // single AP mode
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ);
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.isItPossibleToCreateBridgedApIface(any())).thenReturn(true);
+        when(mWifiNative.shouldDowngradeToSingleApForConcurrency(any())).thenReturn(true);
+        startSoftApAndVerifyEnabled(apConfig, TEST_COUNTRY_CODE, configBuilder.build());
+    }
+
+    @Test
     public void testBridgedApEnabledWhenStaExistButStaApConcurrencyNotSupported()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());

@@ -971,6 +971,13 @@ public class SoftApManager implements ActiveModeManager {
                             if (!mWifiNative.isItPossibleToCreateBridgedApIface(mRequestorWs)) {
                                 isFallbackToSingleAp = true;
                             }
+                            // Fall back to single AP if creating a single AP does not require
+                            // destroying an existing iface, but creating a bridged AP does.
+                            if (mWifiNative.shouldDowngradeToSingleApForConcurrency(mRequestorWs)) {
+                                Log.d(getTag(), "Creating bridged AP will destroy an existing"
+                                        + " iface, but single AP will not.");
+                                isFallbackToSingleAp = true;
+                            }
                             if (isFallbackToSingleAp) {
                                 newSingleApBand = ApConfigUtil.append24GToBandIf24GSupported(
                                         newSingleApBand, mContext);
