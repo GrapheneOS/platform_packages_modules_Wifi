@@ -25,6 +25,7 @@ android_test {
 
     min_sdk_version: "30",
     target_sdk_version: "30",
+    compile_multilib: "both",
 
     libs: [
         "org.apache.http.legacy",
