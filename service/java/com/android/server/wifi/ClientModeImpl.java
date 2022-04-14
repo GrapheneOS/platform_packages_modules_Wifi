@@ -169,7 +169,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -192,6 +191,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private static final int IPCLIENT_STARTUP_TIMEOUT_MS = 2_000;
     private static final int IPCLIENT_SHUTDOWN_TIMEOUT_MS = 60_000; // 60 seconds
+    private static final int NETWORK_AGENT_TEARDOWN_DELAY_MS = 5_000; // Max teardown delay.
     @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 30_000; // 30 secs.
     @VisibleForTesting
     public static final short NETWORK_NOT_FOUND_EVENT_THRESHOLD = 3;
@@ -659,21 +659,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     public static final long DURATION_TO_WAIT_ADD_STATS_AFTER_DATA_STALL_MS = 30 * 1000;
     private long mDataStallTriggerTimeMs = -1;
     private int mLastStatusDataStall = WifiIsUnusableEvent.TYPE_UNKNOWN;
-
-    // Initialize configurable particular set of SSIDs that opt out of refreshing L3 information
-    // after NUD probe failure due to subnet change. See b/131797393 and b/204723906 for more
-    // details.
-    @VisibleForTesting
-    public static final Set<String> L3_REFRESH_OPT_OUT_SSID_SET = new HashSet<>(
-            Arrays.asList(
-                    "\"0001docomo\"", "\"ollehWiFi\"", "\"olleh GiGa WiFi\"", "\"KT WiFi\"",
-                    "\"KT GiGA WiFi\"", "\"marente\""
-    ));
-    // Initialize configurable particular OUI that opts out of refreshing L3 information after
-    // NUD probe failure due to subnet change. See b/131797393 and b/204723906 for more details.
-    @VisibleForTesting
-    public static final byte[] L3_REFRESH_OPT_OUT_OUI =
-            new byte[]{ (byte) 0x00, (byte) 0x17, (byte) 0xc3 };
 
     @Nullable
     private StateMachineObituary mObituary = null;
@@ -3405,30 +3390,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         if (lossInfo.reason == ReachabilityLossReason.ROAM) {
             final WifiConfiguration config = getConnectedWifiConfigurationInternal();
-
-            // Keep L3 information and current NetworkAgent if the SSID and the OUI opts out of
-            // refreshing L3 information after NUD probe failure due to subnet change. Remove this
-            // check when the inactive mode of NetworkAgent is implemented in ConnectivityService.
-            List<byte[]> ouis = getOuiInternal(config);
-            boolean ifOuiMatched = false;
-            for (byte[] oui : ouis) {
-                if (Arrays.equals(oui, L3_REFRESH_OPT_OUT_OUI)) {
-                    ifOuiMatched = true;
-                    break;
-                }
-            }
-            if (ifOuiMatched && L3_REFRESH_OPT_OUT_SSID_SET.contains(config.SSID)) {
-                return;
-            }
-
             final NetworkAgentConfig naConfig = getNetworkAgentConfigInternal(config);
             final NetworkCapabilities nc = getCapabilities(
                     getConnectedWifiConfigurationInternal(), getConnectedBssidInternal());
 
             mWifiInfo.setInetAddress(null);
             if (mNetworkAgent != null) {
-                mNetworkAgent.unregister();
-                mNetworkAgent = null;
+                if (SdkLevel.isAtLeastT()) {
+                    mNetworkAgent.unregisterAfterReplacement(NETWORK_AGENT_TEARDOWN_DELAY_MS);
+                } else {
+                    mNetworkAgent.unregister();
+                }
             }
             mNetworkAgent = mWifiInjector.makeWifiNetworkAgent(nc, mLinkProperties, naConfig,
                     mNetworkFactory.getProvider(), new WifiNetworkAgentCallback());
