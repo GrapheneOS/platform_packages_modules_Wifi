@@ -3275,4 +3275,27 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             return false;
         }
     }
+
+    /**
+     * Indicates the removal of all active QoS policies configured by the AP.
+     *
+     * @param ifaceName Name of the interface.
+     */
+    public boolean removeAllQosPolicies(String ifaceName) {
+        final String methodStr = "removeAllQosPolicies";
+        ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+        if (iface == null) {
+            return false;
+        }
+
+        try {
+            iface.removeAllQosPolicies();
+            return true;
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+        } catch (ServiceSpecificException e) {
+            handleServiceSpecificException(e, methodStr);
+        }
+        return false;
+    }
 }

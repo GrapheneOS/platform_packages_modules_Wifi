@@ -1233,11 +1233,29 @@ public class WifiNativeTest extends WifiBaseTest {
 
     @Test
     public void testIsItPossibleToCreateIface() {
+        // HAL not started
+        when(mWifiVendorHal.isHalStarted()).thenReturn(false);
+        // Using any() here since SparseArray doesn't support Object.equals().
+        when(mWifiVendorHal.canDeviceSupportCreateTypeCombo(any())).thenReturn(true);
+        when(mWifiVendorHal.isItPossibleToCreateStaIface(any())).thenReturn(false);
+        assertTrue(mWifiNative.isItPossibleToCreateStaIface(new WorkSource()));
+
+        when(mWifiVendorHal.isItPossibleToCreateApIface(any())).thenReturn(false);
+        assertTrue(mWifiNative.isItPossibleToCreateApIface(new WorkSource()));
+
+        when(mWifiVendorHal.isItPossibleToCreateBridgedApIface(any())).thenReturn(false);
+        assertTrue(mWifiNative.isItPossibleToCreateBridgedApIface(new WorkSource()));
+
+        // HAL started
+        when(mWifiVendorHal.isHalStarted()).thenReturn(true);
+        when(mWifiVendorHal.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        assertTrue(mWifiNative.isItPossibleToCreateStaIface(new WorkSource()));
+
         when(mWifiVendorHal.isItPossibleToCreateApIface(any())).thenReturn(true);
         assertTrue(mWifiNative.isItPossibleToCreateApIface(new WorkSource()));
 
-        when(mWifiVendorHal.isItPossibleToCreateStaIface(any())).thenReturn(true);
-        assertTrue(mWifiNative.isItPossibleToCreateStaIface(new WorkSource()));
+        when(mWifiVendorHal.isItPossibleToCreateBridgedApIface(any())).thenReturn(true);
+        assertTrue(mWifiNative.isItPossibleToCreateBridgedApIface(new WorkSource()));
     }
 
     @Test

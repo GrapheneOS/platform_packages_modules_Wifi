@@ -754,4 +754,14 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
         }
         return result;
     }
+
+    @Override
+    public String getInterfaceHash() {
+        return ISupplicantP2pIfaceCallback.HASH;
+    }
+
+    @Override
+    public int getInterfaceVersion() {
+        return ISupplicantP2pIfaceCallback.VERSION;
+    }
 }
