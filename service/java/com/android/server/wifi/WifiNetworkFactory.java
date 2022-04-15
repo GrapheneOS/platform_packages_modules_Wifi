@@ -1116,11 +1116,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         }
         WorkSource ws = new WorkSource(mActiveSpecificNetworkRequest.getRequestorUid(),
                 mActiveSpecificNetworkRequest.getRequestorPackageName());
-        if (didUserSeeUi) {
-            ws.add(mFacade.getSettingsWorkSource(mContext));
-        }
         mActiveModeWarden.requestLocalOnlyClientModeManager(new ClientModeManagerRequestListener(),
-                ws, networkToConnect.SSID, networkToConnect.BSSID);
+                ws, networkToConnect.SSID, networkToConnect.BSSID, didUserSeeUi);
     }
 
     private void handleConnectToNetworkUserSelection(WifiConfiguration network,
