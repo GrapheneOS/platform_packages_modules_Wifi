@@ -847,7 +847,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.isStaStaConcurrencySupportedForRestrictedConnections())
                 .thenReturn(true);
         when(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                any(), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED))).thenReturn(true);
+                any(), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), eq(false))).thenReturn(true);
         doAnswer(new AnswerWithArguments() {
             public void answer(ExternalClientModeManagerRequestListener listener,
                     WorkSource requestorWs, String ssid, String bssid) {
@@ -1257,7 +1257,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.isStaStaConcurrencySupportedForRestrictedConnections())
                 .thenReturn(true);
         when(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                any(), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED))).thenReturn(true);
+                any(), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), eq(false))).thenReturn(true);
         doAnswer(new AnswerWithArguments() {
             public void answer(ExternalClientModeManagerRequestListener listener,
                     WorkSource requestorWs, String ssid, String bssid) {
@@ -4897,7 +4897,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 .thenReturn(Arrays.asList(primaryCmm));
         // Second STA creation is allowed.
         when(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                eq(oemPaidWs), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED))).thenReturn(true);
+                eq(oemPaidWs), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), eq(false))).thenReturn(true);
 
         // Set WiFi to disconnected state to trigger scan
         mWifiConnectivityManager.handleConnectionStateChanged(
