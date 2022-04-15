@@ -703,10 +703,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testWifiMetricsDump() {
-        mLooper.startAutoDispatch();
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
         mWifiServiceImpl.dump(new FileDescriptor(), new PrintWriter(new StringWriter()),
                 new String[]{mWifiMetrics.PROTO_DUMP_ARG});
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        mLooper.dispatchAll();
         verify(mWifiMetrics).setNonPersistentMacRandomizationForceEnabled(anyBoolean());
         verify(mWifiMetrics).setIsScanningAlwaysEnabled(anyBoolean());
         verify(mWifiMetrics).setVerboseLoggingEnabled(anyBoolean());
@@ -721,10 +722,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testDumpNullArgs() {
-        mLooper.startAutoDispatch();
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
         mWifiServiceImpl.dump(new FileDescriptor(), new PrintWriter(new StringWriter()), null);
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
-
+        mLooper.dispatchAll();
         verify(mWifiDiagnostics).captureBugReportData(
                 WifiDiagnostics.REPORT_REASON_USER_ACTION);
         verify(mWifiDiagnostics).dump(any(), any(), any());
@@ -8599,9 +8600,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testDumpShouldDumpWakeupController() {
-        mLooper.startAutoDispatch();
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
         mWifiServiceImpl.dump(new FileDescriptor(), new PrintWriter(new StringWriter()), null);
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        mLooper.dispatchAll();
         verify(mWakeupController).dump(any(), any(), any());
     }
 
