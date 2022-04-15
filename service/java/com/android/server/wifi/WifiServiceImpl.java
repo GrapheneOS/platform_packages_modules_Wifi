@@ -271,6 +271,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public final CountryCodeTracker mCountryCodeTracker;
     private final MultiInternetManager mMultiInternetManager;
     private int mVerboseAlwaysOnLevel = -1;
+    private boolean mIsWifiServiceStarted = false;
 
     /**
      * Callback for use with LocalOnlyHotspot to unregister requesting applications upon death.
@@ -658,6 +659,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mActiveModeWarden.start();
             registerForCarrierConfigChange();
             mWifiInjector.getAdaptiveConnectivityEnabledSettingObserver().initialize();
+            mIsWifiServiceStarted = true;
         });
     }
 
@@ -4751,6 +4753,10 @@ public class WifiServiceImpl extends BaseWifiService {
             pw.println("Permission Denial: can't dump WifiService from from pid="
                     + Binder.getCallingPid()
                     + ", uid=" + Binder.getCallingUid());
+            return;
+        }
+        if (!mIsWifiServiceStarted) {
+            pw.println("Wifi Service is not started. no dump available");
             return;
         }
         mWifiThreadRunner.run(() -> {
