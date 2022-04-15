@@ -3382,6 +3382,22 @@ public class WifiNative {
     }
 
     /**
+     * Returns whether creating a single AP does not require destroying an existing iface, but
+     * creating a bridged AP does.
+     */
+    public boolean shouldDowngradeToSingleApForConcurrency(@NonNull WorkSource requestorWs) {
+        synchronized (mLock) {
+            if (!mWifiVendorHal.isHalStarted()) {
+                return false;
+            }
+            return !mWifiVendorHal.canDeviceSupportAdditionalIface(HDM_CREATE_IFACE_AP_BRIDGE,
+                    requestorWs)
+                    && mWifiVendorHal.canDeviceSupportAdditionalIface(HDM_CREATE_IFACE_AP,
+                    requestorWs);
+        }
+    }
+
+    /**
      * Returns whether a new STA iface can be created or not.
      */
     public boolean isItPossibleToCreateStaIface(@NonNull WorkSource requestorWs) {

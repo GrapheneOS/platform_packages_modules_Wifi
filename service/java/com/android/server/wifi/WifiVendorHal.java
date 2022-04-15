@@ -3131,7 +3131,7 @@ public class WifiVendorHal {
         return android.hardware.wifi.V1_5.IWifiStaIface.castFrom(iface);
     }
 
-   /**
+    /**
      * Method to mock out the V1_6 IWifiStaIface retrieval in unit tests.
      *
      * @param ifaceName Name of the interface
@@ -3412,6 +3412,19 @@ public class WifiVendorHal {
     public boolean canDeviceSupportCreateTypeCombo(SparseArray<Integer> combo) {
         synchronized (sLock) {
             return mHalDeviceManager.canDeviceSupportCreateTypeCombo(combo);
+        }
+    }
+
+    /**
+     * Returns whether a new iface can be created without tearing down any existing ifaces.
+     */
+    public boolean canDeviceSupportAdditionalIface(
+            @HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType,
+            @NonNull WorkSource requestorWs) {
+        synchronized (sLock) {
+            List<Pair<Integer, WorkSource>> creationImpact =
+                    mHalDeviceManager.reportImpactToCreateIface(createIfaceType, true, requestorWs);
+            return creationImpact != null && creationImpact.isEmpty();
         }
     }
 

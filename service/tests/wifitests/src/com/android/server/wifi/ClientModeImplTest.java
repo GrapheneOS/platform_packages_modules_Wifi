@@ -113,7 +113,6 @@ import android.net.vcn.VcnNetworkPolicyResult;
 import android.net.wifi.IActionListener;
 import android.net.wifi.MloLink;
 import android.net.wifi.ScanResult;
-import android.net.wifi.ScanResult.InformationElement;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
@@ -6250,39 +6249,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
         mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
         mLooper.dispatchAll();
+        verify(mWifiNetworkAgent).unregisterAfterReplacement(anyInt());
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
         assertEquals("L3ProvisioningState", getCurrentState().getName());
-    }
-
-    @Test
-    public void testIpReachabilityFailureRoamNoActionForKtNetworks() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastT());
-        String ssid = ClientModeImpl.L3_REFRESH_OPT_OUT_SSID_SET.iterator().next();
-        ScanResult scanResult = new ScanResult(WifiSsid.fromString(ssid),
-                ssid, TEST_BSSID_STR, 1245, 0, "", -58, 2412, 1025, 22, 33, 20, 0, 0, true);
-        ScanResult.InformationElement ie = createIE(InformationElement.EID_VSA,
-                ClientModeImpl.L3_REFRESH_OPT_OUT_OUI);
-        scanResult.informationElements = new ScanResult.InformationElement[]{ie};
-        WifiConfiguration config = new WifiConfiguration();
-        config.SSID = ssid;
-
-        connect();
-        expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
-        reset(mWifiNetworkAgent);
-
-        when(mWifiConfigManager.getScanDetailCacheForNetwork(anyInt()))
-                .thenReturn(mScanDetailCache);
-        when(mScanDetailCache.getScanResult(anyString())).thenReturn(scanResult);
-        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
-        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(anyInt())).thenReturn(config);
-
-        // Trigger ip reachability failure and ensure there is no action.
-        ReachabilityLossInfoParcelable lossInfo =
-                new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
-        mLooper.dispatchAll();
-        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
-        assertEquals("L3ConnectedState", getCurrentState().getName());
     }
 
     @Test

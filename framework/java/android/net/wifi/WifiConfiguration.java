@@ -1824,6 +1824,16 @@ public class WifiConfiguration implements Parcelable {
 
     /**
      * Set the MAC randomization setting for this network.
+     * <p>
+     * Caller must satify one of the following conditions:
+     * </p>
+     * <ul>
+     * <li>Have {@code android.Manifest.permission#NETWORK_SETTINGS} permission.</li>
+     * <li>Have {@code android.Manifest.permission#NETWORK_SETUP_WIZARD} permission.</li>
+     * <li>Be in Demo Mode.</li>
+     * <li>Be the creator adding or updating a passpoint network.</li>
+     * <li>Be an admin updating their own network.</li>
+     * </ul>
      */
     public void setMacRandomizationSetting(@MacRandomizationSetting int macRandomizationSetting) {
         this.macRandomizationSetting = macRandomizationSetting;

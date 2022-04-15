@@ -1386,7 +1386,7 @@ public class WifiConfigManager {
             Log.e(TAG, "UID " + uid + " does not have permission to modify MAC randomization "
                     + "Settings " + config.getProfileKey() + ". Must have "
                     + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD or be in Demo Mode "
-                    + "or be the creator adding or updating a passpoint network"
+                    + "or be the creator adding or updating a passpoint network "
                     + "or be an admin updating their own network.");
             return new Pair<>(
                     new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
