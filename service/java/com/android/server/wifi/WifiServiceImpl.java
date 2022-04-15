@@ -1739,7 +1739,7 @@ public class WifiServiceImpl extends BaseWifiService {
     /**
      * SoftAp callback
      */
-    private final class TetheredSoftApTracker extends SoftApCallbackInternal {
+    private class BaseSoftApTracker extends SoftApCallbackInternal {
         /**
          * State of tethered SoftAP
          * One of:  {@link WifiManager#WIFI_AP_STATE_DISABLED},
@@ -1749,51 +1749,55 @@ public class WifiServiceImpl extends BaseWifiService {
          *          {@link WifiManager#WIFI_AP_STATE_FAILED}
          */
         private final Object mLock = new Object();
-        private int mTetheredSoftApState = WIFI_AP_STATE_DISABLED;
-        private Map<String, List<WifiClient>> mTetheredSoftApConnectedClientsMap = new HashMap();
-        private Map<String, SoftApInfo> mTetheredSoftApInfoMap = new HashMap();
+        private int mSoftApState = WIFI_AP_STATE_DISABLED;
+        private Map<String, List<WifiClient>> mSoftApConnectedClientsMap = new HashMap();
+        private Map<String, SoftApInfo> mSoftApInfoMap = new HashMap();
         private boolean mIsBridgedMode = false;
         // TODO: We need to maintain two capability. One for LTE + SAP and one for WIFI + SAP
-        private SoftApCapability mTetheredSoftApCapability = null;
-
-        public void handleBootCompleted() {
-            updateAvailChannelListInSoftApCapability(mCountryCode.getCurrentDriverCountryCode());
-        }
+        protected SoftApCapability mSoftApCapability = null;
+        protected final RemoteCallbackList<ISoftApCallback> mRegisteredSoftApCallbacks =
+                new RemoteCallbackList<>();
 
         public int getState() {
             synchronized (mLock) {
-                return mTetheredSoftApState;
+                return mSoftApState;
+            }
+        }
+
+        public void setState(int state) {
+            synchronized (mLock) {
+                mSoftApState = state;
             }
         }
 
         public boolean setEnablingIfAllowed() {
             synchronized (mLock) {
-                if (mTetheredSoftApState != WIFI_AP_STATE_DISABLED
-                        && mTetheredSoftApState != WIFI_AP_STATE_FAILED) {
+                if (mSoftApState != WIFI_AP_STATE_DISABLED
+                        && mSoftApState != WIFI_AP_STATE_FAILED) {
                     return false;
                 }
-                mTetheredSoftApState = WIFI_AP_STATE_ENABLING;
+                mSoftApState = WIFI_AP_STATE_ENABLING;
                 return true;
             }
         }
 
         public void setFailedWhileEnabling() {
             synchronized (mLock) {
-                if (mTetheredSoftApState == WIFI_AP_STATE_ENABLING) {
-                    mTetheredSoftApState = WIFI_AP_STATE_FAILED;
+                if (mSoftApState == WIFI_AP_STATE_ENABLING) {
+                    mSoftApState = WIFI_AP_STATE_FAILED;
                 }
             }
         }
 
         public Map<String, List<WifiClient>> getConnectedClients() {
             synchronized (mLock) {
-                return mTetheredSoftApConnectedClientsMap;
+                return mSoftApConnectedClientsMap;
             }
         }
 
         public Map<String, SoftApInfo> getSoftApInfos() {
             synchronized (mLock) {
-                return mTetheredSoftApInfoMap;
+                return mSoftApInfoMap;
             }
         }
 
@@ -1805,11 +1809,12 @@ public class WifiServiceImpl extends BaseWifiService {
 
         public void notifyNewCountryCodeChangePending(@NonNull String countryCode) {
             // If country code not changed, no need to update.
-            if (!TextUtils.equals(mTetheredSoftApCapability.getCountryCode(), countryCode)) {
+            if (mSoftApCapability != null && !TextUtils.equals(mSoftApCapability.getCountryCode(),
+                    countryCode)) {
                 // Country code changed when we can't update channels from HAL, invalidate the soft
                 // ap capability for supported channels.
                 SoftApCapability newSoftApCapability = new SoftApCapability(
-                        mTetheredSoftApCapability);
+                        mSoftApCapability);
                 for (int b : SoftApConfiguration.BAND_TYPES) {
                     newSoftApCapability.setSupportedChannelList(b, new int[0]);
                 }
@@ -1818,15 +1823,19 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         }
 
+        public void handleBootCompleted() {
+            updateAvailChannelListInSoftApCapability(mCountryCode.getCurrentDriverCountryCode());
+        }
+
         public SoftApCapability getSoftApCapability() {
             synchronized (mLock) {
-                if (mTetheredSoftApCapability == null) {
-                    mTetheredSoftApCapability = ApConfigUtil.updateCapabilityFromResource(mContext);
+                if (mSoftApCapability == null) {
+                    mSoftApCapability = ApConfigUtil.updateCapabilityFromResource(mContext);
                     // Default country code
-                    mTetheredSoftApCapability = updateSoftApCapabilityWithAvailableChannelList(
-                            mTetheredSoftApCapability, mCountryCode.getCountryCode());
+                    mSoftApCapability = updateSoftApCapabilityWithAvailableChannelList(
+                            mSoftApCapability, mCountryCode.getCountryCode());
                 }
-                return mTetheredSoftApCapability;
+                return mSoftApCapability;
             }
         }
 
@@ -1838,7 +1847,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 return softApCapability;
             }
             if (mCountryCode.getCurrentDriverCountryCode() != null) {
-                mTetheredSoftApCapability.setCountryCode(countryCode);
+                mSoftApCapability.setCountryCode(countryCode);
             }
             return ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(
                     softApCapability, mContext, mWifiNative);
@@ -1848,32 +1857,6 @@ public class WifiServiceImpl extends BaseWifiService {
             onCapabilityChanged(updateSoftApCapabilityWithAvailableChannelList(
                     getSoftApCapability(), countryCode));
         }
-
-        public void updateSoftApCapabilityWhenCarrierConfigChanged(int subId) {
-            CarrierConfigManager carrierConfigManager =
-                    mContext.getSystemService(CarrierConfigManager.class);
-            if (carrierConfigManager == null) return;
-            PersistableBundle carrierConfig = carrierConfigManager.getConfigForSubId(subId);
-            if (carrierConfig == null) return;
-            int carrierMaxClient = carrierConfig.getInt(
-                    CarrierConfigManager.Wifi.KEY_HOTSPOT_MAX_CLIENT_COUNT);
-            int finalSupportedClientNumber = mContext.getResources().getInteger(
-                    R.integer.config_wifiHardwareSoftapMaxClientCount);
-            if (carrierMaxClient > 0) {
-                finalSupportedClientNumber = Math.min(finalSupportedClientNumber,
-                        carrierMaxClient);
-            }
-            if (finalSupportedClientNumber == getSoftApCapability().getMaxSupportedClients()) {
-                return;
-            }
-            SoftApCapability newSoftApCapability = new SoftApCapability(mTetheredSoftApCapability);
-            newSoftApCapability.setMaxSupportedClients(
-                    finalSupportedClientNumber);
-            onCapabilityChanged(newSoftApCapability);
-        }
-
-        private final RemoteCallbackList<ISoftApCallback> mRegisteredSoftApCallbacks =
-                new RemoteCallbackList<>();
 
         public boolean registerSoftApCallback(ISoftApCallback callback) {
             return mRegisteredSoftApCallbacks.register(callback);
@@ -1895,7 +1878,7 @@ public class WifiServiceImpl extends BaseWifiService {
         @Override
         public void onStateChanged(int state, int failureReason) {
             synchronized (mLock) {
-                mTetheredSoftApState = state;
+                mSoftApState = state;
             }
             notifyRegisterOnStateChanged(mRegisteredSoftApCallbacks, state, failureReason);
         }
@@ -1914,9 +1897,9 @@ public class WifiServiceImpl extends BaseWifiService {
                     Log.d(TAG, "ShutDown bridged mode, clear isBridged cache in Service");
                     mIsBridgedMode = false;
                 }
-                mTetheredSoftApConnectedClientsMap =
+                mSoftApConnectedClientsMap =
                         ApConfigUtil.deepCopyForWifiClientListMap(clients);
-                mTetheredSoftApInfoMap = ApConfigUtil.deepCopyForSoftApInfoMap(infos);
+                mSoftApInfoMap = ApConfigUtil.deepCopyForSoftApInfoMap(infos);
             }
             notifyRegisterOnConnectedClientsOrInfoChanged(mRegisteredSoftApCallbacks,
                     infos, clients, isBridged);
@@ -1930,13 +1913,13 @@ public class WifiServiceImpl extends BaseWifiService {
         @Override
         public void onCapabilityChanged(SoftApCapability capability) {
             synchronized (mLock) {
-                if (Objects.equals(capability, mTetheredSoftApCapability)) {
+                if (Objects.equals(capability, mSoftApCapability)) {
                     return;
                 }
-                mTetheredSoftApCapability = new SoftApCapability(capability);
+                mSoftApCapability = new SoftApCapability(capability);
             }
             notifyRegisterOnCapabilityChanged(mRegisteredSoftApCallbacks,
-                    mTetheredSoftApCapability);
+                    mSoftApCapability);
         }
 
         /**
@@ -1953,10 +1936,36 @@ public class WifiServiceImpl extends BaseWifiService {
         }
     }
 
+    private final class TetheredSoftApTracker extends BaseSoftApTracker {
+        public void updateSoftApCapabilityWhenCarrierConfigChanged(int subId) {
+            CarrierConfigManager carrierConfigManager =
+                    mContext.getSystemService(CarrierConfigManager.class);
+            if (carrierConfigManager == null) return;
+            PersistableBundle carrierConfig = carrierConfigManager.getConfigForSubId(subId);
+            if (carrierConfig == null) return;
+            int carrierMaxClient = carrierConfig.getInt(
+                    CarrierConfigManager.Wifi.KEY_HOTSPOT_MAX_CLIENT_COUNT);
+            int finalSupportedClientNumber = mContext.getResources().getInteger(
+                    R.integer.config_wifiHardwareSoftapMaxClientCount);
+            if (carrierMaxClient > 0) {
+                finalSupportedClientNumber = Math.min(finalSupportedClientNumber,
+                        carrierMaxClient);
+            }
+            if (finalSupportedClientNumber == getSoftApCapability().getMaxSupportedClients()) {
+                return;
+            }
+            SoftApCapability newSoftApCapability = new SoftApCapability(mSoftApCapability);
+            newSoftApCapability.setMaxSupportedClients(
+                    finalSupportedClientNumber);
+            onCapabilityChanged(newSoftApCapability);
+        }
+
+    }
+
     /**
      * Implements LOHS behavior on top of the existing SoftAp API.
      */
-    private final class LohsSoftApTracker extends SoftApCallbackInternal {
+    private final class LohsSoftApTracker extends BaseSoftApTracker {
         @GuardedBy("mLocalOnlyHotspotRequests")
         private final HashMap<Integer, LocalOnlyHotspotRequestInfo>
                 mLocalOnlyHotspotRequests = new HashMap<>();
@@ -1975,111 +1984,8 @@ public class WifiServiceImpl extends BaseWifiService {
         @GuardedBy("mLocalOnlyHotspotRequests")
         private String mLohsInterfaceName;
 
-        /**
-         * State of local-only hotspot
-         * One of:  {@link WifiManager#WIFI_AP_STATE_DISABLED},
-         *          {@link WifiManager#WIFI_AP_STATE_DISABLING},
-         *          {@link WifiManager#WIFI_AP_STATE_ENABLED},
-         *          {@link WifiManager#WIFI_AP_STATE_ENABLING},
-         *          {@link WifiManager#WIFI_AP_STATE_FAILED}
-         */
-        @GuardedBy("mLocalOnlyHotspotRequests")
-        private int mLohsState = WIFI_AP_STATE_DISABLED;
-
         @GuardedBy("mLocalOnlyHotspotRequests")
         private int mLohsInterfaceMode = WifiManager.IFACE_IP_MODE_UNSPECIFIED;
-
-        private SoftApCapability mLohsSoftApCapability = null;
-        private final Object mLock = new Object();
-        private Map<String, List<WifiClient>> mLohsConnectedClientsMap = new HashMap();
-        private Map<String, SoftApInfo> mLohsInfoMap = new HashMap();
-        private boolean mIsBridgedMode = false;
-
-        private final RemoteCallbackList<ISoftApCallback> mRegisteredLohsSoftApCallbacks =
-                new RemoteCallbackList<>();
-
-        public void handleBootCompleted() {
-            // TODO: b/197529327 Update available channels and trigger the callback if any register
-        }
-
-
-        public boolean registerLohsSoftApCallback(ISoftApCallback callback) {
-            return mRegisteredLohsSoftApCallbacks.register(callback);
-        }
-
-        public void unregisterLohsSoftApCallback(ISoftApCallback callback) {
-            mRegisteredLohsSoftApCallbacks.unregister(callback);
-        }
-
-        public int getState() {
-            synchronized (mLock) {
-                return mLohsState;
-            }
-        }
-
-        public Map<String, List<WifiClient>> getConnectedClients() {
-            synchronized (mLock) {
-                return mLohsConnectedClientsMap;
-            }
-        }
-
-        public Map<String, SoftApInfo> getSoftApInfos() {
-            synchronized (mLock) {
-                return mLohsInfoMap;
-            }
-        }
-
-        public boolean getIsBridgedMode() {
-            synchronized (mLock) {
-                return false;
-            }
-        }
-
-        public void notifyNewCountryCodeChangePending(@NonNull String countryCode) {
-            if (mLohsSoftApCapability == null) {
-                return;
-            }
-            // If country code not changed, no need to update.
-            if (!TextUtils.equals(mLohsSoftApCapability.getCountryCode(), countryCode)) {
-                // Country code changed when we can't update channels from HAL, invalidate the soft
-                // ap capability for supported channels.
-                SoftApCapability newSoftApCapability = new SoftApCapability(
-                        mLohsSoftApCapability);
-                for (int b : SoftApConfiguration.BAND_TYPES) {
-                    newSoftApCapability.setSupportedChannelList(b, new int[0]);
-                }
-                // Notify the capability change
-                onCapabilityChanged(newSoftApCapability);
-            }
-        }
-
-        public SoftApCapability getSoftApCapability() {
-            if (mLohsSoftApCapability == null) {
-                mLohsSoftApCapability = ApConfigUtil.updateCapabilityFromResource(mContext);
-                mLohsSoftApCapability = updateSoftApCapabilityWithAvailableChannelList(
-                        mLohsSoftApCapability, mCountryCode.getCountryCode());
-            }
-            return mLohsSoftApCapability;
-        }
-
-        private SoftApCapability updateSoftApCapabilityWithAvailableChannelList(
-                @NonNull SoftApCapability softApCapability, @Nullable String countryCode) {
-            if (!mIsBootComplete) {
-                // The available channel list is from wificond or HAL.
-                // It might be a failure or stuck during wificond or HAL init.
-                return softApCapability;
-            }
-            if (mCountryCode.getCurrentDriverCountryCode() != null) {
-                softApCapability.setCountryCode(countryCode);
-            }
-            return ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(softApCapability,
-                    mContext, mWifiNative);
-        }
-
-        public void updateAvailChannelListInSoftApCapability(@Nullable String countryCode) {
-            onCapabilityChanged(updateSoftApCapabilityWithAvailableChannelList(
-                    getSoftApCapability(), countryCode));
-        }
 
         public void updateInterfaceIpState(String ifaceName, int mode) {
             // update interface IP state related to local-only hotspot
@@ -2326,7 +2232,7 @@ public class WifiServiceImpl extends BaseWifiService {
             // The AP state update from ClientModeImpl for softap
             synchronized (mLocalOnlyHotspotRequests) {
                 Log.d(TAG, "lohs.onStateChanged: currentState=" + state
-                        + " previousState=" + mLohsState + " errorCode= " + failureReason
+                        + " previousState=" + getState() + " errorCode= " + failureReason
                         + " ifaceName=" + mLohsInterfaceName);
 
                 // check if we have a failure - since it is possible (worst case scenario where
@@ -2361,61 +2267,9 @@ public class WifiServiceImpl extends BaseWifiService {
                             WifiManager.IFACE_IP_MODE_UNSPECIFIED);
                 }
                 // For enabling and enabled, just record the new state
-                mLohsState = state;
-                notifyRegisterOnStateChanged(mRegisteredLohsSoftApCallbacks, state, failureReason);
+                setState(state);
+                notifyRegisterOnStateChanged(mRegisteredSoftApCallbacks, state, failureReason);
             }
-        }
-
-        /**
-         * Called when the connected clients to soft AP changes.
-         *
-         * @param clients connected clients to soft AP
-         */
-        @Override
-        public void onConnectedClientsOrInfoChanged(Map<String, SoftApInfo> infos,
-                Map<String, List<WifiClient>> clients, boolean isBridged) {
-            synchronized (mLock) {
-                mIsBridgedMode = isBridged;
-                if (infos.size() == 0 && isBridged) {
-                    Log.d(TAG, "ShutDown bridged mode, clear isBridged cache in Service");
-                    mIsBridgedMode = false;
-                }
-                mLohsConnectedClientsMap =
-                        ApConfigUtil.deepCopyForWifiClientListMap(clients);
-                mLohsInfoMap = ApConfigUtil.deepCopyForSoftApInfoMap(infos);
-            }
-            notifyRegisterOnConnectedClientsOrInfoChanged(mRegisteredLohsSoftApCallbacks,
-                    infos, clients, isBridged);
-        }
-
-        /**
-         * Called when capability of softap changes.
-         *
-         * @param capability is the softap capability. {@link SoftApCapability}
-         */
-        @Override
-        public void onCapabilityChanged(SoftApCapability capability) {
-            synchronized (mLock) {
-                if (Objects.equals(capability, mLohsSoftApCapability)) {
-                    return;
-                }
-                mLohsSoftApCapability = new SoftApCapability(capability);
-            }
-            notifyRegisterOnCapabilityChanged(mRegisteredLohsSoftApCallbacks,
-                    mLohsSoftApCapability);
-        }
-
-        /**
-         * Called when client trying to connect but device blocked the client with specific reason.
-         *
-         * @param client the currently blocked client.
-         * @param blockedReason one of blocked reason from
-         * {@link WifiManager.SapClientBlockedReason}
-         */
-        @Override
-        public void onBlockedClientConnecting(WifiClient client, int blockedReason) {
-            notifyRegisterOnBlockedClientConnecting(mRegisteredLohsSoftApCallbacks, client,
-                    blockedReason);
         }
     }
 
@@ -2665,7 +2519,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // post operation to handler thread
         mWifiThreadRunner.post(() -> {
-            if (!mLohsSoftApTracker.registerLohsSoftApCallback(callback)) {
+            if (!mLohsSoftApTracker.registerSoftApCallback(callback)) {
                 Log.e(TAG, "registerSoftApCallback: Failed to add callback");
                 return;
             }
@@ -2701,7 +2555,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // post operation to handler thread
         mWifiThreadRunner.post(() ->
-                mLohsSoftApTracker.unregisterLohsSoftApCallback(callback));
+                mLohsSoftApTracker.unregisterSoftApCallback(callback));
     }
 
     /**
