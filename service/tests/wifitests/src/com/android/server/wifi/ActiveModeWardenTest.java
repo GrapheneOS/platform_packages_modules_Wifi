@@ -725,7 +725,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         // request for an additional CMM
         ConcreteClientModeManager additionalClientModeManager =
@@ -2824,7 +2824,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // request for ssid2/bssid2
         if (additionaClientModeManagerRole == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, ssid, bssid);
+                    externalRequestListener, TEST_WORKSOURCE, ssid, bssid, false);
         } else if (additionaClientModeManagerRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, ssid, bssid);
@@ -2873,7 +2873,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         // Verify removing a non DefaultClientModeManager works properly.
         requestRemoveAdditionalClientModeManager(ROLE_CLIENT_LOCAL_ONLY);
@@ -2935,7 +2935,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // request for ssid2/bssid2
         if (role == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         } else if (role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
@@ -2966,7 +2966,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ExternalClientModeManagerRequestListener.class);
         if (role == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1);
+                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1, false);
         } else if (role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1);
@@ -2998,7 +2998,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // request for one more CMM (returns the existing one).
         if (role == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_3, TEST_BSSID_3);
+                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_3, TEST_BSSID_3, false);
         } else if (role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, TEST_SSID_3, TEST_BSSID_3);
@@ -3041,7 +3041,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // request for the same SSID/BSSID and expect the existing CMM to get returned twice.
         if (role == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         } else if (role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
@@ -3088,7 +3088,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // request for same ssid1/bssid1
         if (role == ROLE_CLIENT_LOCAL_ONLY) {
             mActiveModeWarden.requestLocalOnlyClientModeManager(
-                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1);
+                    externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1, false);
         } else if (role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
             mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                     externalRequestListener, TEST_WORKSOURCE, TEST_SSID_1, TEST_BSSID_1);
@@ -3112,7 +3112,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         requestRemoveAdditionalClientModeManager(ROLE_CLIENT_LOCAL_ONLY);
     }
@@ -3122,7 +3122,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // Ensure that we cannot create more client ifaces.
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, true);
     }
 
@@ -3133,7 +3133,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, true);
     }
 
@@ -3142,7 +3142,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // Ensure that we can create more client ifaces.
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         requestAdditionalClientModeManagerWhenWifiIsOff(ROLE_CLIENT_LOCAL_ONLY);
     }
@@ -3154,7 +3154,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresent(ROLE_CLIENT_LOCAL_ONLY);
     }
@@ -3166,7 +3166,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresentSameBssid(ROLE_CLIENT_LOCAL_ONLY);
     }
@@ -3178,7 +3178,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
 
         requestAdditionalClientModeManagerWhenConnectingToPrimaryBssid(ROLE_CLIENT_LOCAL_ONLY);
     }
@@ -3190,9 +3190,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
         when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
                 .thenReturn(true);
-        // Simulate explicit user approval
-        WorkSource workSource = new WorkSource(TEST_WORKSOURCE);
-        workSource.add(SETTINGS_WORKSOURCE);
+
         when(mWifiPermissionsUtil.isSystem(TEST_PACKAGE, TEST_UID)).thenReturn(false);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(
                 TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
@@ -3200,8 +3198,12 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isTargetSdkLessThan(
                 "system-service", Build.VERSION_CODES.S, Process.SYSTEM_UID))
                 .thenReturn(false);
+        // Simulate explicit user approval
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                workSource, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, true));
+        WorkSource workSource = new WorkSource(TEST_WORKSOURCE);
+        workSource.add(SETTINGS_WORKSOURCE);
+        verify(mWifiNative).isItPossibleToCreateStaIface(eq(workSource));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, true);
     }
 
@@ -3217,7 +3219,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
                 .thenReturn(false);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         requestRemoveAdditionalClientModeManager(ROLE_CLIENT_LOCAL_ONLY);
     }
 
@@ -3234,7 +3236,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
                 .thenReturn(true);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, true);
     }
 
@@ -3251,7 +3253,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
                 .thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_LOCAL_ONLY, false);
     }
 
@@ -3262,7 +3264,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         requestRemoveAdditionalClientModeManager(ROLE_CLIENT_SECONDARY_LONG_LIVED);
     }
@@ -3273,7 +3275,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // Ensure that we cannot create more client ifaces.
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_SECONDARY_LONG_LIVED,
                 true);
     }
@@ -3286,7 +3288,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_SECONDARY_LONG_LIVED,
                 true);
     }
@@ -3298,7 +3300,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         requestAdditionalClientModeManagerWhenWifiIsOff(ROLE_CLIENT_SECONDARY_LONG_LIVED);
     }
@@ -3310,7 +3312,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresent(ROLE_CLIENT_SECONDARY_LONG_LIVED);
     }
@@ -3323,7 +3325,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresentSameBssid(
                 ROLE_CLIENT_SECONDARY_LONG_LIVED);
@@ -3337,7 +3339,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         requestAdditionalClientModeManagerWhenConnectingToPrimaryBssid(
                 ROLE_CLIENT_SECONDARY_LONG_LIVED);
@@ -3351,7 +3353,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         requestRemoveAdditionalClientModeManager(ROLE_CLIENT_SECONDARY_TRANSIENT);
     }
@@ -3362,7 +3364,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // Ensure that we cannot create more client ifaces.
         when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_SECONDARY_TRANSIENT,
                 true);
     }
@@ -3376,7 +3378,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(false);
         assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
         requestRemoveAdditionalClientModeManagerWhenNotAllowed(ROLE_CLIENT_SECONDARY_TRANSIENT,
                 true);
     }
@@ -3389,7 +3391,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         requestAdditionalClientModeManagerWhenWifiIsOff(ROLE_CLIENT_SECONDARY_TRANSIENT);
     }
@@ -3402,7 +3404,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresent(ROLE_CLIENT_SECONDARY_TRANSIENT);
     }
@@ -3416,7 +3418,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         requestAdditionalClientModeManagerWhenAlreadyPresentSameBssid(
                 ROLE_CLIENT_SECONDARY_TRANSIENT);
@@ -3431,7 +3433,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         requestAdditionalClientModeManagerWhenConnectingToPrimaryBssid(
                 ROLE_CLIENT_SECONDARY_TRANSIENT);
@@ -3449,9 +3451,9 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         enterClientModeActiveState();
 
@@ -3479,7 +3481,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ExternalClientModeManagerRequestListener.class);
         // request for ssid2/bssid2
         mActiveModeWarden.requestLocalOnlyClientModeManager(
-                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         mLooper.dispatchAll();
         verify(mWifiInjector).makeClientModeManager(
                 any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
@@ -3534,9 +3536,9 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         enterClientModeActiveState();
 
@@ -3564,7 +3566,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 ExternalClientModeManagerRequestListener.class);
         // request for ssid2/bssid2
         mActiveModeWarden.requestLocalOnlyClientModeManager(
-                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         mLooper.dispatchAll();
         verify(mWifiInjector).makeClientModeManager(
                 any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
@@ -3612,7 +3614,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         // Create primary STA.
         enterClientModeActiveState();
@@ -3677,9 +3679,9 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY));
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, false));
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
 
         enterClientModeActiveState();
         ArgumentCaptor<ClientModeManager> requestedClientModeManager =
@@ -3702,7 +3704,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         // mock requesting local only secondary
         mActiveModeWarden.requestLocalOnlyClientModeManager(
-                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         mLooper.dispatchAll();
         // Verify the primary is given to the externalRequestListener
         verify(externalRequestListener).onAnswer(requestedClientModeManager.capture());
@@ -3735,7 +3737,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         ConcreteClientModeManager additionalClientModeManager =
                 mock(ConcreteClientModeManager.class);
@@ -3991,7 +3993,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
                 .thenReturn(true);
         assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT));
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_TRANSIENT, false));
 
         enterClientModeActiveState();
 
@@ -4075,7 +4077,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         mActiveModeWarden.requestLocalOnlyClientModeManager(
                 mock(ExternalClientModeManagerRequestListener.class),
-                TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+                TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false);
         mLooper.dispatchAll();
 
         // No role set, should be ignored.
@@ -4363,5 +4365,70 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         clearInvocations(mClientModeManager);
 
         indicateEndOfEmergencyScan(true, ROLE_CLIENT_PRIMARY);
+    }
+
+    @Test
+    public void testRequestForSecondaryLocalOnlyForPreSAppWithUserConnect() throws Exception {
+        // Ensure that we can create more client ifaces.
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
+                .thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaRestrictedConcurrencyEnabled))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isSystem(TEST_PACKAGE, TEST_UID)).thenReturn(false);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(
+                TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(
+                "system-service", Build.VERSION_CODES.S, Process.SYSTEM_UID))
+                .thenReturn(false);
+        assertFalse(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, true));
+        assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_SECONDARY_LONG_LIVED, false));
+
+        enterClientModeActiveState();
+        ArgumentCaptor<ClientModeManager> requestedClientModeManager =
+                ArgumentCaptor.forClass(ClientModeManager.class);
+        ExternalClientModeManagerRequestListener externalRequestListener = mock(
+                ExternalClientModeManagerRequestListener.class);
+        Mutable<Listener<ConcreteClientModeManager>> additionalClientListener =
+                new Mutable<>();
+        ConcreteClientModeManager additionalClientModeManager =
+                mock(ConcreteClientModeManager.class);
+        doAnswer((invocation) -> {
+            Object[] args = invocation.getArguments();
+            additionalClientListener.value =
+                    (Listener<ConcreteClientModeManager>) args[0];
+            return additionalClientModeManager;
+        }).when(mWifiInjector).makeClientModeManager(
+                any(Listener.class), any(), any(), anyBoolean());
+        when(additionalClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME_1);
+        when(additionalClientModeManager.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
+
+        // mock requesting local only secondary
+        mActiveModeWarden.requestLocalOnlyClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, true);
+        mLooper.dispatchAll();
+        // Verify the primary is given to the externalRequestListener
+        verify(externalRequestListener).onAnswer(requestedClientModeManager.capture());
+        verify(mWifiInjector, never()).makeClientModeManager(
+                any(), any(), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
+        assertEquals(ROLE_CLIENT_PRIMARY, requestedClientModeManager.getValue().getRole());
+
+        // Request for non local-only STA and verify the secondary STA is provided instead.
+        when(additionalClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2);
+        mLooper.dispatchAll();
+        verify(mWifiInjector).makeClientModeManager(any(), any(),
+                eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), anyBoolean());
+
+        additionalClientListener.value.onStarted(additionalClientModeManager);
+        mLooper.dispatchAll();
+        verify(externalRequestListener, times(2)).onAnswer(
+                requestedClientModeManager.capture());
+        assertEquals(ROLE_CLIENT_SECONDARY_LONG_LIVED,
+                requestedClientModeManager.getValue().getRole());
     }
 }

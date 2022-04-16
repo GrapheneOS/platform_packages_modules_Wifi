@@ -519,7 +519,7 @@ public class WifiConnectivityManager {
             if (oemPaidOrOemPrivateRequestorWs != null
                     && mActiveModeWarden.canRequestMoreClientModeManagersInRole(
                             oemPaidOrOemPrivateRequestorWs,
-                            ROLE_CLIENT_SECONDARY_LONG_LIVED)) {
+                            ROLE_CLIENT_SECONDARY_LONG_LIVED, false)) {
                 // Add a placeholder CMM state to ensure network selection is performed for a
                 // potential second STA creation.
                 cmmStates.add(new WifiNetworkSelector.ClientModeManagerState());
@@ -531,7 +531,7 @@ public class WifiConnectivityManager {
             if (mMultiInternetConnectionRequestorWs == null) {
                 Log.e(TAG, "mMultiInternetConnectionRequestorWs is null!");
             } else if (mActiveModeWarden.canRequestMoreClientModeManagersInRole(
-                        mMultiInternetConnectionRequestorWs, ROLE_CLIENT_SECONDARY_LONG_LIVED)) {
+                    mMultiInternetConnectionRequestorWs, ROLE_CLIENT_SECONDARY_LONG_LIVED, false)) {
                 cmmStates.add(new WifiNetworkSelector.ClientModeManagerState());
             }
         }
