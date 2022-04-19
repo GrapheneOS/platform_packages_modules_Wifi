@@ -2091,6 +2091,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      * - create STA (system app): will get refused
      * - create AP (system app): will get refused
      * - request P2P (system app): failure
+     * - request P2P (privileged app): failure
      * - tear down AP
      * - create STA (system app)
      * - create STA (system app): will get refused
@@ -2206,6 +2207,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
         assertNull("should not create this p2p", p2pDetails);
         p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+
+        // request P2P (privileged app): should fail
+        p2pDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_2);
+        assertNull("should not create this p2p", p2pDetails);
+        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
         collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
 
         // tear down AP
@@ -2419,6 +2427,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      * - create STA (system app): will get refused
      * - create AP (system app): will get refused
      * - request P2P (system app): failure
+     * - request P2P (privileged app): failure
      * - tear down AP
      * - create STA (system app): will get refused
      * - create NAN (privileged app)
@@ -2533,6 +2542,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
         assertNull("should not create this p2p", p2pDetails);
         p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+
+        // request P2P (privileged app): should fail
+        p2pDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_2);
+        assertNull("should not create this p2p", p2pDetails);
+        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
         collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
 
         // tear down AP
