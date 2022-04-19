@@ -1097,12 +1097,22 @@ public class WifiServiceImpl extends BaseWifiService {
      * Note: Invoke mAppOps.checkPackage(uid, packageName) before to ensure correct package name.
      */
     private boolean isTargetSdkLessThanQOrPrivileged(String packageName, int pid, int uid) {
-        return mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.Q, uid)
+        return (mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.Q, uid)
+                && !isGuestUser())
                 || isPrivileged(pid, uid)
                 || mWifiPermissionsUtil.isAdmin(uid, packageName)
                 || mWifiPermissionsUtil.isSystem(packageName, uid)
                 // TODO(b/140540984): Remove this bypass.
                 || mWifiPermissionsUtil.checkSystemAlertWindowPermission(uid, packageName);
+    }
+
+    private boolean isGuestUser() {
+        long ident = Binder.clearCallingIdentity();
+        try {
+            return mWifiPermissionsUtil.isGuestUser();
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
     }
 
     /**
@@ -1111,7 +1121,8 @@ public class WifiServiceImpl extends BaseWifiService {
      * Note: Invoke mAppOps.checkPackage(uid, packageName) before to ensure correct package name.
      */
     private boolean isTargetSdkLessThanROrPrivileged(String packageName, int pid, int uid) {
-        return mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.R, uid)
+        return (mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.R, uid)
+                && !isGuestUser())
                 || isPrivileged(pid, uid)
                 || mWifiPermissionsUtil.isAdmin(uid, packageName)
                 || mWifiPermissionsUtil.isSystem(packageName, uid);
@@ -1154,7 +1165,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !isDeviceOrProfileOwner(callingUid, packageName)
                 && !mWifiPermissionsUtil.isSystem(packageName, callingUid);
         boolean isTargetSdkLessThanQ = mWifiPermissionsUtil.isTargetSdkLessThan(packageName,
-                Build.VERSION_CODES.Q, callingUid);
+                Build.VERSION_CODES.Q, callingUid) && !isGuestUser();
         mWifiPermissionsUtil.checkPackage(callingUid, packageName);
         if (isThirdParty && !isTargetSdkLessThanQ) {
             mLog.info("setWifiEnabled not allowed for uid=%").c(callingUid).flush();
