@@ -2329,22 +2329,22 @@ public class HalDeviceManager {
         return false;
     }
 
-    private static final int PRIORITY_PRIVILEGED = 0;
-    private static final int PRIORITY_SYSTEM = 1;
-    private static final int PRIORITY_FG_APP = 2;
-    private static final int PRIORITY_FG_SERVICE = 3;
-    private static final int PRIORITY_BG = 4;
-    private static final int PRIORITY_INTERNAL = 5;
+    private static final int PRIORITY_INTERNAL = 0;
+    private static final int PRIORITY_BG = 1;
+    private static final int PRIORITY_FG_SERVICE = 2;
+    private static final int PRIORITY_FG_APP = 3;
+    private static final int PRIORITY_SYSTEM = 4;
+    private static final int PRIORITY_PRIVILEGED = 5;
     // Keep these in sync with any additions/deletions to above buckets.
-    private static final int PRIORITY_MIN = PRIORITY_PRIVILEGED;
-    private static final int PRIORITY_MAX = PRIORITY_INTERNAL;
+    private static final int PRIORITY_MIN = PRIORITY_INTERNAL;
+    private static final int PRIORITY_MAX = PRIORITY_PRIVILEGED;
     @IntDef(prefix = { "PRIORITY_" }, value = {
-            PRIORITY_PRIVILEGED,
-            PRIORITY_SYSTEM,
-            PRIORITY_FG_APP,
-            PRIORITY_FG_SERVICE,
-            PRIORITY_BG,
             PRIORITY_INTERNAL,
+            PRIORITY_BG,
+            PRIORITY_FG_SERVICE,
+            PRIORITY_FG_APP,
+            PRIORITY_SYSTEM,
+            PRIORITY_PRIVILEGED,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface RequestorWsPriority {}
@@ -2367,7 +2367,7 @@ public class HalDeviceManager {
      * interface request from |existingRequestorWsPriority|.
      *
      * Rule:
-     *  - If |newRequestorWsPriority| < |existingRequestorWsPriority|, then YES.
+     *  - If |newRequestorWsPriority| > |existingRequestorWsPriority|, then YES.
      *  - If they are at the same priority level, then
      *      - If both are privileged and not for the same interface type, then YES.
      *      - Else, NO.
@@ -2381,7 +2381,7 @@ public class HalDeviceManager {
         // If the new request is higher priority than existing priority, then the new requestor
         // wins. This is because at all other priority levels (except privileged), existing caller
         // wins if both the requests are at the same priority level.
-        if (newRequestorWsPriority < existingRequestorWsPriority) {
+        if (newRequestorWsPriority > existingRequestorWsPriority) {
             return true;
         }
         if (newRequestorWsPriority == existingRequestorWsPriority) {
@@ -2556,7 +2556,7 @@ public class HalDeviceManager {
             int numIfacesToDelete = 0;
             List<WifiIfaceInfo> ifacesToDelete = new ArrayList<>(excessInterfaces);
             // Iterate from lowest priority to highest priority ifaces.
-            for (int i = PRIORITY_MAX; i >= PRIORITY_MIN; i--) {
+            for (int i = PRIORITY_MIN; i <= PRIORITY_MAX; i++) {
                 List<WifiIfaceInfo> ifacesToDeleteListWithinPriority =
                         ifacesToDeleteMap.getOrDefault(i, new ArrayList<>());
                 int numIfacesToDeleteWithinPriority =
