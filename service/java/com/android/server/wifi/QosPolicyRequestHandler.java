@@ -24,6 +24,7 @@ import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
@@ -40,9 +41,12 @@ import java.util.Set;
  */
 public class QosPolicyRequestHandler {
     private static final String TAG = "QosPolicyRequestHandler";
+    @VisibleForTesting
+    public static final int PROCESSING_TIMEOUT_MILLIS = 500;
 
     private final String mInterfaceName;
     private final WifiNative mWifiNative;
+    private final ClientModeImpl mClientModeImpl;
     private WifiNetworkAgent mNetworkAgent;
     private Handler mHandler;
     private boolean mVerboseLoggingEnabled;
@@ -56,9 +60,10 @@ public class QosPolicyRequestHandler {
 
     public QosPolicyRequestHandler(
             @NonNull String ifaceName, @NonNull WifiNative wifiNative,
-            @NonNull HandlerThread handlerThread) {
+            @NonNull ClientModeImpl clientModeImpl, @NonNull HandlerThread handlerThread) {
         mInterfaceName = ifaceName;
         mWifiNative = wifiNative;
+        mClientModeImpl = clientModeImpl;
         mHandler = new Handler(handlerThread.getLooper());
     }
 
@@ -160,6 +165,19 @@ public class QosPolicyRequestHandler {
         }
     }
 
+    private void checkForProcessingStall(int dialogToken) {
+        if (mQosRequestIsProcessing && dialogToken == mQosRequestDialogToken) {
+            Log.e(TAG, "Stop processing stalled QoS request " + dialogToken);
+            mQosRequestIsProcessing = false;
+            mQosPolicyRequestQueue.clear();
+            mClientModeImpl.clearQueuedQosMessages();
+            mWifiNative.removeAllQosPolicies(mInterfaceName);
+            if (mNetworkAgent != null) {
+                mNetworkAgent.sendRemoveAllDscpPolicies();
+            }
+        }
+    }
+
     private void processQosPolicyRequest(int dialogToken, List<QosPolicyRequest> policies) {
         if (mNetworkAgent == null) {
             Log.e(TAG, "Attempted to call processQosPolicyRequest, but mNetworkAgent is null");
@@ -224,6 +242,8 @@ public class QosPolicyRequestHandler {
                     continue;
                 }
             }
+            mHandler.postDelayed(() -> checkForProcessingStall(dialogToken),
+                    PROCESSING_TIMEOUT_MILLIS);
         }
     }
 }
