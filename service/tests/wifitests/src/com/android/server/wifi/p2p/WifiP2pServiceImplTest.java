@@ -3243,6 +3243,31 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mWifiP2pMetrics).endConnectionEvent(eq(P2pConnectionEvent.CLF_UNKNOWN));
     }
 
+    @Test
+    public void testStartP2pLocationOn() throws Exception {
+        simulateLocationModeChange(true);
+        simulateWifiStateChange(true);
+        checkIsP2pInitWhenClientConnected(true, mClient1,
+                new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME));
+
+        verify(mBroadcastOptions, atLeastOnce())
+                .setRequireAllOfPermissions(TEST_REQUIRED_PERMISSIONS_T);
+        verify(mBroadcastOptions, atLeastOnce())
+                .setRequireNoneOfPermissions(TEST_EXCLUDED_PERMISSIONS_T);
+    }
+
+    @Test
+    public void testStartP2pLocationOff() throws Exception {
+        simulateLocationModeChange(false);
+        simulateWifiStateChange(true);
+        checkIsP2pInitWhenClientConnected(true, mClient1,
+                new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME));
+
+        verify(mBroadcastOptions, atLeastOnce())
+                .setRequireAllOfPermissions(TEST_REQUIRED_PERMISSIONS_T);
+        verify(mBroadcastOptions, never()).setRequireNoneOfPermissions(TEST_EXCLUDED_PERMISSIONS_T);
+    }
+
     /**
      * Verify the connection event ends due to the invitation failure.
      */
