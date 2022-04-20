@@ -3245,6 +3245,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testStartP2pLocationOn() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         simulateLocationModeChange(true);
         simulateWifiStateChange(true);
         checkIsP2pInitWhenClientConnected(true, mClient1,
@@ -3258,6 +3259,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testStartP2pLocationOff() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         simulateLocationModeChange(false);
         simulateWifiStateChange(true);
         checkIsP2pInitWhenClientConnected(true, mClient1,
