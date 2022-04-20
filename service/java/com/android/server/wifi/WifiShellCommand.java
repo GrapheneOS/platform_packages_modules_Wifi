@@ -2235,6 +2235,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    or left for normal   operation.");
         pw.println("  force-country-code enabled <two-letter code> | disabled ");
         pw.println("    Sets country code to <two-letter code> or left for normal value");
+        pw.println("    or '00' for forcing to world mode country code");
         pw.println("  set-wifi-watchdog enabled|disabled");
         pw.println("    Sets whether wifi watchdog should trigger recovery");
         pw.println("  get-wifi-watchdog");
