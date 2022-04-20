@@ -3495,7 +3495,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean startDppConfiguratorInitiator(@NonNull String ifaceName, int peerBootstrapId,
             int ownBootstrapId, @NonNull String ssid, String password, String psk,
-            int netRole, int securityAkm)  {
+            int netRole, int securityAkm, byte[] privEckey)  {
         final String methodStr = "startDppConfiguratorInitiator";
 
         if (!isV1_2()) {
@@ -3936,6 +3936,20 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean removeAllQosPolicies(String ifaceName) {
         Log.e(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
+        return false;
+    }
+
+    /**
+     * Generate DPP credential for network access
+     *
+     * @param ifaceName Name of the interface.
+     * @param ssid ssid of the network
+     * @param privEcKey Private EC Key for DPP Configurator
+     * Returns false. Not Supported throuh HIDL
+     */
+    public boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
+            byte[] privEcKey) {
+        Log.d(TAG, "generateSelfDppConfiguration is not supported");
         return false;
     }
 }

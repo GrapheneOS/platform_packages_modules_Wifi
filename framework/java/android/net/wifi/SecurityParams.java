@@ -901,6 +901,9 @@ public class SecurityParams {
         return params;
     }
 
+    /**
+     * Create Easy Connect (DPP) params.
+     */
     private static @NonNull SecurityParams createDppParams() {
         SecurityParams params = new SecurityParams();
         params.mSecurityType = WifiConfiguration.SECURITY_TYPE_DPP;

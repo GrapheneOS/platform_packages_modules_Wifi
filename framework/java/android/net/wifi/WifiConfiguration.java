@@ -3468,6 +3468,7 @@ public class WifiConfiguration implements Parcelable {
             sbuf.append("bssidAllowlist unset");
         }
         sbuf.append("\n");
+        sbuf.append("IsDppConfigurator: ").append(this.mIsDppConfigurator).append("\n");
         return sbuf.toString();
     }
 
@@ -3993,7 +3994,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeBoolean(restricted);
         dest.writeParcelable(mSubscriptionGroup, flags);
         dest.writeList(mBssidAllowlist);
-        dest.writeInt(mIsDppConfigurator ? 1 : 0);
+        dest.writeBoolean(mIsDppConfigurator);
         dest.writeByteArray(mDppPrivateEcKey);
         dest.writeByteArray(mDppConnector);
         dest.writeByteArray(mDppCSignKey);
@@ -4088,7 +4089,7 @@ public class WifiConfiguration implements Parcelable {
                 config.restricted = in.readBoolean();
                 config.mSubscriptionGroup = in.readParcelable(null);
                 config.mBssidAllowlist = in.readArrayList(MacAddress.class.getClassLoader());
-                config.mIsDppConfigurator = in.readInt() != 0;
+                config.mIsDppConfigurator = in.readBoolean();
                 config.mDppPrivateEcKey = in.createByteArray();
                 config.mDppConnector = in.createByteArray();
                 config.mDppCSignKey = in.createByteArray();

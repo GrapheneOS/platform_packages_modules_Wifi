@@ -8267,41 +8267,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 testGetSupportedFeaturesCaseForMacRandomization(0, true, true, false));
     }
 
-    /**
-     * Verifies feature support for DPP AKM when DPP is supported.
-     */
-    @Test
-    public void testDppAkmFeatureSupportDppSupported() throws Exception {
-        when(mResources.getBoolean(R.bool.config_wifiDppAkmSupported)).thenReturn(true);
-        when(mWifiNative.getSupportedFeatureSet(anyString()))
-                .thenReturn(WifiManager.WIFI_FEATURE_DPP);
-
-        mLooper.startAutoDispatch();
-        long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
-
-        if (SdkLevel.isAtLeastT()) {
-            assertTrue((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
-        } else {
-            assertFalse((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
-        }
-    }
-
-    /**
-     * Verifies feature support for DPP AKM when DPP is not supported.
-     */
-    @Test
-    public void testDppAkmFeatureSupportDppNotSupported() throws Exception {
-        when(mResources.getBoolean(R.bool.config_wifiDppAkmSupported)).thenReturn(true);
-        when(mWifiNative.getSupportedFeatureSet(anyString())).thenReturn(0L);
-
-        mLooper.startAutoDispatch();
-        long supportedFeatures = mWifiServiceImpl.getSupportedFeatures();
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
-
-        assertFalse((supportedFeatures & WifiManager.WIFI_FEATURE_DPP_AKM) != 0);
-    }
-
     @Test
     public void getSupportedFeaturesVerboseLoggingThrottled() {
         mWifiServiceImpl.enableVerboseLogging(

@@ -463,15 +463,23 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             newWifiConfiguration.preSharedKey = Arrays.toString(psk);
         }
 
-        // Set up key management: SAE or PSK
+        // Set up key management: SAE or PSK or DPP
         if (securityAkm == DppAkm.SAE) {
             newWifiConfiguration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
         } else if (securityAkm == DppAkm.PSK_SAE || securityAkm == DppAkm.PSK) {
             newWifiConfiguration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        } else if (securityAkm == DppAkm.DPP) {
+            newWifiConfiguration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_DPP);
         } else {
             // No other AKMs are currently supported
             onDppFailure(DppFailureCode.NOT_SUPPORTED, null, null, null);
             return;
+        }
+
+        // Set DPP connection Keys for SECURITY_TYPE_DPP
+        if (keys != null && securityAkm == DppAkm.DPP) {
+            newWifiConfiguration.setDppConnectionKeys(keys.connector, keys.cSign,
+                    keys.netAccessKey);
         }
 
         // Set up default values
