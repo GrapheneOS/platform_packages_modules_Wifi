@@ -819,7 +819,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mWifiNetworkSelector = wifiNetworkSelector;
         mWifiInjector = wifiInjector;
-        mQosPolicyRequestHandler = new QosPolicyRequestHandler(mInterfaceName, mWifiNative,
+        mQosPolicyRequestHandler = new QosPolicyRequestHandler(mInterfaceName, mWifiNative, this,
                 mWifiInjector.getWifiHandlerThread());
 
         enableVerboseLogging(verboseLoggingEnabled);
@@ -963,6 +963,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode),
                     redactedBssid, reasonString);
         }
+    }
+
+    protected void clearQueuedQosMessages() {
+        removeMessages(WifiMonitor.QOS_POLICY_RESET_EVENT);
+        removeMessages(WifiMonitor.QOS_POLICY_REQUEST_EVENT);
     }
 
     /**

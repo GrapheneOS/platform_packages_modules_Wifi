@@ -4311,7 +4311,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private void sendBroadcastMultiplePermissions(Intent intent) {
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
             String[] permissions = RECEIVER_PERMISSIONS_FOR_BROADCAST;
-            if (!mWifiPermissionsUtil.isLocationModeEnabled()) {
+            boolean isLocationModeEnabled = mWifiPermissionsUtil.isLocationModeEnabled();
+            if (!isLocationModeEnabled) {
                 permissions = RECEIVER_PERMISSIONS_FOR_BROADCAST_LOCATION_OFF;
             }
             context.sendBroadcastWithMultiplePermissions(
@@ -4322,12 +4323,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         android.Manifest.permission.NEARBY_WIFI_DEVICES,
                         android.Manifest.permission.ACCESS_WIFI_STATE
                 };
-                String[] excludedPermissions = new String[] {
-                        android.Manifest.permission.ACCESS_FINE_LOCATION
-                };
                 BroadcastOptions broadcastOptions = mWifiInjector.makeBroadcastOptions();
                 broadcastOptions.setRequireAllOfPermissions(requiredPermissions);
-                broadcastOptions.setRequireNoneOfPermissions(excludedPermissions);
+                if (isLocationModeEnabled) {
+                    broadcastOptions.setRequireNoneOfPermissions(
+                            new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION});
+                }
                 context.sendBroadcast(intent, null, broadcastOptions.toBundle());
             }
         }

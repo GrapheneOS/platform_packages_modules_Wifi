@@ -100,6 +100,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     @Mock private PermissionManager mPermissionManager;
     @Mock private PackageManager mPackageManager;
     @Spy private FakeWifiLog mWifiLog;
+    @Mock private Context mUserContext;
 
     private static final String TEST_WIFI_STACK_APK_NAME = "com.android.wifi";
     private static final String TEST_PACKAGE_NAME = "com.google.somePackage";
@@ -1660,4 +1661,16 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
                         ? PackageManager.SIGNATURE_MATCH
                         : PackageManager.SIGNATURE_NO_MATCH);
     }
+
+    @Test
+    public void testIsGuestUser() throws Exception {
+        when(mMockContext.createContextAsUser(any(), anyInt())).thenReturn(mUserContext);
+        when(mUserContext.getSystemService(UserManager.class)).thenReturn(mMockUserManager);
+        when(mMockUserManager.isGuestUser()).thenReturn(true);
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        assertTrue(codeUnderTest.isGuestUser());
+    }
+
 }

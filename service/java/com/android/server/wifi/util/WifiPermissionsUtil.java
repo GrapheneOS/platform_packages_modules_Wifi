@@ -1087,6 +1087,20 @@ public class WifiPermissionsUtil {
     }
 
     /**
+     * Check if the current user is a guest user
+     * @return true if the current user is a guest user, false otherwise.
+     */
+    public boolean isGuestUser() {
+        UserManager userManager = mContext.createContextAsUser(
+                UserHandle.of(mWifiPermissionsWrapper.getCurrentUser()), 0)
+                .getSystemService(UserManager.class);
+        if (userManager == null) {
+            return true;
+        }
+        return userManager.isGuestUser();
+    }
+
+    /**
      * Checks if the given UID belongs to the given user ID. This is
      * used to prevent apps running in other users from modifying network configurations belonging
      * to the given user.

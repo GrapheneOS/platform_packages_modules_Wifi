@@ -2390,8 +2390,13 @@ public class HalDeviceManager {
             if (requestedIfaceType == existingIfaceType) {
                 return false;
             }
-            // If both the requests are privileged, the new requestor wins.
+            // If both the requests are privileged, the new requestor wins. The exception is for
+            // backwards compatibility with P2P Settings, prefer SoftAP over P2P for when the user
+            // enables SoftAP with P2P Settings open.
             if (newRequestorWsPriority == PRIORITY_PRIVILEGED) {
+                if (requestedIfaceType == IfaceType.P2P && existingIfaceType == IfaceType.AP) {
+                    return false;
+                }
                 return true;
             }
         }
