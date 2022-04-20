@@ -3185,91 +3185,91 @@ public class WifiMetrics {
     /**
      * Increment number of times the HAL crashed.
      */
-    public void incrementNumHalCrashes() {
-        synchronized (mLock) {
-            mWifiLogProto.numHalCrashes++;
-        }
+    public synchronized void incrementNumHalCrashes() {
+        mWifiLogProto.numHalCrashes++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__HAL_CRASH);
     }
 
     /**
      * Increment number of times the Wificond crashed.
      */
-    public void incrementNumWificondCrashes() {
-        synchronized (mLock) {
-            mWifiLogProto.numWificondCrashes++;
-        }
+    public synchronized void incrementNumWificondCrashes() {
+        mWifiLogProto.numWificondCrashes++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__WIFICOND_CRASH);
     }
 
     /**
      * Increment number of times the supplicant crashed.
      */
-    public void incrementNumSupplicantCrashes() {
-        synchronized (mLock) {
-            mWifiLogProto.numSupplicantCrashes++;
-        }
+    public synchronized void incrementNumSupplicantCrashes() {
+        mWifiLogProto.numSupplicantCrashes++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SUPPLICANT_CRASH);
     }
 
     /**
      * Increment number of times the hostapd crashed.
      */
-    public void incrementNumHostapdCrashes() {
-        synchronized (mLock) {
-            mWifiLogProto.numHostapdCrashes++;
-        }
+    public synchronized void incrementNumHostapdCrashes() {
+        mWifiLogProto.numHostapdCrashes++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__HOSTAPD_CRASH);
     }
 
     /**
      * Increment number of times the wifi on failed due to an error in HAL.
      */
-    public void incrementNumSetupClientInterfaceFailureDueToHal() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupClientInterfaceFailureDueToHal++;
-        }
+    public synchronized void incrementNumSetupClientInterfaceFailureDueToHal() {
+        mWifiLogProto.numSetupClientInterfaceFailureDueToHal++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__CLIENT_FAILURE_HAL);
     }
 
     /**
      * Increment number of times the wifi on failed due to an error in wificond.
      */
-    public void incrementNumSetupClientInterfaceFailureDueToWificond() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupClientInterfaceFailureDueToWificond++;
-        }
+    public synchronized void incrementNumSetupClientInterfaceFailureDueToWificond() {
+        mWifiLogProto.numSetupClientInterfaceFailureDueToWificond++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__CLIENT_FAILURE_WIFICOND);
     }
 
     /**
      * Increment number of times the wifi on failed due to an error in supplicant.
      */
-    public void incrementNumSetupClientInterfaceFailureDueToSupplicant() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupClientInterfaceFailureDueToSupplicant++;
-        }
+    public synchronized void incrementNumSetupClientInterfaceFailureDueToSupplicant() {
+        mWifiLogProto.numSetupClientInterfaceFailureDueToSupplicant++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__CLIENT_FAILURE_SUPPLICANT);
     }
 
     /**
      * Increment number of times the SoftAp on failed due to an error in HAL.
      */
-    public void incrementNumSetupSoftApInterfaceFailureDueToHal() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupSoftApInterfaceFailureDueToHal++;
-        }
+    public synchronized void incrementNumSetupSoftApInterfaceFailureDueToHal() {
+        mWifiLogProto.numSetupSoftApInterfaceFailureDueToHal++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SOFT_AP_FAILURE_HAL);
     }
 
     /**
      * Increment number of times the SoftAp on failed due to an error in wificond.
      */
-    public void incrementNumSetupSoftApInterfaceFailureDueToWificond() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupSoftApInterfaceFailureDueToWificond++;
-        }
+    public synchronized void incrementNumSetupSoftApInterfaceFailureDueToWificond() {
+        mWifiLogProto.numSetupSoftApInterfaceFailureDueToWificond++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SOFT_AP_FAILURE_WIFICOND);
     }
 
     /**
      * Increment number of times the SoftAp on failed due to an error in hostapd.
      */
-    public void incrementNumSetupSoftApInterfaceFailureDueToHostapd() {
-        synchronized (mLock) {
-            mWifiLogProto.numSetupSoftApInterfaceFailureDueToHostapd++;
-        }
+    public synchronized void incrementNumSetupSoftApInterfaceFailureDueToHostapd() {
+        mWifiLogProto.numSetupSoftApInterfaceFailureDueToHostapd++;
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SOFT_AP_FAILURE_HOSTAPD);
     }
 
     /**
@@ -3660,7 +3660,6 @@ public class WifiMetrics {
             if (args != null && args.length > 0 && PROTO_DUMP_ARG.equals(args[0])) {
                 // Dump serialized WifiLog proto
                 consolidateProto();
-
                 byte[] wifiMetricsProto = WifiMetricsProto.WifiLog.toByteArray(mWifiLogProto);
                 String metricsProtoDump = Base64.encodeToString(wifiMetricsProto, Base64.DEFAULT);
                 if (args.length > 1 && CLEAN_DUMP_ARG.equals(args[1])) {
