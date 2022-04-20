@@ -944,11 +944,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
-     * Tests the network connection initiation sequence with the default network request pending
-     * from WifiNetworkFactory.
-     * This simulates the connect sequence using the public
-     * {@link WifiManager#enableNetwork(int, boolean)} and ensures that we invoke
-     * {@link WifiNative#connectToNetwork(WifiConfiguration)}.
+     * Tests the manual connection request will run network selection to find
+     * a proper security params, but not use the default one.
      */
     @Test
     public void triggerConnectWithUpgradeType() throws Exception {
@@ -956,14 +953,13 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration config = spy(WifiConfigurationTestUtil.createOpenOweNetwork(
                 ScanResultUtil.createQuotedSsid(ssid)));
         doAnswer(new AnswerWithArguments() {
-            public void answer(
-                    WifiConfiguration network, ScanDetail scanDetail) {
-                if (!config.SSID.equals(network.SSID)) return;
+            public WifiConfiguration answer(List<WifiCandidates.Candidate> candidates) {
                 config.getNetworkSelectionStatus().setCandidateSecurityParams(
                         SecurityParams.createSecurityParamsBySecurityType(
                                 WifiConfiguration.SECURITY_TYPE_OWE));
+                return config;
             }
-        }).when(mWifiNetworkSelector).updateNetworkCandidateSecurityParams(any(), any());
+        }).when(mWifiNetworkSelector).selectNetwork(any());
         String caps = "[RSN-OWE_TRANSITION]";
         ScanResult scanResult = new ScanResult(WifiSsid.fromUtf8Text(ssid),
                 ssid, TEST_BSSID_STR, 1245, 0, caps, -78, 2412, 1025, 22, 33, 20, 0, 0, true);
@@ -980,8 +976,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         setupAndStartConnectSequence(config);
         validateSuccessfulConnectSequence(config);
-        assertTrue(config.getNetworkSelectionStatus().getCandidateSecurityParams()
-                .isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE));
+        assertEquals(WifiConfiguration.SECURITY_TYPE_OWE,
+                config.getNetworkSelectionStatus().getCandidateSecurityParams().getSecurityType());
     }
 
     /**
