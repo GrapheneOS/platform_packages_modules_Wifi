@@ -2867,9 +2867,9 @@ public class WifiNative {
      */
     public boolean startDppConfiguratorInitiator(@NonNull String ifaceName, int peerBootstrapId,
             int ownBootstrapId, @NonNull String ssid, String password, String psk,
-            int netRole, int securityAkm)  {
+            int netRole, int securityAkm, byte[] privEcKey)  {
         return mSupplicantStaIfaceHal.startDppConfiguratorInitiator(ifaceName, peerBootstrapId,
-                ownBootstrapId, ssid, password, psk, netRole, securityAkm);
+                ownBootstrapId, ssid, password, psk, netRole, securityAkm, privEcKey);
     }
 
     /**
@@ -2921,6 +2921,13 @@ public class WifiNative {
          * @param bandList List of bands the Enrollee supports.
          */
         void onFailure(int dppStatusCode, String ssid, String channelList, int[] bandList);
+
+        /**
+         * DPP Configurator Private keys update.
+         *
+         * @param key Configurator's private EC key.
+         */
+        void onDppConfiguratorKeyUpdate(byte[] key);
     }
 
     /**
@@ -4335,6 +4342,19 @@ public class WifiNative {
      */
     public boolean removeAllQosPolicies(String ifaceName) {
         return mSupplicantStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
+    /**
+     * Generate DPP credential for network access
+     *
+     * @param ifaceName Name of the interface.
+     * @param ssid ssid of the network
+     * @param privEcKey Private EC Key for DPP Configurator
+     * Returns true when operation is successful. On error, false is returned.
+     */
+    public boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
+            byte[] privEcKey) {
+        return mSupplicantStaIfaceHal.generateSelfDppConfiguration(ifaceName, ssid, privEcKey);
     }
 
     /**

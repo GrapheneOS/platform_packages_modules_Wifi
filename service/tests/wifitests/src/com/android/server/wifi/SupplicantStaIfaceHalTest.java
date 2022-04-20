@@ -35,6 +35,7 @@ import android.net.DscpPolicy;
 import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.HexEncoding;
 import android.os.Handler;
 import android.util.Range;
 
@@ -999,12 +1000,18 @@ public class SupplicantStaIfaceHalTest {
         String ssid = "someSsid";
         String password = "somePassword";
         String psk = "somePsk";
+        String sKey = "3077020101042088a442d945b0c2fcd6346e4b47dd5cd1abebcc3b251"
+                + "a2e6a615111d918b3e749a00a06082a8648ce3d030107a14403420004d34506c1c2fd500c38768b"
+                + "76293cb208f203cc92b42976c31e1b51914c5200400b521ef3f608a163875c203b34430ad4aa52d"
+                + "b3e95eacb7481782328d4fb45af";
+        byte[] key = HexEncoding.decode(sKey.toCharArray(), false);
         when(mStaIfaceHalAidlMock.startDppConfiguratorInitiator(anyString(), anyInt(), anyInt(),
-                anyString(), anyString(), anyString(), anyInt(), anyInt())).thenReturn(true);
+                anyString(), anyString(), anyString(), anyInt(), anyInt(),
+                any(byte[].class))).thenReturn(true);
         assertTrue(mDut.startDppConfiguratorInitiator(IFACE_NAME, PEER_ID, OWN_ID, ssid,
-                password, psk, netRole, securityAkm));
+                password, psk, netRole, securityAkm, key));
         verify(mStaIfaceHalAidlMock).startDppConfiguratorInitiator(eq(IFACE_NAME), eq(PEER_ID),
-                eq(OWN_ID), eq(ssid), eq(password), eq(psk), eq(netRole), eq(securityAkm));
+                eq(OWN_ID), eq(ssid), eq(password), eq(psk), eq(netRole), eq(securityAkm), eq(key));
     }
 
     /**
