@@ -56,6 +56,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     private static final String TEST_COUNTRY_CODE = "JP";
     private String mDefaultCountryCode = "US";
     private String mTelephonyCountryCode = "JP";
+    private String mWorldModeCountryCode = "00";
     private boolean mRevertCountryCodeOnCellularLoss = true;
     // Default assume true since it was a design before R
     private boolean mDriverSupportedNl80211RegChangedEvent = false;
@@ -123,6 +124,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
                 mDriverSupportedNl80211RegChangedEvent);
         mResources.setBoolean(R.bool.config_wifiForcedSoftApRestartWhenCountryCodeChanged,
                 mForcedSoftApRestateWhenCountryCodeChanged);
+        mResources.setString(R.string.config_wifiDriverWorldModeCountryCode, mWorldModeCountryCode);
         doAnswer((invocation) -> {
             mChangeListenerCaptor.getValue()
                     .onSetCountryCodeSucceeded(mSetCountryCodeCaptor.getValue());
@@ -583,7 +585,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mSoftApManager);
         // Simulate the country code set succeeded via SoftApManager
         mChangeListenerCaptor.getValue().onSetCountryCodeSucceeded(
-                WifiCountryCode.COUNTRY_CODE_WORLD);
+                mWorldModeCountryCode);
         verify(mSoftApManager, never()).updateCountryCode(anyString());
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         verify(mSoftApManager).updateCountryCode(mTelephonyCountryCode);
