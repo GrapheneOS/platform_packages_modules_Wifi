@@ -5217,13 +5217,6 @@ public class WifiServiceImpl extends BaseWifiService {
                 supportedFeatureSet |= WifiManager.WIFI_FEATURE_STA_BRIDGED_AP;
             }
         }
-        if (SdkLevel.isAtLeastT()) {
-            if (((supportedFeatureSet & WifiManager.WIFI_FEATURE_DPP) != 0)
-                    && mContext.getResources().getBoolean(R.bool.config_wifiDppAkmSupported)) {
-                // Set if DPP is filled by supplicant and DPP AKM is enabled by overlay.
-                supportedFeatureSet |= WifiManager.WIFI_FEATURE_DPP_AKM;
-            }
-        }
 
         supportedFeatureSet |= mWifiThreadRunner.call(
                 () -> {

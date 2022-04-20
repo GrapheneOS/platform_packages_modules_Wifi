@@ -37,6 +37,7 @@ import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.nl80211.DeviceWiphyCapabilities;
@@ -3478,9 +3479,18 @@ public class WifiNative {
      * @return bitmask defined by WifiManager.WIFI_FEATURE_*
      */
     private long getSupportedFeatureSetInternal(@NonNull String ifaceName) {
-        return mSupplicantStaIfaceHal.getAdvancedCapabilities(ifaceName)
+        long featureSet = mSupplicantStaIfaceHal.getAdvancedCapabilities(ifaceName)
                 | mWifiVendorHal.getSupportedFeatureSet(ifaceName)
                 | mSupplicantStaIfaceHal.getWpaDriverFeatureSet(ifaceName);
+        if (SdkLevel.isAtLeastT()) {
+            if (((featureSet & WifiManager.WIFI_FEATURE_DPP) != 0)
+                    && mContext.getResources().getBoolean(R.bool.config_wifiDppAkmSupported)) {
+                // Set if DPP is filled by supplicant and DPP AKM is enabled by overlay.
+                featureSet |= WifiManager.WIFI_FEATURE_DPP_AKM;
+                Log.v(TAG, ": DPP AKM supported");
+            }
+        }
+        return featureSet;
     }
 
     /**
