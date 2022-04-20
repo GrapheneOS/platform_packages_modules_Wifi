@@ -3359,6 +3359,62 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         assertTrue(mDut.is5g6gDbsSupported(iface));
     }
 
+    /**
+     * Validate that a requested iface should have higher priority than ALL of the existing ifaces
+     * for a mode change.
+     */
+    @Test
+    public void testIsItPossibleToCreateIfaceBetweenChipModesTestChipV7() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+
+        TestChipV7 chipMock = new TestChipV7();
+        chipMock.initialize();
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, chipMock.chip,
+                mManagerStatusListenerMock);
+        executeAndValidateInitializationSequence();
+        executeAndValidateStartupSequence();
+
+        // get STA interface from privileged app.
+        IWifiIface staIface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipV7.DUAL_STA_CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("STA created", staIface, IsNull.notNullValue());
+
+        // get STA interface from foreground app.
+        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
+        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
+        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        staIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV7.DUAL_STA_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA, // ifaceTypeToCreate
+                "wlan1", // ifaceName
+                TestChipV7.DUAL_STA_CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_1 // requestorWs
+        );
+        collector.checkThat("STA created", staIface, IsNull.notNullValue());
+
+        // New system app not allowed to create AP interface since it would tear down the privileged
+        // app STA during the chip mode change.
+        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(false);
+        when(mWorkSourceHelper2.hasAnySystemAppRequest()).thenReturn(true);
+        assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_2));
+
+        // Privileged app allowed to create AP interface since it is able to tear down the
+        // privileged app STA during the chip mode change.
+        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_2));
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // utilities
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -4714,6 +4770,64 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             availableModes_1_6.add(cm);
 
             chipModeIdValidForRtt = CHIP_MODE_ID;
+
+            doAnswer(new GetAvailableModesAnswer_1_6(this))
+                    .when(chip).getAvailableModes_1_6(any(
+                            android.hardware.wifi.V1_6.IWifiChip.getAvailableModes_1_6Callback
+                                    .class));
+            mWifiChipV16 = chip;
+        }
+    }
+
+    // test chip configuration V7 for testing interface priorities for mode switching
+    // mode 0: STA + STA
+    // mode 1: AP
+    private class TestChipV7 extends ChipMockBase {
+        static final int DUAL_STA_CHIP_MODE_ID = 71;
+        static final int AP_CHIP_MODE_ID = 72;
+
+        void initialize() throws Exception {
+            super.initialize();
+
+            // chip Id configuration
+            ArrayList<Integer> chipIds;
+            chipId = 70;
+            chipIds = new ArrayList<>();
+            chipIds.add(chipId);
+            doAnswer(new GetChipIdsAnswer(mStatusOk, chipIds)).when(mWifiMock).getChipIds(
+                    any(IWifi.getChipIdsCallback.class));
+
+            doAnswer(new GetChipAnswer(mStatusOk, chip)).when(mWifiMock).getChip(eq(chipId),
+                    any(IWifi.getChipCallback.class));
+
+            // initialize placeholder chip modes
+            android.hardware.wifi.V1_6.IWifiChip.ChipMode cm;
+            android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination ccc;
+            android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit cccl;
+
+            availableModes_1_6 = new ArrayList<>();
+
+            cm = new android.hardware.wifi.V1_6.IWifiChip.ChipMode();
+            cm.id = DUAL_STA_CHIP_MODE_ID;
+            ccc = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+            cccl = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit();
+            cccl.maxIfaces = 2;
+            cccl.types.add(IfaceConcurrencyType.STA);
+            ccc.limits.add(cccl);
+            cm.availableCombinations.add(ccc);
+            availableModes_1_6.add(cm);
+
+            cm = new android.hardware.wifi.V1_6.IWifiChip.ChipMode();
+            cm.id = AP_CHIP_MODE_ID;
+            ccc = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+            cccl = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit();
+            cccl.maxIfaces = 1;
+            cccl.types.add(IfaceConcurrencyType.AP);
+            ccc.limits.add(cccl);
+            cm.availableCombinations.add(ccc);
+            availableModes_1_6.add(cm);
+
+            chipModeIdValidForRtt = DUAL_STA_CHIP_MODE_ID;
 
             doAnswer(new GetAvailableModesAnswer_1_6(this))
                     .when(chip).getAvailableModes_1_6(any(
