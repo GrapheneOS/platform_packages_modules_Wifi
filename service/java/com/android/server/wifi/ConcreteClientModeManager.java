@@ -75,6 +75,7 @@ import com.android.wifi.resources.R;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -269,7 +270,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
         private int mMaximumDeferringTimeMillis = 0;
         private long mDeferringStartTimeMillis = 0;
         private ConnectivityManager mConnectivityManager = null;
-        private boolean mIsImsNetworkLost = false;
+        private List<ImsNetworkCallback> mImsNetworks = new ArrayList<>();
         private boolean mIsImsNetworkUnregistered = false;
 
         private final RegistrationManager.RegistrationCallback mImsRegistrationCallback =
@@ -293,12 +294,23 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 };
 
         private final class ImsNetworkCallback extends NetworkCallback {
+            private final int mNetworkType;
             private int mRegisteredImsNetworkCount = 0;
+
+            /**
+             * Constructor for ImsNetworkCallback.
+             *
+             * @param type One of android.net.NetworkCapabilities.NetCapability.
+             */
+            ImsNetworkCallback(int type) {
+                mNetworkType = type;
+            }
 
             @Override
             public void onAvailable(Network network) {
                 synchronized (this) {
-                    Log.d(getTag(), "IMS network available: " + network);
+                    Log.d(getTag(), "IMS network available: " + network
+                            + ", type: " + mNetworkType);
                     mRegisteredImsNetworkCount++;
                 }
             }
@@ -308,22 +320,25 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 synchronized (this) {
                     Log.d(getTag(), "IMS network lost: " + network
                             + " ,isDeferring: " + mIsDeferring
-                            + " ,registered IMS network count: " + mRegisteredImsNetworkCount);
+                            + " ,registered IMS network count: " + mRegisteredImsNetworkCount
+                            + ", type: " + mNetworkType);
                     mRegisteredImsNetworkCount--;
                     if (mIsDeferring && mRegisteredImsNetworkCount <= 0) {
                         mRegisteredImsNetworkCount = 0;
-                        mIsImsNetworkLost = true;
                         checkAndContinueToStopWifi();
                     }
                 }
             }
-        }
 
-        private NetworkCallback mImsNetworkCallback = null;
+            public boolean isNetworkLost() {
+                return 0 == mRegisteredImsNetworkCount;
+            }
+        }
 
         DeferStopHandler(Looper looper) {
             super(TAG, looper);
             mLooper = looper;
+            mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         }
 
         public void start(int delayMs) {
@@ -357,27 +372,33 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 return;
             }
 
+            registerImsNetworkCallback(NetworkCapabilities.NET_CAPABILITY_IMS);
+            registerImsNetworkCallback(NetworkCapabilities.NET_CAPABILITY_EIMS);
+        }
+
+        private void registerImsNetworkCallback(int imsType) {
             NetworkRequest imsRequest = new NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_IMS)
+                    .addCapability(imsType)
                     .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                     .build();
-
-            mConnectivityManager =
-                    (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-            mImsNetworkCallback = new ImsNetworkCallback();
-            mConnectivityManager.registerNetworkCallback(imsRequest, mImsNetworkCallback,
+            ImsNetworkCallback imsCallback = new ImsNetworkCallback(imsType);
+            mConnectivityManager.registerNetworkCallback(imsRequest, imsCallback,
                     new Handler(mLooper));
+            mImsNetworks.add(imsCallback);
         }
 
         private void checkAndContinueToStopWifi() {
-            if (mIsImsNetworkLost && mIsImsNetworkUnregistered) {
-                // Add delay for targets where IMS PDN down at modem takes additional delay.
-                int delay = mContext.getResources()
-                        .getInteger(R.integer.config_wifiDelayDisconnectOnImsLostMs);
-                if (delay == 0 || !postDelayed(mRunnable, delay)) {
-                    continueToStopWifi();
-                }
+            if (!mIsImsNetworkUnregistered) return;
+
+            for (ImsNetworkCallback c: mImsNetworks) {
+                if (!c.isNetworkLost()) return;
+            }
+
+            // Add delay for targets where IMS PDN down at modem takes additional delay.
+            int delay = mContext.getResources()
+                    .getInteger(R.integer.config_wifiDelayDisconnectOnImsLostMs);
+            if (delay == 0 || !postDelayed(mRunnable, delay)) {
+                continueToStopWifi();
             }
         }
 
@@ -419,13 +440,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 }
             }
 
-            if (mConnectivityManager != null && mImsNetworkCallback != null) {
-                mConnectivityManager.unregisterNetworkCallback(mImsNetworkCallback);
-                mImsNetworkCallback = null;
+            if (mConnectivityManager != null && mImsNetworks.size() > 0) {
+                for (ImsNetworkCallback c: mImsNetworks) {
+                    mConnectivityManager.unregisterNetworkCallback(c);
+                }
+                mImsNetworks.clear();
             }
 
             mIsDeferring = false;
-            mIsImsNetworkLost = false;
             mIsImsNetworkUnregistered = false;
         }
     }
@@ -434,8 +456,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
      * Get deferring time before turning off WiFi.
      */
     private int getWifiOffDeferringTimeMs() {
-        SubscriptionManager subscriptionManager = (SubscriptionManager) mContext.getSystemService(
-                Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        SubscriptionManager subscriptionManager =
+                mContext.getSystemService(SubscriptionManager.class);
         if (subscriptionManager == null) {
             Log.d(getTag(), "SubscriptionManager not found");
             return 0;
@@ -479,8 +501,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
             return 0;
         }
 
-        CarrierConfigManager configManager =
-                (CarrierConfigManager) mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
+        CarrierConfigManager configManager = mContext.getSystemService(CarrierConfigManager.class);
         PersistableBundle config = configManager.getConfigForSubId(subId);
         return (config != null)
                 ? config.getInt(CarrierConfigManager.Ims.KEY_WIFI_OFF_DEFERRING_TIME_MILLIS_INT)
