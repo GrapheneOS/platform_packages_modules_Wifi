@@ -101,11 +101,15 @@ public class QosPolicyRequestHandler {
      * Set the network agent.
      */
     public void setNetworkAgent(WifiNetworkAgent wifiNetworkAgent) {
+        WifiNetworkAgent oldNetworkAgent = mNetworkAgent;
         mNetworkAgent = wifiNetworkAgent;
         if (mNetworkAgent == null) {
             mQosPolicyStatusList.clear();
             mQosPolicyRequestQueue.clear();
             mQosRequestIsProcessing = false;
+        } else if (oldNetworkAgent != null) {
+            // Existing network agent was replaced by a new one.
+            resetProcessingState();
         }
     }
 
@@ -148,7 +152,7 @@ public class QosPolicyRequestHandler {
     }
 
     private void sendQosPolicyResponseIfReady() {
-        if (mQosPolicyStatusList.size() == mNumQosPoliciesInRequest) {
+        if (mQosRequestIsProcessing && mQosPolicyStatusList.size() == mNumQosPoliciesInRequest) {
             mWifiNative.sendQosPolicyResponse(mInterfaceName, mQosRequestDialogToken,
                     mQosResourcesAvailable, mQosPolicyStatusList);
             mQosRequestIsProcessing = false;
@@ -168,13 +172,17 @@ public class QosPolicyRequestHandler {
     private void checkForProcessingStall(int dialogToken) {
         if (mQosRequestIsProcessing && dialogToken == mQosRequestDialogToken) {
             Log.e(TAG, "Stop processing stalled QoS request " + dialogToken);
-            mQosRequestIsProcessing = false;
-            mQosPolicyRequestQueue.clear();
-            mClientModeImpl.clearQueuedQosMessages();
-            mWifiNative.removeAllQosPolicies(mInterfaceName);
-            if (mNetworkAgent != null) {
-                mNetworkAgent.sendRemoveAllDscpPolicies();
-            }
+            resetProcessingState();
+        }
+    }
+
+    private void resetProcessingState() {
+        mQosRequestIsProcessing = false;
+        mQosPolicyRequestQueue.clear();
+        mClientModeImpl.clearQueuedQosMessages();
+        mWifiNative.removeAllQosPolicies(mInterfaceName);
+        if (mNetworkAgent != null) {
+            mNetworkAgent.sendRemoveAllDscpPolicies();
         }
     }
 
