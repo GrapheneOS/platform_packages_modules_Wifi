@@ -383,6 +383,10 @@ public class XmlUtil {
         private static final String XML_TAG_SUBSCRIPTION_GROUP = "SubscriptionGroup";
         public static final String XML_TAG_BSSID_ALLOW_LIST = "bssidAllowList";
         private static final String XML_TAG_IS_REPEATER_ENABLED = "RepeaterEnabled";
+        public static final String XML_TAG_DPP_PRIVATE_EC_KEY = "DppPrivateEcKey";
+        public static final String XML_TAG_DPP_CONNECTOR = "DppConnector";
+        public static final String XML_TAG_DPP_CSIGN_KEY = "DppCSignKey";
+        public static final String XML_TAG_DPP_NET_ACCESS_KEY = "DppNetAccessKey";
 
         /**
          * Write WepKeys to the XML stream.
@@ -462,6 +466,47 @@ public class XmlUtil {
             }
 
             XmlUtil.writeNextSectionEnd(out, XML_TAG_SECURITY_PARAMS_LIST);
+        }
+
+        private static void writeEncryptedBytesToXml(
+                XmlSerializer out, @Nullable WifiConfigStoreEncryptionUtil encryptionUtil,
+                String tag, byte[] data)
+                throws XmlPullParserException, IOException {
+            EncryptedData encryptedData = null;
+            if (encryptionUtil != null) {
+                encryptedData = encryptionUtil.encrypt(data);
+                if (encryptedData == null) {
+                    // We silently fail encryption failures!
+                    Log.wtf(TAG, "Encryption of " + tag + " failed");
+                }
+            }
+            if (encryptedData != null) {
+                XmlUtil.writeNextSectionStart(out, tag);
+                EncryptedDataXmlUtil.writeToXml(out, encryptedData);
+                XmlUtil.writeNextSectionEnd(out, tag);
+            } else {
+                XmlUtil.writeNextValue(out, tag, data);
+            }
+        }
+
+        /**
+         * Write dpp configuration and connection keys to the XML stream.
+         *
+         * If encryptionUtil is null or if encryption fails for some reason, the dpp
+         * keys are stored in plaintext, else the encrypted keys are stored.
+         */
+        private static void writeDppConfigurationToXml(
+                XmlSerializer out, WifiConfiguration configuration,
+                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
+                throws XmlPullParserException, IOException {
+            writeEncryptedBytesToXml(out, encryptionUtil, XML_TAG_DPP_PRIVATE_EC_KEY,
+                    configuration.getDppPrivateEcKey());
+            writeEncryptedBytesToXml(out, encryptionUtil, XML_TAG_DPP_CONNECTOR,
+                    configuration.getDppConnector());
+            writeEncryptedBytesToXml(out, encryptionUtil, XML_TAG_DPP_CSIGN_KEY,
+                    configuration.getDppCSignKey());
+            writeEncryptedBytesToXml(out, encryptionUtil, XML_TAG_DPP_NET_ACCESS_KEY,
+                    configuration.getDppNetAccessKey());
         }
 
         /**
@@ -596,6 +641,7 @@ public class XmlUtil {
                         covertMacAddressListToStringList(configuration
                                 .getBssidAllowlistInternal()));
             }
+            writeDppConfigurationToXml(out, configuration, encryptionUtil);
         }
 
         private static List<String> covertMacAddressListToStringList(List<MacAddress> macList) {
@@ -679,6 +725,19 @@ public class XmlUtil {
             return params;
         }
 
+        private static byte[] readEncrytepdBytesFromXml(
+                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil,
+                XmlPullParser in, int outerTagDepth)
+                throws XmlPullParserException, IOException {
+            if (encryptionUtil == null) {
+                throw new XmlPullParserException(
+                        "Encrypted preSharedKey section not expected");
+            }
+            EncryptedData encryptedData =
+                    EncryptedDataXmlUtil.parseFromXml(in, outerTagDepth + 1);
+            return encryptionUtil.decrypt(encryptedData);
+        }
+
         private static void parseSecurityParamsListFromXml(
                 XmlPullParser in, int outerTagDepth,
                 WifiConfiguration configuration)
@@ -720,6 +779,9 @@ public class XmlUtil {
             WifiConfiguration configuration = new WifiConfiguration();
             String configKeyInData = null;
             boolean macRandomizationSettingExists = false;
+            byte[] dppConnector = null;
+            byte[] dppCSign = null;
+            byte[] dppNetAccessKey = null;
 
             // Loop through and parse out all the elements from the stream within this section.
             while (!XmlUtil.isNextSectionEnd(in, outerTagDepth)) {
@@ -899,6 +961,18 @@ public class XmlUtil {
                         case XML_TAG_IS_REPEATER_ENABLED:
                             configuration.setRepeaterEnabled((boolean) value);
                             break;
+                        case XML_TAG_DPP_PRIVATE_EC_KEY:
+                            configuration.setDppConfigurator((byte[]) value);
+                            break;
+                        case XML_TAG_DPP_CONNECTOR:
+                            dppConnector = (byte[]) value;
+                            break;
+                        case XML_TAG_DPP_CSIGN_KEY:
+                            dppCSign = (byte[]) value;
+                            break;
+                        case XML_TAG_DPP_NET_ACCESS_KEY:
+                            dppNetAccessKey = (byte[]) value;
+                            break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);
                             break;
@@ -926,6 +1000,22 @@ public class XmlUtil {
                         case XML_TAG_SECURITY_PARAMS_LIST:
                             parseSecurityParamsListFromXml(in, outerTagDepth + 1, configuration);
                             break;
+                        case XML_TAG_DPP_PRIVATE_EC_KEY:
+                            configuration.setDppConfigurator(readEncrytepdBytesFromXml(
+                                    encryptionUtil, in, outerTagDepth));
+                            break;
+                        case XML_TAG_DPP_CONNECTOR:
+                            dppConnector = readEncrytepdBytesFromXml(encryptionUtil, in,
+                                    outerTagDepth);
+                            break;
+                        case XML_TAG_DPP_CSIGN_KEY:
+                            dppCSign = readEncrytepdBytesFromXml(encryptionUtil, in,
+                                    outerTagDepth);
+                            break;
+                        case XML_TAG_DPP_NET_ACCESS_KEY:
+                            dppNetAccessKey = readEncrytepdBytesFromXml(encryptionUtil, in,
+                                    outerTagDepth);
+                            break;
                         default:
                             Log.w(TAG, "Ignoring unknown tag found: " + tagName);
                             break;
@@ -940,6 +1030,7 @@ public class XmlUtil {
                 configuration.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
             }
             configuration.convertLegacyFieldsToSecurityParamsIfNeeded();
+            configuration.setDppConnectionKeys(dppConnector, dppCSign, dppNetAccessKey);
             return Pair.create(configKeyInData, configuration);
         }
     }

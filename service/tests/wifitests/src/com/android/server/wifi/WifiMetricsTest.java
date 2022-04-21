@@ -1611,6 +1611,18 @@ public class WifiMetricsTest extends WifiBaseTest {
 
     }
 
+    @Test
+    public void testHalCrashSoftApFailureCount() throws Exception {
+        mWifiMetrics.incrementNumHalCrashes();
+        mWifiMetrics.incrementNumSetupSoftApInterfaceFailureDueToHostapd();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SOFT_AP_FAILURE_HOSTAPD));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__HAL_CRASH));
+    }
+
     /**
      *  Assert deserialized metrics Scan Return Entry equals count
      */

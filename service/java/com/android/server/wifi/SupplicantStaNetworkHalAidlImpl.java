@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import android.content.Context;
 import android.hardware.wifi.supplicant.AuthAlgMask;
+import android.hardware.wifi.supplicant.DppConnectionKeys;
 import android.hardware.wifi.supplicant.EapMethod;
 import android.hardware.wifi.supplicant.EapPhase2Method;
 import android.hardware.wifi.supplicant.GroupCipherMask;
@@ -345,6 +346,12 @@ public class SupplicantStaNetworkHalAidlImpl {
                     Log.e(TAG, "failed to set Suite-B-192 configuration");
                     return false;
                 }
+                // Check and set DPP Connection keys
+                if (keyMgmtMask.get(WifiConfiguration.KeyMgmt.DPP)
+                        && !saveDppConnectionConfig(config)) {
+                    Log.e(TAG, "failed to set DPP connection params");
+                    return false;
+                }
             }
             /** Security Protocol */
             BitSet allowedProtocols = securityParams.getAllowedProtocols();
@@ -600,6 +607,34 @@ public class SupplicantStaNetworkHalAidlImpl {
     }
 
     /**
+     * save network variables from the provided dpp configuration to wpa_supplicant.
+     *
+     * @param config wificonfiguration object to be saved
+     * @return true if succeeds, false otherwise.
+     */
+    private boolean saveDppConnectionConfig(WifiConfiguration config) {
+        synchronized (mLock) {
+            final String methodStr = "setDppKeys";
+            if (!checkStaNetworkAndLogFailure(methodStr)) {
+                return false;
+            }
+            try {
+                DppConnectionKeys keys = new DppConnectionKeys();
+                keys.connector = config.getDppConnector();
+                keys.cSign = config.getDppCSignKey();
+                keys.netAccessKey = config.getDppNetAccessKey();
+                mISupplicantStaNetwork.setDppKeys(keys);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    /**
      * Save network variables from the provided SuiteB configuration to wpa_supplicant.
      *
      * @param config WifiConfiguration object to be saved
@@ -846,6 +881,9 @@ public class SupplicantStaNetworkHalAidlImpl {
                     break;
                 case WifiConfiguration.KeyMgmt.FILS_SHA384:
                     mask |= KeyMgmtMask.FILS_SHA384;
+                    break;
+                case WifiConfiguration.KeyMgmt.DPP:
+                    mask |= KeyMgmtMask.DPP;
                     break;
                 case WifiConfiguration.KeyMgmt.WPA2_PSK: // This should never happen
                 default:

@@ -1963,14 +1963,14 @@ public class SupplicantStaIfaceHal {
      */
     public boolean startDppConfiguratorInitiator(@NonNull String ifaceName, int peerBootstrapId,
             int ownBootstrapId, @NonNull String ssid, String password, String psk,
-            int netRole, int securityAkm) {
+            int netRole, int securityAkm, byte[] privEcKey) {
         synchronized (mLock) {
             String methodStr = "startDppConfiguratorInitiator";
             if (mStaIfaceHal == null) {
                 return handleNullHal(methodStr);
             }
             return mStaIfaceHal.startDppConfiguratorInitiator(ifaceName, peerBootstrapId,
-                    ownBootstrapId, ssid, password, psk, netRole, securityAkm);
+                    ownBootstrapId, ssid, password, psk, netRole, securityAkm, privEcKey);
         }
     }
 
@@ -2185,6 +2185,25 @@ public class SupplicantStaIfaceHal {
             return handleNullHal(methodStr);
         }
         return mStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
+    /**
+     * Generate DPP credential for network access
+     *
+     * @param ifaceName Name of the interface.
+     * @param ssid ssid of the network
+     * @param privEcKey Private EC Key for DPP Configurator
+     * Returns true when operation is successful. On error, false is returned.
+     */
+    public boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
+            byte[] privEcKey) {
+        synchronized (mLock) {
+            String methodStr = "generateSelfDppConfiguration";
+            if (mStaIfaceHal == null) {
+                return handleNullHal(methodStr);
+            }
+            return mStaIfaceHal.generateSelfDppConfiguration(ifaceName, ssid, privEcKey);
+        }
     }
 
     private boolean handleNullHal(String methodStr) {

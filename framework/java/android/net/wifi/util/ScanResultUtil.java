@@ -241,6 +241,14 @@ public class ScanResultUtil {
     }
 
     /**
+     * Helper method to check if the provided |scanResult| corresponds to DPP network.
+     * This checks if the provided capabilities string contains DPP or not.
+     */
+    public static boolean isScanResultForDppNetwork(@NonNull ScanResult scanResult) {
+        return scanResult.capabilities.contains("DPP");
+    }
+
+    /**
      *  Helper method to check if the provided |scanResult| corresponds to an unknown amk network.
      *  This checks if the provided capabilities string contains ? or not.
      */
@@ -261,6 +269,7 @@ public class ScanResultUtil {
                 || isScanResultForWapiPskNetwork(scanResult)
                 || isScanResultForWapiCertNetwork(scanResult)
                 || isScanResultForEapSuiteBNetwork(scanResult)
+                || isScanResultForDppNetwork(scanResult)
                 || isScanResultForUnknownAkmNetwork(scanResult)));
     }
 
@@ -350,6 +359,10 @@ public class ScanResultUtil {
         } else if (ScanResultUtil.isScanResultForSaeNetwork(scanResult)) {
             list.add(SecurityParams.createSecurityParamsBySecurityType(
                     WifiConfiguration.SECURITY_TYPE_SAE));
+            return list;
+        } else if (ScanResultUtil.isScanResultForDppNetwork(scanResult)) {
+            list.add(SecurityParams.createSecurityParamsBySecurityType(
+                    WifiConfiguration.SECURITY_TYPE_DPP));
             return list;
         }
 

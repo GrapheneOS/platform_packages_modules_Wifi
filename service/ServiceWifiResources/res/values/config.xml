@@ -860,4 +860,8 @@
     <integer translatable="false" name="config_wifiNumMaskedBssidOctetsInSecurityLog">4</integer>
     <!-- Indicates whether or not the network-centric QoS policy feature is enabled. -->
     <bool translatable="false" name="config_wifiNetworkCentricQosPolicyFeatureEnabled">false</bool>
+
+    <!-- The world mode country code value definition in the wifi driver -->
+    <string translatable="false" name="config_wifiDriverWorldModeCountryCode">00</string>
+
 </resources>

@@ -630,7 +630,7 @@ interface ISupplicantStaIfaceHal {
      */
     boolean startDppConfiguratorInitiator(@NonNull String ifaceName, int peerBootstrapId,
             int ownBootstrapId, @NonNull String ssid, String password, String psk,
-            int netRole, int securityAkm);
+            int netRole, int securityAkm, byte[] privEcKey);
 
     /**
      * Starts DPP Enrollee-Initiator request
@@ -743,4 +743,15 @@ interface ISupplicantStaIfaceHal {
      * @param ifaceName Name of the interface.
      */
     boolean removeAllQosPolicies(String ifaceName);
+
+    /**
+     * Generate DPP credential for network access
+     *
+     * @param ifaceName Name of the interface.
+     * @param ssid ssid of the network
+     * @param privEcKey Private EC Key for DPP Configurator
+     * Returns true when operation is successful. On error, false is returned.
+     */
+    boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
+            byte[] privEcKey);
 }

@@ -2176,7 +2176,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         assertFalse(mDut.stopDppInitiator(WLAN0_IFACE_NAME));
         assertFalse(mDut.startDppConfiguratorInitiator(WLAN0_IFACE_NAME,
                 1, 2, "Buckle", "My", "Shoe",
-                3, 4));
+                3, 4, null));
         assertFalse(mDut.startDppEnrolleeInitiator(WLAN0_IFACE_NAME, 3, 14));
         WifiNative.DppBootstrapQrCodeInfo bootstrapInfo =
                 mDut.generateDppBootstrapInfoForResponder(WLAN0_IFACE_NAME, "00:11:22:33:44:55",

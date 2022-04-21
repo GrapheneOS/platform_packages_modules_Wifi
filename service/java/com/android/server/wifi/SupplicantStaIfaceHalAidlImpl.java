@@ -2881,7 +2881,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean startDppConfiguratorInitiator(@NonNull String ifaceName, int peerBootstrapId,
             int ownBootstrapId, @NonNull String ssid, String password, String psk,
-            int netRole, int securityAkm)  {
+            int netRole, int securityAkm, byte[] privEcKey)  {
         synchronized (mLock) {
             final String methodStr = "startDppConfiguratorInitiator";
             ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
@@ -2889,11 +2889,13 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 return false;
             }
             try {
-                iface.startDppConfiguratorInitiator(peerBootstrapId, ownBootstrapId, ssid,
-                        password != null ? password : "", psk != null ? psk : "",
+                byte[] key = iface.startDppConfiguratorInitiator(peerBootstrapId, ownBootstrapId,
+                        ssid, password != null ? password : "", psk != null ? psk : "",
                         frameworkToAidlDppNetRole(netRole), frameworkToAidlDppAkm(securityAkm),
-                        new byte[] {});
-                // TODO: update dppPrivateEcKey if it is returned
+                        privEcKey != null ? privEcKey : new byte[] {});
+                if (key != null && key.length > 0 && mDppCallback != null) {
+                    mDppCallback.onDppConfiguratorKeyUpdate(key);
+                }
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
@@ -3297,5 +3299,34 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             handleServiceSpecificException(e, methodStr);
         }
         return false;
+    }
+
+    /**
+     * Generate DPP credential for network access
+     *
+     * @param ifaceName Name of the interface.
+     * @param ssid ssid of the network
+     * @param privEcKey Private EC Key for DPP Configurator
+     * Returns true when operation is successful. On error, false is returned.
+     */
+    public boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
+            byte[] privEcKey) {
+        synchronized (mLock) {
+            final String methodStr = "generateSelfDppConfiguration";
+            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) {
+                return false;
+            }
+            try {
+                iface.generateSelfDppConfiguration(
+                        NativeUtil.removeEnclosingQuotes(ssid), privEcKey);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
     }
 }

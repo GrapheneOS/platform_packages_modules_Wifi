@@ -1058,6 +1058,25 @@ public class WifiConfigManager {
         }
     }
 
+    private void mergeDppSecurityParamsWithInternalWifiConfiguration(
+            WifiConfiguration internalConfig, WifiConfiguration externalConfig) {
+        // Do not update for non-DPP network
+        if (!externalConfig.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)) {
+            return;
+        }
+
+        if (externalConfig.getDppConnector().length != 0
+                && externalConfig.getDppCSignKey().length != 0
+                && externalConfig.getDppNetAccessKey().length != 0) {
+            internalConfig.setDppConnectionKeys(externalConfig.getDppConnector(),
+                    externalConfig.getDppCSignKey(), externalConfig.getDppNetAccessKey());
+        }
+
+        if (externalConfig.getDppPrivateEcKey().length != 0) {
+            internalConfig.setDppConfigurator(externalConfig.getDppPrivateEcKey());
+        }
+    }
+
     /**
      * Copy over public elements from an external WifiConfiguration object to the internal
      * configuration object if element has been set in the provided external WifiConfiguration.
@@ -1115,6 +1134,7 @@ public class WifiConfigManager {
         }
 
         mergeSecurityParamsListWithInternalWifiConfiguration(internalConfig, externalConfig);
+        mergeDppSecurityParamsWithInternalWifiConfiguration(internalConfig, externalConfig);
 
         // Copy over the |IpConfiguration| parameters if set.
         if (externalConfig.getIpConfiguration() != null) {
@@ -1382,7 +1402,8 @@ public class WifiConfigManager {
                 && !(newInternalConfig.isPasspoint() && uid == newInternalConfig.creatorUid)
                 && !config.fromWifiNetworkSuggestion
                 && !mWifiPermissionsUtil.isDeviceInDemoMode(mContext)
-                && !(mWifiPermissionsUtil.isAdmin(uid, packageName) && uid == config.creatorUid)) {
+                && !(mWifiPermissionsUtil.isAdmin(uid, packageName)
+                && uid == newInternalConfig.creatorUid)) {
             Log.e(TAG, "UID " + uid + " does not have permission to modify MAC randomization "
                     + "Settings " + config.getProfileKey() + ". Must have "
                     + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD or be in Demo Mode "
