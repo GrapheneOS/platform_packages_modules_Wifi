@@ -220,6 +220,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 mDeviceConfigFacade.getTrafficStatsThresholdMaxKbyte());
         assertEquals(DeviceConfigFacade.DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC,
                 mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
+        assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
     }
 
     /**
@@ -343,6 +344,9 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 anyInt())).thenReturn(5000);
         when(DeviceConfig.getInt(anyString(), eq("bandwidth_estimator_time_constant_large_sec"),
                 anyInt())).thenReturn(30);
+        when(DeviceConfig.getBoolean(anyString(),
+                eq("interface_failure_bugreport_enabled"),
+                anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
 
         // Verifying fields are updated to the new values
@@ -408,5 +412,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids());
         assertEquals(5000, mDeviceConfigFacade.getTrafficStatsThresholdMaxKbyte());
         assertEquals(30, mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
+        assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
     }
 }
