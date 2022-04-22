@@ -893,6 +893,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
                                 mWifiNativeInterfaceCallback, roleChangeInfo.requestorWs);
                         if (TextUtils.isEmpty(mClientInterfaceName)) {
                             Log.e(getTag(), "Failed to create ClientInterface. Sit in Idle");
+                            takeBugReportInterfaceFailureIfNeeded(
+                                    "Wi-Fi scan STA interface HAL failure");
                             mModeListener.onStartFailure(ConcreteClientModeManager.this);
                             break;
                         }
@@ -956,6 +958,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
                             updateConnectModeState(roleChangeInfo.role,
                                     WifiManager.WIFI_STATE_DISABLED,
                                     WifiManager.WIFI_STATE_UNKNOWN);
+                            takeBugReportInterfaceFailureIfNeeded(
+                                    "Wi-Fi STA interface HAL failure");
                             mModeListener.onStartFailure(ConcreteClientModeManager.this);
                             break;
                         }
@@ -1196,6 +1200,12 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
             // reset to false so that onStopped() won't be triggered again.
             mIsStopped = false;
+        }
+    }
+
+    private void takeBugReportInterfaceFailureIfNeeded(String bugTitle) {
+        if (mWifiInjector.getDeviceConfigFacade().isInterfaceFailureBugreportEnabled()) {
+            mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugTitle);
         }
     }
 
