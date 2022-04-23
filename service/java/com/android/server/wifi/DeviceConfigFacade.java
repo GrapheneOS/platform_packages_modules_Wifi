@@ -204,6 +204,7 @@ public class DeviceConfigFacade {
     private boolean mAllowNonPersistentMacRandomizationOnOpenSsids;
     private int mTrafficStatsThresholdMaxKbyte;
     private int mBandwidthEstimatorLargeTimeConstantSec;
+    private boolean mInterfaceFailureBugreportEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -375,6 +376,8 @@ public class DeviceConfigFacade {
         mBandwidthEstimatorLargeTimeConstantSec = DeviceConfig.getInt(NAMESPACE,
                 "bandwidth_estimator_time_constant_large_sec",
                 DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC);
+        mInterfaceFailureBugreportEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "interface_failure_bugreport_enabled", false);
 
     }
 
@@ -791,4 +794,10 @@ public class DeviceConfigFacade {
         return mBandwidthEstimatorLargeTimeConstantSec;
     }
 
+    /**
+     * Gets the feature flag for reporting interface setup failure
+     */
+    public boolean isInterfaceFailureBugreportEnabled() {
+        return mInterfaceFailureBugreportEnabled;
+    }
 }
