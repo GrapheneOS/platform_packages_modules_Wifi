@@ -1526,7 +1526,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 case WifiP2pManager.REQUEST_NETWORK_INFO:
                 case WifiP2pManager.REQUEST_CONNECTION_INFO:
                 case WifiP2pManager.REQUEST_GROUP_INFO:
-                case WifiP2pManager.REQUEST_DEVICE_INFO:
                 case WifiP2pManager.REQUEST_PEERS:
                 // These commands configure the framework behavior.
                 case WifiP2pManager.ADD_EXTERNAL_APPROVER:
