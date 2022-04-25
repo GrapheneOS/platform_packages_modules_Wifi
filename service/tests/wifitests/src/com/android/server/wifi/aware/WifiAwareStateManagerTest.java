@@ -4489,6 +4489,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         collector.checkThat("intent action", intent.getValue().getAction(),
                 equalTo(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED));
     }
+
     /**
      * Validates that the broadcast sent on Aware status change is correct.
      */

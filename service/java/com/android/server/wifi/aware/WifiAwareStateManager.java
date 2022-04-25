@@ -1772,6 +1772,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 case NOTIFICATION_TYPE_ON_DATA_PATH_END:
                     mDataPathMgr.onDataPathEnd(msg.arg2);
+                    sendAwareResourcesChangedBroadcast();
                     break;
                 case NOTIFICATION_TYPE_ON_DATA_PATH_SCHED_UPDATE:
                     mDataPathMgr.onDataPathSchedUpdate(
@@ -2458,7 +2459,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return;
         }
         if (VDBG) {
-            Log.v(TAG, "sendAwareStateChangedBroadcast");
+            Log.v(TAG, "sendAwareResourcesChangedBroadcast");
         }
         final Intent intent = new Intent(WifiAwareManager.ACTION_WIFI_AWARE_RESOURCE_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
@@ -2909,7 +2910,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG,
                     "endDataPathLocal: transactionId=" + transactionId + ", ndpId=" + ndpId);
         }
-
+        sendAwareResourcesChangedBroadcast();
         return mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
     }
 
