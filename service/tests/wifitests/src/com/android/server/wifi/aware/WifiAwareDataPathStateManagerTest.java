@@ -552,8 +552,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
             mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId + i);
             mMockLooper.dispatchAll();
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(--expectAvailableNdp, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(--expectAvailableNdp, awareResources.getAvailableDataPathsCount());
+            }
 
             // (2) get confirmation
             mDut.onDataPathConfirmNotification(ndpId + i, peerDataPathMac, true, 0,
@@ -591,8 +593,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
             agentBinders[i].onNetworkUnwanted();
             mMockLooper.dispatchAll();
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(++expectAvailableNdp, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(++expectAvailableNdp, awareResources.getAvailableDataPathsCount());
+            }
 
             inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId + i));
 
@@ -675,8 +679,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         // (5) respond to the registration request
         mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId);
         mMockLooper.dispatchAll();
-        awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-        assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        if (SdkLevel.isAtLeastT()) {
+            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+            assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        }
 
         // (6) unregister request #1
         endNetworkReqMsg = Message.obtain();
@@ -747,8 +753,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         // (10) verify that NDP torn down
-        awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-        assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        if (SdkLevel.isAtLeastT()) {
+            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+            assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        }
         inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
 
         mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
@@ -819,8 +827,11 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId + i);
                 mDut.onDataPathConfirmNotification(ndpId + i, peerDataPathMac, true, 0, null, null);
                 mMockLooper.dispatchAll();
-                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-                assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+                if (SdkLevel.isAtLeastT()) {
+                    awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                    assertEquals(--expectedAvailableNdps,
+                            awareResources.getAvailableDataPathsCount());
+                }
 
                 inOrder.verify(mMockNetdWrapper).setInterfaceUp(anyString());
                 inOrder.verify(mMockNetdWrapper).enableIpv6(anyString());
@@ -911,8 +922,11 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 mDut.onDataPathConfirmNotification(ndpId + i, peerDataPathMac, true, 0, null, null);
                 mMockLooper.dispatchAll();
 
-                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-                assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+                if (SdkLevel.isAtLeastT()) {
+                    awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                    assertEquals(--expectedAvailableNdps,
+                            awareResources.getAvailableDataPathsCount());
+                }
                 inOrder.verify(mMockNetdWrapper).setInterfaceUp(anyString());
                 inOrder.verify(mMockNetdWrapper).enableIpv6(anyString());
                 inOrder.verify(mMockNetworkInterface).setConnected(agentCaptor.capture());
@@ -1005,8 +1019,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId + i);
             mDut.onDataPathConfirmNotification(ndpId + i, peerDataPathMac, true, 0, null, null);
             mMockLooper.dispatchAll();
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            }
 
             if (first) {
                 inOrder.verify(mMockNetdWrapper).setInterfaceUp(anyString());
@@ -1636,8 +1652,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId);
         mMockLooper.dispatchAll();
-        awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-        assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        if (SdkLevel.isAtLeastT()) {
+            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+            assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        }
 
         // (2) get confirmation OR timeout
         boolean timeout = false;
@@ -1686,8 +1704,11 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             }
             if (timeout) {
                 verifyRequestDeclaredUnfullfillable(nr);
-                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-                assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+                if (SdkLevel.isAtLeastT()) {
+                    awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                    assertEquals(++expectedAvailableNdps,
+                            awareResources.getAvailableDataPathsCount());
+                }
                 inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
                 mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
             } else {
@@ -1712,8 +1733,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                     WifiAwareStateManager.HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG));
             mMockLooper.dispatchAll();
             verifyRequestDeclaredUnfullfillable(nr);
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            }
             inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
             mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
             mMockLooper.dispatchAll();
@@ -1730,8 +1753,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
             networkAgent.onNetworkUnwanted();
             mMockLooper.dispatchAll();
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            }
             inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
             mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
             mDut.onDataPathEndNotification(ndpId);
@@ -1804,8 +1829,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 eq(null), eq(useDirect), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
-        awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-        assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        if (SdkLevel.isAtLeastT()) {
+            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+            assertEquals(--expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+        }
 
         // (3) get confirmation OR timeout
         if (getConfirmation) {
@@ -1831,8 +1858,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                     WifiAwareStateManager.HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG));
             mMockLooper.dispatchAll();
             verifyRequestDeclaredUnfullfillable(nr);
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            }
             inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
             mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
             mMockLooper.dispatchAll();
@@ -1849,8 +1878,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
             agentCaptor.getValue().onNetworkUnwanted();
             mMockLooper.dispatchAll();
-            awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
-            assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(++expectedAvailableNdps, awareResources.getAvailableDataPathsCount());
+            }
             inOrder.verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
 
             mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
