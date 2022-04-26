@@ -137,6 +137,12 @@ public class WifiDialogActivity extends Activity  {
                 name, "id", getWifiContext().getWifiOverlayApkPkgName());
     }
 
+    private int getStyleId(@NonNull String name) {
+        Resources res = getResources();
+        return res.getIdentifier(
+                name, "style", getWifiContext().getWifiOverlayApkPkgName());
+    }
+
     private WifiManager getWifiManager() {
         if (mWifiManager == null) {
             mWifiManager = getSystemService(WifiManager.class);
@@ -523,7 +529,8 @@ public class WifiDialogActivity extends Activity  {
             addRowToP2pDialog(group, getStringId("wifi_p2p_show_pin_message"), displayPin);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this,
+                getStyleId("wifi_p2p_invitation_received_dialog"))
                 .setTitle(getString(getStringId("wifi_p2p_invitation_to_connect_title")))
                 .setView(textEntryView)
                 .setPositiveButton(getStringId("accept"), (dialogPositive, which) -> {

@@ -325,6 +325,7 @@
           <item type="style" name="wifi_item_label" />
           <item type="style" name="wifi_item_content" />
           <item type="style" name="wifi_section" />
+          <item type="style" name="wifi_p2p_invitation_received_dialog" />
           <!-- Params from styles.xml that can be overlayed -->
 
           <!-- Params from drawable/ that can be overlayed -->

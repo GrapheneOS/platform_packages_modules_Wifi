@@ -186,7 +186,9 @@ public class WifiAwareDataPathStateManager {
     public int getNumOfNdps() {
         int numOfNdps = 0;
         for (AwareNetworkRequestInformation requestInformation : mNetworkRequestsCache.values()) {
-            numOfNdps += requestInformation.ndpInfos.size();
+            if (requestInformation.state != AwareNetworkRequestInformation.STATE_TERMINATING) {
+                numOfNdps += requestInformation.ndpInfos.size();
+            }
         }
         return numOfNdps;
     }
