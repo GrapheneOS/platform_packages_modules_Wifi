@@ -613,7 +613,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
 
             SecurityParams params = config.getNetworkSelectionStatus()
                     .getCandidateSecurityParams();
-            if (params != null && !params.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)) {
+            if (params != null && !(params.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
+                    || params.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP))) {
                 List<ArrayList<Byte>> pmkDataList = mPmkCacheManager.get(config.networkId);
                 if (pmkDataList != null) {
                     Log.i(TAG, "Set PMK cache for config id " + config.networkId);

@@ -537,7 +537,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         }
 
         SecurityParams params = curConfig.getNetworkSelectionStatus().getCandidateSecurityParams();
-        if (params == null || params.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)) {
+        if (params == null || params.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
+                || params.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)) {
             return;
         }
 
