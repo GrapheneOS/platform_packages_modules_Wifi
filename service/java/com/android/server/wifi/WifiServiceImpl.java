@@ -3834,9 +3834,21 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     private ClientModeManager getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
             int callingUid, @NonNull String callingPackageName) {
-        List<ConcreteClientModeManager> secondaryCmms =
-                mActiveModeWarden.getClientModeManagersInRoles(
-                        ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        List<ConcreteClientModeManager> secondaryCmms = null;
+        ActiveModeManager.ClientConnectivityRole roleSecondaryLocalOnly =
+                ROLE_CLIENT_LOCAL_ONLY;
+        ActiveModeManager.ClientInternetConnectivityRole roleSecondaryLongLived =
+                ROLE_CLIENT_SECONDARY_LONG_LIVED;
+        try {
+            secondaryCmms = mActiveModeWarden.getClientModeManagersInRoles(
+                    roleSecondaryLocalOnly, roleSecondaryLongLived);
+        } catch (Exception e) {
+            // print debug info and then rethrow the exception
+            Log.e(TAG, "Failed to call getClientModeManagersInRoles on "
+                    + roleSecondaryLocalOnly + ", and " + roleSecondaryLongLived);
+            throw e;
+        }
+
         for (ConcreteClientModeManager cmm : secondaryCmms) {
             WorkSource reqWs = cmm.getRequestorWs();
             // If there are more than 1 secondary CMM for same app, return any one (should not
