@@ -1775,7 +1775,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test adding PMK cache entry returns failure if this is a psk network.
+     * Tests that PMK cache entry is not added for PSK network.
      */
     @Test
     public void testAddPmkEntryIsOmittedWithPskNetwork() throws Exception {
@@ -1783,6 +1783,27 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         WifiConfiguration config = new WifiConfiguration();
         config.networkId = testFrameworkNetworkId;
         config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+
+        setupMocksForPmkCache();
+        setupMocksForConnectSequence(false);
+        executeAndValidateInitializationSequence();
+        assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
+
+        verify(mPmkCacheManager, never()).add(any(), anyInt(), anyLong(), any());
+        verify(mSupplicantStaNetworkMock, never()).setPmkCache(any(byte[].class));
+        verify(mISupplicantStaIfaceCallback, never()).onPmkCacheAdded(
+                anyLong(), any(byte[].class));
+    }
+
+    /**
+     * Tests that PMK cache entry is not added for DPP network.
+     */
+    @Test
+    public void testAddPmkEntryIsOmittedWithDppNetwork() throws Exception {
+        int testFrameworkNetworkId = 9;
+        WifiConfiguration config = new WifiConfiguration();
+        config.networkId = testFrameworkNetworkId;
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_DPP);
 
         setupMocksForPmkCache();
         setupMocksForConnectSequence(false);
