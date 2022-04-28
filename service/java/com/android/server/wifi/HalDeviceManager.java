@@ -560,6 +560,10 @@ public class HalDeviceManager {
      * an existing RTT controller is destroyed (the previous copies must be discarded by the
      * recipient).
      *
+     * Each listener should maintain a single callback object to register here. The callback can
+     * be registered upon the listener's initialization, and re-registered on HDM status changes, if
+     * {@link #isStarted} is true.
+     *
      * @param callback InterfaceRttControllerLifecycleCallback object.
      * @param handler Handler on which to dispatch callback
      */
@@ -586,11 +590,11 @@ public class HalDeviceManager {
                 return;
             }
 
-            if (mIWifiRttController == null) {
-                mIWifiRttController = createRttControllerIfPossible();
+            if (mWifiRttControllerHal == null) {
+                mWifiRttControllerHal = createRttControllerIfPossible();
             }
-            if (mIWifiRttController != null) {
-                proxy.onNewRttController(mIWifiRttController);
+            if (mWifiRttControllerHal != null) {
+                proxy.onNewRttController(mWifiRttControllerHal);
             }
         }
     }
@@ -665,12 +669,12 @@ public class HalDeviceManager {
          *
          * @param controller The RTT controller object.
          */
-        void onNewRttController(@NonNull IWifiRttController controller);
+        void onNewRttController(@NonNull WifiRttControllerHal controller);
 
         /**
          * Called when the previously provided RTT controller is destroyed. Clients must discard
          * their copy. A new copy may be provided later by
-         * {@link #onNewRttController(IWifiRttController)}.
+         * {@link #onNewRttController(WifiRttControllerHal)}.
          */
         void onRttControllerDestroyed();
     }
@@ -884,7 +888,7 @@ public class HalDeviceManager {
 
     private IServiceManager mServiceManager;
     private IWifi mWifi;
-    private IWifiRttController mIWifiRttController;
+    private WifiRttControllerHal mWifiRttControllerHal;
     private final WifiEventCallback mWifiEventCallback = new WifiEventCallback();
     private final WifiEventCallbackV15 mWifiEventCallbackV15 = new WifiEventCallbackV15();
     private final Set<ManagerStatusListenerProxy> mManagerStatusListeners = new HashSet<>();
@@ -1026,7 +1030,7 @@ public class HalDeviceManager {
         managerStatusListenerDispatch();
         dispatchAllDestroyedListeners();
 
-        mIWifiRttController = null;
+        mWifiRttControllerHal = null;
         dispatchRttControllerLifecycleOnDestroyed();
         mRttControllerLifecycleCallbacks.clear();
     }
@@ -3093,7 +3097,7 @@ public class HalDeviceManager {
         }
 
         @Override
-        public void onNewRttController(IWifiRttController controller) {
+        public void onNewRttController(WifiRttControllerHal controller) {
             mHandler.post(() -> mCallback.onNewRttController(controller));
         }
 
@@ -3109,7 +3113,7 @@ public class HalDeviceManager {
                     + mRttControllerLifecycleCallbacks.size());
         }
         for (InterfaceRttControllerLifecycleCallbackProxy cbp : mRttControllerLifecycleCallbacks) {
-            cbp.onNewRttController(mIWifiRttController);
+            cbp.onNewRttController(mWifiRttControllerHal);
         }
     }
 
@@ -3119,7 +3123,6 @@ public class HalDeviceManager {
         }
     }
 
-
     /**
      * Updates the RttController when the interface changes:
      * - Handles callbacks to registered listeners
@@ -3127,55 +3130,37 @@ public class HalDeviceManager {
      */
     private void updateRttControllerWhenInterfaceChanges() {
         synchronized (mLock) {
-            if (validateRttController()) {
+            if (mWifiRttControllerHal != null && mWifiRttControllerHal.validate()) {
                 if (mDbg) {
                     Log.d(TAG, "Current RttController is valid, Don't try to create a new one");
                 }
                 return;
             }
-            boolean controllerDestroyed = mIWifiRttController != null;
-            mIWifiRttController = null;
+            boolean controllerDestroyed = mWifiRttControllerHal != null;
+            mWifiRttControllerHal = null;
             if (mRttControllerLifecycleCallbacks.size() == 0) {
                 Log.d(TAG, "updateRttController: no one is interested in RTT controllers");
                 return;
             }
 
-            IWifiRttController newRttController = createRttControllerIfPossible();
+            WifiRttControllerHal newRttController = createRttControllerIfPossible();
             if (newRttController == null) {
                 if (controllerDestroyed) {
                     dispatchRttControllerLifecycleOnDestroyed();
                 }
             } else {
-                mIWifiRttController = newRttController;
+                mWifiRttControllerHal = newRttController;
                 dispatchRttControllerLifecycleOnNew();
             }
         }
     }
 
-    private boolean validateRttController() {
-        if (mIWifiRttController == null) {
-            return false;
-        }
-        Mutable<Boolean> isRttControllerValid = new Mutable<>(false);
-        try {
-            mIWifiRttController.getBoundIface(
-                    (status, iface) -> {
-                        if (status.code == WifiStatusCode.SUCCESS) {
-                            isRttControllerValid.value = true;
-                        }
-                    });
-        } catch (RemoteException e) {
-            Log.e(TAG, "RttController: exception getBoundIface" + e);
-        }
-        return isRttControllerValid.value;
-    }
-
     /**
-     * Try to create a new RttController.
+     * Try to create and set up a new RttController.
      *
      * @return The new RttController - or null on failure.
      */
-    private IWifiRttController createRttControllerIfPossible() {
+    private WifiRttControllerHal createRttControllerIfPossible() {
         synchronized (mLock) {
             if (!isWifiStarted()) {
                 Log.d(TAG, "createRttControllerIfPossible: Wifi is not started");
@@ -3242,7 +3227,13 @@ public class HalDeviceManager {
                     Log.e(TAG, "IWifiChip.createRttController exception: " + e);
                 }
                 if (rttResp.value != null) {
-                    return rttResp.value;
+                    WifiRttControllerHal wifiRttControllerHal =
+                            new WifiRttControllerHal(rttResp.value);
+                    if (!wifiRttControllerHal.setup()) {
+                        return null;
+                    }
+                    wifiRttControllerHal.enableVerboseLogging(mDbg);
+                    return wifiRttControllerHal;
                 }
             }
         }

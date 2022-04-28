@@ -60,6 +60,8 @@ import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.WifiRttControllerHal;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -90,7 +92,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private final RttShellCommand mShellCommand;
     private Clock mClock;
     private WifiAwareManager mAwareManager;
-    private RttNative mRttNative;
+    private WifiRttControllerHal mWifiRttControllerHal;
+    private HalDeviceManager mHalDeviceManager;
     private RttMetrics mRttMetrics;
     private WifiPermissionsUtil mWifiPermissionsUtil;
     private ActivityManager mActivityManager;
@@ -112,6 +115,35 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
+
+    private final WifiRttControllerHal.RttControllerRangingResultsCallback mRangingResultsCallback =
+            new WifiRttControllerHal.RttControllerRangingResultsCallback() {
+                @Override
+                public void onRangingResults(int cmdId, List<RangingResult> rangingResults) {
+                    if (mDbg) Log.d(TAG, "onRangingResults: cmdId=" + cmdId);
+                    mRttServiceSynchronized.mHandler.post(() -> {
+                        mRttServiceSynchronized.onRangingResults(cmdId, rangingResults);
+                    });
+                }
+            };
+
+    private final HalDeviceManager.InterfaceRttControllerLifecycleCallback mRttLifecycleCb =
+            new HalDeviceManager.InterfaceRttControllerLifecycleCallback() {
+                @Override
+                public void onNewRttController(WifiRttControllerHal controller) {
+                    if (mDbg) Log.d(TAG, "onNewRttController: controller=" + controller);
+                    mWifiRttControllerHal = controller;
+                    mWifiRttControllerHal.registerRangingResultsCallback(mRangingResultsCallback);
+                    enableIfPossible();
+                }
+
+                @Override
+                public void onRttControllerDestroyed() {
+                    if (mDbg) Log.d(TAG, "onRttControllerDestroyed");
+                    mWifiRttControllerHal = null;
+                    disable();
+                }
+            };
 
     public RttServiceImpl(Context context) {
         mContext = context;
@@ -170,8 +202,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         return -1;
                     }
                 } else if ("get_capabilities".equals(cmd)) {
-                    RttNative.Capabilities cap =
-                            mRttNative.getRttCapabilities();
+                    WifiRttControllerHal.Capabilities cap = null;
+                    if (mWifiRttControllerHal != null) {
+                        cap = mWifiRttControllerHal.getRttCapabilities();
+                    }
                     JSONObject j = new JSONObject();
                     if (cap != null) {
                         try {
@@ -242,20 +276,20 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      * @param looper The looper on which to synchronize operations.
      * @param clock A mockable clock.
      * @param awareManager The Wi-Fi Aware service (binder) if supported on the system.
-     * @param rttNative The Native interface to the HAL.
      * @param rttMetrics The Wi-Fi RTT metrics object.
      * @param wifiPermissionsUtil Utility for permission checks.
      * @param settingsConfigStore Used for retrieving verbose logging level.
+     * @param halDeviceManager The HAL device manager object.
      */
     public void start(Looper looper, Clock clock, WifiAwareManager awareManager,
-            RttNative rttNative, RttMetrics rttMetrics, WifiPermissionsUtil wifiPermissionsUtil,
-            WifiSettingsConfigStore settingsConfigStore) {
+            RttMetrics rttMetrics, WifiPermissionsUtil wifiPermissionsUtil,
+            WifiSettingsConfigStore settingsConfigStore, HalDeviceManager halDeviceManager) {
         mClock = clock;
         mAwareManager = awareManager;
-        mRttNative = rttNative;
+        mHalDeviceManager = halDeviceManager;
         mRttMetrics = rttMetrics;
         mWifiPermissionsUtil = wifiPermissionsUtil;
-        mRttServiceSynchronized = new RttServiceSynchronized(looper, rttNative);
+        mRttServiceSynchronized = new RttServiceSynchronized(looper);
         mActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
         mPowerManager = mContext.getSystemService(PowerManager.class);
 
@@ -301,7 +335,18 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 }
             }, intentFilter);
 
-            rttNative.start(mRttServiceSynchronized.mHandler);
+            mHalDeviceManager.initialize();
+            mHalDeviceManager.registerStatusListener(() -> {
+                if (VDBG) Log.d(TAG, "hdm.onStatusChanged");
+                if (mHalDeviceManager.isStarted()) {
+                    mHalDeviceManager.registerRttControllerLifecycleCallback(mRttLifecycleCb,
+                            mRttServiceSynchronized.mHandler);
+                }
+            }, mRttServiceSynchronized.mHandler);
+            if (mHalDeviceManager.isStarted()) {
+                mHalDeviceManager.registerRttControllerLifecycleCallback(
+                        mRttLifecycleCb, mRttServiceSynchronized.mHandler);
+            }
         });
     }
 
@@ -310,7 +355,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (VDBG) {
             mDbg = true; // just override
         }
-        mRttNative.mDbg = mDbg;
         mRttMetrics.mDbg = mDbg;
     }
 
@@ -377,7 +421,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     public boolean isAvailable() {
         long ident = Binder.clearCallingIdentity();
         try {
-            return mRttNative != null && mRttNative.isReady() && !mPowerManager.isDeviceIdleMode()
+            return mWifiRttControllerHal != null && !mPowerManager.isDeviceIdleMode()
                     && mWifiPermissionsUtil.isLocationModeEnabled();
         } finally {
             Binder.restoreCallingIdentity(ident);
@@ -512,17 +556,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         });
     }
 
-    /**
-     * Called by HAL to report ranging results. Called on HAL thread - needs to post to local
-     * thread.
-     */
-    public void onRangingResults(int cmdId, List<RangingResult> results) {
-        if (VDBG) Log.v(TAG, "onRangingResults: cmdId=" + cmdId);
-        mRttServiceSynchronized.mHandler.post(() -> {
-            mRttServiceSynchronized.onRangingResults(cmdId, results);
-        });
-    }
-
     private void enforceAccessPermission() {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.ACCESS_WIFI_STATE, TAG);
     }
@@ -558,6 +591,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
         pw.println("Wi-Fi RTT Service");
         mRttServiceSynchronized.dump(fd, pw, args);
+        pw.println("  mWifiRttControllerHal: " + mWifiRttControllerHal);
+        if (mWifiRttControllerHal != null) {
+            mWifiRttControllerHal.dump(fd, pw, args);
+        }
     }
 
     /*
@@ -571,15 +608,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private class RttServiceSynchronized {
         public Handler mHandler;
 
-        private RttNative mRttNative;
         private int mNextCommandId = 1000;
         private Map<Integer, RttRequesterInfo> mRttRequesterInfo = new HashMap<>();
         private List<RttRequestInfo> mRttRequestQueue = new LinkedList<>();
         private WakeupMessage mRangingTimeoutMessage = null;
 
-        RttServiceSynchronized(Looper looper, RttNative rttNative) {
-            mRttNative = rttNative;
-
+        RttServiceSynchronized(Looper looper) {
             mHandler = new Handler(looper);
             mRangingTimeoutMessage = new WakeupMessage(mContext, mHandler,
                     HAL_RANGING_TIMEOUT_TAG, () -> {
@@ -593,7 +627,11 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 macAddresses.add(peer.macAddress.toByteArray());
             }
 
-            mRttNative.rangeCancel(rri.cmdId, macAddresses);
+            if (mWifiRttControllerHal != null) {
+                mWifiRttControllerHal.rangeCancel(rri.cmdId, macAddresses);
+            } else {
+                Log.e(TAG, "Could not call cancelRanging, rttControllerHal is null");
+            }
         }
 
         private void cleanUpOnDisable() {
@@ -853,8 +891,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
             nextRequest.cmdId = mNextCommandId++;
             mLastRequestTimestamp = mClock.getWallClockMillis();
-            if (mRttNative.rangeRequest(nextRequest.cmdId, nextRequest.request,
-                    nextRequest.isCalledFromPrivilegedContext)) {
+            if (mWifiRttControllerHal != null
+                    && mWifiRttControllerHal.rangeRequest(nextRequest.cmdId, nextRequest.request)) {
                 long timeout = HAL_RANGING_TIMEOUT_MS;
                 for (ResponderConfig responderConfig : nextRequest.request.mRttPeers) {
                     if (responderConfig.responderType == ResponderConfig.RESPONDER_AWARE) {
@@ -865,6 +903,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 mRangingTimeoutMessage.schedule(mClock.getElapsedSinceBootMillis() + timeout);
             } else {
                 Log.w(TAG, "RttServiceSynchronized.startRanging: native rangeRequest call failed");
+                if (mWifiRttControllerHal == null) {
+                    Log.e(TAG, "mWifiRttControllerHal is null");
+                }
                 try {
                     mRttMetrics.recordOverallStatus(
                             WifiMetricsProto.WifiRttLog.OVERALL_HAL_FAILURE);
@@ -1156,8 +1197,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
             for (ResponderConfig peer : request.mRttPeers) {
                 RangingResult resultForRequest = resultEntries.get(peer.macAddress);
-                if (resultForRequest == null
-                        || resultForRequest.getStatus() != RttNative.FRAMEWORK_RTT_STATUS_SUCCESS) {
+                if (resultForRequest == null || resultForRequest.getStatus()
+                        != WifiRttControllerHal.FRAMEWORK_RTT_STATUS_SUCCESS) {
                     if (mDbg) {
                         Log.v(TAG, "postProcessResults: missing=" + peer.macAddress);
                     }
@@ -1227,8 +1268,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             pw.println("  mRttRequesterInfo: " + mRttRequesterInfo);
             pw.println("  mRttRequestQueue: " + mRttRequestQueue);
             pw.println("  mRangingTimeoutMessage: " + mRangingTimeoutMessage);
+            pw.println("  mWifiRttControllerHal: " + mWifiRttControllerHal);
+            pw.println("  mHalDeviceManager: " + mHalDeviceManager);
             mRttMetrics.dump(fd, pw, args);
-            mRttNative.dump(fd, pw, args);
         }
     }
 
