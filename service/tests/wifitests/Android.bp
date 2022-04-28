@@ -72,7 +72,7 @@ android_test {
     compile_multilib: "both",
 
     min_sdk_version: "30",
-    target_sdk_version: "30",
+    target_sdk_version: "33",
     privileged: true,
     test_suites: [
         "general-tests",
