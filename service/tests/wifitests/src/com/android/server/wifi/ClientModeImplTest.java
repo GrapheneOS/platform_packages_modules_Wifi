@@ -855,6 +855,28 @@ public class ClientModeImplTest extends WifiBaseTest {
         canSaveNetworkConfig();
     }
 
+    /**
+     * Verifies that admin restricted configs can be saved without triggering a connection.
+     */
+    @Test
+    public void canSaveAdminRestrictedNetworkWithoutConnecting() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+
+        mWifiInfo.setNetworkId(WifiConfiguration.INVALID_NETWORK_ID);
+        IActionListener connectActionListener = mock(IActionListener.class);
+        when(mWifiPermissionsUtil.isAdminRestrictedNetwork(any())).thenReturn(true);
+        mCmi.saveNetwork(
+                new NetworkUpdateResult(TEST_NETWORK_ID, false, false, true, false),
+                new ActionListenerWrapper(connectActionListener),
+                Binder.getCallingUid(), OP_PACKAGE_NAME);
+        mLooper.dispatchAll();
+
+        verify(connectActionListener).onSuccess();
+        verify(mWifiPermissionsUtil).isAdminRestrictedNetwork(any());
+        verify(mClientModeManager, never())
+                .setShouldReduceNetworkScore(false);
+    }
+
     private WifiConfiguration createTestNetwork(boolean isHidden) {
         WifiConfiguration config = new WifiConfiguration();
         config.networkId = FRAMEWORK_NETWORK_ID;
