@@ -4099,7 +4099,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             && result.hasCredentialChanged()) {
                         logi("CMD_SAVE_NETWORK credential changed for nid="
                                 + netId + " while disconnected. Connecting.");
-                        startConnectToNetwork(netId, message.sendingUid, SUPPLICANT_BSSID_ANY);
+                        WifiConfiguration config =
+                                mWifiConfigManager.getConfiguredNetwork(netId);
+                        if (!mWifiPermissionsUtil.isAdminRestrictedNetwork(config)) {
+                            startConnectToNetwork(netId, message.sendingUid, SUPPLICANT_BSSID_ANY);
+                        }
                     } else if (result.hasCredentialChanged()) {
                         WifiConfiguration currentConfig =
                                 getConnectedWifiConfigurationInternal();

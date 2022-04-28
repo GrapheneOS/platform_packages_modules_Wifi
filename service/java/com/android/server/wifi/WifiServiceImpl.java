@@ -5808,6 +5808,11 @@ public class WifiServiceImpl extends BaseWifiService {
                 wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
                 return;
             }
+            if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
+                Log.e(TAG, "connect to network Id=" + netId + "restricted by admin");
+                wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                return;
+            }
             if (configuration.enterpriseConfig != null
                     && configuration.enterpriseConfig.isAuthenticationSimBased()) {
                 int subId = mWifiCarrierInfoManager.getBestMatchSubscriptionId(configuration);
