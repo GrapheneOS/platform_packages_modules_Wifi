@@ -683,9 +683,7 @@ public class SoftApConfigurationTest {
                 .build();
     }
 
-    @Test
-    // TODO: b/216875688 enable it after updating target SDK build version
-    // (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testThrowsExceptionWhenBssidSetButMacRandomizationSettingIsPersistent() {
         assumeTrue(SdkLevel.isAtLeastS());
         MacAddress testBssid = MacAddress.fromString(TEST_BSSID);
@@ -696,9 +694,7 @@ public class SoftApConfigurationTest {
                 .build();
     }
 
-    @Test
-    // TODO: b/216875688 enable it after updating target SDK build version
-    // (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testThrowsExceptionWhenBssidSetButMacRandomizationSettingIsNonPersistent() {
         assumeTrue(SdkLevel.isAtLeastS());
         MacAddress testBssid = MacAddress.fromString(TEST_BSSID);

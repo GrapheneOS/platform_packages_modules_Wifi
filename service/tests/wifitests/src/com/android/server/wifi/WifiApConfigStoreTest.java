@@ -1104,7 +1104,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
                 R.bool.config_wifiSoftapResetAutoShutdownTimerConfig, true);
         configBuilder.setShutdownTimeoutMillis(8888);
         resetedConfig = store.resetToDefaultForUnsupportedConfig(configBuilder.build());
-        assertEquals(resetedConfig.getShutdownTimeoutMillis(), 0);
+        assertEquals(-1, resetedConfig.getShutdownTimeoutMillis());
 
         // Test max client setting when force client disconnect doesn't support
         mResources.setBoolean(R.bool.config_wifiSofapClientForceDisconnectSupported, false);
