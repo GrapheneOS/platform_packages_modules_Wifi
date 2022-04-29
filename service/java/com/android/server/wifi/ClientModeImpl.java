@@ -2808,7 +2808,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
         mWifiInfo.setIsPrimary(isPrimary());
         SecurityParams securityParams = config.getNetworkSelectionStatus()
-                .getCandidateSecurityParams();
+                .getLastUsedSecurityParams();
         if (securityParams != null) {
             mWifiInfo.setCurrentSecurityType(securityParams.getSecurityType());
         } else {
@@ -3806,6 +3806,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private void connectToNetwork(WifiConfiguration config) {
         if ((config != null) && mWifiNative.connectToNetwork(mInterfaceName, config)) {
+            // Update the internal config once the connection request is accepted.
+            mWifiConfigManager.setNetworkLastUsedSecurityParams(config.networkId,
+                    config.getNetworkSelectionStatus().getCandidateSecurityParams());
             mWifiLastResortWatchdog.noteStartConnectTime(config.networkId);
             mWifiMetrics.logStaEvent(mInterfaceName, StaEvent.TYPE_CMD_START_CONNECT, config);
             mIsAutoRoaming = false;
@@ -7299,9 +7302,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiConfigManager.updateLinkedNetworks(config.networkId);
         Map<String, WifiConfiguration> linkedNetworks = mWifiConfigManager
                 .getLinkedNetworksWithoutMasking(config.networkId);
+
         if (!mWifiNative.updateLinkedNetworks(mInterfaceName, config.networkId, linkedNetworks)) {
             return;
         }
+        // Update internal configs once the connection requests are accepted.
+        linkedNetworks.values().forEach(linkedConfig ->
+                mWifiConfigManager.setNetworkLastUsedSecurityParams(
+                        linkedConfig.networkId, params));
 
         List<String> allowlistSsids = new ArrayList<>(linkedNetworks.values().stream()
                 .map(linkedConfig -> linkedConfig.SSID)
