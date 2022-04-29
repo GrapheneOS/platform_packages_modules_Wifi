@@ -9428,6 +9428,31 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt(), any(), eq(false));
     }
 
+    @Test
+    public void testSetOneShotScreenOnConnectivityScanDelayMillis() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        int delayMs = 1234;
+
+        // verify permission checks
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt()))
+                .thenReturn(false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.setOneShotScreenOnConnectivityScanDelayMillis(delayMs));
+
+        // verify correct input
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.setOneShotScreenOnConnectivityScanDelayMillis(-1));
+
+        // verify correct call
+        mWifiServiceImpl.setOneShotScreenOnConnectivityScanDelayMillis(delayMs);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).setOneShotScreenOnConnectivityScanDelayMillis(delayMs);
+    }
+
     @Test(expected = SecurityException.class)
     public void testSetExternalPnoScanRequest_NoPermission() {
         assumeTrue(SdkLevel.isAtLeastT());

@@ -204,6 +204,7 @@ public class WifiConnectivityManager {
     private boolean mDelayedPnoScanPending = false;
     private boolean mPeriodicScanTimerSet = false;
     private Object mPeriodicScanTimerToken = new Object();
+    private Object mDelayedStartPeriodicScanToken = new Object();
     private boolean mDelayedPartialScanTimerSet = false;
     private boolean mWatchdogScanTimerSet = false;
     private boolean mIsLocationModeEnabled;
@@ -218,6 +219,8 @@ public class WifiConnectivityManager {
     // scan schedule and scan type override set via WifiManager#setScreenOnScanSchedule
     private int[] mExternalSingleScanScheduleSec;
     private int[] mExternalSingleScanType;
+
+    private int mNextScreenOnConnectivityScanDelayMs = 0;
 
     // Scanning Schedules for screen-on periodic scan
     // Default schedule used in case of invalid configuration
@@ -2087,6 +2090,13 @@ public class WifiConnectivityManager {
     }
 
     /**
+     * Sets the next screen-on connectivity scan delay in milliseconds.
+     */
+    public void setOneShotScreenOnConnectivityScanDelayMillis(int delayMs) {
+        mNextScreenOnConnectivityScanDelayMs = delayMs;
+    }
+
+    /**
      * Pass device mobility state to WifiChannelUtilization and
      * alter the PNO scan interval based on the current device mobility state.
      * If the device is stationary, it will likely not find many new Wifi networks. Thus, increase
@@ -2427,6 +2437,16 @@ public class WifiConnectivityManager {
             // cancel any queued PNO scans since the screen is turned on.
             mDelayedPnoScanPending = false;
             mEventHandler.removeCallbacksAndMessages(mDelayedPnoScanToken);
+
+            if (mNextScreenOnConnectivityScanDelayMs > 0) {
+                mEventHandler.postDelayed(() -> {
+                    startConnectivityScan(SCAN_ON_SCHEDULE);
+                }, mDelayedStartPeriodicScanToken, mNextScreenOnConnectivityScanDelayMs);
+                mNextScreenOnConnectivityScanDelayMs = 0;
+                return;
+            }
+        } else {
+            mEventHandler.removeCallbacksAndMessages(mDelayedStartPeriodicScanToken);
         }
         startConnectivityScan(SCAN_ON_SCHEDULE);
     }
