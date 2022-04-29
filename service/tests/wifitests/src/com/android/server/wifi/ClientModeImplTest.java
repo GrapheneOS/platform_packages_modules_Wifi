@@ -963,6 +963,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                         .filter(WifiConfigurationUtil::isSecurityParamsValid)
                         .findFirst().orElse(null),
                 config.getNetworkSelectionStatus().getCandidateSecurityParams());
+        mConnectedNetwork.getNetworkSelectionStatus().setLastUsedSecurityParams(
+                config.getNetworkSelectionStatus().getCandidateSecurityParams());
     }
 
     /**

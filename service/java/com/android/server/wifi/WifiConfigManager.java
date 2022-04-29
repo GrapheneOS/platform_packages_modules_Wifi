@@ -2312,6 +2312,27 @@ public class WifiConfigManager {
     }
 
     /**
+     * Set the {@link NetworkSelectionStatus#mLastUsedSecurityParams}.
+     *
+     * @param networkId  network ID corresponding to the network.
+     * @param params     Security params for this candidate.
+     * @return true if the network was found, false otherwise.
+     */
+    public boolean setNetworkLastUsedSecurityParams(int networkId, SecurityParams params) {
+        WifiConfiguration config = getInternalConfiguredNetwork(networkId);
+        if (config == null) {
+            Log.e(TAG, "Cannot find network for " + networkId);
+            return false;
+        }
+        config.getNetworkSelectionStatus().setLastUsedSecurityParams(params);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Update last used security param for " + config.getProfileKey()
+                    + " with security type " + params.getSecurityType());
+        }
+        return true;
+    }
+
+    /**
      * Iterate through all the saved networks and remove the provided configuration from the
      * {@link NetworkSelectionStatus#mConnectChoice} from them.
      *

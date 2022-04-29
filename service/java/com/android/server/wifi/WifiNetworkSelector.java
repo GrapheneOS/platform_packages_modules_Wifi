@@ -927,8 +927,6 @@ public class WifiNetworkSelector {
             registeredNominator.update(scanDetails);
         }
 
-        updateCandidatesSecurityParams(scanDetails);
-
         // Shall we start network selection at all?
         if (!multiInternetNetworkAllowed && !isNetworkSelectionNeeded(scanDetails, cmmStates)) {
             return null;
@@ -954,7 +952,7 @@ public class WifiNetworkSelector {
                 // will be replaced.
                 MacAddress bssid = MacAddress.fromString(currentBssid);
                 SecurityParams params = currentNetwork.getNetworkSelectionStatus()
-                        .getCandidateSecurityParams();
+                        .getLastUsedSecurityParams();
                 if (null == params) {
                     localLog("No known candidate security params for current network.");
                     continue;
@@ -1453,13 +1451,5 @@ public class WifiNetworkSelector {
         mWifiChannelUtilization = wifiChannelUtilization;
         mWifiGlobals = wifiGlobals;
         mScanRequestProxy = scanRequestProxy;
-    }
-
-    private void updateCandidatesSecurityParams(List<ScanDetail> scanDetails) {
-        for (ScanDetail scanDetail : scanDetails) {
-            WifiConfiguration network =
-                    mWifiConfigManager.getSavedNetworkForScanDetail(scanDetail);
-            updateNetworkCandidateSecurityParams(network, scanDetail);
-        }
     }
 }
