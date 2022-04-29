@@ -1893,9 +1893,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 case COMMAND_TYPE_DISABLE: {
                     mAwareIsDisabling = false;
-                    // Must trigger a state transition to execute the deferred connect command
+                    // Trigger the response from the framework as Aware interface will be removed
                     if (!mWifiAwareNativeApi.disable(mCurrentTransactionId)) {
                         onDisableResponse(mCurrentTransactionId, WifiStatusCode.ERROR_UNKNOWN);
+                    } else {
+                        onDisableResponse(mCurrentTransactionId, WifiStatusCode.SUCCESS);
                     }
                     break;
                 }
