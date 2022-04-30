@@ -28,6 +28,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.admin.DevicePolicyManager;
+import android.app.admin.WifiSsidPolicy;
 import android.content.AttributionSource;
 import android.content.ComponentName;
 import android.content.Context;
@@ -36,6 +37,10 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.NetworkStack;
+import android.net.wifi.SecurityParams;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiSsid;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Process;
@@ -1146,5 +1151,62 @@ public class WifiPermissionsUtil {
 
         return isDeviceOwner(uid, packageName) || isProfileOwner(uid, packageName)
                 || isOemPrivilegedAdmin;
+    }
+
+    /**
+     * Returns true if the device may not connect to the configuration due to admin restriction
+     */
+    public boolean isAdminRestrictedNetwork(@Nullable WifiConfiguration config) {
+        if (config == null || !SdkLevel.isAtLeastT()) {
+            return false;
+        }
+
+        DevicePolicyManager devicePolicyManager =
+                WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
+        if (devicePolicyManager == null) return false;
+
+        int adminMinimumSecurityLevel =
+                devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
+        WifiSsidPolicy policy = devicePolicyManager.getWifiSsidPolicy();
+
+        //check minimum security level restriction
+        if (adminMinimumSecurityLevel != 0) {
+            boolean securityRestrictionPassed = false;
+            for (SecurityParams params : config.getSecurityParamsList()) {
+                int securityLevel = WifiInfo.convertSecurityTypeToDpmWifiSecurity(
+                        WifiInfo.convertWifiConfigurationSecurityType(params.getSecurityType()));
+
+                // Skip unknown security type since security level cannot be determined.
+                if (securityLevel == WifiInfo.DPM_SECURITY_TYPE_UNKNOWN) continue;
+
+                if (adminMinimumSecurityLevel <= securityLevel) {
+                    securityRestrictionPassed = true;
+                    break;
+                }
+            }
+            if (!securityRestrictionPassed) {
+                return true;
+            }
+        }
+
+        //check SSID restriction
+        if (policy != null) {
+            //skip SSID restriction check for Osu and Passpoint networks
+            if (config.osu || config.isPasspoint()) return false;
+
+            int policyType = policy.getPolicyType();
+            Set<WifiSsid> ssids = policy.getSsids();
+            WifiSsid ssid = WifiSsid.fromString(config.SSID);
+
+            if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST
+                    && !ssids.contains(ssid)) {
+                return true;
+            }
+            if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST
+                    && ssids.contains(ssid)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
