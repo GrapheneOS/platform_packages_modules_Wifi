@@ -27,6 +27,7 @@ import android.net.wifi.WifiConfiguration.Protocol;
 import android.net.wifi.WifiConfiguration.SecurityType;
 import android.net.wifi.WifiConfiguration.SuiteBCipher;
 import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -37,7 +38,7 @@ import java.util.Objects;
  * A class representing a security configuration.
  * @hide
  */
-public class SecurityParams {
+public final class SecurityParams implements Parcelable {
     private static final String TAG = "SecurityParams";
 
     /** Passpoint Release 1 */
@@ -543,7 +544,14 @@ public class SecurityParams {
         }
     }
 
-    /** Write this object to the parcel. */
+    /** Implement the Parcelable interface */
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    /** Implement the Parcelable interface */
+    @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mSecurityType);
         dest.writeBoolean(mEnabled);
@@ -561,24 +569,31 @@ public class SecurityParams {
 
     }
 
-    /** Create a SecurityParams object from the parcel. */
-    public static final @NonNull SecurityParams createFromParcel(Parcel in) {
-        SecurityParams params = new SecurityParams();
-        params.mSecurityType = in.readInt();
-        params.mEnabled = in.readBoolean();
-        params.mAllowedKeyManagement = readBitSet(in);
-        params.mAllowedProtocols = readBitSet(in);
-        params.mAllowedAuthAlgorithms = readBitSet(in);
-        params.mAllowedPairwiseCiphers = readBitSet(in);
-        params.mAllowedGroupCiphers = readBitSet(in);
-        params.mAllowedGroupManagementCiphers = readBitSet(in);
-        params.mAllowedSuiteBCiphers = readBitSet(in);
-        params.mRequirePmf = in.readBoolean();
-        params.mIsAddedByAutoUpgrade = in.readBoolean();
-        params.mIsSaeH2eOnlyMode = in.readBoolean();
-        params.mIsSaePkOnlyMode = in.readBoolean();
-        return params;
-    }
+    /** Implement the Parcelable interface */
+    public static final @NonNull Parcelable.Creator<SecurityParams> CREATOR =
+            new Creator<SecurityParams>() {
+                public SecurityParams createFromParcel(Parcel in) {
+                    SecurityParams params = new SecurityParams();
+                    params.mSecurityType = in.readInt();
+                    params.mEnabled = in.readBoolean();
+                    params.mAllowedKeyManagement = readBitSet(in);
+                    params.mAllowedProtocols = readBitSet(in);
+                    params.mAllowedAuthAlgorithms = readBitSet(in);
+                    params.mAllowedPairwiseCiphers = readBitSet(in);
+                    params.mAllowedGroupCiphers = readBitSet(in);
+                    params.mAllowedGroupManagementCiphers = readBitSet(in);
+                    params.mAllowedSuiteBCiphers = readBitSet(in);
+                    params.mRequirePmf = in.readBoolean();
+                    params.mIsAddedByAutoUpgrade = in.readBoolean();
+                    params.mIsSaeH2eOnlyMode = in.readBoolean();
+                    params.mIsSaePkOnlyMode = in.readBoolean();
+                    return params;
+                }
+
+                public SecurityParams[] newArray(int size) {
+                    return new SecurityParams[size];
+                }
+            };
 
     /**
      * Create a params according to the security type.
