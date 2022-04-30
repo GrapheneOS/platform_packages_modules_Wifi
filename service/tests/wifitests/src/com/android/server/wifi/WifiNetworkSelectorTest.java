@@ -1065,6 +1065,9 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
                 false, true, true, Collections.emptySet(), false);
         WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
 
+        WifiConfiguration[] configs = scanDetailsAndConfigs.getWifiConfigs();
+        configs[0].getNetworkSelectionStatus().setLastUsedSecurityParams(
+                configs[0].getNetworkSelectionStatus().getCandidateSecurityParams());
         when(mWifiInfo.getSupplicantState()).thenReturn(SupplicantState.COMPLETED);
         when(mWifiInfo.getNetworkId()).thenReturn(0); // 0 is current network
         when(mWifiInfo.getBSSID()).thenReturn(bssids[0]);
