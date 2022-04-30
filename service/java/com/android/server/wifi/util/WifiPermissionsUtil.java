@@ -240,16 +240,24 @@ public class WifiPermissionsUtil {
         // There are 2 ways to disavow location. Skip location permission check if any of the
         // 2 ways are used to disavow location usage.
         // First check if the app renounced location.
-        if (attributionSource.getRenouncedPermissions().contains(ACCESS_FINE_LOCATION)
-                && mWifiPermissionsWrapper.getUidPermission(RENOUNCE_PERMISSIONS, uid)
-                == PackageManager.PERMISSION_GRANTED) {
-            // TODO(b/197776854): check along the AttributionSource chain for any app that
-            // renounced location instead of only the direct caller.
-            if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "package=" + packageName + " UID=" + uid
-                        + " has renounced location permission - bypassing location check.");
+        // Check every step along the attribution chain for a renouncement.
+        // If location has been renounced anywhere in the chain we treat it as a disavowal.
+        AttributionSource currentAttrib = attributionSource;
+        while (true) {
+            if (currentAttrib.getRenouncedPermissions().contains(ACCESS_FINE_LOCATION)
+                    && mWifiPermissionsWrapper.getUidPermission(RENOUNCE_PERMISSIONS, uid)
+                    == PackageManager.PERMISSION_GRANTED) {
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "package=" + packageName + " UID=" + uid
+                            + " has renounced location permission - bypassing location check.");
+                }
+                return;
             }
-            return;
+            AttributionSource nextAttrib = currentAttrib.getNext();
+            if (nextAttrib == null) {
+                break;
+            }
+            currentAttrib = nextAttrib;
         }
         // If the app did not renounce location, check if "neverForLocation" is set.
         PackageManager pm = mContext.getPackageManager();
