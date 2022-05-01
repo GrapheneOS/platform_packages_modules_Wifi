@@ -102,6 +102,7 @@ public class WifiConfigurationTest {
     public void testWifiConfigurationParcel() {
         String cookie = "C O.o |<IE";
         WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
         config.setPasspointManagementObjectTree(cookie);
         config.trusted = false;
         config.oemPaid = true;
@@ -141,6 +142,11 @@ public class WifiConfigurationTest {
         assertEquals(config.getSubscriptionGroup(), reconfig.getSubscriptionGroup());
         assertTrue(reconfig.restricted);
         assertEquals(config.getBssidAllowlist(), reconfig.getBssidAllowlist());
+        assertEquals(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK),
+                reconfig.getSecurityParams(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
 
         Parcel parcelWW = Parcel.obtain();
         reconfig.writeToParcel(parcelWW, 0);
@@ -593,6 +599,35 @@ public class WifiConfigurationTest {
         }
         assertEquals(maxReason, NetworkSelectionStatus.getMaxNetworkSelectionDisableReason());
     }
+
+    /**
+     * Ensure that {@link NetworkSelectionStatus#setCandidateSecurityParams(SecurityParams)}
+     * and {{@link NetworkSelectionStatus#getCandidateSecurityParams()} work
+     * as expectation.
+     */
+    @Test
+    public void testCandidateSecurityParams() {
+        NetworkSelectionStatus status = new NetworkSelectionStatus();
+        SecurityParams params = SecurityParams.createSecurityParamsBySecurityType(
+                SECURITY_TYPE_PSK);
+        status.setCandidateSecurityParams(params);
+        assertEquals(params, status.getCandidateSecurityParams());
+    }
+
+    /**
+     * Ensure that {@link NetworkSelectionStatus#setLastUsedSecurityParams(SecurityParams)}
+     * and {{@link NetworkSelectionStatus#getLastUsedSecurityParams()} work
+     * as expectation.
+     */
+    @Test
+    public void testLastUsedSecurityParams() {
+        NetworkSelectionStatus status = new NetworkSelectionStatus();
+        SecurityParams params = SecurityParams.createSecurityParamsBySecurityType(
+                SECURITY_TYPE_PSK);
+        status.setLastUsedSecurityParams(params);
+        assertEquals(params, status.getLastUsedSecurityParams());
+    }
+
 
     @Test
     public void testSetHttpProxyShouldNotCrashOnBadInput() {
