@@ -16,11 +16,8 @@
 
 package com.android.server.wifi;
 
-import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
-import static android.net.wifi.WifiManager.WIFI_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
-import static android.net.wifi.WifiManager.WIFI_STATE_UNKNOWN;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -78,7 +75,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Manage WiFi in Client Mode where we connect to configured networks and in Scan Only Mode where
@@ -150,15 +146,6 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
     @Nullable
     private ScanOnlyModeImpl mScanOnlyModeImpl = null;
-
-    /**
-     * One of  {@link WifiManager#WIFI_STATE_DISABLED},
-     * {@link WifiManager#WIFI_STATE_DISABLING},
-     * {@link WifiManager#WIFI_STATE_ENABLED},
-     * {@link WifiManager#WIFI_STATE_ENABLING},
-     * {@link WifiManager#WIFI_STATE_UNKNOWN}
-     */
-    private final AtomicInteger mWifiState = new AtomicInteger(WIFI_STATE_DISABLED);
 
     private boolean mIsStopped = true;
 
@@ -635,7 +622,6 @@ public class ConcreteClientModeManager implements ClientModeManager {
         pw.println("mIsDbs: " + mIsDbs);
         mStateMachine.dump(fd, pw, args);
         pw.println();
-        pw.println("Wi-Fi is " + syncGetWifiStateByName());
         if (mClientModeImpl == null) {
             pw.println("No active ClientModeImpl instance");
         } else {
@@ -663,14 +649,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
      * @param currentState current wifi state
      */
     private void updateConnectModeState(ClientRole role, int newState, int currentState) {
-        setWifiStateForApiCalls(newState);
-
-        if (newState == WifiManager.WIFI_STATE_UNKNOWN) {
-            // do not need to broadcast failure to system
-            return;
-        }
         if (role != ROLE_CLIENT_PRIMARY || !mWifiStateChangeBroadcastEnabled) {
             // do not raise public broadcast unless this is the primary client mode manager
+            return;
+        }
+        // TODO(b/186881160): May need to restore per STA state for Battery state reported.
+        mWifiInjector.getActiveModeWarden().setWifiStateForApiCalls(newState);
+        if (newState == WifiManager.WIFI_STATE_UNKNOWN) {
+            // do not need to broadcast failure to system
             return;
         }
 
@@ -695,41 +681,6 @@ public class ConcreteClientModeManager implements ClientModeManager {
             broadcast.send();
         } else {
             mBroadcastQueue.queueOrSendBroadcast(this, broadcast);
-        }
-    }
-
-    private void setWifiStateForApiCalls(int newState) {
-        switch (newState) {
-            case WIFI_STATE_DISABLING:
-            case WIFI_STATE_DISABLED:
-            case WIFI_STATE_ENABLING:
-            case WIFI_STATE_ENABLED:
-            case WIFI_STATE_UNKNOWN:
-                if (mVerboseLoggingEnabled) {
-                    Log.d(getTag(), "setting wifi state to: " + newState);
-                }
-                mWifiState.set(newState);
-                break;
-            default:
-                Log.d(getTag(), "attempted to set an invalid state: " + newState);
-                break;
-        }
-    }
-
-    private String syncGetWifiStateByName() {
-        switch (mWifiState.get()) {
-            case WIFI_STATE_DISABLING:
-                return "disabling";
-            case WIFI_STATE_DISABLED:
-                return "disabled";
-            case WIFI_STATE_ENABLING:
-                return "enabling";
-            case WIFI_STATE_ENABLED:
-                return "enabled";
-            case WIFI_STATE_UNKNOWN:
-                return "unknown state";
-            default:
-                return "[invalid state]";
         }
     }
 
@@ -1207,11 +1158,6 @@ public class ConcreteClientModeManager implements ClientModeManager {
         if (mWifiInjector.getDeviceConfigFacade().isInterfaceFailureBugreportEnabled()) {
             mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugTitle);
         }
-    }
-
-    @Override
-    public int syncGetWifiState() {
-        return mWifiState.get();
     }
 
     @NonNull
