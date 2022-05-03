@@ -66,7 +66,6 @@ import com.android.server.wifi.WifiNative.RxFateReport;
 import com.android.server.wifi.WifiNative.TxFateReport;
 import com.android.server.wifi.util.ActionListenerWrapper;
 import com.android.server.wifi.util.StateMachineObituary;
-import com.android.server.wifi.util.WifiHandler;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -249,7 +248,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
         mDeferStopHandler.start(getWifiOffDeferringTimeMs());
     }
 
-    private class DeferStopHandler extends WifiHandler {
+    private class DeferStopHandler extends Handler {
         private boolean mIsDeferring = false;
         private ImsMmTelManager mImsMmTelManager = null;
         private Looper mLooper = null;
@@ -323,7 +322,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
         }
 
         DeferStopHandler(Looper looper) {
-            super(TAG, looper);
+            super(looper);
             mLooper = looper;
             mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         }
