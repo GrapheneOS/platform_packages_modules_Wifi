@@ -18,6 +18,11 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.IFACE_IP_MODE_LOCAL_ONLY;
 import static android.net.wifi.WifiManager.IFACE_IP_MODE_TETHERED;
+import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
+import static android.net.wifi.WifiManager.WIFI_STATE_DISABLING;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
+import static android.net.wifi.WifiManager.WIFI_STATE_UNKNOWN;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -81,6 +86,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -137,6 +143,65 @@ public class ActiveModeWarden {
     private WorkSource mLastPrimaryClientModeManagerRequestorWs = null;
     @Nullable
     private WorkSource mLastScanOnlyClientModeManagerRequestorWs = null;
+
+    /**
+     * One of  {@link WifiManager#WIFI_STATE_DISABLED},
+     * {@link WifiManager#WIFI_STATE_DISABLING},
+     * {@link WifiManager#WIFI_STATE_ENABLED},
+     * {@link WifiManager#WIFI_STATE_ENABLING},
+     * {@link WifiManager#WIFI_STATE_UNKNOWN}
+     */
+    private final AtomicInteger mWifiState = new AtomicInteger(WIFI_STATE_DISABLED);
+
+    /**
+     * Method that allows the active ClientModeManager to set the wifi state that is
+     * retrieved by API calls. Only primary ClientModeManager should call this method when state
+     * changes
+     * @param newState new state to set, invalid states are ignored.
+     */
+    public void setWifiStateForApiCalls(int newState) {
+        switch (newState) {
+            case WIFI_STATE_DISABLING:
+            case WIFI_STATE_DISABLED:
+            case WIFI_STATE_ENABLING:
+            case WIFI_STATE_ENABLED:
+            case WIFI_STATE_UNKNOWN:
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "setting wifi state to: " + newState);
+                }
+                mWifiState.set(newState);
+                break;
+            default:
+                Log.d(TAG, "attempted to set an invalid state: " + newState);
+                break;
+        }
+    }
+
+    private String getWifiStateName() {
+        switch (mWifiState.get()) {
+            case WIFI_STATE_DISABLING:
+                return "disabling";
+            case WIFI_STATE_DISABLED:
+                return "disabled";
+            case WIFI_STATE_ENABLING:
+                return "enabling";
+            case WIFI_STATE_ENABLED:
+                return "enabled";
+            case WIFI_STATE_UNKNOWN:
+                return "unknown state";
+            default:
+                return "[invalid state]";
+        }
+    }
+
+    /**
+     * Method used by WifiServiceImpl to get the current state of Wifi for API calls.
+     * The Wifi state is a global state of the device, which equals to the state of the primary STA.
+     * This method must be thread safe.
+     */
+    public int getWifiState() {
+        return mWifiState.get();
+    }
 
     /**
      * Called from WifiServiceImpl to register a callback for notifications from SoftApManager
@@ -1182,6 +1247,7 @@ public class ActiveModeWarden {
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of " + TAG);
         pw.println("Current wifi mode: " + getCurrentMode());
+        pw.println("Wi-Fi is " + getWifiStateName());
         pw.println("NumActiveModeManagers: " + getActiveModeManagerCount());
         mWifiController.dump(fd, pw, args);
         for (ActiveModeManager manager : getActiveModeManagers()) {

@@ -16,6 +16,8 @@
 
 package com.android.server.wifi;
 
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
@@ -4432,5 +4434,14 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 requestedClientModeManager.capture());
         assertEquals(ROLE_CLIENT_SECONDARY_LONG_LIVED,
                 requestedClientModeManager.getValue().getRole());
+    }
+
+    @Test
+    public void testSetAndGetWifiState() {
+        int invalidState = 5;
+        mActiveModeWarden.setWifiStateForApiCalls(WIFI_STATE_ENABLED);
+        assertEquals(WIFI_STATE_ENABLED, mActiveModeWarden.getWifiState());
+        mActiveModeWarden.setWifiStateForApiCalls(invalidState);
+        assertEquals(WIFI_STATE_ENABLED, mActiveModeWarden.getWifiState());
     }
 }

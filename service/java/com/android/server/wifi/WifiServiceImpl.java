@@ -1199,7 +1199,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("setWifiEnabled must show user confirmation dialog for uid=%").c(callingUid)
                     .flush();
             mWifiThreadRunner.post(() -> {
-                if (getPrimaryClientModeManagerBlockingThreadSafe().syncGetWifiState()
+                if (mActiveModeWarden.getWifiState()
                         == WIFI_STATE_ENABLED) {
                     // Wi-Fi already enabled; don't need to show dialog.
                     return;
@@ -1374,7 +1374,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (isVerboseLoggingEnabled()) {
             mLog.info("getWifiEnabledState uid=%").c(Binder.getCallingUid()).flush();
         }
-        return getPrimaryClientModeManagerBlockingThreadSafe().syncGetWifiState();
+        return mActiveModeWarden.getWifiState();
     }
 
     /**
