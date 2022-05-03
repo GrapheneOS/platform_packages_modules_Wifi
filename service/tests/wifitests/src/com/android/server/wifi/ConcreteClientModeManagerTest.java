@@ -117,6 +117,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
     @Mock ScanOnlyModeImpl mScanOnlyModeImpl;
     @Mock DefaultClientModeManager mDefaultClientModeManager;
     @Mock ClientModeManagerBroadcastQueue mBroadcastQueue;
+    @Mock ActiveModeWarden mActiveModeWarden;
 
     private RegistrationManager.RegistrationCallback mImsMmTelManagerRegistrationCallback = null;
     private @RegistrationManager.ImsRegistrationState int mCurrentImsRegistrationState =
@@ -245,6 +246,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         when(mDeviceConfigFacade.isInterfaceFailureBugreportEnabled()).thenReturn(true);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
+        when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         mLooper = new TestLooper();
     }
 
@@ -314,7 +316,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_DISABLED);
         checkWifiConnectModeStateChangedBroadcast(intents.get(1), WIFI_STATE_ENABLED,
                 WIFI_STATE_ENABLING);
-        assertEquals(WIFI_STATE_ENABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden).setWifiStateForApiCalls(WIFI_STATE_ENABLED);
 
         verify(mListener).onStarted(mClientModeManager);
     }
@@ -340,7 +342,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_DISABLING, fromState);
         checkWifiConnectModeStateChangedBroadcast(intents.get(intents.size() - 1),
                 WIFI_STATE_DISABLED, WIFI_STATE_DISABLING);
-        assertEquals(WIFI_STATE_DISABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden).setWifiStateForApiCalls(WIFI_STATE_DISABLED);
     }
 
     private void verifyConnectModeNotificationsForFailure() {
@@ -354,7 +356,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_UNKNOWN);
         checkWifiConnectModeStateChangedBroadcast(intents.get(1), WIFI_STATE_DISABLED,
                 WIFI_STATE_DISABLING);
-        assertEquals(WIFI_STATE_DISABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden).setWifiStateForApiCalls(WIFI_STATE_DISABLED);
     }
 
     /**
@@ -405,7 +407,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_DISABLED);
         checkWifiConnectModeStateChangedBroadcast(intents.get(1), WIFI_STATE_ENABLED,
                 WIFI_STATE_ENABLING);
-        assertEquals(WIFI_STATE_ENABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden).setWifiStateForApiCalls(WIFI_STATE_ENABLED);
 
         verify(mListener).onStarted(mClientModeManager);
         verify(mListener).onRoleChanged(mClientModeManager);
@@ -428,7 +430,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mClientModeImpl).stop();
-        assertEquals(WIFI_STATE_DISABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden, never()).setWifiStateForApiCalls(WIFI_STATE_DISABLED);
 
         // Ensure that only public broadcasts for the "start" events were sent.
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
@@ -497,7 +499,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_DISABLED);
         checkWifiConnectModeStateChangedBroadcast(intents.get(1), WIFI_STATE_DISABLED,
                 WIFI_STATE_UNKNOWN);
-        assertEquals(WIFI_STATE_DISABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden).setWifiStateForApiCalls(WIFI_STATE_DISABLED);
         verify(mListener).onStartFailure(mClientModeManager);
         verify(mWifiDiagnostics).takeBugReport(anyString(), anyString());
     }
@@ -512,7 +514,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         mClientModeManager = createClientModeManager(ROLE_CLIENT_PRIMARY);
         mLooper.dispatchAll();
 
-        assertEquals(WIFI_STATE_DISABLED, mClientModeManager.syncGetWifiState());
+        verify(mActiveModeWarden, never()).setWifiStateForApiCalls(anyInt());
         verify(mListener).onStartFailure(mClientModeManager);
         verify(mWifiDiagnostics).takeBugReport(anyString(), anyString());
 
@@ -1516,8 +1518,8 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                         intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, -1)
                                 == WifiManager.WIFI_STATE_DISABLING),
                 any());
-        // but wifi state was updated (should be updated no matter the role)
-        assertEquals(WifiManager.WIFI_STATE_DISABLING, mClientModeManager.syncGetWifiState());
+        // Wifi state should not be updated due to the role is not primary.
+        verify(mActiveModeWarden, never()).setWifiStateForApiCalls(WIFI_STATE_DISABLING);
     }
 
     @Test

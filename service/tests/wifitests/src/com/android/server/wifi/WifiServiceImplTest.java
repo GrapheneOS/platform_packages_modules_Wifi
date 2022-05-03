@@ -1191,7 +1191,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         dialogHandle = mock(WifiDialogManager.DialogHandle.class);
         when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(dialogHandle);
-        when(mClientModeManager.syncGetWifiState()).thenReturn(WifiManager.WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WifiManager.WIFI_STATE_ENABLED);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(3)).wifiToggled(
@@ -1772,7 +1772,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testWifiFullyStartsWhenDeviceBootsWithWifiEnabled() {
         when(mSettingsStore.handleWifiToggled(true)).thenReturn(true);
         when(mSettingsStore.isWifiToggleEnabled()).thenReturn(true);
-        when(mClientModeManager.syncGetWifiState()).thenReturn(WIFI_STATE_DISABLED);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_DISABLED);
         when(mContext.getPackageName()).thenReturn(ANDROID_SYSTEM_PACKAGE);
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
