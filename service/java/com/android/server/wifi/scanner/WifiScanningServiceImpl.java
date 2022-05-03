@@ -290,7 +290,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         return;
                     }
 
-                    AsyncChannel ac = mFrameworkFacade.makeWifiAsyncChannel(TAG);
+                    AsyncChannel ac = new AsyncChannel();
                     ac.connected(mContext, this, msg.replyTo);
 
                     client = new ExternalClientInfo(msg.sendingUid, msg.replyTo, ac);
