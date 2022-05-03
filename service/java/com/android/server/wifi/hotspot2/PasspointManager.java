@@ -383,8 +383,9 @@ public class PasspointManager {
         sPasspointManager = this;
         mMacAddressUtil = macAddressUtil;
         mClock = clock;
-        mWifiConfigManager.addOnNetworkUpdateListener(
-                new PasspointManager.OnNetworkUpdateListener());
+        mHandler.postAtFrontOfQueue(() ->
+                mWifiConfigManager.addOnNetworkUpdateListener(
+                        new PasspointManager.OnNetworkUpdateListener()));
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mSettingsStore = wifiSettingsStore;
         mEnabled = mSettingsStore.isWifiPasspointEnabled();

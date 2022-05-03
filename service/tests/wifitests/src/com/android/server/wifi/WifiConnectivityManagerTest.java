@@ -564,6 +564,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 mLocalLog, mWifiScoreCard, mWifiBlocklistMonitor, mWifiChannelUtilization,
                 mPasspointManager, mMultiInternetManager, mDeviceConfigFacade, mActiveModeWarden,
                 mFacade, mWifiGlobals, mExternalPnoScanRequestManager);
+        mLooper.dispatchAll();
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
         verify(mContext, atLeastOnce()).registerReceiver(
