@@ -124,7 +124,6 @@ import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WaitingState;
-import com.android.server.wifi.util.WifiAsyncChannel;
 import com.android.server.wifi.util.WifiHandler;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
@@ -194,7 +193,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private DhcpResultsParcelable mDhcpResultsParcelable;
 
     private P2pStateMachine mP2pStateMachine;
-    private AsyncChannel mReplyChannel = new WifiAsyncChannel(TAG);
+    private AsyncChannel mReplyChannel = new AsyncChannel();
     private AsyncChannel mWifiChannel;
     private LocationManager mLocationManager;
     private WifiInjector mWifiInjector;
@@ -582,15 +581,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     void setWifiHandlerLogForTest(WifiLog log) {
         mClientHandler.setWifiLog(log);
 
-    }
-
-    /**
-     * Provide a way for unit tests to set valid log object in the WifiAsyncChannel
-     * @param log WifiLog object to assign to the mReplyChannel
-     */
-    @VisibleForTesting
-    void setWifiLogForReplyChannel(WifiLog log) {
-        ((WifiAsyncChannel) mReplyChannel).setWifiLog(log);
     }
 
     private class DeathHandlerData {
@@ -1580,7 +1570,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         transitionTo(mP2pDisabledState);
                         break;
                     case AsyncChannel.CMD_CHANNEL_FULL_CONNECTION:
-                        AsyncChannel ac = new WifiAsyncChannel(TAG);
+                        AsyncChannel ac = new AsyncChannel();
                         ac.connect(mContext, getHandler(), message.replyTo);
                         break;
                     case BLOCK_DISCOVERY:
