@@ -37,7 +37,6 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.android.modules.utils.HandlerExecutor;
-import com.android.server.wifi.util.WifiHandler;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -106,7 +105,7 @@ public class SarManager {
         mTelephonyManager = telephonyManager;
         mWifiNative = wifiNative;
         mAudioManager = mContext.getSystemService(AudioManager.class);
-        mHandler = new WifiHandler(TAG, looper);
+        mHandler = new Handler(looper);
         mPhoneStateListener = new WifiPhoneStateListener(looper);
     }
 
