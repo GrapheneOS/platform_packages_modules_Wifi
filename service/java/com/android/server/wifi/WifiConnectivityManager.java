@@ -1269,7 +1269,8 @@ public class WifiConnectivityManager {
         handleScreenStateChanged(mPowerManager.isInteractive());
 
         // Listen to WifiConfigManager network update events
-        mConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener());
+        mEventHandler.postAtFrontOfQueue(() ->
+                mConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
         // Listen to WifiNetworkSuggestionsManager suggestion update events
         mWifiNetworkSuggestionsManager.addOnSuggestionUpdateListener(
                 new OnSuggestionUpdateListener());

@@ -304,6 +304,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         // SIM is absent
         when(mSubscriptionManager.getActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
+        mLooper.dispatchAll();
         verify(mWifiConfigManager).addOnNetworkUpdateListener(mNetworkListenerCaptor.capture());
     }
 
