@@ -1094,8 +1094,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             } else {
                 setInitialState(mP2pNotSupportedState);
             }
-            setLogRecSize(50);
-            setLogOnlyTransitions(true);
+            setLogRecSize(100);
 
             if (p2pSupported) {
                 // Init p2p idle shutdown message
@@ -1193,6 +1192,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 }
                 mIsP2pDisallowedByAdmin = newIsP2pDisallowedByAdmin;
             }
+        }
+
+        @Override
+        protected String getLogRecString(Message msg) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("sender=").append(getCallingPkgName(msg.sendingUid, msg.replyTo))
+                    .append("(").append(msg.sendingUid).append(")");
+            return sb.toString();
         }
 
         @Override
