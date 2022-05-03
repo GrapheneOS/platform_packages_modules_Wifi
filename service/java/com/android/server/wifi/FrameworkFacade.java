@@ -47,8 +47,6 @@ import android.telephony.CarrierConfigManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.server.wifi.util.WifiAsyncChannel;
-
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -220,15 +218,6 @@ public class FrameworkFacade {
      */
     public void makeIpClient(Context context, String iface, IpClientCallbacks callback) {
         IpClientUtil.makeIpClient(context, iface, callback);
-    }
-
-    /**
-     * Create a new instance of WifiAsyncChannel
-     * @param tag String corresponding to the service creating the channel
-     * @return WifiAsyncChannel object created
-     */
-    public WifiAsyncChannel makeWifiAsyncChannel(String tag) {
-        return new WifiAsyncChannel(tag);
     }
 
     /**
