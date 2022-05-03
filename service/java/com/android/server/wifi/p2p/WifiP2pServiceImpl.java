@@ -124,7 +124,6 @@ import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WaitingState;
-import com.android.server.wifi.util.WifiHandler;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
 import com.android.wifi.resources.R;
@@ -507,10 +506,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     /**
      * Handles client connections
      */
-    private class ClientHandler extends WifiHandler {
+    private class ClientHandler extends Handler {
 
         ClientHandler(String tag, android.os.Looper looper) {
-            super(tag, looper);
+            super(looper);
         }
 
         @Override
@@ -571,16 +570,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             info.setDetailedState(mDetailedState, null, null);
         }
         return info;
-    }
-
-    /**
-     * Provide a way for unit tests to set valid log object in the WifiHandler
-     * @param log WifiLog object to assign to the clientHandler
-     */
-    @VisibleForTesting
-    void setWifiHandlerLogForTest(WifiLog log) {
-        mClientHandler.setWifiLog(log);
-
     }
 
     private class DeathHandlerData {
