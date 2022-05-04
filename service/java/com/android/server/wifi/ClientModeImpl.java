@@ -2949,8 +2949,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         checkAbnormalDisconnectionAndTakeBugReport();
         mWifiScoreCard.resetConnectionState(mInterfaceName);
         updateLayer2Information();
-        mInsecureEapNetworkHandler.clearConnection();
-        mIsUserSelected = false;
+        // If there is new connection in progress, this is for the new connection, so keept it.
+        if (!newConnectionInProgress) {
+            mIsUserSelected = false;
+        }
     }
 
     void handlePreDhcpSetup() {
