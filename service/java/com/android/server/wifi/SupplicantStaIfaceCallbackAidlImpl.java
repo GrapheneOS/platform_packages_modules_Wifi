@@ -293,11 +293,13 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                         && (!locallyGenerated || reasonCode
                             != StaIfaceReasonCode.IE_IN_4WAY_DIFFERS)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
-                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1);
+                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                            mCurrentSsid, MacAddress.fromBytes(bssid));
                 } else if (mStateBeforeDisconnect == StaIfaceCallbackState.ASSOCIATED
                         && WifiConfigurationUtil.isConfigForEapNetwork(curConfiguration)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
-                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, -1);
+                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, -1,
+                            mCurrentSsid, MacAddress.fromBytes(bssid));
                 }
             }
             mWifiMonitor.broadcastNetworkDisconnectionEvent(
@@ -344,8 +346,16 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         }
 
         if (isWrongPwd) {
+            MacAddress bssidAsMacAddress;
+            try {
+                bssidAsMacAddress = MacAddress.fromString(assocRejectInfo.bssid);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Invalid bssid obtained from supplicant " + assocRejectInfo.bssid);
+                bssidAsMacAddress = WifiManager.ALL_ZEROS_MAC_ADDRESS;
+            }
             mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1);
+                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                    mCurrentSsid, bssidAsMacAddress);
         }
         mWifiMonitor.broadcastAssociationRejectionEvent(mIfaceName, assocRejectInfo);
         mStateBeforeDisconnect = StaIfaceCallbackState.INACTIVE;
@@ -368,7 +378,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onAuthenticationTimeout");
             mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1);
+                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
+                    mCurrentSsid, MacAddress.fromBytes(bssid));
         }
     }
 
@@ -391,8 +402,9 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onEapFailure");
             try {
-                mWifiMonitor.broadcastEapFailureEvent(mIfaceName, errorCode,
-                        MacAddress.fromBytes(bssid));
+                mWifiMonitor.broadcastAuthenticationFailureEvent(
+                        mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, errorCode,
+                        mCurrentSsid, MacAddress.fromBytes(bssid));
             } catch (IllegalArgumentException e) {
                 Log.i(TAG, "Invalid bssid received");
             }

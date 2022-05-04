@@ -18,7 +18,6 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.hardware.wifi.supplicant.V1_4.DppFailureCode;
-import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import com.android.server.wifi.hotspot2.WnmData;
@@ -143,8 +142,7 @@ abstract class SupplicantStaIfaceCallbackHidlV1_4Impl extends
 
     @Override
     public void onEapFailure_1_3(int code) {
-        mWifiMonitor.broadcastAuthenticationFailureEvent(
-                mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, code);
+        mCallbackV13.onEapFailure_1_3(code);
     }
 
     @Override
