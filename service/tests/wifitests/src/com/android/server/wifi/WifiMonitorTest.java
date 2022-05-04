@@ -366,13 +366,17 @@ public class WifiMonitorTest extends WifiBaseTest {
         mWifiMonitor.registerHandler(
                 WLAN_IFACE_NAME, WifiMonitor.AUTHENTICATION_FAILURE_EVENT, mHandlerSpy);
         int reason = WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD;
-        mWifiMonitor.broadcastAuthenticationFailureEvent(WLAN_IFACE_NAME, reason, -1);
+        MacAddress bssid = MacAddress.fromString(BSSID);
+        AuthenticationFailureEventInfo expected = new AuthenticationFailureEventInfo(SSID, bssid,
+                reason, -1);
+        mWifiMonitor.broadcastAuthenticationFailureEvent(WLAN_IFACE_NAME, reason, -1,
+                SSID, bssid);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         verify(mHandlerSpy).handleMessage(messageCaptor.capture());
         assertEquals(WifiMonitor.AUTHENTICATION_FAILURE_EVENT, messageCaptor.getValue().what);
-        assertEquals(reason, messageCaptor.getValue().arg1);
+        assertEquals(expected, messageCaptor.getValue().obj);
     }
 
     /**
@@ -383,15 +387,18 @@ public class WifiMonitorTest extends WifiBaseTest {
         mWifiMonitor.registerHandler(
                 WLAN_IFACE_NAME, WifiMonitor.AUTHENTICATION_FAILURE_EVENT, mHandlerSpy);
         int reason = WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE;
-	int errorCode = WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED;
-        mWifiMonitor.broadcastAuthenticationFailureEvent(WLAN_IFACE_NAME, reason, errorCode);
+        int errorCode = WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED;
+        MacAddress bssid = MacAddress.fromString(BSSID);
+        AuthenticationFailureEventInfo expected = new AuthenticationFailureEventInfo(SSID, bssid,
+                reason, errorCode);
+        mWifiMonitor.broadcastAuthenticationFailureEvent(WLAN_IFACE_NAME, reason, errorCode,
+                SSID, bssid);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         verify(mHandlerSpy).handleMessage(messageCaptor.capture());
         assertEquals(WifiMonitor.AUTHENTICATION_FAILURE_EVENT, messageCaptor.getValue().what);
-        assertEquals(reason, messageCaptor.getValue().arg1);
-	assertEquals(errorCode, messageCaptor.getValue().arg2);
+        assertEquals(expected, messageCaptor.getValue().obj);
     }
 
     /**
