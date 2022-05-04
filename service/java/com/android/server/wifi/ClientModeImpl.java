@@ -3206,7 +3206,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 connectivityFailureCode, level2FailureReason, mWifiInfo.getFrequency());
         if (configuration != null) {
             mWifiConnectivityManager.handleConnectionAttemptEnded(
-                    mClientModeManager, level2FailureCode, bssid, configuration);
+                    mClientModeManager, level2FailureCode, level2FailureReason, bssid,
+                    configuration);
             mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
             mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
                     level2FailureCode, configuration, getConnectedBssidInternal());
