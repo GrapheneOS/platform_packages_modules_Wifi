@@ -510,21 +510,10 @@ public class WifiMonitor {
      * @param errorCode Error code associated with the authentication failure event.
      *               A value of -1 is used when no error code is reported.
      */
-    public void broadcastAuthenticationFailureEvent(String iface, int reason, int errorCode) {
-        sendMessage(iface, AUTHENTICATION_FAILURE_EVENT, reason, errorCode);
-    }
-
-    /**
-     * Broadcast the EAP failure event to all the handlers registered for this event.
-     *
-     * @param iface Name of iface on which this occurred.
-     * @param errorCode Error code associated with the authentication failure event.
-     *               A value of -1 is used when no error code is reported.
-     * @param bssid BSSID of the access point.
-     */
-    public void broadcastEapFailureEvent(String iface, int errorCode, MacAddress bssid) {
-        sendMessage(iface, AUTHENTICATION_FAILURE_EVENT, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE,
-                errorCode, bssid);
+    public void broadcastAuthenticationFailureEvent(String iface, int reason, int errorCode,
+            String ssid, MacAddress bssid) {
+        sendMessage(iface, AUTHENTICATION_FAILURE_EVENT,
+                new AuthenticationFailureEventInfo(ssid, bssid, reason, errorCode));
     }
 
     /**

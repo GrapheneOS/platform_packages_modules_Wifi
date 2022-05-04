@@ -30,6 +30,7 @@ import static com.android.server.wifi.hotspot2.anqp.Constants.ANQPElementType.HS
 import android.annotation.NonNull;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback;
 import android.hardware.wifi.supplicant.V1_4.ISupplicantStaIfaceCallback.MboAssocDisallowedReasonCode;
+import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
@@ -285,11 +286,13 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                         && WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
                         && (!locallyGenerated || reasonCode != ReasonCode.IE_IN_4WAY_DIFFERS)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
-                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1);
+                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                            mCurrentSsid, MacAddress.fromBytes(bssid));
                 } else if (mStateBeforeDisconnect == State.ASSOCIATED
                         && WifiConfigurationUtil.isConfigForEapNetwork(curConfiguration)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
-                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, -1);
+                            mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, -1,
+                            mCurrentSsid, MacAddress.fromBytes(bssid));
                 }
             }
             mWifiMonitor.broadcastNetworkDisconnectionEvent(
@@ -337,8 +340,16 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
         }
 
         if (isWrongPwd) {
+            MacAddress bssidAsMacAddress;
+            try {
+                bssidAsMacAddress = MacAddress.fromString(assocRejectInfo.bssid);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Invalid bssid obtained from supplicant " + assocRejectInfo.bssid);
+                bssidAsMacAddress = WifiManager.ALL_ZEROS_MAC_ADDRESS;
+            }
             mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1);
+                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                    mCurrentSsid, bssidAsMacAddress);
         }
         mWifiMonitor.broadcastAssociationRejectionEvent(mIfaceName, assocRejectInfo);
         mStateBeforeDisconnect = State.INACTIVE;
@@ -369,7 +380,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onAuthenticationTimeout");
             mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1);
+                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
+                    mCurrentSsid, MacAddress.fromBytes(bssid));
         }
     }
 
@@ -391,7 +403,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onEapFailure");
             mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, errorCode);
+                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, errorCode, mCurrentSsid,
+                    MacAddress.BROADCAST_ADDRESS);
             mStateBeforeDisconnect = State.INACTIVE;
         }
     }
