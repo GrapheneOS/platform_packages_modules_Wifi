@@ -70,7 +70,6 @@ import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.scanner.ChannelHelper.ChannelCollection;
 import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.LastCallerInfoManager;
-import com.android.server.wifi.util.WifiHandler;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WorkSourceUtil;
 
@@ -266,10 +265,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         }
     }
 
-    private class ClientHandler extends WifiHandler {
+    private class ClientHandler extends Handler {
 
         ClientHandler(String tag, Looper looper) {
-            super(tag, looper);
+            super(looper);
         }
 
         @Override
@@ -290,7 +289,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         return;
                     }
 
-                    AsyncChannel ac = mFrameworkFacade.makeWifiAsyncChannel(TAG);
+                    AsyncChannel ac = new AsyncChannel();
                     ac.connected(mContext, this, msg.replyTo);
 
                     client = new ExternalClientInfo(msg.sendingUid, msg.replyTo, ac);
@@ -546,15 +545,6 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             Log.i(TAG, "Removed an impl for " + ifaceName);
         }
         mScannerImpls.clear();
-    }
-
-    /**
-     * Provide a way for unit tests to set valid log object in the WifiHandler
-     * @param log WifiLog object to assign to the clientHandler
-     */
-    @VisibleForTesting
-    public void setWifiHandlerLogForTest(WifiLog log) {
-        mClientHandler.setWifiLog(log);
     }
 
     private WorkSource computeWorkSource(ClientInfo ci, WorkSource requestedWorkSource) {

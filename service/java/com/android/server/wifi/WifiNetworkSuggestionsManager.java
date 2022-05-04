@@ -676,8 +676,8 @@ public class WifiNetworkSuggestionsManager {
 
         mContext.registerReceiver(mBroadcastReceiver, mIntentFilter, null, handler);
         mLruConnectionTracker = lruConnectionTracker;
-        mWifiConfigManager.addOnNetworkUpdateListener(
-                new WifiNetworkSuggestionsManager.OnNetworkUpdateListener());
+        mHandler.postAtFrontOfQueue(() -> mWifiConfigManager.addOnNetworkUpdateListener(
+                new WifiNetworkSuggestionsManager.OnNetworkUpdateListener()));
     }
 
     /**

@@ -163,8 +163,9 @@ public class WifiHealthMonitor {
         mDeviceConfigFacade = deviceConfigFacade;
         mActiveModeWarden = activeModeWarden;
         mWifiSystemInfoStats = new WifiSystemInfoStats(l2KeySeed);
-        mWifiConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener());
         mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallback());
+        mHandler.postAtFrontOfQueue(() -> mWifiConfigManager
+                .addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
     }
 
     /**

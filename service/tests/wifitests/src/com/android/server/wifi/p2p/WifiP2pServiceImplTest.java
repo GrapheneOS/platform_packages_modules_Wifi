@@ -1277,8 +1277,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         mWifiP2pServiceImpl.mNetdWrapper = mNetdWrapper;
         mP2pStateMachineMessenger = mWifiP2pServiceImpl.getP2pStateMachineMessenger();
-        mWifiP2pServiceImpl.setWifiHandlerLogForTest(mLog);
-        mWifiP2pServiceImpl.setWifiLogForReplyChannel(mLog);
     }
 
     @Before

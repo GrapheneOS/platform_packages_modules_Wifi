@@ -238,7 +238,7 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
         mWifiHealthMonitor = new WifiHealthMonitor(mContext, mWifiInjector, mClock,
                 mWifiConfigManager, mWifiScoreCard, new Handler(mLooper.getLooper()), mWifiNative,
                 "some seed", mDeviceConfigFacade, mActiveModeWarden);
-
+        mLooper.dispatchAll();
         ArgumentCaptor<ModeChangeCallback> modeChangeCallbackArgumentCaptor =
                 ArgumentCaptor.forClass(ModeChangeCallback.class);
         verify(mActiveModeWarden).registerModeChangeCallback(
