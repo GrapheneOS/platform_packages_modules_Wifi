@@ -162,7 +162,7 @@ public class InsecureEapNetworkHandler {
     }
 
     /** Clear data on disconnecting a connection. */
-    public void clearConnection() {
+    private void clearConnection() {
         unregisterCertificateNotificationReceiver();
         dismissDialogAndNotification();
         clearInternalData();
@@ -179,6 +179,8 @@ public class InsecureEapNetworkHandler {
      */
     public boolean setPendingCertificate(@NonNull String ssid, int depth,
             @NonNull X509Certificate cert) {
+        Log.d(TAG, "setPendingCertificate: " + "ssid=" + ssid + " depth=" + depth
+                + " current config=" + mCurConfig);
         if (TextUtils.isEmpty(ssid)) return false;
         if (null == mCurConfig) return false;
         if (!ssid.equals(mCurConfig.SSID)) return false;
