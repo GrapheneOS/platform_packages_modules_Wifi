@@ -1733,7 +1733,7 @@ public class SoftApManager implements ActiveModeManager {
                         WifiInfo wifiInfo = (WifiInfo) message.obj;
                         int wifiFreq = wifiInfo.getFrequency();
                         String targetShutDownInstance = "";
-                        if (!mSafeChannelFrequencyList.contains(wifiFreq)) {
+                        if (wifiFreq > 0 && !mSafeChannelFrequencyList.contains(wifiFreq)) {
                             Log.i(getTag(), "Wifi connected to freq:" + wifiFreq
                                     + " which is unavailable for SAP");
                             for (SoftApInfo sapInfo : mCurrentSoftApInfoMap.values()) {
