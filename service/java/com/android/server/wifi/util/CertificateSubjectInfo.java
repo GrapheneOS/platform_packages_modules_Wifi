@@ -52,8 +52,10 @@ public class CertificateSubjectInfo {
      */
     public static CertificateSubjectInfo parse(String subject) {
         CertificateSubjectInfo info = new CertificateSubjectInfo();
-        info.rawData = subject;
-        String[] parts = subject.split(",");
+        info.rawData = unescapeString(subject);
+        if (null == info.rawData) return null;
+
+        String[] parts = info.rawData.split(",");
         for (String s : parts) {
             if (s.startsWith(COMMON_NAME_PREFIX)) {
                 info.commonName = s.substring(COMMON_NAME_PREFIX.length());
@@ -79,6 +81,37 @@ public class CertificateSubjectInfo {
             }
         }
         return TextUtils.isEmpty(info.commonName) ? null : info;
+    }
+
+    /**
+     * The characters in a subject string will be escaped based on RFC2253.
+     * To restore the original string, this method unescapes escaped
+     * characters.
+     */
+    private static String unescapeString(String s) {
+        final String escapees = ",=+<>#;\"\\";
+        StringBuilder res = new StringBuilder();
+        char[] chars = s.toCharArray();
+        boolean isEscaped = false;
+        for (char c: chars) {
+            if (c == '\\' && !isEscaped) {
+                isEscaped = true;
+                continue;
+            }
+            // An illegal escaped character is founded.
+            if (isEscaped && escapees.indexOf(c) == -1) {
+                Log.d(TAG, "Unable to unescape string: " + s);
+                return null;
+            }
+            res.append(c);
+            isEscaped = false;
+        }
+        // There is a trailing '\' without a escaped character.
+        if (isEscaped) {
+            Log.d(TAG, "Unable to unescape string: " + s);
+            return null;
+        }
+        return res.toString();
     }
 
     @Override
