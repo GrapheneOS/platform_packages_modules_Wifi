@@ -60,4 +60,33 @@ public class CertificateSubjectInfoTest extends WifiBaseTest {
                 "C=TW,ST=Taiwan,L=TW,O=AndroidWiFi";
         assertNull(CertificateSubjectInfo.parse(subjectInfo));
     }
+
+    /** Verifies that escaped string can be restored correctly. */
+    @Test
+    public void testEscpaedSubjectString() {
+        final String subjectInfo =
+                "C=TW,ST=Taiwan,L=TW,O=AndroidWiFi,CN=commonName/emailAddress\\=test@wifi.com";
+        CertificateSubjectInfo info = CertificateSubjectInfo.parse(subjectInfo);
+        assertEquals("commonName/emailAddress=test@wifi.com", info.commonName);
+    }
+
+    /** Verifies that escaped string can be restored correctly. */
+    @Test
+    public void testEscpaedSubjectStringWithDoubleTrailingSlash() {
+        final String subjectInfo =
+                "C=TW,ST=Taiwan,L=TW,O=AndroidWiFi,CN=commonName/emailAddress=test@wifi.com\\\\";
+        CertificateSubjectInfo info = CertificateSubjectInfo.parse(subjectInfo);
+        assertEquals("commonName/emailAddress=test@wifi.com\\", info.commonName);
+    }
+
+    /** Verifies that invalid escaped string returns null. */
+    @Test
+    public void testInvalidEscpaedSubjectString() {
+        // trailing '\'
+        assertNull(CertificateSubjectInfo.parse(
+                "C=TW,ST=Taiwan,L=TW,O=AndroidWiFi,CN=commonName/emailAddress\\=test@wifi.com\\"));
+        // illegal escaped character 'z'
+        assertNull(CertificateSubjectInfo.parse(
+                "C=TW,ST=Taiwan,L=TW,O=AndroidWiFi,CN=Name/email\\=\\ztest@wifi.com"));
+    }
 }
