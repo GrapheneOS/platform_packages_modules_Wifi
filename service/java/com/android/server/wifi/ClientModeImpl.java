@@ -2949,8 +2949,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         checkAbnormalDisconnectionAndTakeBugReport();
         mWifiScoreCard.resetConnectionState(mInterfaceName);
         updateLayer2Information();
-        mInsecureEapNetworkHandler.clearConnection();
-        mIsUserSelected = false;
+        // If there is new connection in progress, this is for the new connection, so keept it.
+        if (!newConnectionInProgress) {
+            mIsUserSelected = false;
+        }
     }
 
     void handlePreDhcpSetup() {
@@ -3204,7 +3206,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 connectivityFailureCode, level2FailureReason, mWifiInfo.getFrequency());
         if (configuration != null) {
             mWifiConnectivityManager.handleConnectionAttemptEnded(
-                    mClientModeManager, level2FailureCode, bssid, configuration);
+                    mClientModeManager, level2FailureCode, level2FailureReason, bssid,
+                    configuration);
             mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
             mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
                     level2FailureCode, configuration, getConnectedBssidInternal());
@@ -4688,6 +4691,30 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
+    private boolean isNewConnectionInProgress(@NonNull String disconnectingSsid) {
+        String targetSsid = getConnectingSsidInternal();
+        // If network is removed while connecting, targetSsid can be null.
+        if (targetSsid == null) {
+            return false;
+        }
+        // When connecting to another network while already connected, the old network will first
+        // disconnect before the new connection can begin. Thus, the presence of a mLastNetworkId
+        // that's different from the mTargetNetworkId indicates that this network disconnection is
+        // triggered for the previously connected network as opposed to the current ongoing
+        // connection.
+        boolean isConnectingWhileAlreadyConnected =
+                mLastNetworkId != WifiConfiguration.INVALID_NETWORK_ID
+                && mLastNetworkId != mTargetNetworkId;
+
+        // This second condition is needed to catch cases where 2 simultaneous connections happen
+        // back-to-back. When a new connection start before the previous one finishes, the
+        // previous network will get removed from the supplicant and cause a disconnect message
+        // to be received with the previous network's SSID. Thus, if the disconnecting SSID does not
+        // match the target SSID, it means a new connection is in progress.
+        boolean isConnectingToAnotherNetwork = !disconnectingSsid.equals(targetSsid);
+        return isConnectingWhileAlreadyConnected || isConnectingToAnotherNetwork;
+    }
+
     private void unwantedNetwork(int reason) {
         sendMessage(CMD_UNWANTED_NETWORK, reason);
     }
@@ -4943,15 +4970,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     } catch (IllegalArgumentException e) {
                         Log.e(TAG, "Invalid bssid received for disconnection event");
                     }
-                    String targetSsid = getConnectingSsidInternal();
-                    // If network is removed while connecting, targetSsid can be null.
-                    // The presence of a mLastNetworkId that's different from the mTargetNetworkId
-                    // indicates that this network disconnection is triggered for the previously
-                    // connected network as opposed to the current ongoing connection.
-                    boolean newConnectionInProgress =
-                            targetSsid != null
-                                    && mLastNetworkId != WifiConfiguration.INVALID_NETWORK_ID
-                                    && mLastNetworkId != mTargetNetworkId;
+                    boolean newConnectionInProgress = isNewConnectionInProgress(eventInfo.ssid);
                     if (!newConnectionInProgress) {
                         int level2FailureReason = eventInfo.locallyGenerated
                                 ? WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN :
@@ -5141,13 +5160,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT: {
+                    AuthenticationFailureEventInfo authenticationFailureEventInfo =
+                            (AuthenticationFailureEventInfo) message.obj;
+                    if (!authenticationFailureEventInfo.ssid.equals(getConnectingSsidInternal())) {
+                        logw("Authentication failure event received on not target network");
+                        break;
+                    }
                     stopIpClient();
                     mWifiDiagnostics.triggerBugReportDataCapture(
                             WifiDiagnostics.REPORT_REASON_AUTH_FAILURE);
                     int disableReason = WifiConfiguration.NetworkSelectionStatus
                             .DISABLED_AUTHENTICATION_FAILURE;
-                    int reasonCode = message.arg1;
-                    int errorCode = message.arg2;
+                    int reasonCode = authenticationFailureEventInfo.reasonCode;
+                    int errorCode = authenticationFailureEventInfo.errorCode;
                     log("L2ConnectingState: Authentication failure "
                             + " reason=" + reasonCode + " error=" + errorCode);
                     WifiConfiguration targetedNetwork =
@@ -5168,7 +5193,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     } else if (reasonCode == WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE) {
                         logEventIfManagedNetwork(targetedNetwork,
                                 SupplicantStaIfaceHal.SUPPLICANT_EVENT_EAP_FAILURE,
-                                (MacAddress) message.obj, "error=" + errorCode);
+                                authenticationFailureEventInfo.bssid, "error=" + errorCode);
                         if (targetedNetwork != null && targetedNetwork.enterpriseConfig != null
                                 && targetedNetwork.enterpriseConfig.isAuthenticationSimBased()) {
                             // only show EAP failure notification if primary

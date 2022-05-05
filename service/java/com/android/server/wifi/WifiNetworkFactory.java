@@ -1426,14 +1426,17 @@ public class WifiNetworkFactory extends NetworkFactory {
                     + "retrieval..");
             return;
         }
-
+        // TODO(230795804): remove the car mode check when we can smooth switch the ownership of the
+        //  network and attribute to the right App with correct package name.
         if (SdkLevel.isAtLeastS() && ActiveModeWarden
                 .isClientModeManagerConnectedOrConnectingToBssid(mClientModeManager,
                 mUserSelectedNetwork.SSID, mUserSelectedNetwork.BSSID)
                 && mConnectedSpecificNetworkRequest != null
                 && !WifiConfigurationUtil.hasCredentialChanged(
                         mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration,
-                mActiveSpecificNetworkRequestSpecifier.wifiConfiguration)) {
+                mActiveSpecificNetworkRequestSpecifier.wifiConfiguration)
+                && !mWifiPermissionsUtil.checkEnterCarModePrioritized(
+                        mActiveSpecificNetworkRequest.getRequestorUid())) {
             // Already connected to the same network.
             setupForConnectedRequest(false);
             return;
