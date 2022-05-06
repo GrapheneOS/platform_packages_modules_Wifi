@@ -1022,6 +1022,47 @@ public class WifiNetworkSelector {
     }
 
     /**
+     * Add all results as candidates for the user selected network and let network selection
+     * chooses the proper one for the user selected network.
+     * @param config                  The configuration for the user selected network.
+     * @param scanDetails              List of ScanDetail for the user selected network.
+     * @return list of valid Candidate(s)
+     */
+    public List<WifiCandidates.Candidate> getCandidatesForUserSelection(
+            WifiConfiguration config, @NonNull List<ScanDetail> scanDetails) {
+        if (scanDetails.size() == 0) {
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "No scan result for the user selected network.");
+                return null;
+            }
+        }
+
+        mConnectableNetworks.clear();
+        WifiCandidates wifiCandidates = new WifiCandidates(mWifiScoreCard, mContext);
+        for (ScanDetail scanDetail: scanDetails) {
+            WifiCandidates.Key key = wifiCandidates.keyFromScanDetailAndConfig(
+                    scanDetail, config);
+            if (null == key) continue;
+
+            boolean added = wifiCandidates.add(key, config,
+                    WifiNetworkSelector.NetworkNominator.NOMINATOR_ID_CURRENT,
+                    scanDetail.getScanResult().level,
+                    scanDetail.getScanResult().frequency,
+                    scanDetail.getScanResult().channelWidth,
+                    0.0 /* lastSelectionWeightBetweenZeroAndOne */,
+                    false /* isMetered */,
+                    WifiNetworkSelector.isFromCarrierOrPrivilegedApp(config),
+                    0 /* predictedThroughputMbps */);
+            if (!added) continue;
+
+            mConnectableNetworks.add(Pair.create(scanDetail, config));
+            mWifiConfigManager.updateScanDetailForNetwork(
+                    config.networkId, scanDetail);
+        }
+        return wifiCandidates.getCandidates();
+    }
+
+    /**
      * For transition networks with only legacy networks,
      * remove auto-upgrade type to use the legacy type to
      * avoid roaming issues between two types.
