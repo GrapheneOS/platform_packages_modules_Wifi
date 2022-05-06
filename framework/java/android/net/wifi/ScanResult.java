@@ -62,8 +62,8 @@ public final class ScanResult implements Parcelable {
      * @deprecated Use {@link #getWifiSsid()} instead.
      */
     @Deprecated
-    @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link #getWifiSsid()}")
+    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
+    @UnsupportedAppUsage(publicAlternatives = "{@link #getWifiSsid()}")
     public WifiSsid wifiSsid;
 
     /**
