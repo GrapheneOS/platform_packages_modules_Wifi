@@ -22,6 +22,7 @@ import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.RENOUNCE_PERMISSIONS;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
 import static android.content.pm.PackageManager.GET_PERMISSIONS;
+import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
 
 import android.Manifest;
 import android.annotation.NonNull;
@@ -241,14 +242,16 @@ public class WifiPermissionsUtil {
         // 2 ways are used to disavow location usage.
         // First check if the app renounced location.
         // Check every step along the attribution chain for a renouncement.
-        // If location has been renounced anywhere in the chain we treat it as a disavowal.
         AttributionSource currentAttrib = attributionSource;
         while (true) {
+            int curUid = currentAttrib.getUid();
+            String curPackageName = currentAttrib.getPackageName();
+            // If location has been renounced anywhere in the chain we treat it as a disavowal.
             if (currentAttrib.getRenouncedPermissions().contains(ACCESS_FINE_LOCATION)
-                    && mWifiPermissionsWrapper.getUidPermission(RENOUNCE_PERMISSIONS, uid)
+                    && mWifiPermissionsWrapper.getUidPermission(RENOUNCE_PERMISSIONS, curUid)
                     == PackageManager.PERMISSION_GRANTED) {
                 if (mVerboseLoggingEnabled) {
-                    Log.v(TAG, "package=" + packageName + " UID=" + uid
+                    Log.v(TAG, "package=" + curPackageName + " UID=" + curUid
                             + " has renounced location permission - bypassing location check.");
                 }
                 return;
@@ -262,8 +265,16 @@ public class WifiPermissionsUtil {
         // If the app did not renounce location, check if "neverForLocation" is set.
         PackageManager pm = mContext.getPackageManager();
         try {
-            PackageInfo pkgInfo = pm.getPackageInfo(packageName, GET_PERMISSIONS);
-            for (int i = 0; i < pkgInfo.requestedPermissions.length; i++) {
+            PackageInfo pkgInfo = pm.getPackageInfo(packageName,
+                    GET_PERMISSIONS | MATCH_UNINSTALLED_PACKAGES);
+            int requestedPermissionsLength = pkgInfo.requestedPermissions == null
+                    || pkgInfo.requestedPermissionsFlags == null ? 0
+                    : pkgInfo.requestedPermissions.length;
+            if (requestedPermissionsLength == 0) {
+                Log.e(TAG, "package=" + packageName + " unexpectedly has null "
+                        + "requestedPermissions or requestPermissionFlags.");
+            }
+            for (int i = 0; i < requestedPermissionsLength; i++) {
                 if (pkgInfo.requestedPermissions[i].equals(NEARBY_WIFI_DEVICES)
                         && (pkgInfo.requestedPermissionsFlags[i]
                         & PackageInfo.REQUESTED_PERMISSION_NEVER_FOR_LOCATION) != 0) {
