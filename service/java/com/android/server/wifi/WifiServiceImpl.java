@@ -3865,12 +3865,14 @@ public class WifiServiceImpl extends BaseWifiService {
      * @return the Wi-Fi information, contained in {@link WifiInfo}.
      */
     @Override
-    public WifiInfo getConnectionInfo(String callingPackage, String callingFeatureId) {
+    public WifiInfo getConnectionInfo(@NonNull String callingPackage,
+            @Nullable String callingFeatureId) {
         enforceAccessPermission();
         int uid = Binder.getCallingUid();
         if (isVerboseLoggingEnabled()) {
             mLog.info("getConnectionInfo uid=%").c(uid).flush();
         }
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         long ident = Binder.clearCallingIdentity();
         try {
             WifiInfo wifiInfo = mWifiThreadRunner.call(
