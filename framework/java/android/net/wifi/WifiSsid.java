@@ -20,7 +20,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.net.wifi.util.HexEncoding;
-import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.TextUtils;
@@ -211,24 +210,24 @@ public final class WifiSsid implements Parcelable {
      * Use {@link #getBytes()} instead.
      * @hide
      */
-    @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link #getBytes()}")
+    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
+    @UnsupportedAppUsage(publicAlternatives = "{@link #getBytes()}")
     public final ByteArrayOutputStream octets = new ByteArrayOutputStream(32);
 
     /**
      * Use {@link android.net.wifi.WifiManager#UNKNOWN_SSID} instead.
      * @hide
      */
-    @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link android.net.wifi.WifiManager#UNKNOWN_SSID}")
+    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
+    @UnsupportedAppUsage(publicAlternatives = "{@link android.net.wifi.WifiManager#UNKNOWN_SSID}")
     public static final String NONE = WifiManager.UNKNOWN_SSID;
 
     /**
      * Use {@link #fromBytes(byte[])} instead.
      * @hide
      */
-    @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link #fromBytes(byte[])}")
+    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
+    @UnsupportedAppUsage(publicAlternatives = "{@link #fromBytes(byte[])}")
     public static WifiSsid createFromAsciiEncoded(String asciiEncoded) {
         return fromUtf8Text(asciiEncoded);
     }
@@ -237,8 +236,8 @@ public final class WifiSsid implements Parcelable {
      * Use {@link #getBytes()} instead.
      * @hide
      */
-    @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.S,
-            publicAlternatives = "{@link #getBytes()}")
+    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
+    @UnsupportedAppUsage(publicAlternatives = "{@link #getBytes()}")
     public byte[] getOctets() {
         return getBytes();
     }
