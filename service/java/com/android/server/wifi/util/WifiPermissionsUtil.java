@@ -1217,4 +1217,11 @@ public class WifiPermissionsUtil {
         }
         return false;
     }
+
+    /**
+     * Returns the foreground userId
+     */
+    public int getCurrentUser() {
+        return mWifiPermissionsWrapper.getCurrentUser();
+    }
 }

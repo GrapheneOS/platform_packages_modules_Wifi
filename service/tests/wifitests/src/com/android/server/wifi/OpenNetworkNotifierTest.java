@@ -56,6 +56,7 @@ import androidx.test.filters.SmallTest;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.ConnectToNetworkNotificationAndActionCount;
 import com.android.server.wifi.util.ActionListenerWrapper;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -93,6 +94,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
     @Mock private UserManager mUserManager;
     @Mock private ConnectHelper mConnectHelper;
     @Mock private MakeBeforeBreakManager mMakeBeforeBreakManager;
+    @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     private OpenNetworkNotifier mNotificationController;
     private TestLooper mLooper;
     private BroadcastReceiver mBroadcastReceiver;
@@ -124,7 +126,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
         mNotificationController = new OpenNetworkNotifier(
                 mContext, mLooper.getLooper(), mFrameworkFacade, mClock, mWifiMetrics,
                 mWifiConfigManager, mWifiConfigStore, mConnectHelper, mNotificationBuilder,
-                mMakeBeforeBreakManager, mWifiNotificationManager);
+                mMakeBeforeBreakManager, mWifiNotificationManager, mWifiPermissionsUtil);
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
         verify(mContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), any(), any());
@@ -142,6 +144,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
                 onStoppedListener.run();
             }
         }).when(mMakeBeforeBreakManager).stopAllSecondaryTransientClientModeManagers(any());
+        when(mWifiPermissionsUtil.getCurrentUser()).thenReturn(UserHandle.USER_SYSTEM);
     }
 
     /**
@@ -469,7 +472,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
     @Test
     public void userHasDisallowConfigWifiRestriction_notificationNotDisplayed() {
         when(mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_CONFIG_WIFI,
-              UserHandle.CURRENT))
+                UserHandle.of(mWifiPermissionsUtil.getCurrentUser())))
                 .thenReturn(true);
 
         mNotificationController.handleScanResults(mOpenNetworks);
@@ -489,7 +492,7 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
         verify(mWifiNotificationManager).notify(anyInt(), any());
 
         when(mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_CONFIG_WIFI,
-              UserHandle.CURRENT))
+                UserHandle.of(mWifiPermissionsUtil.getCurrentUser())))
                 .thenReturn(true);
 
         mNotificationController.handleScanResults(mOpenNetworks);
