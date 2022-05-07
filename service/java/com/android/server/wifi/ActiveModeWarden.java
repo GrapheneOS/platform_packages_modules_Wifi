@@ -643,9 +643,9 @@ public class ActiveModeWarden {
      * @param reason One of {@link SelfRecovery.RecoveryReason}
      */
     public void recoveryRestartWifi(@SelfRecovery.RecoveryReason int reason,
-            @Nullable String reasonDetail, boolean requestBugReport) {
+            boolean requestBugReport) {
         mWifiController.sendMessage(WifiController.CMD_RECOVERY_RESTART_WIFI, reason,
-                requestBugReport ? 1 : 0, reasonDetail);
+                requestBugReport ? 1 : 0, SelfRecovery.getRecoveryReasonAsString(reason));
     }
 
     /**
@@ -2001,6 +2001,7 @@ public class ActiveModeWarden {
                             }
                         }
                         mRestartCallbacks.finishBroadcast();
+                        mWifiInjector.getSelfRecovery().onRecoveryCompleted();
                         break;
                     default:
                         return NOT_HANDLED;
@@ -2204,25 +2205,34 @@ public class ActiveModeWarden {
                         }
                     case CMD_AP_STOPPED:
                     case CMD_AP_START_FAILURE:
-                        if (!hasAnyModeManager()) {
-                            if (shouldEnableSta()) {
-                                log("SoftAp disabled, start client mode");
-                                startPrimaryOrScanOnlyClientModeManager(
-                                        // Assumes user toggled it on from settings before.
-                                        mFacade.getSettingsWorkSource(mContext));
-                            } else {
-                                log("SoftAp mode disabled, return to DisabledState");
-                                transitionTo(mDisabledState);
-                            }
-                        } else {
+                        if (hasAnyModeManager()) {
                             log("AP disabled, remain in EnabledState.");
+                            break;
+                        }
+                        if (msg.what == CMD_AP_STOPPED) {
+                            mWifiInjector.getSelfRecovery().onWifiStopped();
+                            if (mWifiInjector.getSelfRecovery().isRecoveryInProgress()) {
+                                // Recovery in progress, transit to disabled state.
+                                transitionTo(mDisabledState);
+                                break;
+                            }
+                        }
+                        if (shouldEnableSta()) {
+                            log("SoftAp disabled, start client mode");
+                            startPrimaryOrScanOnlyClientModeManager(
+                                    // Assumes user toggled it on from settings before.
+                                    mFacade.getSettingsWorkSource(mContext));
+                        } else {
+                            log("SoftAp mode disabled, return to DisabledState");
+                            transitionTo(mDisabledState);
                         }
                         break;
                     case CMD_STA_START_FAILURE:
                     case CMD_STA_STOPPED:
                         // Client mode stopped. Head to Disabled to wait for next command if there
-                        // no active mode managers.
+                        // is no active mode manager.
                         if (!hasAnyModeManager()) {
+                            mWifiInjector.getSelfRecovery().onWifiStopped();
                             log("STA disabled, return to DisabledState.");
                             transitionTo(mDisabledState);
                         } else {
