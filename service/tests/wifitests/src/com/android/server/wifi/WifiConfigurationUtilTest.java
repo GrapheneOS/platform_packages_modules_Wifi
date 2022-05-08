@@ -951,18 +951,18 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that WifiConfigurationUtil.isSameNetwork returns true when two WifiConfiguration
+     * Verify that WifiConfigurationUtil.isSameNetwork returns false when two WifiConfiguration
      * objects have the different EAP anonymous(pseudonym) identity in EAP-SIM.
      */
     @Test
-    public void testIsSameNetworkReturnsTrueOnDifferentEapAnonymousIdentityInEapSim() {
+    public void testIsSameNetworkReturnsFalseOnDifferentEapAnonymousIdentityInEapSim() {
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork(TEST_SSID);
         WifiConfiguration network2 = WifiConfigurationTestUtil.createEapNetwork(TEST_SSID);
         network1.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.SIM);
         network2.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.SIM);
         network1.enterpriseConfig.setAnonymousIdentity("Identity1");
         network2.enterpriseConfig.setAnonymousIdentity("Identity2");
-        assertTrue(WifiConfigurationUtil.isSameNetwork(network1, network2));
+        assertFalse(WifiConfigurationUtil.isSameNetwork(network1, network2));
     }
 
     /**
