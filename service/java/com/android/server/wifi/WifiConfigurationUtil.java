@@ -267,8 +267,11 @@ public class WifiConfigurationUtil {
                 return true;
             }
             if (existingEnterpriseConfig.isAuthenticationSimBased()) {
-                // No other credential changes for SIM based methods.
-                // The SIM card is the credential.
+                // The anonymous identity will be decorated with 3gpp realm in the service.
+                if (!TextUtils.equals(existingEnterpriseConfig.getAnonymousIdentity(),
+                        newEnterpriseConfig.getAnonymousIdentity())) {
+                    return true;
+                }
                 return false;
             }
             if (existingEnterpriseConfig.getPhase2Method()
