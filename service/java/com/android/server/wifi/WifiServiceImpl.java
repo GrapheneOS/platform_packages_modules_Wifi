@@ -3124,6 +3124,29 @@ public class WifiServiceImpl extends BaseWifiService {
                 scanScheduleSeconds != null);
     }
 
+    @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public void setOneShotScreenOnConnectivityScanDelayMillis(int delayMs) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
+        if (delayMs < 0) {
+            throw new IllegalArgumentException("delayMs should not be negative");
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + ", is not allowed to set screen-on scan "
+                    + "delay");
+        }
+        mLog.info("delayMs=% uid=%").c(delayMs).c(uid).flush();
+        mWifiThreadRunner.post(() ->
+                mWifiConnectivityManager.setOneShotScreenOnConnectivityScanDelayMillis(delayMs));
+        mLastCallerInfoManager.put(WifiManager.API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY,
+                Process.myTid(), uid, Binder.getCallingPid(), "<unknown>",
+                delayMs > 0);
+    }
+
     /**
      * Return a map of all matching configurations keys with corresponding scanResults (or an empty
      * map if none).

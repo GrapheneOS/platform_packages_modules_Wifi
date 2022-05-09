@@ -95,6 +95,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void setOneShotScreenOnConnectivityScanDelayMillis(int delayMs) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Map<String, Map<Integer, List<ScanResult>>> getAllMatchingFqdnsForScanResults(
             List<ScanResult> scanResults) {
         throw new UnsupportedOperationException();
