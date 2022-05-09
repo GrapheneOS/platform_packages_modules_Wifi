@@ -23,7 +23,6 @@ import static android.content.pm.PackageManager.GET_PERMISSIONS;
 import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -1436,8 +1435,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
                 mMockContext, mMockUserManager, mWifiInjector);
 
-        assertThrows(SecurityException.class,
-                () -> codeUnderTest.enforceNearbyDevicesPermission(attributionSource, true, ""));
+        assertFalse(codeUnderTest.checkNearbyDevicesPermission(attributionSource, true, ""));
 
         // now attach AttributionSource2 with uid2 to the list of AttributionSource and then
         // verify the location check is now bypassed.
