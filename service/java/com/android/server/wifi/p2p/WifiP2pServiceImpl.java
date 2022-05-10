@@ -4353,7 +4353,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (!SdkLevel.isAtLeastT()) {
                 return true;
             }
-            // TODO(b/197689548) use Build.VERSION_CODES.T here after T SDK is finalized
             return mWifiPermissionsUtil.isTargetSdkLessThan(packageName,
                     Build.VERSION_CODES.TIRAMISU, uid);
         }
