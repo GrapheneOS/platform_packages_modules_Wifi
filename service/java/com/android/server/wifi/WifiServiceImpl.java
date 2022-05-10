@@ -1129,7 +1129,6 @@ public class WifiServiceImpl extends BaseWifiService {
         if (!SdkLevel.isAtLeastT()) {
             return true;
         }
-        // TODO(b/197689548) use Build.VERSION_CODES.T here and in tests after T SDK is finalized
         return mWifiPermissionsUtil.isTargetSdkLessThan(packageName, Build.VERSION_CODES.TIRAMISU,
                 uid);
     }
