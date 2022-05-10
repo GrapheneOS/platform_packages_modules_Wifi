@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import android.net.wifi.WifiEnterpriseConfig.Eap;
 import android.net.wifi.WifiEnterpriseConfig.Phase2;
@@ -706,5 +708,50 @@ public class WifiEnterpriseConfigTest {
         config.setDomainSuffixMatch(domainSuffixMatch);
         config.setAltSubjectMatch(altSubjectMatch);
         return config;
+    }
+
+    /**
+     * Verify that setCaCertificate() raises IllegalArgumentException
+     * for a self-signed certificate.
+     *
+     * @throws IllegalArgumentException
+     */
+    @Test (expected = IllegalArgumentException.class)
+    public void testSetCaCertificateExceptionWithSelfSignedCert() throws Exception {
+        X509Certificate mockCert = mock(X509Certificate.class);
+        when(mockCert.getBasicConstraints()).thenReturn(-1);
+
+        mEnterpriseConfig.setCaCertificate(mockCert);
+    }
+
+    /**
+     * Verify that setCaCertificateForTrustOnFirstUse sunny case.
+     */
+    @Test
+    public void testSetCaCertificateForTrustOnFirstUseSuccess() throws Exception {
+        X509Certificate mockCert = mock(X509Certificate.class);
+        when(mockCert.getBasicConstraints()).thenReturn(-1);
+
+        mEnterpriseConfig.enableTrustOnFirstUse(true);
+
+        mEnterpriseConfig.setCaCertificateForTrustOnFirstUse(mockCert);
+        assertEquals(mEnterpriseConfig.getCaCertificate(), mockCert);
+    }
+
+    /**
+     * Verify that setCaCertificateForTrustOnFirstUse() raises IllegalArgumentException
+     * when Trust on First Use is not enabled.
+     *
+     * @throws IllegalArgumentException
+     */
+    @Test (expected = IllegalArgumentException.class)
+    public void testSetCaCertificateForTrustOnFirstUseExceptionWithNoTofuEnabled()
+            throws Exception {
+        X509Certificate mockCert = mock(X509Certificate.class);
+        when(mockCert.getBasicConstraints()).thenReturn(-1);
+
+        mEnterpriseConfig.enableTrustOnFirstUse(false);
+
+        mEnterpriseConfig.setCaCertificateForTrustOnFirstUse(mockCert);
     }
 }
