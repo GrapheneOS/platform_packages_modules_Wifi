@@ -974,12 +974,13 @@ public class WifiNative {
      * teardown any existing iface.
      */
     private String createApIface(@NonNull Iface iface, @NonNull WorkSource requestorWs,
-            @SoftApConfiguration.BandType int band, boolean isBridged) {
+            @SoftApConfiguration.BandType int band, boolean isBridged,
+            @NonNull SoftApManager softApManager) {
         synchronized (mLock) {
             if (mWifiVendorHal.isVendorHalSupported()) {
                 return mWifiVendorHal.createApIface(
                         new InterfaceDestoyedListenerInternal(iface.id), requestorWs,
-                        band, isBridged);
+                        band, isBridged, softApManager);
             } else {
                 Log.i(TAG, "Vendor Hal not supported, ignoring createApIface.");
                 return handleIfaceCreationWhenVendorHalNotSupported(iface);
@@ -1315,11 +1316,13 @@ public class WifiNative {
      * @param interfaceCallback Associated callback for notifying status changes for the iface.
      * @param requestorWs Requestor worksource.
      * @param isBridged Whether or not AP interface is a bridge interface.
+     * @param softApManager SoftApManager of the request.
      * @return Returns the name of the allocated interface, will be null on failure.
      */
     public String setupInterfaceForSoftApMode(
             @NonNull InterfaceCallback interfaceCallback, @NonNull WorkSource requestorWs,
-            @SoftApConfiguration.BandType int band, boolean isBridged) {
+            @SoftApConfiguration.BandType int band, boolean isBridged,
+            @NonNull SoftApManager softApManager) {
         synchronized (mLock) {
             if (!startHal()) {
                 Log.e(TAG, "Failed to start Hal");
@@ -1337,7 +1340,7 @@ public class WifiNative {
                 return null;
             }
             iface.externalListener = interfaceCallback;
-            iface.name = createApIface(iface, requestorWs, band, isBridged);
+            iface.name = createApIface(iface, requestorWs, band, isBridged, softApManager);
             if (TextUtils.isEmpty(iface.name)) {
                 Log.e(TAG, "Failed to create AP iface in vendor HAL");
                 mIfaceMgr.removeIface(iface.id);
