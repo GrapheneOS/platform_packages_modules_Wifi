@@ -372,25 +372,6 @@ public class WifiVendorHal {
     }
 
     /**
-     * Bring up the HIDL Vendor HAL and configure for AP (Access Point) mode
-     *
-     * @return true for success
-     */
-    public boolean startVendorHalAp() {
-        synchronized (sLock) {
-            if (!startVendorHal()) {
-                return false;
-            }
-            if (TextUtils.isEmpty(createApIface(null, null,
-                    SoftApConfiguration.BAND_2GHZ, false))) {
-                stopVendorHal();
-                return false;
-            }
-            return true;
-        }
-    }
-
-    /**
      * Bring up the HIDL Vendor HAL and configure for STA (Station) mode
      *
      * @return true for success
@@ -564,17 +545,19 @@ public class WifiVendorHal {
      * @param requestorWs Requestor worksource.
      * @param band The requesting band for this AP interface.
      * @param isBridged Whether or not AP interface is a bridge interface.
+     * @param softApManager SoftApManager of the request.
      * @return iface name on success, null otherwise.
      */
     public String createApIface(@Nullable InterfaceDestroyedListener destroyedListener,
             @NonNull WorkSource requestorWs,
             @SoftApConfiguration.BandType int band,
-            boolean isBridged) {
+            boolean isBridged,
+            @NonNull SoftApManager softApManager) {
         synchronized (sLock) {
             IWifiApIface iface = mHalDeviceManager.createApIface(
                     getNecessaryCapabilitiesForSoftApMode(band),
                     new ApInterfaceDestroyedListenerInternal(destroyedListener), mHalEventHandler,
-                    requestorWs, isBridged);
+                    requestorWs, isBridged, softApManager);
             if (iface == null) {
                 mLog.err("Failed to create AP iface").flush();
                 return nullResult();

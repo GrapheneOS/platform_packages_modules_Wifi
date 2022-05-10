@@ -207,6 +207,8 @@ public class WifiVendorHalTest extends WifiBaseTest {
     private WifiNative.VendorHalRadioModeChangeEventHandler mVendorHalRadioModeChangeHandler;
     @Mock
     private WifiGlobals mWifiGlobals;
+    @Mock
+    private SoftApManager mSoftApManager;
 
     /**
      * Spy used to return the V1_1 IWifiChip mock object to simulate the 1.1 HAL running on the
@@ -387,7 +389,8 @@ public class WifiVendorHalTest extends WifiBaseTest {
         }).when(mHalDeviceManager).stop();
         when(mHalDeviceManager.createStaIface(any(), any(), any()))
                 .thenReturn(mIWifiStaIface);
-        when(mHalDeviceManager.createApIface(anyLong(), any(), any(), any(), anyBoolean()))
+        when(mHalDeviceManager.createApIface(anyLong(), any(), any(), any(), anyBoolean(),
+                eq(mSoftApManager)))
                 .thenReturn(mIWifiApIface);
         when(mHalDeviceManager.removeIface(any())).thenReturn(true);
         when(mHalDeviceManager.getChip(any(IWifiIface.class)))
@@ -473,26 +476,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mIWifiChip).registerEventCallback(any(IWifiChipEventCallback.class));
 
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
-    }
-
-    /**
-     * Tests the successful starting of HAL in AP mode using
-     * {@link WifiVendorHal#startVendorHalAp()}.
-     */
-    @Test
-    public void testStartHalSuccessInApMode() throws Exception {
-        assertTrue(mWifiVendorHal.startVendorHalAp());
-        assertTrue(mWifiVendorHal.isHalStarted());
-
-        verify(mHalDeviceManager).start();
-        verify(mHalDeviceManager).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
-        verify(mHalDeviceManager).getChip(eq(mIWifiApIface));
-        verify(mHalDeviceManager).isReady();
-        verify(mHalDeviceManager).isStarted();
-
-        verify(mHalDeviceManager, never()).createStaIface(any(), any(), any());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
     }
 
     /**
@@ -515,7 +499,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
         verify(mHalDeviceManager, never()).createStaIface(any(), any(), any());
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
         verify(mHalDeviceManager, never()).getChip(any(IWifiIface.class));
         verify(mIWifiStaIface, never())
                 .registerEventCallback(any(IWifiStaIfaceEventCallback.class));
@@ -536,7 +520,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mHalDeviceManager).stop();
 
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
         verify(mHalDeviceManager, never()).getChip(any(IWifiIface.class));
         verify(mIWifiStaIface, never())
                 .registerEventCallback(any(IWifiStaIfaceEventCallback.class));
@@ -559,7 +543,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mIWifiStaIface).registerEventCallback(any(IWifiStaIfaceEventCallback.class));
 
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
     }
 
     /**
@@ -580,7 +564,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
         verify(mHalDeviceManager, never()).getChip(any(IWifiIface.class));
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
     }
 
     /**
@@ -602,26 +586,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mIWifiChip).registerEventCallback(any(IWifiChipEventCallback.class));
 
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
-    }
-
-    /**
-     * Tests the failure to start HAL in AP mode using
-     * {@link WifiVendorHal#startVendorHalAp()}.
-     */
-    @Test
-    public void testStartHalFailureInApMode() throws Exception {
-        when(mHalDeviceManager.createApIface(anyLong(), any(), any(), any(), anyBoolean()))
-                .thenReturn(null);
-        assertFalse(mWifiVendorHal.startVendorHalAp());
-        assertFalse(mWifiVendorHal.isHalStarted());
-
-        verify(mHalDeviceManager).start();
-        verify(mHalDeviceManager).createApIface(anyLong(), any(), any(), any(), anyBoolean());
-        verify(mHalDeviceManager).stop();
-
-        verify(mHalDeviceManager, never()).createStaIface(any(), any(), any());
-        verify(mHalDeviceManager, never()).getChip(any(IWifiIface.class));
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
     }
 
     /**
@@ -644,7 +609,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mHalDeviceManager, times(2)).isStarted();
 
         verify(mHalDeviceManager, never()).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
     }
 
     /**
@@ -653,7 +618,10 @@ public class WifiVendorHalTest extends WifiBaseTest {
      */
     @Test
     public void testStopHalInApMode() {
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
+
         assertTrue(mWifiVendorHal.isHalStarted());
 
         mWifiVendorHal.stopVendorHal();
@@ -662,7 +630,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mHalDeviceManager).start();
         verify(mHalDeviceManager).stop();
         verify(mHalDeviceManager).createApIface(
-                anyLong(), any(), any(), any(), anyBoolean());
+                anyLong(), any(), any(), any(), anyBoolean(), eq(mSoftApManager));
         verify(mHalDeviceManager).getChip(eq(mIWifiApIface));
         verify(mHalDeviceManager, times(2)).isReady();
         verify(mHalDeviceManager, times(2)).isStarted();
@@ -713,12 +681,14 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
         assertTrue(mWifiVendorHal.startVendorHal());
         assertNotNull(mWifiVendorHal.createApIface(
-                externalLister, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false));
+                externalLister, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false,
+                mSoftApManager));
         assertTrue(mWifiVendorHal.isHalStarted());
 
         verify(mHalDeviceManager).start();
         verify(mHalDeviceManager).createApIface(anyLong(),
-                internalListenerCaptor.capture(), any(), eq(TEST_WORKSOURCE), eq(false));
+                internalListenerCaptor.capture(), any(), eq(TEST_WORKSOURCE), eq(false),
+                eq(mSoftApManager));
         verify(mHalDeviceManager).getChip(eq(mIWifiApIface));
         verify(mHalDeviceManager).isReady();
         verify(mHalDeviceManager).isStarted();
@@ -1083,7 +1053,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
     public void testLinkLayerStatsNotEnabledAndHarmlessInApMode() throws Exception {
         doNothing().when(mIWifiStaIface).getLinkLayerStats(any());
 
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
         assertTrue(mWifiVendorHal.isHalStarted());
         assertNull(mWifiVendorHal.getWifiLinkLayerStats(TEST_IFACE_NAME));
 
@@ -1869,7 +1841,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
         when(mIWifiApIface.setCountryCode(any()))
                 .thenReturn(mWifiStatusSuccess);
 
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
 
         assertFalse(mWifiVendorHal.setApCountryCode(TEST_IFACE_NAME, null));
         assertFalse(mWifiVendorHal.setApCountryCode(TEST_IFACE_NAME, ""));
@@ -1890,7 +1864,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
         mWifiVendorHal.mVerboseLog = mWifiLog;
         when(mIWifiApIface.setCountryCode(any()))
                 .thenThrow(new RemoteException("oops"));
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
         assertFalse(mWifiVendorHal.setApCountryCode(TEST_IFACE_NAME, "CA"));
         assertTrue(mWifiVendorHal.isHalStarted());
         verify(mWifiLog).err("% RemoteException in HIDL call %");
@@ -1925,7 +1901,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
         )).thenReturn(mWifiStatusSuccess);
 
         assertFalse(mWifiVendorHal.startLoggingRingBuffer(1, 0x42, 0, 0, "One"));
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
         assertTrue(mWifiVendorHal.startLoggingRingBuffer(1, 0x42, 11, 3000, "One"));
 
         verify(mIWifiChip).startLoggingToDebugRingBuffer("One", 1, 11, 3000);
@@ -2546,7 +2524,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
                 any(IWifiChip.getDebugHostWakeReasonStatsCallback.class));
 
         // This should work in both AP & STA mode.
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
 
         assertNull(mWifiVendorHal.getWlanWakeReasonCount());
         verify(mIWifiChip).getDebugHostWakeReasonStats(
@@ -2591,7 +2571,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
         }).when(mIWifiChip).requestDriverDebugDump(any(
                 IWifiChip.requestDriverDebugDumpCallback.class));
 
-        assertTrue(mWifiVendorHal.startVendorHalAp());
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
         assertArrayEquals(sample, mWifiVendorHal.getDriverStateDump());
     }
 
@@ -3317,9 +3299,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
         assertTrue(mWifiVendorHal.startVendorHal());
         assertNull(mWifiVendorHal.createApIface(
-                null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false));
+                null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
         verify(mHalDeviceManager).createApIface(
-                anyLong(), any(), any(), eq(TEST_WORKSOURCE), eq(false));
+                anyLong(), any(), any(), eq(TEST_WORKSOURCE), eq(false), eq(mSoftApManager));
     }
 
     /**
@@ -3342,9 +3324,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
     public void testCreateRemoveApIface() throws RemoteException {
         assertTrue(mWifiVendorHal.startVendorHal());
         String ifaceName = mWifiVendorHal.createApIface(
-                null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false);
+                null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ, false, mSoftApManager);
         verify(mHalDeviceManager).createApIface(
-                anyLong(), any(), any(), eq(TEST_WORKSOURCE), eq(false));
+                anyLong(), any(), any(), eq(TEST_WORKSOURCE), eq(false), eq(mSoftApManager));
         assertEquals(TEST_IFACE_NAME, ifaceName);
         assertTrue(mWifiVendorHal.removeApIface(ifaceName));
         verify(mHalDeviceManager).removeIface(eq(mIWifiApIface));
