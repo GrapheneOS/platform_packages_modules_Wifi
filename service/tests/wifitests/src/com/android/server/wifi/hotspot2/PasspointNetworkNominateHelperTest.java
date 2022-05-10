@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.hotspot2;
 
+import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
+
 import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_EAP;
 
 import static org.junit.Assert.assertEquals;
@@ -48,6 +50,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.NetworkUpdateResult;
 import com.android.server.wifi.ScanDetail;
+import com.android.server.wifi.WifiCarrierInfoManager;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiConfigurationTestUtil;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
@@ -92,6 +95,7 @@ public class PasspointNetworkNominateHelperTest {
     @Mock WifiConfigManager mWifiConfigManager;
     @Mock SubscriptionManager mSubscriptionManager;
     @Mock LocalLog mLocalLog;
+    @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     PasspointNetworkNominateHelper mNominateHelper;
 
     /**
@@ -161,8 +165,8 @@ public class PasspointNetworkNominateHelperTest {
         sTestProvider1 = generateProvider(TEST_CONFIG1);
         sTestProvider2 = generateProvider(TEST_CONFIG2);
 
-        mNominateHelper = new PasspointNetworkNominateHelper(
-                mPasspointManager, mWifiConfigManager, mLocalLog);
+        mNominateHelper = new PasspointNetworkNominateHelper(mPasspointManager, mWifiConfigManager,
+                mLocalLog, mWifiCarrierInfoManager);
         // Always assume Passpoint is enabled as we don't disable it in the test.
         when(mPasspointManager.isWifiPasspointEnabled()).thenReturn(true);
     }
@@ -212,6 +216,8 @@ public class PasspointNetworkNominateHelperTest {
     public void evaluateScansWithNetworkMatchingHomeProvider() throws Exception {
         List<ScanDetail> scanDetails = Arrays.asList(generateScanDetail(TEST_SSID1, TEST_BSSID1),
                 generateScanDetail(TEST_SSID2, TEST_BSSID2));
+        when(mWifiCarrierInfoManager.shouldDisableMacRandomization(anyString(), anyInt(), anyInt()))
+                .thenReturn(true);
 
         // Setup matching providers for ScanDetail with TEST_SSID1.
         List<Pair<PasspointProvider, PasspointMatch>> homeProvider = new ArrayList<>();
@@ -237,6 +243,7 @@ public class PasspointNetworkNominateHelperTest {
         assertNotNull(addedConfig.getValue().enterpriseConfig);
         assertEquals("", addedConfig.getValue().enterpriseConfig.getAnonymousIdentity());
         assertTrue(addedConfig.getValue().isHomeProviderNetwork);
+        assertEquals(RANDOMIZATION_NONE, addedConfig.getValue().macRandomizationSetting);
         verify(mWifiConfigManager).enableNetwork(
                 eq(TEST_NETWORK_ID), eq(false), eq(TEST_UID), any());
         verify(mWifiConfigManager).setNetworkCandidateScanResult(
