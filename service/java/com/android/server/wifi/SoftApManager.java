@@ -459,6 +459,24 @@ public class SoftApManager implements ActiveModeManager {
         return timeout > 0 ? timeout : mDefaultShutdownIdleInstanceInBridgedModeTimeoutMillis;
     }
 
+    private String getHighestFrequencyInstance(Set<String> candidateInstances) {
+        int currentHighestFrequencyOnAP = 0;
+        String highestFrequencyInstance = null;
+        for (String instance : candidateInstances) {
+            SoftApInfo info = mCurrentSoftApInfoMap.get(instance);
+            if (info == null) {
+                Log.wtf(getTag(), "Invalid instance name, no way to get the frequency");
+                return "";
+            }
+            int frequencyOnInstance = info.getFrequency();
+            if (frequencyOnInstance > currentHighestFrequencyOnAP) {
+                currentHighestFrequencyOnAP = frequencyOnInstance;
+                highestFrequencyInstance = instance;
+            }
+        }
+        return highestFrequencyInstance;
+    }
+
     @Override
     @Nullable public SoftApRole getRole() {
         return mRole;
@@ -516,6 +534,17 @@ public class SoftApManager implements ActiveModeManager {
     public SoftApModeConfiguration getSoftApModeConfiguration() {
         return new SoftApModeConfiguration(mOriginalModeConfiguration.getTargetMode(),
                 mCurrentSoftApConfiguration, mCurrentSoftApCapability);
+    }
+
+    /**
+     * Retrieve the name of the Bridged AP iface instance to remove for a downgrade, or null if a
+     * downgrade is not possible.
+     */
+    public String getBridgedApDowngradeIfaceInstanceForRemoval() {
+        if (mCurrentSoftApInfoMap.size() <= 1) {
+            return null;
+        }
+        return getHighestFrequencyInstance(mCurrentSoftApInfoMap.keySet());
     }
 
     /**
@@ -998,7 +1027,8 @@ public class SoftApManager implements ActiveModeManager {
 
                         mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
                                 mWifiNativeInterfaceCallback, mRequestorWs,
-                                mCurrentSoftApConfiguration.getBand(), isBridgeRequired());
+                                mCurrentSoftApConfiguration.getBand(), isBridgeRequired(),
+                                SoftApManager.this);
                         if (TextUtils.isEmpty(mApInterfaceName)) {
                             Log.e(getTag(), "setup failure when creating ap interface.");
                             updateApState(WifiManager.WIFI_AP_STATE_FAILED,
@@ -1107,24 +1137,6 @@ public class SoftApManager implements ActiveModeManager {
 
                 // Always evaluate timeout schedule on tetheringInterface
                 rescheduleTimeoutMessageIfNeeded(mApInterfaceName);
-            }
-
-            private String getHighestFrequencyInstance(Set<String> candidateInstances) {
-                int currentHighestFrequencyOnAP = 0;
-                String highestFrequencyInstance = null;
-                for (String instance : candidateInstances) {
-                    SoftApInfo info = mCurrentSoftApInfoMap.get(instance);
-                    if (info == null) {
-                        Log.wtf(getTag(), "Invalid instance name, no way to get the frequency");
-                        return "";
-                    }
-                    int frequencyOnInstance = info.getFrequency();
-                    if (frequencyOnInstance > currentHighestFrequencyOnAP) {
-                        currentHighestFrequencyOnAP = frequencyOnInstance;
-                        highestFrequencyInstance = instance;
-                    }
-                }
-                return highestFrequencyInstance;
             }
 
             private void removeIfaceInstanceFromBridgedApIface(String instanceName) {

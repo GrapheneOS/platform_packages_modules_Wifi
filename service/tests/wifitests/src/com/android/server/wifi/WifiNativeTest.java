@@ -266,6 +266,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock private WifiNative.InterfaceCallback mInterfaceCallback;
     @Mock private WifiCountryCode.ChangeListener mWifiCountryCodeChangeListener;
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
+    @Mock private SoftApManager mSoftApManager;
 
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
             ArgumentCaptor.forClass(WifiNl80211Manager.ScanEventCallback.class);
@@ -280,7 +281,6 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.isVendorHalSupported()).thenReturn(true);
         when(mWifiVendorHal.startVendorHal()).thenReturn(true);
         when(mWifiVendorHal.startVendorHalSta()).thenReturn(true);
-        when(mWifiVendorHal.startVendorHalAp()).thenReturn(true);
         when(mWifiVendorHal.createStaIface(any(), any())).thenReturn(WIFI_IFACE_NAME);
 
         when(mBuildProperties.isEngBuild()).thenReturn(false);
@@ -786,7 +786,8 @@ public class WifiNativeTest extends WifiBaseTest {
         verify(mWifiVendorHal, times(3)).setCoexUnsafeChannels(unsafeChannels, restrictions);
 
         mWifiNative.teardownAllInterfaces();
-        mWifiNative.setupInterfaceForSoftApMode(null, TEST_WORKSOURCE, WIFI_BAND_24_GHZ, false);
+        mWifiNative.setupInterfaceForSoftApMode(null, TEST_WORKSOURCE, WIFI_BAND_24_GHZ, false,
+                mSoftApManager);
         verify(mWifiVendorHal, times(4)).setCoexUnsafeChannels(unsafeChannels, restrictions);
     }
 
