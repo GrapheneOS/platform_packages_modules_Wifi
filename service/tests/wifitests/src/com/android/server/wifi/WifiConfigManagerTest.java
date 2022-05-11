@@ -7509,4 +7509,45 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, FakeKeys.CA_CERT0,
                 mockServerCert));
     }
+
+    @Test
+    public void testUpdateCaCertificateSuccessWithSelfSignedCertificate() throws Exception {
+        when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE);
+
+        int openNetId = verifyAddNetwork(WifiConfigurationTestUtil.createOpenNetwork(), true);
+        int eapPeapNetId = verifyAddNetwork(prepareTofuEapConfig(
+                WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.NONE), true);
+        int eapSimNetId = verifyAddNetwork(WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
+
+        X509Certificate mockCaCert = mock(X509Certificate.class);
+        when(mockCaCert.getBasicConstraints()).thenReturn(-1);
+        assertTrue(mWifiConfigManager.updateCaCertificate(eapPeapNetId, mockCaCert,
+                FakeKeys.CA_CERT1));
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(eapPeapNetId);
+        assertFalse(config.enterpriseConfig.isTrustOnFirstUseEnabled());
+        assertFalse(config.enterpriseConfig.isUserApproveNoCaCert());
+        assertEquals(mockCaCert, config.enterpriseConfig.getCaCertificate());
+    }
+
+    @Test
+    public void testUpdateCaCertificateFailureWithSelfSignedCertificateAndTofuNotEnabled()
+            throws Exception {
+        when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE);
+
+        int openNetId = verifyAddNetwork(WifiConfigurationTestUtil.createOpenNetwork(), true);
+        int eapPeapNetId = verifyAddNetwork(WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.NONE), true);
+        int eapSimNetId = verifyAddNetwork(WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
+
+        X509Certificate mockCaCert = mock(X509Certificate.class);
+        when(mockCaCert.getBasicConstraints()).thenReturn(-1);
+        assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, mockCaCert,
+                FakeKeys.CA_CERT1));
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(eapPeapNetId);
+        assertEquals(null, config.enterpriseConfig.getCaCertificate());
+    }
 }

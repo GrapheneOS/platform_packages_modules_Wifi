@@ -4062,11 +4062,15 @@ public class WifiConfigManager {
         }
 
         WifiConfiguration newConfig = new WifiConfiguration(internalConfig);
-        // setCaCertificate will mark that this CA certifiate should be removed on
-        // removing this configuration.
-        newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
         try {
-            newConfig.enterpriseConfig.setCaCertificate(caCert);
+            if (newConfig.enterpriseConfig.isTrustOnFirstUseEnabled()) {
+                newConfig.enterpriseConfig.setCaCertificateForTrustOnFirstUse(caCert);
+                // setCaCertificate will mark that this CA certifiate should be removed on
+                // removing this configuration.
+                newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
+            } else {
+                newConfig.enterpriseConfig.setCaCertificate(caCert);
+            }
         } catch (IllegalArgumentException ex) {
             Log.e(TAG, "Failed to set CA cert: " + caCert);
             return false;
