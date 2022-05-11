@@ -546,7 +546,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .thenReturn(Collections.emptyList());
         when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(anyInt()))
                 .thenReturn(true);
-        // TODO(b/197689548) use Build.VERSION_CODES.T after T SDK is finalized
         // Defaulting apps to target SDK level that's prior to T. This is need for to test for
         // backward compatibility of API changes.
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
