@@ -829,6 +829,29 @@ public class WifiEnterpriseConfig implements Parcelable {
     }
 
     /**
+     * Specify a X.509 certificate that identifies the server.
+     *
+     * This hidden API allows setting self-signed certificate for Trust on First Use.
+     *
+     * @param cert X.509 CA certificate
+     * @throws IllegalArgumentException if Trust on First Use is not enabled.
+     * @hide
+     */
+    public void setCaCertificateForTrustOnFirstUse(@Nullable X509Certificate cert) {
+        if (cert != null) {
+            if (isTrustOnFirstUseEnabled()) {
+                mIsAppInstalledCaCert = true;
+                mCaCerts = new X509Certificate[] {cert};
+            } else {
+                mCaCerts = null;
+                throw new IllegalArgumentException("Trust on First Use is not enabled.");
+            }
+        } else {
+            mCaCerts = null;
+        }
+    }
+
+    /**
      * Get CA certificate. If multiple CA certificates are configured previously,
      * return the first one.
      * @return X.509 CA certificate
