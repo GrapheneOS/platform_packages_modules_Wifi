@@ -113,7 +113,6 @@ import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiDialogManager;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
-import com.android.server.wifi.WifiLog;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.coex.CoexManager;
@@ -1179,6 +1178,19 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             sb.append("sender=").append(getCallingPkgName(msg.sendingUid, msg.replyTo))
                     .append("(").append(msg.sendingUid).append(")");
             return sb.toString();
+        }
+
+        @Override
+        protected boolean recordLogRec(Message msg) {
+            // Filter unnecessary records to avoid overwhelming the buffer.
+            switch (msg.what) {
+                case WifiP2pManager.REQUEST_PEERS:
+                case WifiP2pMonitor.P2P_DEVICE_FOUND_EVENT:
+                case WifiP2pMonitor.P2P_DEVICE_LOST_EVENT:
+                    return false;
+                default:
+                    return true;
+            }
         }
 
         @Override
