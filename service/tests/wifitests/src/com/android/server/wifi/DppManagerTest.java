@@ -210,6 +210,30 @@ public class DppManagerTest extends WifiBaseTest {
         assertFalse(mDppManager.isSessionInProgress());
     }
 
+    /**
+     * Verify that the startDppAsConfiguratorInitiator fails if the network profile
+     * is not configured for configuring DPP-Enrollees.
+     */
+    @Test
+    public void testStartDppAsConfiguratorInitiatorWithoutConfigurableProfile() throws Exception {
+        // Generate a mock WifiConfiguration object
+        WifiConfiguration selectedNetwork = new WifiConfiguration();
+        selectedNetwork.SSID = TEST_SSID;
+        selectedNetwork.networkId = 1;
+        selectedNetwork.setSecurityParams(WifiConfiguration.SECURITY_TYPE_DPP);
+        selectedNetwork.setDppConfigurator(null);
+
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(anyInt())).thenReturn(
+                selectedNetwork);
+
+        assertFalse(mDppManager.isSessionInProgress());
+        mDppManager.startDppAsConfiguratorInitiator(0, TEST_PACKAGE_NAME, TEST_INTERFACE_NAME,
+                mBinder, mUri, 1, EASY_CONNECT_NETWORK_ROLE_STA, mDppCallback);
+        verify(mDppCallback).onFailure(eq(EASY_CONNECT_EVENT_FAILURE_INVALID_NETWORK), eq(null),
+                eq(null), eq(new int[0]));
+        assertFalse(mDppManager.isSessionInProgress());
+    }
+
     @Test
     public void testStartDppAsConfiguratorInitiatorFailAddPeer() throws Exception {
         // Generate a mock WifiConfiguration object
