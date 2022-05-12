@@ -3343,7 +3343,7 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new SecurityException("Caller is not a device owner, profile owner, system app,"
                     + " or privileged app");
         }
-        return addOrUpdateNetworkInternal(config, packageName, uid, packageName);
+        return addOrUpdateNetworkInternal(config, packageName, uid, packageName, false);
     }
 
     /**
@@ -3355,6 +3355,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public int addOrUpdateNetwork(WifiConfiguration config, String packageName, Bundle extras) {
         int uidToUse = getMockableCallingUid();
         String packageNameToUse = packageName;
+        boolean overrideCreator = false;
 
         // if we're being called from the SYSTEM_UID then allow usage of the AttributionSource to
         // reassign the WifiConfiguration to another app (reassignment == creatorUid)
@@ -3392,6 +3393,13 @@ public class WifiServiceImpl extends BaseWifiService {
                 // use the last AttributionSource in the chain - i.e. the original caller
                 uidToUse = asLast.getUid();
                 packageNameToUse = asLast.getPackageName();
+                if (config.networkId >= 0) {
+                    /**
+                     * only allow to override the creator by calling the
+                     * {@link WifiManager#updateNetwork(WifiConfiguration)}
+                     */
+                    overrideCreator = true;
+                }
             }
         }
 
@@ -3418,11 +3426,12 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mLog.info("addOrUpdateNetwork uid=%").c(callingUid).flush();
         return addOrUpdateNetworkInternal(config, packageName, uidToUse,
-                packageNameToUse).networkId;
+                packageNameToUse, overrideCreator).networkId;
     }
 
     private @NonNull AddNetworkResult addOrUpdateNetworkInternal(WifiConfiguration config,
-            String packageName, int attributedCreatorUid, String attributedCreatorPackage) {
+            String packageName, int attributedCreatorUid, String attributedCreatorPackage,
+            boolean overrideCreator) {
         if (config == null) {
             Log.e(TAG, "bad network configuration");
             return new AddNetworkResult(
@@ -3482,7 +3491,7 @@ public class WifiServiceImpl extends BaseWifiService {
         //  WifiConfigManager.NetworkUpdateResult, and plumb that reason up.
         int networkId =  mWifiThreadRunner.call(
                 () -> mWifiConfigManager.addOrUpdateNetwork(config, attributedCreatorUid,
-                        attributedCreatorPackage).getNetworkId(),
+                        attributedCreatorPackage, overrideCreator).getNetworkId(),
                 WifiConfiguration.INVALID_NETWORK_ID);
         if (networkId >= 0) {
             return new AddNetworkResult(AddNetworkResult.STATUS_SUCCESS, networkId);
