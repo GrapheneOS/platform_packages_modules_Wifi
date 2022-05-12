@@ -3432,6 +3432,32 @@ public class ClientModeImplTest extends WifiBaseTest {
      * Verifies that when
      * 1. connected MAC randomization is on and
      * 2. macRandomizationSetting of the WifiConfiguration is RANDOMIZATION_AUTO and
+     * 3. current MAC set to the driver is a randomized MAC address.
+     * 4. SSID of network to connect is in the MAC randomization forced disable list.
+     *
+     * Then the current MAC will be set to the factory MAC when CMD_START_CONNECT executes.
+     */
+    @Test
+    public void testConnectedMacRandomizationRandomizationForceDisabled() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        when(mWifiNative.getMacAddress(WIFI_IFACE_NAME))
+                .thenReturn(TEST_LOCAL_MAC_ADDRESS.toString());
+        mResources.setStringArray(R.array.config_wifiForceDisableMacRandomizationSsidList,
+                new String[]{mConnectedNetwork.SSID});
+
+        connect();
+        verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_GLOBAL_MAC_ADDRESS);
+        verify(mWifiMetrics).logStaEvent(
+                eq(WIFI_IFACE_NAME), eq(StaEvent.TYPE_MAC_CHANGE), any(WifiConfiguration.class));
+        verify(mWifiConfigManager).addOrUpdateNetwork(any(), eq(Process.SYSTEM_UID));
+        assertEquals(TEST_GLOBAL_MAC_ADDRESS.toString(), mWifiInfo.getMacAddress());
+    }
+
+    /**
+     * Verifies that when
+     * 1. connected MAC randomization is on and
+     * 2. macRandomizationSetting of the WifiConfiguration is RANDOMIZATION_AUTO and
      * 3. randomized MAC for the network to connect to is different from the current MAC.
      *
      * Then the current MAC gets set to the randomized MAC when CMD_START_CONNECT executes.
