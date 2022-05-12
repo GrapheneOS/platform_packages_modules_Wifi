@@ -802,7 +802,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         assertEquals(TEST_RSSI, matchedSuggestion.connectChoiceRssi);
 
         // Verify we did not update config in WCM.
-        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(), anyInt(), any());
+        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(), anyInt(), any(), eq(false));
     }
 
     /**
@@ -841,8 +841,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         networkSuggestion.wifiConfiguration.meteredOverride =
                 WifiConfiguration.METERED_OVERRIDE_METERED;
 
-        when(mWifiConfigManager.addOrUpdateNetwork(any(), eq(TEST_UID_1), eq(TEST_PACKAGE_1)))
-                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), eq(TEST_UID_1), eq(TEST_PACKAGE_1),
+                eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         // Replace attempt should success.
         assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
                 mWifiNetworkSuggestionsManager.add(networkSuggestionList1, TEST_UID_1,
@@ -855,7 +855,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         ArgumentCaptor<WifiConfiguration> configCaptor =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
         verify(mWifiConfigManager).addOrUpdateNetwork(
-                configCaptor.capture(), eq(TEST_UID_1), eq(TEST_PACKAGE_1));
+                configCaptor.capture(), eq(TEST_UID_1), eq(TEST_PACKAGE_1), eq(false));
         assertNotNull(configCaptor.getValue());
         assertEquals(WifiConfiguration.METERED_OVERRIDE_METERED,
                 configCaptor.getValue().meteredOverride);
@@ -4122,13 +4122,13 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         eapSimConfig.creatorUid = TEST_UID_1;
         eapSimConfig.creatorName = TEST_PACKAGE_1;
         when(mWifiConfigManager.getConfiguredNetwork(anyString())).thenReturn(eapSimConfig);
-        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString()))
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false)))
                 .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         mUserApproveCarrierListenerArgumentCaptor.getValue().onUserAllowed(TEST_CARRIER_ID);
         when(mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(TEST_CARRIER_ID))
                 .thenReturn(true);
         verify(mPasspointManager).enableAutojoin(anyString(), any(), eq(true));
-        verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt(), anyString());
+        verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false));
         matchedSuggestions = mWifiNetworkSuggestionsManager
                 .getNetworkSuggestionsForScanDetail(createScanDetailForNetwork(eapSimConfig));
 
@@ -4471,7 +4471,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         List<ScanDetail> scanDetails = Arrays.asList(scanDetail1, scanDetail2);
         // Secure suggestions is auto-join disabled, should not be ignored.
         List<WifiNetworkSuggestion> suggestionList = Arrays.asList(suggestion1, suggestion2);
-        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString()))
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false)))
                 .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
                 mWifiNetworkSuggestionsManager.add(suggestionList, TEST_UID_1,
