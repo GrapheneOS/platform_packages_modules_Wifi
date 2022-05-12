@@ -414,7 +414,8 @@ public class WifiManager {
             API_SOFT_AP,
             API_TETHERED_HOTSPOT,
             API_AUTOJOIN_GLOBAL,
-            API_SET_SCAN_SCHEDULE})
+            API_SET_SCAN_SCHEDULE,
+            API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY})
     public @interface ApiType {}
 
     /**
@@ -466,11 +467,20 @@ public class WifiManager {
      */
     @SystemApi
     public static final int API_SET_SCAN_SCHEDULE = 6;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of {@link WifiManager#setOneShotScreenOnConnectivityScanDelayMillis(int)}.
+     * @hide
+     */
+    public static final int API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY = 7;
+
     /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 6;
+    public static final int API_MAX = 7;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
@@ -1869,6 +1879,38 @@ public class WifiManager {
                 scanType[i] = screenOnScanSchedule.get(i).getScanType();
             }
             mService.setScreenOnScanSchedule(scanSchedule, scanType);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * The Wi-Fi framework may trigger connectivity scans in response to the screen turning on for
+     * network selection purposes. This API allows a privileged app to set a delay to the next
+     * connectivity scan triggered by the Wi-Fi framework in response to the next screen-on event.
+     * This gives a window for the privileged app to issue their own custom scans to influence Wi-Fi
+     * network selection. The expected usage is the privileged app monitor for the screen turning
+     * off, and then call this API if it believes delaying the next screen-on connectivity scan is
+     * needed.
+     * <p>
+     * Note that this API will only delay screen-on connectivity scans once. This API will need to
+     * be called again if further screen-on scan delays are needed after it resolves.
+     * @param delayMs defines the time in milliseconds to delay the next screen-on connectivity
+     *                scan. Setting this to 0 will remove the delay.
+     *
+     * @throws IllegalStateException if input is invalid
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    public void setOneShotScreenOnConnectivityScanDelayMillis(@IntRange(from = 0) int delayMs) {
+        try {
+            mService.setOneShotScreenOnConnectivityScanDelayMillis(delayMs);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

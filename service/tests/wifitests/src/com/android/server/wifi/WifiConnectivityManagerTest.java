@@ -2673,6 +2673,35 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 VALID_EXTERNAL_SINGLE_SCAN_SCHEDULE_SEC, VALID_EXTERNAL_SINGLE_SCAN_TYPE);
     }
 
+    @Test
+    public void testSetOneShotScreenOnConnectivityScanDelayMillis() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        int scanDelayMs = 12345;
+        mWifiConnectivityManager.setOneShotScreenOnConnectivityScanDelayMillis(scanDelayMs);
+
+        // Toggle screen to ON
+        assertEquals(0, mTestHandler.getIntervals().size());
+        setScreenState(false);
+        setScreenState(true);
+        assertEquals(1, mTestHandler.getIntervals().size());
+        assertTrue("Delay is not in 1ms error margin",
+                Math.abs(scanDelayMs - mTestHandler.getIntervals().get(0).longValue()) < 2);
+
+        // Toggle again and there should be no more delayed scan
+        setScreenState(false);
+        setScreenState(true);
+        assertEquals(1, mTestHandler.getIntervals().size());
+
+        // set the scan delay and verify again
+        scanDelayMs = 23455;
+        mWifiConnectivityManager.setOneShotScreenOnConnectivityScanDelayMillis(scanDelayMs);
+        setScreenState(false);
+        setScreenState(true);
+        assertEquals(2, mTestHandler.getIntervals().size());
+        assertTrue("Delay is not in 1ms error margin",
+                Math.abs(scanDelayMs - mTestHandler.getIntervals().get(1).longValue()) < 2);
+    }
+
     /**
      *  Verify that scan interval for screen on and wifi connected scenario
      *  is in the exponential backoff fashion.
