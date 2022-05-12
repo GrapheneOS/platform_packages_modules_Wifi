@@ -25,6 +25,7 @@ import static com.android.server.wifi.OpenNetworkNotifier.DEFAULT_REPEAT_DELAY_S
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyInt;
@@ -53,6 +54,7 @@ import android.provider.Settings;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.ConnectToNetworkNotificationAndActionCount;
 import com.android.server.wifi.util.ActionListenerWrapper;
@@ -477,6 +479,10 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
 
         mNotificationController.handleScanResults(mOpenNetworks);
 
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mUserManager, never()).hasUserRestrictionForUser(
+                    eq(UserManager.DISALLOW_ADD_WIFI_CONFIG), any());
+        }
         verify(mWifiNotificationManager, never()).notify(anyInt(), any());
     }
 
@@ -492,6 +498,47 @@ public class OpenNetworkNotifierTest extends WifiBaseTest {
         verify(mWifiNotificationManager).notify(anyInt(), any());
 
         when(mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_CONFIG_WIFI,
+                UserHandle.of(mWifiPermissionsUtil.getCurrentUser())))
+                .thenReturn(true);
+
+        mNotificationController.handleScanResults(mOpenNetworks);
+
+        if (!SdkLevel.isAtLeastT()) {
+            verify(mUserManager, never()).hasUserRestrictionForUser(
+                    eq(UserManager.DISALLOW_ADD_WIFI_CONFIG), any());
+        }
+        verify(mWifiNotificationManager).cancel(anyInt());
+    }
+
+    /** Verifies that {@link UserManager#DISALLOW_ADD_WIFI_CONFIG} disables the feature. */
+    @Test
+    public void userHasDisallowAddWifiConfigRestriction_notificationNotDisplayed() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_ADD_WIFI_CONFIG,
+                UserHandle.of(mWifiPermissionsUtil.getCurrentUser())))
+                .thenReturn(true);
+
+        mNotificationController.handleScanResults(mOpenNetworks);
+
+        verify(mWifiNotificationManager, never()).notify(anyInt(), any());
+    }
+
+    /**
+     * Verifies that {@link UserManager#DISALLOW_ADD_WIFI_CONFIG} clears the
+     * showing notification.
+     */
+    @Test
+    public void userHasDisallowAddWifiConfigRestriction_showingNotificationIsCleared() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mNotificationController.handleScanResults(mOpenNetworks);
+
+        verify(mNotificationBuilder).createConnectToAvailableNetworkNotification(
+                OPEN_NET_NOTIFIER_TAG, mTestNetwork);
+        verify(mWifiMetrics).incrementConnectToNetworkNotification(OPEN_NET_NOTIFIER_TAG,
+                ConnectToNetworkNotificationAndActionCount.NOTIFICATION_RECOMMEND_NETWORK);
+        verify(mWifiNotificationManager).notify(anyInt(), any());
+
+        when(mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_ADD_WIFI_CONFIG,
                 UserHandle.of(mWifiPermissionsUtil.getCurrentUser())))
                 .thenReturn(true);
 
