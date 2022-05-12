@@ -288,6 +288,20 @@ public class DppManager {
             // DPP
             if (selectedNetwork.isDppConfigurator()) {
                 privEcKey = selectedNetwork.getDppPrivateEcKey();
+            } else {
+                if (enrolleeNetworkRole != EASY_CONNECT_NETWORK_ROLE_AP) {
+                    try {
+                        Log.e(TAG, "Device is not configured previously to configure"
+                                + "the peer enrollee devices to this network");
+                        callback.onFailure(
+                                EasyConnectStatusCallback
+                                .EASY_CONNECT_EVENT_FAILURE_INVALID_NETWORK,
+                                null, null, new int[0]);
+                    } catch (RemoteException e) {
+                        // Empty
+                    }
+                    return;
+                }
             }
             securityAkm = DppAkm.DPP;
         } else {
