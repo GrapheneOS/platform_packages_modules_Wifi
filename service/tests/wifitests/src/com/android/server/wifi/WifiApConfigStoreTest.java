@@ -143,6 +143,8 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         when(mWifiInjector.getMacAddressUtil()).thenReturn(mMacAddressUtil);
         when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(TEST_RANDOMIZED_MAC);
         mResources.setBoolean(R.bool.config_wifi_ap_mac_randomization_supported, true);
+        mResources.setBoolean(
+                R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled, true);
     }
 
     private void setupAllBandsSupported() {
@@ -1272,6 +1274,31 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
             store.setApConfiguration(testConfigBuilder.build());
             verifyApConfig(expectedConfigBuilder.build(), store.getApConfiguration());
         }
+    }
+
+    @Test
+    public void testSanitizePersistentApConfigWhenAutoAppendDisabled() throws Exception {
+        // Test when resource disabled
+        mResources.setBoolean(
+                R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled,
+                false);
+        SoftApConfiguration config5Gonly = setupApConfig(
+                "ConfiguredAP",                   /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_5GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        WifiApConfigStore store_disableAutoAppendBand = createWifiApConfigStore();
+        store_disableAutoAppendBand.setApConfiguration(config5Gonly);
+        verifyApConfig(config5Gonly, store_disableAutoAppendBand.getApConfiguration());
+
+        SoftApConfiguration config6Gonly =
+                new SoftApConfiguration.Builder(config5Gonly)
+                .setBand(SoftApConfiguration.BAND_6GHZ).build();
+
+        store_disableAutoAppendBand.setApConfiguration(config6Gonly);
+        verifyApConfig(config6Gonly, store_disableAutoAppendBand.getApConfiguration());
     }
 
     @Test
