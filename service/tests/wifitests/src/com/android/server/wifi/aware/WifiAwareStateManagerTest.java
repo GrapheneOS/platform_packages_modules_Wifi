@@ -1035,8 +1035,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (4) country code change, 5G is valid
         when(mWifiNative.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ, OP_MODE_WIFI_AWARE,
                 WifiAvailableChannel.FILTER_NAN_INSTANT_MODE))
-                .thenReturn(List.of(new WifiAvailableChannel(5745,
-                        WifiAvailableChannel.OP_MODE_WIFI_AWARE)));
+                .thenReturn(List.of(new WifiAvailableChannel(5220,
+                                WifiAvailableChannel.OP_MODE_WIFI_AWARE),
+                        new WifiAvailableChannel(5745, WifiAvailableChannel.OP_MODE_WIFI_AWARE)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
@@ -1120,13 +1121,13 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (4) country code change, 5G is valid
         when(mWifiNative.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ, OP_MODE_WIFI_AWARE,
                 WifiAvailableChannel.FILTER_NAN_INSTANT_MODE))
-                .thenReturn(List.of(new WifiAvailableChannel(5745,
+                .thenReturn(List.of(new WifiAvailableChannel(5220,
                         WifiAvailableChannel.OP_MODE_WIFI_AWARE)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 any(), eq(false), eq(false), eq(true), eq(false), eq(false), eq(true),
-                eq(5745));
+                eq(5220));
         mDut.onConfigSuccessResponse(transactionId.getValue());
         mMockLooper.dispatchAll();
 
