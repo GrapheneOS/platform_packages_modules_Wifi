@@ -52,6 +52,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSess
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.LocalOnlyHotspotRequestInfo.HOTSPOT_NO_ERROR;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_NONE;
@@ -8356,12 +8357,24 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testStartTemporarilyDisablingAllNonCarrierMergedWifi() {
         assumeTrue(SdkLevel.isAtLeastS());
+        List<ClientModeManager> cmmList = new ArrayList<>();
+        ConcreteClientModeManager localOnlyCmm = mock(ConcreteClientModeManager.class);
+        ConcreteClientModeManager secondaryTransientCmm = mock(ConcreteClientModeManager.class);
+        when(localOnlyCmm.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
+        when(secondaryTransientCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
+        cmmList.add(mClientModeManager);
+        cmmList.add(localOnlyCmm);
+        cmmList.add(secondaryTransientCmm);
+        when(mActiveModeWarden.getClientModeManagers()).thenReturn(cmmList);
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETUP_WIZARD),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+
         mWifiServiceImpl.startRestrictingAutoJoinToSubscriptionId(1);
         mLooper.dispatchAll();
         verify(mWifiConfigManager).startRestrictingAutoJoinToSubscriptionId(1);
         verify(mWifiConnectivityManager).clearCachedCandidates();
+        verify(localOnlyCmm, never()).disconnect();
+        verify(secondaryTransientCmm).disconnect();
         verify(mClientModeManager).disconnect();
     }
 
