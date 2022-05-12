@@ -410,6 +410,29 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     return -1;
                 }
             }
+            case "get_instant_communication_channel": {
+                String arg = parentShell.getNextArgRequired();
+                int band;
+                if (TextUtils.equals(arg, "2G")) {
+                    band = WifiScanner.WIFI_BAND_24_GHZ;
+                } else if (TextUtils.equals(arg, "5G")) {
+                    band = WifiScanner.WIFI_BAND_5_GHZ;
+                } else {
+                    pw_err.println("Unknown band -- " + arg);
+                    return -1;
+                }
+                List<WifiAvailableChannel> channels = mWifiInjector.getWifiThreadRunner().call(
+                        () -> mWifiInjector.getWifiNative().getUsableChannels(band,
+                                OP_MODE_WIFI_AWARE,
+                                WifiAvailableChannel.FILTER_NAN_INSTANT_MODE), null);
+                StringBuilder out = new StringBuilder();
+                for (WifiAvailableChannel channel : channels) {
+                    out.append(channel.toString());
+                    out.append(", ");
+                }
+                pw_out.println(out.toString());
+                return 0;
+            }
             default:
                 pw_err.println("Unknown 'wifiaware state_mgr <cmd>'");
         }
@@ -438,6 +461,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         pw.println(
                 "    allow_ndp_any true|false: configure whether Responders can be specified to "
                         + "accept requests from ANY requestor (null peer spec)");
+        pw.println(" get_instant_communication_channel 2G|5G: get instant communication mode "
+                + "channel available for the target band");
     }
 
     /**
