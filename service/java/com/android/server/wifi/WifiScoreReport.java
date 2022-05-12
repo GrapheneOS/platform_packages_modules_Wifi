@@ -43,8 +43,7 @@ import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.Locale;
 
@@ -823,7 +822,9 @@ public class WifiScoreReport {
         long totalBeaconRx = mWifiMetrics.getTotalBeaconRxCount();
         String s;
         try {
-            String timestamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(new Date(now));
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(now);
+            String timestamp = String.format("%tm-%td %tH:%tM:%tS.%tL", c, c, c, c, c, c);
             s = String.format(Locale.US, // Use US to avoid comma/decimal confusion
                     "%s,%d,%d,%.1f,%.1f,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,%.2f,%d,%d,%d,%d,%d",
                     timestamp, mSessionNumber, netId,
