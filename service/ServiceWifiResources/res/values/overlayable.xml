@@ -106,6 +106,7 @@
           <item type="bool" name="config_wifiSoftap5ghzSupported" />
           <item type="bool" name="config_wifiSoftap6ghzSupported" />
           <item type="bool" name="config_wifiSoftap60ghzSupported" />
+          <item type="bool" name="config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled" />
           <item type="bool" name="config_wifiSoftapHeSuBeamformerSupported" />
           <item type="bool" name="config_wifiSoftapHeSuBeamformeeSupported" />
           <item type="bool" name="config_wifiSoftapHeMuBeamformerSupported" />
