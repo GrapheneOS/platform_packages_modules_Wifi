@@ -36,6 +36,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_DEFAULT_DATA_SIM_CHANGED;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_SIM_INSERTED;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_SIM_REMOVED;
@@ -3672,6 +3673,19 @@ public class WifiServiceImpl extends BaseWifiService {
             // to join. Even if we are currently connected to the carrier-merged wifi, it's still
             // better to disconnect here because it's possible that carrier wifi offload is
             // disabled.
+            for (ClientModeManager clientModeManager : mActiveModeWarden.getClientModeManagers()) {
+                if (!(clientModeManager instanceof ConcreteClientModeManager)) {
+                    continue;
+                }
+                ConcreteClientModeManager cmm = (ConcreteClientModeManager) clientModeManager;
+                if ((cmm.getRole() == ROLE_CLIENT_SECONDARY_LONG_LIVED && cmm.isSecondaryInternet())
+                        || cmm.getRole() == ROLE_CLIENT_SECONDARY_TRANSIENT) {
+                    clientModeManager.disconnect();
+                }
+            }
+            // Disconnect the primary CMM last to avoid STA+STA features handling the
+            // primary STA disconnecting (such as promoting the secondary to primary), potentially
+            // resulting in messy and unexpected state transitions.
             mActiveModeWarden.getPrimaryClientModeManager().disconnect();
         });
     }
