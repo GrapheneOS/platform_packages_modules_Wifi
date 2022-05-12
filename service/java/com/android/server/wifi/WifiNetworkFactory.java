@@ -1012,7 +1012,7 @@ public class WifiNetworkFactory extends NetworkFactory {
         NetworkUpdateResult networkUpdateResult =
                 mWifiConfigManager.addOrUpdateNetwork(
                         network, mActiveSpecificNetworkRequest.getRequestorUid(),
-                        mActiveSpecificNetworkRequest.getRequestorPackageName());
+                        mActiveSpecificNetworkRequest.getRequestorPackageName(), false);
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Added network to config manager " + networkUpdateResult.getNetworkId());
         }
