@@ -161,6 +161,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "stop-softap",
             "query-interface",
             "interface-priority-interactive-mode",
+            "set-one-shot-screen-on-delay-ms",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -1581,6 +1582,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "set-one-shot-screen-on-delay-ms": {
+                    if (!SdkLevel.isAtLeastT()) {
+                        pw.println("This feature is only supported on SdkLevel T or later.");
+                        return -1;
+                    }
+                    int delay = Integer.parseInt(getNextArgRequired());
+                    mWifiService.setOneShotScreenOnConnectivityScanDelayMillis(delay);
+                    return 0;
+                }
                 case "start-dpp-enrollee-responder": {
                     CountDownLatch countDownLatch = new CountDownLatch(1);
                     String option = getNextOption();
@@ -2306,6 +2316,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  interface-priority-interactive-mode enable|disable|default");
         pw.println("    Enable or disable asking the user when there's an interface priority "
                 + "conflict, |default| implies using the device default behavior.");
+        pw.println("  set-one-shot-screen-on-delay-ms <delayMs>");
+        pw.println("    set the delay for the next screen-on connectivity scan in milliseconds.");
     }
 
     private void onHelpPrivileged(PrintWriter pw) {

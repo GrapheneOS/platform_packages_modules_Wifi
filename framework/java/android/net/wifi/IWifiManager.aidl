@@ -73,6 +73,8 @@ interface IWifiManager
 
     void setScreenOnScanSchedule(in int[] scanScheduleSeconds, in int[] scanType);
 
+    void setOneShotScreenOnConnectivityScanDelayMillis(int delayMs);
+
     ParceledListSlice getConfiguredNetworks(String packageName, String featureId, boolean callerNetworksOnly);
 
     ParceledListSlice getPrivilegedConfiguredNetworks(String packageName, String featureId, in Bundle extras);
