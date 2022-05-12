@@ -1063,12 +1063,13 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     return 0;
                 }
                 case "add-request": {
-                    NetworkRequest networkRequest = buildNetworkRequest(pw);
+                    Pair<String, NetworkRequest> result = buildNetworkRequest(pw);
+                    String ssid = result.first;
+                    NetworkRequest networkRequest = result.second;
                     ConnectivityManager.NetworkCallback networkCallback =
                             new ConnectivityManager.NetworkCallback();
                     pw.println("Adding request: " + networkRequest);
                     mConnectivityManager.requestNetwork(networkRequest, networkCallback);
-                    String ssid = getAllArgs()[1];
                     sActiveRequests.put(ssid, Pair.create(networkRequest, networkCallback));
                     return 0;
                 }
@@ -1862,11 +1863,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         return suggestion;
     }
 
-    private NetworkRequest buildNetworkRequest(PrintWriter pw) {
+    private Pair<String, NetworkRequest> buildNetworkRequest(PrintWriter pw) {
         String firstOpt = getNextOption();
         boolean isGlob = "-g".equals(firstOpt);
         boolean noSsid = "-s".equals(firstOpt);
-        String ssid = noSsid ? null : getNextArgRequired();
+        String ssid = noSsid ? "NoSsid" : getNextArgRequired();
         String type = noSsid ? null : getNextArgRequired();
         WifiNetworkSpecifier.Builder specifierBuilder =
                 new WifiNetworkSpecifier.Builder();
@@ -1874,7 +1875,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             specifierBuilder.setSsidPattern(
                     new PatternMatcher(ssid, PatternMatcher.PATTERN_ADVANCED_GLOB));
         } else {
-            if (ssid != null) specifierBuilder.setSsid(ssid);
+            if (ssid != null && !noSsid) specifierBuilder.setSsid(ssid);
         }
         if (type != null) {
             if (TextUtils.equals(type, "wpa3")) {
@@ -1893,6 +1894,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         }
         String bssid = null;
         String option = getNextOption();
+        String ssidKey = ssid;
         boolean nullBssid = false;
         boolean hasInternet = false;
         while (option != null) {
@@ -1902,6 +1904,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 nullBssid = true;
             } else if (option.equals("-d")) {
                 String band = getNextArgRequired();
+                ssidKey = ssidKey + "_" + band + "g";
                 if (band.equals("2")) {
                     specifierBuilder.setBand(ScanResult.WIFI_BAND_24_GHZ);
                 } else if (band.equals("5")) {
@@ -1914,6 +1917,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     throw new IllegalArgumentException("Unknown band " + band);
                 }
             } else if (option.equals("-i")) {
+                ssidKey = ssidKey + "_internet";
                 hasInternet = true;
             } else {
                 pw.println("Ignoring unknown option " + option);
@@ -1948,7 +1952,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         } else {
             builder.removeCapability(NET_CAPABILITY_INTERNET);
         }
-        return builder.setNetworkSpecifier(specifierBuilder.build()).build();
+        return new Pair<String, NetworkRequest>(ssidKey,
+                builder.setNetworkSpecifier(specifierBuilder.build()).build());
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
