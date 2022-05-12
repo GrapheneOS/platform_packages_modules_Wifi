@@ -262,6 +262,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private int mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
     private static final int AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ = 2437; // Channel 6
     private int mAwareBand5InstantCommunicationChannelFreq = -1; // -1 is not set, 0 is unsupported.
+    private static final int AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_149 = 5745;
+    private static final int AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_44 = 5220;
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mCurrentDiscoveryInterfaceMac = ALL_ZERO_MAC;
@@ -3784,10 +3786,29 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             mAwareBand5InstantCommunicationChannelFreq = 0;
         } else {
             if (channels.size() > 1) {
-                Log.wtf(TAG, "should have only one 5G instant communication channel, but size="
-                        + channels.size());
+                if (mDbg) {
+                    Log.v(TAG, "should have only one 5G instant communication channel,"
+                            + "but size=" + channels.size());
+                }
             }
-            mAwareBand5InstantCommunicationChannelFreq = channels.get(0).getFrequencyMhz();
+            // TODO(b/232138258): When the filter issue fixed, just check if only return channel is
+            //  correct
+            for (WifiAvailableChannel channel : channels) {
+                int freq = channel.getFrequencyMhz();
+                if (freq == AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_149) {
+                    mAwareBand5InstantCommunicationChannelFreq =
+                            AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_149;
+                    break;
+                } else if (freq == AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_44) {
+                    mAwareBand5InstantCommunicationChannelFreq =
+                            AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_44;
+                }
+            }
+            if (mAwareBand5InstantCommunicationChannelFreq == -1) {
+                Log.e(TAG, "Both channel 149 and 44 are not available when the 5G WI-FI is "
+                        + "supported");
+                mAwareBand5InstantCommunicationChannelFreq = 0;
+            }
         }
         return mAwareBand5InstantCommunicationChannelFreq == 0
                 ? AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ
