@@ -1117,7 +1117,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
      * Validate no Exceptions are thrown - has all permissions & don't note in app-ops.
      */
     @Test
-    public void testCannotAccessScanResultsForWifiScanner_HideFromAppOps()
+    public void testCanAccessScanResultsForWifiScanner_HideFromAppOps()
             throws Exception {
         mThrowSecurityException = false;
         mIsLocationEnabled = true;
@@ -1290,13 +1290,13 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
      * Validate no Exceptions are thrown - has all permissions & ignores location settings.
      */
     @Test
-    public void testCannotAccessScanResultsForWifiScanner_IgnoreLocationSettings()
+    public void testCanAccessScanResultsForWifiScanner_IgnoreLocationSettings()
             throws Exception {
         mThrowSecurityException = false;
         mIsLocationEnabled = false;
         mFineLocationPermission = PackageManager.PERMISSION_GRANTED;
         mHardwareLocationPermission = PackageManager.PERMISSION_GRANTED;
-        mAllowFineLocationApps = AppOpsManager.MODE_ALLOWED;
+        mAllowFineLocationApps = AppOpsManager.MODE_IGNORED;
         mWifiScanAllowApps = AppOpsManager.MODE_ALLOWED;
         mUid = MANAGED_PROFILE_UID;
         setupTestCase();
@@ -1304,6 +1304,8 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
                 mMockContext, mMockUserManager, mWifiInjector);
         codeUnderTest.enforceCanAccessScanResultsForWifiScanner(TEST_PACKAGE_NAME, TEST_FEATURE_ID,
                 mUid, IGNORE_LOCATION_SETTINGS, DONT_HIDE_FROM_APP_OPS);
+        verify(mMockAppOps).noteOp(AppOpsManager.OPSTR_FINE_LOCATION, mUid, TEST_PACKAGE_NAME,
+                TEST_FEATURE_ID, null);
     }
 
     /**
