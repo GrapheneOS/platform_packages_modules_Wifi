@@ -360,6 +360,14 @@
     <!-- Indicates that dynamic country code update in AP mode is supported on this device -->
     <bool translatable="false" name="config_wifiSoftApDynamicCountryCodeUpdateSupported">false</bool>
 
+    <!-- list of SSIDs to force disable MAC randomization -->
+    <string-array translatable="false" name="config_wifiForceDisableMacRandomizationSsidList">
+        <!-- SSIDs are expected in quoted format:
+        <item>\"SSID_1\"</item>
+        <item>\"SSID_2\"</item>
+        -->
+    </string-array>
+
     <!-- list of SSIDs to enable non-persistent MAC randomization on -->
     <string-array translatable="false" name="config_wifi_non_persistent_randomization_ssid_allowlist">
         <!-- SSIDs are expected in quoted format:
