@@ -858,7 +858,7 @@ public class WifiNetworkSuggestionsManager {
             return;
         }
         NetworkUpdateResult result = mWifiConfigManager.addOrUpdateNetwork(
-                newConfig, uid, packageName);
+                newConfig, uid, packageName, false);
         if (!result.isSuccess()) {
             Log.e(TAG, "Failed to update config in WifiConfigManager");
             return;

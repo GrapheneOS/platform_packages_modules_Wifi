@@ -132,7 +132,7 @@ public class NetworkSuggestionNominator implements WifiNetworkSelector.NetworkNo
             return;
         }
         NetworkUpdateResult result = mWifiConfigManager.addOrUpdateNetwork(
-                config, ewns.perAppInfo.uid, ewns.perAppInfo.packageName);
+                config, ewns.perAppInfo.uid, ewns.perAppInfo.packageName, false);
         if (!result.isSuccess()) {
             mLocalLog.log("Failed to add network suggestion");
             return;

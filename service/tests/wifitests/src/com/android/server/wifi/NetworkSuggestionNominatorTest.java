@@ -1691,7 +1691,7 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
         ArgumentCaptor<WifiConfiguration> wifiConfigurationCaptor =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
         verify(mWifiConfigManager, times(candidates.length)).addOrUpdateNetwork(
-                wifiConfigurationCaptor.capture(), anyInt(), anyString());
+                wifiConfigurationCaptor.capture(), anyInt(), anyString(), eq(false));
         verify(mWifiConfigManager, times(candidates.length)).allowAutojoin(anyInt(), anyBoolean());
         for (int i = 0; i < candidates.length; i++) {
             WifiConfiguration addedWifiConfiguration = null;

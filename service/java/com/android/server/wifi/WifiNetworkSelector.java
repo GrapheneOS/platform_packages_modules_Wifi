@@ -1319,7 +1319,8 @@ public class WifiNetworkSelector {
         }
         if (config.isPasspoint()) {
             config.SSID = choice.candidateKey.matchInfo.networkSsid;
-            mWifiConfigManager.addOrUpdateNetwork(config, config.creatorUid, config.creatorName);
+            mWifiConfigManager.addOrUpdateNetwork(config, config.creatorUid, config.creatorName,
+                    false);
         }
     }
 

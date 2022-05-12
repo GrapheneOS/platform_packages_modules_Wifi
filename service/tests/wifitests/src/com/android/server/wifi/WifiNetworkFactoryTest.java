@@ -263,7 +263,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
-        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString()))
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false)))
                 .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID_1));
         when(mWifiScanner.getSingleScanResults()).thenReturn(Collections.emptyList());
         when(mNetworkRequestMatchCallback.asBinder()).thenReturn(mAppBinder);
@@ -1401,7 +1401,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(true);
 
         // verify we don't try to add the network to WifiConfigManager.
-        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(), anyInt(), anyString());
+        verify(mWifiConfigManager, never())
+                .addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false));
 
         verify(mClientModeManager).disconnect();
         verify(mConnectHelper).connectToNetwork(eq(mClientModeManager),
@@ -2972,7 +2973,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         sendNetworkRequestAndSetupForConnectionStatus();
 
         verify(mWifiConfigManager).addOrUpdateNetwork(
-                configurationArgumentCaptor.capture(), anyInt(), anyString());
+                configurationArgumentCaptor.capture(), anyInt(), anyString(), eq(false));
         // BSSID should be non-null when the user selects the network
         assertNotNull(configurationArgumentCaptor.getValue().BSSID);
 
@@ -3010,7 +3011,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Verify we added a WIfiConfiguration with non-null BSSID, and a connection is initiated.
         verify(mWifiConfigManager, bypassActivated ? times(2) : times(1)).addOrUpdateNetwork(
-                configurationArgumentCaptor.capture(), anyInt(), anyString());
+                configurationArgumentCaptor.capture(), anyInt(), anyString(), eq(false));
         assertNotNull(configurationArgumentCaptor.getAllValues().get(0).BSSID);
         if (bypassActivated) {
             assertNotNull(configurationArgumentCaptor.getAllValues().get(1).BSSID);
@@ -3908,8 +3909,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     private void validateConnectParams(String ssid, String bssid) {
         ArgumentCaptor<WifiConfiguration> wifiConfigurationCaptor =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
-        verify(mWifiConfigManager).addOrUpdateNetwork(
-                wifiConfigurationCaptor.capture(), eq(TEST_UID_1), eq(TEST_PACKAGE_NAME_1));
+        verify(mWifiConfigManager).addOrUpdateNetwork(wifiConfigurationCaptor.capture(),
+                eq(TEST_UID_1), eq(TEST_PACKAGE_NAME_1), eq(false));
         WifiConfiguration network =  wifiConfigurationCaptor.getValue();
         assertNotNull(network);
         WifiConfiguration expectedWifiConfiguration =
