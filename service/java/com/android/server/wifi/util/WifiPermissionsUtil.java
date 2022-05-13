@@ -1190,9 +1190,15 @@ public class WifiPermissionsUtil {
                 WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
         if (devicePolicyManager == null) return false;
 
-        int adminMinimumSecurityLevel =
-                devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
-        WifiSsidPolicy policy = devicePolicyManager.getWifiSsidPolicy();
+        int adminMinimumSecurityLevel = 0;
+        WifiSsidPolicy policy;
+        long ident = Binder.clearCallingIdentity();
+        try {
+            adminMinimumSecurityLevel = devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
+            policy = devicePolicyManager.getWifiSsidPolicy();
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
 
         //check minimum security level restriction
         if (adminMinimumSecurityLevel != 0) {
