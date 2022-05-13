@@ -3613,6 +3613,12 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("enableNetwork not allowed for uid=%").c(callingUid).flush();
             return false;
         }
+        WifiConfiguration configuration = mWifiConfigManager.getConfiguredNetwork(netId);
+        if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
+            mLog.info("enableNetwork not allowed for admin restricted network Id=%")
+                    .c(netId).flush();
+            return false;
+        }
 
         // TODO b/33807876 Log netId
         mLog.info("enableNetwork uid=% disableOthers=%")
