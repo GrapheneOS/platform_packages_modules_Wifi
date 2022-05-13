@@ -1679,6 +1679,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case WifiP2pManager.SET_WFD_INFO:
                         WifiP2pWfdInfo d = (WifiP2pWfdInfo) message.obj;
                         if (!getWfdPermission(message.sendingUid)) {
+                            loge("No WFD permission, uid = " + message.sendingUid);
                             replyToMessage(message, WifiP2pManager.SET_WFD_INFO_FAILED,
                                     WifiP2pManager.ERROR);
                         } else if (d != null) {
@@ -2007,6 +2008,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         if (!mWifiPermissionsUtil.checkConfigOverridePermission(
                                 message.sendingUid)) {
+                            loge(" Uid " + message.sendingUid
+                                    + " has no config override permission");
                             replyToMessage(message, WifiP2pManager.SET_VENDOR_ELEMENTS_FAILED);
                             break;
                         }
@@ -2102,6 +2105,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     case WifiP2pManager.SET_WFD_INFO:
                         if (!getWfdPermission(message.sendingUid)) {
+                            loge("No WFD permission, uid = " + message.sendingUid);
                             replyToMessage(message, WifiP2pManager.SET_WFD_INFO_FAILED,
                                     WifiP2pManager.ERROR);
                         } else {
@@ -2362,6 +2366,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     {
                         WifiP2pWfdInfo d = (WifiP2pWfdInfo) message.obj;
                         if (!getWfdPermission(message.sendingUid)) {
+                            loge("No WFD permission, uid = " + message.sendingUid);
                             replyToMessage(message, WifiP2pManager.SET_WFD_INFO_FAILED,
                                     WifiP2pManager.ERROR);
                         } else if (d != null && setWfdInfo(d)) {
@@ -4939,9 +4944,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 // Calling app holds the LOCAL_MAC_ADDRESS permission, and is allowed to see this
                 // device's MAC.
                 return new WifiP2pDevice(device);
-            } else {
-                return eraseOwnDeviceAddress(device);
             }
+            if (mVerboseLoggingEnabled) {
+                Log.i(TAG, "Uid " + uid + " does not have local mac address permission");
+            }
+            return eraseOwnDeviceAddress(device);
         }
 
         /**
@@ -4963,9 +4970,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 // Calling app holds the LOCAL_MAC_ADDRESS permission, and is allowed to see this
                 // device's MAC.
                 return new WifiP2pGroup(group);
-            } else {
-                return eraseOwnDeviceAddress(group);
             }
+            if (mVerboseLoggingEnabled) {
+                Log.i(TAG, "Uid " + uid + " does not have local mac address permission");
+            }
+            return eraseOwnDeviceAddress(group);
         }
 
         /**
