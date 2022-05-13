@@ -6175,6 +6175,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testAddExternalApproverSuccess() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasPermission = true, shouldSucceed = true;
         verifyAddExternalApprover(hasPermission, shouldSucceed);
     }
@@ -6185,6 +6186,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testAddExternalApproverFailureWithoutPermission() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasPermission = false, shouldSucceed = false;
         verifyAddExternalApprover(hasPermission, shouldSucceed);
     }
@@ -6216,6 +6218,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveExternalApproverSuccess() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasPermission = true, shouldSucceed = true;
         verifyRemoveExternalApprover(hasPermission, shouldSucceed);
     }
@@ -6226,6 +6229,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveExternalApproverFailureWithoutPermission() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasPermission = false, shouldSucceed = false;
         verifyRemoveExternalApprover(hasPermission, shouldSucceed);
     }
@@ -6284,6 +6288,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetConnectionRequestResultSuccess() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
@@ -6295,6 +6300,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetConnectionRequestResultWithWildcardAddressSuccess() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.BROADCAST_ADDRESS,
                 hasApprover, hasPermission, shouldSucceed,
@@ -6354,6 +6360,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testDirectMatchWithWildcardAddress() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         List<MacAddress> addresses = new ArrayList<>();
         addresses.add(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress));
         addresses.add(MacAddress.BROADCAST_ADDRESS);
@@ -6367,6 +6374,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testWildcardAddressMatch() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         List<MacAddress> addresses = new ArrayList<>();
         addresses.add(MacAddress.fromString("00:02:00:00:00:00"));
         addresses.add(MacAddress.BROADCAST_ADDRESS);
@@ -6378,6 +6386,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetConnectionRequestResultFailureWithoutPermission() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasApprover = true, hasPermission = false, shouldSucceed = false;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
@@ -6389,6 +6398,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetConnectionRequestResultFailureWithoutApprover() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasApprover = false, hasPermission = true, shouldSucceed = false;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
@@ -6400,6 +6410,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetConnectionRequestResultDeferPinToFramework() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
