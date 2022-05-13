@@ -36,6 +36,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_DEFAULT_DATA_SIM_CHANGED;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_SIM_INSERTED;
 import static com.android.server.wifi.ClientModeImpl.RESET_SIM_REASON_SIM_REMOVED;
@@ -3342,7 +3343,7 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new SecurityException("Caller is not a device owner, profile owner, system app,"
                     + " or privileged app");
         }
-        return addOrUpdateNetworkInternal(config, packageName, uid, packageName);
+        return addOrUpdateNetworkInternal(config, packageName, uid, packageName, false);
     }
 
     /**
@@ -3354,6 +3355,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public int addOrUpdateNetwork(WifiConfiguration config, String packageName, Bundle extras) {
         int uidToUse = getMockableCallingUid();
         String packageNameToUse = packageName;
+        boolean overrideCreator = false;
 
         // if we're being called from the SYSTEM_UID then allow usage of the AttributionSource to
         // reassign the WifiConfiguration to another app (reassignment == creatorUid)
@@ -3391,6 +3393,13 @@ public class WifiServiceImpl extends BaseWifiService {
                 // use the last AttributionSource in the chain - i.e. the original caller
                 uidToUse = asLast.getUid();
                 packageNameToUse = asLast.getPackageName();
+                if (config.networkId >= 0) {
+                    /**
+                     * only allow to override the creator by calling the
+                     * {@link WifiManager#updateNetwork(WifiConfiguration)}
+                     */
+                    overrideCreator = true;
+                }
             }
         }
 
@@ -3417,11 +3426,12 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mLog.info("addOrUpdateNetwork uid=%").c(callingUid).flush();
         return addOrUpdateNetworkInternal(config, packageName, uidToUse,
-                packageNameToUse).networkId;
+                packageNameToUse, overrideCreator).networkId;
     }
 
     private @NonNull AddNetworkResult addOrUpdateNetworkInternal(WifiConfiguration config,
-            String packageName, int attributedCreatorUid, String attributedCreatorPackage) {
+            String packageName, int attributedCreatorUid, String attributedCreatorPackage,
+            boolean overrideCreator) {
         if (config == null) {
             Log.e(TAG, "bad network configuration");
             return new AddNetworkResult(
@@ -3481,7 +3491,7 @@ public class WifiServiceImpl extends BaseWifiService {
         //  WifiConfigManager.NetworkUpdateResult, and plumb that reason up.
         int networkId =  mWifiThreadRunner.call(
                 () -> mWifiConfigManager.addOrUpdateNetwork(config, attributedCreatorUid,
-                        attributedCreatorPackage).getNetworkId(),
+                        attributedCreatorPackage, overrideCreator).getNetworkId(),
                 WifiConfiguration.INVALID_NETWORK_ID);
         if (networkId >= 0) {
             return new AddNetworkResult(AddNetworkResult.STATUS_SUCCESS, networkId);
@@ -3672,6 +3682,19 @@ public class WifiServiceImpl extends BaseWifiService {
             // to join. Even if we are currently connected to the carrier-merged wifi, it's still
             // better to disconnect here because it's possible that carrier wifi offload is
             // disabled.
+            for (ClientModeManager clientModeManager : mActiveModeWarden.getClientModeManagers()) {
+                if (!(clientModeManager instanceof ConcreteClientModeManager)) {
+                    continue;
+                }
+                ConcreteClientModeManager cmm = (ConcreteClientModeManager) clientModeManager;
+                if ((cmm.getRole() == ROLE_CLIENT_SECONDARY_LONG_LIVED && cmm.isSecondaryInternet())
+                        || cmm.getRole() == ROLE_CLIENT_SECONDARY_TRANSIENT) {
+                    clientModeManager.disconnect();
+                }
+            }
+            // Disconnect the primary CMM last to avoid STA+STA features handling the
+            // primary STA disconnecting (such as promoting the secondary to primary), potentially
+            // resulting in messy and unexpected state transitions.
             mActiveModeWarden.getPrimaryClientModeManager().disconnect();
         });
     }

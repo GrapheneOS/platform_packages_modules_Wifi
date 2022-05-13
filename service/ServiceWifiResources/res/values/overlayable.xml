@@ -106,6 +106,7 @@
           <item type="bool" name="config_wifiSoftap5ghzSupported" />
           <item type="bool" name="config_wifiSoftap6ghzSupported" />
           <item type="bool" name="config_wifiSoftap60ghzSupported" />
+          <item type="bool" name="config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled" />
           <item type="bool" name="config_wifiSoftapHeSuBeamformerSupported" />
           <item type="bool" name="config_wifiSoftapHeSuBeamformeeSupported" />
           <item type="bool" name="config_wifiSoftapHeMuBeamformerSupported" />
@@ -119,6 +120,7 @@
           <item type="bool" name="config_wifi_ap_mac_randomization_supported" />
           <item type="bool" name="config_wifiBridgedSoftApSupported" />
           <item type="bool" name="config_wifiStaWithBridgedSoftApConcurrencySupported" />
+          <item type="array" name="config_wifiForceDisableMacRandomizationSsidList" />
           <item type="array" name="config_wifi_non_persistent_randomization_ssid_allowlist" />
           <item type="array" name="config_wifi_non_persistent_randomization_ssid_blocklist" />
           <item type="integer" name="config_wifiRecentFailureReasonExpirationMinutes" />

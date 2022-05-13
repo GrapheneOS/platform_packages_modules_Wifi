@@ -80,6 +80,7 @@ public class WifiApConfigStore {
     private boolean mForceApChannel = false;
     private int mForcedApBand;
     private int mForcedApChannel;
+    private final boolean mIsAutoAppendLowerBandEnabled;
 
     /**
      * Module to interact with the wifi config store.
@@ -129,6 +130,8 @@ public class WifiApConfigStore {
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_HOTSPOT_CONFIG_USER_TAPPED_CONTENT);
         mMacAddressUtil = wifiInjector.getMacAddressUtil();
+        mIsAutoAppendLowerBandEnabled = mContext.getResources().getBoolean(
+                R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled);
     }
 
     /**
@@ -318,7 +321,8 @@ public class WifiApConfigStore {
             int channel = SdkLevel.isAtLeastS()
                     ? config.getChannels().valueAt(i) : config.getChannel();
             int newBand = bands[i];
-            if (channel == 0 && ApConfigUtil.isBandSupported(newBand, mContext)) {
+            if (channel == 0 && mIsAutoAppendLowerBandEnabled
+                    && ApConfigUtil.isBandSupported(newBand, mContext)) {
                 // some countries are unable to support 5GHz only operation, always allow for 2GHz
                 // when config doesn't force channel
                 if ((newBand & SoftApConfiguration.BAND_2GHZ) == 0) {

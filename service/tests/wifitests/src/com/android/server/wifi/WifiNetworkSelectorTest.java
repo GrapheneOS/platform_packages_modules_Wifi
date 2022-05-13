@@ -2065,7 +2065,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
         // Check if the wifiConfig is updated with the latest
         verify(mWifiConfigManager).addOrUpdateNetwork(existingConfig,
-                existingConfig.creatorUid, existingConfig.creatorName);
+                existingConfig.creatorUid, existingConfig.creatorName, false);
         assertEquals(ssids[0], candidate.SSID);
     }
 

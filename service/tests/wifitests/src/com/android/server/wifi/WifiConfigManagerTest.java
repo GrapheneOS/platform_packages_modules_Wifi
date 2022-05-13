@@ -1111,7 +1111,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     /**
      * Verifies the addition of a single suggestion network using
-     * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int, String)} and verifies
+     * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int, String, boolean)} and verifies
      * that the {@link WifiConfigManager#getSavedNetworks()} does not return this network.
      */
     @Test
@@ -1143,7 +1143,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     /**
      * Verifies the addition of a single specifier network using
-     * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int, String)} and verifies
+     * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int, String, boolean)} and verifies
      * that the {@link WifiConfigManager#getSavedNetworks()} does not return this network.
      */
     @Test
@@ -5748,7 +5748,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         triggerStoreReadIfNeeded();
         when(mClock.getWallClockMillis()).thenReturn(TEST_WALLCLOCK_CREATION_TIME_MILLIS);
         NetworkUpdateResult result =
-                mWifiConfigManager.addOrUpdateNetwork(configuration, uid, packageName);
+                mWifiConfigManager.addOrUpdateNetwork(configuration, uid, packageName, false);
         setDefaults(configuration);
         setCreationDebugParams(
                 configuration, uid, packageName != null ? packageName : TEST_CREATOR_NAME);
@@ -7549,5 +7549,23 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 FakeKeys.CA_CERT1));
         WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(eapPeapNetId);
         assertEquals(null, config.enterpriseConfig.getCaCertificate());
+    }
+
+    @Test
+    public void testUpdateNetworkWithCreatorOverride() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        int openNetId = verifyAddNetwork(WifiConfigurationTestUtil.createOpenNetwork(), true);
+
+        assertEquals(TEST_CREATOR_UID, mWifiConfigManager
+                .getConfiguredNetwork(openNetId).creatorUid);
+        config.networkId = openNetId;
+        NetworkUpdateResult result = mWifiConfigManager.addOrUpdateNetwork(
+                config, TEST_UPDATE_UID, TEST_UPDATE_NAME, true);
+        assertEquals(openNetId, result.getNetworkId());
+
+        assertEquals(TEST_UPDATE_UID, mWifiConfigManager
+                .getConfiguredNetwork(openNetId).creatorUid);
+        assertEquals(TEST_UPDATE_NAME, mWifiConfigManager
+                .getConfiguredNetwork(openNetId).creatorName);
     }
 }

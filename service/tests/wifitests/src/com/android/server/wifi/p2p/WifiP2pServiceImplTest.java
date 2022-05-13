@@ -6147,11 +6147,19 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     private void verifyAddExternalApprover(Binder binder, boolean hasPermission,
             boolean shouldSucceed) throws Exception {
+        verifyAddExternalApprover(binder, hasPermission,
+                shouldSucceed,
+                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress));
+    }
+
+    private void verifyAddExternalApprover(Binder binder, boolean hasPermission,
+            boolean shouldSucceed, MacAddress devAddr) throws Exception {
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
-        MacAddress devAddr = MacAddress.fromString(
-                mTestWifiP2pDevice.deviceAddress);
+        when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
+                .thenReturn(hasPermission);
 
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
         sendAddExternalApproverMsg(mClientMessenger, devAddr, binder);
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
@@ -6185,10 +6193,13 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             boolean shouldSucceed) throws Exception {
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
+        when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
+                .thenReturn(hasPermission);
         MacAddress devAddr = MacAddress.fromString(
                 mTestWifiP2pDevice.deviceAddress);
         Binder binder = new Binder();
 
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
         sendRemoveExternalApproverMsg(mClientMessenger, devAddr, binder);
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
@@ -6219,28 +6230,25 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verifyRemoveExternalApprover(hasPermission, shouldSucceed);
     }
 
-
-    private void verifySetConnectionRequestResult(boolean hasApprover,
-            boolean hasPermission, boolean shouldSucceed) throws Exception {
-        verifySetConnectionRequestResult(hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
-    }
-
-    private void verifySetConnectionRequestResult(boolean hasApprover,
+    private void verifySetConnectionRequestResult(MacAddress addr,
+            boolean hasApprover,
             boolean hasPermission, boolean shouldSucceed,
             int wpsType, int result) throws Exception {
         Binder binder = new Binder();
 
         forceP2pEnabled(mClient1);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
         mockPeersList();
 
         if (hasApprover) {
-            verifyAddExternalApprover(binder, true, true);
+            verifyAddExternalApprover(binder, true, true, addr);
         }
 
         mockEnterUserAuthorizingNegotiationRequestState(wpsType);
 
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(hasPermission);
+        when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
                 .thenReturn(hasPermission);
         sendSetConnectionRequestResultMsg(mClientMessenger,
                 MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
@@ -6277,7 +6285,92 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetConnectionRequestResultSuccess() throws Exception {
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
-        verifySetConnectionRequestResult(hasApprover, hasPermission, shouldSucceed);
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+    }
+
+    /**
+     * Verify sunny scenario for setConnectionRequestResult with the wildcard address.
+     */
+    @Test
+    public void testSetConnectionRequestResultWithWildcardAddressSuccess() throws Exception {
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.BROADCAST_ADDRESS,
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+    }
+
+    private void verifyMultiApproverMatch(List<MacAddress> addresses, MacAddress expectedMatch)
+            throws Exception {
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
+                .thenReturn(true);
+        Binder binder = new Binder();
+
+        forceP2pEnabled(mClient1);
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+        mockPeersList();
+
+        for (MacAddress addr: addresses) {
+            verifyAddExternalApprover(binder, true /* hasPermission */,
+                    true /* shouldSucceed */, addr);
+            reset(mClientHandler);
+        }
+
+        // Received a request from mTestWifiP2pDevice
+        mockEnterUserAuthorizingNegotiationRequestState(WpsInfo.PBC);
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_ACCEPT, binder);
+        // There are 3 replies:
+        // * EXTERNAL_APPROVER_CONNECTION_REQUESTED
+        // * EXTERNAL_APPROVER_DETACH
+        // * SET_CONNECTION_REQUEST_RESULT_SUCCEEDED
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mClientHandler, times(3)).sendMessage(messageCaptor.capture());
+        List<Message> messages = messageCaptor.getAllValues();
+
+        assertEquals(WifiP2pManager.EXTERNAL_APPROVER_CONNECTION_REQUESTED,
+                messages.get(0).what);
+        Bundle requestBundle = (Bundle) messages.get(0).obj;
+        WifiP2pDevice requestDevice = requestBundle.getParcelable(
+                WifiP2pManager.EXTRA_PARAM_KEY_DEVICE);
+        assertEquals(mTestWifiP2pDevice.deviceAddress, requestDevice.deviceAddress);
+
+        assertEquals(WifiP2pManager.EXTERNAL_APPROVER_DETACH,
+                messages.get(1).what);
+        assertEquals(expectedMatch, (MacAddress) messages.get(1).obj);
+
+        assertEquals(WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED,
+                messages.get(2).what);
+    }
+
+    /**
+     * Verify that a registered address could be matched correctly
+     * with additional wildcard address.
+     */
+    @Test
+    public void testDirectMatchWithWildcardAddress() throws Exception {
+        List<MacAddress> addresses = new ArrayList<>();
+        addresses.add(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress));
+        addresses.add(MacAddress.BROADCAST_ADDRESS);
+        verifyMultiApproverMatch(addresses,
+                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress));
+    }
+
+    /**
+     * Verify that a unkonwn address could be matched against the wildcard address correctly
+     * with an address and the wildcard address.
+     */
+    @Test
+    public void testWildcardAddressMatch() throws Exception {
+        List<MacAddress> addresses = new ArrayList<>();
+        addresses.add(MacAddress.fromString("00:02:00:00:00:00"));
+        addresses.add(MacAddress.BROADCAST_ADDRESS);
+        verifyMultiApproverMatch(addresses, MacAddress.BROADCAST_ADDRESS);
     }
 
     /**
@@ -6286,7 +6379,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetConnectionRequestResultFailureWithoutPermission() throws Exception {
         boolean hasApprover = true, hasPermission = false, shouldSucceed = false;
-        verifySetConnectionRequestResult(hasApprover, hasPermission, shouldSucceed);
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /**
@@ -6295,7 +6390,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetConnectionRequestResultFailureWithoutApprover() throws Exception {
         boolean hasApprover = false, hasPermission = true, shouldSucceed = false;
-        verifySetConnectionRequestResult(hasApprover, hasPermission, shouldSucceed);
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /**
@@ -6304,7 +6401,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetConnectionRequestResultDeferPinToFramework() throws Exception {
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
-        verifySetConnectionRequestResult(hasApprover, hasPermission, shouldSucceed,
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
                 WpsInfo.KEYPAD, WifiP2pManager.CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE);
     }
 

@@ -319,6 +319,11 @@
     <!-- Wifi driver supports 60GHz band for softap when chip support 60GHz -->
     <bool translatable="false" name="config_wifiSoftap60ghzSupported">false</bool>
 
+    <!-- Indicates that the framework should auto append lower bands to band configuration for
+         avoiding coexistence handling. For example: 5g only band will change to 2.4g|5g and
+         6g band will change to 2.4|5g|6g band -->
+    <bool translatable="false" name="config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled">true</bool>
+
     <!-- Indicates that local-only hotspot should be brought up at 6GHz if possible.
          This option is for automotive builds only (the one that have
          PackageManager#FEATURE_AUTOMOTIVE) -->
@@ -354,6 +359,14 @@
 
     <!-- Indicates that dynamic country code update in AP mode is supported on this device -->
     <bool translatable="false" name="config_wifiSoftApDynamicCountryCodeUpdateSupported">false</bool>
+
+    <!-- list of SSIDs to force disable MAC randomization -->
+    <string-array translatable="false" name="config_wifiForceDisableMacRandomizationSsidList">
+        <!-- SSIDs are expected in quoted format:
+        <item>\"SSID_1\"</item>
+        <item>\"SSID_2\"</item>
+        -->
+    </string-array>
 
     <!-- list of SSIDs to enable non-persistent MAC randomization on -->
     <string-array translatable="false" name="config_wifi_non_persistent_randomization_ssid_allowlist">

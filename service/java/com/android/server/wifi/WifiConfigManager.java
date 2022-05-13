@@ -1261,12 +1261,14 @@ public class WifiConfigManager {
      *
      * @param internalConfig WifiConfiguration object in our internal map.
      * @param externalConfig WifiConfiguration object provided from the external API.
+     * @param overrideCreator when this set to true, will overrider the creator to the current
+     *                        modifier.
      * @return Copy of existing WifiConfiguration object with parameters merged from the provided
      * configuration.
      */
     private @NonNull WifiConfiguration updateExistingInternalWifiConfigurationFromExternal(
             @NonNull WifiConfiguration internalConfig, @NonNull WifiConfiguration externalConfig,
-            int uid, @Nullable String packageName) {
+            int uid, @Nullable String packageName, boolean overrideCreator) {
         WifiConfiguration newInternalConfig = new WifiConfiguration(internalConfig);
 
         // Copy over all the public elements from the provided configuration.
@@ -1278,6 +1280,10 @@ public class WifiConfigManager {
                 packageName != null ? packageName : mContext.getPackageManager().getNameForUid(uid);
         newInternalConfig.lastUpdated = mClock.getWallClockMillis();
         newInternalConfig.numRebootsSinceLastUse = 0;
+        if (overrideCreator) {
+            newInternalConfig.creatorName = newInternalConfig.lastUpdateName;
+            newInternalConfig.creatorUid = uid;
+        }
         return newInternalConfig;
     }
 
@@ -1308,12 +1314,15 @@ public class WifiConfigManager {
      * @param config provided WifiConfiguration object.
      * @param uid UID of the app requesting the network addition/modification.
      * @param packageName Package name of the app requesting the network addition/modification.
+     * @param overrideCreator when this set to true, will overrider the creator to the current
+     *                        modifier.
      * @return NetworkUpdateResult object representing status of the update.
      *         WifiConfiguration object representing the existing configuration matching
      *         the new config, or null if none matches.
      */
     private @NonNull Pair<NetworkUpdateResult, WifiConfiguration> addOrUpdateNetworkInternal(
-            @NonNull WifiConfiguration config, int uid, @Nullable String packageName) {
+            @NonNull WifiConfiguration config, int uid, @Nullable String packageName,
+            boolean overrideCreator) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Adding/Updating network " + config.getPrintableSsid());
         }
@@ -1364,7 +1373,7 @@ public class WifiConfigManager {
             }
             newInternalConfig =
                     updateExistingInternalWifiConfigurationFromExternal(
-                            existingInternalConfig, config, uid, packageName);
+                            existingInternalConfig, config, uid, packageName, overrideCreator);
         }
 
         if (!WifiConfigurationUtil.addUpgradableSecurityTypeIfNecessary(newInternalConfig)) {
@@ -1526,10 +1535,12 @@ public class WifiConfigManager {
      * @param config provided WifiConfiguration object.
      * @param uid UID of the app requesting the network addition/modification.
      * @param packageName Package name of the app requesting the network addition/modification.
+     * @param overrideCreator when this set to true, will overrider the creator to the current
+     *                        modifier.
      * @return NetworkUpdateResult object representing status of the update.
      */
     public NetworkUpdateResult addOrUpdateNetwork(WifiConfiguration config, int uid,
-                                                  @Nullable String packageName) {
+            @Nullable String packageName, boolean overrideCreator) {
         if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
             Log.e(TAG, "UID " + uid + " not visible to the current user");
             return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
@@ -1556,7 +1567,7 @@ public class WifiConfigManager {
         }
 
         Pair<NetworkUpdateResult, WifiConfiguration> resultPair = addOrUpdateNetworkInternal(
-                config, uid, packageName);
+                config, uid, packageName, overrideCreator);
         NetworkUpdateResult result = resultPair.first;
         existingConfig = resultPair.second;
         if (!result.isSuccess()) {
@@ -1596,7 +1607,7 @@ public class WifiConfigManager {
      * @return NetworkUpdateResult object representing status of the update.
      */
     public NetworkUpdateResult addOrUpdateNetwork(WifiConfiguration config, int uid) {
-        return addOrUpdateNetwork(config, uid, null);
+        return addOrUpdateNetwork(config, uid, null, false);
     }
 
     /**
