@@ -152,8 +152,8 @@ public class WifiPermissionsUtil {
      * @return true if the app does have the permission, false otherwise.
      */
     public boolean checkConfigOverridePermission(int uid) {
-        int permission = mWifiPermissionsWrapper.getOverrideWifiConfigPermission(uid);
-        return permission == PackageManager.PERMISSION_GRANTED;
+        return mWifiPermissionsWrapper.getOverrideWifiConfigPermission(uid)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     /**
@@ -1190,9 +1190,15 @@ public class WifiPermissionsUtil {
                 WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
         if (devicePolicyManager == null) return false;
 
-        int adminMinimumSecurityLevel =
-                devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
-        WifiSsidPolicy policy = devicePolicyManager.getWifiSsidPolicy();
+        int adminMinimumSecurityLevel = 0;
+        WifiSsidPolicy policy;
+        long ident = Binder.clearCallingIdentity();
+        try {
+            adminMinimumSecurityLevel = devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
+            policy = devicePolicyManager.getWifiSsidPolicy();
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
 
         //check minimum security level restriction
         if (adminMinimumSecurityLevel != 0) {
