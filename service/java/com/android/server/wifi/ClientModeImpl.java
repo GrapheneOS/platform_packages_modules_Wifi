@@ -1296,12 +1296,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void connectToUserSelectNetwork(int netId, int uid, boolean forceReconnect,
             @NonNull String packageName) {
-        logd("connectToUserSelectNetwork netId " + netId + ", uid " + uid + ", package "
-                + packageName + ", forceReconnect = " + forceReconnect);
         if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
             mIsUserSelected = true;
         }
+        logd("connectToUserSelectNetwork netId " + netId + ", uid " + uid + ", package "
+                + packageName + ", forceReconnect = " + forceReconnect + ", isUserSelected = "
+                + mIsUserSelected);
         updateSaeAutoUpgradeFlagForUserSelectNetwork(netId);
         if (!forceReconnect && (mLastNetworkId == netId || mTargetNetworkId == netId)) {
             // We're already connecting/connected to the user specified network, don't trigger a
