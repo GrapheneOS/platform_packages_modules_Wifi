@@ -1138,6 +1138,31 @@ public class HalDeviceManager {
     }
 
     /**
+     * Register the wifi HAL event callback. Reset the Wifi HAL interface when it fails.
+     * @return true if success.
+     */
+    private boolean registerWifiHalEventCallback() {
+        try {
+            WifiStatus status;
+            android.hardware.wifi.V1_5.IWifi iWifiV15 = getWifiServiceForV1_5Mockable(mWifi);
+            if (iWifiV15 != null) {
+                status = iWifiV15.registerEventCallback_1_5(mWifiEventCallbackV15);
+            } else {
+                status = mWifi.registerEventCallback(mWifiEventCallback);
+            }
+
+            if (status.code != WifiStatusCode.SUCCESS) {
+                Log.e(TAG, "IWifi.registerEventCallback failed: " + statusString(status));
+                mWifi = null;
+            }
+            return status.code == WifiStatusCode.SUCCESS;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Exception while operating on IWifi: " + e);
+        }
+        return false;
+    }
+
+    /**
      * Initialize IWifi and register death listener and event callback.
      *
      * - It is possible that IWifi is not ready - we have a listener on IServiceManager for it.
@@ -1166,21 +1191,13 @@ public class HalDeviceManager {
                     return;
                 }
 
-                WifiStatus status;
-                android.hardware.wifi.V1_5.IWifi iWifiV15 = getWifiServiceForV1_5Mockable(mWifi);
-                if (iWifiV15 != null) {
-                    status = iWifiV15.registerEventCallback_1_5(mWifiEventCallbackV15);
-                } else {
-                    status = mWifi.registerEventCallback(mWifiEventCallback);
-                }
-
-                if (status.code != WifiStatusCode.SUCCESS) {
-                    Log.e(TAG, "IWifi.registerEventCallback failed: " + statusString(status));
-                    mWifi = null;
+                // Stopping wifi just in case. This would also trigger the status callback.
+                // Stopping wifi invalidated the registered the event callback, register after the
+                // wifi stop.
+                stopWifi();
+                if (!registerWifiHalEventCallback()) {
                     return;
                 }
-                // Stopping wifi just in case. This would also trigger the status callback.
-                stopWifi();
                 mIsReady = true;
             } catch (RemoteException e) {
                 Log.e(TAG, "Exception while operating on IWifi: " + e);
@@ -1834,7 +1851,8 @@ public class HalDeviceManager {
                             }
                             return true;
                         } else if (status.code == WifiStatusCode.ERROR_NOT_AVAILABLE) {
-                            // Should retry. Hal might still be stopping.
+                            // Should retry. Hal might still be stopping. the registered event
+                            // callback will not be cleared.
                             Log.e(TAG, "Cannot start IWifi: " + statusString(status)
                                     + ", Retrying...");
                             try {
@@ -1845,6 +1863,7 @@ public class HalDeviceManager {
                             triedCount++;
                         } else {
                             // Should not retry on other failures.
+                            // Will be handled in the onFailure event.
                             Log.e(TAG, "Cannot start IWifi: " + statusString(status));
                             return false;
                         }
@@ -2036,12 +2055,16 @@ public class HalDeviceManager {
             if (chipInfos == null) {
                 Log.e(TAG, "createIface: no chip info found");
                 stopWifi(); // major error: shutting down
+                // Event callback has been invalidated in HAL stop, register it again.
+                registerWifiHalEventCallback();
                 return null;
             }
 
             if (!validateInterfaceCacheAndRetrieveRequestorWs(chipInfos)) {
                 Log.e(TAG, "createIface: local cache is invalid!");
                 stopWifi(); // major error: shutting down
+                // Event callback has been invalidated in HAL stop, register it again.
+                registerWifiHalEventCallback();
                 return null;
             }
 
