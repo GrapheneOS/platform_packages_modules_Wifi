@@ -162,6 +162,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "query-interface",
             "interface-priority-interactive-mode",
             "set-one-shot-screen-on-delay-ms",
+            "set-ipreach-disconnect",
+            "get-ipreach-disconnect",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -2323,6 +2325,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 + "conflict, |default| implies using the device default behavior.");
         pw.println("  set-one-shot-screen-on-delay-ms <delayMs>");
         pw.println("    set the delay for the next screen-on connectivity scan in milliseconds.");
+        pw.println("  set-ipreach-disconnect enabled|disabled");
+        pw.println("    Sets whether CMD_IP_REACHABILITY_LOST events should trigger disconnects.");
+        pw.println("  get-ipreach-disconnect");
+        pw.println("    Gets setting of CMD_IP_REACHABILITY_LOST events triggering disconnects.");
     }
 
     private void onHelpPrivileged(PrintWriter pw) {
@@ -2364,10 +2370,6 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -b <bssid> - Set specific BSSID.");
         pw.println("    -r auto|none|persistent|non_persistent - MAC randomization scheme for the"
                 + " network");
-        pw.println("  set-ipreach-disconnect enabled|disabled");
-        pw.println("    Sets whether CMD_IP_REACHABILITY_LOST events should trigger disconnects.");
-        pw.println("  get-ipreach-disconnect");
-        pw.println("    Gets setting of CMD_IP_REACHABILITY_LOST events triggering disconnects.");
         pw.println("  set-poll-rssi-interval-msecs <int>");
         pw.println("    Sets the interval between RSSI polls to <int> milliseconds.");
         pw.println("  get-poll-rssi-interval-msecs");

@@ -138,15 +138,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
 
     @Test
     public void testSetIpReachDisconnect() {
-        // not allowed for unrooted shell.
-        mWifiShellCommand.exec(
-                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
-                new String[]{"set-ipreach-disconnect", "enabled"});
-        verify(mWifiGlobals, never()).setIpReachabilityDisconnectEnabled(anyBoolean());
-        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
-
-        BinderUtil.setUid(Process.ROOT_UID);
-
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"set-ipreach-disconnect", "enabled"});
@@ -167,15 +158,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
 
     @Test
     public void testGetIpReachDisconnect() {
-        // not allowed for unrooted shell.
-        mWifiShellCommand.exec(
-                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
-                new String[]{"get-ipreach-disconnect"});
-        verify(mWifiGlobals, never()).getIpReachabilityDisconnectEnabled();
-        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
-
-        BinderUtil.setUid(Process.ROOT_UID);
-
         when(mWifiGlobals.getIpReachabilityDisconnectEnabled()).thenReturn(true);
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
