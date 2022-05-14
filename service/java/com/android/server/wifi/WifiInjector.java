@@ -587,7 +587,6 @@ public class WifiInjector {
         if (SdkLevel.isAtLeastS()) {
             mCoexManager.enableVerboseLogging(verboseEnabled);
         }
-        mWifiPermissionsWrapper.enableVerboseLogging(verboseEnabled);
         mWifiPermissionsUtil.enableVerboseLogging(verboseEnabled);
         mWifiDialogManager.enableVerboseLogging(verboseEnabled);
     }

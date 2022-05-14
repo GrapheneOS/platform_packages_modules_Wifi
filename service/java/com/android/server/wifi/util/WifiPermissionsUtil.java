@@ -152,8 +152,8 @@ public class WifiPermissionsUtil {
      * @return true if the app does have the permission, false otherwise.
      */
     public boolean checkConfigOverridePermission(int uid) {
-        int permission = mWifiPermissionsWrapper.getOverrideWifiConfigPermission(uid);
-        return permission == PackageManager.PERMISSION_GRANTED;
+        return mWifiPermissionsWrapper.getOverrideWifiConfigPermission(uid)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     /**

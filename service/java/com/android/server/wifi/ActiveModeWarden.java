@@ -2061,6 +2061,10 @@ public class ActiveModeWarden {
                         int curUid = workSource.getUid(i);
                         if (mWifiPermissionsUtil.checkEnterCarModePrioritized(curUid)) {
                             requestInfo.listener.onAnswer(primaryManager);
+                            if (mVerboseLoggingEnabled) {
+                                Log.w(TAG, "Uid " + curUid
+                                        + " has car mode permission - disabling STA+STA");
+                            }
                             return;
                         }
                     }
