@@ -3637,6 +3637,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         // verify: wifi initialization sequence if vendor HAL is supported.
         if (isSupported) {
             mInOrder.verify(mWifiMock).linkToDeath(mDeathRecipientCaptor.capture(), anyLong());
+            // verify: onStop called as a part of initialize.
+            mInOrder.verify(mWifiMock).stop();
             if (null != mWifiMockV15) {
                 mInOrder.verify(mWifiMockV15).registerEventCallback_1_5(
                         mWifiEventCallbackCaptorV15.capture());
@@ -3644,9 +3646,6 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 mInOrder.verify(mWifiMock).registerEventCallback(
                         mWifiEventCallbackCaptor.capture());
             }
-            // verify: onStop called as a part of initialize.
-            mInOrder.verify(mWifiMock).stop();
-
             collector.checkThat("isReady is true", mDut.isReady(), equalTo(true));
         } else {
             collector.checkThat("isReady is false", mDut.isReady(), equalTo(false));
