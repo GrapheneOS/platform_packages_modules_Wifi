@@ -393,8 +393,11 @@ public class WifiDialogActivity extends Activity  {
         SpannableString spannableMessage = null;
         if (message != null) {
             spannableMessage = new SpannableString(message);
-            spannableMessage.setSpan(new URLSpan(messageUrl), messageUrlStart, messageUrlEnd,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (messageUrlStart >= 0 && messageUrlEnd <= message.length()
+                    && messageUrlStart < messageUrlEnd) {
+                spannableMessage.setSpan(new URLSpan(messageUrl), messageUrlStart, messageUrlEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
         }
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(title)
