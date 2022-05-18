@@ -61,6 +61,7 @@ public class WifiDataStall {
     // Maximum time margin between two link layer stats for connection duration update
     public static final int MAX_TIME_MARGIN_LAST_TWO_POLLS_MS = 200;
 
+    private final FrameworkFacade mFacade;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final WifiMetrics mWifiMetrics;
     private final Context mContext;
@@ -147,10 +148,11 @@ public class WifiDataStall {
         }
     }
 
-    public WifiDataStall(WifiMetrics wifiMetrics, Context context,
+    public WifiDataStall(FrameworkFacade facade, WifiMetrics wifiMetrics, Context context,
             DeviceConfigFacade deviceConfigFacade, WifiChannelUtilization wifiChannelUtilization,
             Clock clock, Handler handler, ThroughputPredictor throughputPredictor,
             ActiveModeWarden activeModeWarden, ClientModeImplMonitor clientModeImplMonitor) {
+        mFacade = facade;
         mDeviceConfigFacade = deviceConfigFacade;
         mWifiMetrics = wifiMetrics;
         mContext = context;
@@ -321,8 +323,7 @@ public class WifiDataStall {
             @NonNull ConnectionCapabilities connectionCapabilities,
             @Nullable WifiLinkLayerStats oldStats,
             @Nullable WifiLinkLayerStats newStats,
-            @NonNull WifiInfo wifiInfo,
-            long txBytes, long rxBytes) {
+            @NonNull WifiInfo wifiInfo) {
         int currFrequency = wifiInfo.getFrequency();
         mWifiChannelUtilization.refreshChannelStatsAndChannelUtilization(newStats, currFrequency);
         int ccaLevel = mWifiChannelUtilization.getUtilizationRatio(currFrequency);
@@ -425,7 +426,7 @@ public class WifiDataStall {
         mWifiMetrics.incrementThroughputKbpsCount(mTxTputKbps, mRxTputKbps, currFrequency);
 
         mIsThroughputSufficient = isThroughputSufficientInternal(mTxTputKbps, mRxTputKbps,
-                isTxTrafficHigh, isRxTrafficHigh, timeDeltaLastTwoPollsMs, txBytes, rxBytes);
+                isTxTrafficHigh, isRxTrafficHigh, timeDeltaLastTwoPollsMs);
 
         int maxTimeDeltaMs = mContext.getResources().getInteger(
                 R.integer.config_wifiPollRssiIntervalMilliseconds)
@@ -522,8 +523,9 @@ public class WifiDataStall {
     }
 
     private boolean isThroughputSufficientInternal(int l2TxTputKbps, int l2RxTputKbps,
-            boolean isTxTrafficHigh, boolean isRxTrafficHigh, int timeDeltaLastTwoPollsMs,
-            long txBytes, long rxBytes) {
+            boolean isTxTrafficHigh, boolean isRxTrafficHigh, int timeDeltaLastTwoPollsMs) {
+        long txBytes = mFacade.getTotalTxBytes() - mFacade.getMobileTxBytes();
+        long rxBytes = mFacade.getTotalRxBytes() - mFacade.getMobileRxBytes();
         if (timeDeltaLastTwoPollsMs > MAX_MS_DELTA_FOR_DATA_STALL
                 || mLastTxBytes == 0 || mLastRxBytes == 0) {
             mLastTxBytes = txBytes;
