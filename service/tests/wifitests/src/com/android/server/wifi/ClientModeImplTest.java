@@ -453,6 +453,12 @@ public class ClientModeImplTest extends WifiBaseTest {
     static final String   WIFI_IFACE_NAME = "mockWlan";
     static final String sFilsSsid = "FILS-AP";
     static final ApfCapabilities APF_CAP = new ApfCapabilities(1, 2, 3);
+    static final long TEST_TOTAL_TX_BYTES = 6666;
+    static final long TEST_TOTAL_RX_BYTES = 8888;
+    static final long TEST_MOBILE_TX_BYTES = 2345;
+    static final long TEST_MOBILE_RX_BYTES = 1234;
+    static final long TEST_TX_BYTES = TEST_TOTAL_TX_BYTES - TEST_MOBILE_TX_BYTES;
+    static final long TEST_RX_BYTES = TEST_TOTAL_RX_BYTES - TEST_MOBILE_RX_BYTES;
 
     ClientModeImpl mCmi;
     HandlerThread mWifiCoreThread;
@@ -629,6 +635,10 @@ public class ClientModeImplTest extends WifiBaseTest {
                 Settings.Global.WIFI_FREQUENCY_BAND,
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO)).thenReturn(
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO);
+        when(mFrameworkFacade.getTotalTxBytes()).thenReturn(TEST_TOTAL_TX_BYTES);
+        when(mFrameworkFacade.getMobileTxBytes()).thenReturn(TEST_MOBILE_TX_BYTES);
+        when(mFrameworkFacade.getTotalRxBytes()).thenReturn(TEST_TOTAL_RX_BYTES);
+        when(mFrameworkFacade.getMobileRxBytes()).thenReturn(TEST_MOBILE_RX_BYTES);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         doAnswer(inv -> {
             mIpClientCallback.onQuit();
@@ -4948,7 +4958,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
         mLooper.dispatchAll();
         verify(mWifiDataStall).checkDataStallAndThroughputSufficiency(WIFI_IFACE_NAME,
-                mConnectionCapabilities, oldLLStats, newLLStats, mWifiInfo);
+                mConnectionCapabilities, oldLLStats, newLLStats, mWifiInfo, TEST_TX_BYTES,
+                TEST_RX_BYTES);
         verify(mWifiMetrics).incrementWifiLinkLayerUsageStats(WIFI_IFACE_NAME, newLLStats);
     }
 
@@ -4965,7 +4976,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiLinkLayerStats stats = new WifiLinkLayerStats();
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(stats);
         when(mWifiDataStall.checkDataStallAndThroughputSufficiency(any(),
-                any(), any(), any(), any()))
+                any(), any(), any(), any(), anyLong(), anyLong()))
                 .thenReturn(WifiIsUnusableEvent.TYPE_UNKNOWN);
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
         mLooper.dispatchAll();
@@ -4974,7 +4985,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 WifiUsabilityStats.LABEL_BAD, eq(anyInt()), eq(-1));
 
         when(mWifiDataStall.checkDataStallAndThroughputSufficiency(any(), any(), any(), any(),
-                any()))
+                any(), anyLong(), anyLong()))
                 .thenReturn(WifiIsUnusableEvent.TYPE_DATA_STALL_BAD_TX);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(10L);
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
@@ -7223,7 +7234,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiNative).getWifiLinkLayerStats(WIFI_IFACE_NAME);
         verify(mWifiDataStall).checkDataStallAndThroughputSufficiency(WIFI_IFACE_NAME,
-                mConnectionCapabilities, null, oldLLStats, mWifiInfo);
+                mConnectionCapabilities, null, oldLLStats, mWifiInfo, TEST_TX_BYTES, TEST_RX_BYTES);
         verify(mWifiMetrics).incrementWifiLinkLayerUsageStats(WIFI_IFACE_NAME, oldLLStats);
 
         WifiLinkLayerStats newLLStats = new WifiLinkLayerStats();
@@ -7233,7 +7244,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative, times(2)).getWifiLinkLayerStats(WIFI_IFACE_NAME);
 
         verify(mWifiDataStall).checkDataStallAndThroughputSufficiency(WIFI_IFACE_NAME,
-                mConnectionCapabilities, oldLLStats, newLLStats, mWifiInfo);
+                mConnectionCapabilities, oldLLStats, newLLStats, mWifiInfo, TEST_TX_BYTES,
+                TEST_RX_BYTES);
         verify(mWifiMetrics).incrementWifiLinkLayerUsageStats(WIFI_IFACE_NAME, newLLStats);
 
         // Now set the screen state to false & move time forward, ensure no more link layer stats
@@ -7295,7 +7307,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiNative).getWifiLinkLayerStats(WIFI_IFACE_NAME);
         verify(mWifiDataStall).checkDataStallAndThroughputSufficiency(WIFI_IFACE_NAME,
-                mConnectionCapabilities, null, oldLLStats, mWifiInfo);
+                mConnectionCapabilities, null, oldLLStats, mWifiInfo, TEST_TX_BYTES, TEST_RX_BYTES);
         verify(mWifiMetrics).incrementWifiLinkLayerUsageStats(WIFI_IFACE_NAME, oldLLStats);
     }
 
@@ -7312,7 +7324,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiNative).getWifiLinkLayerStats(WIFI_IFACE_NAME);
         verify(mWifiDataStall).checkDataStallAndThroughputSufficiency(WIFI_IFACE_NAME,
-                mConnectionCapabilities, null, oldLLStats, mWifiInfo);
+                mConnectionCapabilities, null, oldLLStats, mWifiInfo, TEST_TX_BYTES, TEST_RX_BYTES);
         verify(mWifiMetrics).incrementWifiLinkLayerUsageStats(WIFI_IFACE_NAME, oldLLStats);
 
         // Now invoke role change, that should stop rssi polling on the secondary.
