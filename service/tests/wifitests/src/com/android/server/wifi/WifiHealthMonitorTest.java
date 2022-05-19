@@ -176,7 +176,7 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
         mWifiConfigManager = mockConfigManager();
 
         mWifiScoreCard = new WifiScoreCard(mClock, "some seed", mDeviceConfigFacade,
-                mFrameworkFacade, mContext);
+                mContext);
         mAlarmManager = new TestAlarmManager();
         when(mContext.getSystemService(Context.ALARM_SERVICE))
                 .thenReturn(mAlarmManager.getAlarmManager());
