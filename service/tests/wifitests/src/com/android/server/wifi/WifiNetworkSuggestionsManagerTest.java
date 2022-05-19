@@ -4138,6 +4138,40 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         verify(mWifiConfigManager, atLeastOnce()).saveToStore(true);
     }
 
+    @Test
+    public void testNotSendImsiProtectionNotificationOnPeapNetwork() {
+        when(mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(TEST_PACKAGE_1))
+                .thenReturn(TEST_CARRIER_ID);
+        when(mWifiCarrierInfoManager.getMatchingSubId(TEST_CARRIER_ID)).thenReturn(TEST_SUBID);
+        when(mWifiCarrierInfoManager.getCarrierNameForSubId(TEST_SUBID))
+                .thenReturn(TEST_CARRIER_NAME);
+        when(mWifiCarrierInfoManager.requiresImsiEncryption(TEST_SUBID)).thenReturn(false);
+        when(mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(TEST_CARRIER_ID))
+                .thenReturn(false);
+        when(mPasspointManager.addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(),
+                anyBoolean())).thenReturn(true);
+
+        WifiConfiguration eapSimConfig = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.AKA);
+        WifiNetworkSuggestion networkSuggestion = createWifiNetworkSuggestion(
+                eapSimConfig, null, true, false, true, true, DEFAULT_PRIORITY_GROUP);
+        List<WifiNetworkSuggestion> networkSuggestionList =
+                Arrays.asList(networkSuggestion);
+
+        assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
+                mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
+                        TEST_PACKAGE_1, TEST_FEATURE));
+
+        verifyNoMoreInteractions(mWifiNotificationManager);
+        Set<ExtendedWifiNetworkSuggestion> matchedSuggestions = mWifiNetworkSuggestionsManager
+                .getNetworkSuggestionsForScanDetail(createScanDetailForNetwork(eapSimConfig));
+        verify(mWifiCarrierInfoManager, never())
+                .sendImsiProtectionExemptionNotificationIfRequired(TEST_CARRIER_ID);
+        for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
+            assertTrue(ewns.isAutojoinEnabled);
+        }
+    }
+
     /**
      * Verify adding invalid suggestions will return right error reason code.
      */
