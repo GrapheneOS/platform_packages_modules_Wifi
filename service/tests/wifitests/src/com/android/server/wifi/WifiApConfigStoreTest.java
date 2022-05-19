@@ -861,13 +861,28 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         // Builder will auto check auth type and passphrase
 
         // test random (valid length)
-        int maxLen = WifiApConfigStore.PSK_MAX_LEN;
-        int minLen = WifiApConfigStore.PSK_MIN_LEN;
+        int maxLen = WifiApConfigStore.PSK_SAE_ASCII_MAX_LEN;
+        int minLen = WifiApConfigStore.PSK_ASCII_MIN_LEN;
         configBuilder.setPassphrase(
                 generateRandomString(mRandom.nextInt(maxLen - minLen) + minLen),
                 SoftApConfiguration.SECURITY_TYPE_WPA2_PSK);
         assertTrue(WifiApConfigStore.validateApWifiConfiguration(
                 configBuilder.build(), true, mContext));
+    }
+
+    @Test
+    public void testSaeNetworkConfigInValidateApWifiConfigurationCheck() {
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setSsid(TEST_DEFAULT_HOTSPOT_SSID);
+
+        // test random (invalid length)
+        int maxLen = WifiApConfigStore.PSK_SAE_ASCII_MAX_LEN;
+        configBuilder.setPassphrase(
+                generateRandomString(maxLen + 1),
+                SoftApConfiguration.SECURITY_TYPE_WPA3_SAE);
+        assertFalse(WifiApConfigStore.validateApWifiConfiguration(
+                configBuilder.build(), true, mContext));
+
     }
 
     /**
