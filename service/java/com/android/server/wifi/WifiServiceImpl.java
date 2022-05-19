@@ -3406,24 +3406,42 @@ public class WifiServiceImpl extends BaseWifiService {
         if (enforceChangePermission(packageName) != MODE_ALLOWED) {
             return -1;
         }
+
         int callingUid = Binder.getCallingUid();
         int callingPid = Binder.getCallingPid();
         mWifiPermissionsUtil.checkPackage(callingUid, packageName);
+        boolean isAdmin = mWifiPermissionsUtil.isAdmin(callingUid, packageName);
+        boolean isCamera = mWifiPermissionsUtil.checkCameraPermission(callingUid);
+        boolean isSystem = mWifiPermissionsUtil.isSystem(packageName, callingUid);
+        boolean isPrivileged = isPrivileged(callingPid, callingUid);
+
         if (!isTargetSdkLessThanQOrPrivileged(packageName, callingPid, callingUid)) {
             mLog.info("addOrUpdateNetwork not allowed for uid=%").c(callingUid).flush();
             return -1;
         }
-        if (SdkLevel.isAtLeastT() && mUserManager.hasUserRestrictionForUser(
-                UserManager.DISALLOW_ADD_WIFI_CONFIG, UserHandle.getUserHandleForUid(callingUid))
-                && mWifiPermissionsUtil.isTargetSdkLessThan(
-                        packageName, Build.VERSION_CODES.Q, callingUid)
-                && !(isPrivileged(callingPid, callingUid)
-                        || mWifiPermissionsUtil.isAdmin(callingUid, packageName)
-                        || mWifiPermissionsUtil.isSystem(packageName, callingUid))) {
-            mLog.info("addOrUpdateNetwork not allowed for normal apps targeting SDK less "
-                    + "than Q when the DISALLOW_ADD_WIFI_CONFIG user restriction is set").flush();
+        if (mUserManager.hasUserRestrictionForUser(UserManager.DISALLOW_CONFIG_WIFI,
+                UserHandle.of(mWifiPermissionsUtil.getCurrentUser()))
+                && isCamera && !isAdmin) {
+            mLog.info("addOrUpdateNetwork not allowed for the camera apps and therefore the user "
+                    + "when DISALLOW_CONFIG_WIFI user restriction is set").flush();
             return -1;
         }
+        if (SdkLevel.isAtLeastT() && mUserManager.hasUserRestrictionForUser(
+                UserManager.DISALLOW_ADD_WIFI_CONFIG, UserHandle.getUserHandleForUid(callingUid))) {
+            if (mWifiPermissionsUtil.isTargetSdkLessThan(
+                    packageName, Build.VERSION_CODES.Q, callingUid)
+                    && !(isPrivileged || isAdmin || isSystem)) {
+                mLog.info("addOrUpdateNetwork not allowed for normal apps targeting SDK less than "
+                        + "Q when the DISALLOW_ADD_WIFI_CONFIG user restriction is set").flush();
+                return -1;
+            }
+            if (isCamera && !isAdmin) {
+                mLog.info("addOrUpdateNetwork not allowed for camera apps and therefore the user "
+                        + "when the DISALLOW_ADD_WIFI_CONFIG user restriction is set").flush();
+                return -1;
+            }
+        }
+
         mLog.info("addOrUpdateNetwork uid=%").c(callingUid).flush();
         return addOrUpdateNetworkInternal(config, packageName, uidToUse,
                 packageNameToUse, overrideCreator).networkId;
