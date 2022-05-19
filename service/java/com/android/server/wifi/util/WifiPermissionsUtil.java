@@ -865,6 +865,15 @@ public class WifiPermissionsUtil {
     }
 
     /**
+     * Returns true if the |uid| holds CAMERA permission.
+     */
+    public boolean checkCameraPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                android.Manifest.permission.CAMERA, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
      * Returns true if the |callingUid|/\callingPackage| holds SYSTEM_ALERT_WINDOW permission.
      */
     public boolean checkSystemAlertWindowPermission(int callingUid, String callingPackage) {
@@ -1245,6 +1254,14 @@ public class WifiPermissionsUtil {
      * Returns the foreground userId
      */
     public int getCurrentUser() {
-        return mWifiPermissionsWrapper.getCurrentUser();
+        //set the default to undefined user id (UserHandle.USER_NULL)
+        int user = -10000;
+        long ident = Binder.clearCallingIdentity();
+        try {
+            user = mWifiPermissionsWrapper.getCurrentUser();
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
+        return user;
     }
 }
