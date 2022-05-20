@@ -16,6 +16,11 @@
 
 package com.android.server.wifi;
 
+import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA2_PSK;
+import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION;
+import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_SAE;
+import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION;
+
 import android.annotation.NonNull;
 import android.compat.Compatibility;
 import android.content.Context;
@@ -63,9 +68,11 @@ public class WifiApConfigStore {
     private static final int RAND_SSID_INT_MAX = 9999;
 
     @VisibleForTesting
-    static final int PSK_MIN_LEN = 8;
+    static final int SAE_ASCII_MIN_LEN = 1;
     @VisibleForTesting
-    static final int PSK_MAX_LEN = 63;
+    static final int PSK_ASCII_MIN_LEN = 8;
+    @VisibleForTesting
+    static final int PSK_SAE_ASCII_MAX_LEN = 63;
 
     private SoftApConfiguration mPersistentWifiApConfig = null;
 
@@ -239,11 +246,11 @@ public class WifiApConfigStore {
         }
 
         if (!ApConfigUtil.isWpa3SaeSupported(mContext) && (config.getSecurityType()
-                == SoftApConfiguration.SECURITY_TYPE_WPA3_SAE
+                == SECURITY_TYPE_WPA3_SAE
                 || config.getSecurityType()
-                == SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION)) {
+                == SECURITY_TYPE_WPA3_SAE_TRANSITION)) {
             configBuilder.setPassphrase(generatePassword(),
-                    SoftApConfiguration.SECURITY_TYPE_WPA2_PSK);
+                    SECURITY_TYPE_WPA2_PSK);
             Log.i(TAG, "Device doesn't support WPA3-SAE, reset config to WPA2");
         }
 
@@ -369,10 +376,10 @@ public class WifiApConfigStore {
                 R.string.wifi_tether_configure_ssid_default) + "_" + getRandomIntForDefaultSsid());
         if (ApConfigUtil.isWpa3SaeSupported(mContext)) {
             configBuilder.setPassphrase(generatePassword(),
-                    SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION);
+                    SECURITY_TYPE_WPA3_SAE_TRANSITION);
         } else {
             configBuilder.setPassphrase(generatePassword(),
-                    SoftApConfiguration.SECURITY_TYPE_WPA2_PSK);
+                    SECURITY_TYPE_WPA2_PSK);
         }
 
         // It is new overlay configuration, it should always false in R. Add SdkLevel.isAtLeastS for
@@ -434,10 +441,10 @@ public class WifiApConfigStore {
             configBuilder.setAutoShutdownEnabled(false);
             if (ApConfigUtil.isWpa3SaeSupported(context)) {
                 configBuilder.setPassphrase(generatePassword(),
-                        SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION);
+                        SECURITY_TYPE_WPA3_SAE_TRANSITION);
             } else {
                 configBuilder.setPassphrase(generatePassword(),
-                        SoftApConfiguration.SECURITY_TYPE_WPA2_PSK);
+                        SECURITY_TYPE_WPA2_PSK);
             }
             // Update default MAC randomization setting to NONE when feature doesn't support it or
             // It was disabled in tethered mode.
@@ -510,12 +517,18 @@ public class WifiApConfigStore {
     }
 
     /**
-     * Verify provided preSharedKey in ap config for WPA2_PSK network meets requirements.
+     * Verify provided preSharedKey in ap config for WPA2_PSK/WPA3_SAE (Transition) network
+     * meets requirements.
      */
-    private static boolean validateApConfigPreSharedKey(String preSharedKey) {
-        if (preSharedKey.length() < PSK_MIN_LEN || preSharedKey.length() > PSK_MAX_LEN) {
-            Log.d(TAG, "softap network password string size must be at least " + PSK_MIN_LEN
-                    + " and no more than " + PSK_MAX_LEN);
+    private static boolean validateApConfigAsciiPreSharedKey(
+            @SoftApConfiguration.SecurityType int securityType, String preSharedKey) {
+        final int sharedKeyLen = preSharedKey.length();
+        final int keyMinLen = securityType == SECURITY_TYPE_WPA3_SAE
+                ? SAE_ASCII_MIN_LEN : PSK_ASCII_MIN_LEN;
+        if (sharedKeyLen < keyMinLen || sharedKeyLen > PSK_SAE_ASCII_MAX_LEN) {
+            Log.d(TAG, "softap network password string size must be at least " + keyMinLen
+                    + " and no more than " + PSK_SAE_ASCII_MAX_LEN + " when type is "
+                    + securityType);
             return false;
         }
 
@@ -571,9 +584,9 @@ public class WifiApConfigStore {
                 Log.d(TAG, "open softap network should not have a password");
                 return false;
             }
-        } else if (authType == SoftApConfiguration.SECURITY_TYPE_WPA2_PSK
-                || authType == SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION
-                || authType == SoftApConfiguration.SECURITY_TYPE_WPA3_SAE) {
+        } else if (authType == SECURITY_TYPE_WPA2_PSK
+                || authType == SECURITY_TYPE_WPA3_SAE_TRANSITION
+                || authType == SECURITY_TYPE_WPA3_SAE) {
             // this is a config that should have a password - check that first
             if (!hasPreSharedKey) {
                 Log.d(TAG, "softap network password must be set");
@@ -587,9 +600,8 @@ public class WifiApConfigStore {
                     Log.d(TAG, "passphrase not ASCII encodable");
                     return false;
                 }
-                if (authType != SoftApConfiguration.SECURITY_TYPE_WPA3_SAE
-                        && !validateApConfigPreSharedKey(preSharedKey)) {
-                    // failed preSharedKey checks for WPA2 and WPA3 SAE Transition mode.
+                if (!validateApConfigAsciiPreSharedKey(authType, preSharedKey)) {
+                    // failed preSharedKey checks for WPA2 and WPA3 SAE (Transition) mode.
                     return false;
                 }
             }
@@ -614,7 +626,7 @@ public class WifiApConfigStore {
         }
 
         if (SdkLevel.isAtLeastT()
-                && authType == SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION) {
+                && authType == SECURITY_TYPE_WPA3_OWE_TRANSITION) {
             if (!ApConfigUtil.isBridgedModeSupported(context)) {
                 Log.d(TAG, "softap owe transition needs bridge mode support");
                 return false;
