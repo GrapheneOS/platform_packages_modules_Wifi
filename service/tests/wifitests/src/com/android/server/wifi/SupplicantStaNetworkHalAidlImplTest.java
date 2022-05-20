@@ -46,6 +46,7 @@ import android.hardware.wifi.supplicant.NetworkResponseEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.PairwiseCipherMask;
 import android.hardware.wifi.supplicant.SaeH2eMode;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
+import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
@@ -687,6 +688,44 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         assertTrue(mSupplicantNetwork.loadWifiConfiguration(loadConfig, networkExtras));
         // The additional SAE AMK should be stripped out when reading it back.
         WifiConfigurationTestUtil.assertConfigurationEqualForSupplicant(config, loadConfig);
+    }
+
+    /**
+     * Tests the PMF is disabled when the device supports multiple AKMs.
+     */
+    @Test
+    public void testPmfDisabledWhenAutoUpgradeOffloadIsSupportedAndSaeSelected() throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        // PSK and SAE is set and PMF is disable when SAE is selected.
+        assertEquals(KeyMgmtMask.WPA_PSK, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.WPA_PSK));
+        assertEquals(KeyMgmtMask.SAE, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.SAE));
+        assertEquals(false, mSupplicantVariables.requirePmf);
+    }
+
+    /**
+     * Tests the PMF is kept when the device does not support multiple AKMs.
+     */
+    @Test
+    public void testPmfEnabledWhenAutoUpgradeOffloadNotSupportedAndSaeSelected() throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(false);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        // Only SAE is set and PMF is enabled when SAE is selected.
+        assertEquals(0, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.WPA_PSK));
+        assertEquals(KeyMgmtMask.SAE, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.SAE));
+        assertEquals(true, mSupplicantVariables.requirePmf);
     }
 
     /**
