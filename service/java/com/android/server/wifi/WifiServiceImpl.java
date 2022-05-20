@@ -6115,8 +6115,8 @@ public class WifiServiceImpl extends BaseWifiService {
                     callback.onRegisterFailed(REGISTER_PNO_CALLBACK_PNO_NOT_SUPPORTED);
                     return;
                 }
-                mWifiConnectivityManager.setExternalPnoScanRequest(uid, binder, callback, ssids,
-                        frequencies);
+                mWifiConnectivityManager.setExternalPnoScanRequest(
+                        uid, packageName, binder, callback, ssids, frequencies);
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
