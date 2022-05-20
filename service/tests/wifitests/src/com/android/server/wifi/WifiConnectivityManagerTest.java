@@ -4542,15 +4542,16 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void testSetAndClearExternalPnoScanRequest() {
         int testUid = 123;
+        String testPackage = "TestPackage";
         IBinder binder = mock(IBinder.class);
         IPnoScanResultsCallback callback = mock(IPnoScanResultsCallback.class);
         List<WifiSsid> requestedSsids = Arrays.asList(
                 WifiSsid.fromString("\"TEST_SSID_1\""),
                 WifiSsid.fromString("\"TEST_SSID_2\""));
         int[] frequencies = new int[] {TEST_FREQUENCY};
-        mWifiConnectivityManager.setExternalPnoScanRequest(testUid, binder, callback,
+        mWifiConnectivityManager.setExternalPnoScanRequest(testUid, testPackage, binder, callback,
                 requestedSsids, frequencies);
-        verify(mExternalPnoScanRequestManager).setRequest(testUid, binder, callback,
+        verify(mExternalPnoScanRequestManager).setRequest(testUid, testPackage, binder, callback,
                 requestedSsids, frequencies);
         mWifiConnectivityManager.clearExternalPnoScanRequest(testUid);
         verify(mExternalPnoScanRequestManager).removeRequest(testUid);
