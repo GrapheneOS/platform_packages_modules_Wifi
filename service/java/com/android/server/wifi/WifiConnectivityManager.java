@@ -2197,10 +2197,11 @@ public class WifiConnectivityManager {
     /**
      * Sets a external PNO scan request
      */
-    public void setExternalPnoScanRequest(int uid, @NonNull IBinder binder,
-            @NonNull IPnoScanResultsCallback callback, @NonNull List<WifiSsid> ssids,
-            @NonNull int[] frequencies) {
-        if (mExternalPnoScanRequestManager.setRequest(uid, binder, callback, ssids, frequencies)) {
+    public void setExternalPnoScanRequest(int uid, @NonNull String packageName,
+            @NonNull IBinder binder, @NonNull IPnoScanResultsCallback callback,
+            @NonNull List<WifiSsid> ssids, @NonNull int[] frequencies) {
+        if (mExternalPnoScanRequestManager.setRequest(
+                uid, packageName, binder, callback, ssids, frequencies)) {
             if (mPnoScanStarted) {
                 Log.d(TAG, "Restarting PNO Scan with external requested SSIDs");
                 stopPnoScan();

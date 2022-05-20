@@ -9603,8 +9603,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.setExternalPnoScanRequest(mAppBinder, callback, ssids, frequencies,
                 TEST_PACKAGE_NAME, TEST_FEATURE_ID);
         mLooper.dispatchAll();
-        verify(mWifiConnectivityManager).setExternalPnoScanRequest(anyInt(), any(), eq(callback),
-                eq(ssids), eq(frequencies));
+        verify(mWifiConnectivityManager).setExternalPnoScanRequest(anyInt(), any(), any(),
+                eq(callback), eq(ssids), eq(frequencies));
     }
 
     @Test

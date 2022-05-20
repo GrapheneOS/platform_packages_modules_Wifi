@@ -8694,7 +8694,9 @@ public class WifiManager {
      * the requested SSIDs will get included for PNO scans the next time the screen turns off.
      * <p>
      * Note, due to PNO being a limited resource, only one external PNO request is supported, and
-     * calling this API will fail if an external PNO scan request is already registered.
+     * calling this API will fail if an external PNO scan request is already registered by another
+     * caller. If the caller that has already registered a callback calls this API again, the new
+     * callback will override the previous one.
      * <p>
      * After this API is called, {@link PnoScanResultsCallback#onRegisterSuccess()} will be invoked
      * if the operation is successful, or {@link PnoScanResultsCallback#onRegisterFailed(int)} will
