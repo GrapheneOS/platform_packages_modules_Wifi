@@ -461,7 +461,7 @@ public class WifiInjector {
                 mMakeBeforeBreakManager, mWifiNotificationManager, mWifiPermissionsUtil);
         mMultiInternetManager = new MultiInternetManager(mActiveModeWarden, mFrameworkFacade,
                 mContext, mCmiMonitor, mSettingsStore, wifiHandler, mClock);
-        mExternalPnoScanRequestManager = new ExternalPnoScanRequestManager(wifiHandler);
+        mExternalPnoScanRequestManager = new ExternalPnoScanRequestManager(wifiHandler, mContext);
         mWifiConnectivityManager = new WifiConnectivityManager(
                 mContext, mScoringParams, mWifiConfigManager,
                 mWifiNetworkSuggestionsManager, mWifiNetworkSelector,
