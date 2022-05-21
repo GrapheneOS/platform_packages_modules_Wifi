@@ -754,4 +754,13 @@ interface ISupplicantStaIfaceHal {
      */
     boolean generateSelfDppConfiguration(@NonNull String ifaceName, @NonNull String ssid,
             byte[] privEcKey);
+
+    /**
+     * Set the currently configured network's anonymous identity.
+     *
+     * @param ifaceName Name of the interface.
+     * @param anonymousIdentity the anonymouns identity.
+     * @return true if succeeds, false otherwise.
+     */
+    boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity);
 }
