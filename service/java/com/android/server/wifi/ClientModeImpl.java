@@ -4900,6 +4900,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                             anonymousIdentity);
                             if (decoratedPseudonym != null) {
                                 anonymousIdentity = decoratedPseudonym;
+                                // propagate to the supplicant to avoid using
+                                // the original anonymous identity for firmware
+                                // roaming.
+                                mWifiNative.setEapAnonymousIdentity(mInterfaceName,
+                                        anonymousIdentity);
                             }
                             if (mVerboseLoggingEnabled) {
                                 log("EAP Pseudonym: " + anonymousIdentity);
