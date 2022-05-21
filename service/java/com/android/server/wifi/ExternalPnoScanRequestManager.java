@@ -16,18 +16,21 @@
 
 package com.android.server.wifi;
 
-import static android.net.wifi.WifiManager.PnoScanResultsCallback.REGISTER_PNO_CALLBACK_ALREADY_REGISTERED;
 import static android.net.wifi.WifiManager.PnoScanResultsCallback.REGISTER_PNO_CALLBACK_RESOURCE_BUSY;
 import static android.net.wifi.WifiManager.PnoScanResultsCallback.REMOVE_PNO_CALLBACK_RESULTS_DELIVERED;
 import static android.net.wifi.WifiManager.PnoScanResultsCallback.REMOVE_PNO_CALLBACK_UNREGISTERED;
 
 import android.annotation.NonNull;
+import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.util.ArraySet;
 import android.util.Log;
 
@@ -50,13 +53,16 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
     private ExternalPnoScanRequest mCurrentRequest;
     private final Handler mHandler;
     private int mCurrentRequestOnPnoNetworkFoundCount = 0;
+    private Context mContext;
 
     /**
      * Creates a ExternalPnoScanRequestManager.
      * @param handler to run binder death callback.
+     * @param context of the wifi service.
      */
-    public ExternalPnoScanRequestManager(Handler handler) {
+    public ExternalPnoScanRequestManager(Handler handler, Context context) {
         mHandler = handler;
+        mContext = context;
     }
 
     /**
@@ -78,22 +84,19 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
     /**
      * Sets the request. This will fail if there's already a request set.
      */
-    public boolean setRequest(int uid, @NonNull IBinder binder,
+    public boolean setRequest(int uid, @NonNull String packageName, @NonNull IBinder binder,
             @NonNull IPnoScanResultsCallback callback,
             @NonNull List<WifiSsid> ssids, @NonNull int[] frequencies) {
-        if (mCurrentRequest != null) {
-            // Already has existing request. Can't set a new one.
+        if (mCurrentRequest != null && uid != mCurrentRequest.mUid) {
             try {
-                callback.onRegisterFailed(uid == mCurrentRequest.mUid
-                        ? REGISTER_PNO_CALLBACK_ALREADY_REGISTERED
-                        : REGISTER_PNO_CALLBACK_RESOURCE_BUSY);
+                callback.onRegisterFailed(REGISTER_PNO_CALLBACK_RESOURCE_BUSY);
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
             return false;
         }
         ExternalPnoScanRequest request = new ExternalPnoScanRequestManager.ExternalPnoScanRequest(
-                uid, binder, callback, ssids, frequencies);
+                uid, packageName, binder, callback, ssids, frequencies);
         try {
             request.mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {
@@ -105,6 +108,15 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         } catch (RemoteException e) {
             Log.e(TAG, e.getMessage());
             return false;
+        }
+        if (mCurrentRequest != null) {
+            // overriding the existing request from the same caller.
+            try {
+                mCurrentRequest.mCallback.onRemoved(REMOVE_PNO_CALLBACK_UNREGISTERED);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+            removeCurrentRequest();
         }
         mCurrentRequest = request;
         return true;
@@ -162,6 +174,7 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
 
         // requested PNO SSIDs found. Send results and then remove request.
         try {
+            sendScanResultAvailableBroadcastToPackage(mCurrentRequest.mPackageName);
             mCurrentRequest.mCallback.onScanResultsAvailable(requestedResults);
             mCurrentRequest.mCallback.onRemoved(REMOVE_PNO_CALLBACK_RESULTS_DELIVERED);
         } catch (RemoteException e) {
@@ -170,11 +183,19 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         removeCurrentRequest();
     }
 
+    private void sendScanResultAvailableBroadcastToPackage(String packageName) {
+        Intent intent = new Intent(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, true);
+        intent.setPackage(packageName);
+        mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+    }
+
     /**
      * Tracks a request for PNO scan made by an app.
      */
     public static class ExternalPnoScanRequest {
         private int mUid;
+        private String mPackageName;
         private Set<String> mSsidStrings;
         private Set<Integer> mFrequencies;
         private IPnoScanResultsCallback mCallback;
@@ -186,9 +207,10 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
          * @param callback used to send results back to the caller
          * @param ssids requested SSIDs for PNO scan
          */
-        public ExternalPnoScanRequest(int uid, IBinder binder, IPnoScanResultsCallback callback,
-                List<WifiSsid> ssids, int[] frequencies) {
+        public ExternalPnoScanRequest(int uid, String packageName, IBinder binder,
+                IPnoScanResultsCallback callback, List<WifiSsid> ssids, int[] frequencies) {
             mUid = uid;
+            mPackageName = packageName;
             mBinder = binder;
             mCallback = callback;
             mSsidStrings = new ArraySet<>();
@@ -202,6 +224,7 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         public String toString() {
             StringBuilder sbuf = new StringBuilder();
             sbuf.append("uid=").append(mUid)
+                    .append(", packageName=").append(mPackageName)
                     .append(", binder=").append(mBinder)
                     .append(", callback=").append(mCallback)
                     .append(", mSsidStrings=");
@@ -221,7 +244,9 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
      */
     @Override
     public void binderDied() {
-        mHandler.post(() -> removeCurrentRequest());
+        // Log binder died, but keep the request since result will still be delivered with directed
+        // broadcast
+        Log.w(TAG, "Binder died.");
     }
 
     /**
