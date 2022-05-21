@@ -1933,7 +1933,7 @@ public class SupplicantStaNetworkHalHidlImpl {
     }
 
     /** See ISupplicantStaNetwork.hal for documentation */
-    private boolean setEapAnonymousIdentity(java.util.ArrayList<Byte> identity) {
+    public boolean setEapAnonymousIdentity(java.util.ArrayList<Byte> identity) {
         synchronized (mLock) {
             final String methodStr = "setEapAnonymousIdentity";
             if (!checkISupplicantStaNetworkAndLogFailure(methodStr)) return false;

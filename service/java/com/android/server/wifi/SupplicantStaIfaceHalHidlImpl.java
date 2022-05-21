@@ -3952,4 +3952,25 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         Log.d(TAG, "generateSelfDppConfiguration is not supported");
         return false;
     }
+
+    /**
+     * Set the currently configured network's anonymous identity.
+     *
+     * @param ifaceName Name of the interface.
+     * @param anonymousIdentity the anonymouns identity.
+     * @return true if succeeds, false otherwise.
+     */
+    public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity) {
+        synchronized (mLock) {
+            SupplicantStaNetworkHalHidlImpl networkHandle =
+                    checkSupplicantStaNetworkAndLogFailure(ifaceName, "setEapAnonymousIdentity");
+            if (networkHandle == null) return false;
+            try {
+                return networkHandle.setEapAnonymousIdentity(
+                        NativeUtil.stringToByteArrayList(anonymousIdentity));
+            } catch (IllegalArgumentException ex) {
+                return false;
+            }
+        }
+    }
 }

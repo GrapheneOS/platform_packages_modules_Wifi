@@ -4361,6 +4361,21 @@ public class WifiNative {
     }
 
     /**
+     * This set anonymous identity to supplicant.
+     *
+     * @param ifaceName Name of the interface.
+     * @param anonymousIdentity the anonymouns identity.
+     * @return true if succeeds, false otherwise.
+     */
+    public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity) {
+        if (null == anonymousIdentity) {
+            Log.e(TAG, "Cannot set null anonymous identity.");
+            return false;
+        }
+        return mSupplicantStaIfaceHal.setEapAnonymousIdentity(ifaceName, anonymousIdentity);
+    }
+
+    /**
      * Notify wificond daemon of country code have changed.
      */
     public void countryCodeChanged(String countryCode) {

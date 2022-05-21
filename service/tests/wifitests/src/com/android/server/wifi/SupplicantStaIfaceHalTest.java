@@ -1206,4 +1206,17 @@ public class SupplicantStaIfaceHalTest {
         assertFalse(request.isRemoveRequest());
         assertFalse(request.classifierParams.isValid);
     }
+
+    /**
+     * Test that we can call setEapAnonymousIdentity
+     */
+    @Test
+    public void testSetEapAnonymousIdentity() {
+        final String anonymousIdentity = "abc@realm.net";
+        initializeWithAidlImpl(true);
+        when(mStaIfaceHalAidlMock.setEapAnonymousIdentity(anyString(), anyString()))
+                .thenReturn(true);
+        assertTrue(mDut.setEapAnonymousIdentity(IFACE_NAME, anonymousIdentity));
+        verify(mStaIfaceHalAidlMock).setEapAnonymousIdentity(eq(IFACE_NAME), eq(anonymousIdentity));
+    }
 }

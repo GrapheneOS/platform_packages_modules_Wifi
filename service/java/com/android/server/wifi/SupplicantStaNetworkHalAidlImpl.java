@@ -1829,7 +1829,7 @@ public class SupplicantStaNetworkHalAidlImpl {
      * @param identity value to set.
      * @return true if successful, false otherwise
      */
-    private boolean setEapAnonymousIdentity(byte[] identity) {
+    public boolean setEapAnonymousIdentity(byte[] identity) {
         synchronized (mLock) {
             final String methodStr = "setEapAnonymousIdentity";
             if (!checkStaNetworkAndLogFailure(methodStr)) {
