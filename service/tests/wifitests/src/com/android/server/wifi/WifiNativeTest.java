@@ -1361,6 +1361,28 @@ public class WifiNativeTest extends WifiBaseTest {
         }
     }
 
+    /**
+     * Verifies setEapAnonymousIdentity() sunny case.
+     */
+    @Test
+    public void testSetEapAnonymousIdentitySuccess() throws Exception {
+        when(mStaIfaceHal.setEapAnonymousIdentity(any(), any())).thenReturn(true);
+        final String anonymousIdentity = "abc@realm.com";
+        assertTrue(mWifiNative.setEapAnonymousIdentity(WIFI_IFACE_NAME, anonymousIdentity));
+        verify(mStaIfaceHal).setEapAnonymousIdentity(eq(WIFI_IFACE_NAME),
+                eq(anonymousIdentity));
+    }
+
+    /**
+     * Verifies that setEapAnonymousIdentity() fails with null anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentityFailureWithNullString() throws Exception {
+        when(mStaIfaceHal.setEapAnonymousIdentity(any(), any())).thenReturn(true);
+        assertFalse(mWifiNative.setEapAnonymousIdentity(WIFI_IFACE_NAME, null));
+        verify(mStaIfaceHal, never()).setEapAnonymousIdentity(any(), any());
+    }
+
     @Test
     public void testSetApCountryCodeSuccessful() {
         when(mWifiVendorHal.setApCountryCode(any(), any())).thenReturn(true);
