@@ -401,8 +401,13 @@ public class WifiDiagnostics {
 
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(systemTimeMs);
-            builder.append("system time = ").append(
-                    String.format("%tm-%td %tH:%tM:%tS.%tL", c, c, c, c, c, c)).append("\n");
+            builder.append("system time = ")
+                    .append(c.get(Calendar.MONTH)).append("-")
+                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                    .append(c.get(Calendar.MINUTE)).append(":")
+                    .append(c.get(Calendar.SECOND)).append(".")
+                    .append(c.get(Calendar.MILLISECOND)).append("\n");
 
             long kernelTimeMs = kernelTimeNanos/(1000*1000);
             builder.append("kernel time = ").append(kernelTimeMs/1000).append(".").append
@@ -792,8 +797,7 @@ public class WifiDiagnostics {
         ArrayList<String> lines = new ArrayList<>(maxLines);
         Process process = null;
         try {
-            process = mJavaRuntime.exec(
-                    String.format("logcat -b %s -t %d", logcatSections, maxLines));
+            process = mJavaRuntime.exec("logcat -b " + logcatSections + " -t " + maxLines);
             readLogcatStreamLinesWithTimeout(
                     new BufferedReader(new InputStreamReader(process.getInputStream())), lines);
             readLogcatStreamLinesWithTimeout(

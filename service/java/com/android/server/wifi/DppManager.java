@@ -272,7 +272,7 @@ public class DppManager {
         // Currently support either SAE mode or PSK mode or DPP mode
         // Check PSK first because PSK config always has a SAE type as a upgrading type.
         if (selectedNetwork.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)) {
-            if (selectedNetwork.preSharedKey.matches(String.format("[0-9A-Fa-f]{%d}", 64))) {
+            if (selectedNetwork.preSharedKey.matches("[0-9A-Fa-f]{64}")) {
                 // PSK
                 psk = selectedNetwork.preSharedKey;
             } else {

@@ -391,7 +391,7 @@ public class WifiNetworkSelector {
      */
     public static String toScanId(@Nullable ScanResult scanResult) {
         return scanResult == null ? "NULL"
-                : String.format("%s:%s", scanResult.SSID, scanResult.BSSID);
+                : scanResult.SSID + ":" + scanResult.BSSID;
     }
 
     /**
@@ -1139,7 +1139,7 @@ public class WifiNetworkSelector {
                 && configWithPassword.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)
                 && !configWithPassword.preSharedKey.startsWith("\"")
                 && configWithPassword.preSharedKey.length() == 64
-                && configWithPassword.preSharedKey.matches(String.format("[0-9A-Fa-f]{%d}", 64))) {
+                && configWithPassword.preSharedKey.matches("[0-9A-Fa-f]{64}")) {
             localLog("Remove SAE type for " + configWithPassword.SSID + " with 64-octet Hex PSK.");
             scanResultParamsList
                     .removeIf(p -> p.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE));
