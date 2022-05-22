@@ -168,8 +168,16 @@ public class WifiP2pMetrics {
                 Calendar c = Calendar.getInstance();
                 c.setTimeInMillis(event.startTimeMillis);
                 sb.append("startTime=");
-                sb.append(event.startTimeMillis == 0 ? "            <null>" :
-                        String.format("%tm-%td %tH:%tM:%tS.%tL", c, c, c, c, c, c));
+                if (event.startTimeMillis == 0) {
+                    sb.append("            <null>");
+                } else {
+                    sb.append(c.get(Calendar.MONTH)).append("-")
+                            .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                            .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                            .append(c.get(Calendar.MINUTE)).append(":")
+                            .append(c.get(Calendar.SECOND)).append(".")
+                            .append(c.get(Calendar.MILLISECOND));
+                }
                 sb.append(", connectionType=");
                 switch (event.connectionType) {
                     case P2pConnectionEvent.CONNECTION_FRESH:
