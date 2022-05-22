@@ -945,7 +945,12 @@ public class WifiMetrics {
             StringBuilder sb = new StringBuilder();
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(mWallClockTimeMs);
-            sb.append(String.format("%tm-%td %tH:%tM:%tS.%tL", c, c, c, c, c, c));
+            sb.append(c.get(Calendar.MONTH)).append("-")
+                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                    .append(c.get(Calendar.MINUTE)).append(":")
+                    .append(c.get(Calendar.SECOND)).append(".")
+                    .append(c.get(Calendar.MILLISECOND));
             String eventType = "UNKNOWN";
             switch (mUserActionEvent.eventType) {
                 case UserActionEvent.EVENT_FORGET_WIFI:
@@ -1091,8 +1096,16 @@ public class WifiMetrics {
             Calendar c = Calendar.getInstance();
             synchronized (mLock) {
                 c.setTimeInMillis(mConnectionEvent.startTimeMillis);
-                sb.append(mConnectionEvent.startTimeMillis == 0 ? "            <null>" :
-                        String.format("%tm-%td %tH:%tM:%tS.%tL", c, c, c, c, c, c));
+                if (mConnectionEvent.startTimeMillis == 0) {
+                    sb.append("            <null>");
+                } else {
+                    sb.append(c.get(Calendar.MONTH)).append("-")
+                            .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                            .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                            .append(c.get(Calendar.MINUTE)).append(":")
+                            .append(c.get(Calendar.SECOND)).append(".")
+                            .append(c.get(Calendar.MILLISECOND));
+                }
                 sb.append(", SSID=");
                 sb.append(mConfigSsid);
                 sb.append(", BSSID=");
@@ -1238,8 +1251,8 @@ public class WifiMetrics {
                         sb.append("NOMINATOR_OPEN_NETWORK_AVAILABLE");
                         break;
                     default:
-                        sb.append(String.format("UnrecognizedNominator(%d)",
-                                mConnectionEvent.connectionNominator));
+                        sb.append("UnrecognizedNominator(" + mConnectionEvent.connectionNominator
+                                + ")");
                 }
                 sb.append(", networkSelectorExperimentId=");
                 sb.append(mConnectionEvent.networkSelectorExperimentId);

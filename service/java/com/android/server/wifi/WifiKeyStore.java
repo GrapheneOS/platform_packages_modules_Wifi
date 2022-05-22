@@ -125,7 +125,7 @@ public class WifiKeyStore {
         if (caCertificates != null) {
             caCertificateAliases = new ArrayList<>();
             for (int i = 0; i < caCertificates.length; i++) {
-                String caAlias = String.format("%s_%d", alias, i);
+                String caAlias = alias + "_" + i;
 
                 oldCaCertificatesToRemove.remove(caAlias);
                 if (!putCaCertInKeyStore(caAlias, caCertificates[i])) {
