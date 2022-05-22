@@ -1,8 +1,5 @@
 package com.android.server.wifi.hotspot2;
 
-import static com.android.server.wifi.hotspot2.anqp.Constants.BYTES_IN_EUI48;
-import static com.android.server.wifi.hotspot2.anqp.Constants.BYTE_MASK;
-
 import android.net.MacAddress;
 import android.net.wifi.MloLink;
 import android.net.wifi.ScanResult;
@@ -676,24 +673,27 @@ public class NetworkDetail {
 
     @Override
     public String toString() {
-        return String.format("NetworkInfo{SSID='%s', HESSID=%x, BSSID=%x, StationCount=%d, " +
-                "ChannelUtilization=%d, Capacity=%d, Ant=%s, Internet=%s, " +
-                "HSRelease=%s, AnqpDomainID=%d, " +
-                "AnqpOICount=%d, RoamingConsortiums=%s}",
-                mSSID, mHESSID, mBSSID, mStationCount,
-                mChannelUtilization, mCapacity, mAnt, mInternet,
-                mHSRelease, mAnqpDomainID,
-                mAnqpOICount, Utils.roamingConsortiumsToString(mRoamingConsortiums));
+        return "NetworkInfo{SSID='" + mSSID
+                + "', HESSID=" + Utils.macToSimpleString(mHESSID)
+                + ", BSSID=" + Utils.macToSimpleString(mBSSID)
+                + ", StationCount=" + mStationCount
+                + ", ChannelUtilization=" + mChannelUtilization
+                + ", Capacity=" + mCapacity
+                + ", Ant=" + mAnt + ", Internet=" + mInternet + ", HSRelease="
+                + mHSRelease + ", AnqpDomainID" + mAnqpDomainID + ", AnqpOICount" + mAnqpOICount
+                + ", RoamingConsortiums=" + Utils.roamingConsortiumsToString(mRoamingConsortiums)
+                + "}";
     }
 
     public String toKeyString() {
         return mHESSID != 0 ?
-            String.format("'%s':%012x (%012x)", mSSID, mBSSID, mHESSID) :
-            String.format("'%s':%012x", mSSID, mBSSID);
+                "'" + mSSID + "':" + Utils.macToSimpleString(mBSSID) + " ("
+                        + Utils.macToSimpleString(mHESSID) + ")"
+                : "'" + mSSID + "':" + Utils.macToSimpleString(mBSSID);
     }
 
     public String getBSSIDString() {
-        return toMACString(mBSSID);
+        return Utils.macToString(mBSSID);
     }
 
     /**
@@ -716,20 +716,6 @@ public class NetworkDetail {
         // Hidden networks are not 80211 standard, but it is common for a hidden network beacon
         // frame to either send zero-value bytes as the SSID, or to send no bytes at all.
         return isBeaconFrame() && mIsHiddenSsid;
-    }
-
-    public static String toMACString(long mac) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (int n = BYTES_IN_EUI48 - 1; n >= 0; n--) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(':');
-            }
-            sb.append(String.format("%02x", (mac >>> (n * Byte.SIZE)) & BYTE_MASK));
-        }
-        return sb.toString();
     }
 
     public int getMboAssociationDisallowedReasonCode() {
