@@ -1374,11 +1374,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mRxTimeLastReport = mRxTime;
         int period = (int) (now - mLastOntimeReportTimeStamp);
         mLastOntimeReportTimeStamp = now;
-        sb.append(String.format("[on:%d tx:%d rx:%d period:%d]", on, tx, rx, period));
+        sb.append("[on:" + on + " tx:" + tx + " rx:" + rx + " period:" + period + "]");
         // Report stats since Screen State Changed
         on = mOnTime - mOnTimeScreenStateChange;
         period = (int) (now - mLastScreenStateChangeTimeStamp);
-        sb.append(String.format(" from screen [on:%d period:%d]", on, period));
+        sb.append(" from screen [on:" + on + " period:" + period + "]");
         return sb.toString();
     }
 
@@ -2000,16 +2000,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 sb.append(" f=").append(mWifiInfo.getFrequency());
                 sb.append(" sc=").append(mWifiInfo.getScore());
                 sb.append(" link=").append(mWifiInfo.getLinkSpeed());
-                sb.append(String.format(" tx=%.1f,", mWifiInfo.getSuccessfulTxPacketsPerSecond()));
-                sb.append(String.format(" %.1f,", mWifiInfo.getRetriedTxPacketsPerSecond()));
-                sb.append(String.format(" %.1f ", mWifiInfo.getLostTxPacketsPerSecond()));
-                sb.append(String.format(" rx=%.1f", mWifiInfo.getSuccessfulRxPacketsPerSecond()));
-                sb.append(String.format(" bcn=%d", mRunningBeaconCount));
+                sb.append(" tx=").append(
+                        ((int) (mWifiInfo.getSuccessfulTxPacketsPerSecond() * 10)) / 10.0);
+                sb.append(", ").append(
+                        ((int) (mWifiInfo.getRetriedTxPacketsPerSecond() * 10)) / 10.0);
+                sb.append(", ").append(((int) (mWifiInfo.getLostTxPacketsPerSecond() * 10)) / 10.0);
+                sb.append(" rx=").append(
+                        ((int) (mWifiInfo.getSuccessfulRxPacketsPerSecond() * 10)) / 10.0);
+                sb.append(" bcn=" + mRunningBeaconCount);
                 report = reportOnTime();
                 if (report != null) {
                     sb.append(" ").append(report);
                 }
-                sb.append(String.format(" score=%d", mWifiInfo.getScore()));
+                sb.append(" score=" + mWifiInfo.getScore());
                 break;
             case CMD_START_CONNECT:
                 sb.append(" ");
@@ -2094,7 +2097,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 if (mWifiInfo.getBSSID() != null) {
                     sb.append(" ").append(mWifiInfo.getBSSID());
                 }
-                sb.append(String.format(" bcn=%d", mRunningBeaconCount));
+                sb.append(" bcn=" + mRunningBeaconCount);
                 break;
             case CMD_UPDATE_LINKPROPERTIES:
                 sb.append(" ");
@@ -4900,6 +4903,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                             anonymousIdentity);
                             if (decoratedPseudonym != null) {
                                 anonymousIdentity = decoratedPseudonym;
+                                // propagate to the supplicant to avoid using
+                                // the original anonymous identity for firmware
+                                // roaming.
+                                mWifiNative.setEapAnonymousIdentity(mInterfaceName,
+                                        anonymousIdentity);
                             }
                             if (mVerboseLoggingEnabled) {
                                 log("EAP Pseudonym: " + anonymousIdentity);

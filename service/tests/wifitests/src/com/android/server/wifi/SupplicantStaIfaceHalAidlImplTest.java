@@ -2254,6 +2254,25 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 qosPolicyRequestList.get(1).requestType);
     }
 
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentity() throws Exception {
+        String anonymousIdentity = "abc@realm.org";
+        byte[] bytes = anonymousIdentity.getBytes();
+        when(mSupplicantStaNetworkMock.setEapAnonymousIdentity(any()))
+                .thenReturn(true);
+
+        executeAndValidateInitializationSequence();
+        executeAndValidateConnectSequence(4, false);
+        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
+
+        ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(captor.capture());
+        assertTrue(Arrays.equals(bytes, captor.getValue()));
+    }
+
     private WifiConfiguration createTestWifiConfiguration() {
         WifiConfiguration config = new WifiConfiguration();
         config.networkId = SUPPLICANT_NETWORK_ID;

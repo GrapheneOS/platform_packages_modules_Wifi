@@ -836,10 +836,14 @@ public class WifiBlocklistMonitor {
 
         private StringBuilder createStringBuilderWithLogTime() {
             StringBuilder sb = new StringBuilder();
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(mClock.getWallClockMillis());
-            sb.append("logTimeMs=" + String.format("%tm-%td %tH:%tM:%tS.%tL", calendar, calendar,
-                    calendar, calendar, calendar, calendar));
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(mClock.getWallClockMillis());
+            sb.append("logTime=").append(c.get(Calendar.MONTH)).append("-")
+                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                    .append(c.get(Calendar.MINUTE)).append(":")
+                    .append(c.get(Calendar.SECOND)).append(".")
+                    .append(c.get(Calendar.MILLISECOND));
             return sb;
         }
 
@@ -921,15 +925,21 @@ public class WifiBlocklistMonitor {
             if (isInBlocklist) {
                 sb.append(", blockReason=" + getFailureReasonString(blockReason));
                 sb.append(", lastRssi=" + lastRssi);
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(blocklistStartTimeMs);
-                sb.append(", blocklistStartTimeMs="
-                        + String.format("%tm-%td %tH:%tM:%tS.%tL", calendar, calendar,
-                        calendar, calendar, calendar, calendar));
-                calendar.setTimeInMillis(blocklistEndTimeMs);
-                sb.append(", blocklistEndTimeMs="
-                        + String.format("%tm-%td %tH:%tM:%tS.%tL", calendar, calendar,
-                        calendar, calendar, calendar, calendar));
+                Calendar c = Calendar.getInstance();
+                c.setTimeInMillis(blocklistStartTimeMs);
+                sb.append(", blocklistStartTime=").append(c.get(Calendar.MONTH)).append("-")
+                        .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                        .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                        .append(c.get(Calendar.MINUTE)).append(":")
+                        .append(c.get(Calendar.SECOND)).append(".")
+                        .append(c.get(Calendar.MILLISECOND));
+                c.setTimeInMillis(blocklistEndTimeMs);
+                sb.append(", blocklistEndTime=").append(c.get(Calendar.MONTH)).append("-")
+                        .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
+                        .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
+                        .append(c.get(Calendar.MINUTE)).append(":")
+                        .append(c.get(Calendar.SECOND)).append(".")
+                        .append(c.get(Calendar.MILLISECOND));
             }
             return sb.toString();
         }

@@ -3690,4 +3690,21 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         assertTrue(mDut.getCurrentNetworkSecurityParams(WLAN0_IFACE_NAME)
                 .isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK));
     }
+
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentity() throws Exception {
+        String anonymousIdentity = "adb@realm.com";
+        ArrayList<Byte> bytes = NativeUtil.stringToByteArrayList(anonymousIdentity);
+        when(mSupplicantStaNetworkMock.setEapAnonymousIdentity(any()))
+                .thenReturn(true);
+
+        executeAndValidateInitializationSequence();
+        executeAndValidateConnectSequence(4, false);
+        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
+        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(eq(bytes));
+    }
+
 }

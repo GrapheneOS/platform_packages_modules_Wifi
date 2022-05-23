@@ -182,9 +182,8 @@ public class ScanDetail {
         if (networkDetail != null) {
             return networkDetail.toKeyString();
         } else {
-            return String.format("'%s':%012x",
-                                 mScanResult.BSSID,
-                                 Utils.parseMac(mScanResult.BSSID));
+            return "'" + mScanResult.BSSID + "':" + Utils.macToSimpleString(
+                    Utils.parseMac(mScanResult.BSSID));
         }
     }
 
@@ -214,11 +213,10 @@ public class ScanDetail {
     @Override
     public String toString() {
         try {
-            return String.format("'%s'/%012x",
-                                 mScanResult.SSID,
-                                 Utils.parseMac(mScanResult.BSSID));
+            return "'" + mScanResult.BSSID + "'/" + Utils.macToSimpleString(
+                    Utils.parseMac(mScanResult.BSSID));
         } catch (IllegalArgumentException iae) {
-            return String.format("'%s'/----", mScanResult.BSSID);
+            return "'" + mScanResult.BSSID + "'/----";
         }
     }
 }

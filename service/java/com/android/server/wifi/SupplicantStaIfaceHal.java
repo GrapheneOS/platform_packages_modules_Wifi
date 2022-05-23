@@ -2206,6 +2206,21 @@ public class SupplicantStaIfaceHal {
         }
     }
 
+    /**
+     * This set anonymous identity to supplicant.
+     *
+     * @param ifaceName Name of the interface.
+     * @param anonymousIdentity the anonymouns identity.
+     * @return true if succeeds, false otherwise.
+     */
+    public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity) {
+        String methodStr = "setEapAnonymousIdentity";
+        if (mStaIfaceHal == null) {
+            return handleNullHal(methodStr);
+        }
+        return mStaIfaceHal.setEapAnonymousIdentity(ifaceName, anonymousIdentity);
+    }
+
     private boolean handleNullHal(String methodStr) {
         Log.e(TAG, "Cannot call " + methodStr + " because HAL object is null.");
         return false;
