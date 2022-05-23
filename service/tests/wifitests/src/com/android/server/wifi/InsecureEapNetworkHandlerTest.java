@@ -326,6 +326,12 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
     private void setupTest(WifiConfiguration config,
             boolean isAtLeastT, boolean isTrustOnFirstUseSupported) {
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported, false);
+    }
+
+    private void setupTest(WifiConfiguration config,
+            boolean isAtLeastT, boolean isTrustOnFirstUseSupported,
+            boolean isInsecureEnterpriseConfigurationAllowed) {
         mInsecureEapNetworkHandler = new InsecureEapNetworkHandler(
                 mContext,
                 mWifiConfigManager,
@@ -333,19 +339,23 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager, isTrustOnFirstUseSupported,
+                isInsecureEnterpriseConfigurationAllowed,
                 mCallbacks,
                 WIFI_IFACE_NAME,
                 mHandler);
 
         mInsecureEapNetworkHandler.prepareConnection(config);
 
-        if (isAtLeastT && isTrustOnFirstUseSupported) {
+        if (isTrustOnFirstUseSupported && config.enterpriseConfig.isTrustOnFirstUseEnabled()) {
             verify(mContext, atLeastOnce()).registerReceiver(
                     mBroadcastReceiverCaptor.capture(),
                     argThat(f -> f.hasAction(InsecureEapNetworkHandler.ACTION_CERT_NOTIF_TAP)),
                     eq(null),
                     eq(mHandler));
-        } else {
+        } else if ((isTrustOnFirstUseSupported
+                && !config.enterpriseConfig.isTrustOnFirstUseEnabled()
+                && isInsecureEnterpriseConfigurationAllowed)
+                || !isTrustOnFirstUseSupported) {
             verify(mContext, atLeastOnce()).registerReceiver(
                     mBroadcastReceiverCaptor.capture(),
                     argThat(f -> f.hasAction(InsecureEapNetworkHandler.ACTION_CERT_NOTIF_ACCEPT)
@@ -418,6 +428,75 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, FakeKeys.CA_CERT0, FakeKeys.CA_CERT0);
+    }
+
+    /**
+     * Verify that the connection should be terminated.
+     * - TOFU is supported.
+     * - Insecure EAP network is not allowed.
+     * - No cert is received.
+     */
+    @Test
+    public void verifyOnErrorWithoutCert() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        assertEquals(needUserApproval,
+                mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
+        verify(mCallbacks).onError(eq(config.SSID));
+    }
+
+    /**
+     * Verify that the connection should be terminated.
+     * - TOFU is supported.
+     * - Insecure EAP network is not allowed.
+     * - TOFU is not enabled
+     */
+    @Test
+    public void verifyOnErrorWithTofuDisabledWhenInsecureEapNetworkIsNotAllowed()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        config.enterpriseConfig.enableTrustOnFirstUse(false);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        mInsecureEapNetworkHandler.setPendingCertificate(config.SSID, 0, FakeKeys.CA_CERT0);
+
+        assertEquals(needUserApproval,
+                mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
+        verify(mCallbacks).onError(eq(config.SSID));
+    }
+
+    /**
+     * Verify that no error occurs in insecure network handling flow.
+     * - TOFU is supported.
+     * - Insecure EAP network is allowed.
+     * - TOFU is not enabled
+     */
+    @Test
+    public void verifyNoErrorWithTofuDisabledWhenInsecureEapNetworkIsAllowed()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true, isInsecureEnterpriseConfigurationAllowed = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        config.enterpriseConfig.enableTrustOnFirstUse(false);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported,
+                isInsecureEnterpriseConfigurationAllowed);
+
+        mInsecureEapNetworkHandler.setPendingCertificate(config.SSID, 0, FakeKeys.CA_CERT0);
+
+        assertEquals(needUserApproval,
+                mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
+        verify(mCallbacks, never()).onError(any());
     }
 
     private void verifyTrustOnFirstUseFlowWithDefaultCerts(WifiConfiguration config,

@@ -4116,14 +4116,13 @@ public class WifiConfigManager {
      * This method updates Trust On First Use flag according to
      * Trust On First Use support and No-Ca-Cert Approval.
      */
-    public void updateTrustOnFirstUseFlag(
-            boolean isTrustOnFirstUseSupported) {
+    public void updateTrustOnFirstUseFlag(boolean enableTrustOnFirstUse) {
         getInternalConfiguredNetworks().stream()
                 .filter(config -> config.isEnterprise())
                 .filter(config -> config.enterpriseConfig.isEapMethodServerCertUsed())
                 .filter(config -> !config.enterpriseConfig.hasCaCertificate())
                 .forEach(config ->
-                        config.enterpriseConfig.enableTrustOnFirstUse(isTrustOnFirstUseSupported));
+                        config.enterpriseConfig.enableTrustOnFirstUse(enableTrustOnFirstUse));
     }
 
     /**

@@ -66,6 +66,7 @@ public class InsecureEapNetworkHandler {
     private final WifiNotificationManager mNotificationManager;
     private final WifiDialogManager mWifiDialogManager;
     private final boolean mIsTrustOnFirstUseSupported;
+    private final boolean mIsInsecureEnterpriseConfigurationAllowed;
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
     private final String mInterfaceName;
     private final Handler mHandler;
@@ -110,6 +111,7 @@ public class InsecureEapNetworkHandler {
             @NonNull WifiNotificationManager notificationManager,
             @NonNull WifiDialogManager wifiDialogManager,
             boolean isTrustOnFirstUseSupported,
+            boolean isInsecureEnterpriseConfigurationAllowed,
             @NonNull InsecureEapNetworkHandlerCallbacks callbacks,
             @NonNull String interfaceName,
             @NonNull Handler handler) {
@@ -120,6 +122,7 @@ public class InsecureEapNetworkHandler {
         mNotificationManager = notificationManager;
         mWifiDialogManager = wifiDialogManager;
         mIsTrustOnFirstUseSupported = isTrustOnFirstUseSupported;
+        mIsInsecureEnterpriseConfigurationAllowed = isInsecureEnterpriseConfigurationAllowed;
         mCallbacks = callbacks;
         mInterfaceName = interfaceName;
         mHandler = handler;
@@ -143,18 +146,24 @@ public class InsecureEapNetworkHandler {
         if (!entConfig.isEapMethodServerCertUsed()) return;
         if (entConfig.hasCaCertificate()) return;
 
-        // For TOFU supported devices, return if TOFU is not enabled.
-        if (mIsTrustOnFirstUseSupported && !entConfig.isTrustOnFirstUseEnabled()) {
-            return;
-        }
-        // For TOFU non-supported devices, return if this is approved before.
-        if (!mIsTrustOnFirstUseSupported && entConfig.isUserApproveNoCaCert()) {
-            return;
+        clearConnection();
+
+        Log.d(TAG, "prepareConnection: isTofuSupported=" + mIsTrustOnFirstUseSupported
+                + ", isInsecureEapNetworkAllowed=" + mIsInsecureEnterpriseConfigurationAllowed
+                + ", isTofuEnabled=" + entConfig.isTrustOnFirstUseEnabled()
+                + ", isUserApprovedNoCaCert=" + entConfig.isUserApproveNoCaCert());
+        // If TOFU is not supported or insecure EAP network is allowed without TOFU enabled,
+        // return to skip the dialog if this network is approved before.
+        if (entConfig.isUserApproveNoCaCert()) {
+            if (!mIsTrustOnFirstUseSupported) return;
+            if (mIsInsecureEnterpriseConfigurationAllowed
+                    && !entConfig.isTrustOnFirstUseEnabled()) {
+                return;
+            }
         }
 
-        clearConnection();
-        registerCertificateNotificationReceiver();
         mCurConfig = config;
+        registerCertificateNotificationReceiver();
         // Remove cached PMK in the framework and supplicant to avoid
         // skipping the EAP flow.
         clearNativeData();
@@ -217,13 +226,18 @@ public class InsecureEapNetworkHandler {
     /**
      * Ask for the user approval if necessary.
      *
-     * For T and an EAP network without a CA certificate.
-     * - if TOFU is not enabled or no pending CA cert, disconnect it.
-     * - if TOFU is enabled and CA cert is pending
+     * For TOFU is supported and an EAP network without a CA certificate.
+     * - if insecure EAP networks are not allowed
+     *    - if TOFU is not enabled, disconnect it.
+     *    - if no pending CA cert, disconnect it.
+     *    - if no server cert, disconnect it.
+     * - if insecure EAP networks are allowed and TOFU is not enabled
+     *    - follow no TOFU support flow.
+     * - if TOFU is enabled, CA cert is pending, and server cert is pending
      *     - gate the connecitvity event here
      *     - if this request is from a user, launch a dialog to get the user approval.
      *     - if this request is from auto-connect, launch a notification.
-     * For preT release, the confirmation flow is similar. Instead of installing CA
+     * If TOFU is not supported, the confirmation flow is similar. Instead of installing CA
      * cert from the server, just mark this network is approved by the user.
      *
      * @param isUserSelected indicates that this connection is triggered by a user.
@@ -236,20 +250,25 @@ public class InsecureEapNetworkHandler {
         if (!entConfig.isEapMethodServerCertUsed()) return false;
         if (entConfig.hasCaCertificate()) return false;
 
-        // If Trust On First Use is supported, Root CA cert is mandatory
-        // for an Enterprise network which needs Root CA cert.
-        if (!mIsTrustOnFirstUseSupported) {
-            if (mCurConfig.enterpriseConfig.isUserApproveNoCaCert()) {
-                return false;
+        // If Trust On First Use is supported and insecure enterprise configuration
+        // is not allowed, TOFU must be used for an Enterprise network without certs.
+        if (mIsTrustOnFirstUseSupported && !mIsInsecureEnterpriseConfigurationAllowed
+                && !mCurConfig.enterpriseConfig.isTrustOnFirstUseEnabled()) {
+            Log.d(TAG, "Trust On First Use is not enabled.");
+            handleError(mCurConfig.SSID);
+            return true;
+        }
+
+        if (useTrustOnFirstUse()) {
+            if (null == mPendingCaCert) {
+                Log.d(TAG, "No valid CA cert for TLS-based connection.");
+                handleError(mCurConfig.SSID);
+                return true;
+            } else if (null == mPendingServerCert) {
+                Log.d(TAG, "No valid Server cert for TLS-based connection.");
+                handleError(mCurConfig.SSID);
+                return true;
             }
-        } else if (null == mPendingCaCert) {
-            Log.d(TAG, "No valid CA cert for TLS-based connection.");
-            handleError(mCurConfig.SSID);
-            return true;
-        } else if (null == mPendingServerCert) {
-            Log.d(TAG, "No valid Server cert for TLS-based connection.");
-            handleError(mCurConfig.SSID);
-            return true;
         }
 
         Log.d(TAG, "startUserApprovalIfNecessaryForInsecureEapNetwork: mIsUserSelected="
@@ -263,14 +282,18 @@ public class InsecureEapNetworkHandler {
         return true;
     }
 
+    private boolean useTrustOnFirstUse() {
+        return mIsTrustOnFirstUseSupported
+                && mCurConfig.enterpriseConfig.isTrustOnFirstUseEnabled();
+    }
+
     private void registerCertificateNotificationReceiver() {
         if (mIsCertNotificationReceiverRegistered) return;
 
         IntentFilter filter = new IntentFilter();
-        if (mIsTrustOnFirstUseSupported) {
+        if (useTrustOnFirstUse()) {
             filter.addAction(ACTION_CERT_NOTIF_TAP);
-        }
-        if (!mIsTrustOnFirstUseSupported) {
+        } else {
             filter.addAction(ACTION_CERT_NOTIF_ACCEPT);
             filter.addAction(ACTION_CERT_NOTIF_REJECT);
         }
@@ -289,7 +312,7 @@ public class InsecureEapNetworkHandler {
     void handleAccept(@NonNull String ssid) {
         if (!isConnectionValid(ssid)) return;
 
-        if (!mIsTrustOnFirstUseSupported) {
+        if (!useTrustOnFirstUse()) {
             mWifiConfigManager.setUserApproveNoCaCert(mCurConfig.networkId, true);
         } else {
             if (null == mPendingCaCert || null == mPendingServerCert) {
@@ -333,7 +356,7 @@ public class InsecureEapNetworkHandler {
 
     private void askForUserApprovalForCaCertificate() {
         if (mCurConfig == null || TextUtils.isEmpty(mCurConfig.SSID)) return;
-        if (mIsTrustOnFirstUseSupported) {
+        if (useTrustOnFirstUse()) {
             if (null == mPendingCaCert || null == mPendingServerCert) {
                 Log.e(TAG, "Cannot launch a dialog for TOFU without "
                         + "a valid pending CA certificate.");
@@ -342,13 +365,13 @@ public class InsecureEapNetworkHandler {
         }
         dismissDialogAndNotification();
 
-        String title = mIsTrustOnFirstUseSupported
+        String title = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_title)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_title);
-        String positiveButtonText = mIsTrustOnFirstUseSupported
+        String positiveButtonText = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_continue_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_continue_text);
-        String negativeButtonText = mIsTrustOnFirstUseSupported
+        String negativeButtonText = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_abort_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_abort_text);
 
@@ -356,7 +379,7 @@ public class InsecureEapNetworkHandler {
         String messageUrl = null;
         int messageUrlStart = 0;
         int messageUrlEnd = 0;
-        if (mIsTrustOnFirstUseSupported) {
+        if (useTrustOnFirstUse()) {
             String signature = NativeUtil.hexStringFromByteArray(
                     mPendingCaCert.getSignature());
             StringBuilder contentBuilder = new StringBuilder()
@@ -438,14 +461,14 @@ public class InsecureEapNetworkHandler {
 
     private void notifyUserForCaCertificate() {
         if (mCurConfig == null) return;
-        if (mIsTrustOnFirstUseSupported) {
+        if (useTrustOnFirstUse()) {
             if (null == mPendingCaCert) return;
             if (null == mPendingServerCert) return;
         }
         dismissDialogAndNotification();
 
         PendingIntent tapPendingIntent;
-        if (mIsTrustOnFirstUseSupported) {
+        if (useTrustOnFirstUse()) {
             tapPendingIntent = genCaCertNotifIntent(ACTION_CERT_NOTIF_TAP, mCurConfig.SSID);
         } else {
             Intent openLinkIntent = new Intent(Intent.ACTION_VIEW)
@@ -455,10 +478,10 @@ public class InsecureEapNetworkHandler {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
 
-        String title = mIsTrustOnFirstUseSupported
+        String title = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_notification_title)
                 : mContext.getString(R.string.wifi_ca_cert_notification_preT_title);
-        String content = mIsTrustOnFirstUseSupported
+        String content = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_notification_message, mCurConfig.SSID)
                 : mContext.getString(R.string.wifi_ca_cert_notification_preT_message,
                         mCurConfig.SSID);
@@ -475,7 +498,7 @@ public class InsecureEapNetworkHandler {
                             android.R.color.system_notification_accent_color));
         // On a device which does not support Trust On First Use,
         // a user can accept or reject this network via the notification.
-        if (!mIsTrustOnFirstUseSupported) {
+        if (!useTrustOnFirstUse()) {
             Notification.Action acceptAction = new Notification.Action.Builder(
                     null /* icon */,
                     mContext.getString(R.string.wifi_ca_cert_dialog_preT_continue_text),
