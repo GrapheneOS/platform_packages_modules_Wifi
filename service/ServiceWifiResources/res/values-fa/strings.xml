@@ -29,7 +29,7 @@
     <string name="notification_channel_network_available" msgid="8454366142428864948">"شبکه دردسترس است"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"‏شبکه‌های Wi‑Fi پیشنهادی مجاز شود؟"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"شبکه‌های پیشنهادی <xliff:g id="NAME">%s</xliff:g>. ممکن است دستگاه به‌طور خودکار متصل شود."</string>
-    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"مجاز"</string>
+    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"اجازه دادن"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"نه متشکرم"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"‏به Wi-Fi <xliff:g id="CARRIERNAME">%s</xliff:g> متصل می‌شوید؟"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"این شبکه‌ها شناسه سیم‌کارتی دریافت می‌کنند که می‌توان از آن برای ردیابی مکان دستگاه استفاده کرد"</string>
@@ -148,6 +148,6 @@
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"متصل نشود"</string>
     <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"‏به <xliff:g id="APP_NAME">%1$s</xliff:g> اجازه می‌دهید Wi‑Fi را روشن کند؟"</string>
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"‏می‌توانید Wi‑Fi را در «تنظیمات فوری» خاموش کنید"</string>
-    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"اجازه داده شود"</string>
+    <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"اجازه دادن"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"اجازه داده نشود"</string>
 </resources>
