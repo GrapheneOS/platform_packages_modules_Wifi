@@ -32,7 +32,8 @@ import java.util.Collection;
  */
 final class ThroughputScorer implements WifiCandidates.CandidateScorer {
     private static final String TAG = "ThroughputScorer";
-    private static final boolean DBG = false;
+    private boolean mVerboseLoggingEnabled = false;
+
     /**
      * This should match WifiNetworkSelector.experimentIdFromIdentifier(getIdentifier())
      * when using the default ScoringParams.
@@ -78,6 +79,13 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
     @Override
     public String getIdentifier() {
         return "ThroughputScorer";
+    }
+
+    /**
+     * Enable (or disable) verbose logging for ThroughputScorer
+     */
+    public void enableVerboseLogging(boolean verboseEnabled) {
+        mVerboseLoggingEnabled = verboseEnabled;
     }
 
     /**
@@ -165,8 +173,10 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
             score = TOP_TIER_BASE_SCORE + rssiBaseScore + throughputBonusScore;
         }
 
-        if (DBG) {
-            Log.d(TAG, " rssiScore: " + rssiBaseScore
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, "Score for candidate: SSID: " + candidate.getKey().matchInfo.networkSsid
+                    + " BSSID: " + candidate.getKey().bssid
+                    + " rssiScore: " + rssiBaseScore
                     + " throughputScore: " + throughputBonusScore
                     + " currentNetworkBoost: " + currentNetworkBoost
                     + " securityAward: " + securityAward
