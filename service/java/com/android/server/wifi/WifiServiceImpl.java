@@ -3389,7 +3389,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // if we're being called from the SYSTEM_UID then allow usage of the AttributionSource to
         // reassign the WifiConfiguration to another app (reassignment == creatorUid)
-        if (SdkLevel.isAtLeastS() && uidToUse == Process.SYSTEM_UID) {
+        if (SdkLevel.isAtLeastS() && UserHandle.getAppId(uidToUse) == Process.SYSTEM_UID) {
             if (extras == null) {
                 throw new SecurityException("extras bundle is null");
             }
