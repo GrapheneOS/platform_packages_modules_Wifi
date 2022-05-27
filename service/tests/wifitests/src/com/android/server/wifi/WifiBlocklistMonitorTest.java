@@ -97,7 +97,8 @@ public class WifiBlocklistMonitorTest {
                     Map.entry(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_MBO_OCE, 1),
                     Map.entry(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_FAST_RECONNECT, 1),
                     Map.entry(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE, 1),
-                    Map.entry(WifiBlocklistMonitor.REASON_NONLOCAL_DISCONNECT_CONNECTING, 2)
+                    Map.entry(WifiBlocklistMonitor.REASON_NONLOCAL_DISCONNECT_CONNECTING, 2),
+                    Map.entry(WifiBlocklistMonitor.REASON_FAILURE_NO_RESPONSE, 1)
             );
     private static final int NUM_FAILURES_TO_BLOCKLIST =
             BLOCK_REASON_TO_DISABLE_THRESHOLD_MAP.get(TEST_L2_FAILURE);
@@ -175,6 +176,11 @@ public class WifiBlocklistMonitorTest {
                 R.integer.config_wifiBssidBlocklistMonitorNonlocalDisconnectConnectingThreshold,
                 BLOCK_REASON_TO_DISABLE_THRESHOLD_MAP.get(
                         WifiBlocklistMonitor.REASON_NONLOCAL_DISCONNECT_CONNECTING));
+        mResources.setInteger(
+                R.integer.config_wifiBssidBlocklistMonitorNoResponseThreshold,
+                BLOCK_REASON_TO_DISABLE_THRESHOLD_MAP.get(
+                        WifiBlocklistMonitor.REASON_FAILURE_NO_RESPONSE));
+
         mResources.setInteger(
                 R.integer.config_wifiDisableReasonAssociationRejectionThreshold,
                 NetworkSelectionStatus.DISABLE_REASON_INFOS

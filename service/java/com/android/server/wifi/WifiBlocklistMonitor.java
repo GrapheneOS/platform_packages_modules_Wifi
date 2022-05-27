@@ -84,8 +84,10 @@ public class WifiBlocklistMonitor {
     public static final int REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE = 11;
     // Non-local disconnection in the middle of connecting state
     public static final int REASON_NONLOCAL_DISCONNECT_CONNECTING = 12;
+    // Connection attempt aborted by the watchdog because the AP didn't respond.
+    public static final int REASON_FAILURE_NO_RESPONSE = 13;
     // Constant being used to keep track of how many failure reasons there are.
-    public static final int NUMBER_REASON_CODES = 13;
+    public static final int NUMBER_REASON_CODES = 14;
     public static final int INVALID_REASON = -1;
 
     @IntDef(prefix = { "REASON_" }, value = {
@@ -101,7 +103,8 @@ public class WifiBlocklistMonitor {
             REASON_FRAMEWORK_DISCONNECT_MBO_OCE,
             REASON_FRAMEWORK_DISCONNECT_FAST_RECONNECT,
             REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE,
-            REASON_NONLOCAL_DISCONNECT_CONNECTING
+            REASON_NONLOCAL_DISCONNECT_CONNECTING,
+            REASON_FAILURE_NO_RESPONSE
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface FailureReason {}
@@ -178,6 +181,8 @@ public class WifiBlocklistMonitor {
         // to true once it is covered in SSID blocklist.
         result.put(REASON_NONLOCAL_DISCONNECT_CONNECTING, new BssidDisableReason(
                 "REASON_NONLOCAL_DISCONNECT_CONNECTING", true, false));
+        result.put(REASON_FAILURE_NO_RESPONSE, new BssidDisableReason(
+                "REASON_FAILURE_NO_RESPONSE", true, true));
         return result;
     }
 
@@ -405,6 +410,9 @@ public class WifiBlocklistMonitor {
         FAILURE_COUNT_DISABLE_THRESHOLD[REASON_NONLOCAL_DISCONNECT_CONNECTING] =
                 mContext.getResources().getInteger(R.integer
                         .config_wifiBssidBlocklistMonitorNonlocalDisconnectConnectingThreshold);
+        FAILURE_COUNT_DISABLE_THRESHOLD[REASON_FAILURE_NO_RESPONSE] =
+                mContext.getResources().getInteger(R.integer
+                        .config_wifiBssidBlocklistMonitorNoResponseThreshold);
         mFailureCountDisableThresholdArrayInitialized = true;
         return FAILURE_COUNT_DISABLE_THRESHOLD[reasonCode];
     }
@@ -502,6 +510,7 @@ public class WifiBlocklistMonitor {
         mWifiScoreCard.resetBssidBlocklistStreak(ssid, bssid, REASON_AUTHENTICATION_FAILURE);
         mWifiScoreCard.resetBssidBlocklistStreak(ssid, bssid,
                 REASON_NONLOCAL_DISCONNECT_CONNECTING);
+        mWifiScoreCard.resetBssidBlocklistStreak(ssid, bssid, REASON_FAILURE_NO_RESPONSE);
 
         long connectionTime = mClock.getWallClockMillis();
         long prevConnectionTime = mWifiScoreCard.setBssidConnectionTimestampMs(
@@ -524,6 +533,7 @@ public class WifiBlocklistMonitor {
         status.failureCount[REASON_ASSOCIATION_TIMEOUT] = 0;
         status.failureCount[REASON_AUTHENTICATION_FAILURE] = 0;
         status.failureCount[REASON_NONLOCAL_DISCONNECT_CONNECTING] = 0;
+        status.failureCount[REASON_FAILURE_NO_RESPONSE] = 0;
         if (connectionTime - prevConnectionTime > ABNORMAL_DISCONNECT_RESET_TIME_MS) {
             status.failureCount[REASON_ABNORMAL_DISCONNECT] = 0;
         }
