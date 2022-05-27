@@ -767,8 +767,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         String packageNameToUse = packageName;
 
         // if we're being called from the SYSTEM_UID then allow usage of the AttributionSource to
-        // reassign the WifiConfiguration to another app (reassignment == creatorUid)
-        if (SdkLevel.isAtLeastS() && callerUid == Process.SYSTEM_UID) {
+        // locate the original caller.
+        if (SdkLevel.isAtLeastS() && UserHandle.getAppId(callerUid) == Process.SYSTEM_UID) {
             if (extras == null) {
                 throw new SecurityException("extras bundle is null");
             }
@@ -5946,7 +5946,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (clientInfo != null) {
                 return clientInfo.mPackageName;
             }
-            if (uid == Process.SYSTEM_UID) return mContext.getOpPackageName();
+            if (UserHandle.getAppId(uid) == Process.SYSTEM_UID) return mContext.getOpPackageName();
             return null;
         }
 
@@ -5961,7 +5961,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (clientInfo != null) {
                 return clientInfo.mFeatureId;
             }
-            if (uid == Process.SYSTEM_UID) return mContext.getAttributionTag();
+            if (UserHandle.getAppId(uid) == Process.SYSTEM_UID) return mContext.getAttributionTag();
             return null;
         }
 
