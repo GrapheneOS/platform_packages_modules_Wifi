@@ -415,7 +415,8 @@ public class WifiManager {
             API_TETHERED_HOTSPOT,
             API_AUTOJOIN_GLOBAL,
             API_SET_SCAN_SCHEDULE,
-            API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY})
+            API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY,
+            API_SET_NETWORK_SELECTION_CONFIG})
     public @interface ApiType {}
 
     /**
@@ -477,10 +478,19 @@ public class WifiManager {
     public static final int API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY = 7;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig)}
+     * @hide
+     */
+    public static final int API_SET_NETWORK_SELECTION_CONFIG = 8;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 7;
+    public static final int API_MAX = 9;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
@@ -1825,6 +1835,35 @@ public class WifiManager {
          */
         public @WifiAnnotations.ScanType int getScanType() {
             return mScanType;
+        }
+    }
+
+    /**
+     * This API allows a privileged app to customize the wifi framework's network selection logic.
+     * To revert to default behavior, call this API with a {@link WifiNetworkSelectionConfig}
+     * created from a default {@link WifiNetworkSelectionConfig.Builder}.
+     * <P>
+     * @param nsConfig an Object representing the network selection configuration being programmed.
+     *                 This should be created with a {@link WifiNetworkSelectionConfig.Builder}.
+     *
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws IllegalArgumentException if input is invalid.
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    public void setNetworkSelectionConfig(@NonNull WifiNetworkSelectionConfig nsConfig) {
+        try {
+            if (nsConfig == null) {
+                throw new IllegalArgumentException("nsConfig can not be null");
+            }
+            mService.setNetworkSelectionConfig(nsConfig);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
         }
     }
 

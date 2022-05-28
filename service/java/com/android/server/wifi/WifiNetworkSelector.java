@@ -17,6 +17,12 @@
 package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
+import static android.net.wifi.WifiNetworkSelectionConfig
+        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
+import static android.net.wifi.WifiNetworkSelectionConfig
+        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED;
+import static android.net.wifi.WifiNetworkSelectionConfig
+        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
@@ -31,6 +37,7 @@ import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiNetworkSelectionConfig.AssociatedNetworkSelectionOverride;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.util.ScanResultUtil;
 import android.telephony.TelephonyManager;
@@ -119,6 +126,11 @@ public class WifiNetworkSelector {
     private final Map<String, WifiCandidates.CandidateScorer> mCandidateScorers = new ArrayMap<>();
     private boolean mIsEnhancedOpenSupportedInitialized = false;
     private boolean mIsEnhancedOpenSupported;
+    private boolean mSufficiencyCheckEnabledWhenScreenOff  = true;
+    private boolean mSufficiencyCheckEnabledWhenScreenOn  = true;
+    private @AssociatedNetworkSelectionOverride int mAssociatedNetworkSelectionOverride =
+            ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
+    private boolean mScreenOn = false;
 
     /**
      * Interface for WiFi Network Nominator
@@ -288,6 +300,7 @@ public class WifiNetworkSelector {
 
         // Current network is set as unusable by the external scorer.
         if (!wifiInfo.isUsable()) {
+            localLog("Wifi is unusable according to external scorer.");
             return false;
         }
 
@@ -318,6 +331,12 @@ public class WifiNetworkSelector {
             return false;
         }
 
+        if (!isSufficiencyCheckEnabled()) {
+            localLog("Current network assumed as insufficient because sufficiency check is "
+                    + "disabled. mScreenOn=" + mScreenOn);
+            return false;
+        }
+
         if (!hasSufficientLinkQuality(wifiInfo) && !hasActiveStream(wifiInfo)) {
             localLog("Current network link quality is not sufficient and has low ongoing traffic");
             return false;
@@ -326,11 +345,22 @@ public class WifiNetworkSelector {
         return true;
     }
 
+    /**
+     * Get whether associated network selection is enabled.
+     * @return
+     */
+    public boolean isAssociatedNetworkSelectionEnabled() {
+        if (mAssociatedNetworkSelectionOverride == ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE) {
+            return mContext.getResources().getBoolean(
+                    R.bool.config_wifi_framework_enable_associated_network_selection);
+        }
+        return mAssociatedNetworkSelectionOverride == ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED;
+    }
+
     private boolean isNetworkSelectionNeededForCmm(@NonNull ClientModeManagerState cmmState) {
         if (cmmState.connected) {
             // Is roaming allowed?
-            if (!mContext.getResources().getBoolean(
-                    R.bool.config_wifi_framework_enable_associated_network_selection)) {
+            if (!isAssociatedNetworkSelectionEnabled()) {
                 localLog(cmmState.ifaceName + ": Switching networks in connected state is not "
                         + "allowed. Skip network selection.");
                 return false;
@@ -552,10 +582,16 @@ public class WifiNetworkSelector {
             // TODO (b/169413079): Disable network selection on corresponding CMM instead.
             if (cmmState.connected && cmmState.wifiInfo.getScore() >= WIFI_POOR_SCORE
                     && !scanResultPresentForCurrentBssids.contains(cmmState.wifiInfo.getBSSID())) {
-                localLog("Current connected BSSID " + cmmState.wifiInfo.getBSSID()
-                        + " is not in the scan results. Skip network selection.");
-                validScanDetails.clear();
-                return validScanDetails;
+                if (isSufficiencyCheckEnabled()) {
+                    localLog("Current connected BSSID " + cmmState.wifiInfo.getBSSID()
+                            + " is not in the scan results. Skip network selection.");
+                    validScanDetails.clear();
+                    return validScanDetails;
+                } else {
+                    localLog("Current connected BSSID " + cmmState.wifiInfo.getBSSID()
+                            + " is not in the scan results. But continue network selection because"
+                            + " sufficiency check is disabled.");
+                }
             }
         }
 
@@ -889,6 +925,46 @@ public class WifiNetworkSelector {
                     + (connected ? " connected" : (disconnected ? " disconnected" : "unknown"))
                     + ", WifiInfo: " + wifiInfo;
         }
+    }
+
+    /**
+     * Sets the screen state.
+     */
+    public void setScreenState(boolean screenOn) {
+        mScreenOn = screenOn;
+    }
+
+    /**
+     * Sets the associated network selection override.
+     */
+    public boolean setAssociatedNetworkSelectionOverride(
+            @AssociatedNetworkSelectionOverride int value) {
+        if (value != ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE
+                && value != ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED
+                && value != ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED) {
+            localLog("Error in setting associated network selection override. Invalid value="
+                    + value);
+            return false;
+        }
+        mAssociatedNetworkSelectionOverride = value;
+        return true;
+    }
+
+    /**
+     * Get whether sufficiency check is enabled based on the current screen state.
+     */
+    public boolean isSufficiencyCheckEnabled() {
+        return mScreenOn ? mSufficiencyCheckEnabledWhenScreenOn
+                : mSufficiencyCheckEnabledWhenScreenOff;
+    }
+
+    /**
+     * Enable or disable sufficiency check.
+     */
+    public void setSufficiencyCheckEnabled(boolean enabledWhileScreenOff,
+            boolean enabledWhileScreenOn) {
+        mSufficiencyCheckEnabledWhenScreenOff = enabledWhileScreenOff;
+        mSufficiencyCheckEnabledWhenScreenOn = enabledWhileScreenOn;
     }
 
     /**

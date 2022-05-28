@@ -63,6 +63,7 @@ import android.net.wifi.WifiConnectedSessionInfo;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiNetworkSelectionConfig;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
@@ -162,6 +163,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "query-interface",
             "interface-priority-interactive-mode",
             "set-one-shot-screen-on-delay-ms",
+            "set-network-selection-config",
             "set-ipreach-disconnect",
             "get-ipreach-disconnect",
     };
@@ -1594,6 +1596,39 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     mWifiService.setOneShotScreenOnConnectivityScanDelayMillis(delay);
                     return 0;
                 }
+                case "set-network-selection-config": {
+                    if (!SdkLevel.isAtLeastT()) {
+                        pw.println("This feature is only supported on SdkLevel T or later.");
+                        return -1;
+                    }
+                    WifiNetworkSelectionConfig.Builder builder =
+                            new WifiNetworkSelectionConfig.Builder();
+                    builder.setSufficiencyCheckEnabledWhenScreenOff(getNextArgRequiredTrueOrFalse(
+                            "enabled", "disabled"));
+                    builder.setSufficiencyCheckEnabledWhenScreenOn(getNextArgRequiredTrueOrFalse(
+                            "enabled", "disabled"));
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-a")) {
+                            String associatedNetworkSelectionOverride = getNextArgRequired();
+                            int override = Integer.parseInt(associatedNetworkSelectionOverride);
+                            builder.setAssociatedNetworkSelectionOverride(override);
+                        } else {
+                            pw.println("Ignoring unknown option " + option);
+                        }
+                        option = getNextOption();
+                    }
+                    WifiNetworkSelectionConfig nsConfig;
+                    try {
+                        nsConfig = builder.build();
+                    } catch (Exception e) {
+                        pw.println("Failed to build wifi network selection config.");
+                        return -1;
+                    }
+                    mWifiService.setNetworkSelectionConfig(nsConfig);
+                    return 0;
+                }
                 case "start-dpp-enrollee-responder": {
                     CountDownLatch countDownLatch = new CountDownLatch(1);
                     String option = getNextOption();
@@ -2325,6 +2360,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 + "conflict, |default| implies using the device default behavior.");
         pw.println("  set-one-shot-screen-on-delay-ms <delayMs>");
         pw.println("    set the delay for the next screen-on connectivity scan in milliseconds.");
+        pw.println("  set-network-selection-config <enabled|disabled> <enabled|disabled> "
+                + "-a <associated_network_selection_override>");
+        pw.println("    set whether sufficiency check is enabled for screen off case "
+                + "(first arg), and screen on case (second arg)");
+        pw.println("    -a - set as one of the int "
+                + "WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ values:");
+        pw.println("      0 - no override");
+        pw.println("      1 - override to enabled");
+        pw.println("      2 - override to disabled");
         pw.println("  set-ipreach-disconnect enabled|disabled");
         pw.println("    Sets whether CMD_IP_REACHABILITY_LOST events should trigger disconnects.");
         pw.println("  get-ipreach-disconnect");
