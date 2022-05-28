@@ -551,6 +551,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                         return candidate;
                     }
                 });
+        when(ns.isSufficiencyCheckEnabled()).thenReturn(true);
+        when(ns.isAssociatedNetworkSelectionEnabled()).thenReturn(true);
         return ns;
     }
 
@@ -5034,9 +5036,11 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     }
 
     private void setScreenState(boolean screenOn) {
+        InOrder inOrder = inOrder(mWifiNS);
         BroadcastReceiver broadcastReceiver = mBroadcastReceiverCaptor.getValue();
         assertNotNull(broadcastReceiver);
         Intent intent = new Intent(screenOn  ? ACTION_SCREEN_ON : ACTION_SCREEN_OFF);
         broadcastReceiver.onReceive(mContext, intent);
+        inOrder.verify(mWifiNS).setScreenState(screenOn);
     }
 }
