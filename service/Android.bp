@@ -105,6 +105,7 @@ java_library {
         // the necessary core platform APIs.
         "libprotobuf-java-lite",
         "libnanohttpd",
+        "modules-utils-locallog",
         "services.net-module-wifi",
         "wifi-lite-protos",
         "wifi-nano-protos",
