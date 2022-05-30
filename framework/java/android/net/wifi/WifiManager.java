@@ -3883,10 +3883,14 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @RequiresPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
     public void registerActiveCountryCodeChangedCallback(
             @NonNull @CallbackExecutor Executor executor,
             @NonNull ActiveCountryCodeChangedCallback callback) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
         if (executor == null) throw new IllegalArgumentException("executor cannot be null");
         if (callback == null) throw new IllegalArgumentException("callback cannot be null");
         if (mVerboseLoggingEnabled) {
@@ -3918,9 +3922,13 @@ public class WifiManager {
      *
      * @hide
      */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SystemApi
     public void unregisterActiveCountryCodeChangedCallback(
             @NonNull ActiveCountryCodeChangedCallback callback) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
         if (callback == null) throw new IllegalArgumentException("Callback cannot be null");
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "unregisterActiveCountryCodeChangedCallback: callback=" + callback);

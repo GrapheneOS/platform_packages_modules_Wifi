@@ -1747,30 +1747,32 @@ public class WifiServiceImpl extends BaseWifiService {
                             mLohsSoftApTracker.getSoftApCapability(),
                             WifiManager.IFACE_IP_MODE_LOCAL_ONLY);
                 }
-                int itemCount = mRegisteredDriverCountryCodeListeners.beginBroadcast();
-                for (int i = 0; i < itemCount; i++) {
-                    try {
-                        WifiPermissionsUtil.CallerIdentity identity =
-                                (WifiPermissionsUtil.CallerIdentity)
-                                mRegisteredDriverCountryCodeListeners.getBroadcastCookie(i);
-                        if (!mWifiPermissionsUtil.checkCallersCoarseLocationPermission(
-                                identity.getPackageName(), identity.getFeatureId(),
-                                identity.getUid(), null)) {
-                            Log.i(TAG, "ReceiverIdentity=" + identity.toString()
-                                    + " doesn't have ACCESS_COARSE_LOCATION permission now");
-                            continue;
+                if (SdkLevel.isAtLeastT()) {
+                    int itemCount = mRegisteredDriverCountryCodeListeners.beginBroadcast();
+                    for (int i = 0; i < itemCount; i++) {
+                        try {
+                            WifiPermissionsUtil.CallerIdentity identity =
+                                    (WifiPermissionsUtil.CallerIdentity)
+                                    mRegisteredDriverCountryCodeListeners.getBroadcastCookie(i);
+                            if (!mWifiPermissionsUtil.checkCallersCoarseLocationPermission(
+                                    identity.getPackageName(), identity.getFeatureId(),
+                                    identity.getUid(), null)) {
+                                Log.i(TAG, "ReceiverIdentity=" + identity.toString()
+                                        + " doesn't have ACCESS_COARSE_LOCATION permission now");
+                                continue;
+                            }
+                            if (isVerboseLoggingEnabled()) {
+                                Log.i(TAG, "onDriverCountryCodeChanged, ReceiverIdentity="
+                                        + identity.toString());
+                            }
+                            mRegisteredDriverCountryCodeListeners.getBroadcastItem(i)
+                                    .onDriverCountryCodeChanged(countryCode);
+                        } catch (RemoteException e) {
+                            Log.e(TAG, "onDriverCountryCodeChanged: remote exception -- " + e);
                         }
-                        if (isVerboseLoggingEnabled()) {
-                            Log.i(TAG, "onDriverCountryCodeChanged, ReceiverIdentity="
-                                    + identity.toString());
-                        }
-                        mRegisteredDriverCountryCodeListeners.getBroadcastItem(i)
-                                .onDriverCountryCodeChanged(countryCode);
-                    } catch (RemoteException e) {
-                        Log.e(TAG, "onDriverCountryCodeChanged: remote exception -- " + e);
                     }
+                    mRegisteredDriverCountryCodeListeners.finishBroadcast();
                 }
-                mRegisteredDriverCountryCodeListeners.finishBroadcast();
             });
         }
     }
@@ -4213,9 +4215,13 @@ public class WifiServiceImpl extends BaseWifiService {
      * @throws IllegalArgumentException if the arguments are null or invalid
      */
     @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void registerDriverCountryCodeChangedListener(@NonNull
             IOnWifiDriverCountryCodeChangedListener listener, @Nullable String packageName,
             @Nullable String featureId) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
         // verify arguments
         if (listener == null) {
             throw new IllegalArgumentException("listener must not be null");
@@ -4253,8 +4259,12 @@ public class WifiServiceImpl extends BaseWifiService {
      * @throws IllegalArgumentException if the arguments are null or invalid
      */
     @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void unregisterDriverCountryCodeChangedListener(@NonNull
             IOnWifiDriverCountryCodeChangedListener listener) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
         // verify arguments
         if (listener == null) {
             throw new IllegalArgumentException("listener must not be null");

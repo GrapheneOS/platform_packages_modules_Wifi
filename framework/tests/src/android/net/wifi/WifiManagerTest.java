@@ -3596,6 +3596,7 @@ public class WifiManagerTest {
      */
     @Test
     public void testRegisterActiveCountryCodeChangedCallbackThrowsExceptionOnNullCallback() {
+        assumeTrue(SdkLevel.isAtLeastT());
         try {
             mWifiManager.registerActiveCountryCodeChangedCallback(
                     new HandlerExecutor(mHandler), null);
@@ -3609,6 +3610,7 @@ public class WifiManagerTest {
      */
     @Test
     public void testRegisterActiveCountryCodeChangedCallbackThrowsExceptionOnNullExecutor() {
+        assumeTrue(SdkLevel.isAtLeastT());
         try {
             mWifiManager.registerActiveCountryCodeChangedCallback(null,
                     mActiveCountryCodeChangedCallback);
@@ -3622,6 +3624,7 @@ public class WifiManagerTest {
      */
     @Test
     public void testUnregisterActiveCountryCodeChangedCallbackThrowsExceptionOnNullCallback() {
+        assumeTrue(SdkLevel.isAtLeastT());
         try {
             mWifiManager.unregisterActiveCountryCodeChangedCallback(null);
             fail("expected IllegalArgumentException");
@@ -3635,6 +3638,7 @@ public class WifiManagerTest {
     @Test
     public void testRegisterActiveCountryCodeChangedCallbackCallGoesToWifiServiceImpl()
             throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         mWifiManager.registerActiveCountryCodeChangedCallback(new HandlerExecutor(mHandler),
                 mActiveCountryCodeChangedCallback);
         verify(mWifiService).registerDriverCountryCodeChangedListener(
@@ -3648,6 +3652,7 @@ public class WifiManagerTest {
     @Test
     public void testUnregisterActiveCountryCodeChangedCallbackCallGoesToWifiServiceImpl()
             throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         ArgumentCaptor<IOnWifiDriverCountryCodeChangedListener.Stub> listenerCaptor =
                 ArgumentCaptor.forClass(IOnWifiDriverCountryCodeChangedListener.Stub.class);
         mWifiManager.registerActiveCountryCodeChangedCallback(new HandlerExecutor(mHandler),
@@ -3666,6 +3671,7 @@ public class WifiManagerTest {
     @Test
     public void testDriverCountryCodeChangedCallbackProxyCallsOnActiveCountryCodeChanged()
             throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         ArgumentCaptor<IOnWifiDriverCountryCodeChangedListener.Stub> listenerCaptor =
                 ArgumentCaptor.forClass(IOnWifiDriverCountryCodeChangedListener.Stub.class);
         mWifiManager.registerActiveCountryCodeChangedCallback(new HandlerExecutor(mHandler),
@@ -3684,6 +3690,7 @@ public class WifiManagerTest {
     @Test
     public void testDriverCountryCodeChangedCallbackProxyCallsOnCountryCodeInactiveWhenNull()
             throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         ArgumentCaptor<IOnWifiDriverCountryCodeChangedListener.Stub> listenerCaptor =
                 ArgumentCaptor.forClass(IOnWifiDriverCountryCodeChangedListener.Stub.class);
         mWifiManager.registerActiveCountryCodeChangedCallback(new HandlerExecutor(mHandler),
