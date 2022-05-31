@@ -2175,6 +2175,15 @@ public class WifiNative {
     }
 
     /**
+     * Set supplicant log level
+     *
+     * @param turnOnVerbose Whether to turn on verbose logging or not.
+     */
+    public void setSupplicantLogLevel(boolean turnOnVerbose) {
+        mSupplicantStaIfaceHal.setLogLevel(turnOnVerbose);
+    }
+
+    /**
      * Trigger a reconnection if the iface is disconnected.
      *
      * @param ifaceName Name of the interface.
