@@ -1052,7 +1052,7 @@ public class WifiNetworkSelector {
                     0.0 /* lastSelectionWeightBetweenZeroAndOne */,
                     false /* isMetered */,
                     WifiNetworkSelector.isFromCarrierOrPrivilegedApp(config),
-                    0 /* predictedThroughputMbps */);
+                    predictThroughput(scanDetail));
             if (!added) continue;
 
             mConnectableNetworks.add(Pair.create(scanDetail, config));
