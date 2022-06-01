@@ -1651,7 +1651,7 @@ public class WifiConfigManager {
         List<WifiConfiguration> configsToDelete = savedNetworks
                 .stream()
                 .sorted(Comparator.comparing((WifiConfiguration config) -> config.carrierId
-                        == TelephonyManager.UNKNOWN_CARRIER_ID)
+                        != TelephonyManager.UNKNOWN_CARRIER_ID)
                         .thenComparing((WifiConfiguration config) -> config.status
                                 == WifiConfiguration.Status.CURRENT)
                         .thenComparing((WifiConfiguration config) -> config.getDeletionPriority())
