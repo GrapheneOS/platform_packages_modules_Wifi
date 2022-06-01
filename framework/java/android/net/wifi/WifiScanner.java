@@ -1317,12 +1317,20 @@ public class WifiScanner {
         scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
         Message reply = mAsyncChannel.sendMessageSynchronously(CMD_GET_SINGLE_SCAN_RESULTS, 0, 0,
                 scanParams);
-        if (reply.what == WifiScanner.CMD_OP_SUCCEEDED) {
-            return Arrays.asList(((ParcelableScanResults) reply.obj).getResults());
+        if (reply.what == WifiScanner.CMD_OP_SUCCEEDED
+                && reply.obj instanceof ParcelableScanResults) {
+            ScanResult[] results = ((ParcelableScanResults) reply.obj).getResults();
+            if (results != null) {
+                return Arrays.asList(results);
+            }
         }
-        OperationResult result = (OperationResult) reply.obj;
-        Log.e(TAG, "Error retrieving SingleScan results reason: " + result.reason
-                + " description: " + result.description);
+        if (reply.obj instanceof OperationResult) {
+            OperationResult result = (OperationResult) reply.obj;
+            Log.e(TAG, "Error retrieving SingleScan results reason: " + result.reason
+                    + " description: " + result.description);
+        } else {
+            Log.e(TAG, "Error retrieving SingleScan results - invalid object: " + reply.obj);
+        }
         return new ArrayList<>();
     }
 
