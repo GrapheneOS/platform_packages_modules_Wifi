@@ -1070,6 +1070,8 @@ public class WifiMetrics {
         public static final int FAILURE_ASSOCIATION_TIMED_OUT = 11;
         // NETWORK_NOT_FOUND
         public static final int FAILURE_NETWORK_NOT_FOUND = 12;
+        // Connection attempt aborted by the watchdog because the AP didn't respond.
+        public static final int FAILURE_NO_RESPONSE = 13;
 
         RouterFingerPrint mRouterFingerPrint;
         private String mConfigSsid;
@@ -1171,6 +1173,9 @@ public class WifiMetrics {
                         break;
                     case FAILURE_NETWORK_NOT_FOUND:
                         sb.append("FAILURE_NETWORK_NOT_FOUND");
+                        break;
+                    case FAILURE_NO_RESPONSE:
+                        sb.append("FAILURE_NO_RESPONSE");
                         break;
                     default:
                         sb.append("UNKNOWN");
@@ -2105,6 +2110,7 @@ public class WifiMetrics {
         }
     }
 
+    // TODO(b/177341879): Add failure type ConnectionEvent.FAILURE_NO_RESPONSE into Westworld.
     private int getConnectionResultFailureCode(int level2FailureCode, int level2FailureReason) {
         switch (level2FailureCode) {
             case ConnectionEvent.FAILURE_NONE:
@@ -2128,11 +2134,8 @@ public class WifiMetrics {
                 return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_NETWORK_DISCONNECTION;
             case ConnectionEvent.FAILURE_ROAM_TIMEOUT:
                 return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_ROAM_TIMEOUT;
-            case ConnectionEvent.FAILURE_NEW_CONNECTION_ATTEMPT:
-            case ConnectionEvent.FAILURE_REDUNDANT_CONNECTION_ATTEMPT:
-                return -1;
             default:
-                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_UNKNOWN;
+                return -1;
         }
     }
 
