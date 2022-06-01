@@ -3613,6 +3613,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (isPrimary()) {
             mWifiLastResortWatchdog.clearAllFailureCounts();
         }
+        mWifiNative.setSupplicantLogLevel(mVerboseLoggingEnabled);
 
         // Initialize data structures
         mTargetBssid = SUPPLICANT_BSSID_ANY;
