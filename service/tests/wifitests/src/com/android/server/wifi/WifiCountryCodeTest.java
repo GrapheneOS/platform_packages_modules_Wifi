@@ -523,6 +523,33 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     }
 
     @Test
+    public void testNotifyExternalListenerWhenOverlayisTrueButCountryCodeSameAsLastActiveOne()
+            throws Exception {
+        mDriverSupportedNl80211RegChangedEvent = true;
+        createWifiCountryCode();
+        // External caller register the listener
+        mWifiCountryCode.registerListener(mExternalChangeListener);
+        // Supplicant started.
+        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
+        // Wifi get L2 connected.
+        mClientModeImplListenerCaptor.getValue().onConnectionStart(mClientModeManager);
+        verify(mClientModeManager).setCountryCode(mDefaultCountryCode);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
+        verify(mExternalChangeListener).onDriverCountryCodeChanged(mDefaultCountryCode);
+        // First time it should not trigger since last active country code is null.
+        verify(mWifiNative, never()).countryCodeChanged(any());
+        // Remove and add client mode manager again.
+        mModeChangeCallbackCaptor.getValue().onActiveModeManagerRemoved(mClientModeManager);
+        assertNull(mWifiCountryCode.getCurrentDriverCountryCode());
+        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
+        verify(mClientModeManager, times(2)).setCountryCode(mDefaultCountryCode);
+        // Second time it would notify the wificond since it is same as last active country code
+        verify(mWifiNative).countryCodeChanged(mDefaultCountryCode);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
+        verify(mExternalChangeListener, times(2)).onDriverCountryCodeChanged(mDefaultCountryCode);
+    }
+
+    @Test
     public void testSetTelephonyCountryCodeAndUpdateWithEmptyCCReturnFalseWhenDefaultSIMCCExist()
             throws Exception {
         when(mTelephonyManager.getNetworkCountryIso()).thenReturn(mTelephonyCountryCode);
