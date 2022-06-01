@@ -2535,8 +2535,12 @@ public class WifiServiceImpl extends BaseWifiService {
         final int pid = Binder.getCallingPid();
 
         mLog.info("stopLocalOnlyHotspot uid=% pid=%").c(uid).c(pid).flush();
-
-        mLohsSoftApTracker.stopByPid(pid);
+        // Force to disable lohs when caller is shell with root permission
+        if (uid == Process.ROOT_UID) {
+            mLohsSoftApTracker.stopAll();
+        } else {
+            mLohsSoftApTracker.stopByPid(pid);
+        }
     }
 
     @Override
