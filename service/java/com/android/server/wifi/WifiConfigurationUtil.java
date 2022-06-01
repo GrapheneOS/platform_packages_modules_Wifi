@@ -1145,4 +1145,30 @@ public class WifiConfigurationUtil {
         }
         return true;
     }
+
+    /**
+     * Indicate that this configuration could be linked.
+     *
+     * @param config the configuartion to be checked.
+     * @return true if it's linkable; otherwise false.
+     */
+    public static boolean isConfigLinkable(WifiConfiguration config) {
+        WifiGlobals wifiGlobals = WifiInjector.getInstance().getWifiGlobals();
+        if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
+                && config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK)
+                .isEnabled()) {
+            return true;
+        }
+
+        // If SAE offload is supported, link SAE type also.
+        if (wifiGlobals.isWpa3SaeUpgradeOffloadEnabled()) {
+            if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)
+                    && config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
+                    .isEnabled()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
