@@ -181,6 +181,7 @@ public class WifiInjector {
     private final WifiConfigManager mWifiConfigManager;
     private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final LocalLog mConnectivityLocalLog;
+    private final ThroughputScorer mThroughputScorer;
     private final WifiNetworkSelector mWifiNetworkSelector;
     private final SavedNetworkNominator mSavedNetworkNominator;
     private final NetworkSuggestionNominator mNetworkSuggestionNominator;
@@ -403,8 +404,8 @@ public class WifiInjector {
         mWifiNetworkSelector.registerCandidateScorer(scoreCardBasedScorer);
         BubbleFunScorer bubbleFunScorer = new BubbleFunScorer(mScoringParams);
         mWifiNetworkSelector.registerCandidateScorer(bubbleFunScorer);
-        ThroughputScorer throughputScorer = new ThroughputScorer(mScoringParams);
-        mWifiNetworkSelector.registerCandidateScorer(throughputScorer);
+        mThroughputScorer = new ThroughputScorer(mScoringParams);
+        mWifiNetworkSelector.registerCandidateScorer(mThroughputScorer);
         mWifiMetrics.setWifiNetworkSelector(mWifiNetworkSelector);
         mWifiNetworkSuggestionsManager = new WifiNetworkSuggestionsManager(mContext, wifiHandler,
                 this, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore, mWifiMetrics,
@@ -580,6 +581,7 @@ public class WifiInjector {
         mThroughputPredictor.enableVerboseLogging(verboseEnabled);
         mWifiDataStall.enableVerboseLogging(verboseEnabled);
         mWifiConnectivityManager.enableVerboseLogging(verboseEnabled);
+        mThroughputScorer.enableVerboseLogging(verboseEnabled);
         mWifiNetworkSelector.enableVerboseLogging(verboseEnabled);
         mMakeBeforeBreakManager.setVerboseLoggingEnabled(verboseEnabled);
         mMultiInternetManager.setVerboseLoggingEnabled(verboseEnabled);

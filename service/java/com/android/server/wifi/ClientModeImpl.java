@@ -5171,7 +5171,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT: {
                     AuthenticationFailureEventInfo authenticationFailureEventInfo =
                             (AuthenticationFailureEventInfo) message.obj;
-                    if (!authenticationFailureEventInfo.ssid.equals(getConnectingSsidInternal())) {
+                    if (!TextUtils.equals(authenticationFailureEventInfo.ssid,
+                            getConnectingSsidInternal())) {
                         logw("Authentication failure event received on not target network");
                         break;
                     }
