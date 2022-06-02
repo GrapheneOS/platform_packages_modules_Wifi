@@ -79,6 +79,7 @@ public class WifiCountryCode {
     private String mTelephonyCountryCode = null;
     private String mOverrideCountryCode = null;
     private String mDriverCountryCode = null;
+    private String mLastActiveDriverCountryCode = null;
     private long mDriverCountryCodeUpdatedTimestamp = 0;
     private String mTelephonyCountryTimestamp = null;
     private String mAllCmmReadyTimestamp = null;
@@ -154,7 +155,7 @@ public class WifiCountryCode {
     private class CountryChangeListenerInternal implements ChangeListener {
         @Override
         public void onDriverCountryCodeChanged(String country) {
-            if (TextUtils.equals(country, mDriverCountryCode)) {
+            if (TextUtils.equals(country, mLastActiveDriverCountryCode)) {
                 return;
             }
             Log.i(TAG, "Receive onDriverCountryCodeChanged " + country);
@@ -168,7 +169,12 @@ public class WifiCountryCode {
         @Override
         public void onSetCountryCodeSucceeded(String country) {
             Log.i(TAG, "Receive onSetCountryCodeSucceeded " + country);
-            if (!isDriverSupportedRegChangedEvent()) {
+            // The country code callback might not be triggered even if the driver supports reg
+            // changed event when the maintained country code in the driver is same as set one.
+            // So notify the country code changed event to listener when the set one is same as
+            // last active one.
+            if (!isDriverSupportedRegChangedEvent()
+                    || TextUtils.equals(country, mLastActiveDriverCountryCode)) {
                 mWifiNative.countryCodeChanged(country);
                 handleCountryCodeChanged(country);
             }
@@ -600,6 +606,9 @@ public class WifiCountryCode {
         if (!TextUtils.equals(mDriverCountryCode, country)) {
             mDriverCountryCodeUpdatedTimestamp = System.currentTimeMillis();
             mDriverCountryCode = country;
+            if (country !=  null) {
+                mLastActiveDriverCountryCode = country;
+            }
             notifyListener(country);
         }
     }

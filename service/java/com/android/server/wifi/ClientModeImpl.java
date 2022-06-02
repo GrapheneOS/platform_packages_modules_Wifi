@@ -561,9 +561,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     /** Used to remove packet filter from apf. */
     static final int CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF = BASE + 210;
 
-    /* Indicates that diagnostics should time out a connection start event. */
-    static final int CMD_DIAGS_CONNECT_TIMEOUT                          = BASE + 252;
-
     @VisibleForTesting
     static final int CMD_PRE_DHCP_ACTION                                = BASE + 255;
     private static final int CMD_PRE_DHCP_ACTION_COMPLETE               = BASE + 256;
@@ -1966,7 +1963,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     sb.append(" BSSID=").append((String) msg.obj);
                 }
                 if (mTargetBssid != null) {
-                    sb.append(" Target=").append(mTargetBssid);
+                    sb.append(" Target Bssid=").append(mTargetBssid);
+                }
+                if (mLastBssid != null) {
+                    sb.append(" Last Bssid=").append(mLastBssid);
                 }
                 sb.append(" roam=").append(Boolean.toString(mIsAutoRoaming));
                 break;
@@ -2187,8 +2187,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_CONNECTING_WATCHDOG_TIMER";
             case CMD_CONNECT_NETWORK:
                 return "CMD_CONNECT_NETWORK";
-            case CMD_DIAGS_CONNECT_TIMEOUT:
-                return "CMD_DIAGS_CONNECT_TIMEOUT";
             case CMD_DISCONNECT:
                 return "CMD_DISCONNECT";
             case CMD_ENABLE_RSSI_POLL:
@@ -2273,6 +2271,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "NETWORK_CONNECTION_EVENT";
             case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
                 return "NETWORK_DISCONNECTION_EVENT";
+            case WifiMonitor.ASSOCIATED_BSSID_EVENT:
+                return "ASSOCIATED_BSSID_EVENT";
+            case WifiMonitor.TARGET_BSSID_EVENT:
+                return "TARGET_BSSID_EVENT";
             case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
                 return "ASSOCIATION_REJECTION_EVENT";
             case WifiMonitor.ANQP_DONE_EVENT:
@@ -3101,8 +3103,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return true;
     }
 
-    @VisibleForTesting
-    public static final long DIAGS_CONNECT_TIMEOUT_MILLIS = 60 * 1000;
     /**
      * Inform other components that a new connection attempt is starting.
      */
@@ -3122,8 +3122,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (isPrimary()) {
             mWrongPasswordNotifier.onNewConnectionAttempt();
         }
-        removeMessages(CMD_DIAGS_CONNECT_TIMEOUT);
-        sendMessageDelayed(CMD_DIAGS_CONNECT_TIMEOUT, DIAGS_CONNECT_TIMEOUT_MILLIS);
     }
 
     private void handleConnectionAttemptEndForDiagnostics(int level2FailureCode) {
@@ -3134,8 +3132,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 // WifiDiagnostics doesn't care about pre-empted connections, or cases
                 // where we failed to initiate a connection attempt with supplicant.
                 break;
+            case WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE:
+                mWifiDiagnostics.reportConnectionEvent(
+                        WifiDiagnostics.CONNECTION_EVENT_TIMEOUT, mClientModeManager);
+                break;
             default:
-                removeMessages(CMD_DIAGS_CONNECT_TIMEOUT);
                 mWifiDiagnostics.reportConnectionEvent(WifiDiagnostics.CONNECTION_EVENT_FAILED,
                         mClientModeManager);
         }
@@ -3285,6 +3286,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     return WifiBlocklistMonitor.REASON_NONLOCAL_DISCONNECT_CONNECTING;
                 }
                 return -1;
+            case WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE:
+                return WifiBlocklistMonitor.REASON_FAILURE_NO_RESPONSE;
             default:
                 return -1;
         }
@@ -3610,6 +3613,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (isPrimary()) {
             mWifiLastResortWatchdog.clearAllFailureCounts();
         }
+        mWifiNative.setSupplicantLogLevel(mVerboseLoggingEnabled);
 
         // Initialize data structures
         mTargetBssid = SUPPLICANT_BSSID_ANY;
@@ -4233,11 +4237,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     } else {
                         mWifiNative.stopFilteringMulticastV4Packets(mInterfaceName);
                     }
-                    break;
-                }
-                case CMD_DIAGS_CONNECT_TIMEOUT: {
-                    mWifiDiagnostics.reportConnectionEvent(
-                            WifiDiagnostics.CONNECTION_EVENT_TIMEOUT, mClientModeManager);
                     break;
                 }
                 case WifiP2pServiceImpl.P2P_CONNECTION_CHANGED:
@@ -5076,6 +5075,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         @Override
         public void exit() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Exiting L2ConnectingState");
+            // Cancel any pending CMD_CONNECTING_WATCHDOG_TIMER since this is only valid in
+            // L2ConnectingState anyway.
+            removeMessages(CMD_CONNECTING_WATCHDOG_TIMER);
         }
 
         @Override
@@ -5343,6 +5345,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_CONNECTING_WATCHDOG_TIMER: {
                     if (mConnectingWatchdogCount == message.arg1) {
                         if (mVerboseLoggingEnabled) log("Connecting watchdog! -> disconnect");
+                        reportConnectionAttemptEnd(
+                                WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE,
+                                WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
                         handleNetworkDisconnect(false,
                                 WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__CONNECTING_WATCHDOG_TIMER);
                         transitionTo(mDisconnectedState);
@@ -6172,7 +6178,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                                 : DISABLED_NO_INTERNET_TEMPORARY);
                             } else {
                                 // stop collect last-mile stats since validation fail
-                                removeMessages(CMD_DIAGS_CONNECT_TIMEOUT);
                                 mWifiDiagnostics.reportConnectionEvent(
                                         WifiDiagnostics.CONNECTION_EVENT_FAILED,
                                         mClientModeManager);
@@ -6216,7 +6221,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_NETWORK_STATUS: {
                     if (message.arg1 == NetworkAgent.VALIDATION_STATUS_VALID) {
                         // stop collect last-mile stats since validation pass
-                        removeMessages(CMD_DIAGS_CONNECT_TIMEOUT);
                         mWifiDiagnostics.reportConnectionEvent(
                                 WifiDiagnostics.CONNECTION_EVENT_SUCCEEDED, mClientModeManager);
                         mWifiScoreCard.noteValidationSuccess(mWifiInfo);
