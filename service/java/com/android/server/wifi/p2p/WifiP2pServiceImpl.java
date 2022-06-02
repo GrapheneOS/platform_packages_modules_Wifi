@@ -4445,6 +4445,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             Log.i(TAG, "sending p2p tether request broadcast to "
                     + tetheringServicePackage);
 
+            final String[] receiverPermissionsForTetheringRequest = {
+                    android.Manifest.permission.TETHER_PRIVILEGED
+            };
             Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
             intent.setPackage(tetheringServicePackage);
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
@@ -4454,7 +4457,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
             context.sendBroadcastWithMultiplePermissions(
-                    intent, RECEIVER_PERMISSIONS_FOR_BROADCAST);
+                    intent, receiverPermissionsForTetheringRequest);
             return true;
         }
 
