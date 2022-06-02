@@ -214,7 +214,8 @@ public class AvailableNetworkNotifier {
             new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    if (!mTag.equals(intent.getStringExtra(AVAILABLE_NETWORK_NOTIFIER_TAG))) {
+                    if (!TextUtils.equals(mTag,
+                            intent.getStringExtra(AVAILABLE_NETWORK_NOTIFIER_TAG))) {
                         return;
                     }
                     switch (intent.getAction()) {
