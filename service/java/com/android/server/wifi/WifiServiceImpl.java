@@ -736,7 +736,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         @Override
                         public void onReceive(Context context, Intent intent) {
                             String action = intent.getAction();
-                            if (action.equals(Intent.ACTION_USER_REMOVED)) {
+                            if (Intent.ACTION_USER_REMOVED.equals(action)) {
                                 UserHandle userHandle =
                                         intent.getParcelableExtra(Intent.EXTRA_USER);
                                 if (userHandle == null) {
@@ -746,8 +746,8 @@ public class WifiServiceImpl extends BaseWifiService {
                                 }
                                 mWifiConfigManager
                                         .removeNetworksForUser(userHandle.getIdentifier());
-                            } else if (action.equals(
-                                    BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)) {
+                            } else if (BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED
+                                    .equals(action)) {
                                 int state = intent.getIntExtra(
                                         BluetoothAdapter.EXTRA_CONNECTION_STATE,
                                         BluetoothAdapter.STATE_DISCONNECTED);
@@ -758,7 +758,7 @@ public class WifiServiceImpl extends BaseWifiService {
                                         mActiveModeWarden.getClientModeManagers()) {
                                     cmm.onBluetoothConnectionStateChanged();
                                 }
-                            } else if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                            } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
                                         BluetoothAdapter.STATE_OFF);
                                 boolean isEnabled = state != BluetoothAdapter.STATE_OFF;
@@ -767,10 +767,10 @@ public class WifiServiceImpl extends BaseWifiService {
                                         mActiveModeWarden.getClientModeManagers()) {
                                     cmm.onBluetoothConnectionStateChanged();
                                 }
-                            } else if (action.equals(
-                                    PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)) {
+                            } else if (PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED
+                                    .equals(action)) {
                                 handleIdleModeChanged();
-                            } else if (action.equals(Intent.ACTION_SHUTDOWN)) {
+                            } else if (Intent.ACTION_SHUTDOWN.equals(action)) {
                                 handleShutDown();
                             }
                         }
@@ -2047,8 +2047,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         sendHotspotStartedMessageToAllLOHSRequestInfoEntriesLocked();
                         break;
                     case WifiManager.IFACE_IP_MODE_TETHERED:
-                        if (mLohsInterfaceName != null
-                                && mLohsInterfaceName.equals(ifaceName)) {
+                        if (TextUtils.equals(mLohsInterfaceName, ifaceName)) {
                             /* This shouldn't happen except in a race, but if it does, tear down
                              * the LOHS and let tethering win.
                              *
@@ -2070,7 +2069,7 @@ public class WifiServiceImpl extends BaseWifiService {
                             sendHotspotFailedMessageToAllLOHSRequestInfoEntriesLocked(
                                     LocalOnlyHotspotCallback.ERROR_GENERIC);
                             stopSoftApInternal(WifiManager.IFACE_IP_MODE_UNSPECIFIED);
-                        } else if (ifaceName.equals(mLohsInterfaceName)) {
+                        } else if (TextUtils.equals(mLohsInterfaceName, ifaceName)) {
                             mLohsInterfaceName = null;
                             mLohsInterfaceMode = mode;
                             sendHotspotFailedMessageToAllLOHSRequestInfoEntriesLocked(
@@ -4539,7 +4538,7 @@ public class WifiServiceImpl extends BaseWifiService {
                     String ip = tokens[0];
                     String mac = tokens[3];
 
-                    if (remoteIpAddress.equals(ip)) {
+                    if (TextUtils.equals(remoteIpAddress, ip)) {
                         macAddress = mac;
                         break;
                     }

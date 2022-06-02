@@ -31,6 +31,7 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -110,9 +111,9 @@ public class WifiLockManager {
                     @Override
                     public void onReceive(Context context, Intent intent) {
                         String action = intent.getAction();
-                        if (action.equals(Intent.ACTION_SCREEN_ON)) {
+                        if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)) {
                             handleScreenStateChanged(true);
-                        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+                        } else if (TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
                             handleScreenStateChanged(false);
                         }
                     }

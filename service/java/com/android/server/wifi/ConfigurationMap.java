@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.os.UserHandle;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
@@ -128,7 +129,7 @@ public class ConfigurationMap {
             return null;
         }
         for (WifiConfiguration config : mPerIDForCurrentUser.values()) {
-            if (config.getProfileKey().equals(key)) {
+            if (TextUtils.equals(config.getProfileKey(), key)) {
                 return config;
             }
         }

@@ -637,7 +637,7 @@ public class WifiCarrierInfoManager {
             return false;
         }
         for (String curSsid : macRandDisabledSsids) {
-            if (sanitizedSsid.equals(curSsid)) {
+            if (TextUtils.equals(sanitizedSsid, curSsid)) {
                 return true;
             }
         }
