@@ -94,11 +94,11 @@ public class InsecureEapNetworkHandler {
             // This is an onGoing notification, dismiss it once an action is sent.
             dismissDialogAndNotification();
             Log.d(TAG, "Received CertNotification: ssid=" + ssid + ", action=" + action);
-            if (action.equals(ACTION_CERT_NOTIF_TAP)) {
+            if (TextUtils.equals(action, ACTION_CERT_NOTIF_TAP)) {
                 askForUserApprovalForCaCertificate();
-            } else if (action.equals(ACTION_CERT_NOTIF_ACCEPT)) {
+            } else if (TextUtils.equals(action, ACTION_CERT_NOTIF_ACCEPT)) {
                 handleAccept(ssid);
-            } else if (action.equals(ACTION_CERT_NOTIF_REJECT)) {
+            } else if (TextUtils.equals(action, ACTION_CERT_NOTIF_REJECT)) {
                 handleReject(ssid);
             }
         }
@@ -192,7 +192,7 @@ public class InsecureEapNetworkHandler {
                 + " current config=" + mCurConfig);
         if (TextUtils.isEmpty(ssid)) return false;
         if (null == mCurConfig) return false;
-        if (!ssid.equals(mCurConfig.SSID)) return false;
+        if (!TextUtils.equals(ssid, mCurConfig.SSID)) return false;
         if (null == cert) return false;
         if (depth < 0) return false;
         // 0 is the tail, i.e. the server cert.
@@ -556,7 +556,7 @@ public class InsecureEapNetworkHandler {
             return false;
         }
 
-        if (!ssid.equals(mCurConfig.SSID)) {
+        if (!TextUtils.equals(ssid, mCurConfig.SSID)) {
             Log.w(TAG, "Target SSID " + mCurConfig.SSID
                     + " is different from TOFU returned SSID" + ssid);
             return false;

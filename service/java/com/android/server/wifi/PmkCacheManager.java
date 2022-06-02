@@ -80,7 +80,7 @@ public class PmkCacheManager {
             mPmkCacheEntries.put(networkId, pmkDataList);
         } else {
             PmkCacheStoreData existStoreData = pmkDataList.stream()
-                    .filter(storeData -> storeData.equals(newStoreData))
+                    .filter(storeData -> Objects.equals(storeData, newStoreData))
                     .findAny()
                     .orElse(null);
             if (null != existStoreData) {
@@ -128,7 +128,7 @@ public class PmkCacheManager {
         List<PmkCacheStoreData> pmkDataList = mPmkCacheEntries.get(networkId);
         if (null == pmkDataList) return false;
 
-        pmkDataList.removeIf(pmkData -> !curMacAddress.equals(pmkData.macAddress));
+        pmkDataList.removeIf(pmkData -> !Objects.equals(curMacAddress, pmkData.macAddress));
 
         if (pmkDataList.size() == 0) {
             remove(networkId);
@@ -239,8 +239,8 @@ public class PmkCacheManager {
             if (!(o instanceof PmkCacheStoreData)) return false;
             PmkCacheStoreData storeData = (PmkCacheStoreData) o;
             return expirationTimeInSec == storeData.expirationTimeInSec
-                    && macAddress.equals(storeData.macAddress)
-                    && data.equals(storeData.data);
+                    && Objects.equals(macAddress, storeData.macAddress)
+                    && Objects.equals(data, storeData.data);
         }
 
         @Override

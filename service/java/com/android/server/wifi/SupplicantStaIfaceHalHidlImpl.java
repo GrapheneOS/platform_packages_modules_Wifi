@@ -497,7 +497,8 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
             }
             Mutable<ISupplicantIface> supplicantIface = new Mutable<>();
             for (ISupplicant.IfaceInfo ifaceInfo : supplicantIfaces) {
-                if (ifaceInfo.type == IfaceType.STA && ifaceName.equals(ifaceInfo.name)) {
+                if (ifaceInfo.type == IfaceType.STA
+                        && TextUtils.equals(ifaceName, ifaceInfo.name)) {
                     try {
                         mISupplicant.getInterface(ifaceInfo,
                                 (SupplicantStatus status, ISupplicantIface iface) -> {
