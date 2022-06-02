@@ -932,7 +932,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static boolean isValidBssid(String bssidStr) {
         try {
             MacAddress bssid = MacAddress.fromString(bssidStr);
-            return !bssid.equals(WifiManager.ALL_ZEROS_MAC_ADDRESS);
+            return !Objects.equals(bssid, WifiManager.ALL_ZEROS_MAC_ADDRESS);
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -3497,7 +3497,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 String ip = tokens[0];
                 String mac = tokens[3];
 
-                if (ipAddress.equals(ip)) {
+                if (TextUtils.equals(ipAddress, ip)) {
                     macAddress = mac;
                     break;
                 }
@@ -3563,7 +3563,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 : mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config);
         if (!WifiConfiguration.isValidMacAddressForRandomization(newMac)) {
             Log.wtf(getTag(), "Config generated an invalid MAC address");
-        } else if (newMac.equals(currentMac)) {
+        } else if (Objects.equals(newMac, currentMac)) {
             Log.d(getTag(), "No changes in MAC address");
         } else {
             mWifiMetrics.logStaEvent(mInterfaceName, StaEvent.TYPE_MAC_CHANGE, config);
@@ -3841,9 +3841,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
-                if (action.equals(Intent.ACTION_SCREEN_ON)) {
+                if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)) {
                     sendMessage(CMD_SCREEN_STATE_CHANGED, 1);
-                } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
+                } else if (TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
                     sendMessage(CMD_SCREEN_STATE_CHANGED, 0);
                 }
             }
@@ -4397,7 +4397,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
         }
 
-        if (!mWifiInfo.getSSID().equals(WifiManager.UNKNOWN_SSID)) {
+        if (!WifiManager.UNKNOWN_SSID.equals(mWifiInfo.getSSID())) {
             builder.setSsid(mWifiInfo.getSSID());
         }
 

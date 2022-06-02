@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -319,7 +320,7 @@ public class ScoringParams {
      */
     @VisibleForTesting
     public boolean update(String kvList) {
-        if (kvList == null || "".equals(kvList)) {
+        if (TextUtils.isEmpty(kvList)) {
             return true;
         }
         if (!("," + kvList).matches(COMMA_KEY_VAL_STAR)) {

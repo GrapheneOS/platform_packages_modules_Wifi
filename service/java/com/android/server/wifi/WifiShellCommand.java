@@ -416,7 +416,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     @Override
     public int onCommand(String cmd) {
         // Treat no command as help command.
-        if (cmd == null || cmd.equals("")) {
+        if (TextUtils.isEmpty(cmd)) {
             cmd = "help";
         }
         // Explicit exclusion from root permission
