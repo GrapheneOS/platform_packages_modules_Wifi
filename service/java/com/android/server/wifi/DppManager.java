@@ -652,7 +652,7 @@ public class DppManager {
 
                 if (newWifiConfiguration.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)
                         && existingWifiConfig != null && existingWifiConfig.isDppConfigurator()
-                        && existingWifiConfig.SSID.equals(newWifiConfiguration.SSID)
+                        && TextUtils.equals(existingWifiConfig.SSID, newWifiConfiguration.SSID)
                         && existingWifiConfig.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)) {
                     if (newWifiConfiguration.getDppConnector().length > 0
                             && newWifiConfiguration.getDppCSignKey().length > 0
@@ -894,7 +894,7 @@ public class DppManager {
         boolean isNetworkInScanCache = false;
         boolean channelMatch = false;
         for (ScanResult scanResult : mScanRequestProxy.getScanResults()) {
-            if (!ssid.equals(scanResult.SSID)) {
+            if (!TextUtils.equals(ssid, scanResult.SSID)) {
                 continue;
             }
             isNetworkInScanCache = true;

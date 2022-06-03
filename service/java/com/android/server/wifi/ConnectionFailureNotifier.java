@@ -26,6 +26,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.os.Handler;
 import android.os.Process;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
@@ -72,7 +73,7 @@ public class ConnectionFailureNotifier {
                     @Override
                     public void onReceive(Context context, Intent intent) {
                         String action = intent.getAction();
-                        if (action.equals(ConnectionFailureNotificationBuilder
+                        if (TextUtils.equals(action, ConnectionFailureNotificationBuilder
                                 .ACTION_SHOW_SET_RANDOMIZATION_DETAILS)) {
                             int networkId = intent.getIntExtra(
                                     ConnectionFailureNotificationBuilder
@@ -113,8 +114,8 @@ public class ConnectionFailureNotifier {
         // Make sure the networkId is still pointing to the correct WifiConfiguration since
         // there might be a large time gap between when the notification shows and when
         // it's tapped.
-        if (config == null || ssidAndSecurityType == null
-                || !ssidAndSecurityType.equals(config.getSsidAndSecurityTypeString())) {
+        if (config == null || !TextUtils.equals(ssidAndSecurityType,
+                config.getSsidAndSecurityTypeString())) {
             String message = res.getString(
                     R.string.wifi_disable_mac_randomization_dialog_network_not_found);
             mFrameworkFacade.showToast(mContext, message);

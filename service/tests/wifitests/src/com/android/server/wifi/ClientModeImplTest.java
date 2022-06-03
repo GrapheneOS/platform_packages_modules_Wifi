@@ -766,9 +766,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 1, mBatteryStatsManager, mSupplicantStateTracker, mMboOceController,
                 mWifiCarrierInfoManager, mEapFailureNotifier, mSimRequiredNotifier,
                 mWifiScoreReport, mWifiP2pConnection, mWifiGlobals,
-                WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor, mBroadcastQueue,
-                mWifiNetworkSelector, mTelephonyManager, mWifiInjector, mSettingsConfigStore,
-                false, mWifiNotificationManager);
+                WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor,
+                mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
+                mSettingsConfigStore, false, mWifiNotificationManager);
 
         mWifiCoreThread = getCmiHandlerThread(mCmi);
 
@@ -4524,25 +4524,43 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void mbb_internetValidationError_expectDisconnect() throws Exception {
+    public void testMbbInternetValidationErrorExpectDisconnect() throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
                 mWifiNetworkAgentCallbackCaptor.capture());
 
         // Make Before Break CMM
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
+        when(mActiveModeWarden.getClientModeManagerInRole(
+                ROLE_CLIENT_SECONDARY_TRANSIENT)).thenReturn(mock(ConcreteClientModeManager.class));
 
         // internet validation failure without detecting captive portal
         mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
                 NetworkAgent.VALIDATION_STATUS_NOT_VALID, null /* captivePortalUr; */);
         mLooper.dispatchAll();
+        verify(mCmiMonitor).onInternetValidationFailed(mClientModeManager, false);
+    }
 
+    @Test
+    public void testMbbNetworkUnwantedExpectDisconnect() throws Exception {
+        connect();
+        verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
+                mWifiNetworkAgentCallbackCaptor.capture());
+
+        // Make Before Break CMM
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
+        when(mActiveModeWarden.getClientModeManagerInRole(
+                ROLE_CLIENT_SECONDARY_TRANSIENT)).thenReturn(mock(ConcreteClientModeManager.class));
+
+        // internet was lost and network got unwanted.
+        mWifiNetworkAgentCallbackCaptor.getValue().onNetworkUnwanted();
+        mLooper.dispatchAll();
         // expect disconnection
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
 
     @Test
-    public void mbb_internetValidationError_captivePortalNoDisconnect() throws Exception {
+    public void testMbbInternetValidationErrorCaptivePortalNoDisconnect() throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
                 mWifiNetworkAgentCallbackCaptor.capture());
@@ -4561,7 +4579,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void captivePortalDetected_notifiesCmiMonitor() throws Exception {
+    public void testCaptivePortalDetectedNotifiesCmiMonitor() throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
                 mWifiNetworkAgentCallbackCaptor.capture());
@@ -4577,7 +4595,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void internetValidationFailure_userSelectedRecently_expectNotDisabled()
+    public void testInternetValidationFailureUserSelectedRecentlyExpectNotDisabled()
             throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
@@ -4610,7 +4628,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void internetValidationFailure_userSelectedTooLongAgo_expectTemporarilyDisabled()
+    public void testInternetValidationFailureUserSelectedTooLongAgoExpectTemporarilyDisabled()
             throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
@@ -4644,7 +4662,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void noInternetExpectedNetwork_internetValidationFailure_notUserSelected_expectNotDisabled()
+    public void testNetworkInternetValidationFailureNotUserSelectedExpectNotDisabled()
             throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
