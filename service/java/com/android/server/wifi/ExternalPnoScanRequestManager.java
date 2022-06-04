@@ -54,6 +54,7 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
     private final Handler mHandler;
     private int mCurrentRequestOnPnoNetworkFoundCount = 0;
     private Context mContext;
+    private boolean mVerboseLoggingEnabled = false;
 
     /**
      * Creates a ExternalPnoScanRequestManager.
@@ -82,6 +83,13 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
     }
 
     /**
+     * Enables verbose logging.
+     */
+    public void enableVerboseLogging(boolean enabled) {
+        mVerboseLoggingEnabled = enabled;
+    }
+
+    /**
      * Sets the request. This will fail if there's already a request set.
      */
     public boolean setRequest(int uid, @NonNull String packageName, @NonNull IBinder binder,
@@ -91,7 +99,8 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
             try {
                 callback.onRegisterFailed(REGISTER_PNO_CALLBACK_RESOURCE_BUSY);
             } catch (RemoteException e) {
-                Log.e(TAG, e.getMessage());
+                Log.e(TAG, "RemoteException failed to trigger onRegisterFailed for callback="
+                        + callback);
             }
             return false;
         }
@@ -106,17 +115,12 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         try {
             request.mCallback.onRegisterSuccess();
         } catch (RemoteException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "Failed to register request due to remote exception:" + e.getMessage());
             return false;
         }
-        if (mCurrentRequest != null) {
-            // overriding the existing request from the same caller.
-            try {
-                mCurrentRequest.mCallback.onRemoved(REMOVE_PNO_CALLBACK_UNREGISTERED);
-            } catch (RemoteException e) {
-                Log.e(TAG, e.getMessage());
-            }
-            removeCurrentRequest();
+        removeCurrentRequest();
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Successfully set external PNO scan request:" + request);
         }
         mCurrentRequest = request;
         return true;
@@ -126,8 +130,11 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         if (mCurrentRequest != null) {
             try {
                 mCurrentRequest.mBinder.unlinkToDeath(this, 0);
+                if (mVerboseLoggingEnabled) {
+                    Log.i(TAG, "mBinder.unlinkToDeath on request:" + mCurrentRequest);
+                }
             } catch (NoSuchElementException e) {
-                Log.e(TAG, e.getMessage());
+                Log.e(TAG, "Encountered remote exception in unlinkToDeath=" + e.getMessage());
             }
         }
         mCurrentRequest = null;
@@ -146,7 +153,7 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         try {
             mCurrentRequest.mCallback.onRemoved(REMOVE_PNO_CALLBACK_UNREGISTERED);
         } catch (RemoteException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "Encountered remote exception in onRemoved=" + e.getMessage());
         }
         removeCurrentRequest();
         return true;
@@ -173,12 +180,16 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         }
 
         // requested PNO SSIDs found. Send results and then remove request.
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "On network found for request:" + mCurrentRequest);
+        }
+        sendScanResultAvailableBroadcastToPackage(mCurrentRequest.mPackageName);
         try {
-            sendScanResultAvailableBroadcastToPackage(mCurrentRequest.mPackageName);
             mCurrentRequest.mCallback.onScanResultsAvailable(requestedResults);
             mCurrentRequest.mCallback.onRemoved(REMOVE_PNO_CALLBACK_RESULTS_DELIVERED);
         } catch (RemoteException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "Failed to send PNO results via callback due to remote exception="
+                    + e.getMessage());
         }
         removeCurrentRequest();
     }
@@ -188,6 +199,9 @@ public class ExternalPnoScanRequestManager implements IBinder.DeathRecipient {
         intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, true);
         intent.setPackage(packageName);
         mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Successfully sent out targeted broadcast for:" + mCurrentRequest);
+        }
     }
 
     /**
