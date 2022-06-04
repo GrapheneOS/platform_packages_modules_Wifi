@@ -96,8 +96,7 @@ public class ExternalPnoScanRequestManagerTest extends WifiBaseTest {
 
     @Test
     public void testSetRequest_success() throws RemoteException {
-        IPnoScanResultsCallback anotherCallback = mock(IPnoScanResultsCallback.class);
-        InOrder inOrder = inOrder(mCallback, anotherCallback, mIBinder);
+        InOrder inOrder = inOrder(mCallback, mIBinder);
 
         // initial register should be successful
         assertTrue(mExternalPnoScanRequestManager.setRequest(TEST_UID, TEST_PACKAGE, mIBinder,
@@ -107,15 +106,13 @@ public class ExternalPnoScanRequestManagerTest extends WifiBaseTest {
 
         // Another register with same uid should override the existing one.
         assertTrue(mExternalPnoScanRequestManager.setRequest(TEST_UID, TEST_PACKAGE, mIBinder,
-                anotherCallback, TEST_WIFI_SSIDS, TEST_FREQUENCIES_2));
-        inOrder.verify(anotherCallback).onRegisterSuccess();
-        // Verify the original callback has been removed
-        inOrder.verify(mCallback).onRemoved(anyInt());
+                mCallback, TEST_WIFI_SSIDS, TEST_FREQUENCIES_2));
+        inOrder.verify(mCallback).onRegisterSuccess();
 
         // Another register with different uid should fail with REGISTER_PNO_CALLBACK_RESOURCE_BUSY
         assertFalse(mExternalPnoScanRequestManager.setRequest(TEST_UID + 1, TEST_PACKAGE,
-                mIBinder, anotherCallback, TEST_WIFI_SSIDS, TEST_FREQUENCIES));
-        inOrder.verify(anotherCallback).onRegisterFailed(REGISTER_PNO_CALLBACK_RESOURCE_BUSY);
+                mIBinder, mCallback, TEST_WIFI_SSIDS, TEST_FREQUENCIES));
+        inOrder.verify(mCallback).onRegisterFailed(REGISTER_PNO_CALLBACK_RESOURCE_BUSY);
 
 
         assertEquals(EXPECTED_SSIDS_SET, mExternalPnoScanRequestManager.getExternalPnoScanSsids());
