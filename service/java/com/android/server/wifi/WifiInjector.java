@@ -591,6 +591,7 @@ public class WifiInjector {
         }
         mWifiPermissionsUtil.enableVerboseLogging(verboseEnabled);
         mWifiDialogManager.enableVerboseLogging(verboseEnabled);
+        mExternalPnoScanRequestManager.enableVerboseLogging(verboseEnabled);
     }
 
     public UserManager getUserManager() {
