@@ -187,7 +187,7 @@ public class PasspointNetworkNominateHelper {
         }
         List<Pair<ScanDetail, WifiConfiguration>> results = new ArrayList<>();
         Map<PasspointProvider, List<PasspointNetworkCandidate>> candidatesPerProvider =
-                getMatchedCandidateGroupByProvider(mCachedScanDetails, true);
+                getMatchedCandidateGroupByProvider(scanDetails, true);
         // For each provider find the best scanDetails(prefer home) for it and create selection
         // candidate pair.
         for (Map.Entry<PasspointProvider, List<PasspointNetworkCandidate>> candidates :
