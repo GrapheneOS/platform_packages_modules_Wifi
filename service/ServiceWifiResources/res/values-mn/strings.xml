@@ -56,8 +56,8 @@
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Холбох урилга"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"Хэнээс:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Хэнд:"</string>
-    <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Шаардлагатай PIN-г бичнэ үү:"</string>
-    <string name="wifi_p2p_show_pin_message" msgid="1000091690967930798">"PIN:"</string>
+    <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Шаардлагатай ПИН-г бичнэ үү:"</string>
+    <string name="wifi_p2p_show_pin_message" msgid="1000091690967930798">"ПИН:"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="tablet" msgid="2875937871590955304">"Таблет <xliff:g id="DEVICE_NAME">%1$s</xliff:g>-тэй холбогдох үедээ түр зуур Wi-Fi-с салах болно."</string>
     <string name="wifi_p2p_frequency_conflict_message" product="tv" msgid="9133053225387001827">"Таны Android TV төхөөрөмж <xliff:g id="DEVICE_NAME">%1$s</xliff:g>-д холбогдсон үед Wi-Fi-с түр хугацаанд сална"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="default" msgid="2226863827636191980">"Утас <xliff:g id="DEVICE_NAME">%1$s</xliff:g>-тай холбогдох үедээ түр зуур Wi-Fi-с салах болно."</string>

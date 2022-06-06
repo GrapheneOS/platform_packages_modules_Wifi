@@ -29,7 +29,7 @@
     <string name="notification_channel_network_available" msgid="8454366142428864948">"Sare bat erabilgarri dago"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"Iradokitako wifi-sareak baimendu nahi dituzu?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> aplikazioak sare batzuk iradoki ditu. Baliteke gailua automatikoki konektatzea."</string>
-    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Baimendu"</string>
+    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Eman baimena"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Ez, eskerrik asko"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sarera konektatu nahi duzu?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Sare hauek SIM ID bat jasotzen dute, gailuaren kokapenaren jarraipena egin ahal izateko"</string>
