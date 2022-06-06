@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"Тутумдун Wi-Fi ресурстары"</string>
+    <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"Системанын Wi-Fi ресурстары"</string>
     <string name="wifi_available_title" msgid="3899472737467127635">"Ачык Wi‑Fi тармагына туташуу"</string>
     <string name="wifi_available_title_connecting" msgid="7233590022728579868">"Wi‑Fi тармагына туташууда"</string>
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"Ачык Wi‑Fi тармагына туташты"</string>

@@ -61,7 +61,7 @@
     <string name="wifi_p2p_frequency_conflict_message" product="tablet" msgid="2875937871590955304">"ਟੈਬਲੈੱਟ <xliff:g id="DEVICE_NAME">%1$s</xliff:g> ਨਾਲ ਕਨੈਕਟ ਕੀਤੇ ਜਾਣ ਤੇ ਵਾਈ-ਫਾਈ ਤੋਂ ਅਸਥਾਈ ਤੌਰ ਤੇ ਡਿਸਕਨੈਕਟ ਹੋ ਜਾਵੇਗਾ"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="tv" msgid="9133053225387001827">"ਤੁਹਾਡਾ Android TV ਡੀਵਾਈਸ <xliff:g id="DEVICE_NAME">%1$s</xliff:g> ਨਾਲ ਕਨੈਕਟ ਕੀਤੇ ਜਾਣ \'ਤੇ ਵਾਈ-ਫਾਈ ਤੋਂ ਅਸਥਾਈ ਤੌਰ \'ਤੇ ਡਿਸਕਨੈਕਟ ਹੋ ਜਾਵੇਗਾ"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="default" msgid="2226863827636191980">"ਫ਼ੋਨ <xliff:g id="DEVICE_NAME">%1$s</xliff:g> ਨਾਲ ਕਨੈਕਟ ਕੀਤੇ ਜਾਣ ਤੇ ਵਾਈ-ਫਾਈ ਤੋਂ ਅਸਥਾਈ ਤੌਰ ਤੇ ਡਿਸਕਨੈਕਟ ਹੋ ਜਾਏਗਾ"</string>
-    <string name="dlg_ok" msgid="254496739491689405">"ਠੀਕ"</string>
+    <string name="dlg_ok" msgid="254496739491689405">"ਠੀਕ ਹੈ"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"<xliff:g id="SSID">%1$s</xliff:g> ਨਾਲ ਕਨੈਕਟ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"ਪਰਦੇਦਾਰੀ ਸੈਟਿੰਗਾਂ ਬਦਲਣ ਲਈ ਟੈਪ ਕਰਕੇ ਮੁੜ-ਕੋਸ਼ਿਸ਼ ਕਰੋ"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"ਕੀ ਪਰਦੇਦਾਰੀ ਸੈਟਿੰਗ ਬਦਲਣੀ ਹੈ?"</string>
