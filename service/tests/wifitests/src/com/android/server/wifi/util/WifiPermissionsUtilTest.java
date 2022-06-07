@@ -1059,9 +1059,18 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         when(mDevicePolicyManager.isProfileOwnerApp(TEST_PACKAGE_NAME)).thenReturn(false);
         assertFalse(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
                 MANAGED_PROFILE_UID));
+        when(mDevicePolicyManager.isProfileOwnerApp(TEST_PACKAGE_NAME)).thenReturn(true);
+
+        // Package does not exist for uid.
+        when(mMockContext.getPackageManager().getPackagesForUid(MANAGED_PROFILE_UID))
+                .thenReturn(null);
+        assertFalse(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
+                MANAGED_PROFILE_UID));
+        when(mMockContext.getPackageManager().getPackagesForUid(MANAGED_PROFILE_UID))
+                .thenReturn(packageNames);
 
         // DevicePolicyManager does not exist.
-        when(mMockContext.getSystemService(Context.DEVICE_POLICY_SERVICE))
+        when(mMockContext.getSystemService(DevicePolicyManager.class))
                 .thenReturn(null);
         assertFalse(wifiPermissionsUtil.isProfileOwnerOfOrganizationOwnedDevice(
                 MANAGED_PROFILE_UID));

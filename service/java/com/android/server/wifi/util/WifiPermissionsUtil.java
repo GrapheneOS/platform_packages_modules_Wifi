@@ -1069,6 +1069,11 @@ public class WifiPermissionsUtil {
             return false;
         }
         String[] packages = mContext.getPackageManager().getPackagesForUid(uid);
+        if (packages == null) {
+            Log.w(TAG, "isProfileOwnerOfOrganizationOwnedDevice(): could not find packages for uid="
+                    + uid);
+            return false;
+        }
         for (String packageName : packages) {
             if (devicePolicyManager.isProfileOwnerApp(packageName)) return true;
         }
