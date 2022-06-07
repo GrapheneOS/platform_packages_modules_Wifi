@@ -5232,4 +5232,49 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 mWifiNetworkSuggestionsManager.add(List.of(networkSuggestion), TEST_UID_1,
                 TEST_PACKAGE_1, TEST_FEATURE));
     }
+
+    @Test
+    public void testOnNetworkConnectionSuccessWithMatchAndNetworkTransitionDisable()
+            throws Exception {
+        assertTrue(mWifiNetworkSuggestionsManager.registerSuggestionConnectionStatusListener(
+                mConnectionStatusListener, TEST_PACKAGE_1, TEST_UID_1));
+        WifiNetworkSuggestion networkSuggestion = createWifiNetworkSuggestion(
+                WifiConfigurationTestUtil.createPskNetwork(), null, true, false, true, true,
+                DEFAULT_PRIORITY_GROUP);
+        List<WifiNetworkSuggestion> networkSuggestionList =
+                new ArrayList<WifiNetworkSuggestion>() {{
+                    add(networkSuggestion);
+                }};
+        assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
+                mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
+                        TEST_PACKAGE_1, TEST_FEATURE));
+        mWifiNetworkSuggestionsManager.setHasUserApprovedForApp(true, TEST_UID_1, TEST_PACKAGE_1);
+
+        // Simulate connecting to the network.
+        WifiConfiguration connectNetwork =
+                new WifiConfiguration(networkSuggestion.wifiConfiguration);
+        connectNetwork.fromWifiNetworkSuggestion = true;
+        connectNetwork.shared = false;
+        connectNetwork.ephemeral = true;
+        connectNetwork.creatorName = TEST_PACKAGE_1;
+        connectNetwork.creatorUid = TEST_UID_1;
+        WifiConfiguration updated = new WifiConfiguration(connectNetwork);
+        updated.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+
+        // Update to handle Network Transition Disable
+        mNetworkListenerCaptor.getValue().onSecurityParamsUpdate(connectNetwork,
+                updated.getSecurityParamsList());
+        mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, updated, TEST_BSSID);
+
+        verify(mWifiMetrics).incrementNetworkSuggestionApiNumConnectSuccess();
+
+        // Verify that the correct broadcast was sent out.
+        mInorder.verify(mWifiPermissionsUtil).enforceCanAccessScanResults(eq(TEST_PACKAGE_1),
+                eq(TEST_FEATURE), eq(TEST_UID_1), nullable(String.class));
+        validatePostConnectionBroadcastSent(TEST_PACKAGE_1, networkSuggestion);
+
+        // Verify no more broadcast were sent out.
+        mInorder.verifyNoMoreInteractions();
+    }
 }
