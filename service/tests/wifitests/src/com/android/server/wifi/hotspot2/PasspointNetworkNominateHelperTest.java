@@ -522,27 +522,29 @@ public class PasspointNetworkNominateHelperTest {
      */
     @Test
     public void evaluateScansWithNetworkMatchingHomeProviderWithAnqpLinkDown() throws Exception {
-        List<ScanDetail> scanDetails = Arrays.asList(generateScanDetail(TEST_SSID1, TEST_BSSID1));
+        List<ScanDetail> scanDetails = Arrays.asList(generateScanDetail(TEST_SSID1, TEST_BSSID1),
+                generateScanDetail(TEST_SSID2, TEST_BSSID2));
         // Setup matching providers for ScanDetail with TEST_SSID1.
         List<Pair<PasspointProvider, PasspointMatch>> homeProvider = new ArrayList<>();
         homeProvider.add(Pair.create(sTestProvider1, PasspointMatch.HomeProvider));
 
         when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
         when(mWifiConfigManager.addOrUpdateNetwork(any(WifiConfiguration.class), anyInt(),
-                any(), eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
-        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(TEST_CONFIG1);
+                any(), eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID + 1));
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(TEST_CONFIG1);
         // Setup WAN metrics status is 'LINK_STATUS_DOWN'
         HSWanMetricsElement wm = mock(HSWanMetricsElement.class);
         Map<ANQPElementType, ANQPElement> anqpElements = new HashMap<>();
         anqpElements.put(ANQPElementType.HSWANMetrics, wm);
-        when(mPasspointManager.getANQPElements(any(ScanResult.class)))
+        when(mPasspointManager.getANQPElements(scanDetails.get(0).getScanResult()))
                 .thenReturn(anqpElements);
         when(wm.getStatus()).thenReturn(HSWanMetricsElement.LINK_STATUS_DOWN);
         when(wm.isElementInitialized()).thenReturn(true);
 
         List<Pair<ScanDetail, WifiConfiguration>> candidates = mNominateHelper
                 .getPasspointNetworkCandidates(scanDetails, false);
-        assertEquals(0, candidates.size());
+        assertEquals(1, candidates.size());
     }
 
     /**
@@ -788,7 +790,7 @@ public class PasspointNetworkNominateHelperTest {
         when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
         when(mWifiConfigManager.addOrUpdateNetwork(any(WifiConfiguration.class), anyInt(),
                 any(), eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
-        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(TEST_CONFIG1);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(TEST_CONFIG1);
         // Setup WAN metrics status is 'LINK_STATUS_DOWN'
         HSWanMetricsElement wm = mock(HSWanMetricsElement.class);
         Map<ANQPElementType, ANQPElement> anqpElements = new HashMap<>();
