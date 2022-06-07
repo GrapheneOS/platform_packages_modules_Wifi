@@ -204,7 +204,9 @@
           <item type="integer" name="config_wifiCoexGpsL1ThresholdKhz"/>
           <item type="string" name="config_wifiCoexTableFilepath"/>
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold" />
+          <item type="array" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold_carrier_overrides" />
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs" />
+          <item type="array" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs_carrier_overrides" />
           <item type="bool" name="config_wifiAllowMultipleNetworksOnSameAwareNdi"/>
           <item type="integer" name="config_wifiAwareInstantCommunicationModeDurationMillis" />
           <item type="bool" name="config_wifiSupportChannelOnDataPath"/>

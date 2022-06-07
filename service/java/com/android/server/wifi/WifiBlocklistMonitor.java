@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -999,17 +1000,57 @@ public class WifiBlocklistMonitor {
     }
 
     /** Update DisableReasonInfo with carrier configurations defined in an overlay. **/
-    public void loadCarrierConfigsForDisableReasonInfos() {
-        int duration = mContext.getResources().getInteger(
-                R.integer.config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs);
+    public void loadCarrierConfigsForDisableReasonInfos(
+            @NonNull CarrierSpecificEapFailureConfig config) {
+        if (config == null) {
+            Log.e(TAG, "Unexpected null CarrierSpecificEapFailureConfig");
+            return;
+        }
         DisableReasonInfo disableReasonInfo = new DisableReasonInfo(
                 "NETWORK_SELECTION_DISABLED_AUTHENTICATION_PRIVATE_EAP_ERROR",
-                mContext.getResources().getInteger(R.integer
-                        .config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold),
-                duration);
+                config.threshold, config.durationMs);
         mDisableReasonInfo.put(
                 NetworkSelectionStatus.DISABLED_AUTHENTICATION_PRIVATE_EAP_ERROR,
                 disableReasonInfo);
+    }
+
+    /**
+     * Class to be used to represent blocklist behavior for a certain EAP error code.
+     */
+    public static class CarrierSpecificEapFailureConfig {
+        // number of failures to disable
+        public final int threshold;
+        // disable duration in ms. -1 means permanent disable.
+        public final int durationMs;
+        public CarrierSpecificEapFailureConfig(int threshold, int durationMs) {
+            this.threshold = threshold;
+            this.durationMs = durationMs;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(threshold, durationMs);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof CarrierSpecificEapFailureConfig)) {
+                return false;
+            }
+            CarrierSpecificEapFailureConfig lhs = (CarrierSpecificEapFailureConfig) obj;
+            return threshold == lhs.threshold && durationMs == lhs.durationMs;
+        }
+
+        @Override
+        public String toString() {
+            return new StringBuilder()
+                    .append("threshold=").append(threshold)
+                    .append(" durationMs=").append(durationMs)
+                    .toString();
+        }
     }
 
     /**

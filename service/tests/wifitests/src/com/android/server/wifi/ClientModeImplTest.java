@@ -6772,6 +6772,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Test
     public void testCarrierEapFailure() throws Exception {
         initializeAndAddNetworkAndVerifySuccess();
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig eapFailureConfig =
+                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(1, -1);
 
         startConnectSuccess();
 
@@ -6780,7 +6782,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         config.getNetworkSelectionStatus().setHasEverConnected(true);
         config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.SIM);
         when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
-        when(mEapFailureNotifier.onEapFailure(anyInt(), eq(config), anyBoolean())).thenReturn(true);
+        when(mEapFailureNotifier.onEapFailure(anyInt(), eq(config), anyBoolean())).thenReturn(
+                eapFailureConfig);
 
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
                 new AuthenticationFailureEventInfo(TEST_SSID, MacAddress.fromString(TEST_BSSID_STR),
@@ -6789,7 +6792,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mEapFailureNotifier).onEapFailure(DEFINED_ERROR_CODE, config, true);
-        verify(mWifiBlocklistMonitor).loadCarrierConfigsForDisableReasonInfos();
+        verify(mWifiBlocklistMonitor).loadCarrierConfigsForDisableReasonInfos(eapFailureConfig);
         verify(mWifiConfigManager).updateNetworkSelectionStatus(anyInt(),
                 eq(WifiConfiguration.NetworkSelectionStatus
                         .DISABLED_AUTHENTICATION_PRIVATE_EAP_ERROR));

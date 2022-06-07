@@ -86,21 +86,9 @@ public class WifiStringResourceWrapper {
 
         // check if there's a carrier-specific override array
         if (mCarrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
-            int arrayResourceId = mResources.getIdentifier(name + CARRIER_ID_RESOURCE_NAME_SUFFIX,
-                    "array", mContext.getWifiOverlayApkPkgName());
-            if (arrayResourceId != 0) {
-                String[] carrierIdOverlays = mResources.getStringArray(arrayResourceId);
-                // check for the :::carrier-id::: prefix and if exists format and return it
-                for (String carrierIdOverlay : carrierIdOverlays) {
-                    if (carrierIdOverlay.indexOf(mCarrierIdPrefix) != 0) continue;
-                    try {
-                        return String.format(carrierIdOverlay.substring(mCarrierIdPrefix.length()),
-                                args);
-                    } catch (java.util.IllegalFormatException e) {
-                        Log.e(TAG, "Resource formatting error - '" + name + "' - " + e);
-                        return null;
-                    }
-                }
+            String carrierOverrideString = getCarrierOverrideString(name, args);
+            if (carrierOverrideString != null) {
+                return carrierOverrideString;
             }
         }
 
@@ -110,6 +98,53 @@ public class WifiStringResourceWrapper {
             Log.e(TAG, "Resource formatting error - '" + name + "' - " + e);
             return null;
         }
+    }
+
+    /**
+     * Returns the int corresponding to the resource ID - or the default value if no resources
+     * exist.
+     */
+    public int getInt(String name, int defaultValue) {
+        if (mResources == null) return defaultValue;
+        int resourceId = mResources.getIdentifier(name, "integer",
+                mContext.getWifiOverlayApkPkgName());
+        if (resourceId == 0) return defaultValue;
+
+        // check if there's a carrier-specific override array
+        if (mCarrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
+            String carrierOverrideString = getCarrierOverrideString(name);
+            if (carrierOverrideString != null) {
+                try {
+                    return Integer.parseInt(carrierOverrideString);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to parse String into int. String=" + carrierOverrideString);
+                }
+            }
+        }
+        return mResources.getInteger(resourceId);
+    }
+
+    /**
+     * Return the String resource override by the carrier, or null if no override is found.
+     */
+    private String getCarrierOverrideString(String name, Object... args) {
+        int arrayResourceId = mResources.getIdentifier(name + CARRIER_ID_RESOURCE_NAME_SUFFIX,
+                "array", mContext.getWifiOverlayApkPkgName());
+        if (arrayResourceId != 0) {
+            String[] carrierIdOverlays = mResources.getStringArray(arrayResourceId);
+            // check for the :::carrier-id::: prefix and if exists format and return it
+            for (String carrierIdOverlay : carrierIdOverlays) {
+                if (carrierIdOverlay.indexOf(mCarrierIdPrefix) != 0) continue;
+                try {
+                    return String.format(carrierIdOverlay.substring(mCarrierIdPrefix.length()),
+                            args);
+                } catch (java.util.IllegalFormatException e) {
+                    Log.e(TAG, "Resource formatting error - '" + name + "' - " + e);
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     /**
