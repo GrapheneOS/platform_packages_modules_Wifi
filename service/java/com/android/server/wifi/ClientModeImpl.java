@@ -5219,11 +5219,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         if (targetedNetwork != null && targetedNetwork.enterpriseConfig != null
                                 && targetedNetwork.enterpriseConfig.isAuthenticationSimBased()) {
                             // only show EAP failure notification if primary
-                            if (mEapFailureNotifier
-                                    .onEapFailure(errorCode, targetedNetwork, isPrimary())) {
+                            WifiBlocklistMonitor.CarrierSpecificEapFailureConfig eapFailureConfig =
+                                    mEapFailureNotifier.onEapFailure(errorCode, targetedNetwork,
+                                            isPrimary());
+                            if (eapFailureConfig != null) {
                                 disableReason = WifiConfiguration.NetworkSelectionStatus
                                     .DISABLED_AUTHENTICATION_PRIVATE_EAP_ERROR;
-                                mWifiBlocklistMonitor.loadCarrierConfigsForDisableReasonInfos();
+                                mWifiBlocklistMonitor.loadCarrierConfigsForDisableReasonInfos(
+                                        eapFailureConfig);
                             }
                         }
                         handleEapAuthFailure(mTargetNetworkId, errorCode);
