@@ -417,7 +417,7 @@ public class WifiInjector {
                 mWifiCarrierInfoManager, mMacAddressUtil, mWifiPermissionsUtil);
         PasspointNetworkNominateHelper nominateHelper =
                 new PasspointNetworkNominateHelper(mPasspointManager, mWifiConfigManager,
-                        mConnectivityLocalLog, mWifiCarrierInfoManager);
+                        mConnectivityLocalLog, mWifiCarrierInfoManager, mContext.getResources());
         mPasspointManager.setPasspointNetworkNominateHelper(nominateHelper);
         mSavedNetworkNominator = new SavedNetworkNominator(
                 mWifiConfigManager, nominateHelper, mConnectivityLocalLog, mWifiCarrierInfoManager,
