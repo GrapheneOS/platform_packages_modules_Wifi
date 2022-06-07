@@ -6766,6 +6766,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         int disabledType = testNetwork.getDefaultSecurityParams().getSecurityType();
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
         int networkId = result.getNetworkId();
+        mWifiConfigManager.addOnNetworkUpdateListener(mListener);
 
         WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertTrue(configBefore.getSecurityParams(disabledType).isEnabled());
@@ -6774,6 +6775,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         WifiConfiguration configAfter = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertFalse(configAfter.getSecurityParams(disabledType).isEnabled());
+        verify(mListener).onSecurityParamsUpdate(any(), eq(configAfter.getSecurityParamsList()));
     }
 
     /**
