@@ -162,6 +162,15 @@ public class WifiConfigManager {
          * @param choiceKey The network profile key of the user connect choice that was removed.
          */
         default void onConnectChoiceRemoved(String choiceKey){ }
+
+        /**
+         * Invoke when security params changed, especially when NetworkTransitionDisable event
+         * received
+         * @param oldConfig The original WifiConfiguration
+         * @param securityParams the updated securityParams
+         */
+        default void onSecurityParamsUpdate(@NonNull WifiConfiguration oldConfig,
+                List<SecurityParams> securityParams) { }
     }
     /**
      * Max size of scan details to cache in {@link #mScanDetailCaches}.
@@ -3866,8 +3875,7 @@ public class WifiConfigManager {
      * @param indicationBit transition disable indication bits.
      * @return true if the network was found, false otherwise.
      */
-    public boolean updateNetworkTransitionDisable(
-            int networkId,
+    public boolean updateNetworkTransitionDisable(int networkId,
             @WifiMonitor.TransitionDisableIndication int indicationBit) {
         localLog("updateNetworkTransitionDisable: network ID=" + networkId
                 + " indication: " + indicationBit);
@@ -3876,21 +3884,33 @@ public class WifiConfigManager {
             Log.e(TAG, "Cannot find network for " + networkId);
             return false;
         }
+        WifiConfiguration copy = new WifiConfiguration(config);
+        boolean changed = false;
         if (0 != (indicationBit & WifiMonitor.TDI_USE_WPA3_PERSONAL)
                 && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)) {
             config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+            changed = true;
         }
         if (0 != (indicationBit & WifiMonitor.TDI_USE_SAE_PK)) {
             config.enableSaePkOnlyMode(true);
+            changed = true;
         }
         if (0 != (indicationBit & WifiMonitor.TDI_USE_WPA3_ENTERPRISE)
                 && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE)) {
             config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_EAP, false);
+            changed = true;
         }
         if (0 != (indicationBit & WifiMonitor.TDI_USE_ENHANCED_OPEN)
                 && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
             config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_OPEN, false);
+            changed = true;
         }
+        if (changed) {
+            for (OnNetworkUpdateListener listener : mListeners) {
+                listener.onSecurityParamsUpdate(copy, config.getSecurityParamsList());
+            }
+        }
+
         return true;
     }
 
