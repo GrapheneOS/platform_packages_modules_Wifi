@@ -44,4 +44,19 @@
     </style>
 
     <style name="wifi_p2p_invitation_received_dialog" />
+
+    <style name="wifi_p2p_dialog_row_label" parent="@style/wifi_item_label" />
+
+    <style name="wifi_p2p_dialog_row_content" parent="@style/wifi_item_content">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAlignment">viewStart</item>
+    </style>
+
+    <style name="wifi_p2p_dialog_enter_pin_message" parent="@style/wifi_item_label" />
+
+    <style name="wifi_p2p_dialog_pin_input" parent="@style/wifi_item_content">
+        <item name="android:singleLine">true</item>
+        <item name="android:maxLength">8</item>
+        <item name="android:inputType">number</item>
+    </style>
 </resources>
