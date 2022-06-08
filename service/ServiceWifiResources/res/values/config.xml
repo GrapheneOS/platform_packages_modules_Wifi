@@ -878,4 +878,20 @@
     <!-- The world mode country code value definition in the wifi driver -->
     <string translatable="false" name="config_wifiDriverWorldModeCountryCode">00</string>
 
+    <!-- Indicates whether or not the AP WAN Link Status ANQP element is used to filter candidate
+         networks. Note that even if enabled (overlay = true) that invalid elements (all zeros
+         are still ignored).
+         If disabled (overlay = false) then the
+         `config_wifiPasspointUseApWanLinkStatusAnqpElementFqdnAllowList`
+         specifies a list of FQDNs for which the element will still be considered. -->
+    <bool translatable="false" name="config_wifiPasspointUseApWanLinkStatusAnqpElement">true</bool>
+    <!-- list of FQDNs for which to use the AP WAN Link Status ANQP element. Overrides any
+         configuration specified in `config_wifiPasspointUseApWanLinkStatusAnqpElement`. -->
+    <string-array translatable="false" name="config_wifiPasspointUseApWanLinkStatusAnqpElementFqdnAllowlist">
+        <!-- Below is a sample configuration for this list:
+        <item>XYZ</item>
+        <item>ABC</item>
+        -->
+    </string-array>
+
 </resources>
