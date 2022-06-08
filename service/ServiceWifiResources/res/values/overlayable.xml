@@ -328,6 +328,10 @@
           <item type="style" name="wifi_item_content" />
           <item type="style" name="wifi_section" />
           <item type="style" name="wifi_p2p_invitation_received_dialog" />
+          <item type="style" name="wifi_p2p_dialog_row_label" />
+          <item type="style" name="wifi_p2p_dialog_row_content" />
+          <item type="style" name="wifi_p2p_dialog_enter_pin_message" />
+          <item type="style" name="wifi_p2p_dialog_pin_input" />
           <!-- Params from styles.xml that can be overlayed -->
 
           <!-- Params from drawable/ that can be overlayed -->
