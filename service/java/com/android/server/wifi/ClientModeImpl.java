@@ -4897,11 +4897,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             String decoratedPseudonym = mWifiCarrierInfoManager
                                     .decoratePseudonymWith3GppRealm(config,
                                             anonymousIdentity);
-                            if (decoratedPseudonym != null) {
+                            if (decoratedPseudonym != null
+                                    && !decoratedPseudonym.equals(anonymousIdentity)) {
                                 anonymousIdentity = decoratedPseudonym;
                                 // propagate to the supplicant to avoid using
                                 // the original anonymous identity for firmware
                                 // roaming.
+                                if (mVerboseLoggingEnabled) {
+                                    log("Update decorated pseudonym: " + anonymousIdentity);
+                                }
                                 mWifiNative.setEapAnonymousIdentity(mInterfaceName,
                                         anonymousIdentity);
                             }
