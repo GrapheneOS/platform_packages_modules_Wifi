@@ -117,6 +117,10 @@ public class WifiConfigurationTest {
         config.carrierId = 1189;
         config.restricted = true;
         config.setSubscriptionGroup(ParcelUuid.fromString("0000110B-0000-1000-8000-00805F9B34FB"));
+        config.getNetworkSelectionStatus().setDisableTime(12333);
+        config.getNetworkSelectionStatus().setDisableEndTime(45666);
+        assertEquals(12333, config.getNetworkSelectionStatus().getDisableTime());
+        assertEquals(45666, config.getNetworkSelectionStatus().getDisableEndTime());
         Parcel parcelW = Parcel.obtain();
         config.writeToParcel(parcelW, 0);
         byte[] bytes = parcelW.marshall();
@@ -147,6 +151,10 @@ public class WifiConfigurationTest {
                         WifiConfiguration.SECURITY_TYPE_PSK),
                 reconfig.getSecurityParams(
                         WifiConfiguration.SECURITY_TYPE_PSK));
+        assertEquals(config.getNetworkSelectionStatus().getDisableTime(),
+                reconfig.getNetworkSelectionStatus().getDisableTime());
+        assertEquals(config.getNetworkSelectionStatus().getDisableEndTime(),
+                reconfig.getNetworkSelectionStatus().getDisableEndTime());
 
         Parcel parcelWW = Parcel.obtain();
         reconfig.writeToParcel(parcelWW, 0);
