@@ -34,9 +34,11 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.Vibrator;
+import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.URLSpan;
 import android.util.ArraySet;
@@ -564,6 +566,31 @@ public class WifiDialogActivity extends Activity  {
                     getWifiManager().replyToP2pInvitationReceivedDialog(dialogId, false, null);
                 })
                 .create();
+        if (pinEditText != null) {
+            dialog.setOnShowListener(dialogShow -> {
+                dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(false);
+            });
+            pinEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    // No-op.
+                }
+
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    // No-op.
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (s.length() == 4 || s.length() == 8) {
+                        dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(true);
+                    } else {
+                        dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(false);
+                    }
+                }
+            });
+        }
         if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_TYPE_APPLIANCE)
                 == Configuration.UI_MODE_TYPE_APPLIANCE) {
             // For appliance devices, add a key listener which accepts.
