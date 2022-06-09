@@ -2355,6 +2355,8 @@ public class WifiConfiguration implements Parcelable {
          */
         private long mTemporarilyDisabledTimestamp = INVALID_NETWORK_SELECTION_DISABLE_TIMESTAMP;
 
+        private long mTemporarilyDisabledEndTime = INVALID_NETWORK_SELECTION_DISABLE_TIMESTAMP;
+
         /**
          * counter for each Network selection disable reason
          */
@@ -2733,8 +2735,7 @@ public class WifiConfiguration implements Parcelable {
         }
 
         /**
-         * @param timeStamp Set when current network is disabled in millisecond since January 1,
-         * 1970 00:00:00.0 UTC
+         * @param timeStamp Set when current network is disabled in millisecond since boot.
          * @hide
          */
         public void setDisableTime(long timeStamp) {
@@ -2742,11 +2743,28 @@ public class WifiConfiguration implements Parcelable {
         }
 
         /**
-         * Returns when the current network was disabled, in milliseconds since January 1,
-         * 1970 00:00:00.0 UTC.
+         * Returns when the current network was disabled, in milliseconds since boot.
          */
         public long getDisableTime() {
             return mTemporarilyDisabledTimestamp;
+        }
+
+        /**
+         * Set the expected time for this WifiConfiguration to get re-enabled.
+         * Timestamp is in milliseconds since boot.
+         * @hide
+         */
+        public void setDisableEndTime(long timestamp) {
+            mTemporarilyDisabledEndTime = timestamp;
+        }
+
+        /**
+         * Returns the expected time for this WifiConfiguration to get re-enabled.
+         * Timestamp is in milliseconds since boot.
+         * @hide
+         */
+        public long getDisableEndTime() {
+            return mTemporarilyDisabledEndTime;
         }
 
         /**
@@ -2848,6 +2866,7 @@ public class WifiConfiguration implements Parcelable {
                         source.mNetworkSeclectionDisableCounter[index];
             }
             mTemporarilyDisabledTimestamp = source.mTemporarilyDisabledTimestamp;
+            mTemporarilyDisabledEndTime = source.mTemporarilyDisabledEndTime;
             mNetworkSelectionBSSID = source.mNetworkSelectionBSSID;
             setSeenInLastQualifiedNetworkSelection(source.getSeenInLastQualifiedNetworkSelection());
             setCandidate(source.getCandidate());
@@ -2869,6 +2888,7 @@ public class WifiConfiguration implements Parcelable {
                 dest.writeInt(getDisableReasonCounter(index));
             }
             dest.writeLong(getDisableTime());
+            dest.writeLong(getDisableEndTime());
             dest.writeString(getNetworkSelectionBSSID());
             if (getConnectChoice() != null) {
                 dest.writeInt(CONNECT_CHOICE_EXISTS);
@@ -2892,6 +2912,7 @@ public class WifiConfiguration implements Parcelable {
                 setDisableReasonCounter(index, in.readInt());
             }
             setDisableTime(in.readLong());
+            setDisableEndTime(in.readLong());
             setNetworkSelectionBSSID(in.readString());
             if (in.readInt() == CONNECT_CHOICE_EXISTS) {
                 setConnectChoice(in.readString());
@@ -3455,6 +3476,17 @@ public class WifiConfiguration implements Parcelable {
                 sbuf.append(" blackListed since <incorrect>");
             } else {
                 sbuf.append(" blackListed: ").append(Long.toString(diff / 1000)).append("sec ");
+            }
+        }
+        if (mNetworkSelectionStatus.getDisableEndTime()
+                != NetworkSelectionStatus.INVALID_NETWORK_SELECTION_DISABLE_TIMESTAMP) {
+            sbuf.append('\n');
+            long diff = mNetworkSelectionStatus.getDisableEndTime() - now_ms;
+            if (diff <= 0) {
+                sbuf.append(" blockListed remaining time <incorrect>");
+            } else {
+                sbuf.append(" blocklist end in: ").append(Long.toString(diff / 1000))
+                        .append("sec ");
             }
         }
         if (creatorUid != 0) sbuf.append(" cuid=" + creatorUid);

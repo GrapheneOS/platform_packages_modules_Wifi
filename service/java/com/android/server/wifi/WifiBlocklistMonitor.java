@@ -985,7 +985,15 @@ public class WifiBlocklistMonitor {
                         5 * 60 * 1000));
     }
 
-    /** Update DisableReasonInfo with carrier configurations defined in an overlay. **/
+    /**
+     * Update DisableReasonInfo with carrier configurations defined in an overlay.
+     *
+     * TODO(236173881): mDisableReasonInfo storing the carrier specific EAP failure threshold and
+     * duration is always keyed by NetworkSelectionStatus.DISABLED_AUTHENTICATION_PRIVATE_EAP_ERROR.
+     * This is error prone now that different carrier networks could have different thresholds and
+     * durations. But with the current code only the last updated one will remain in
+     * mDisableReasonInfo. Need to clean this up to be more robust.
+     */
     public void loadCarrierConfigsForDisableReasonInfos(
             @NonNull CarrierSpecificEapFailureConfig config) {
         if (config == null) {
@@ -1046,23 +1054,7 @@ public class WifiBlocklistMonitor {
     public boolean shouldEnableNetwork(WifiConfiguration config) {
         NetworkSelectionStatus networkStatus = config.getNetworkSelectionStatus();
         if (networkStatus.isNetworkTemporaryDisabled()) {
-            long timeDifferenceMs =
-                    mClock.getElapsedSinceBootMillis() - networkStatus.getDisableTime();
-            int disableReason = networkStatus.getNetworkSelectionDisableReason();
-            long disableTimeoutMs = (long) getNetworkSelectionDisableTimeoutMillis(disableReason);
-            int exponentialBackoffCount = mWifiScoreCard.lookupNetwork(config.SSID)
-                    .getRecentStats().getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE)
-                    - NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF;
-            for (int i = 0; i < exponentialBackoffCount; i++) {
-                disableTimeoutMs *= 2;
-                if (disableTimeoutMs > WIFI_CONFIG_MAX_DISABLE_DURATION_MILLIS) {
-                    disableTimeoutMs = WIFI_CONFIG_MAX_DISABLE_DURATION_MILLIS;
-                    break;
-                }
-            }
-            if (timeDifferenceMs >= disableTimeoutMs) {
-                return true;
-            }
+            return mClock.getElapsedSinceBootMillis() >= networkStatus.getDisableEndTime();
         }
         return false;
     }
@@ -1165,6 +1157,8 @@ public class WifiBlocklistMonitor {
                 NetworkSelectionStatus.NETWORK_SELECTION_ENABLED);
         status.setDisableTime(
                 NetworkSelectionStatus.INVALID_NETWORK_SELECTION_DISABLE_TIMESTAMP);
+        status.setDisableEndTime(
+                NetworkSelectionStatus.INVALID_NETWORK_SELECTION_DISABLE_TIMESTAMP);
         status.setNetworkSelectionDisableReason(NetworkSelectionStatus.DISABLED_NONE);
 
         // Clear out all the disable reason counters.
@@ -1184,9 +1178,25 @@ public class WifiBlocklistMonitor {
                 NetworkSelectionStatus.NETWORK_SELECTION_TEMPORARY_DISABLED);
         // Only need a valid time filled in for temporarily disabled networks.
         status.setDisableTime(mClock.getElapsedSinceBootMillis());
+        status.setDisableEndTime(calculateDisableEndTime(config, disableReason));
         status.setNetworkSelectionDisableReason(disableReason);
         handleWifiConfigurationDisabled(config.SSID);
         mWifiMetrics.incrementWificonfigurationBlocklistCount(disableReason);
+    }
+
+    private long calculateDisableEndTime(WifiConfiguration config, int disableReason) {
+        long disableDurationMs = (long) getNetworkSelectionDisableTimeoutMillis(disableReason);
+        int exponentialBackoffCount = mWifiScoreCard.lookupNetwork(config.SSID)
+                .getRecentStats().getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE)
+                - NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF;
+        for (int i = 0; i < exponentialBackoffCount; i++) {
+            disableDurationMs *= 2;
+            if (disableDurationMs > WIFI_CONFIG_MAX_DISABLE_DURATION_MILLIS) {
+                disableDurationMs = WIFI_CONFIG_MAX_DISABLE_DURATION_MILLIS;
+                break;
+            }
+        }
+        return mClock.getElapsedSinceBootMillis() + disableDurationMs;
     }
 
     /**
