@@ -3264,14 +3264,66 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Validate creation of AP Bridge interface from blank start-up in chip V1.6
+     * Validate creation of AP Bridge interface from blank start-up in TestChipV6
      */
     @Test
-    public void testCreateApBridgeInterfaceNoInitModeTestChipV16() throws Exception {
+    public void testCreateApBridgeInterfaceNoInitModeTestChipV6() throws Exception {
         TestChipV6 testChip = new TestChipV6();
         setupWifiChipV15(testChip);
         runCreateSingleXxxInterfaceNoInitMode(testChip, HDM_CREATE_IFACE_AP_BRIDGE, "wlan0",
                 TestChipV6.CHIP_MODE_ID);
+    }
+
+    /**
+     * Validate creation of STA will not downgrade an AP Bridge interface in TestChipV6, since it
+     * can support STA and AP Bridge concurrently.
+     */
+    @Test
+    public void testCreateStaDoesNotDowngradeApBridgeInterfaceTestChipV6() throws Exception {
+        mIsBridgedSoftApSupported = true;
+        mIsStaWithBridgedSoftApConcurrencySupported = false;
+        TestChipV6 chipMock = new TestChipV6();
+        setupWifiChipV15(chipMock);
+        chipMock.initialize();
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, chipMock.chip,
+                mWifiChipV15, mManagerStatusListenerMock);
+        executeAndValidateInitializationSequence();
+        executeAndValidateStartupSequence();
+
+        InterfaceDestroyedListener idl = mock(
+                InterfaceDestroyedListener.class);
+
+        // Create the bridged AP
+        ArrayList<String> bridgedApInstances = new ArrayList<>();
+        bridgedApInstances.add("instance0");
+        bridgedApInstances.add("instance1");
+        chipMock.bridgedApInstancesByName.put("wlan0", bridgedApInstances);
+        IWifiIface iface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_AP_BRIDGE,
+                "wlan0",
+                TestChipV6.CHIP_MODE_ID,
+                null, // tearDownList
+                idl, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("interface was null", iface, IsNull.notNullValue());
+
+        when(mSoftApManager.getBridgedApDowngradeIfaceInstanceForRemoval()).thenReturn("instance1");
+        // Should be able to create a STA without downgrading the bridged AP
+        iface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV6.CHIP_MODE_ID,
+                HDM_CREATE_IFACE_STA,
+                "wlan3",
+                TestChipV6.CHIP_MODE_ID,
+                null, // tearDownList
+                idl, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("interface was null", iface, IsNull.notNullValue());
+        assertEquals(2, bridgedApInstances.size());
     }
 
     private IWifiIface setupDbsSupportTest(ChipMockBase testChip, int onlyChipMode,
