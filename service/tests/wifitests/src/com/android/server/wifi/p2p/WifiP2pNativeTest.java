@@ -25,12 +25,12 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
+import android.hardware.wifi.V1_0.IWifiIface;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.net.wifi.WifiManager;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -90,14 +90,18 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     private static final String TEST_NFC_REQUEST_MSG = "request";
     private static final String TEST_NFC_SELECT_MSG = "select";
     private static final String TEST_CLIENT_LIST = "aa:bb:cc:dd:ee:ff 11:22:33:44:55:66";
+    private static final String TEST_R2_DEVICE_INFO_HEX = "00020064";
 
     @Mock private WifiNl80211Manager mWifiCondManager;
     @Mock private WifiNative mWifiNative;
     @Mock private WifiVendorHal mWifiVendorHalMock;
     @Mock private SupplicantP2pIfaceHal mSupplicantP2pIfaceHalMock;
     @Mock private HalDeviceManager mHalDeviceManagerMock;
+    @Mock private HalDeviceManager.InterfaceDestroyedListener mDestroyedListenerMock;
     @Mock private PropertyService mPropertyServiceMock;
-    @Mock private Handler mHandler;
+    @Mock private Handler mHandlerMock;
+    @Mock private WorkSource mWorkSourceMock;
+    @Mock private IWifiP2pIface mIWifiP2pIfaceMock;
 
     private MockitoSession mSession;
     private WifiP2pNative mWifiP2pNative;
@@ -176,6 +180,242 @@ public class WifiP2pNativeTest extends WifiBaseTest {
 
         when(mHalDeviceManagerMock.isSupported()).thenReturn(false);
         assertFalse(mWifiP2pNative.isHalInterfaceSupported());
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when successfully creating P2P Iface.
+     */
+    @Test
+    public void testSetupInterfaceSuccessInCreatingP2pIface() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(TEST_IFACE);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.setupIface(eq(TEST_IFACE))).thenReturn(true);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                TEST_IFACE);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when vendor Hal doesn't support.
+     */
+    @Test
+    public void testSetupInterfaceSuccessWhenVendorHalDoesNotSupport() {
+        when(mHalDeviceManagerMock.isSupported()).thenReturn(false);
+        when(mPropertyServiceMock.getString(anyString(), anyString())).thenReturn(TEST_IFACE);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.setupIface(eq(TEST_IFACE))).thenReturn(true);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                TEST_IFACE);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when failing in creating P2P Iface.
+     */
+    @Test
+    public void testSetupInterfaceFailureInCreatingP2pIface() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(null);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                null);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when failing in getting P2P Iface name.
+     */
+    @Test
+    public void testSetupInterfaceFailureInGettingP2pIfaceName() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(null);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                null);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when supplicant connection
+     * initialization fails.
+     */
+    @Test
+    public void testSetupInterfaceFailureInSupplicantConnectionInitialization() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(TEST_IFACE);
+        when(mSupplicantP2pIfaceHalMock.isInitializationStarted()).thenReturn(false);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(false);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                null);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when supplicant connection
+     * initialization never completes.
+     */
+    @Test
+    public void testSetupInterfaceFailureInSupplicantConnectionInitNotCompleted() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(TEST_IFACE);
+        when(mSupplicantP2pIfaceHalMock.setupIface(eq(TEST_IFACE))).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(false);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                null);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when failing in setting up P2P Iface
+     * for supplicant.
+     */
+    @Test
+    public void testSetupInterfaceFailureInSettingUpP2pIfaceInSupplicant() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(TEST_IFACE);
+        when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(true);
+        when(mSupplicantP2pIfaceHalMock.setupIface(eq(TEST_IFACE))).thenReturn(false);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                null);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when mIWifiP2pIface already exists,
+     * and HalDeviceManager does support.
+     */
+    @Test
+    public void testSetupInterfaceSuccessWhenHalDeviceMgrDoesSupport() throws Exception {
+        prepareDbsMock(true);
+
+        when(HalDeviceManager.getName(any(IWifiIface.class))).thenReturn(TEST_IFACE);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                TEST_IFACE);
+    }
+
+    /**
+     * Verifies that setupInterface returns correct values when mIWifiP2pIface already exists,
+     * and HalDeviceManager doesn't support.
+     */
+    @Test
+    public void testSetupInterfaceSuccessWhenNoHalDeviceMgrSupport() throws Exception {
+        prepareDbsMock(true);
+
+        when(mHalDeviceManagerMock.isSupported()).thenReturn(false);
+        when(mPropertyServiceMock.getString(anyString(), anyString())).thenReturn(TEST_IFACE);
+
+        assertEquals(
+                mWifiP2pNative.setupInterface(
+                        mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
+                TEST_IFACE);
+    }
+
+    /**
+     * Verifies that teardownInterface works properly when HalDeviceManager does support,
+     * and P2P Iface already exists.
+     */
+    @Test
+    public void testTeardownInterfaceSuccessWhenP2pIfaceExists() throws Exception {
+        prepareDbsMock(true);
+
+        mWifiP2pNative.teardownInterface();
+    }
+
+    /**
+     * Verifies that teardownInterface works properly when HalDeviceManager doesn't support,
+     * and there's no P2P Iface.
+     */
+    @Test
+    public void testTeardownInterfaceSuccessWhenNoP2pIface() {
+        mWifiP2pNative.teardownInterface();
+    }
+
+    /**
+     * Verifies that teardownInterface works properly when HalDeviceManager doesn't support.
+     */
+    @Test
+    public void testTeardownInterfaceSuccessWhenNoHalDeviceMgrSupport() throws Exception {
+        prepareDbsMock(true);
+        when(mHalDeviceManagerMock.isSupported()).thenReturn(false);
+        when(mPropertyServiceMock.getString(anyString(), anyString())).thenReturn(TEST_IFACE);
+
+        mWifiP2pNative.teardownInterface();
+    }
+
+    /**
+     * Verifies that replaceRequestorWs returns correct values when
+     * HalDeviceManager doesn't support.
+     */
+    @Test
+    public void testReplaceRequestorWsSuccessWhenNoHalDeviceMgrSupport() {
+        when(mHalDeviceManagerMock.isSupported()).thenReturn(false);
+        assertTrue(mWifiP2pNative.replaceRequestorWs(mWorkSourceMock));
+    }
+
+    /**
+     * Verifies that replaceRequestorWs returns correct values when HalDeviceManager doesn't
+     * support, and there's no P2P Iface.
+     */
+    @Test
+    public void testReplaceRequestorWsSuccessWhenHalDeviceMgrDoesSupportAndNoP2pIface() {
+        assertFalse(mWifiP2pNative.replaceRequestorWs(mWorkSourceMock));
+    }
+
+    /**
+     * Verifies that replaceRequestorWs returns correct values when HalDeviceManager supports,
+     * mIWifiP2pIface is set up successfully, and HalDeviceManager succeeds in replacing.
+     */
+    @Test
+    public void testReplaceRequestorWsSuccessWhenHalDeviceMgrSucceedInReplace() throws Exception {
+        prepareDbsMock(true);
+
+        when(mHalDeviceManagerMock.replaceRequestorWs(any(IWifiIface.class),
+                any(WorkSource.class))).thenReturn(true);
+        assertTrue(mWifiP2pNative.replaceRequestorWs(mWorkSourceMock));
+    }
+
+    /**
+     * Verifies that replaceRequestorWs returns correct values when HalDeviceManager supports,
+     * mIWifiP2pIface is set up successfully, and HalDeviceManager fails in replacing.
+     */
+    @Test
+    public void testReplaceRequestorWsSuccessWhenHalDeviceMgrFailInReplace() throws Exception {
+        prepareDbsMock(true);
+
+        when(mHalDeviceManagerMock.replaceRequestorWs(any(IWifiIface.class),
+                any(WorkSource.class))).thenReturn(false);
+        assertFalse(mWifiP2pNative.replaceRequestorWs(mWorkSourceMock));
     }
 
     /**
@@ -749,6 +989,26 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies setting Wifi Display R2 device info when SupplicantP2pIfaceHal succeeds in setting.
+     */
+    @Test
+    public void testSetWfdR2DeviceInfoSuccess() {
+        when(mSupplicantP2pIfaceHalMock.setWfdR2DeviceInfo(anyString()))
+                .thenReturn(true);
+        assertTrue(mWifiP2pNative.setWfdR2DeviceInfo(TEST_R2_DEVICE_INFO_HEX));
+    }
+
+    /**
+     * Verifies setting Wifi Display R2 device info when SupplicantP2pIfaceHal fails in setting.
+     */
+    @Test
+    public void testSetWfdR2DeviceInfoFailure() {
+        when(mSupplicantP2pIfaceHalMock.setWfdR2DeviceInfo(anyString()))
+                .thenReturn(false);
+        assertFalse(mWifiP2pNative.setWfdR2DeviceInfo(TEST_R2_DEVICE_INFO_HEX));
+    }
+
+    /**
      * Verifies removing client with specified mac address.
      */
     @Test
@@ -760,13 +1020,14 @@ public class WifiP2pNativeTest extends WifiBaseTest {
 
     void prepareDbsMock(boolean isHalDeviceManagerSupported) throws Exception {
         when(mHalDeviceManagerMock.isSupported()).thenReturn(isHalDeviceManagerSupported);
-        when(mHalDeviceManagerMock.createP2pIface(any(), any(), any()))
-                .thenReturn(mock(IWifiP2pIface.class));
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(mIWifiP2pIfaceMock);
         when(mSupplicantP2pIfaceHalMock.isInitializationStarted()).thenReturn(true);
         when(mSupplicantP2pIfaceHalMock.initialize()).thenReturn(true);
         when(mSupplicantP2pIfaceHalMock.isInitializationComplete()).thenReturn(true);
         when(mSupplicantP2pIfaceHalMock.setupIface(any())).thenReturn(true);
-        mWifiP2pNative.setupInterface(null, mHandler, mock(WorkSource.class));
+        mWifiP2pNative.setupInterface(mDestroyedListenerMock, mHandlerMock, mWorkSourceMock);
     }
 
     /**
