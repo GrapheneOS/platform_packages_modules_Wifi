@@ -39,6 +39,7 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ActiveModeManager.ClientRole;
+import com.android.server.wifi.util.StringUtil;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -823,21 +824,16 @@ public class WifiScoreReport {
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(now);
             // Date format: "%tm-%td %tH:%tM:%tS.%tL"
-            String timestamp = new StringBuilder().append(c.get(Calendar.MONTH)).append("-")
-                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                    .append(c.get(Calendar.MINUTE)).append(":")
-                    .append(c.get(Calendar.SECOND)).append(".")
-                    .append(c.get(Calendar.MILLISECOND)).toString();
+            String timestamp = StringUtil.calendarToString(c);
             s = timestamp + "," + mSessionNumber + "," + netId + "," + mWifiInfo.getRssi()
-                    + "," + Math.round(filteredRssi * 100) / 100 + "," + rssiThreshold
+                    + "," + StringUtil.doubleToString(filteredRssi, 1) + "," + rssiThreshold
                     + "," + freq + "," + txLinkSpeed
                     + "," + rxLinkSpeed + "," + txThroughputMbps
                     + "," + rxThroughputMbps + "," + totalBeaconRx
-                    + "," + Math.round(txSuccessRate * 100) / 100
-                    + "," + Math.round(txRetriesRate * 100) / 100
-                    + "," + Math.round(txBadRate * 100) / 100
-                    + "," + Math.round(rxSuccessRate * 100) / 100
+                    + "," + StringUtil.doubleToString(txSuccessRate, 2)
+                    + "," + StringUtil.doubleToString(txRetriesRate, 2)
+                    + "," + StringUtil.doubleToString(txBadRate, 2)
+                    + "," + StringUtil.doubleToString(rxSuccessRate, 2)
                     + "," + mNudYes + "," + mNudCount + "," + s1 + "," + s2 + "," + score;
         } catch (Exception e) {
             Log.e(TAG, "format problem", e);
