@@ -26,6 +26,7 @@ import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.GroupEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.WifiP2pStats;
+import com.android.server.wifi.util.StringUtil;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -171,12 +172,7 @@ public class WifiP2pMetrics {
                 if (event.startTimeMillis == 0) {
                     sb.append("            <null>");
                 } else {
-                    sb.append(c.get(Calendar.MONTH)).append("-")
-                            .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                            .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                            .append(c.get(Calendar.MINUTE)).append(":")
-                            .append(c.get(Calendar.SECOND)).append(".")
-                            .append(c.get(Calendar.MILLISECOND));
+                    sb.append(StringUtil.calendarToString(c));
                 }
                 sb.append(", connectionType=");
                 switch (event.connectionType) {

@@ -128,6 +128,7 @@ import com.android.server.wifi.util.IntCounter;
 import com.android.server.wifi.util.IntHistogram;
 import com.android.server.wifi.util.MetricsUtils;
 import com.android.server.wifi.util.ObjectCounter;
+import com.android.server.wifi.util.StringUtil;
 import com.android.wifi.resources.R;
 
 import org.json.JSONArray;
@@ -945,12 +946,7 @@ public class WifiMetrics {
             StringBuilder sb = new StringBuilder();
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(mWallClockTimeMs);
-            sb.append(c.get(Calendar.MONTH)).append("-")
-                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                    .append(c.get(Calendar.MINUTE)).append(":")
-                    .append(c.get(Calendar.SECOND)).append(".")
-                    .append(c.get(Calendar.MILLISECOND));
+            sb.append(StringUtil.calendarToString(c));
             String eventType = "UNKNOWN";
             switch (mUserActionEvent.eventType) {
                 case UserActionEvent.EVENT_FORGET_WIFI:
@@ -1101,12 +1097,7 @@ public class WifiMetrics {
                 if (mConnectionEvent.startTimeMillis == 0) {
                     sb.append("            <null>");
                 } else {
-                    sb.append(c.get(Calendar.MONTH)).append("-")
-                            .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                            .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                            .append(c.get(Calendar.MINUTE)).append(":")
-                            .append(c.get(Calendar.SECOND)).append(".")
-                            .append(c.get(Calendar.MILLISECOND));
+                    sb.append(StringUtil.calendarToString(c));
                 }
                 sb.append(", SSID=");
                 sb.append(mConfigSsid);

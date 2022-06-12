@@ -402,12 +402,7 @@ public class WifiDiagnostics {
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(systemTimeMs);
             builder.append("system time = ")
-                    .append(c.get(Calendar.MONTH)).append("-")
-                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                    .append(c.get(Calendar.MINUTE)).append(":")
-                    .append(c.get(Calendar.SECOND)).append(".")
-                    .append(c.get(Calendar.MILLISECOND)).append("\n");
+                    .append(StringUtil.calendarToString(c)).append("\n");
 
             long kernelTimeMs = kernelTimeNanos/(1000*1000);
             builder.append("kernel time = ").append(kernelTimeMs/1000).append(".").append
