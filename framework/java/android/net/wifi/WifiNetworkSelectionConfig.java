@@ -1,0 +1,267 @@
+/*
+ * Copyright (C) 2022 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package android.net.wifi;
+
+import android.annotation.IntDef;
+import android.annotation.NonNull;
+import android.annotation.SystemApi;
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+/**
+ * An Object used in {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig)}.
+ * @hide
+ */
+@SystemApi
+public final class WifiNetworkSelectionConfig implements Parcelable {
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"ASSOCIATED_NETWORK_SELECTION_OVERRIDE_"}, value = {
+            ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE,
+            ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED,
+            ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED})
+    public @interface AssociatedNetworkSelectionOverride {}
+    /**
+     * A constant used in {@link Builder#setAssociatedNetworkSelectionOverride(int)}
+     * This is the default value which performs no override.
+     */
+    public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE = 0;
+    /**
+     * A constant used in {{@link Builder#setAssociatedNetworkSelectionOverride(int)}
+     * Overrides the config_wifi_framework_enable_associated_network_selection overlay to true to
+     * allow the wifi framework to automatically select and switch to a better wifi network while
+     * already connected.
+     */
+    public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED = 1;
+    /**
+     * A constant used in {@link Builder#setAssociatedNetworkSelectionOverride(int)}
+     * Overrides the config_wifi_framework_enable_associated_network_selection overlay to false to
+     * disallow the wifi framework to automatically select and connect to another network while
+     * already connected.
+     */
+    public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED = 2;
+
+    private boolean mSufficiencyCheckEnabledWhenScreenOff = true;
+    private boolean mSufficiencyCheckEnabledWhenScreenOn = true;
+    private int mAssociatedNetworkSelectionOverride = ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
+
+    // empty constructor
+    private WifiNetworkSelectionConfig() {
+
+    }
+
+    // copy constructor used by Builder
+    private WifiNetworkSelectionConfig(WifiNetworkSelectionConfig that) {
+        mSufficiencyCheckEnabledWhenScreenOff = that.mSufficiencyCheckEnabledWhenScreenOff;
+        mSufficiencyCheckEnabledWhenScreenOn = that.mSufficiencyCheckEnabledWhenScreenOn;
+        mAssociatedNetworkSelectionOverride = that.mAssociatedNetworkSelectionOverride;
+    }
+
+    /**
+     * See {@link Builder#setSufficiencyCheckEnabledWhenScreenOff(boolean)}.
+     */
+    public boolean isSufficiencyCheckEnabledWhenScreenOff() {
+        return mSufficiencyCheckEnabledWhenScreenOff;
+    }
+
+    /**
+     * See {@link Builder#setSufficiencyCheckEnabledWhenScreenOn(boolean)}.
+     */
+    public boolean isSufficiencyCheckEnabledWhenScreenOn() {
+        return mSufficiencyCheckEnabledWhenScreenOn;
+    }
+
+    /**
+     * See {@link Builder#setAssociatedNetworkSelectionOverride(int)}.
+     * @return
+     */
+    public @AssociatedNetworkSelectionOverride int getAssociatedNetworkSelectionOverride() {
+        return mAssociatedNetworkSelectionOverride;
+    }
+
+    /**
+     * Check whether the current configuration is valid.
+     * @hide
+     */
+    public boolean isValid() {
+        return mAssociatedNetworkSelectionOverride >= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE
+                && mAssociatedNetworkSelectionOverride
+                <= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
+    }
+
+    /**
+     * Used to create a {@link WifiNetworkSelectionConfig} Object.
+     */
+    public static final class Builder {
+        WifiNetworkSelectionConfig mWifiNetworkSelectionConfig = new WifiNetworkSelectionConfig();
+
+        public Builder() {
+            mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOff = true;
+            mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOn = true;
+            mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride =
+                    ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
+        }
+
+        /**
+         * This setting affects wifi network selection behavior while already connected to a
+         * network, and is only relevant if associated network selection
+         * (see {@link #setAssociatedNetworkSelectionOverride(int)}) is enabled. Enable or disable
+         * network sufficiency check when wifi is connected and the screen is off.
+         * <p>
+         * If the sufficiency check is enabled, multiple parameters such as the RSSI and estimated
+         * throughput will be used to determine if the current network is sufficient. When the
+         * current network is found sufficient, the wifi framework will not attempt a network switch
+         * even if a potentially better network is available. When the current network is found
+         * insufficient, the wifi framework will keep trying to score other networks against the
+         * current network attempting to find and connect to a better alternative.
+         * <p>
+         * If the sufficiency check is disabled, then the currently connected network will always
+         * be considered insufficient. See the previous paragraph on the wifi framework's behavior
+         * when the current network is insufficient.
+         * <p>
+         * By default, network sufficiency check is enabled for both screen on and screen off cases.
+         * @param enabled Set to true to enable sufficiency check, and false to disable sufficiency
+         *                check.
+         */
+        public @NonNull Builder setSufficiencyCheckEnabledWhenScreenOff(boolean enabled) {
+            mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOff = enabled;
+            return this;
+        }
+
+        /**
+         * This setting affects wifi network selection behavior while already connected to a
+         * network, and is only relevant if associated network selection
+         * (see {@link #setAssociatedNetworkSelectionOverride(int)}) is enabled. Enable or disable
+         * network sufficiency check when wifi is connected and the screen is on.
+         * <p>
+         * If the sufficiency check is enabled, multiple parameters such as the RSSI and estimated
+         * throughput will be used to determine if the current network is sufficient. When the
+         * current network is found sufficient, the wifi framework will not attempt a network switch
+         * even if a potentially better network is available. When the current network is found
+         * insufficient, the wifi framework will keep trying to score other networks against the
+         * current network attempting to find and connect to a better alternative.
+         * <p>
+         * If the sufficiency check is disabled, then the currently connected network will always
+         * be considered insufficient. See the previous paragraph on the wifi framework's behavior
+         * when the current network is insufficient.
+         * <p>
+         * By default, network sufficiency check is enabled for both screen on and screen off cases.
+         * @param enabled Set to true to enable sufficiency check, and false to disable sufficiency
+         *                check.
+         */
+        public @NonNull Builder setSufficiencyCheckEnabledWhenScreenOn(boolean enabled) {
+            mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOn = enabled;
+            return this;
+        }
+
+        /**
+         * Override the value programmed by the
+         * {@code config_wifi_framework_enable_associated_network_selection} overlay with one of the
+         * {@code ASSOCIATED_NETWORK_SELECTION_OVERRIDE_} values. When the overlay is enabled,
+         * the wifi framework is allowed to automatically select and switch to a better wifi
+         * network while already connected. When the overlay is disabled, the wifi framework will
+         * simply stay connected to the connected network and will not attempt to automatically
+         * switch to another network.
+         * <p>
+         * By default, there is no override, and the framework will use the value set in the
+         * overlay.
+         * @param override the value to override the overlay as.
+         */
+        public @NonNull Builder setAssociatedNetworkSelectionOverride(
+                @AssociatedNetworkSelectionOverride int override) {
+            mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride = override;
+            return this;
+        }
+
+        /**
+         * Creates a WifiNetworkSelectionConfig for use in
+         * {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig, Consumer)}
+         */
+        public @NonNull WifiNetworkSelectionConfig build() throws IllegalStateException {
+            if (!mWifiNetworkSelectionConfig.isValid()) {
+                throw new IllegalStateException("The network selection config is invalid.");
+            }
+            return new WifiNetworkSelectionConfig(mWifiNetworkSelectionConfig);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mSufficiencyCheckEnabledWhenScreenOff,
+                mSufficiencyCheckEnabledWhenScreenOn, mAssociatedNetworkSelectionOverride);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof WifiNetworkSelectionConfig)) {
+            return false;
+        }
+        WifiNetworkSelectionConfig lhs = (WifiNetworkSelectionConfig) obj;
+        return mSufficiencyCheckEnabledWhenScreenOff == lhs.mSufficiencyCheckEnabledWhenScreenOff
+                && mSufficiencyCheckEnabledWhenScreenOn == lhs.mSufficiencyCheckEnabledWhenScreenOn
+                && mAssociatedNetworkSelectionOverride == lhs.mAssociatedNetworkSelectionOverride;
+    }
+
+    public static final @NonNull Creator<WifiNetworkSelectionConfig> CREATOR =
+            new Creator<WifiNetworkSelectionConfig>() {
+                @Override
+                public WifiNetworkSelectionConfig createFromParcel(Parcel in) {
+                    WifiNetworkSelectionConfig config = new WifiNetworkSelectionConfig();
+                    config.mSufficiencyCheckEnabledWhenScreenOff = in.readBoolean();
+                    config.mSufficiencyCheckEnabledWhenScreenOn = in.readBoolean();
+                    config.mAssociatedNetworkSelectionOverride = in.readInt();
+                    return config;
+                }
+
+                @Override
+                public WifiNetworkSelectionConfig[] newArray(int size) {
+                    return new WifiNetworkSelectionConfig[size];
+                }
+            };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
+        dest.writeBoolean(mSufficiencyCheckEnabledWhenScreenOff);
+        dest.writeBoolean(mSufficiencyCheckEnabledWhenScreenOn);
+        dest.writeInt(mAssociatedNetworkSelectionOverride);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("mSufficiencyCheckEnabledWhenScreenOff=")
+                .append(mSufficiencyCheckEnabledWhenScreenOff)
+                .append(", mSufficiencyCheckEnabledWhenScreenOn=")
+                .append(mSufficiencyCheckEnabledWhenScreenOn)
+                .append(", mAssociatedNetworkSelectionOverride=")
+                .append(mAssociatedNetworkSelectionOverride);
+        return sb.toString();
+    }
+}

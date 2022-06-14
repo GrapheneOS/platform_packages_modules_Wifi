@@ -85,6 +85,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void setNetworkSelectionConfig(WifiNetworkSelectionConfig nsConfig) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void setScreenOnScanSchedule(int[] scanScheduleSeconds, int[] scanType) {
         throw new UnsupportedOperationException();
     }
