@@ -634,7 +634,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 TEST_WORKSOURCE_0 // requestorWs
         );
         verify(chipMock.chip).createRttController(any(), any());
-        io.verify(cb).onNewRttController(any());
+        io.verify(cb).onNewRttController(any(WifiRttControllerHal.class));
 
         verifyNoMoreInteractions(cb);
     }
@@ -690,13 +690,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         mDut.registerRttControllerLifecycleCallback(cb1, mHandler);
         mTestLooper.dispatchAll();
         verify(chipMock.chip).createRttController(any(), any());
-        io1.verify(cb1).onNewRttController(mRttControllerMock);
+        io1.verify(cb1).onNewRttController(any(WifiRttControllerHal.class));
 
         // register a second callback and the first one again
         mDut.registerRttControllerLifecycleCallback(cb2, mHandler);
         mDut.registerRttControllerLifecycleCallback(cb1, mHandler);
         mTestLooper.dispatchAll();
-        io2.verify(cb2).onNewRttController(mRttControllerMock);
+        io2.verify(cb2).onNewRttController(any(WifiRttControllerHal.class));
 
         // change to AP mode (which for TestChipV1 doesn't allow RTT): trigger onDestroyed for all
         doAnswer(new GetBoundIfaceAnswer(false)).when(mRttControllerMock).getBoundIface(any());
@@ -730,8 +730,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         );
         mTestLooper.dispatchAll();
         verify(chipMock.chip, times(3)).createRttController(any(), any());
-        io1.verify(cb1).onNewRttController(mRttControllerMock);
-        io2.verify(cb2).onNewRttController(mRttControllerMock);
+        io1.verify(cb1).onNewRttController(any(WifiRttControllerHal.class));
+        io2.verify(cb2).onNewRttController(any(WifiRttControllerHal.class));
 
         verifyNoMoreInteractions(cb1, cb2);
     }
@@ -771,7 +771,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         mDut.registerRttControllerLifecycleCallback(cb, mHandler);
         mTestLooper.dispatchAll();
         verify(chipMock.chip).createRttController(any(), any());
-        io.verify(cb).onNewRttController(mRttControllerMock);
+        io.verify(cb).onNewRttController(any(WifiRttControllerHal.class));
 
         // create an AP: no mode change for TestChipV2 -> expect no impact on RTT
         validateInterfaceSequence(chipMock,
@@ -4337,6 +4337,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             }
         }
     }
+
     private class GetBoundIfaceAnswer extends MockAnswerUtil.AnswerWithArguments {
         private final boolean mIsValid;
 

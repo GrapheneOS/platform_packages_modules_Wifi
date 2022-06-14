@@ -34,6 +34,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
@@ -848,12 +849,7 @@ public class WifiBlocklistMonitor {
             StringBuilder sb = new StringBuilder();
             Calendar c = Calendar.getInstance();
             c.setTimeInMillis(mClock.getWallClockMillis());
-            sb.append("logTime=").append(c.get(Calendar.MONTH)).append("-")
-                    .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                    .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                    .append(c.get(Calendar.MINUTE)).append(":")
-                    .append(c.get(Calendar.SECOND)).append(".")
-                    .append(c.get(Calendar.MILLISECOND));
+            sb.append("logTime=").append(StringUtil.calendarToString(c));
             return sb;
         }
 
@@ -937,19 +933,9 @@ public class WifiBlocklistMonitor {
                 sb.append(", lastRssi=" + lastRssi);
                 Calendar c = Calendar.getInstance();
                 c.setTimeInMillis(blocklistStartTimeMs);
-                sb.append(", blocklistStartTime=").append(c.get(Calendar.MONTH)).append("-")
-                        .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                        .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                        .append(c.get(Calendar.MINUTE)).append(":")
-                        .append(c.get(Calendar.SECOND)).append(".")
-                        .append(c.get(Calendar.MILLISECOND));
+                sb.append(", blocklistStartTime=").append(StringUtil.calendarToString(c));
                 c.setTimeInMillis(blocklistEndTimeMs);
-                sb.append(", blocklistEndTime=").append(c.get(Calendar.MONTH)).append("-")
-                        .append(c.get(Calendar.DAY_OF_MONTH)).append(" ")
-                        .append(c.get(Calendar.HOUR_OF_DAY)).append(":")
-                        .append(c.get(Calendar.MINUTE)).append(":")
-                        .append(c.get(Calendar.SECOND)).append(".")
-                        .append(c.get(Calendar.MILLISECOND));
+                sb.append(", blocklistEndTime=").append(StringUtil.calendarToString(c));
             }
             return sb.toString();
         }
