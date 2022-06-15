@@ -120,6 +120,7 @@ import android.net.wifi.WifiManager.SapClientBlockedReason;
 import android.net.wifi.WifiManager.SapStartFailure;
 import android.net.wifi.WifiManager.SuggestionConnectionStatusListener;
 import android.net.wifi.WifiManager.WifiApState;
+import android.net.wifi.WifiNetworkSelectionConfig;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
@@ -203,6 +204,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * WifiService handles remote WiFi operation requests by implementing
@@ -3113,6 +3115,38 @@ public class WifiServiceImpl extends BaseWifiService {
         // mask out the randomized MAC address
         config.setRandomizedMacAddress(MacAddress.fromString(WifiInfo.DEFAULT_MAC_ADDRESS));
         return config;
+    }
+
+    /**
+     * See {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig)}
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public void setNetworkSelectionConfig(@NonNull WifiNetworkSelectionConfig nsConfig) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
+        if (nsConfig == null) {
+            throw new IllegalArgumentException("Config can not be null");
+        }
+        if (!nsConfig.isValid()) {
+            throw new IllegalArgumentException("Config is invalid.");
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + ", is not allowed to set network selection "
+                    + "config");
+        }
+        mLog.info("uid=% WifiNetworkSelectionConfig=%")
+                .c(uid).c(nsConfig.toString()).flush();
+        mWifiThreadRunner.post(() -> {
+            mWifiConnectivityManager.setNetworkSelectionConfig(nsConfig);
+        });
+        mLastCallerInfoManager.put(
+                WifiManager.API_SET_NETWORK_SELECTION_CONFIG,
+                Process.myTid(),
+                uid, Binder.getCallingPid(), "<unknown>", true);
     }
 
     /**
