@@ -1006,7 +1006,7 @@ public class WifiConfiguration implements Parcelable {
      */
     public int networkId;
 
-    // Fixme We need remove this field to use only Quality network selection status only
+    // TODO (b/235236813): Remove this field and use quality network selection status instead.
     /**
      * The current status of this network configuration entry.
      * @see Status
@@ -3264,6 +3264,7 @@ public class WifiConfiguration implements Parcelable {
                 .append(" CarrierId: ").append(this.carrierId)
                 .append(" SubscriptionId: ").append(this.subscriptionId)
                 .append(" SubscriptionGroup: ").append(this.mSubscriptionGroup)
+                .append(" Currently Connected: ").append(this.isCurrentlyConnected)
                 .append('\n');
 
 
@@ -3938,6 +3939,7 @@ public class WifiConfiguration implements Parcelable {
             mDppConnector = source.mDppConnector.clone();
             mDppCSignKey = source.mDppCSignKey.clone();
             mDppNetAccessKey = source.mDppNetAccessKey.clone();
+            isCurrentlyConnected = source.isCurrentlyConnected;
         }
     }
 
@@ -4031,6 +4033,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeByteArray(mDppConnector);
         dest.writeByteArray(mDppCSignKey);
         dest.writeByteArray(mDppNetAccessKey);
+        dest.writeBoolean(isCurrentlyConnected);
     }
 
     /** Implement the Parcelable interface {@hide} */
@@ -4126,6 +4129,7 @@ public class WifiConfiguration implements Parcelable {
                 config.mDppConnector = in.createByteArray();
                 config.mDppCSignKey = in.createByteArray();
                 config.mDppNetAccessKey = in.createByteArray();
+                config.isCurrentlyConnected = in.readBoolean();
                 return config;
             }
 
@@ -4163,6 +4167,17 @@ public class WifiConfiguration implements Parcelable {
      * @hide
      */
     public boolean isMostRecentlyConnected = false;
+
+    /**
+     * Whether the network is currently connected or not.
+     * Note: May be true even if {@link #status} is not CURRENT, since a config
+     *       can be connected, but disabled for network selection.
+     * TODO (b/235236813): This field may be redundant, since we have information
+     *       like {@link #status} and quality network selection status. May need
+     *       to clean up the fields used for network selection.
+     * @hide
+     */
+    public boolean isCurrentlyConnected = false;
 
     /**
      * Whether the key mgmt indicates if the WifiConfiguration needs a preSharedKey or not.
