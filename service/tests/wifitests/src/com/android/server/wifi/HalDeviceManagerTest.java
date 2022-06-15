@@ -2222,15 +2222,15 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
         assertNull("should not create this p2p", p2pDetails);
-        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
-        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+        String p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // request P2P (privileged app): should fail
         p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_2);
         assertNull("should not create this p2p", p2pDetails);
-        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
-        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+        p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // tear down AP
         mDut.removeIface(apIface);
@@ -2558,15 +2558,15 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
         assertNull("should not create this p2p", p2pDetails);
-        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
-        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+        String p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // request P2P (privileged app): should fail
         p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_2);
         assertNull("should not create this p2p", p2pDetails);
-        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
-        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+        p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_2);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // tear down AP
         mDut.removeIface(apIface);
@@ -2724,8 +2724,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
         assertNull("should not create this p2p", p2pDetails);
-        p2pIface = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
-        collector.checkThat("P2P should not be created", p2pIface, IsNull.nullValue());
+        String p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // request NAN: should fail
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(

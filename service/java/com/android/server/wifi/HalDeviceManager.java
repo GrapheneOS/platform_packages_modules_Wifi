@@ -376,21 +376,30 @@ public class HalDeviceManager {
     /**
      * Create P2P interface if possible (see createStaIface doc).
      */
-    public IWifiP2pIface createP2pIface(
+    public String createP2pIface(
             long requiredChipCapabilities,
             @Nullable InterfaceDestroyedListener destroyedListener,
             @Nullable Handler handler, @NonNull WorkSource requestorWs) {
-        return (IWifiP2pIface) createIface(HDM_CREATE_IFACE_P2P, requiredChipCapabilities,
-                destroyedListener, handler, requestorWs);
+        IWifiP2pIface iface = (IWifiP2pIface) createIface(HDM_CREATE_IFACE_P2P,
+                requiredChipCapabilities, destroyedListener, handler, requestorWs);
+        if (iface == null) {
+            return null;
+        }
+        String ifaceName = getName(iface);
+        if (TextUtils.isEmpty(ifaceName)) {
+            removeIface(iface);
+            return null;
+        }
+        mIWifiP2pIfaces.put(ifaceName, iface);
+        return ifaceName;
     }
 
     /**
      * Create P2P interface if possible (see createStaIface doc).
      */
-    public IWifiP2pIface createP2pIface(@Nullable InterfaceDestroyedListener destroyedListener,
+    public String createP2pIface(@Nullable InterfaceDestroyedListener destroyedListener,
             @Nullable Handler handler, @NonNull WorkSource requestorWs) {
-        return (IWifiP2pIface) createP2pIface(CHIP_CAPABILITY_ANY,
-                destroyedListener, handler, requestorWs);
+        return createP2pIface(CHIP_CAPABILITY_ANY, destroyedListener, handler, requestorWs);
     }
 
     /**
@@ -409,6 +418,20 @@ public class HalDeviceManager {
     public boolean removeIface(IWifiIface iface) {
         boolean success = removeIfaceInternal(iface, /* validateRttController */true);
         return success;
+    }
+
+    /**
+     * Wrapper around {@link #removeIface(IWifiIface)} for P2P ifaces.
+     */
+    public boolean removeP2pIface(String ifaceName) {
+        IWifiP2pIface iface = mIWifiP2pIfaces.get(ifaceName);
+        if (iface == null) return false;
+        if (!removeIface(iface)) {
+            Log.e(TAG, "Unable to remove p2p iface " + ifaceName);
+            return false;
+        }
+        mIWifiP2pIfaces.remove(ifaceName);
+        return true;
     }
 
     private InterfaceCacheEntry getInterfaceCacheEntry(IWifiIface iface) {
@@ -490,6 +513,15 @@ public class HalDeviceManager {
     }
 
     /**
+     * Wrapper around {@link #is24g5gDbsSupported(IWifiIface)} for P2P ifaces.
+     */
+    public boolean is24g5gDbsSupportedOnP2pIface(String ifaceName) {
+        IWifiP2pIface iface = mIWifiP2pIfaces.get(ifaceName);
+        if (iface == null) return false;
+        return is24g5gDbsSupported(iface);
+    }
+
+    /**
      * Indicate whether or not 5GHz/6GHz DBS is supported.
      *
      * @param iface The interface on the chip.
@@ -497,6 +529,15 @@ public class HalDeviceManager {
      */
     public boolean is5g6gDbsSupported(IWifiIface iface) {
         return isDbsSupported(iface, DBS_5G_6G_MASK);
+    }
+
+    /**
+     * Wrapper around {@link #is5g6gDbsSupported(IWifiIface)} for P2P ifaces.
+     */
+    public boolean is5g6gDbsSupportedOnP2pIface(String ifaceName) {
+        IWifiP2pIface iface = mIWifiP2pIfaces.get(ifaceName);
+        if (iface == null) return false;
+        return is5g6gDbsSupported(iface);
     }
 
     /**
@@ -509,7 +550,7 @@ public class HalDeviceManager {
      * iface or existing apps release their request for the iface). This API can be invoked multiple
      * times to replace the entire requestor info for the provided iface.
      *
-     * Note: This is is wholesale replace of the requestor info. The corresponding client is
+     * Note: This is a wholesale replacement of the requestor info. The corresponding client is
      * responsible for individual add/remove of apps in the WorkSource passed in.
      */
     public boolean replaceRequestorWs(@NonNull IWifiIface iface,
@@ -530,6 +571,16 @@ public class HalDeviceManager {
             cacheEntry.requestorWsHelper = mWifiInjector.makeWsHelper(newRequestorWs);
             return true;
         }
+    }
+
+    /**
+     * Wrapper around {@link #replaceRequestorWs(IWifiIface, WorkSource)} for P2P ifaces.
+     */
+    public boolean replaceRequestorWsForP2pIface(String ifaceName,
+            @NonNull WorkSource newRequestorWs) {
+        IWifiP2pIface iface = mIWifiP2pIfaces.get(ifaceName);
+        if (iface == null) return false;
+        return replaceRequestorWs(iface, newRequestorWs);
     }
 
     /**
@@ -889,6 +940,7 @@ public class HalDeviceManager {
     private IServiceManager mServiceManager;
     private IWifi mWifi;
     private WifiRttControllerHal mWifiRttControllerHal;
+    private HashMap<String, IWifiP2pIface> mIWifiP2pIfaces = new HashMap<>();
     private final WifiEventCallback mWifiEventCallback = new WifiEventCallback();
     private final WifiEventCallbackV15 mWifiEventCallbackV15 = new WifiEventCallbackV15();
     private final Set<ManagerStatusListenerProxy> mManagerStatusListeners = new HashSet<>();
@@ -1033,6 +1085,7 @@ public class HalDeviceManager {
         mWifiRttControllerHal = null;
         dispatchRttControllerLifecycleOnDestroyed();
         mRttControllerLifecycleCallbacks.clear();
+        mIWifiP2pIfaces.clear();
     }
 
     private class ServiceManagerDeathRecipient implements DeathRecipient {
