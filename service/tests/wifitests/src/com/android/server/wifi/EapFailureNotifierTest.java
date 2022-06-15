@@ -16,13 +16,17 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.EapFailureNotifier.CONFIG_EAP_FAILURE_DISABLE_DURATION;
+import static com.android.server.wifi.EapFailureNotifier.CONFIG_EAP_FAILURE_DISABLE_THRESHOLD;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_PREFIX;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.validateMockitoUsage;
@@ -31,6 +35,7 @@ import static org.mockito.Mockito.when;
 
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.app.test.MockAnswerUtil;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.wifi.WifiConfiguration;
@@ -75,6 +80,9 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     private static final String ERROR_MESSAGE = "Error Message";
     private static final String ERROR_MESSAGE_UNKNOWN_ERROR_CODE =
             "Error Message Unknown Error Code";
+    private final WifiBlocklistMonitor.CarrierSpecificEapFailureConfig
+            mExpectedEapFailureConfig = new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(
+                    1, -1);
 
     EapFailureNotifier mEapFailureNotifier;
 
@@ -93,6 +101,11 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 anyString())).thenReturn(ERROR_MESSAGE);
         when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE),
                 anyString())).thenReturn(ERROR_MESSAGE_UNKNOWN_ERROR_CODE);
+        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
+            public int answer(String name, int defaultValue) {
+                return defaultValue;
+            }
+        }).when(mResourceWrapper).getInt(any(), anyInt());
         when(mContext.createPackageContext(anyString(), eq(0))).thenReturn(mContext);
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mFrameworkFacade.getSettingsPackageName(any())).thenReturn(TEST_SETTINGS_PACKAGE);
@@ -121,7 +134,8 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 mNotification, android.os.Process.myUserHandle(), 0);
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mWifiConfiguration.SSID = SSID_2;
-        mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
         verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
         ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
         verify(mFrameworkFacade).getActivity(
@@ -129,6 +143,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
         assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+        assertEquals(mExpectedEapFailureConfig, failureConfig);
     }
 
     /**
@@ -146,8 +161,10 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 mNotification, android.os.Process.myUserHandle(), 0);
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mWifiConfiguration.SSID = SSID_2;
-        mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, false);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, false);
         verify(mWifiNotificationManager, never()).notify(anyInt(), any());
+        assertEquals(mExpectedEapFailureConfig, failureConfig);
     }
 
     /**
@@ -168,7 +185,8 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mEapFailureNotifier.setCurrentShownSsid(SSID_1);
         mWifiConfiguration.SSID = SSID_2;
-        mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
         verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
         ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
         verify(mFrameworkFacade).getActivity(
@@ -176,6 +194,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
         assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+        assertEquals(mExpectedEapFailureConfig, failureConfig);
     }
 
     /**
@@ -196,9 +215,11 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mEapFailureNotifier.setCurrentShownSsid(SSID_1);
         mWifiConfiguration.SSID = SSID_1;
-        mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
         verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
                 eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
+        assertEquals(mExpectedEapFailureConfig, failureConfig);
     }
 
     /**
@@ -221,9 +242,11 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 anyString())).thenReturn("");
         mEapFailureNotifier.setCurrentShownSsid(SSID_1);
         mWifiConfiguration.SSID = SSID_1;
-        mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
         verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
                 eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
+        assertNull(failureConfig);
     }
 
     /**
@@ -241,7 +264,8 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 mNotification, android.os.Process.myUserHandle(), 0);
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mWifiConfiguration.SSID = SSID_1;
-        mEapFailureNotifier.onEapFailure(UNKNOWN_ERROR_CODE, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(UNKNOWN_ERROR_CODE, mWifiConfiguration, true);
         verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
         ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
         verify(mFrameworkFacade).getActivity(
@@ -249,6 +273,31 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
         assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+        assertEquals(mExpectedEapFailureConfig, failureConfig);
+    }
+
+    @Test
+    public void onEapFailureWithCarrierOverrideForDisableParameters() throws Exception {
+        when(mFrameworkFacade.makeNotificationBuilder(any(),
+                eq(WifiService.NOTIFICATION_NETWORK_ALERTS))).thenReturn(mNotificationBuilder);
+        StatusBarNotification[] activeNotifications = new StatusBarNotification[1];
+        activeNotifications[0] = new StatusBarNotification("android", "", 56, "", 0, 0, 0,
+                mNotification, android.os.Process.myUserHandle(), 0);
+        when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
+        mWifiConfiguration.SSID = SSID_2;
+
+        // mock carrier specific override for disable parameters
+        when(mResourceWrapper.getInt(eq(CONFIG_EAP_FAILURE_DISABLE_THRESHOLD), anyInt()))
+                .thenReturn(2);
+        when(mResourceWrapper.getInt(eq(CONFIG_EAP_FAILURE_DISABLE_DURATION), anyInt()))
+                .thenReturn(14400000);
+
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, false);
+        verify(mWifiNotificationManager, never()).notify(anyInt(), any());
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig expected =
+                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(2, 14400000);
+        assertEquals(expected, failureConfig);
     }
 
     /**
@@ -266,8 +315,10 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 mNotification, android.os.Process.myUserHandle(), 0);
         when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
         mWifiConfiguration.SSID = SSID_1;
-        mEapFailureNotifier.onEapFailure(-1, mWifiConfiguration, true);
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(-1, mWifiConfiguration, true);
         verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
                 eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
+        assertNull(failureConfig);
     }
 }

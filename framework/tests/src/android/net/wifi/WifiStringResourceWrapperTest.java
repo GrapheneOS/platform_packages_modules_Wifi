@@ -79,6 +79,12 @@ public class WifiStringResourceWrapperTest {
             ":::4567::"
     };
 
+    private static final String RES_NAME_DISABLE_THRESHOLD =
+            "config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold";
+    private static final int RES_ID_DISABLE_THRESHOLD = 32766;
+    private static final int RES_ID_DISABLE_THRESHOLD_2 = 32767;
+    private static final int RES_VAL_DISABLE_THRESHOLD = 1;
+
     /**
      * Sets up for unit test
      */
@@ -98,6 +104,14 @@ public class WifiStringResourceWrapperTest {
         when(mResources.getIdentifier(eq(RES_NAME_1 + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_NOT_FOUND);
 
+        when(mResources.getIdentifier(eq(RES_NAME_DISABLE_THRESHOLD), eq("integer"), any()))
+                .thenReturn(RES_ID_DISABLE_THRESHOLD);
+        when(mResources.getInteger(eq(RES_ID_DISABLE_THRESHOLD)))
+                .thenReturn(RES_VAL_DISABLE_THRESHOLD);
+        when(mResources.getIdentifier(
+                eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
+                eq("array"), any())).thenReturn(RES_ID_NOT_FOUND);
+
         mDut = new WifiStringResourceWrapper(mContext, SUB_ID, CARRIER_ID);
     }
 
@@ -111,39 +125,92 @@ public class WifiStringResourceWrapperTest {
 
     @Test
     public void testBasicOperations() {
+        // test for #getString
         assertEquals("Some message", mDut.getString(RES_NAME_1));
         assertNull(mDut.getString("something else"));
+
+        // test for #getInt
+        assertEquals(RES_VAL_DISABLE_THRESHOLD, mDut.getInt(RES_NAME_DISABLE_THRESHOLD, 19432));
+        assertEquals(19432, mDut.getInt(RES_NAME_DISABLE_THRESHOLD + "_Garbage", 19432));
     }
 
     @Test
     public void testCarrierIdWithBaseNoOverride() {
+        // test for #getString
         when(mResources.getIdentifier(eq(RES_NAME_1 + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_2);
         when(mResources.getStringArray(eq(RES_ID_2))).thenReturn(RES_STRING_ARRAY_VAL_2);
         assertEquals("Some message", mDut.getString(RES_NAME_1));
+
+        // test for #getInt
+        when(mResources.getIdentifier(
+                eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
+                eq("array"), any())).thenReturn(RES_ID_DISABLE_THRESHOLD_2);
+        final String[] resStringArray = {
+                ":::1234:::3",
+                ":::45678:::4"
+        };
+        when(mResources.getStringArray(RES_ID_DISABLE_THRESHOLD_2)).thenReturn(resStringArray);
+        assertEquals(RES_VAL_DISABLE_THRESHOLD, mDut.getInt(RES_NAME_DISABLE_THRESHOLD, 19432));
     }
 
     @Test
     public void testCarrierIdAvailable() {
+        // test for #getString
         when(mResources.getIdentifier(eq(RES_NAME_1 + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_2);
         when(mResources.getStringArray(eq(RES_ID_2))).thenReturn(RES_STRING_ARRAY_VAL_3);
         assertEquals("Some message DD", mDut.getString(RES_NAME_1));
+
+        // test for #getInt
+        when(mResources.getIdentifier(
+                eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
+                eq("array"), any())).thenReturn(RES_ID_DISABLE_THRESHOLD_2);
+        final String[] resStringArray = {
+                ":::1234:::2",
+                ":::4567:::123"
+        };
+        when(mResources.getStringArray(RES_ID_DISABLE_THRESHOLD_2)).thenReturn(resStringArray);
+        assertEquals(123, mDut.getInt(RES_NAME_DISABLE_THRESHOLD, 19432));
     }
 
     @Test
     public void testCarrierIdAvailableEmptyMessage() {
+        // test for #getString
         when(mResources.getIdentifier(eq(RES_NAME_1 + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_2);
         when(mResources.getStringArray(eq(RES_ID_2))).thenReturn(RES_STRING_ARRAY_VAL_4);
         assertEquals("", mDut.getString(RES_NAME_1));
+
+        // test for #getInt
+        when(mResources.getIdentifier(
+                eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
+                eq("array"), any())).thenReturn(RES_ID_DISABLE_THRESHOLD_2);
+        final String[] resStringArray = {
+                ":::1234:::2",
+                ":::4567:::"
+        };
+        when(mResources.getStringArray(RES_ID_DISABLE_THRESHOLD_2)).thenReturn(resStringArray);
+        assertEquals(RES_VAL_DISABLE_THRESHOLD, mDut.getInt(RES_NAME_DISABLE_THRESHOLD, 19432));
     }
 
     @Test
     public void testCarrierIdBadlyFormatted() {
+        // test for #getString
         when(mResources.getIdentifier(eq(RES_NAME_1 + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_2);
         when(mResources.getStringArray(eq(RES_ID_2))).thenReturn(RES_STRING_ARRAY_VAL_5);
         assertEquals("Some message", mDut.getString(RES_NAME_1));
+
+        // test for #getInt
+        when(mResources.getIdentifier(
+                eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
+                eq("array"), any())).thenReturn(RES_ID_DISABLE_THRESHOLD_2);
+        final String[] resStringArray = {
+                ":::1234:::2",
+                ":::4567:::343asdf"
+        };
+        when(mResources.getStringArray(RES_ID_DISABLE_THRESHOLD_2)).thenReturn(resStringArray);
+        assertEquals(RES_VAL_DISABLE_THRESHOLD, mDut.getInt(RES_NAME_DISABLE_THRESHOLD, 19432));
     }
 }
