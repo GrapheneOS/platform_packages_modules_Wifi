@@ -210,6 +210,14 @@ public class FrameworkFacade {
         return TrafficStats.getRxPackets(iface);
     }
 
+    public long getTxBytes(String iface) {
+        return TrafficStats.getTxBytes(iface);
+    }
+
+    public long getRxBytes(String iface) {
+        return TrafficStats.getRxBytes(iface);
+    }
+
     /**
      * Request a new IpClient to be created asynchronously.
      * @param context Context to use for creation.
