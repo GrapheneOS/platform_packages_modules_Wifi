@@ -173,7 +173,7 @@ public class WifiCountryCode {
             // changed event when the maintained country code in the driver is same as set one.
             // So notify the country code changed event to listener when the set one is same as
             // last active one.
-            if (!isDriverSupportedRegChangedEvent()
+            if (!SdkLevel.isAtLeastT() || !isDriverSupportedRegChangedEvent()
                     || TextUtils.equals(country, mLastActiveDriverCountryCode)) {
                 mWifiNative.countryCodeChanged(country);
                 handleCountryCodeChanged(country);
@@ -538,7 +538,9 @@ public class WifiCountryCode {
             Log.d(TAG, "skip update supplicant not ready yet");
             disconnectWifiToForceUpdateIfNeeded();
         }
-        Log.d(TAG, "setCountryCodeNative" + country + ", isClientModeOnly" + isClientModeOnly);
+        boolean isCountryCodeChanged = !TextUtils.equals(mDriverCountryCode, country);
+        Log.d(TAG, "setCountryCodeNative: " + country + ", isClientModeOnly: " + isClientModeOnly
+                + "mDriverCountryCode: " + mDriverCountryCode);
         for (ActiveModeManager am : amms) {
             if (isAllCmmReady && !isConcreteClientModeManagerUpdated
                     && am instanceof ConcreteClientModeManager) {
@@ -560,7 +562,7 @@ public class WifiCountryCode {
                 }
             } else if (!isClientModeOnly && am instanceof SoftApManager) {
                 SoftApManager sm = (SoftApManager) am;
-                if (mDriverCountryCode == null || TextUtils.equals(mDriverCountryCode, country)) {
+                if (mDriverCountryCode == null || !isCountryCodeChanged) {
                     // Ignore SoftApManager init country code case or country code didn't be
                     // changed case.
                     continue;

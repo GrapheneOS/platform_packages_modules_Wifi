@@ -2083,8 +2083,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     waitForResponse = endDataPathLocal(mCurrentTransactionId, msg.arg2);
                     break;
                 case COMMAND_TYPE_DELAYED_INITIALIZATION:
-                    mWifiManager.registerActiveCountryCodeChangedCallback(
-                            new HandlerExecutor(mHandler), new CountryCodeChangeCallback());
+                    if (SdkLevel.isAtLeastT()) {
+                        mWifiManager.registerActiveCountryCodeChangedCallback(
+                                new HandlerExecutor(mHandler), new CountryCodeChangeCallback());
+                    }
                     mWifiAwareNativeManager.start(getHandler());
                     waitForResponse = false;
                     break;

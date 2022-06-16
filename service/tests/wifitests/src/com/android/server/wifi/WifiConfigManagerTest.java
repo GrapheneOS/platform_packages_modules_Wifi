@@ -7133,6 +7133,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         List<WifiConfiguration> configsInDeletionOrder = new ArrayList<>();
         WifiConfiguration currentConfig = WifiConfigurationTestUtil.createPskNetwork();
         currentConfig.status = WifiConfiguration.Status.CURRENT;
+        currentConfig.isCurrentlyConnected = true;
         WifiConfiguration lessDeletionPriorityConfig = WifiConfigurationTestUtil.createPskNetwork();
         lessDeletionPriorityConfig.setDeletionPriority(1);
         WifiConfiguration newlyAddedConfig = WifiConfigurationTestUtil.createPskNetwork();
