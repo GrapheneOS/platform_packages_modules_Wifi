@@ -65,9 +65,9 @@ public class WifiNetworkSelectionConfigTest {
 
     @Test
     public void testInvalidBuilderThrowsException() {
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> new WifiNetworkSelectionConfig.Builder()
-                        .setAssociatedNetworkSelectionOverride(-1).build());
+                        .setAssociatedNetworkSelectionOverride(-1));
     }
 
     /**
