@@ -131,6 +131,7 @@ public class ActiveModeWarden {
     private final RemoteCallbackList<ISubsystemRestartCallback> mRestartCallbacks =
             new RemoteCallbackList<>();
 
+    private boolean mIsMultiplePrimaryBugreportTaken = false;
     private boolean mIsShuttingdown = false;
     private boolean mVerboseLoggingEnabled = false;
     /** Cache to store the external scorer for primary and secondary (MBB) client mode manager. */
@@ -1076,6 +1077,16 @@ public class ActiveModeWarden {
      * Method to enable a new primary client mode manager in scan only mode.
      */
     private boolean startScanOnlyClientModeManager(WorkSource requestorWs) {
+        if (hasPrimaryOrScanOnlyModeManager()) {
+            Log.e(TAG, "Unexpected state - scan only CMM should not be started when a primary "
+                    + "or scan only CMM is already present.");
+            if (!mIsMultiplePrimaryBugreportTaken) {
+                mIsMultiplePrimaryBugreportTaken = true;
+                mWifiDiagnostics.takeBugReport("Wi-Fi ActiveModeWarden bugreport",
+                        "Trying to start scan only mode manager when one already exists.");
+            }
+            return false;
+        }
         Log.d(TAG, "Starting primary ClientModeManager in scan only mode");
         ConcreteClientModeManager manager = mWifiInjector.makeClientModeManager(
                 new ClientListener(), requestorWs, ROLE_CLIENT_SCAN_ONLY, mVerboseLoggingEnabled);
@@ -1088,6 +1099,16 @@ public class ActiveModeWarden {
      * Method to enable a new primary client mode manager in connect mode.
      */
     private boolean startPrimaryClientModeManager(WorkSource requestorWs) {
+        if (hasPrimaryOrScanOnlyModeManager()) {
+            Log.e(TAG, "Unexpected state - primary CMM should not be started when a primary "
+                    + "or scan only CMM is already present.");
+            if (!mIsMultiplePrimaryBugreportTaken) {
+                mIsMultiplePrimaryBugreportTaken = true;
+                mWifiDiagnostics.takeBugReport("Wi-Fi ActiveModeWarden bugreport",
+                        "Trying to start primary mode manager when one already exists.");
+            }
+            return false;
+        }
         Log.d(TAG, "Starting primary ClientModeManager in connect mode");
         ConcreteClientModeManager manager = mWifiInjector.makeClientModeManager(
                 new ClientListener(), requestorWs, ROLE_CLIENT_PRIMARY, mVerboseLoggingEnabled);
@@ -1247,6 +1268,7 @@ public class ActiveModeWarden {
         pw.println("Current wifi mode: " + getCurrentMode());
         pw.println("Wi-Fi is " + getWifiStateName());
         pw.println("NumActiveModeManagers: " + getActiveModeManagerCount());
+        pw.println("mIsMultiplePrimaryBugreportTaken: " + mIsMultiplePrimaryBugreportTaken);
         mWifiController.dump(fd, pw, args);
         for (ActiveModeManager manager : getActiveModeManagers()) {
             manager.dump(fd, pw, args);
@@ -1594,6 +1616,25 @@ public class ActiveModeWarden {
             setLogRecSize(100);
             setLogOnlyTransitions(false);
 
+        }
+
+        /**
+         * Return the additional string to be logged by LogRec.
+         *
+         * @param msg that was processed
+         * @return information to be logged as a String
+         */
+        @Override
+        protected String getLogRecString(Message msg) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(msg.arg1)
+                    .append(" ").append(msg.arg2)
+                    .append(" num ClientModeManagers:").append(mClientModeManagers.size())
+                    .append(" num SoftApManagers:").append(mSoftApManagers.size());
+            if (msg.obj != null) {
+                sb.append(" ").append(msg.obj);
+            }
+            return sb.toString();
         }
 
         @Override
