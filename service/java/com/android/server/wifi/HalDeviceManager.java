@@ -268,8 +268,8 @@ public class HalDeviceManager {
      * Note: direct call to HIDL - failure is not-expected.
      */
     public void stop() {
-        stopWifi();
         synchronized (mLock) { // prevents race condition
+            stopWifi();
             mWifi = null;
         }
     }
@@ -789,6 +789,10 @@ public class HalDeviceManager {
 
         IfaceCreationData creationData;
         synchronized (mLock) {
+            if (mWifi == null) {
+                Log.e(TAG, "reportImpactToCreateIface: null IWifi -- ifaceType=" + createIfaceType);
+                return null;
+            }
             WifiChipInfo[] chipInfos = getAllChipInfo();
             if (chipInfos == null) {
                 Log.e(TAG, "createIface: no chip info found");
@@ -1143,6 +1147,10 @@ public class HalDeviceManager {
      */
     private boolean registerWifiHalEventCallback() {
         try {
+            if (mWifi == null) {
+                Log.e(TAG, "registerWifiHalEventCallback called but mWifi is null!?");
+                return false;
+            }
             WifiStatus status;
             android.hardware.wifi.V1_5.IWifi iWifiV15 = getWifiServiceForV1_5Mockable(mWifi);
             if (iWifiV15 != null) {
@@ -1881,22 +1889,19 @@ public class HalDeviceManager {
     private void stopWifi() {
         if (VDBG) Log.d(TAG, "stopWifi");
 
-        synchronized (mLock) {
-            try {
-                if (mWifi == null) {
-                    Log.w(TAG, "stopWifi called but mWifi is null!?");
-                } else {
-                    WifiStatus status = mWifi.stop();
-                    if (status.code != WifiStatusCode.SUCCESS) {
-                        Log.e(TAG, "Cannot stop IWifi: " + statusString(status));
-                    }
-
-                    // even on failure since WTF??
-                    teardownInternal();
+        try {
+            if (mWifi == null) {
+                Log.w(TAG, "stopWifi called but mWifi is null!?");
+            } else {
+                WifiStatus status = mWifi.stop();
+                if (status.code != WifiStatusCode.SUCCESS) {
+                    Log.e(TAG, "Cannot stop IWifi: " + statusString(status));
                 }
-            } catch (RemoteException e) {
-                Log.e(TAG, "stopWifi exception: " + e);
+                // even on failure since WTF??
+                teardownInternal();
             }
+        } catch (RemoteException e) {
+            Log.e(TAG, "stopWifi exception: " + e);
         }
     }
 
