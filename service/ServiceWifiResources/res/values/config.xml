@@ -721,9 +721,17 @@
     (depends on config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs)
     disable a network from auto-connect based on Carrier requirement -->
     <integer translatable="false" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold">1</integer>
+    <!-- Carrier specific override for the disable threshold -->
+    <string-array translatable="false" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificThreshold_carrier_overrides">
+        <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g>2</item>
+    </string-array>
     <!-- A value to indicate the duration (in ms) to disable a network from auto-connect based on
     Carrier requirement. -1 represents disabling a network permanently -->
     <integer translatable="false" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs">-1</integer>
+    <!-- Carrier specific override for the disable duration -->
+    <string-array translatable="false" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs_carrier_overrides">
+        <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g>14400000</item>
+    </string-array>
     <!-- Flush ANQP cache on Wi-Fi toggle off event -->
     <bool translatable="false" name="config_wifiFlushAnqpCacheOnWifiToggleOffEvent">true</bool>
 

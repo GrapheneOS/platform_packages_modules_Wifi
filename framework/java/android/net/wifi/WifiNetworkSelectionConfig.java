@@ -98,14 +98,17 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         return mAssociatedNetworkSelectionOverride;
     }
 
+    private static boolean isValidAssociatedNetworkSelectionOverride(int override) {
+        return override >= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE
+                && override <= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
+    }
+
     /**
      * Check whether the current configuration is valid.
      * @hide
      */
     public boolean isValid() {
-        return mAssociatedNetworkSelectionOverride >= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE
-                && mAssociatedNetworkSelectionOverride
-                <= ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
+        return isValidAssociatedNetworkSelectionOverride(mAssociatedNetworkSelectionOverride);
     }
 
     /**
@@ -185,9 +188,13 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
          * By default, there is no override, and the framework will use the value set in the
          * overlay.
          * @param override the value to override the overlay as.
+         * @throws IllegalArgumentException if the input is invalid.
          */
         public @NonNull Builder setAssociatedNetworkSelectionOverride(
-                @AssociatedNetworkSelectionOverride int override) {
+                @AssociatedNetworkSelectionOverride int override) throws IllegalArgumentException {
+            if (!isValidAssociatedNetworkSelectionOverride(override)) {
+                throw new IllegalArgumentException("Invalid override=" + override);
+            }
             mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride = override;
             return this;
         }
@@ -196,10 +203,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
          * Creates a WifiNetworkSelectionConfig for use in
          * {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig, Consumer)}
          */
-        public @NonNull WifiNetworkSelectionConfig build() throws IllegalStateException {
-            if (!mWifiNetworkSelectionConfig.isValid()) {
-                throw new IllegalStateException("The network selection config is invalid.");
-            }
+        public @NonNull WifiNetworkSelectionConfig build() {
             return new WifiNetworkSelectionConfig(mWifiNetworkSelectionConfig);
         }
     }
