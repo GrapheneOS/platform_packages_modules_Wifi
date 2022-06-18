@@ -299,6 +299,7 @@
           <item type="string" name="notification_channel_network_status" />
           <item type="string" name="notification_channel_network_alerts" />
           <item type="string" name="notification_channel_network_available" />
+          <item type="string" name="wifi_eap_error_message_code_32756" />
           <item type="string" name="wifi_eap_error_message_code_32760" />
           <item type="string" name="wifi_eap_error_message_code_32761" />
           <item type="string" name="wifi_eap_error_message_code_32762" />
@@ -312,6 +313,18 @@
           <item type="string" name="wifi_eap_error_message_code_16384" />
           <item type="string" name="wifi_eap_error_message_code_16385" />
           <item type="string" name="wifi_eap_error_message_unknown_error_code" />
+          <item type="array" name="wifi_eap_error_message_code_32756_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32760_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32761_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32762_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32763_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32764_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32765_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32766_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_32767_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_16384_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_code_16385_carrier_overrides" />
+          <item type="array" name="wifi_eap_error_message_unknown_error_code_carrier_overrides" />
           <item type="string" name="wifi_softap_auto_shutdown_timeout_expired_title" />
           <item type="string" name="wifi_softap_auto_shutdown_timeout_expired_summary" />
           <item type="string" name="wifi_sim_required_title" />
@@ -325,6 +338,27 @@
           <item type="string" name="wifi_interface_priority_message_plural" />
           <item type="string" name="wifi_interface_priority_approve" />
           <item type="string" name="wifi_interface_priority_reject" />
+          <item type="string" name="wifi_ca_cert_dialog_title" />
+          <item type="string" name="wifi_ca_cert_dialog_continue_text" />
+          <item type="string" name="wifi_ca_cert_dialog_abort_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_hint" />
+          <item type="string" name="wifi_ca_cert_dialog_message_server_name_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_issuer_name_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_organization_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_contact_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_signature_name_text" />
+          <item type="string" name="wifi_ca_cert_notification_title" />
+          <item type="string" name="wifi_ca_cert_notification_message" />
+          <item type="string" name="wifi_ca_cert_failed_to_install_ca_cert" />
+          <item type="string" name="wifi_ca_cert_dialog_preT_title" />
+          <item type="string" name="wifi_ca_cert_dialog_preT_continue_text" />
+          <item type="string" name="wifi_ca_cert_dialog_preT_abort_text" />
+          <item type="string" name="wifi_ca_cert_dialog_preT_message_hint" />
+          <item type="string" name="wifi_ca_cert_dialog_preT_message_link" />
+          <item type="string" name="wifi_ca_cert_notification_preT_title" />
+          <item type="string" name="wifi_ca_cert_notification_preT_message" />
+          <item type="string" name="wifi_ca_cert_notification_preT_continue_text" />
+          <item type="string" name="wifi_ca_cert_notification_preT_abort_text" />
           <!-- Params from strings.xml that can be overlayed -->
 
           <!-- Params from styles.xml that can be overlayed -->
