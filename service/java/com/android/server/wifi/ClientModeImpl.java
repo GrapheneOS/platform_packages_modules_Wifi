@@ -5794,8 +5794,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
          */
         private WifiLinkLayerStats updateLinkLayerStatsRssiDataStallScoreReport() {
             // Get Info and continue polling
-            long txBytes = mFacade.getTotalTxBytes() - mFacade.getMobileTxBytes();
-            long rxBytes = mFacade.getTotalRxBytes() - mFacade.getMobileRxBytes();
+            long txBytes = mFacade.getTxBytes(mInterfaceName);
+            long rxBytes = mFacade.getRxBytes(mInterfaceName);
             WifiLinkLayerStats stats = updateLinkLayerStatsRssiSpeedFrequencyCapabilities(txBytes,
                     rxBytes);
             mWifiMetrics.updateWifiUsabilityStatsEntries(mInterfaceName, mWifiInfo, stats);

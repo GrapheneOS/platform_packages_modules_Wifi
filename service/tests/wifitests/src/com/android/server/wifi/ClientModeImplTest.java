@@ -453,12 +453,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     static final String   WIFI_IFACE_NAME = "mockWlan";
     static final String sFilsSsid = "FILS-AP";
     static final ApfCapabilities APF_CAP = new ApfCapabilities(1, 2, 3);
-    static final long TEST_TOTAL_TX_BYTES = 6666;
-    static final long TEST_TOTAL_RX_BYTES = 8888;
-    static final long TEST_MOBILE_TX_BYTES = 2345;
-    static final long TEST_MOBILE_RX_BYTES = 1234;
-    static final long TEST_TX_BYTES = TEST_TOTAL_TX_BYTES - TEST_MOBILE_TX_BYTES;
-    static final long TEST_RX_BYTES = TEST_TOTAL_RX_BYTES - TEST_MOBILE_RX_BYTES;
+    static final long TEST_TX_BYTES = 6666;
+    static final long TEST_RX_BYTES = 8888;
 
     ClientModeImpl mCmi;
     HandlerThread mWifiCoreThread;
@@ -635,10 +631,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 Settings.Global.WIFI_FREQUENCY_BAND,
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO)).thenReturn(
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO);
-        when(mFrameworkFacade.getTotalTxBytes()).thenReturn(TEST_TOTAL_TX_BYTES);
-        when(mFrameworkFacade.getMobileTxBytes()).thenReturn(TEST_MOBILE_TX_BYTES);
-        when(mFrameworkFacade.getTotalRxBytes()).thenReturn(TEST_TOTAL_RX_BYTES);
-        when(mFrameworkFacade.getMobileRxBytes()).thenReturn(TEST_MOBILE_RX_BYTES);
+        when(mFrameworkFacade.getTxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_TX_BYTES);
+        when(mFrameworkFacade.getRxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_RX_BYTES);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         doAnswer(inv -> {
             mIpClientCallback.onQuit();
