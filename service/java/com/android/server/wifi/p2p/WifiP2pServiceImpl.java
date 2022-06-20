@@ -3127,6 +3127,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             @Override
             public void enter() {
                 if (mVerboseLoggingEnabled) logd(getName());
+                if (SdkLevel.isAtLeastT()) {
+                    mDetailedState = NetworkInfo.DetailedState.CONNECTING;
+                    sendP2pConnectionChangedBroadcast();
+                }
                 sendMessageDelayed(obtainMessage(GROUP_CREATING_TIMED_OUT,
                         ++sGroupCreatingTimeoutIndex, 0), GROUP_CREATING_WAIT_TIME_MS);
             }
@@ -3167,6 +3171,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case WifiP2pManager.DISCOVER_PEERS:
                         // Discovery will break negotiation
                         replyToMessage(message, WifiP2pManager.DISCOVER_PEERS_FAILED,
+                                WifiP2pManager.BUSY);
+                        break;
+                    case WifiP2pManager.STOP_DISCOVERY:
+                        // Stop discovery will clear pending TX action and cause disconnection.
+                        replyToMessage(message, WifiP2pManager.STOP_DISCOVERY_FAILED,
                                 WifiP2pManager.BUSY);
                         break;
                     case WifiP2pManager.CANCEL_CONNECT:
