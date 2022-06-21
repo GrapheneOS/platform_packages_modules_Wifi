@@ -2423,6 +2423,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Initialize the SupplicantStaIfaceHal
         assertTrue(mDut.initialize());
         assertTrue(mDut.startDaemon());
+        verify(mISupplicantMock).getInterfaceVersion();
         verify(mServiceBinderMock).linkToDeath(mSupplicantDeathCaptor.capture(), anyInt());
         assertTrue(mDut.isInitializationComplete());
 
