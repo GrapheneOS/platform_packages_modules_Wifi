@@ -216,6 +216,7 @@ public class WifiPermissionsUtil {
         }
         String packageName = attributionSource.getPackageName();
         int uid = attributionSource.getUid();
+        checkPackage(uid, packageName);
         // Apps with NETWORK_SETTINGS, NETWORK_SETUP_WIZARD, NETWORK_MANAGED_PROVISIONING,
         // NETWORK_STACK & MAINLINE_NETWORK_STACK, RADIO_SCAN_WITHOUT_LOCATION are granted a bypass.
         if (checkNetworkSettingsPermission(uid) || checkNetworkSetupWizardPermission(uid)
@@ -224,6 +225,7 @@ public class WifiPermissionsUtil {
                 || checkScanWithoutLocationPermission(uid)) {
             return;
         }
+
         int permissionCheckResult = mPermissionManager.checkPermissionForDataDelivery(
                 Manifest.permission.NEARBY_WIFI_DEVICES, attributionSource, message);
         if (permissionCheckResult != PermissionManager.PERMISSION_GRANTED) {
