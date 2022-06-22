@@ -283,7 +283,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                     mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
             if (curConfiguration != null) {
                 if (mStateBeforeDisconnect == State.FOURWAY_HANDSHAKE
-                        && WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                        && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                        || WifiConfigurationUtil.isConfigForWapiPskNetwork(curConfiguration))
                         && (!locallyGenerated || reasonCode != ReasonCode.IE_IN_4WAY_DIFFERS)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
                             mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
