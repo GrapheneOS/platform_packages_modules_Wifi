@@ -457,13 +457,16 @@ public class PasspointManager {
      * @param uid Uid of the app adding/Updating {@code config}
      * @param packageName Package name of the app adding/Updating {@code config}
      * @param isFromSuggestion Whether this {@code config} is from suggestion API
-     * @param isTrusted Whether this {@code config} an trusted network, default should be true.
+     * @param isTrusted Whether this {@code config} is a trusted network, default should be true.
      *                  Only able set to false when {@code isFromSuggestion} is true, otherwise
-     *                  adding {@code config} will be false.
-     * @return true if provider is added, false otherwise
+     *                  adding {@code config} will fail.
+     * @param isRestricted Whether this {@code config} is a restricted network, default should be
+     *                     false. Only able set to false when {@code isFromSuggestion} is true,
+     *                     otherwise adding {@code config} will fail
+     * @return true if provider is added successfully, false otherwise
      */
     public boolean addOrUpdateProvider(PasspointConfiguration config, int uid,
-            String packageName, boolean isFromSuggestion, boolean isTrusted) {
+            String packageName, boolean isFromSuggestion, boolean isTrusted, boolean isRestricted) {
         mWifiMetrics.incrementNumPasspointProviderInstallation();
         if (config == null) {
             Log.e(TAG, "Configuration not provided");
@@ -473,7 +476,7 @@ public class PasspointManager {
             Log.e(TAG, "Invalid configuration");
             return false;
         }
-        if (!(isFromSuggestion || isTrusted)) {
+        if (!isFromSuggestion && (!isTrusted || isRestricted)) {
             Log.e(TAG, "Set isTrusted to false on a non suggestion passpoint is not allowed");
             return false;
         }
@@ -488,6 +491,7 @@ public class PasspointManager {
                 mWifiCarrierInfoManager, mProviderIndex++, uid, packageName, isFromSuggestion,
                 mClock);
         newProvider.setTrusted(isTrusted);
+        newProvider.setRestricted(isRestricted);
 
         boolean metricsNoRootCa = false;
         boolean metricsSelfSignedRootCa = false;
