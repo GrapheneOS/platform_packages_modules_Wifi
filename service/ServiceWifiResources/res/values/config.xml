@@ -834,6 +834,9 @@
     <!-- Indicate the number of networks to restore in a batch. 0 : all networks in a batch -->
     <integer translatable="false" name="config_wifiConfigurationRestoreNetworksBatchNum">50</integer>
 
+    <!-- Enables logging for any tasks running on the Wi-Fi thread which take longer than this threshold (in milliseconds) -->
+    <integer translatable="false" name="config_wifiConfigurationWifiRunnerThresholdInMs">100</integer>
+
     <!-- OEM privileged WiFi admin package names. Empty by default-->
     <string-array translatable="false" name="config_oemPrivilegedWifiAdminPackages">
         <!-- Add package names here, example: -->

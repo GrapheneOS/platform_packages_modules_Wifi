@@ -142,13 +142,13 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.Process;
-import android.os.UserHandle;
 import android.os.test.TestLooper;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 import android.util.ArraySet;
+import android.util.LocalLog;
 import android.util.Log;
 import android.util.Pair;
 import android.util.Range;
@@ -556,6 +556,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock ScanResult mScanResult;
     @Mock HandlerThread mWifiHandlerThread;
     @Mock SsidTranslator mSsidTranslator;
+    @Mock LocalLog mLocalLog;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -632,6 +633,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mUntrustedWifiNetworkFactory.hasConnectionRequests()).thenReturn(true);
         when(mOemWifiNetworkFactory.hasConnectionRequests()).thenReturn(true);
         when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(true);
+        when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
 
         mFrameworkFacade = getFrameworkFacade();
         mContext = getContext();

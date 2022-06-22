@@ -100,6 +100,7 @@ public class SoftApManager implements ActiveModeManager {
     private final SoftApNotifier mSoftApNotifier;
     private final BatteryManager mBatteryManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
+    private final WifiInjector mWifiInjector;
 
     @VisibleForTesting
     static final long SOFT_AP_PENDING_DISCONNECTION_CHECK_DELAY_MS = 1000;
@@ -331,6 +332,7 @@ public class SoftApManager implements ActiveModeManager {
             @NonNull Looper looper,
             @NonNull FrameworkFacade framework,
             @NonNull WifiNative wifiNative,
+            @NonNull WifiInjector wifiInjector,
             @NonNull CoexManager coexManager,
             @NonNull BatteryManager batteryManager,
             @NonNull InterfaceConflictManager interfaceConflictManager,
@@ -352,6 +354,7 @@ public class SoftApManager implements ActiveModeManager {
         mFrameworkFacade = framework;
         mSoftApNotifier = softApNotifier;
         mWifiNative = wifiNative;
+        mWifiInjector = wifiInjector;
         mCoexManager = coexManager;
         mBatteryManager = batteryManager;
         mInterfaceConflictManager = interfaceConflictManager;
@@ -894,9 +897,9 @@ public class SoftApManager implements ActiveModeManager {
         public static final int CMD_CHARGING_STATE_CHANGED = 17;
 
         private final State mActiveState = new ActiveState();
-        private final State mIdleState = new IdleState();
+        private final State mIdleState;
         private final WaitingState mWaitingState = new WaitingState(this);
-        private final State mStartedState = new StartedState();
+        private final State mStartedState;
 
         private final InterfaceCallback mWifiNativeInterfaceCallback = new InterfaceCallback() {
             @Override
@@ -924,6 +927,10 @@ public class SoftApManager implements ActiveModeManager {
         SoftApStateMachine(Looper looper) {
             super(TAG, looper);
 
+            final int threshold =  mContext.getResources().getInteger(
+                    R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
+            mIdleState = new IdleState(threshold);
+            mStartedState = new StartedState(threshold);
             // CHECKSTYLE:OFF IndentationCheck
             addState(mActiveState);
                 addState(mIdleState, mActiveState);
@@ -935,6 +942,7 @@ public class SoftApManager implements ActiveModeManager {
             start();
         }
 
+
         private class ActiveState extends State {
             @Override
             public void exit() {
@@ -942,16 +950,76 @@ public class SoftApManager implements ActiveModeManager {
             }
         }
 
-        private class IdleState extends State {
+        @Override
+        protected String getWhatToString(int what) {
+            switch (what) {
+                case CMD_START:
+                    return "CMD_START";
+                case CMD_STOP:
+                    return "CMD_STOP";
+                case CMD_FAILURE:
+                    return "CMD_FAILURE";
+                case CMD_INTERFACE_STATUS_CHANGED:
+                    return "CMD_INTERFACE_STATUS_CHANGED";
+                case CMD_ASSOCIATED_STATIONS_CHANGED:
+                    return "CMD_ASSOCIATED_STATIONS_CHANGED";
+                case CMD_NO_ASSOCIATED_STATIONS_TIMEOUT:
+                    return "CMD_NO_ASSOCIATED_STATIONS_TIMEOUT";
+                case CMD_INTERFACE_DESTROYED:
+                    return "CMD_INTERFACE_DESTROYED";
+                case CMD_INTERFACE_DOWN:
+                    return "CMD_INTERFACE_DOWN";
+                case CMD_AP_INFO_CHANGED:
+                    return "CMD_AP_INFO_CHANGED";
+                case CMD_UPDATE_CAPABILITY:
+                    return "CMD_UPDATE_CAPABILITY";
+                case CMD_UPDATE_CONFIG:
+                    return "CMD_UPDATE_CONFIG";
+                case CMD_FORCE_DISCONNECT_PENDING_CLIENTS:
+                    return "CMD_FORCE_DISCONNECT_PENDING_CLIENTS";
+                case CMD_NO_ASSOCIATED_STATIONS_TIMEOUT_ON_ONE_INSTANCE:
+                    return "CMD_NO_ASSOCIATED_STATIONS_TIMEOUT_ON_ONE_INSTANCE";
+                case CMD_SAFE_CHANNEL_FREQUENCY_CHANGED:
+                    return "CMD_SAFE_CHANNEL_FREQUENCY_CHANGED";
+                case CMD_HANDLE_WIFI_CONNECTED:
+                    return "CMD_HANDLE_WIFI_CONNECTED";
+                case CMD_UPDATE_COUNTRY_CODE:
+                    return "CMD_UPDATE_COUNTRY_CODE";
+                case CMD_CHARGING_STATE_CHANGED:
+                    return "CMD_CHARGING_STATE_CHANGED";
+                case RunnerState.STATE_ENTER_CMD:
+                    return "Enter";
+                case RunnerState.STATE_EXIT_CMD:
+                    return "Exit";
+                default:
+                    return "what:" + what;
+            }
+        }
+
+        private class IdleState extends RunnerState {
+            IdleState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
+
             @Override
-            public void enter() {
+            public void enterImpl() {
                 mApInterfaceName = null;
                 mIfaceIsUp = false;
                 mIfaceIsDestroyed = false;
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            public void exitImpl() {
+            }
+
+            @Override
+            String getMessageLogRec(int what) {
+                return SoftApManager.class.getSimpleName() + "." + IdleState.class.getSimpleName()
+                        + "." + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_STOP:
                         quitNow();
@@ -1130,7 +1198,11 @@ public class SoftApManager implements ActiveModeManager {
             }
         }
 
-        private class StartedState extends State {
+        private class StartedState extends RunnerState {
+            StartedState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
+
             BroadcastReceiver mBatteryChargingReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
@@ -1478,7 +1550,7 @@ public class SoftApManager implements ActiveModeManager {
             }
 
             @Override
-            public void enter() {
+            public void enterImpl() {
                 mIfaceIsUp = false;
                 mIfaceIsDestroyed = false;
                 onUpChanged(mWifiNative.isInterfaceUp(mApInterfaceName));
@@ -1502,7 +1574,7 @@ public class SoftApManager implements ActiveModeManager {
             }
 
             @Override
-            public void exit() {
+            public void exitImpl() {
                 if (!mIfaceIsDestroyed) {
                     stopSoftAp();
                 }
@@ -1573,7 +1645,13 @@ public class SoftApManager implements ActiveModeManager {
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            String getMessageLogRec(int what) {
+                return SoftApManager.class.getSimpleName() + "." + RunnerState.class.getSimpleName()
+                        + "." + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_ASSOCIATED_STATIONS_CHANGED:
                         if (!(message.obj instanceof WifiClient)) {
