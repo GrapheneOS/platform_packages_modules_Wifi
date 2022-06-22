@@ -289,7 +289,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                     mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
             if (curConfiguration != null) {
                 if (mStateBeforeDisconnect == StaIfaceCallbackState.FOURWAY_HANDSHAKE
-                        && WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                        && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                        || WifiConfigurationUtil.isConfigForWapiPskNetwork(curConfiguration))
                         && (!locallyGenerated || reasonCode
                             != StaIfaceReasonCode.IE_IN_4WAY_DIFFERS)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
