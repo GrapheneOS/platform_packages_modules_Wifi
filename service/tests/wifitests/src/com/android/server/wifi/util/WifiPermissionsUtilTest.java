@@ -1439,6 +1439,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         // disabled since uid1 does not have permissions to renounce permissions.
         AttributionSource attributionSource = mock(AttributionSource.class);
         when(attributionSource.getUid()).thenReturn(uid1);
+        when(attributionSource.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         when(attributionSource.checkCallingUid()).thenReturn(true);
         when(attributionSource.getRenouncedPermissions()).thenReturn(Set.of(ACCESS_FINE_LOCATION));
 
@@ -1447,11 +1448,13 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
                 mMockContext, mMockUserManager, mWifiInjector);
 
         assertFalse(codeUnderTest.checkNearbyDevicesPermission(attributionSource, true, ""));
+        verify(mMockAppOps).checkPackage(uid1, TEST_PACKAGE_NAME);
 
         // now attach AttributionSource2 with uid2 to the list of AttributionSource and then
         // verify the location check is now bypassed.
         AttributionSource attributionSource2 = mock(AttributionSource.class);
         when(attributionSource2.getUid()).thenReturn(uid2);
+        when(attributionSource2.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         when(attributionSource2.getRenouncedPermissions()).thenReturn(Set.of(ACCESS_FINE_LOCATION));
         when(attributionSource.getNext()).thenReturn(attributionSource2);
         codeUnderTest.enforceNearbyDevicesPermission(attributionSource, true, "");
@@ -1465,8 +1468,12 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     @Test
     public void testEnforceNearbyDevicesPermission_LocationCheckDisavowPass() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
+        // bypass checkPackage
+        mThrowSecurityException = false;
         AttributionSource attributionSource = mock(AttributionSource.class);
         when(attributionSource.checkCallingUid()).thenReturn(true);
+        when(attributionSource.getUid()).thenReturn(mUid);
+        when(attributionSource.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         when(attributionSource.getRenouncedPermissions()).thenReturn(Collections.EMPTY_SET);
         // mock caller disavowing location
         mPackagePermissionInfo.requestedPermissions = new String[] {NEARBY_WIFI_DEVICES};
@@ -1482,6 +1489,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
                 mMockContext, mMockUserManager, mWifiInjector);
         codeUnderTest.enforceNearbyDevicesPermission(attributionSource, true, "");
+        verify(mMockAppOps).checkPackage(mUid, TEST_PACKAGE_NAME);
 
         // It's important to verify that ACCESS_FINE_LOCATION never gets checked so the caller
         // does not get blamed for location access when they already disavowed location.
@@ -1498,10 +1506,14 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     public void testEnforceNearbyDevicesPermission_LocationCheckWithoutDisavowPass()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
+        // bypass checkPackage
+        mThrowSecurityException = false;
         // Set location mode off and grant app location permission
         when(mLocationManager.isLocationEnabledForUser(any())).thenReturn(false);
         AttributionSource attributionSource = mock(AttributionSource.class);
+        when(attributionSource.getUid()).thenReturn(mUid);
         when(attributionSource.checkCallingUid()).thenReturn(true);
+        when(attributionSource.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         when(attributionSource.getRenouncedPermissions()).thenReturn(Collections.EMPTY_SET);
         mPackagePermissionInfo.requestedPermissions = new String[0];
         when(mPermissionManager.checkPermissionForDataDelivery(eq(NEARBY_WIFI_DEVICES),
@@ -1515,6 +1527,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
                 mMockContext, mMockUserManager, mWifiInjector);
         // Test should fail because location mode is off
         assertFalse(codeUnderTest.checkNearbyDevicesPermission(attributionSource, true, ""));
+        verify(mMockAppOps).checkPackage(mUid, TEST_PACKAGE_NAME);
 
         // Now enable location mode and the call should pass
         when(mLocationManager.isLocationEnabledForUser(any())).thenReturn(true);
@@ -1532,8 +1545,12 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     public void testEnforceNearbyDevicesPermission_BypassCheckWithPrivilegedPermission()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
+        // bypass checkPackage
+        mThrowSecurityException = false;
         AttributionSource attributionSource = mock(AttributionSource.class);
+        when(attributionSource.getUid()).thenReturn(mUid);
         when(attributionSource.checkCallingUid()).thenReturn(true);
+        when(attributionSource.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         when(attributionSource.getUid()).thenReturn(mUid);
         // caller no nearby permission
         when(mPermissionManager.checkPermissionForDataDelivery(eq(NEARBY_WIFI_DEVICES),
@@ -1546,6 +1563,7 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
                 mMockContext, mMockUserManager, mWifiInjector);
         codeUnderTest.enforceNearbyDevicesPermission(attributionSource, true, "");
+        verify(mMockAppOps).checkPackage(mUid, TEST_PACKAGE_NAME);
     }
 
     private Answer<Integer> createPermissionAnswer() {
