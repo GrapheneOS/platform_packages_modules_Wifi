@@ -102,8 +102,6 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     /**
      * Enable verbose logging for all sub modules.
      *
-     * @param verboseEnabled Verbose flag set in overlay XML.
-     * @param halVerboseEnabled Verbose flag set by the user.
      */
     public static void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         sVerboseLoggingEnabled = verboseEnabled;
