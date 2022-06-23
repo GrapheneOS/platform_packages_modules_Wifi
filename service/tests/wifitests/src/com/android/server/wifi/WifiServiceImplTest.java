@@ -159,6 +159,7 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.LocalOnlyHotspotCallback;
+import android.net.wifi.WifiNetworkSelectionConfig;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
@@ -7578,6 +7579,32 @@ public class WifiServiceImplTest extends WifiBaseTest {
         boolean succeeded = mWifiServiceImpl.disableNetwork(0, TEST_PACKAGE_NAME);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         assertFalse(succeeded);
+    }
+
+    @Test
+    public void testSetNetworkSelectionConfig() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+
+        WifiNetworkSelectionConfig nsConfig = new WifiNetworkSelectionConfig.Builder().build();
+        // no permission to call API
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.setNetworkSelectionConfig(nsConfig));
+
+        // Null arguments
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.setNetworkSelectionConfig(null));
+
+        // has permission to call API
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        mWifiServiceImpl.setNetworkSelectionConfig(nsConfig);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).setNetworkSelectionConfig(nsConfig);
+        verify(mLastCallerInfoManager).put(
+                eq(WifiManager.API_SET_NETWORK_SELECTION_CONFIG),
+                anyInt(), anyInt(), anyInt(), any(), eq(true));
     }
 
     @Test(expected = SecurityException.class)
