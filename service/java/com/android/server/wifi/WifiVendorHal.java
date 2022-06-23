@@ -120,7 +120,6 @@ public class WifiVendorHal {
     /**
      * Enables or disables verbose logging
      *
-     * @param verbose - with the obvious interpretation
      */
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         synchronized (sLock) {

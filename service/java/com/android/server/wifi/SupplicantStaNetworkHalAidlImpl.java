@@ -159,7 +159,6 @@ public class SupplicantStaNetworkHalAidlImpl {
     /**
      * Enable/Disable verbose logging.
      *
-     * @param enable true to enable, false to disable.
      */
     void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         synchronized (mLock) {

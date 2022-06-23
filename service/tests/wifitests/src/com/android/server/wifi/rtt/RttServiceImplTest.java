@@ -283,7 +283,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mRttLifecycleCbCaptor.getValue().onNewRttController(mockRttControllerHal);
         verify(mockRttControllerHal, times(2)).registerRangingResultsCallback(any());
         assertTrue(mDut.isAvailable());
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal);
     }
 
@@ -344,7 +344,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         }
         verify(mockMetrics, times(numIter)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -427,7 +427,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordResult(eq(finalRequest), eq(results.first),
                 eq(MEASUREMENT_DURATION));
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
         if (SdkLevel.isAtLeastT()) {
@@ -542,7 +542,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_HAL_FAILURE);
         verify(mockMetrics, times(numIter - 1)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -580,7 +580,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request));
         verify(mockMetrics).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_LOCATION_PERMISSION_MISSING);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -662,7 +662,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         }
         verify(mockMetrics, times(numIter / 2)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -702,7 +702,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // verify metrics
         verify(mockMetrics).recordRequest(eq(ws), eq(request));
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -754,6 +754,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 .onRangingResults(mIntCaptor.getValue(), results.second);
         mMockLooper.dispatchAll();
 
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -803,7 +804,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         // verify metrics
         verify(mockMetrics).recordResult(eq(request), eq(results.second), anyInt());
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -846,7 +847,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request));
         verify(mockMetrics).recordResult(eq(request), eq(results.second), anyInt());
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -894,7 +895,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request));
         verify(mockMetrics).recordResult(eq(request), eq(results.second), anyInt());
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -938,7 +939,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request));
         verify(mockMetrics).recordResult(eq(request), eq(new ArrayList<>()), anyInt());
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -995,7 +996,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordResult(eq(request2), eq(result2.second), anyInt());
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_TIMEOUT);
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1116,7 +1117,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_THROTTLE);
         verify(mockMetrics, times(3)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1220,7 +1221,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_THROTTLE);
         verify(mockMetrics, times(2)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1294,7 +1295,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         }
         verify(mockMetrics, times(RttServiceImpl.MAX_QUEUED_PER_UID + 11))
                 .recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_RTT_NOT_AVAILABLE);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1380,7 +1381,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics, times(RttServiceImpl.MAX_QUEUED_PER_UID)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_RTT_NOT_AVAILABLE);
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1489,7 +1490,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request2));
         verify(mockMetrics, times(3)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_RTT_NOT_AVAILABLE);
-
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback, mockCallback2,
                 mockCallback3, mAlarmManager.getAlarmManager());
     }

@@ -132,7 +132,6 @@ public class HostapdHalAidlImp implements IHostapdHal {
     /**
      * Enable/Disable verbose logging.
      *
-     * @param enable true to enable, false to disable.
      */
     @Override
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {

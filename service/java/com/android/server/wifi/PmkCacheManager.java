@@ -160,8 +160,6 @@ public class PmkCacheManager {
 
     /**
      * Enable/Disable verbose logging.
-     *
-     * @param verboseEnabled Verbose flag set in overlay XML.
      */
     public void enableVerboseLogging(boolean verboseEnabled) {
         mVerboseLoggingEnabled = verboseEnabled;

@@ -63,6 +63,8 @@ public class RttService extends SystemService {
             mImpl.start(handlerThread.getLooper(), wifiInjector.getClock(), awareManager,
                     rttMetrics, wifiPermissionsUtil, wifiInjector.getSettingsConfigStore(),
                     wifiInjector.getHalDeviceManager());
+        } else if (phase == SystemService.PHASE_BOOT_COMPLETED) {
+            mImpl.handleBootCompleted();
         }
     }
 }
