@@ -115,6 +115,7 @@ public class PasspointProvider {
     private boolean mIsShared;
     private boolean mIsFromSuggestion;
     private boolean mIsTrusted;
+    private boolean mIsRestricted;
     private boolean mVerboseLoggingEnabled;
 
     private final Clock mClock;
@@ -154,6 +155,7 @@ public class PasspointProvider {
         mIsFromSuggestion = isFromSuggestion;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mIsTrusted = true;
+        mIsRestricted = false;
         mClock = clock;
 
         // Setup EAP method and authentication parameter based on the credential.
@@ -186,8 +188,30 @@ public class PasspointProvider {
         mIsTrusted = trusted;
     }
 
+    /**
+     * Check passpoint network trusted or not.
+     */
     public boolean isTrusted() {
         return mIsTrusted;
+    }
+
+    /**
+     * Set passpoint network restricted or not.
+     * Default is false. Only allows to change when it is from suggestion.
+     */
+    public void setRestricted(boolean restricted) {
+        if (!mIsFromSuggestion) {
+            Log.e(TAG, "setRestricted can only be called for suggestion passpoint network");
+            return;
+        }
+        mIsRestricted = restricted;
+    }
+
+    /**
+     * Check passpoint network restricted or not.
+     */
+    public boolean isRestricted() {
+        return mIsRestricted;
     }
 
     /**
@@ -589,6 +613,7 @@ public class PasspointProvider {
         wifiConfig.creatorName = mPackageName;
         wifiConfig.creatorUid = mCreatorUid;
         wifiConfig.trusted = mIsTrusted;
+        wifiConfig.restricted = mIsRestricted;
         if (mConfig.isMacRandomizationEnabled()) {
             if (mConfig.isNonPersistentMacRandomizationEnabled()) {
                 wifiConfig.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NON_PERSISTENT;
@@ -712,6 +737,7 @@ public class PasspointProvider {
         builder.append("Shared: ").append(mIsShared).append("\n");
         builder.append("Suggestion: ").append(mIsFromSuggestion).append("\n");
         builder.append("Trusted: ").append(mIsTrusted).append("\n");
+        builder.append("Restricted: ").append(mIsRestricted).append("\n");
         builder.append("UserConnectChoice: ").append(mConnectChoice).append("\n");
         if (mReauthDelay != 0 && mClock.getElapsedSinceBootMillis() < mReauthDelay) {
             builder.append("Reauth delay remaining (seconds): ")

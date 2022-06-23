@@ -493,8 +493,10 @@ public class HostapdHalAidlImp implements IHostapdHal {
                 return false;
             }
             Log.i(TAG, "Obtained IHostApd binder.");
+            Log.i(TAG, "Local Version: " + IHostapd.VERSION);
 
             try {
+                Log.i(TAG, "Remote Version: " + mIHostapd.getInterfaceVersion());
                 IBinder serviceBinder = getServiceBinderMockable();
                 if (serviceBinder == null) return false;
                 mWaitForDeathLatch = null;

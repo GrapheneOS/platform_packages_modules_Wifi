@@ -4149,7 +4149,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mLog.info("addorUpdatePasspointConfiguration uid=%").c(callingUid).flush();
         return mWifiThreadRunner.call(
                 () -> mPasspointManager.addOrUpdateProvider(config, callingUid, packageName,
-                        false, true), false);
+                        false, true, false), false);
     }
 
     /**

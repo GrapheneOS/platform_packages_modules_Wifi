@@ -617,6 +617,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
         assertTrue(mHostapdHal.startDaemon() == shouldSucceed);
 
         // Verify initialization sequence
+        verify(mIHostapdMock).getInterfaceVersion();
         verify(mServiceBinderMock).linkToDeath(mHostapdDeathCaptor.capture(), anyInt());
         verify(mIHostapdMock).registerCallback(any(IHostapdCallback.class));
         assertEquals(shouldSucceed, mHostapdHal.isInitializationComplete());
