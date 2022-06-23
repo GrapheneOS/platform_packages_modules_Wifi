@@ -358,7 +358,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         reset(mISupplicantStaIfaceMock);
         setupMocksForConnectSequence(true);
         // Make this network different by changing SSID.
-        config.SSID = "AnDifferentSSID";
+        config.SSID = "\"ADifferentSSID\"";
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
         verify(mISupplicantStaIfaceMock).removeNetwork(SUPPLICANT_NETWORK_ID);
         verify(mISupplicantStaIfaceMock).addNetwork();

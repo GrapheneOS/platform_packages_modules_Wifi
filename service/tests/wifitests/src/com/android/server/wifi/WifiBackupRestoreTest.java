@@ -1031,7 +1031,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
     @Test
     public void testSingleNetworkSupplicantBackupRestoreWithUnknownEAPKey() {
         String backupSupplicantConfNetworkBlock = "network={\n"
-                + "ssid=" + WifiConfigurationTestUtil.TEST_SSID + "\n"
+                + "ssid=\"" + WifiConfigurationTestUtil.TEST_SSID + "\"\n"
                 + "psk=" + WifiConfigurationTestUtil.TEST_PSK + "\n"
                 + "key_mgmt=WPA-PSK WPA-PSK-SHA256\n"
                 + "priority=18\n"
@@ -1044,7 +1044,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                         supplicantData, null);
 
         final WifiConfiguration expectedConfiguration = new WifiConfiguration();
-        expectedConfiguration.SSID = WifiConfigurationTestUtil.TEST_SSID;
+        expectedConfiguration.SSID = "\"" + WifiConfigurationTestUtil.TEST_SSID + "\"";
         expectedConfiguration.preSharedKey = WifiConfigurationTestUtil.TEST_PSK;
         expectedConfiguration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
 

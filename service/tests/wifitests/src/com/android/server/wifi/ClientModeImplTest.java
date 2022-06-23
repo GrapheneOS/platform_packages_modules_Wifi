@@ -6456,7 +6456,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         String oldSsid = mConnectedNetwork.SSID;
 
         // Trigger connection to a different network
-        mConnectedNetwork.SSID = oldSsid.concat("blah");
+        mConnectedNetwork.SSID = "\"" + oldSsid.concat("blah") + "\"";
         mConnectedNetwork.networkId++;
         mConnectedNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NONE;
         setupAndStartConnectSequence(mConnectedNetwork);

@@ -519,7 +519,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         reset(mISupplicantStaIfaceMock);
         setupMocksForConnectSequence(true /*haveExistingNetwork*/);
         // Make this network different by changing SSID.
-        config.SSID = "AnDifferentSSID";
+        config.SSID = "\"ADifferentSSID\"";
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
         verify(mISupplicantStaIfaceMock).removeNetwork(SUPPLICANT_NETWORK_ID);
         verify(mISupplicantStaIfaceMock)

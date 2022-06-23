@@ -1107,7 +1107,8 @@ public class WifiConfigManager {
     private void mergeWithInternalWifiConfiguration(
             WifiConfiguration internalConfig, WifiConfiguration externalConfig) {
         if (externalConfig.SSID != null) {
-            internalConfig.SSID = externalConfig.SSID;
+            // Make sure hexadecimal case is consistent by converting to WifiSsid and back.
+            internalConfig.SSID = WifiSsid.fromString(externalConfig.SSID).toString();
         }
         if (externalConfig.BSSID != null) {
             internalConfig.BSSID = externalConfig.BSSID.toLowerCase();

@@ -43,12 +43,12 @@ public class WifiSsidTest {
     private static final byte[] TEST_SSID_UTF_8_BYTES =
             TEST_SSID_UTF_8.getBytes(StandardCharsets.UTF_8);
     private static final String TEST_SSID_UTF_8_HEX =
-            HexEncoding.encodeToString(TEST_SSID_UTF_8_BYTES);
+            HexEncoding.encodeToString(TEST_SSID_UTF_8_BYTES, false /* upperCase */);
 
     private static final byte[] TEST_SSID_NON_UTF_8_BYTES =
             "服務集識別碼".getBytes(Charset.forName("GBK"));
     private static final String TEST_SSID_NON_UTF_8_HEX =
-            HexEncoding.encodeToString(TEST_SSID_NON_UTF_8_BYTES);
+            HexEncoding.encodeToString(TEST_SSID_NON_UTF_8_BYTES, false /* upperCase */);
 
     /**
      * Verify the behavior of fromByteArray()
