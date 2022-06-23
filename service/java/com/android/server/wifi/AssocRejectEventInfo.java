@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.hardware.wifi.supplicant.AssociationRejectionData;
+import android.net.wifi.WifiSsid;
 
 import com.android.server.wifi.util.NativeUtil;
 
@@ -46,7 +47,8 @@ public class AssocRejectEventInfo {
 
     public AssocRejectEventInfo(android.hardware.wifi.supplicant.V1_4
             .ISupplicantStaIfaceCallback.AssociationRejectionData assocRejectData) {
-        String ssid = NativeUtil.encodeSsid(assocRejectData.ssid);
+        String ssid = WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(assocRejectData.ssid))
+                .toString();
         String bssid = NativeUtil.macAddressFromByteArray(assocRejectData.bssid);
         this.ssid = Objects.requireNonNull(ssid);
         this.bssid = Objects.requireNonNull(bssid);
@@ -70,8 +72,7 @@ public class AssocRejectEventInfo {
 
     // Constructor using the AIDL definition
     public AssocRejectEventInfo(AssociationRejectionData assocRejectData) {
-        String ssid = NativeUtil.encodeSsid(
-                NativeUtil.byteArrayToArrayList(assocRejectData.ssid));
+        String ssid = WifiSsid.fromBytes(assocRejectData.ssid).toString();
         String bssid = NativeUtil.macAddressFromByteArray(assocRejectData.bssid);
         this.ssid = Objects.requireNonNull(ssid);
         this.bssid = Objects.requireNonNull(bssid);
