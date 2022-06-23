@@ -16,10 +16,12 @@
 
 package com.android.server.wifi.util;
 
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.util.HexEncoding;
 import android.text.TextUtils;
 
 import com.android.server.wifi.ByteBufferReader;
+import com.android.server.wifi.WifiGlobals;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -31,6 +33,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 
 /**
  * Provide utility functions for native interfacing modules.
@@ -356,4 +359,71 @@ public class NativeUtil {
         int z = ((a[6] & 0xFF) << 8) | (a[7] & 0xFF);
         return String.format("%d-%s-%d", x, y, z);
     }
+
+    /**
+     * Update PMF requirement if auto-upgrade offload is supported.
+     *
+     * If SAE auto-upgrade offload is supported and this config enables
+     * both PSK and SAE, do not set PMF requirement to
+     * mandatory to allow the device to roam between PSK and SAE BSSes.
+     * wpa_supplicant will set PMF requirement to optional by default.
+     */
+    public static boolean getOptimalPmfSettingForConfig(WifiConfiguration config,
+            boolean isPmfRequiredFromSelectedSecurityParams, WifiGlobals wifiGlobals) {
+        if (isPskSaeParamsMergeable(config, wifiGlobals)) {
+            return false;
+        }
+        return isPmfRequiredFromSelectedSecurityParams;
+    }
+
+    /**
+     * Update group ciphers if auto-upgrade offload is supported.
+     *
+     * If auto-upgrade offload is supported and this config enables both PSK and
+     * SAE, merge allowed group ciphers to allow native service to roam
+     * between two types.
+     */
+    public static BitSet getOptimalGroupCiphersForConfig(WifiConfiguration config,
+            BitSet ciphersFromSelectedParams, WifiGlobals wifiGlobals) {
+        BitSet ciphers = ciphersFromSelectedParams;
+        if (isPskSaeParamsMergeable(config, wifiGlobals)) {
+            ciphers = (BitSet) config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK)
+                    .getAllowedGroupCiphers().clone();
+            ciphers.or((BitSet) config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
+                    .getAllowedGroupCiphers().clone());
+        }
+        return ciphers;
+    }
+
+    /**
+     * Update pairwise ciphers if auto-upgrade offload is supported.
+     *
+     * If auto-upgrade offload is supported and this config enables both PSK and
+     * SAE, merge allowed pairwise ciphers to allow native service to roam
+     * between two types.
+     */
+    public static BitSet getOptimalPairwiseCiphersForConfig(WifiConfiguration config,
+            BitSet ciphersFromSelectedParams, WifiGlobals wifiGlobal) {
+        BitSet ciphers = ciphersFromSelectedParams;
+        if (isPskSaeParamsMergeable(config, wifiGlobal)) {
+            ciphers = (BitSet) config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK)
+                    .getAllowedPairwiseCiphers().clone();
+            ciphers.or((BitSet) config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
+                    .getAllowedPairwiseCiphers().clone());
+        }
+        return ciphers;
+    }
+
+    private static boolean isPskSaeParamsMergeable(
+            WifiConfiguration config, WifiGlobals wifiGlobals) {
+        if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
+                && config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK).isEnabled()
+                && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)
+                && config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE).isEnabled()
+                && wifiGlobals.isWpa3SaeUpgradeOffloadEnabled()) {
+            return true;
+        }
+        return false;
+    }
+
 }

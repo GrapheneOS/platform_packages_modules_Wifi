@@ -751,6 +751,98 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Tests ciphers are merged when the device supports auto upgrade offload feature
+     * and when candidate security type is PSK.
+     */
+    @Test
+    public void testCiphersMergedWhenAutoUpgradeOffloadIsSupportedAndPskSelected()
+            throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        assertEquals(PairwiseCipherMask.CCMP | PairwiseCipherMask.TKIP
+                | PairwiseCipherMask.GCMP_128 | PairwiseCipherMask.GCMP_256,
+                mSupplicantVariables.pairwiseCipherMask);
+        assertEquals(GroupCipherMask.CCMP | GroupCipherMask.TKIP
+                | GroupCipherMask.WEP40 | GroupCipherMask.WEP104
+                | GroupCipherMask.GCMP_128 | GroupCipherMask.GCMP_256,
+                mSupplicantVariables.groupCipherMask);
+    }
+
+    /**
+     * Tests ciphers are not changed when the device does not supports auto upgrade offload feature
+     * and when candidate security type is PSK.
+     */
+    @Test
+    public void testCiphersNotChangedWhenAutoUpgradeOffloadNotSupportedAndPskSelected()
+            throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(false);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        assertEquals(PairwiseCipherMask.CCMP | PairwiseCipherMask.TKIP,
+                mSupplicantVariables.pairwiseCipherMask);
+        assertEquals(GroupCipherMask.CCMP | GroupCipherMask.TKIP
+                | GroupCipherMask.WEP40 | GroupCipherMask.WEP104,
+                mSupplicantVariables.groupCipherMask);
+    }
+
+    /**
+     * Tests ciphers are merged when the device supports auto upgrade offload feature
+     * and when candidate security type is SAE.
+     */
+    @Test
+    public void testCiphersMergedWhenAutoUpgradeOffloadIsSupportedAndSaeSelected()
+            throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        assertEquals(PairwiseCipherMask.CCMP | PairwiseCipherMask.TKIP
+                | PairwiseCipherMask.GCMP_128 | PairwiseCipherMask.GCMP_256,
+                mSupplicantVariables.pairwiseCipherMask);
+        assertEquals(GroupCipherMask.CCMP | GroupCipherMask.TKIP
+                | GroupCipherMask.WEP40 | GroupCipherMask.WEP104
+                | GroupCipherMask.GCMP_128 | GroupCipherMask.GCMP_256,
+                mSupplicantVariables.groupCipherMask);
+    }
+
+    /**
+     * Tests ciphers are not changed when the device does not supports auto upgrade offload feature
+     * and when candidate security type is SAE.
+     */
+    @Test
+    public void testCiphersNotChangedWhenAutoUpgradeOffloadNotSupportedAndSaeSelected()
+            throws Exception {
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(false);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        assertEquals(PairwiseCipherMask.CCMP | PairwiseCipherMask.GCMP_128
+                | PairwiseCipherMask.GCMP_256,
+                mSupplicantVariables.pairwiseCipherMask);
+        assertEquals(GroupCipherMask.CCMP | GroupCipherMask.GCMP_128 | GroupCipherMask.GCMP_256,
+                mSupplicantVariables.groupCipherMask);
+    }
+
+    /**
      * Tests the retrieval of WPS NFC token.
      */
     @Test
