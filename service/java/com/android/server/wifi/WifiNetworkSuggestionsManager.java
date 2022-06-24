@@ -191,6 +191,7 @@ public class WifiNetworkSuggestionsManager {
             if (configuration == null || securityParams == null || securityParams.isEmpty()) {
                 Log.e(TAG, "onSecurityParamsUpdate: must have valid config and "
                         + "securityParams");
+                return;
             }
             onSecurityParamsUpdateForSuggestion(configuration, securityParams);
         }
