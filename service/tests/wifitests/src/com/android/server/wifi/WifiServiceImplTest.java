@@ -415,6 +415,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock DevicePolicyManager mDevicePolicyManager;
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock SsidTranslator mSsidTranslator;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
 
@@ -569,6 +570,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mContext.getSystemService(DevicePolicyManager.class)).thenReturn(mDevicePolicyManager);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {

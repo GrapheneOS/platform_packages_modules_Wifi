@@ -245,6 +245,7 @@ public class WifiInjector {
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
     @NonNull private final WifiDialogManager mWifiDialogManager;
+    @NonNull private final SsidTranslator mSsidTranslator;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -285,6 +286,7 @@ public class WifiInjector {
         mWifiStateTracker = new WifiStateTracker(mBatteryStats);
         mWifiThreadRunner = new WifiThreadRunner(wifiHandler);
         mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner, mFrameworkFacade);
+        mSsidTranslator = new SsidTranslator(mContext, wifiHandler);
         mWifiP2pServiceHandlerThread = new HandlerThread("WifiP2pService");
         mWifiP2pServiceHandlerThread.start();
         mPasspointProvisionerHandlerThread =
@@ -1117,6 +1119,11 @@ public class WifiInjector {
     @NonNull
     public WifiDialogManager getWifiDialogManager() {
         return mWifiDialogManager;
+    }
+
+    @NonNull
+    public SsidTranslator getSsidTranslator() {
+        return mSsidTranslator;
     }
 
     public BuildProperties getBuildProperties() {
