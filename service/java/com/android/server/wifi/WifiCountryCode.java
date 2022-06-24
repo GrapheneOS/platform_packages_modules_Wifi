@@ -448,7 +448,7 @@ public class WifiCountryCode {
     @Nullable
     public synchronized String getCountryCode() {
         initializeTelephonyCountryCodeIfNeeded();
-        return pickCountryCode();
+        return pickCountryCode(true);
     }
 
     /**
@@ -498,7 +498,9 @@ public class WifiCountryCode {
     }
 
     private void updateCountryCode(boolean isClientModeOnly) {
-        String country = pickCountryCode();
+        // The mDriverCountryCode is the country code which is being used by driver now.
+        // It should not be a candidate for writing use case.
+        String country = pickCountryCode(false);
         Log.d(TAG, "updateCountryCode to " + country);
 
         // We do not check if the country code equals the current one.
@@ -514,14 +516,21 @@ public class WifiCountryCode {
         // code setting: '00'.
     }
 
-    private String pickCountryCode() {
+    /**
+     * Pick up country code base on country code we have.
+     *
+     * @param useDriverCountryCodeIfAvailable whether or not to use driver country code
+     *                                        if available
+     * @return country code base on the use case and current country code we have.
+     */
+    private String pickCountryCode(boolean useDriverCountryCodeIfAvailable) {
         if (mOverrideCountryCode != null) {
             return mOverrideCountryCode;
         }
         if (mTelephonyCountryCode != null) {
             return mTelephonyCountryCode;
         }
-        if (mDriverCountryCode != null) {
+        if (useDriverCountryCodeIfAvailable && mDriverCountryCode != null) {
             // Returns driver country code since it may be different to WIFI_DEFAULT_COUNTRY_CODE
             // when driver supported 802.11d.
             return mDriverCountryCode;
