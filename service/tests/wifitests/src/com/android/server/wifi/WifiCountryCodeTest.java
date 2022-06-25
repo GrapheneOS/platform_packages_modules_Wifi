@@ -446,26 +446,6 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     }
 
     /**
-     * Test set Default country code
-     * @throws Exception
-     */
-    @Test
-    public void testDefaultCountryCodeNotUsedWhenDriverCountryCodeExist() throws Exception {
-        // Supplicant started, it will update default country code (US) to driver
-        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
-        // The driver country code is mDefaultCountryCode now.
-        verify(mClientModeManager).setCountryCode(eq(mDefaultCountryCode));
-        // Update default country code (JP) to driver
-        mWifiCountryCode.setDefaultCountryCode(TEST_COUNTRY_CODE);
-        // It still use the last driver country code when default country code changed
-        verify(mClientModeManager, times(2)).setCountryCode(eq(mDefaultCountryCode));
-        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
-        // But default country code updated to new country code - JP
-        verify(mSettingsConfigStore).put(eq(WIFI_DEFAULT_COUNTRY_CODE), eq(TEST_COUNTRY_CODE));
-        assertEquals(TEST_COUNTRY_CODE, mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE));
-    }
-
-    /**
      * Test is valid country code
      * @throws Exception
      */
