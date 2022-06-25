@@ -40,6 +40,8 @@ import com.android.server.wifi.util.NativeUtil;
 import com.android.wifi.resources.R;
 
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 /** This class is used to handle insecure EAP networks. */
 public class InsecureEapNetworkHandler {
@@ -82,7 +84,8 @@ public class InsecureEapNetworkHandler {
     private CertificateSubjectInfo mPendingCaCertSubjectInfo = null;
     // This is updated on setting a pending CA cert.
     private CertificateSubjectInfo mPendingCaCertIssuerInfo = null;
-    @Nullable
+    // Record the whole server cert chain from Root CA to the server cert.
+    private List<X509Certificate> mServerCertChain = new ArrayList<>();
     private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
     private boolean mIsCertNotificationReceiverRegistered = false;
 
@@ -172,6 +175,7 @@ public class InsecureEapNetworkHandler {
 
     /** Clear data on disconnecting a connection. */
     private void clearConnection() {
+        mServerCertChain = new ArrayList<>();
         unregisterCertificateNotificationReceiver();
         dismissDialogAndNotification();
         clearInternalData();
@@ -189,12 +193,17 @@ public class InsecureEapNetworkHandler {
     public boolean setPendingCertificate(@NonNull String ssid, int depth,
             @NonNull X509Certificate cert) {
         Log.d(TAG, "setPendingCertificate: " + "ssid=" + ssid + " depth=" + depth
-                + " current config=" + mCurConfig);
+                + " current config=" + mCurConfig.getProfileKey());
         if (TextUtils.isEmpty(ssid)) return false;
         if (null == mCurConfig) return false;
         if (!TextUtils.equals(ssid, mCurConfig.SSID)) return false;
         if (null == cert) return false;
         if (depth < 0) return false;
+
+        if (!mServerCertChain.contains(cert)) {
+            mServerCertChain.add(cert);
+        }
+
         // 0 is the tail, i.e. the server cert.
         if (depth == 0 && null == mPendingServerCert) {
             mPendingServerCert = cert;
@@ -268,6 +277,64 @@ public class InsecureEapNetworkHandler {
                 Log.d(TAG, "No valid Server cert for TLS-based connection.");
                 handleError(mCurConfig.SSID);
                 return true;
+            } else if (!isServerCertChainValid()) {
+                Log.d(TAG, "Server cert chain is invalid.");
+                String title = mContext.getString(R.string.wifi_tofu_invalid_cert_chain_title,
+                        mCurConfig.SSID);
+                String message = mContext.getString(R.string.wifi_tofu_invalid_cert_chain_message);
+                String okButtonText = mContext.getString(
+                        R.string.wifi_tofu_invalid_cert_chain_ok_text);
+
+                handleError(mCurConfig.SSID);
+
+                if (TextUtils.isEmpty(title) || TextUtils.isEmpty(message)) return true;
+
+                if (isUserSelected) {
+                    mTofuAlertDialog = mWifiDialogManager.createSimpleDialog(
+                        title,
+                        message,
+                        null /* positiveButtonText */,
+                        null /* negativeButtonText */,
+                        okButtonText,
+                        new WifiDialogManager.SimpleDialogCallback() {
+                            @Override
+                            public void onPositiveButtonClicked() {
+                                // Not used.
+                            }
+
+                            @Override
+                            public void onNegativeButtonClicked() {
+                                // Not used.
+                            }
+
+                            @Override
+                            public void onNeutralButtonClicked() {
+                                // Not used.
+                            }
+
+                            @Override
+                            public void onCancelled() {
+                                // Not used.
+                            }
+                        },
+                        new WifiThreadRunner(mHandler));
+                    mTofuAlertDialog.launchDialog();
+                } else {
+                    Notification.Builder builder = mFacade.makeNotificationBuilder(mContext,
+                            WifiService.NOTIFICATION_NETWORK_ALERTS)
+                            .setSmallIcon(
+                                    Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
+                                    com.android.wifi.resources.R
+                                            .drawable.stat_notify_wifi_in_range))
+                            .setContentTitle(title)
+                            .setContentText(message)
+                            .setStyle(new Notification.BigTextStyle().bigText(message))
+                            .setColor(mContext.getResources().getColor(
+                                        android.R.color.system_notification_accent_color));
+                    mNotificationManager.notify(SystemMessage.NOTE_SERVER_CA_CERTIFICATE,
+                            builder.build());
+                }
+                return true;
             }
         }
 
@@ -278,6 +345,35 @@ public class InsecureEapNetworkHandler {
             askForUserApprovalForCaCertificate();
         } else {
             notifyUserForCaCertificate();
+        }
+        return true;
+    }
+
+    private boolean isServerCertChainValid() {
+        if (mServerCertChain.size() == 0) return false;
+
+        X509Certificate parentCert = null;
+        for (X509Certificate cert: mServerCertChain) {
+            String subject = cert.getSubjectDN().getName();
+            String issuer = cert.getIssuerDN().getName();
+            boolean isCa = cert.getBasicConstraints() > 0;
+            Log.d(TAG, "Subject: " + subject + ", Issuer: " + issuer + ", isCA: " + isCa);
+
+            if (parentCert == null) {
+                // The root cert, it should be a CA cert or a self-signed cert.
+                if (!isCa && !subject.equals(issuer)) {
+                    Log.e(TAG, "The root cert is not a CA cert or a self-signed cert.");
+                    return false;
+                }
+            } else {
+                // The issuer of intermediate cert of the leaf cert should be
+                // the same as the subject of its parent cert.
+                if (!parentCert.getSubjectDN().getName().equals(issuer)) {
+                    Log.e(TAG, "The issuer does not match the subject of its parent.");
+                    return false;
+                }
+            }
+            parentCert = cert;
         }
         return true;
     }
@@ -347,6 +443,9 @@ public class InsecureEapNetworkHandler {
     }
 
     private void handleError(@Nullable String ssid) {
+        if (mCurConfig != null) {
+            mWifiConfigManager.allowAutojoin(mCurConfig.networkId, false);
+        }
         dismissDialogAndNotification();
         clearInternalData();
         clearNativeData();
