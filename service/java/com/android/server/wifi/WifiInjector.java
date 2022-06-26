@@ -308,7 +308,8 @@ public class WifiInjector {
         mHalDeviceManager = new HalDeviceManager(mContext, mClock, this, wifiHandler);
         mInterfaceConflictManager = new InterfaceConflictManager(mContext, mFrameworkFacade,
                 mHalDeviceManager, mWifiThreadRunner, mWifiDialogManager);
-        mWifiVendorHal = new WifiVendorHal(mContext, mHalDeviceManager, wifiHandler, mWifiGlobals);
+        mWifiVendorHal = new WifiVendorHal(mContext, mHalDeviceManager, wifiHandler, mWifiGlobals,
+                mSsidTranslator);
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, wifiHandler, mClock, mWifiMetrics,
                 mWifiGlobals, mSsidTranslator);

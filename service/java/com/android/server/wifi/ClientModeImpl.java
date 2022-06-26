@@ -6451,6 +6451,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         @Override
         public void exit() {
             logd("ClientModeImpl: Leaving Connected state");
+            if (mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                // Clear the recorded BSSID/Charsets associations to avoid holding onto stale info.
+                mWifiInjector.getSsidTranslator().clearRecordedBssidCharsets();
+            }
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                      WifiConnectivityManager.WIFI_STATE_TRANSITIONING);

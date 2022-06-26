@@ -542,6 +542,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
     @Mock ScanResult mScanResult;
     @Mock HandlerThread mWifiHandlerThread;
+    @Mock SsidTranslator mSsidTranslator;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -660,6 +661,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 WifiManager.WIFI_FEATURE_WPA3_SAE | WifiManager.WIFI_FEATURE_OWE);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiInjector.getWifiHandlerThread()).thenReturn(mWifiHandlerThread);
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
         when(mWifiHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
