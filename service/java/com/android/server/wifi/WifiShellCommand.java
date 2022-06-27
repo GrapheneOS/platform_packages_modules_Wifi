@@ -106,6 +106,7 @@ import com.android.server.wifi.util.ArrayUtils;
 import libcore.util.HexEncoding;
 
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,6 +195,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final @NonNull WifiDialogManager mWifiDialogManager;
     private final HalDeviceManager mHalDeviceManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
+    private final SsidTranslator mSsidTranslator;
 
     private class SoftApCallbackProxy extends ISoftApCallback.Stub {
         private final PrintWriter mPrintWriter;
@@ -414,6 +416,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mWifiDialogManager = wifiInjector.getWifiDialogManager();
         mHalDeviceManager = wifiInjector.getHalDeviceManager();
         mInterfaceConflictManager = wifiInjector.getInterfaceConflictManager();
+        mSsidTranslator = wifiInjector.getSsidTranslator();
     }
 
     @Override
@@ -1688,6 +1691,14 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 case "stop-dpp":
                     mWifiService.stopDppSession();
                     return 0;
+                case "set-ssid-charset":
+                    String lang = getNextArgRequired();
+                    Charset charset = Charset.forName(getNextArgRequired());
+                    mSsidTranslator.setMockLocaleCharset(lang, charset);
+                    return 0;
+                case "clear-ssid-charsets":
+                    mSsidTranslator.clearMockLocaleCharsets();
+                    return 0;
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -2680,6 +2691,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    enrolleeURI - Bootstrapping URI received from Enrollee");
         pw.println("  stop-dpp");
         pw.println("    Stop DPP session.");
+        pw.println("  set-ssid-charset <locale_language> <charset_name>");
+        pw.println("    Sets the SSID translation charset for the given locale language.");
+        pw.println("    Example: set-ssid-charset zh GBK");
+        pw.println("  clear-ssid-charsets");
+        pw.println("    Clears the SSID translation charsets set in set-ssid-charset.");
     }
 
     @Override

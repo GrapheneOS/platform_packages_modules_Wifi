@@ -72,6 +72,7 @@ public class SsidTranslator {
 
     @Nullable Charset mCurrentLocaleAlternateCharset = null;
     @NonNull Map<String, Charset> mCharsetsPerLocaleLanguage = new HashMap<>();
+    @NonNull Map<String, Charset> mMockCharsetsPerLocaleLanguage = new HashMap<>();
 
     // Maps a translated SSID to all of its BSSIDs using the alternate Charset.
     @NonNull Map<WifiSsid, Set<MacAddress>> mTranslatedBssids = new ArrayMap<>();
@@ -142,10 +143,17 @@ public class SsidTranslator {
             Log.e(TAG, "Could not get resources to update locale!");
         }
         if (language != null) {
-            mCurrentLocaleAlternateCharset = mCharsetsPerLocaleLanguage.get(language);
+            mCurrentLocaleAlternateCharset = mMockCharsetsPerLocaleLanguage.get(language);
+            if (mCurrentLocaleAlternateCharset == null) {
+                mCurrentLocaleAlternateCharset = mCharsetsPerLocaleLanguage.get(language);
+            }
+        }
+        // No Charset for the specific language, use the "all" charset if it exists.
+        if (mCurrentLocaleAlternateCharset == null) {
+            mCurrentLocaleAlternateCharset =
+                    mMockCharsetsPerLocaleLanguage.get(LOCALE_LANGUAGE_ALL);
         }
         if (mCurrentLocaleAlternateCharset == null) {
-            // Alternate charset not defined for language. Default to the "all" list if available.
             mCurrentLocaleAlternateCharset = mCharsetsPerLocaleLanguage.get(LOCALE_LANGUAGE_ALL);
         }
         Log.i(TAG, "Locale language changed to " + language + ", alternate charset "
@@ -327,5 +335,25 @@ public class SsidTranslator {
                     + Arrays.toString(untranslatedBssidsEntry.getValue().toArray()));
         }
         pw.println("mUntranslatedBssids End ---");
+    }
+
+    /**
+     * Sets a mock Charset for the specified Locale language.
+     * Use {@link #clearMockLocaleCharsets()} to clear the mock list.
+     */
+    public synchronized void setMockLocaleCharset(
+            @NonNull String localeLanguage, @NonNull Charset charset) {
+        Log.i(TAG, "Setting mock alternate charset for " + localeLanguage + ": " + charset);
+        mMockCharsetsPerLocaleLanguage.put(localeLanguage, charset);
+        updateCurrentLocaleCharset();
+    }
+
+    /**
+     * Clears all mocked Charsets set by {@link #setMockLocaleCharset(String, Charset)}.
+     */
+    public synchronized void clearMockLocaleCharsets() {
+        Log.i(TAG, "Clearing mock charsets");
+        mMockCharsetsPerLocaleLanguage.clear();
+        updateCurrentLocaleCharset();
     }
 }
