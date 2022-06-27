@@ -3302,6 +3302,25 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that RSSI monitoring is not enabled on secondary STA.
+     */
+    @Test
+    public void testRssiMonitoringOnSecondaryIsNotEnabled() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
+        connect();
+
+        verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
+                mWifiNetworkAgentCallbackCaptor.capture());
+
+        int[] thresholds = {RSSI_THRESHOLD_BREACH_MAX};
+        mWifiNetworkAgentCallbackCaptor.getValue().onSignalStrengthThresholdsUpdated(thresholds);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative, never()).startRssiMonitoring(anyString(), anyByte(), anyByte(),
+                any());
+    }
+
+    /**
      * Verify that RSSI and link layer stats polling works in connected mode
      */
     @Test
