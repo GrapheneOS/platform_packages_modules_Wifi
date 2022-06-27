@@ -23,6 +23,7 @@ apex_defaults {
     androidManifest: ":com.android.wifi-androidManifest",
     bootclasspath_fragments: ["com.android.wifi-bootclasspath-fragment"],
     systemserverclasspath_fragments: ["com.android.wifi-systemserverclasspath-fragment"],
+    compat_configs: ["wifi-compat-config"],
     // from build rule `cacerts_wfa`
     prebuilts: [
         "target-cacert-wifi-674b5f5b.0",
@@ -34,6 +35,7 @@ apex_defaults {
     apps: [
         "OsuLogin",
         "ServiceWifiResources",
+        "WifiDialog",
     ],
     defaults: ["r-launched-apex-module"],
     // Indicates that pre-installed version of this apex can be compressed.

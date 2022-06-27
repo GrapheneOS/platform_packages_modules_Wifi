@@ -42,12 +42,14 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import android.net.MacAddress;
+import android.net.ProxyInfo;
 import android.net.wifi.WifiConfiguration.GroupCipher;
 import android.net.wifi.WifiConfiguration.KeyMgmt;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiConfiguration.PairwiseCipher;
 import android.net.wifi.WifiConfiguration.Protocol;
 import android.os.Parcel;
+import android.os.ParcelUuid;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
@@ -100,6 +102,7 @@ public class WifiConfigurationTest {
     public void testWifiConfigurationParcel() {
         String cookie = "C O.o |<IE";
         WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
         config.setPasspointManagementObjectTree(cookie);
         config.trusted = false;
         config.oemPaid = true;
@@ -112,6 +115,8 @@ public class WifiConfigurationTest {
         MacAddress macBeforeParcel = config.getRandomizedMacAddress();
         config.subscriptionId = 1;
         config.carrierId = 1189;
+        config.restricted = true;
+        config.setSubscriptionGroup(ParcelUuid.fromString("0000110B-0000-1000-8000-00805F9B34FB"));
         Parcel parcelW = Parcel.obtain();
         config.writeToParcel(parcelW, 0);
         byte[] bytes = parcelW.marshall();
@@ -132,6 +137,16 @@ public class WifiConfigurationTest {
         assertTrue(reconfig.oemPaid);
         assertTrue(reconfig.oemPrivate);
         assertTrue(reconfig.carrierMerged);
+        assertEquals(config.carrierId, reconfig.carrierId);
+        assertEquals(config.subscriptionId, reconfig.subscriptionId);
+        assertEquals(config.getSubscriptionGroup(), reconfig.getSubscriptionGroup());
+        assertTrue(reconfig.restricted);
+        assertEquals(config.getBssidAllowlist(), reconfig.getBssidAllowlist());
+        assertEquals(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK),
+                reconfig.getSecurityParams(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
 
         Parcel parcelWW = Parcel.obtain();
         reconfig.writeToParcel(parcelWW, 0);
@@ -155,6 +170,7 @@ public class WifiConfigurationTest {
         MacAddress macBeforeParcel = config.getRandomizedMacAddress();
         config.subscriptionId = 1;
         config.carrierId = 1189;
+        config.restricted = true;
 
         WifiConfiguration reconfig = new WifiConfiguration(config);
 
@@ -167,6 +183,9 @@ public class WifiConfigurationTest {
         assertTrue(reconfig.oemPaid);
         assertTrue(reconfig.oemPrivate);
         assertTrue(reconfig.carrierMerged);
+        assertEquals(config.carrierId, reconfig.carrierId);
+        assertEquals(config.subscriptionId, reconfig.subscriptionId);
+        assertTrue(reconfig.restricted);
     }
 
     @Test
@@ -463,6 +482,21 @@ public class WifiConfigurationTest {
         config.allowedKeyManagement.set(KeyMgmt.WAPI_CERT);
         assertEquals(mSsid + KeyMgmt.strings[KeyMgmt.WAPI_CERT],
                 config.getSsidAndSecurityTypeString());
+
+        // WPA2 Enterprise configuration with PMF required
+        config.allowedKeyManagement.clear();
+        config.allowedKeyManagement.set(KeyMgmt.WPA_EAP);
+        config.requirePmf = true;
+        assertEquals(mSsid + KeyMgmt.strings[KeyMgmt.WPA_EAP],
+                config.getSsidAndSecurityTypeString());
+
+        // WPA3 Enterprise configuration
+        config.allowedKeyManagement.clear();
+        config.allowedKeyManagement.set(KeyMgmt.WPA_EAP);
+        config.requirePmf = true;
+        config.allowedProtocols.set(Protocol.RSN);
+        assertEquals(mSsid + "WPA3_EAP",
+                config.getSsidAndSecurityTypeString());
     }
 
     /**
@@ -564,6 +598,43 @@ public class WifiConfigurationTest {
             maxReason = Math.max(maxReason, reason);
         }
         assertEquals(maxReason, NetworkSelectionStatus.getMaxNetworkSelectionDisableReason());
+    }
+
+    /**
+     * Ensure that {@link NetworkSelectionStatus#setCandidateSecurityParams(SecurityParams)}
+     * and {{@link NetworkSelectionStatus#getCandidateSecurityParams()} work
+     * as expectation.
+     */
+    @Test
+    public void testCandidateSecurityParams() {
+        NetworkSelectionStatus status = new NetworkSelectionStatus();
+        SecurityParams params = SecurityParams.createSecurityParamsBySecurityType(
+                SECURITY_TYPE_PSK);
+        status.setCandidateSecurityParams(params);
+        assertEquals(params, status.getCandidateSecurityParams());
+    }
+
+    /**
+     * Ensure that {@link NetworkSelectionStatus#setLastUsedSecurityParams(SecurityParams)}
+     * and {{@link NetworkSelectionStatus#getLastUsedSecurityParams()} work
+     * as expectation.
+     */
+    @Test
+    public void testLastUsedSecurityParams() {
+        NetworkSelectionStatus status = new NetworkSelectionStatus();
+        SecurityParams params = SecurityParams.createSecurityParamsBySecurityType(
+                SECURITY_TYPE_PSK);
+        status.setLastUsedSecurityParams(params);
+        assertEquals(params, status.getLastUsedSecurityParams());
+    }
+
+
+    @Test
+    public void testSetHttpProxyShouldNotCrashOnBadInput() {
+        ProxyInfo badHttpProxy = new ProxyInfo((ProxyInfo) null);
+
+        WifiConfiguration wifiConfiguration = new WifiConfiguration();
+        wifiConfiguration.setHttpProxy(badHttpProxy);
     }
 
     /**
@@ -1133,6 +1204,7 @@ public class WifiConfigurationTest {
         WifiConfiguration wpa3EnterpriseConfig = new WifiConfiguration();
         wpa3EnterpriseConfig.allowedKeyManagement.set(KeyMgmt.WPA_EAP);
         wpa3EnterpriseConfig.requirePmf = true;
+        wpa3EnterpriseConfig.allowedProtocols.set(Protocol.RSN);
         wpa3EnterpriseConfig.convertLegacyFieldsToSecurityParamsIfNeeded();
         assertNotNull(wpa3EnterpriseConfig.getSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE));
 
