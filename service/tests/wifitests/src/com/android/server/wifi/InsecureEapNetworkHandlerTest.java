@@ -557,6 +557,28 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
     }
 
+    /**
+     * Verify that setting pending certificate won't crash with no current configuration.
+     */
+    @Test
+    public void verifySetPendingCertificateNoCrashWithNoConfig()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mInsecureEapNetworkHandler = new InsecureEapNetworkHandler(
+                mContext,
+                mWifiConfigManager,
+                mWifiNative,
+                mFrameworkFacade,
+                mWifiNotificationManager,
+                mWifiDialogManager, true /* isTrustOnFirstUseSupported */,
+                false /* isInsecureEnterpriseConfigurationAllowed */,
+                mCallbacks,
+                WIFI_IFACE_NAME,
+                mHandler);
+        X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
+        mInsecureEapNetworkHandler.setPendingCertificate("NotExist", 0, mockSelfSignedCert);
+    }
+
     private void verifyTrustOnFirstUseFlowWithDefaultCerts(WifiConfiguration config,
             int action, boolean isTrustOnFirstUseSupported, boolean isUserSelected,
             boolean needUserApproval) throws Exception {
