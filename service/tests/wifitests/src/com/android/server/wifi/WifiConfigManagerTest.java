@@ -124,6 +124,7 @@ import java.util.stream.Collectors;
 public class WifiConfigManagerTest extends WifiBaseTest {
 
     private static final String TEST_SSID = "\"test_ssid\"";
+    private static final String UNTRANSLATED_HEX_SSID = "abcdef";
     private static final String TEST_BSSID = "0a:08:5c:67:89:00";
     private static final long TEST_WALLCLOCK_CREATION_TIME_MILLIS = 9845637;
     private static final long TEST_WALLCLOCK_UPDATE_TIME_MILLIS = 75455637;
@@ -347,6 +348,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(mBuildProperties.isUserBuild()).thenReturn(false);
         when(mSsidTranslator.getTranslatedSsid(any())).thenAnswer(
                 (Answer<WifiSsid>) invocation -> getTranslatedSsid(invocation.getArgument(0)));
+        when(mSsidTranslator.getAllPossibleOriginalSsids(any())).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> Arrays.asList(invocation.getArgument(0),
+                        WifiSsid.fromString(UNTRANSLATED_HEX_SSID))
+        );
     }
 
     /** Mock translating an SSID */
@@ -4407,15 +4412,17 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Retrieve the hidden network list & verify the order of the networks returned.
         List<WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks =
                 mWifiConfigManager.retrieveHiddenNetworkList(false);
-        assertEquals(3, hiddenNetworks.size());
+        assertEquals(4, hiddenNetworks.size());
         assertEquals(network3.SSID, hiddenNetworks.get(0).ssid);
-        assertEquals(network2.SSID, hiddenNetworks.get(1).ssid);
-        assertEquals(network1.SSID, hiddenNetworks.get(2).ssid);
+        assertEquals(UNTRANSLATED_HEX_SSID, hiddenNetworks.get(1).ssid); // Possible original SSID
+        assertEquals(network2.SSID, hiddenNetworks.get(2).ssid);
+        assertEquals(network1.SSID, hiddenNetworks.get(3).ssid);
 
         hiddenNetworks = mWifiConfigManager.retrieveHiddenNetworkList(true);
-        assertEquals(2, hiddenNetworks.size());
+        assertEquals(3, hiddenNetworks.size());
         assertEquals(network2.SSID, hiddenNetworks.get(0).ssid);
-        assertEquals(network1.SSID, hiddenNetworks.get(1).ssid);
+        assertEquals(UNTRANSLATED_HEX_SSID, hiddenNetworks.get(1).ssid); // Possible original SSID
+        assertEquals(network1.SSID, hiddenNetworks.get(2).ssid);
     }
 
     /**
@@ -7640,7 +7647,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     @Test
     public void testAddNetworkWithHexadecimalSsid() {
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
-        openNetwork.SSID = "aBcDeF";
+        openNetwork.SSID = UNTRANSLATED_HEX_SSID.toUpperCase();
         WifiSsid translatedSsid = getTranslatedSsid(WifiSsid.fromString(openNetwork.SSID));
         List<WifiConfiguration> networks = new ArrayList<>();
         networks.add(openNetwork);

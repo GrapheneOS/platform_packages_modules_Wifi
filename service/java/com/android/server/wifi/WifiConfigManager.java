@@ -76,6 +76,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -2887,10 +2888,16 @@ public class WifiConfigManager {
         networks.removeIf(config -> !config.hiddenSSID);
         networks.sort(mScanListComparator);
         // The most frequently connected network has the highest priority now.
+        Set<WifiSsid> ssidSet = new LinkedHashSet<>();
         for (WifiConfiguration config : networks) {
-            if (!autoJoinOnly || config.allowAutojoin) {
-                hiddenList.add(new WifiScanner.ScanSettings.HiddenNetwork(config.SSID));
+            if (autoJoinOnly && !config.allowAutojoin) {
+                continue;
             }
+            ssidSet.addAll(mWifiInjector.getSsidTranslator()
+                    .getAllPossibleOriginalSsids(WifiSsid.fromString(config.SSID)));
+        }
+        for (WifiSsid ssid : ssidSet) {
+            hiddenList.add(new WifiScanner.ScanSettings.HiddenNetwork(ssid.toString()));
         }
         return hiddenList;
     }
