@@ -79,7 +79,7 @@ public class WifiCountryCode {
     private String mTelephonyCountryCode = null;
     private String mOverrideCountryCode = null;
     private String mDriverCountryCode = null;
-    private String mLastActiveDriverCountryCode = null;
+    private String mLastReceivedActiveDriverCountryCode = null;
     private long mDriverCountryCodeUpdatedTimestamp = 0;
     private String mTelephonyCountryTimestamp = null;
     private String mAllCmmReadyTimestamp = null;
@@ -155,11 +155,13 @@ public class WifiCountryCode {
     private class CountryChangeListenerInternal implements ChangeListener {
         @Override
         public void onDriverCountryCodeChanged(String country) {
-            if (TextUtils.equals(country, mLastActiveDriverCountryCode)) {
+            if (TextUtils.equals(country, mLastReceivedActiveDriverCountryCode)) {
                 return;
             }
             Log.i(TAG, "Receive onDriverCountryCodeChanged " + country);
-            if (isDriverSupportedRegChangedEvent()) {
+            mLastReceivedActiveDriverCountryCode = country;
+            // Before T build, always handle country code changed.
+            if (!SdkLevel.isAtLeastT() || isDriverSupportedRegChangedEvent()) {
                 // CC doesn't notify listener after sending to the driver, notify the listener
                 // after we received CC changed event.
                 handleCountryCodeChanged(country);
@@ -170,11 +172,11 @@ public class WifiCountryCode {
         public void onSetCountryCodeSucceeded(String country) {
             Log.i(TAG, "Receive onSetCountryCodeSucceeded " + country);
             // The country code callback might not be triggered even if the driver supports reg
-            // changed event when the maintained country code in the driver is same as set one.
+            // changed event when the maintained country code in the driver is same as last one.
             // So notify the country code changed event to listener when the set one is same as
-            // last active one.
+            // last received one.
             if (!SdkLevel.isAtLeastT() || !isDriverSupportedRegChangedEvent()
-                    || TextUtils.equals(country, mLastActiveDriverCountryCode)) {
+                    || TextUtils.equals(country, mLastReceivedActiveDriverCountryCode)) {
                 mWifiNative.countryCodeChanged(country);
                 handleCountryCodeChanged(country);
             }
@@ -614,12 +616,9 @@ public class WifiCountryCode {
     }
 
     private void handleCountryCodeChanged(String country) {
-        if (!TextUtils.equals(mDriverCountryCode, country)) {
+        if (!SdkLevel.isAtLeastT() || !TextUtils.equals(mDriverCountryCode, country)) {
             mDriverCountryCodeUpdatedTimestamp = System.currentTimeMillis();
             mDriverCountryCode = country;
-            if (country !=  null) {
-                mLastActiveDriverCountryCode = country;
-            }
             notifyListener(country);
         }
     }
