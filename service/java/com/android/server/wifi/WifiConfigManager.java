@@ -1107,8 +1107,13 @@ public class WifiConfigManager {
     private void mergeWithInternalWifiConfiguration(
             WifiConfiguration internalConfig, WifiConfiguration externalConfig) {
         if (externalConfig.SSID != null) {
-            // Make sure hexadecimal case is consistent by converting to WifiSsid and back.
-            internalConfig.SSID = WifiSsid.fromString(externalConfig.SSID).toString();
+            // Translate the SSID in case it is in hexadecimal for a translatable charset.
+            if (externalConfig.SSID.length() > 0 && externalConfig.SSID.charAt(0) != '\"') {
+                internalConfig.SSID = mWifiInjector.getSsidTranslator().getTranslatedSsid(
+                        WifiSsid.fromString(externalConfig.SSID)).toString();
+            } else {
+                internalConfig.SSID = externalConfig.SSID;
+            }
         }
         if (externalConfig.BSSID != null) {
             internalConfig.BSSID = externalConfig.BSSID.toLowerCase();
