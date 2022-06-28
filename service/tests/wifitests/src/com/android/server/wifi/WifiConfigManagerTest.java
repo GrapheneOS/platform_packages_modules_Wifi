@@ -2459,8 +2459,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      * Verify that when non-persistent MAC randomization is enabled the MAC address changes after 24
      * hours of the first connection this MAC address is used.
      */
-    @Test
-    public void testNonPersistentMacRandomizationEvery24Hours() {
+    private void testNonPersistentMacRandomizationEvery24Hours(boolean isForSecondaryDbs) {
         setUpWifiConfigurationForNonPersistentRandomization();
         WifiConfiguration config = getFirstInternalWifiConfiguration();
 
@@ -2471,16 +2470,31 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                     + i * 60 * 60 * 1000);
             mWifiConfigManager.updateNetworkAfterDisconnect(config.networkId);
             assertEquals("Randomized MAC should be the same after " + i + " hours",
-                    firstMac, mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config));
+                    isForSecondaryDbs ? MacAddressUtil.nextMacAddress(firstMac) : firstMac,
+                    mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
+                            isForSecondaryDbs));
             config = getFirstInternalWifiConfiguration();
         }
 
         // verify that after 24 hours the randomized MAC address changes.
         long timeAfter24Hours = TEST_WALLCLOCK_CREATION_TIME_MILLIS + 24 * 60 * 60 * 1000;
         when(mClock.getWallClockMillis()).thenReturn(timeAfter24Hours);
-        assertNotEquals(firstMac, mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config));
+        assertNotEquals(firstMac,
+                mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config, isForSecondaryDbs));
         config = getFirstInternalWifiConfiguration();
         assertEquals(timeAfter24Hours, config.randomizedMacLastModifiedTimeMs);
+    }
+
+    /* For Non Dbs network configuration */
+    @Test
+    public void testNonPersistentMacRandomizationEvery24HoursNonDbs() {
+        testNonPersistentMacRandomizationEvery24Hours(false);
+    }
+
+    /* For Dbs network configuration */
+    @Test
+    public void testNonPersistentMacRandomizationEvery24HoursDbs() {
+        testNonPersistentMacRandomizationEvery24Hours(true);
     }
 
     /**
@@ -2490,26 +2504,28 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      * Then verify that getRandomizedMacAndUpdateIfNeeded sets the randomized MAC back to the
      * persistent MAC.
      */
-    @Test
-    public void testRandomizedMacUpdateAndRestore() {
+    private void testRandomizedMacUpdateAndRestore(boolean isForSecondaryDbs) {
         setUpWifiConfigurationForNonPersistentRandomization();
         // get the non-persistent randomized MAC address.
         WifiConfiguration config = getFirstInternalWifiConfiguration();
         final MacAddress randMac = config.getRandomizedMacAddress();
         assertNotEquals(WifiInfo.DEFAULT_MAC_ADDRESS, randMac.toString());
         assertEquals(TEST_WALLCLOCK_CREATION_TIME_MILLIS
-                + WifiConfigManager.NON_PERSISTENT_MAC_WAIT_AFTER_DISCONNECT_MS,
+                        + WifiConfigManager.NON_PERSISTENT_MAC_WAIT_AFTER_DISCONNECT_MS,
                 config.randomizedMacExpirationTimeMs);
 
         // verify the new randomized mac should be different from the original mac.
         when(mClock.getWallClockMillis()).thenReturn(TEST_WALLCLOCK_CREATION_TIME_MILLIS
                 + WifiConfigManager.NON_PERSISTENT_MAC_WAIT_AFTER_DISCONNECT_MS + 1);
-        MacAddress randMac2 = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config);
+        MacAddress randMac2 = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
+                isForSecondaryDbs);
 
         // verify internal WifiConfiguration has MacAddress updated correctly by comparing the
         // MAC address from internal WifiConfiguration with the value returned by API.
         config = getFirstInternalWifiConfiguration();
-        assertEquals(randMac2, config.getRandomizedMacAddress());
+        assertEquals(randMac2,
+                isForSecondaryDbs ? MacAddressUtil.nextMacAddress(config.getRandomizedMacAddress())
+                        : config.getRandomizedMacAddress());
         assertNotEquals(randMac, randMac2);
 
         // Now disable non-persistent randomization and verify the randomized MAC is changed back to
@@ -2518,14 +2534,39 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         blocklist.add(config.SSID);
         when(mDeviceConfigFacade.getNonPersistentMacRandomizationSsidBlocklist())
                 .thenReturn(blocklist);
-        MacAddress persistentMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config);
+        MacAddress persistentMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
+                isForSecondaryDbs);
 
         // verify internal WifiConfiguration has MacAddress updated correctly by comparing the
         // MAC address from internal WifiConfiguration with the value returned by API.
         config = getFirstInternalWifiConfiguration();
-        assertEquals(persistentMac, config.getRandomizedMacAddress());
+        assertEquals(persistentMac,
+                isForSecondaryDbs ? MacAddressUtil.nextMacAddress(config.getRandomizedMacAddress())
+                        : config.getRandomizedMacAddress());
         assertNotEquals(persistentMac, randMac);
         assertNotEquals(persistentMac, randMac2);
+    }
+
+    /* For Non Dbs network configuration */
+    @Test
+    public void testRandomizedMacUpdateAndRestoreNonDbs() {
+        testRandomizedMacUpdateAndRestore(false);
+    }
+    /* For Dbs network configuration */
+    @Test
+    public void testRandomizedMacUpdateAndRestoreDbs() {
+        testRandomizedMacUpdateAndRestore(true);
+    }
+
+    @Test
+    public void testNonPersistentRandomizationDbsMacAddress() {
+        setUpWifiConfigurationForNonPersistentRandomization();
+        WifiConfiguration config = getFirstInternalWifiConfiguration();
+        config.dbsSecondaryInternet = true;
+        MacAddress randomMac = config.getRandomizedMacAddress();
+        MacAddress newMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
+                true);
+        assertTrue(newMac.equals(MacAddressUtil.nextMacAddress(randomMac)));
     }
 
     /**
@@ -2613,7 +2654,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // verify that the randomized MAC is unchanged.
         when(mClock.getWallClockMillis()).thenReturn(TEST_WALLCLOCK_CREATION_TIME_MILLIS
                 + WifiConfigManager.NON_PERSISTENT_MAC_WAIT_AFTER_DISCONNECT_MS);
-        MacAddress newMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config);
+        MacAddress newMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config, false);
         assertEquals(randMac, newMac);
     }
 
@@ -2631,7 +2672,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // add to non-persistent randomization blocklist using overlay.
         mResources.setStringArray(R.array.config_wifi_non_persistent_randomization_ssid_blocklist,
                 new String[] {config.SSID});
-        MacAddress persistentMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config);
+        MacAddress persistentMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
+                false);
         // verify that now the persistent randomized MAC is used.
         assertNotEquals(randMac, persistentMac);
     }
