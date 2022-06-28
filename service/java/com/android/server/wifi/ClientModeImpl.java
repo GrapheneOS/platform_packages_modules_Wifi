@@ -3154,6 +3154,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // If not connected, this should be non-null.
             configuration = getConnectingWifiConfigurationInternal();
         }
+        if (configuration == null) {
+            Log.e(TAG, "Unexpected null WifiConfiguration. Config may have been removed.");
+            return;
+        }
 
         String bssid = mLastBssid == null ? mTargetBssid : mLastBssid;
         String ssid = mWifiInfo.getSSID();
@@ -3185,8 +3189,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
         }
 
-        if (configuration != null
-                && configuration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
+        if (configuration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
             if (level2FailureCode == WifiMetrics.ConnectionEvent.FAILURE_NONE) {
                 mWifiMetrics.incrementNumOfCarrierWifiConnectionSuccess();
             } else if (level2FailureCode
@@ -3213,18 +3216,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mWifiMetrics.endConnectionEvent(mInterfaceName, level2FailureCode,
                 connectivityFailureCode, level2FailureReason, mWifiInfo.getFrequency());
-        if (configuration != null) {
-            mWifiConnectivityManager.handleConnectionAttemptEnded(
-                    mClientModeManager, level2FailureCode, level2FailureReason, bssid,
-                    configuration);
-            mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
-            mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
-                    level2FailureCode, configuration, getConnectedBssidInternal());
-            ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
-            if (candidate != null
-                    && !TextUtils.equals(candidate.BSSID, getConnectedBssidInternal())) {
-                mWifiMetrics.incrementNumBssidDifferentSelectionBetweenFrameworkAndFirmware();
-            }
+        mWifiConnectivityManager.handleConnectionAttemptEnded(
+                mClientModeManager, level2FailureCode, level2FailureReason, bssid,
+                configuration);
+        mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
+        mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
+                level2FailureCode, configuration, getConnectedBssidInternal());
+        ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
+        if (candidate != null
+                && !TextUtils.equals(candidate.BSSID, getConnectedBssidInternal())) {
+            mWifiMetrics.incrementNumBssidDifferentSelectionBetweenFrameworkAndFirmware();
         }
         handleConnectionAttemptEndForDiagnostics(level2FailureCode);
     }
