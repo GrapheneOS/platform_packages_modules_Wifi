@@ -1110,7 +1110,10 @@ public class WifiScanner {
         int key = addListener(listener, executor);
         if (key == INVALID_KEY) return;
         validateChannel();
-        mAsyncChannel.sendMessage(CMD_REGISTER_SCAN_LISTENER, 0, key);
+        Bundle scanParams = new Bundle();
+        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
+        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
+        mAsyncChannel.sendMessage(CMD_REGISTER_SCAN_LISTENER, 0, key, scanParams);
     }
 
     /**
@@ -1133,7 +1136,10 @@ public class WifiScanner {
         int key = removeListener(listener);
         if (key == INVALID_KEY) return;
         validateChannel();
-        mAsyncChannel.sendMessage(CMD_DEREGISTER_SCAN_LISTENER, 0, key);
+        Bundle scanParams = new Bundle();
+        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
+        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
+        mAsyncChannel.sendMessage(CMD_DEREGISTER_SCAN_LISTENER, 0, key, scanParams);
     }
 
     /**

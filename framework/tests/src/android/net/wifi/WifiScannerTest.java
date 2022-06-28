@@ -586,6 +586,13 @@ public class WifiScannerTest {
         verify(mHandler).handleMessage(messageArgumentCaptor.capture());
         Message sentMessage = messageArgumentCaptor.getValue();
         assertNotNull(sentMessage);
+        assertEquals(WifiScanner.CMD_REGISTER_SCAN_LISTENER, sentMessage.what);
+        assertTrue(sentMessage.obj instanceof Bundle);
+        Bundle messageBundle = (Bundle) sentMessage.obj;
+        assertEquals(mContext.getOpPackageName(),
+                messageBundle.getParcelable(WifiScanner.REQUEST_PACKAGE_NAME_KEY));
+        assertEquals(mContext.getAttributionTag(),
+                messageBundle.getParcelable(WifiScanner.REQUEST_FEATURE_ID_KEY));
 
         assertEquals(1, mBidirectionalAsyncChannelServer.getClientMessengers().size());
         Messenger scannerMessenger =
@@ -694,6 +701,13 @@ public class WifiScannerTest {
         verify(mHandler, times(2)).handleMessage(messageArgumentCaptor.capture());
         Message sentMessage = messageArgumentCaptor.getValue();
         assertNotNull(sentMessage);
+        assertEquals(WifiScanner.CMD_DEREGISTER_SCAN_LISTENER, sentMessage.what);
+        assertTrue(sentMessage.obj instanceof Bundle);
+        Bundle messageBundle = (Bundle) sentMessage.obj;
+        assertEquals(mContext.getOpPackageName(),
+                messageBundle.getParcelable(WifiScanner.REQUEST_PACKAGE_NAME_KEY));
+        assertEquals(mContext.getAttributionTag(),
+                messageBundle.getParcelable(WifiScanner.REQUEST_FEATURE_ID_KEY));
 
         Message responseMessage = Message.obtain();
         responseMessage.what = WifiScanner.CMD_SCAN_RESULT;
