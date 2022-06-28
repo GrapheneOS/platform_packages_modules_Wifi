@@ -2321,10 +2321,7 @@ public class WifiP2pManager {
      * @param channel is the channel created at {@link #initialize}
      * @param wfdInfo the Wifi Display information to set
      * @param listener for callbacks on success or failure. Can be null.
-     *
-     * @hide
      */
-    @SystemApi
     @RequiresPermission(android.Manifest.permission.CONFIGURE_WIFI_DISPLAY)
     public void setWfdInfo(@NonNull Channel channel, @NonNull WifiP2pWfdInfo wfdInfo,
             @Nullable ActionListener listener) {
