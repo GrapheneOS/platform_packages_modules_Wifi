@@ -957,9 +957,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (eventCode == SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED) {
             SecurityLog.writeEvent(SecurityLog.TAG_WIFI_DISCONNECTION, redactedBssid, reasonString);
         } else {
-            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_CONNECTION,
-                    SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode),
-                    redactedBssid, reasonString);
+            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_CONNECTION, redactedBssid,
+                    SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode), reasonString);
         }
     }
 
