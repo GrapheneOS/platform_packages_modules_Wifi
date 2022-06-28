@@ -1064,6 +1064,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     printWifiNetworkSuggestions(pw, suggestions);
                     return 0;
                 }
+                case "allow-root-to-get-local-only-cmm": {
+                    boolean enabled = getNextArgRequiredTrueOrFalse("enabled", "disabled");
+                    mActiveModeWarden.allowRootToGetLocalOnlyCmm(enabled);
+                    return 0;
+                }
                 case "add-request": {
                     Pair<String, NetworkRequest> result = buildNetworkRequest(pw);
                     String ssid = result.first;
@@ -2414,6 +2419,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    each on a separate line.");
         pw.println("  settings-reset");
         pw.println("    Initiates wifi settings reset");
+        pw.println("  allow-root-to-get-local-only-cmm enabled|disabled");
+        pw.println("    sets whether the shell running as root could use the local-only secondary "
+                + "STA");
         pw.println("  add-request [-g] [-i] [-n] [-s] <ssid> open|owe|wpa2|wpa3 [<passphrase>]"
                 + " [-b <bssid>] [-d <band=2|5|6|60>]");
         pw.println("    Add a network request with provided params");
