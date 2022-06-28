@@ -158,6 +158,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     private WifiStatus mStatusFail;
     private boolean mIsBridgedSoftApSupported = false;
     private boolean mIsStaWithBridgedSoftApConcurrencySupported = false;
+    private boolean mWifiUserApprovalRequiredForD2dInterfacePriority = false;
 
     private class HalDeviceManagerSpy extends HalDeviceManager {
         HalDeviceManagerSpy() {
@@ -253,6 +254,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 .thenReturn(mIsBridgedSoftApSupported);
         when(mResources.getBoolean(R.bool.config_wifiStaWithBridgedSoftApConcurrencySupported))
                 .thenReturn(mIsStaWithBridgedSoftApConcurrencySupported);
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
+                .thenReturn(mWifiUserApprovalRequiredForD2dInterfacePriority);
 
         mDut = new HalDeviceManagerSpy();
     }
@@ -862,6 +865,91 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 new InterfaceDestroyedListenerWithIfaceName(getName(staIface), staDestroyedListener)
         );
         collector.checkThat("not allocated interface", apIface, IsNull.notNullValue());
+    }
+
+    /**
+     * Validate a flow sequence for test chip 1 if the
+     * |config_wifiUserApprovalRequiredForD2dInterfacePriority| overlay value is true. If enabled,
+     * interface deletion requests should be approved as long as the new requestor's worksource
+     * priority is > PRIORITY_BG.
+     *
+     * Flow sequence:
+     * - create AP (privileged app)
+     * - create P2P (foreground app)
+     * - tear down P2P
+     * - create AP (privileged app)
+     * - create P2P (background app): should fail.
+     */
+    @Test
+    public void testInterfaceCreationFlowIfD2dInterfacePriorityOverlayEnabled() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
+                .thenReturn(true);
+        mDut = new HalDeviceManagerSpy();
+        ChipMockBase chipMock = new TestChipV1();
+        chipMock.initialize();
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, chipMock.chip,
+                mManagerStatusListenerMock);
+        executeAndValidateInitializationSequence();
+        executeAndValidateStartupSequence();
+
+        InterfaceDestroyedListener apDestroyedListener = mock(
+                InterfaceDestroyedListener.class);
+
+        // Create AP interface from privileged app: should succeed.
+        IWifiIface apIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV1.AP_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_AP,
+                "wlan0",
+                TestChipV1.AP_CHIP_MODE_ID,
+                null, // tearDownList
+                apDestroyedListener, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("AP created", apIface, IsNull.notNullValue());
+
+        // Create P2P interface from foreground app: should succeed.
+        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
+        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_P2P, false, TEST_WORKSOURCE_1);
+        assertNotNull("Should create this P2P", p2pDetails);
+        IWifiIface p2pIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV1.STA_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_P2P,
+                "p2p0",
+                TestChipV1.STA_CHIP_MODE_ID,
+                new IWifiIface[]{apIface}, // tearDownList
+                null, // destroyedListener
+                TEST_WORKSOURCE_1, // requestorWs
+                new InterfaceDestroyedListenerWithIfaceName(getName(apIface), apDestroyedListener)
+        );
+        collector.checkThat("P2P created", p2pIface, IsNull.notNullValue());
+
+        // Tear down the P2P interface.
+        mDut.removeIface(p2pIface);
+        mTestLooper.dispatchAll();
+
+        // Create a new AP interface from privileged app: should succeed.
+        apIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV1.AP_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_AP,
+                "wlan0",
+                TestChipV1.AP_CHIP_MODE_ID,
+                null, // tearDownList
+                apDestroyedListener, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("AP created", apIface, IsNull.notNullValue());
+
+        // Check if we can create a new P2P interface from background app: should fail.
+        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
+        p2pDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_P2P, false, TEST_WORKSOURCE_1);
+        assertNull("Should not create this P2P", p2pDetails);
     }
 
 
