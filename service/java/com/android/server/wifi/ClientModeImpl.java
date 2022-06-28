@@ -2900,15 +2900,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     + newConnectionInProgress, new Throwable());
         }
 
-        WifiConfiguration wifiConfig = getConnectedWifiConfigurationInternal();
-        if (wifiConfig != null) {
-            ScanResultMatchInfo matchInfo = ScanResultMatchInfo.fromWifiConfiguration(wifiConfig);
-            // WakeupController should only care about the primary, internet providing network
-            if (isPrimary()) {
+        if (isPrimary()) {
+            WifiConfiguration wifiConfig = getConnectedWifiConfigurationInternal();
+            if (wifiConfig != null) {
+                ScanResultMatchInfo matchInfo =
+                        ScanResultMatchInfo.fromWifiConfiguration(wifiConfig);
+                // WakeupController should only care about the primary, internet providing network
                 mWakeupController.setLastDisconnectInfo(matchInfo);
             }
+            stopRssiMonitoringOffload();
         }
-        stopRssiMonitoringOffload();
 
         clearTargetBssid("handleNetworkDisconnect");
 
@@ -4660,6 +4661,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             //    received, or we might skip callbacks.
             // 3. Ensure that when we disconnect, RSSI monitoring is stopped.
             logd("Received signal strength thresholds: " + Arrays.toString(thresholds));
+            // Enable RSSI monitoring only on primary STA
+            if (!isPrimary()) {
+                return;
+            }
             if (thresholds.length == 0) {
                 ClientModeImpl.this.sendMessage(CMD_STOP_RSSI_MONITORING_OFFLOAD,
                         mWifiInfo.getRssi());
