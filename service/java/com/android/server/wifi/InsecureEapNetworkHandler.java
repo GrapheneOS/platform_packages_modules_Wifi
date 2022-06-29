@@ -192,8 +192,9 @@ public class InsecureEapNetworkHandler {
      */
     public boolean setPendingCertificate(@NonNull String ssid, int depth,
             @NonNull X509Certificate cert) {
+        String configProfileKey = mCurConfig != null ? mCurConfig.getProfileKey() : "null";
         Log.d(TAG, "setPendingCertificate: " + "ssid=" + ssid + " depth=" + depth
-                + " current config=" + mCurConfig.getProfileKey());
+                + " current config=" + configProfileKey);
         if (TextUtils.isEmpty(ssid)) return false;
         if (null == mCurConfig) return false;
         if (!TextUtils.equals(ssid, mCurConfig.SSID)) return false;
