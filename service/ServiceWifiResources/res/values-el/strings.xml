@@ -146,7 +146,7 @@
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"Λείπει ένα πιστοποιητικό από το δίκτυο <xliff:g id="SSID">%1$s</xliff:g>. Πατήστε για να μάθετε πώς μπορείτε να προσθέσετε πιστοποιητικά."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Σύνδεση ούτως ή άλλως"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"Να μην γίνει σύνδεση"</string>
-    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"Να επιτρέπεται στην εφαρμογή <xliff:g id="APP_NAME">%1$s</xliff:g> να ενεργοποιεί το Wi‑Fi;"</string>
+    <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"Να επιτρέπεται στο <xliff:g id="APP_NAME">%1$s</xliff:g> να ενεργοποιεί το Wi‑Fi;"</string>
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Μπορείτε να απενεργοποιήσετε το Wi‑Fi από τις Γρήγορες ρυθμίσεις"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Να επιτρέπεται"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Να μην επιτρέπεται"</string>

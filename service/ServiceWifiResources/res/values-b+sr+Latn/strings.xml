@@ -78,11 +78,11 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32761" msgid="3962610712123291591">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32761"</string>
   <string-array name="wifi_eap_error_message_code_32761_carrier_overrides">
-    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Niste pretplaćeni na Verizon Wi-Fi Access. Pozovite nas na 800 922 0204. (Greška = 32761)"</item>
+    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Niste pretplaćeni na Verizon WiFi Access. Pozovite nas na 800 922 0204. (Greška = 32761)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">
-    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Došlo je do problema u vezi sa Verizon Wi-Fi Access nalogom. Pozovite nas na 800 922 0204. (Greška = 32762)"</item>
+    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Došlo je do problema u vezi sa Verizon WiFi Access nalogom. Pozovite nas na 800 922 0204. (Greška = 32762)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32763" msgid="4467733260757049969">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32763"</string>
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
@@ -90,19 +90,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32764" msgid="7349538467012877101">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32764"</string>
   <string-array name="wifi_eap_error_message_code_32764_carrier_overrides">
-    <item msgid="3909719534712787947">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon Wi-Fi Access. Pozovite nas na 800 922 0204. (Greška = 32764)"</item>
+    <item msgid="3909719534712787947">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon WiFi Access. Pozovite nas na 800 922 0204. (Greška = 32764)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
-    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Došlo je do problema u vezi sa Verizon Wi-Fi Access nalogom. Pozovite nas na 800 922 0204. (Greška = 32765)"</item>
+    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Došlo je do problema u vezi sa Verizon WiFi Access nalogom. Pozovite nas na 800 922 0204. (Greška = 32765)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g>: EAP greška pri potvrdi identiteta 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
-    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fi Access nije dostupan sa vaše lokacije. Probajte ponovo kasnije ili probajte sa neke druge lokacije. (Greška = 32766)"</item>
+    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon WiFi Access nije dostupan sa vaše lokacije. Probajte ponovo kasnije ili probajte sa neke druge lokacije. (Greška = 32766)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : Greška pri EAP potvrdi identiteta 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon Wi-Fi Access. Probajte ponovo kasnije ili probajte sa neke druge lokacije."</item>
+    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon WiFi Access. Probajte ponovo kasnije ili probajte sa neke druge lokacije."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : Greška pri EAP potvrdi identiteta 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
@@ -114,7 +114,7 @@
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : Greška pri EAP potvrdi identiteta, nepoznat kôd greške"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon Wi-Fi Access."</item>
+    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Postoji problem pri povezivanju na Verizon WiFi Access."</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"Hotspot je isključen"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Nijedan uređaj nije povezan. Dodirnite da biste izmenili."</string>

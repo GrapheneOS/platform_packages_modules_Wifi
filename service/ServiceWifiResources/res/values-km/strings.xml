@@ -124,7 +124,7 @@
     <string name="wifi_interface_priority_message" msgid="4253391172756140313">"សកម្មភាពនេះអាច​បណ្ដាលឱ្យមាន​បញ្ហាសម្រាប់ <xliff:g id="APPS">%3$s</xliff:g>។"</string>
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"វាអាចបណ្ដាលឱ្យមានបញ្ហាសម្រាប់កម្មវិធីទាំងនេះ៖ <xliff:g id="APPS">%3$s</xliff:g>។"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"អនុញ្ញាត"</string>
-    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"កុំអនុញ្ញាត"</string>
+    <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"មិនអនុញ្ញាត"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"តើជឿទុកចិត្ត​បណ្តាញនេះ​បានទេ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"បាទ/ចាស ភ្ជាប់"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ទេ កុំភ្ជាប់"</string>
@@ -149,5 +149,5 @@
     <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME">%1$s</xliff:g> បើក Wi‑Fi ឬ?"</string>
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"អ្នកអាច​បិទ Wi‑Fi នៅក្នុង​ការកំណត់រហ័ស"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"អនុញ្ញាត"</string>
-    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"កុំអនុញ្ញាត"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"មិនអនុញ្ញាត"</string>
 </resources>

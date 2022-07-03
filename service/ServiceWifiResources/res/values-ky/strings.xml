@@ -49,7 +49,7 @@
     <string name="wifi_connect_alert_title" msgid="2368200646665663612">"Туташууга уруксатпы?"</string>
     <string name="wifi_connect_alert_message" msgid="7226456300982080746">"%1$s колдонмосу %2$s Wifi тармагына туташкысы келет"</string>
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"Колдонмо"</string>
-    <string name="accept" msgid="8346431649376483879">"Кабыл алуу"</string>
+    <string name="accept" msgid="8346431649376483879">"Ооба"</string>
     <string name="decline" msgid="4172251727603762084">"Баш тартуу"</string>
     <string name="ok" msgid="847575529546290102">"Жарайт"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Чакыруу жөнөтүлдү"</string>
