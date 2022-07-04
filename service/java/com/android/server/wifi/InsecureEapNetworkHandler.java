@@ -142,14 +142,14 @@ public class InsecureEapNetworkHandler {
      * @param config the running wifi configuration.
      */
     public void prepareConnection(@NonNull WifiConfiguration config) {
+        clearConnection();
+
         if (null == config) return;
 
         if (!config.isEnterprise()) return;
         WifiEnterpriseConfig entConfig = config.enterpriseConfig;
         if (!entConfig.isEapMethodServerCertUsed()) return;
         if (entConfig.hasCaCertificate()) return;
-
-        clearConnection();
 
         Log.d(TAG, "prepareConnection: isTofuSupported=" + mIsTrustOnFirstUseSupported
                 + ", isInsecureEapNetworkAllowed=" + mIsInsecureEnterpriseConfigurationAllowed
