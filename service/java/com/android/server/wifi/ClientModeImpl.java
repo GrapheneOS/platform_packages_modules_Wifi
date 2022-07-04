@@ -4989,7 +4989,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         logEventIfManagedNetwork(config,
                                 SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED,
                                 MacAddress.fromString(eventInfo.bssid),
-                                "reason=" + eventInfo.reasonCode);
+                                "reason=" + StaIfaceReasonCode.toString(eventInfo.reasonCode));
                     } catch (IllegalArgumentException e) {
                         Log.e(TAG, "Invalid bssid received for disconnection event");
                     }
