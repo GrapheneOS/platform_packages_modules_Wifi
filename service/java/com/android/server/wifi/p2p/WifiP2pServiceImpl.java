@@ -3181,10 +3181,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         // Notify the peer about the rejection.
                         if (mSavedPeerConfig != null) {
                             mWifiNative.p2pStopFind();
-                            mWifiNative.p2pReject(mSavedPeerConfig.deviceAddress);
-                            // p2pReject() only updates the peer state, but not sends this
-                            // to the peer, trigger provision discovery to notify the peer.
-                            mWifiNative.p2pProvisionDiscovery(mSavedPeerConfig);
+                            sendP2pRejection();
                         }
                         handleGroupCreationFailure();
                         transitionTo(mInactiveState);
@@ -3243,18 +3240,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             if (join) {
                                 mWifiNative.p2pCancelConnect();
                                 mWifiNative.p2pStopFind();
-                                mWifiNative.p2pReject(mSavedPeerConfig.deviceAddress);
-                                // p2pReject() only updates the peer state, but not sends this
-                                // to the peer, trigger provision discovery to notify the peer.
-                                mWifiNative.p2pProvisionDiscovery(mSavedPeerConfig);
                                 sendP2pConnectionChangedBroadcast();
-                            } else {
-                                mWifiNative.p2pReject(mSavedPeerConfig.deviceAddress);
-                                // p2pReject() only updates the peer state, but not sends this
-                                // to the peer, trigger negotiation request to notify the peer.
-                                p2pConnectWithPinDisplay(mSavedPeerConfig,
-                                        P2P_CONNECT_TRIGGER_GROUP_NEG_REQ);
                             }
+                            sendP2pRejection();
                             mSavedPeerConfig.invalidate();
                         } else {
                             mWifiNative.p2pCancelConnect();
@@ -6209,6 +6197,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         private boolean isFeatureSupported(long feature) {
             return (getSupportedFeatures() & feature) == feature;
+        }
+
+        private void sendP2pRejection() {
+            if (TextUtils.isEmpty(mSavedPeerConfig.deviceAddress)) return;
+
+            mWifiNative.p2pReject(mSavedPeerConfig.deviceAddress);
+            // p2pReject() only updates the peer state, but not sends this
+            // to the peer, trigger provision discovery to notify the peer.
+            mWifiNative.p2pProvisionDiscovery(mSavedPeerConfig);
         }
     }
 
