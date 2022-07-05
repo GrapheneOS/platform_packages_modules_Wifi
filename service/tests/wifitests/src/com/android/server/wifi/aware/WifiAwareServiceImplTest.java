@@ -37,6 +37,7 @@ import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.ConfigRequest;
@@ -66,6 +67,7 @@ import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
+import com.android.wifi.resources.R;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -164,6 +166,10 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                 InterfaceConflictManager.ICM_EXECUTE_COMMAND);
 
         mDut = new WifiAwareServiceImplSpy(mContextMock);
+        Resources resources = mock(Resources.class);
+        when(mContextMock.getResources()).thenReturn(resources);
+        when(resources.getInteger(
+                        R.integer.config_wifiVerboseLoggingAlwaysOnLevel)).thenReturn(0);
         mDut.fakeUid = mDefaultUid;
         mDut.start(mHandlerThreadMock, mAwareStateManagerMock, mWifiAwareShellCommandMock,
                 mAwareMetricsMock, mWifiPermissionsUtil, mPermissionsWrapperMock,

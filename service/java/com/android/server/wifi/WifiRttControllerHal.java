@@ -59,7 +59,7 @@ import java.util.Set;
 public class WifiRttControllerHal {
     private static final String TAG = "WifiRttControllerHal";
     private static final int CONVERSION_US_TO_MS = 1_000;
-    private boolean mDbg = false;
+    private boolean mVerboseLoggingEnabled = false;
 
     private IWifiRttController mIWifiRttController;
     private android.hardware.wifi.V1_4.IWifiRttController mIWifiRttController14;
@@ -168,10 +168,11 @@ public class WifiRttControllerHal {
     }
 
     /**
-     * Enable verbose logging.
+     * Enable/Disable verbose logging.
+     *
      */
     public void enableVerboseLogging(boolean verboseEnabled) {
-        mDbg = verboseEnabled;
+        mVerboseLoggingEnabled = verboseEnabled;
     }
 
     /**
@@ -225,7 +226,7 @@ public class WifiRttControllerHal {
         if (mRttCapabilities != null) {
             return;
         }
-        if (mDbg) Log.v(TAG, "updateRttCapabilities");
+        if (mVerboseLoggingEnabled) Log.v(TAG, "updateRttCapabilities");
 
         try {
             if (mIWifiRttController16 != null) {
@@ -237,7 +238,7 @@ public class WifiRttControllerHal {
                                         + "-- code=" + status.code);
                                 return;
                             }
-                            if (mDbg) {
+                            if (mVerboseLoggingEnabled) {
                                 Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                         + capabilities16);
                             }
@@ -252,7 +253,7 @@ public class WifiRttControllerHal {
                                         + "-- code=" + status.code);
                                 return;
                             }
-                            if (mDbg) {
+                            if (mVerboseLoggingEnabled) {
                                 Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                         + capabilities14);
                             }
@@ -267,12 +268,13 @@ public class WifiRttControllerHal {
                                         + "-- code=" + status.code);
                                 return;
                             }
-                            if (mDbg) {
+                            if (mVerboseLoggingEnabled) {
                                 Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                         + capabilities);
                             }
                             mRttCapabilities = new Capabilities(capabilities);
                         });
+
             }
         } catch (RemoteException e) {
             Log.e(TAG, "updateRttCapabilities: exception requesting capabilities: " + e);
@@ -293,7 +295,7 @@ public class WifiRttControllerHal {
      * @return true for success, false for failure.
      */
     public boolean rangeRequest(int cmdId, RangingRequest request) {
-        if (mDbg) {
+        if (mVerboseLoggingEnabled) {
             Log.v(TAG, "rangeRequest: cmdId=" + cmdId + ", # of requests="
                     + request.mRttPeers.size() + ", request=" + request);
         }
@@ -411,7 +413,7 @@ public class WifiRttControllerHal {
      */
     public boolean rangeCancel(int cmdId, ArrayList<byte[]> macAddresses) {
         final String methodStr = "rangeCancel";
-        if (mDbg) Log.v(TAG, "rangeCancel: cmdId=" + cmdId);
+        if (mVerboseLoggingEnabled) Log.v(TAG, "rangeCancel: cmdId=" + cmdId);
         if (!checkRttControllerAndLogFailure(methodStr)) {
             return false;
         }
@@ -818,7 +820,7 @@ public class WifiRttControllerHal {
          */
         @Override
         public void onResults(int cmdId, ArrayList<RttResult> halResults) {
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "onResults: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
             if (halResults == null) {
@@ -844,7 +846,7 @@ public class WifiRttControllerHal {
         @Override
         public void onResults_1_4(int cmdId,
                 ArrayList<android.hardware.wifi.V1_4.RttResult> halResults) {
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG,
                         "onResults_1_4: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
@@ -878,7 +880,7 @@ public class WifiRttControllerHal {
         @Override
         public void onResults_1_6(int cmdId,
                 ArrayList<android.hardware.wifi.V1_6.RttResult> halResults) {
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG,
                         "onResults_1_6: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
@@ -909,7 +911,7 @@ public class WifiRttControllerHal {
                         "ResponderLocation: lci/lcr parser failed exception -- " + e);
             }
             if (rttResult.successNumber <= 1 && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }
@@ -945,7 +947,7 @@ public class WifiRttControllerHal {
                         "ResponderLocation: lci/lcr parser failed exception -- " + e);
             }
             if (rttResult.successNumber <= 1 && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }
@@ -981,7 +983,7 @@ public class WifiRttControllerHal {
                         "ResponderLocation: lci/lcr parser failed exception -- " + e);
             }
             if (rttResult.successNumber <= 1 && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }
