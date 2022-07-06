@@ -1535,6 +1535,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 case WifiP2pManager.SET_DEVICE_NAME:
                 case WifiP2pManager.SET_VENDOR_ELEMENTS:
                     return false;
+                case WifiP2pManager.REQUEST_DEVICE_INFO:
+                    if (!mWifiGlobals.isP2pMacRandomizationSupported()
+                            && !TextUtils.isEmpty(mThisDevice.deviceAddress)) {
+                        return false;
+                    }
+                    break;
             }
             return true;
         }
@@ -2197,8 +2203,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         class P2pDisabledState extends State {
             private void setupInterfaceFeatures(String interfaceName) {
-                if (mContext.getResources().getBoolean(
-                        R.bool.config_wifi_p2p_mac_randomization_supported)) {
+                if (mWifiGlobals.isP2pMacRandomizationSupported()) {
                     Log.i(TAG, "Supported feature: P2P MAC randomization");
                     mWifiNative.setMacRandomization(true);
                 } else {
