@@ -260,10 +260,10 @@ public class WifiDialogManager {
             mTimeoutRunnable = null;
             mActiveDialogIds.remove(mDialogId);
             mActiveDialogHandles.remove(mDialogId);
-            mDialogId = WifiManager.INVALID_DIALOG_ID;
             if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "Unregistered dialog with id=" + mDialogId);
             }
+            mDialogId = WifiManager.INVALID_DIALOG_ID;
         }
     }
 
