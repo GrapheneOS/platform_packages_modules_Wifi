@@ -32,6 +32,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.ARP_TABLE_PATH;
 import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION;
@@ -238,6 +239,8 @@ public class ClientModeImplTest extends WifiBaseTest {
             MacAddress.fromString("10:22:34:56:78:92");
     private static final MacAddress TEST_LOCAL_MAC_ADDRESS =
             MacAddress.fromString("2a:53:43:c3:56:21");
+    private static final MacAddress TEST_LOCAL_MAC_ADDRESS_SECONDARY_DBS =
+            MacAddress.fromString("2a:53:43:c3:56:22");
     private static final MacAddress TEST_DEFAULT_MAC_ADDRESS =
             MacAddress.fromString(WifiInfo.DEFAULT_MAC_ADDRESS);
    // NetworkAgent creates threshold ranges with Integers
@@ -600,10 +603,14 @@ public class ClientModeImplTest extends WifiBaseTest {
         setUpWifiNative();
         doAnswer(new AnswerWithArguments() {
             public MacAddress answer(
-                    WifiConfiguration config) {
-                return config.getRandomizedMacAddress();
+                    WifiConfiguration config, boolean isForSecondaryDbs) {
+                MacAddress mac = config.getRandomizedMacAddress();
+                if (isForSecondaryDbs) {
+                    mac = MacAddressUtil.nextMacAddress(mac);
+                }
+                return mac;
             }
-        }).when(mWifiConfigManager).getRandomizedMacAndUpdateIfNeeded(any());
+        }).when(mWifiConfigManager).getRandomizedMacAndUpdateIfNeeded(any(), anyBoolean());
 
         mTestNetworkParams = new TestNetworkParams();
         when(mWifiNetworkFactory.hasConnectionRequests()).thenReturn(true);
@@ -3528,6 +3535,26 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiMetrics, never()).logStaEvent(
                 any(), eq(StaEvent.TYPE_MAC_CHANGE), any(WifiConfiguration.class));
         assertEquals(TEST_LOCAL_MAC_ADDRESS.toString(), mWifiInfo.getMacAddress());
+    }
+
+    /** Verifies connecting to secondary DBS network with Mac randomization, the MAC address is
+     * the expected secondary Mac address.
+     * @throws Exception
+     */
+    @Test
+    public void testConnectedMacRandomizationRandomizationSecondaryDbs()
+            throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        when(mClientModeManager.isSecondaryInternet()).thenReturn(true);
+        when(mClientModeManager.isSecondaryInternetDbsAp()).thenReturn(true);
+        initializeAndAddNetworkAndVerifySuccess();
+        mTestConfig.dbsSecondaryInternet = true;
+        mConnectedNetwork.dbsSecondaryInternet = true;
+        connect();
+        verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_LOCAL_MAC_ADDRESS_SECONDARY_DBS);
+        verify(mWifiMetrics).logStaEvent(
+                eq(WIFI_IFACE_NAME), eq(StaEvent.TYPE_MAC_CHANGE), any(WifiConfiguration.class));
+        assertEquals(TEST_LOCAL_MAC_ADDRESS_SECONDARY_DBS.toString(), mWifiInfo.getMacAddress());
     }
 
     /**
