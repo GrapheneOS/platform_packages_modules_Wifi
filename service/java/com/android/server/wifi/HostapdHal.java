@@ -57,8 +57,6 @@ public class HostapdHal {
 
     /**
      * Enable/Disable verbose logging.
-     *
-     * @param enable true to enable, false to disable.
      */
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         synchronized (mLock) {

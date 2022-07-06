@@ -30,9 +30,6 @@ import java.util.Map;
 interface ISupplicantStaIfaceHal {
     /**
      * Enable/Disable verbose logging.
-     *
-     * @param verboseEnabled Verbose flag set in overlay XML.
-     * @param halVerboseEnabled Verbose flag set by the user.
      */
     void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled);
 
