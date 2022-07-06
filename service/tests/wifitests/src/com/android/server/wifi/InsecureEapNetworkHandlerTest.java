@@ -492,13 +492,14 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
      * - TOFU is supported.
      * - Insecure EAP network is allowed.
      * - TOFU is not enabled
+     * - No user approval is needed.
      */
     @Test
     public void verifyNoErrorWithTofuDisabledWhenInsecureEapNetworkIsAllowed()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
-        boolean needUserApproval = true, isInsecureEnterpriseConfigurationAllowed = true;
+        boolean needUserApproval = false, isInsecureEnterpriseConfigurationAllowed = true;
 
         WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
         config.enterpriseConfig.enableTrustOnFirstUse(false);
