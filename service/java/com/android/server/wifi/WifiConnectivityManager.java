@@ -2718,9 +2718,8 @@ public class WifiConnectivityManager {
                     new Throwable());
             return;
         }
-        WifiInfo wifiInfo = getPrimaryWifiInfo();
         if (failureCode == WifiMetrics.ConnectionEvent.FAILURE_NONE) {
-            String ssidUnquoted = WifiInfo.removeDoubleQuotes(wifiInfo.getSSID());
+            String ssidUnquoted = WifiInfo.removeDoubleQuotes(getPrimaryWifiInfo().getSSID());
             mOpenNetworkNotifier.handleWifiConnected(ssidUnquoted);
         } else {
             mOpenNetworkNotifier.handleConnectionFailure();
@@ -2762,7 +2761,8 @@ public class WifiConnectivityManager {
                         WifiConfiguration config =
                                 mConfigManager.getConfiguredNetwork(candidate.getNetworkConfigId());
                         return config != null
-                                && config.getNetworkSelectionStatus().isNetworkEnabled();
+                                && config.getNetworkSelectionStatus().isNetworkEnabled()
+                                && config.allowAutojoin;
                     })
                     .collect(Collectors.toList());
             if (prevNumCandidates == mLatestCandidates.size()) {
