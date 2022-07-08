@@ -17,7 +17,7 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <overlayable name="WifiCustomization">
         <!-- START VENDOR CUSTOMIZATION -->
-        <policy type="product|system|vendor">
+        <policy type="odm|product|system|vendor">
 
           <!-- Params from config.xml that can be overlayed -->
           <item type="bool" name="config_wifi24ghzSupport" />
