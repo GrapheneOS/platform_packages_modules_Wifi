@@ -857,7 +857,9 @@ public class ActiveModeWarden {
      */
     private boolean hasPrimaryOrScanOnlyModeManager() {
         return getClientModeManagerInRole(ROLE_CLIENT_PRIMARY) != null
-                || getClientModeManagerInRole(ROLE_CLIENT_SCAN_ONLY) != null;
+                || getClientModeManagerInRole(ROLE_CLIENT_SCAN_ONLY) != null
+                || getClientModeManagerTransitioningIntoRole(ROLE_CLIENT_PRIMARY) != null
+                || getClientModeManagerTransitioningIntoRole(ROLE_CLIENT_SCAN_ONLY) != null;
     }
 
     /**
@@ -982,6 +984,14 @@ public class ActiveModeWarden {
     public ConcreteClientModeManager getClientModeManagerInRole(ClientRole role) {
         for (ConcreteClientModeManager manager : mClientModeManagers) {
             if (manager.getRole() == role) return manager;
+        }
+        return null;
+    }
+
+    @Nullable
+    private ConcreteClientModeManager getClientModeManagerTransitioningIntoRole(ClientRole role) {
+        for (ConcreteClientModeManager manager : mClientModeManagers) {
+            if (manager.getTargetRole() == role) return manager;
         }
         return null;
     }
