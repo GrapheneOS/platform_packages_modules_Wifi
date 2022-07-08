@@ -56,7 +56,7 @@ import java.util.Objects;
 public class RttNative {
     private static final String TAG = "RttNative";
     private static final boolean VDBG = false; // STOPSHIP if true
-    /* package */ boolean mDbg = false;
+    private boolean mVerboseLoggingEnabled = false;
 
     /** Unknown status */
     public static final int FRAMEWORK_RTT_STATUS_UNKNOWN = -1;
@@ -124,12 +124,14 @@ public class RttNative {
             new HalDeviceManager.InterfaceRttControllerLifecycleCallback() {
                 @Override
                 public void onNewRttController(IWifiRttController controller) {
-                    if (mDbg) Log.d(TAG, "onNewRttController: controller=" + controller);
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG,
+                                "onNewRttController: controller=" + controller);
+                    }
                     synchronized (mLock) {
                         mIWifiRttController = controller;
                         mIWifiRttController14 = getWifiRttControllerV1_4();
                         mIWifiRttController16 = getWifiRttControllerV1_6();
-
                         try {
                             if (mIWifiRttController16 != null) {
                                 mIWifiRttController16.registerEventCallback_1_6(
@@ -158,7 +160,7 @@ public class RttNative {
 
                 @Override
                 public void onRttControllerDestroyed() {
-                    if (mDbg) Log.d(TAG, "onRttControllerDestroyed");
+                    if (mVerboseLoggingEnabled) Log.d(TAG, "onRttControllerDestroyed");
                     synchronized (mLock) {
                         mIWifiRttController = null;
                         mIWifiRttController14 = null;
@@ -197,6 +199,14 @@ public class RttNative {
     }
 
     /**
+     * Enable/Disable verbose logging.
+     *
+     */
+    public void enableVerboseLogging(boolean verboseEnabled) {
+        mVerboseLoggingEnabled = verboseEnabled;
+    }
+
+    /**
      * Returns true if Wi-Fi is ready for RTT requests, false otherwise.
      */
     public boolean isReady() {
@@ -222,7 +232,7 @@ public class RttNative {
         if (mRttCapabilities != null) {
             return;
         }
-        if (mDbg) Log.v(TAG, "updateRttCapabilities");
+        if (mVerboseLoggingEnabled) Log.v(TAG, "updateRttCapabilities");
 
         synchronized (mLock) {
             try {
@@ -235,7 +245,7 @@ public class RttNative {
                                             + "-- code=" + status.code);
                                     return;
                                 }
-                                if (mDbg) {
+                                if (mVerboseLoggingEnabled) {
                                     Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                             + capabilities16);
                                 }
@@ -250,7 +260,7 @@ public class RttNative {
                                             + "-- code=" + status.code);
                                     return;
                                 }
-                                if (mDbg) {
+                                if (mVerboseLoggingEnabled) {
                                     Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                             + capabilities14);
                                 }
@@ -265,7 +275,7 @@ public class RttNative {
                                             + "-- code=" + status.code);
                                     return;
                                 }
-                                if (mDbg) {
+                                if (mVerboseLoggingEnabled) {
                                     Log.v(TAG, "updateRttCapabilities: RTT capabilities="
                                             + capabilities);
                                 }
@@ -296,7 +306,7 @@ public class RttNative {
      */
     public boolean rangeRequest(int cmdId, RangingRequest request,
             boolean isCalledFromPrivilegedContext) {
-        if (mDbg) {
+        if (mVerboseLoggingEnabled) {
             Log.v(TAG,
                     "rangeRequest: cmdId=" + cmdId + ", # of requests=" + request.mRttPeers.size());
         }
@@ -415,7 +425,7 @@ public class RttNative {
      * @return Success status: true for success, false for failure.
      */
     public boolean rangeCancel(int cmdId, ArrayList<byte[]> macAddresses) {
-        if (mDbg) Log.v(TAG, "rangeCancel: cmdId=" + cmdId);
+        if (mVerboseLoggingEnabled) Log.v(TAG, "rangeCancel: cmdId=" + cmdId);
         synchronized (mLock) {
             if (!isReady()) {
                 Log.e(TAG, "rangeCancel: RttController is null");
@@ -848,7 +858,7 @@ public class RttNative {
                 halResults = new ArrayList<>();
             }
             halResults.removeIf(Objects::isNull);
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "onResults: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
             ArrayList<RangingResult> rangingResults = convertHalResultsRangingResults(halResults);
@@ -870,7 +880,7 @@ public class RttNative {
         @Override
         public void onResults_1_4(int cmdId,
                 ArrayList<android.hardware.wifi.V1_4.RttResult> halResults) {
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG,
                         "onResults_1_4: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
@@ -905,7 +915,7 @@ public class RttNative {
         @Override
         public void onResults_1_6(int cmdId,
                 ArrayList<android.hardware.wifi.V1_6.RttResult> halResults) {
-            if (mDbg) {
+            if (mVerboseLoggingEnabled) {
                 Log.v(TAG,
                         "onResults_1_6: cmdId=" + cmdId + ", # of results=" + halResults.size());
             }
@@ -938,7 +948,7 @@ public class RttNative {
             }
             if (rttResult.successNumber <= 1
                     && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }
@@ -975,7 +985,7 @@ public class RttNative {
             }
             if (rttResult.successNumber <= 1
                     && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }
@@ -1012,7 +1022,7 @@ public class RttNative {
             }
             if (rttResult.successNumber <= 1
                     && rttResult.distanceSdInMm != 0) {
-                if (mDbg) {
+                if (mVerboseLoggingEnabled) {
                     Log.w(TAG, "postProcessResults: non-zero distance stdev with 0||1 num "
                             + "samples!? result=" + rttResult);
                 }

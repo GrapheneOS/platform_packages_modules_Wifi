@@ -309,8 +309,9 @@ public class RttServiceImplTest extends WifiBaseTest {
         }
         verify(mockMetrics, times(numIter)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
-
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -394,6 +395,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
         if (SdkLevel.isAtLeastT()) {
@@ -508,6 +511,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -546,6 +551,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_LOCATION_PERMISSION_MISSING);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -628,6 +635,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -668,6 +677,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordRequest(eq(ws), eq(request));
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -719,6 +730,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -769,6 +782,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -811,6 +826,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -859,6 +876,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -903,6 +922,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -959,6 +980,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1078,6 +1101,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1181,6 +1206,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1256,6 +1283,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 .recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_RTT_NOT_AVAILABLE);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1339,6 +1368,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
@@ -1448,6 +1479,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_RTT_NOT_AVAILABLE);
 
         verify(mockNative, atLeastOnce()).isReady();
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verify(mockNative).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockNative, mockMetrics, mockCallback, mockCallback2,
                 mockCallback3, mAlarmManager.getAlarmManager());
     }

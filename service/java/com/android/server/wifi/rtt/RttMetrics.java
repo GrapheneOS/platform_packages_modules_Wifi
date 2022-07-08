@@ -46,7 +46,7 @@ import java.util.Map;
 public class RttMetrics {
     private static final String TAG = "RttMetrics";
     private static final boolean VDBG = false;
-    /* package */ boolean mDbg = false;
+    private boolean mVerboseLoggingEnabled = false;
 
     private final Object mLock = new Object();
     private final Clock mClock;
@@ -129,6 +129,13 @@ public class RttMetrics {
         }
     }
 
+    /**
+     * Enable/Disable verbose logging.
+     */
+    public void enableVerboseLogging(boolean verboseEnabled) {
+        mVerboseLoggingEnabled = verboseEnabled;
+    }
+
     // metric recording API
 
     /**
@@ -148,7 +155,10 @@ public class RttMetrics {
             } else if (request.responderType == ResponderConfig.RESPONDER_AP) {
                 numApRequests++;
             } else {
-                if (mDbg) Log.d(TAG, "Unexpected Responder type: " + request.responderType);
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG,
+                            "Unexpected Responder type: " + request.responderType);
+                }
             }
         }
 
