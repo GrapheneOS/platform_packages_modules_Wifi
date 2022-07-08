@@ -798,6 +798,40 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
     }
 
+    @Test
+    public void testPrimaryNotCreatedTwice() throws Exception {
+        enterClientModeActiveState();
+        verify(mWifiInjector).makeClientModeManager(
+                any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
+
+        // toggling wifi on again should be no-op when primary is already available
+        when(mSettingsStore.isWifiToggleEnabled()).thenReturn(true);
+        mActiveModeWarden.wifiToggled(TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        verify(mWifiInjector).makeClientModeManager(
+                any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
+
+        // Simulate the primary not fully started by making the role null and targetRole primary.
+        when(mClientModeManager.getRole()).thenReturn(null);
+        when(mClientModeManager.getTargetRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+
+        // Verify that there is no primary, but there is a CMM with targetRole as primary.
+        List<ClientModeManager> currentCMMs = mActiveModeWarden.getClientModeManagers();
+        assertEquals(1, currentCMMs.size());
+        ConcreteClientModeManager currentCmm = (ConcreteClientModeManager) currentCMMs.get(0);
+        assertTrue(currentCmm.getRole() == null);
+        assertTrue(currentCmm.getTargetRole() == ROLE_CLIENT_PRIMARY);
+
+        // verify wifi toggling on should not create another primary CMM.
+        when(mSettingsStore.isWifiToggleEnabled()).thenReturn(true);
+        mActiveModeWarden.wifiToggled(TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        verify(mWifiInjector).makeClientModeManager(
+                any(), eq(TEST_WORKSOURCE), eq(ROLE_CLIENT_PRIMARY), anyBoolean());
+    }
+
     /**
      * Reentering EnabledState should be a NOP.
      */
