@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -577,6 +578,28 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mHandler);
         X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
         mInsecureEapNetworkHandler.setPendingCertificate("NotExist", 0, mockSelfSignedCert);
+    }
+
+    /**
+     * Verify user approval is not necessary if a new connection request is coming.
+     */
+    @Test
+    public void verifyUserApprovalIsNotNecessaryWhenNewConnectionRequestArrives()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
+
+        // Even is an invalid configuration is passed, the connection data
+        // is still considered obsolete, discard them.
+        mInsecureEapNetworkHandler.prepareConnection(null);
+
+        assertFalse(mInsecureEapNetworkHandler.setPendingCertificate(config.SSID,
+                0, mockSelfSignedCert));
     }
 
     private void verifyTrustOnFirstUseFlowWithDefaultCerts(WifiConfiguration config,
