@@ -499,6 +499,13 @@ public class ConcreteClientModeManager implements ClientModeManager {
         return mRole;
     }
 
+    /**
+     * Get the role this ClientModeManager is expected to become.
+     */
+    @Nullable public ClientRole getTargetRole() {
+        return mTargetRoleChangeInfo == null ? null : mTargetRoleChangeInfo.role;
+    }
+
     @Override
     @Nullable public ClientRole getPreviousRole() {
         return mPreviousRole;
