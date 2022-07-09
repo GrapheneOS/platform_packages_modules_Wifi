@@ -4799,6 +4799,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         mContext, Settings.Global.STAY_ON_WHILE_PLUGGED_IN, 0));
                 pw.println("mInIdleMode " + mInIdleMode);
                 pw.println("mScanPending " + mScanPending);
+                pw.println("SupportedFeatures:" + Long.toHexString(getSupportedFeaturesInternal()));
                 pw.println("SettingsStore:");
                 mSettingsStore.dump(fd, pw, args);
                 mActiveModeWarden.dump(fd, pw, args);
@@ -5335,67 +5336,7 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     private long getSupportedFeaturesInternal() {
-        long supportedFeatureSet = mWifiThreadRunner.call(
-                () -> mWifiNative.getSupportedFeatureSet(
-                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName()),
-                0L);
-        // Mask the feature set against system properties.
-        boolean rttSupported = mContext.getPackageManager().hasSystemFeature(
-                PackageManager.FEATURE_WIFI_RTT);
-        if (!rttSupported) {
-            // flags filled in by vendor HAL, remove if overlay disables it.
-            supportedFeatureSet &=
-                    ~(WifiManager.WIFI_FEATURE_D2D_RTT | WifiManager.WIFI_FEATURE_D2AP_RTT);
-        }
-        if (!mContext.getResources().getBoolean(
-                R.bool.config_wifi_p2p_mac_randomization_supported)) {
-            // flags filled in by vendor HAL, remove if overlay disables it.
-            supportedFeatureSet &= ~WifiManager.WIFI_FEATURE_P2P_RAND_MAC;
-        }
-        if (mContext.getResources().getBoolean(
-                R.bool.config_wifi_connected_mac_randomization_supported)) {
-            // no corresponding flags in vendor HAL, set if overlay enables it.
-            supportedFeatureSet |= WifiManager.WIFI_FEATURE_CONNECTED_RAND_MAC;
-        }
-        if (ApConfigUtil.isApMacRandomizationSupported(mContext)) {
-            // no corresponding flags in vendor HAL, set if overlay enables it.
-            supportedFeatureSet |= WifiManager.WIFI_FEATURE_AP_RAND_MAC;
-        }
-        if (SdkLevel.isAtLeastS()) {
-            if (ApConfigUtil.isBridgedModeSupported(mContext)) {
-                // The bridged mode requires the kernel network modules support.
-                // It doesn't relate the vendor HAL, set if overlay enables it.
-                supportedFeatureSet |= WifiManager.WIFI_FEATURE_BRIDGED_AP;
-            }
-            if (ApConfigUtil.isStaWithBridgedModeSupported(mContext)) {
-                // The bridged mode requires the kernel network modules support.
-                // It doesn't relate the vendor HAL, set if overlay enables it.
-                supportedFeatureSet |= WifiManager.WIFI_FEATURE_STA_BRIDGED_AP;
-            }
-        }
-
-        supportedFeatureSet |= mWifiThreadRunner.call(
-                () -> {
-                    long concurrencyFeatureSet = 0L;
-                    if (mActiveModeWarden.isStaApConcurrencySupported()) {
-                        concurrencyFeatureSet |= WifiManager.WIFI_FEATURE_AP_STA;
-                    }
-                    if (mActiveModeWarden.isStaStaConcurrencySupportedForLocalOnlyConnections()) {
-                        concurrencyFeatureSet |= WifiManager.WIFI_FEATURE_ADDITIONAL_STA_LOCAL_ONLY;
-                    }
-                    if (mActiveModeWarden.isStaStaConcurrencySupportedForMbb()) {
-                        concurrencyFeatureSet |= WifiManager.WIFI_FEATURE_ADDITIONAL_STA_MBB;
-                    }
-                    if (mActiveModeWarden.isStaStaConcurrencySupportedForRestrictedConnections()) {
-                        concurrencyFeatureSet |= WifiManager.WIFI_FEATURE_ADDITIONAL_STA_RESTRICTED;
-                    }
-                    if (mActiveModeWarden.isStaStaConcurrencySupportedForMultiInternet()) {
-                        concurrencyFeatureSet |= WifiManager
-                                .WIFI_FEATURE_ADDITIONAL_STA_MULTI_INTERNET;
-                    }
-                    return concurrencyFeatureSet;
-                }, 0L);
-        return supportedFeatureSet;
+        return mActiveModeWarden.getSupportedFeatureSet();
     }
 
     /**
