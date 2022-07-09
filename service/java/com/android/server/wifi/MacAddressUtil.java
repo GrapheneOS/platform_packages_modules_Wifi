@@ -52,6 +52,7 @@ public class MacAddressUtil {
     private static final long MAC_ADDRESS_VALID_LONG_MASK = (1L << 48) - 1;
     private static final long MAC_ADDRESS_LOCALLY_ASSIGNED_MASK = 1L << 41;
     private static final long MAC_ADDRESS_MULTICAST_MASK = 1L << 40;
+    private static final int ETHER_ADDR_LEN = 6;
 
     /**
      * Computes the persistent randomized MAC using the given key and hash function.
@@ -155,5 +156,15 @@ public class MacAddressUtil {
             Log.e(TAG, "Failure in generateMacRandomizationSecret", e);
             return null;
         }
+    }
+
+    /**
+     * Returns the next Mac address to the given Mac address.
+     */
+    public static MacAddress nextMacAddress(MacAddress mac) {
+        byte[] bytes = mac.toByteArray();
+        bytes[MacAddressUtil.ETHER_ADDR_LEN - 1] =
+                (byte) ((bytes[MacAddressUtil.ETHER_ADDR_LEN - 1] + 1) & 0xff);
+        return MacAddress.fromBytes(bytes);
     }
 }

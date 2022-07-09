@@ -460,12 +460,6 @@ public class WifiConfigManager {
      * @return
      */
     public boolean shouldUseNonPersistentRandomization(WifiConfiguration config) {
-        // If this is the secondary STA for multi internet for DBS AP, use non persistent mac
-        // randomization, as the primary and secondary STAs could connect to the same SSID.
-        if (isMacRandomizationSupported() && config.dbsSecondaryInternet) {
-            return true;
-        }
-
         if (!isMacRandomizationSupported()
                 || config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_NONE) {
             return false;
@@ -636,10 +630,17 @@ public class WifiConfigManager {
      * @param config
      * @return MacAddress
      */
-    public MacAddress getRandomizedMacAndUpdateIfNeeded(WifiConfiguration config) {
+    public MacAddress getRandomizedMacAndUpdateIfNeeded(WifiConfiguration config,
+            boolean isForSecondaryDbs) {
         MacAddress mac = shouldUseNonPersistentRandomization(config)
                 ? updateRandomizedMacIfNeeded(config)
                 : setRandomizedMacToPersistentMac(config);
+        // If this is the secondary STA for multi internet for DBS AP, use a different MAC than the
+        // persistent mac randomization, as the primary and secondary STAs could connect to the
+        // same SSID.
+        if (isForSecondaryDbs) {
+            mac = MacAddressUtil.nextMacAddress(mac);
+        }
         return mac;
     }
 
