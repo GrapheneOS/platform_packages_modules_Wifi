@@ -7682,14 +7682,16 @@ public class WifiMetrics {
      * Increment connection duration while link layer stats report are on
      */
     public void incrementConnectionDuration(int timeDeltaLastTwoPollsMs,
-            boolean isThroughputSufficient, boolean isCellularDataAvailable) {
+            boolean isThroughputSufficient, boolean isCellularDataAvailable, int rssi, int txKbps,
+            int rxKbps) {
         synchronized (mLock) {
             mConnectionDurationStats.incrementDurationCount(timeDeltaLastTwoPollsMs,
                     isThroughputSufficient, isCellularDataAvailable, mWifiWins);
 
             int band = KnownBandsChannelHelper.getBand(mLastPollFreq);
             WifiStatsLog.write(WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, timeDeltaLastTwoPollsMs,
-                    isThroughputSufficient || !mWifiWins,  isCellularDataAvailable, band);
+                    isThroughputSufficient || !mWifiWins,  isCellularDataAvailable, band, rssi,
+                    txKbps, rxKbps);
         }
     }
 
