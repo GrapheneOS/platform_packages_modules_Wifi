@@ -50,6 +50,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -580,7 +581,10 @@ public class WifiDialogActivity extends Activity  {
                 })
                 .create();
         if (pinEditText != null) {
+            dialog.getWindow().setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             dialog.setOnShowListener(dialogShow -> {
+                pinEditText.requestFocus();
                 dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(false);
             });
             pinEditText.addTextChangedListener(new TextWatcher() {
