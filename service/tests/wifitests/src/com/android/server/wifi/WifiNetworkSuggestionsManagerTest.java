@@ -5245,6 +5245,12 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 new ArrayList<WifiNetworkSuggestion>() {{
                     add(networkSuggestion);
                 }};
+
+        // Verify no crash with unmatched update
+        mNetworkListenerCaptor.getValue().onSecurityParamsUpdate(networkSuggestion
+                .wifiConfiguration, networkSuggestion.wifiConfiguration.getSecurityParamsList());
+        mNetworkListenerCaptor.getValue().onSecurityParamsUpdate(null, Collections.EMPTY_LIST);
+
         assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
                 mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
                         TEST_PACKAGE_1, TEST_FEATURE));
