@@ -1213,6 +1213,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     mActiveModeWarden.emergencyCallStateChanged(enabled);
                     return 0;
                 }
+                case "set-emergency-scan-request": {
+                    boolean enabled = getNextArgRequiredTrueOrFalse("enabled", "disabled");
+                    mWifiService.setEmergencyScanRequestInProgress(enabled);
+                    return 0;
+                }
                 case "trigger-recovery": {
                     mSelfRecovery.trigger(REASON_API_CALL);
                     return 0;
@@ -2566,6 +2571,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Sets whether we are in the middle of an emergency call.");
         pw.println("Equivalent to receiving the "
                 + "TelephonyManager.ACTION_EMERGENCY_CALL_STATE_CHANGED broadcast.");
+        pw.println("  set-emergency-scan-request enabled|disabled");
+        pw.println("    Sets whether there is a emergency scan request in progress.");
         pw.println("  network-suggestions-set-as-carrier-provider <packageName> yes|no");
         pw.println("    Set the <packageName> work as carrier provider or not.");
         pw.println("  is-network-suggestions-set-as-carrier-provider <packageName>");
