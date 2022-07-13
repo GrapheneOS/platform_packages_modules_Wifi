@@ -74,6 +74,10 @@ interface IWifiManager
 
     void setNetworkSelectionConfig(in WifiNetworkSelectionConfig nsConfig);
 
+    void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean enable);
+
+    boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled();
+
     void setScreenOnScanSchedule(in int[] scanScheduleSeconds, in int[] scanType);
 
     void setOneShotScreenOnConnectivityScanDelayMillis(int delayMs);

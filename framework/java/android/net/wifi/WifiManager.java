@@ -489,10 +489,20 @@ public class WifiManager {
     public static final int API_SET_NETWORK_SELECTION_CONFIG = 8;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG = 9;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 9;
+    public static final int API_MAX = 10;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
@@ -1865,6 +1875,66 @@ public class WifiManager {
                 throw new IllegalArgumentException("nsConfig can not be null");
             }
             mService.setNetworkSelectionConfig(nsConfig);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Allows a privileged app to enable/disable whether a confirmation dialog should be displayed
+     * when third-party apps attempt to turn on WiFi.
+     *
+     * Use {@link #isThirdPartyAppEnablingWifiConfirmationDialogEnabled()} to get the
+     * currently configured value.
+     *
+     * Note: Only affects behavior for apps with targetSDK < Q, since third party apps are not
+     * allowed to enable wifi on targetSDK >= Q.
+     *
+     * This overrides the overlay value |config_showConfirmationDialogForThirdPartyAppsEnablingWifi|
+     * <P>
+     * @param enable true to enable the confirmation dialog, false otherwise
+     *
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.NETWORK_SETUP_WIZARD
+    })
+    @SystemApi
+    public void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean enable) {
+        try {
+            mService.setThirdPartyAppEnablingWifiConfirmationDialogEnabled(enable);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Check whether the wifi configuration indicates that a confirmation dialog should be displayed
+     * when third-party apps attempt to turn on WiFi.
+     *
+     * Use {@link #setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean)} to set this
+     * value.
+     *
+     * Note: This setting only affects behavior for apps with targetSDK < Q, since third party apps
+     *       are not allowed to enable wifi on targetSDK >= Q.
+     *
+     * <P>
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @return true if dialog should be displayed, false otherwise.
+     * @hide
+     */
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.NETWORK_SETUP_WIZARD
+    })
+    @SystemApi
+    public boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled() {
+        try {
+            return mService.isThirdPartyAppEnablingWifiConfirmationDialogEnabled();
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
