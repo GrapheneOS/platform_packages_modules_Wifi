@@ -2236,6 +2236,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 if (mVerboseLoggingEnabled) logd(getName() + message.toString());
                 switch (message.what) {
                     case ENABLE_P2P: {
+                        if (mActiveClients.isEmpty()) {
+                            Log.i(TAG, "No active client, ignore ENABLE_P2P.");
+                            break;
+                        }
                         int proceedWithOperation =
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
