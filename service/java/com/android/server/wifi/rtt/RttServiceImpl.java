@@ -52,6 +52,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseIntArray;
 
@@ -112,9 +113,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     public static final long HAL_RANGING_TIMEOUT_MS = 5_000; // 5 sec
     @VisibleForTesting
     public static final long HAL_AWARE_RANGING_TIMEOUT_MS = 10_000; // 10 sec
-
-    // Default value for RTT background throttling interval.
-    private static final long DEFAULT_BACKGROUND_PROCESS_EXEC_GAP_MS = 1_800_000; // 30 min
 
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
@@ -861,7 +859,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 return;
             }
 
-            if (!preExecThrottleCheck(nextRequest.workSource)) {
+            if (!preExecThrottleCheck(nextRequest.workSource, nextRequest.callingPackage)) {
                 Log.w(TAG, "RttServiceSynchronized.startRanging: execution throttled - nextRequest="
                         + nextRequest + ", mRttRequesterInfo=" + mRttRequesterInfo);
                 try {
@@ -910,7 +908,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
          *
          * Returns true to permit execution, false to abort it.
          */
-        private boolean preExecThrottleCheck(WorkSource ws) {
+        private boolean preExecThrottleCheck(WorkSource ws, String callingPackage) {
             if (VDBG) Log.v(TAG, "preExecThrottleCheck: ws=" + ws);
 
             // are all UIDs running in the background or is at least 1 in the foreground?
@@ -938,6 +936,16 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     }
 
                     if (uidImportance <= IMPORTANCE_FOREGROUND_SERVICE) {
+                        allUidsInBackground = false;
+                        break;
+                    }
+                }
+            }
+            if (allUidsInBackground) {
+                String[] exceptionList = mContext.getResources().getStringArray(
+                        R.array.config_wifiBackgroundRttThrottleExceptionList);
+                for (String packageName : exceptionList) {
+                    if (TextUtils.equals(packageName, callingPackage)) {
                         allUidsInBackground = false;
                         break;
                     }

@@ -202,6 +202,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mockContext.getResources()).thenReturn(mMockResources);
         mMockResources.setInteger(
                 R.integer.config_wifiRttBackgroundExecGapMs, BACKGROUND_PROCESS_EXEC_GAP_MS);
+        mMockResources.setStringArray(R.array.config_wifiBackgroundRttThrottleExceptionList,
+                new String[0]);
 
         mAlarmManager = new TestAlarmManager();
         when(mockContext.getSystemService(Context.ALARM_SERVICE))
@@ -1001,6 +1003,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         RangingRequest request3 = RttTestUtils.getDummyRangingRequest((byte) 3);
         RangingRequest request4 = RttTestUtils.getDummyRangingRequest((byte) 4);
         RangingRequest request5 = RttTestUtils.getDummyRangingRequest((byte) 5);
+        RangingRequest request6 = RttTestUtils.getDummyRangingRequest((byte) 6);
 
         Pair<List<RangingResult>, List<RangingResult>> result1 =
                 RttTestUtils.getDummyRangingResults(request1);
@@ -1008,6 +1011,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 RttTestUtils.getDummyRangingResults(request3);
         Pair<List<RangingResult>, List<RangingResult>> result4 =
                 RttTestUtils.getDummyRangingResults(request4);
+        Pair<List<RangingResult>, List<RangingResult>> result6 =
+                RttTestUtils.getDummyRangingResults(request6);
 
         InOrder cbInorder = inOrder(mockCallback);
 
@@ -1086,18 +1091,42 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         cbInorder.verify(mockCallback).onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
 
+        // (6) issue a background request from exception list at t6 = t5 + small: should be
+        // dispatched
+        when(mockActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_GONE);
+        mMockResources.setStringArray(R.array.config_wifiBackgroundRttThrottleExceptionList,
+                new String[]{mPackageName});
+
+        clock.time = clock.time + 5;
+        mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request6,
+                mockCallback, mExtras);
+        mMockLooper.dispatchAll();
+
+        verify(mockNative).rangeRequest(mIntCaptor.capture(), eq(request6), eq(true));
+        verifyWakeupSet(true, clock.time);
+
+        // (6.1) get result
+        mDut.onRangingResults(mIntCaptor.getValue(), result6.second);
+        mMockLooper.dispatchAll();
+
+        cbInorder.verify(mockCallback).onRangingResults(result6.second);
+        verifyWakeupCancelled();
+
         // verify metrics
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request1));
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request2));
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request3));
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request4));
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request5));
+        verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request6));
         verify(mockMetrics).recordResult(eq(request1), eq(result1.second), anyInt());
         verify(mockMetrics).recordResult(eq(request3), eq(result3.second), anyInt());
         verify(mockMetrics).recordResult(eq(request4), eq(result4.second), anyInt());
+        verify(mockMetrics).recordResult(eq(request6), eq(result6.second), anyInt());
         verify(mockMetrics, times(2)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_THROTTLE);
-        verify(mockMetrics, times(3)).recordOverallStatus(
+        verify(mockMetrics, times(4)).recordOverallStatus(
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
 
         verify(mockNative, atLeastOnce()).isReady();
