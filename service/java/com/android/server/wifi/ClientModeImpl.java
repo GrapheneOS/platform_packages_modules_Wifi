@@ -1282,6 +1282,27 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
+     * If there is only PSK networks and PSK is disabled,
+     * PSK should be enabled back when a user selects this network explicitly.
+     */
+    private void updatePskTypeForUserSelectNetwork(int networkId, boolean isUserSelected) {
+        if (!isUserSelected) return;
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
+        if (null == config) return;
+        SecurityParams params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        if (null == params || params.isEnabled()) return;
+
+        // Re-enable PSK when there is only PSK network.
+        if (mScanRequestProxy.isWpa3PersonalOnlyNetworkInRange(config.SSID)) return;
+        if (mScanRequestProxy.isWpa2Wpa3PersonalTransitionNetworkInRange(config.SSID)) return;
+        if (!mScanRequestProxy.isWpa2PersonalOnlyNetworkInRange(config.SSID)) return;
+
+        logd("Re-enable PSK type for the user selected PSK network.");
+        mWifiConfigManager.setSecurityParamsEnabled(config.networkId,
+                WifiConfiguration.SECURITY_TYPE_PSK, true);
+    }
+
+    /**
      * Initiates connection to a network specified by the user/app. This method checks if the
      * requesting app holds the NETWORK_SETTINGS permission.
      *
@@ -1301,6 +1322,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 + packageName + ", forceReconnect = " + forceReconnect + ", isUserSelected = "
                 + mIsUserSelected);
         updateSaeAutoUpgradeFlagForUserSelectNetwork(netId);
+        updatePskTypeForUserSelectNetwork(netId, mIsUserSelected);
         if (!forceReconnect && (mLastNetworkId == netId || mTargetNetworkId == netId)) {
             // We're already connecting/connected to the user specified network, don't trigger a
             // reconnection unless it was forced.
