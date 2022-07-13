@@ -337,6 +337,9 @@ public class InsecureEapNetworkHandler {
                 }
                 return true;
             }
+        } else if (mIsInsecureEnterpriseConfigurationAllowed) {
+            Log.i(TAG, "networks without the server cert are allowed, skip it.");
+            return false;
         }
 
         Log.d(TAG, "startUserApprovalIfNecessaryForInsecureEapNetwork: mIsUserSelected="
