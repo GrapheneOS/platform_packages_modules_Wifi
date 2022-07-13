@@ -211,6 +211,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         mResources = new MockResources();
         mResources.setBoolean(R.bool.config_wifiAllowMultipleNetworksOnSameAwareNdi, false);
+        mResources.setBoolean(R.bool.config_wifiAwareNdpSecurityUpdateOnSameNdi, false);
         when(mMockContext.getResources()).thenReturn(mResources);
     }
 
@@ -855,6 +856,97 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // verify that each interface name is unique
         assertEquals("Number of unique interface names", numNdis, interfaces.size());
+
+        verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
+                mAwareMetricsMock, mMockNetdWrapper);
+    }
+
+    /**
+     * Validate that multiple NDP requests to the same peer target different NDIs.
+     */
+    @Test
+    public void testMultipleNdiToSamePeerWithSecurityUpgrade() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiAwareNdpSecurityUpdateOnSameNdi, true);
+        final int numNdis = 5;
+        final int clientId = 123;
+        final int ndpId = 5;
+        final byte[] peerDiscoveryMac = HexEncoding.decode("000102030405".toCharArray(), false);
+        final byte[] peerDataPathMac = HexEncoding.decode("0A0B0C0D0E0F".toCharArray(), false);
+        int expectedAvailableNdps = MAX_NDP_SESSION;
+        AwareResources awareResources;
+        boolean first = true;
+
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        ArgumentCaptor<String> ifNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<WifiAwareNetworkAgent> agentCaptor = ArgumentCaptor.forClass(
+                WifiAwareNetworkAgent.class);
+
+        InOrder inOrder = inOrder(mMockNative, mMockCm, mMockCallback, mMockSessionCallback,
+                mMockNetdWrapper, mMockNetworkInterface, mMockContext);
+        InOrder inOrderM = inOrder(mAwareMetricsMock);
+
+        // (1) initialize all clients
+        Messenger messenger = initOobDataPathEndPoint(true, numNdis, clientId, inOrder, inOrderM);
+        for (int i = 1; i < numNdis + 3; ++i) {
+            initOobDataPathEndPoint(false, numNdis, clientId + i, inOrder, inOrderM);
+        }
+
+        // (2) make N network requests: each unique
+        Set<String> interfaces = new HashSet<>();
+        for (int i = 0; i < numNdis + 1; ++i) {
+            byte[] pmk = new byte[32];
+            pmk[0] = (byte) i;
+
+            NetworkRequest nr = getDirectNetworkRequest(clientId + i,
+                    WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_INITIATOR, peerDiscoveryMac, pmk,
+                    null, i);
+
+            Message reqNetworkMsg = Message.obtain();
+            reqNetworkMsg.what = NetworkProvider.CMD_REQUEST_NETWORK;
+            reqNetworkMsg.obj = nr;
+            reqNetworkMsg.arg1 = 0;
+            messenger.send(reqNetworkMsg);
+            mMockLooper.dispatchAll();
+            inOrderM.verify(mAwareMetricsMock).recordNdpRequestType(
+                    WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB);
+
+            inOrder.verify(mMockNative).initiateDataPath(transactionId.capture(), eq(0),
+                    eq(CHANNEL_NOT_REQUESTED), anyInt(), eq(peerDiscoveryMac),
+                    ifNameCaptor.capture(), eq(true), any(), any(), any());
+            interfaces.add(ifNameCaptor.getValue());
+
+            mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId + i);
+            mDut.onDataPathConfirmNotification(ndpId + i, peerDataPathMac, true, 0, null, null);
+            mMockLooper.dispatchAll();
+            if (SdkLevel.isAtLeastT()) {
+                awareResources = validateCorrectAwareResourcesChangeBroadcast(inOrder);
+                assertEquals(--expectedAvailableNdps,
+                        awareResources.getAvailableDataPathsCount());
+            }
+
+            if (first) {
+                inOrder.verify(mMockNetdWrapper).setInterfaceUp(anyString());
+                inOrder.verify(mMockNetdWrapper).enableIpv6(anyString());
+
+                first = false;
+            }
+            inOrder.verify(mMockNetworkInterface).setConnected(agentCaptor.capture());
+            inOrderM.verify(mAwareMetricsMock).recordNdpStatus(eq(NanStatusType.SUCCESS),
+                    eq(true), anyLong());
+            inOrderM.verify(mAwareMetricsMock).recordNdpCreation(anyInt(), any(), any());
+            WifiAwareNetworkInfo netInfo =
+                    (WifiAwareNetworkInfo) agentCaptor.getValue().mDataPathCapabilities
+                            .getTransportInfo();
+            assertArrayEquals(MacAddress.fromBytes(
+                    peerDataPathMac).getLinkLocalIpv6FromEui48Mac().getAddress(),
+                    netInfo.getPeerIpv6Addr().getAddress());
+            assertEquals(0, netInfo.getPort()); // uninitialized -> 0
+            assertEquals(-1, netInfo.getTransportProtocol()); // uninitialized -> -1
+            assertEquals(i + 1, mDut.mDataPathMgr.getNumOfNdps());
+        }
+
+        // verify that each interface name is unique
+        assertEquals("Number of unique interface names", 1, interfaces.size());
 
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);

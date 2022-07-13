@@ -741,6 +741,12 @@
      -->
     <bool translatable="false" name="config_wifiAllowMultipleNetworksOnSameAwareNdi">false</bool>
 
+    <!-- Enable Aware NDP interface selection on interface that already has a network to same peer
+    set up. Enable this will offload to FW to do the Aware NDP security upgrade. This may result in
+    incorrect behavior when the security upgrade feature is not fully supported.
+     -->
+    <bool translatable="false" name="config_wifiAwareNdpSecurityUpdateOnSameNdi">false</bool>
+
     <!-- A boolean indicate if device supports ser channel on the Aware data-path setup. If the
     value is false, channel setting on the data-path request will be ignored.
     -->
