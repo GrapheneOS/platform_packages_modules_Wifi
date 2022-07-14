@@ -18,20 +18,18 @@ package com.android.server.wifi.p2p;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.app.test.MockAnswerUtil;
 import android.hardware.wifi.V1_0.IWifiIface;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.hardware.wifi.V1_0.WifiStatus;
 import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Handler;
-import android.os.RemoteException;
 import android.os.WorkSource;
 
 import androidx.test.filters.SmallTest;
@@ -84,14 +82,7 @@ public class WifiP2pNativeInterfaceManagementTest extends WifiBaseTest {
 
         when(mHalDeviceManager.isSupported()).thenReturn(true);
         when(mHalDeviceManager.createP2pIface(any(InterfaceDestroyedListener.class),
-                any(Handler.class), any(WorkSource.class))).thenReturn(mIWifiP2pIface);
-        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
-            public void answer(IWifiIface.getNameCallback cb)
-                    throws RemoteException {
-                cb.onValues(mWifiStatusSuccess, P2P_IFACE_NAME);
-            }
-        }).when(mIWifiP2pIface).getName(any(IWifiIface.getNameCallback.class));
-
+                any(Handler.class), any(WorkSource.class))).thenReturn(P2P_IFACE_NAME);
         when(mSupplicantP2pIfaceHal.isInitializationStarted()).thenReturn(true);
         when(mSupplicantP2pIfaceHal.initialize()).thenReturn(true);
         when(mSupplicantP2pIfaceHal.isInitializationComplete()).thenReturn(true);
@@ -145,7 +136,7 @@ public class WifiP2pNativeInterfaceManagementTest extends WifiBaseTest {
 
         mWifiP2pNative.teardownInterface();
 
-        verify(mHalDeviceManager).removeIface(any(IWifiIface.class));
+        verify(mHalDeviceManager).removeP2pIface(anyString());
         verify(mSupplicantP2pIfaceHal).teardownIface(eq(P2P_IFACE_NAME));
     }
 
