@@ -22,11 +22,18 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiContext;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -137,10 +144,11 @@ public class InterfaceConflictManagerTest {
         when(mFrameworkFacade.getAppName(any(), anyString(), anyInt())).thenReturn(TEST_APP_NAME);
         when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(),
                 any())).thenReturn(mDialogHandle);
+    }
 
+    private void initInterfaceConflictManager() {
         mDut = new InterfaceConflictManager(mWifiContext, mFrameworkFacade, mHdm,
                 new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager);
-
     }
 
     /**
@@ -151,6 +159,8 @@ public class InterfaceConflictManagerTest {
         // disable user approval
         when(mResources.getBoolean(
                 R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)).thenReturn(false);
+
+        initInterfaceConflictManager();
 
         assertEquals(InterfaceConflictManager.ICM_EXECUTE_COMMAND,
                 mDut.manageInterfaceConflictForStateMachine("Some Tag", mSm.obtainMessage(10), mSm,
@@ -169,6 +179,8 @@ public class InterfaceConflictManagerTest {
                 R.array.config_wifiExcludedFromUserApprovalForD2dInterfacePriority)).thenReturn(
                 new String[]{TEST_PACKAGE_NAME});
 
+        initInterfaceConflictManager();
+
         assertEquals(InterfaceConflictManager.ICM_EXECUTE_COMMAND,
                 mDut.manageInterfaceConflictForStateMachine("Some Tag", mSm.obtainMessage(10), mSm,
                         mSm.B, mSm.A, HalDeviceManager.HDM_CREATE_IFACE_NAN, TEST_WS));
@@ -182,6 +194,8 @@ public class InterfaceConflictManagerTest {
      */
     @Test
     public void testUserApprovalNeededButCommandCanProceed() {
+        initInterfaceConflictManager();
+
         int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_NAN;
 
         // can't create interface
@@ -208,6 +222,8 @@ public class InterfaceConflictManagerTest {
      */
     @Test
     public void testUserApproved() {
+        initInterfaceConflictManager();
+
         int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
         Message msg = mSm.obtainMessage(10);
 
@@ -245,6 +261,8 @@ public class InterfaceConflictManagerTest {
      */
     @Test
     public void testUserRejected() {
+        initInterfaceConflictManager();
+
         int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
         Message msg = mSm.obtainMessage(10);
 
@@ -275,5 +293,81 @@ public class InterfaceConflictManagerTest {
                         interfaceType, TEST_WS));
         mTestLooper.dispatchAll();
         assertEquals("State should stay in primary", mSm.A, mSm.getCurrentState());
+    }
+
+    @Test
+    public void testP2pInterfaceRemovalIsAutoApprovedWhenP2pIsDisconnected()
+            throws Exception {
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalNotRequireForDisconnectedP2p))
+                .thenReturn(true);
+
+        initInterfaceConflictManager();
+
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mWifiContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+
+        // Notify that P2P is disconnected.
+        Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        NetworkInfo info = new NetworkInfo(ConnectivityManager.TYPE_WIFI_P2P,
+                0, "WIFI_P2P", "");
+        info.setDetailedState(NetworkInfo.DetailedState.DISCONNECTED, null, null);
+        intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, info);
+        receiver.getValue().onReceive(mWifiContext, intent);
+        mTestLooper.dispatchAll();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_NAN;
+        Message msg = mSm.obtainMessage(10);
+
+        // can create interface - but with side effects
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_P2P,
+                        new WorkSource(10, "something else"))));
+
+        // send request
+        assertEquals(InterfaceConflictManager.ICM_EXECUTE_COMMAND,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg, mSm, mSm.B, mSm.A,
+                        interfaceType, TEST_WS));
+        mTestLooper.dispatchAll();
+        verify(mWifiDialogManager, never()).createSimpleDialog(any(), any(), any(), any(), any(),
+                any(), any());
+    }
+
+    @Test
+    public void testP2pInterfaceRemovalNeedUserApprovalWhenP2pIsConnected()
+            throws Exception {
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalNotRequireForDisconnectedP2p))
+                .thenReturn(true);
+
+        initInterfaceConflictManager();
+
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mWifiContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+
+        // Notify that P2P is connected.
+        Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        NetworkInfo info = new NetworkInfo(ConnectivityManager.TYPE_WIFI_P2P,
+                0, "WIFI_P2P", "");
+        info.setDetailedState(NetworkInfo.DetailedState.CONNECTED, null, null);
+        intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, info);
+        receiver.getValue().onReceive(mWifiContext, intent);
+        mTestLooper.dispatchAll();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_NAN;
+        Message msg = mSm.obtainMessage(10);
+
+        // can create interface - but with side effects
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_P2P,
+                        new WorkSource(10, "something else"))));
+
+        // send request
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg, mSm, mSm.B, mSm.A,
+                        interfaceType, TEST_WS));
+        mTestLooper.dispatchAll();
+        verify(mWifiDialogManager).createSimpleDialog(any(), any(), any(), any(), any(),
+                any(), any());
     }
 }
