@@ -6551,4 +6551,21 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         Arrays.sort(permission_gold);
         assertEquals(permission_gold, permission);
     }
+
+    /**
+     * Verify ENABLE_P2P won't set up P2P interface when there is no
+     * active client.
+     */
+    @Test
+    public void testEnableP2pIsIgnoredWhenNoActiveClient() throws Exception {
+        simulateWifiStateChange(true);
+        simulateLocationModeChange(true);
+
+        mWifiP2pServiceImpl.getMessenger(mClient1, TEST_PACKAGE_NAME, null);
+        sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
+        mLooper.dispatchAll();
+        verify(mWifiNative, never()).setupInterface(any(), any(), any());
+        verify(mNetdWrapper, never()).setInterfaceUp(anyString());
+        verify(mWifiMonitor, never()).registerHandler(anyString(), anyInt(), any());
+    }
 }

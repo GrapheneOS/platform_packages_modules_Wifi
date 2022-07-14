@@ -1199,9 +1199,12 @@ public class WifiAwareDataPathStateManager {
      * (otherwise it wouldn't be executed).
      *
      * Criteria:
-     * 1. Select a network interface which is unused. This is because the network stack does not
+     * 1. If the request peer is already setup on an interface, if security update is enabled
+     * (based on a device overlay) that interface will be used, otherwise must select an unused
+     * interface for the new request.
+     * 2. Select a network interface which is unused. This is because the network stack does not
      * support multiple networks per interface.
-     * 2. If no network interface is available then (based on a device overlay) either fail (new
+     * 3. If no network interface is available then (based on a device overlay) either fail (new
      * behavior) or (preserve legacy behavior) pick an interface which isn't used for
      * communication to the same peer.
      */
@@ -1221,6 +1224,14 @@ public class WifiAwareDataPathStateManager {
             }
 
             if (Arrays.equals(req.specifiedPeerDiscoveryMac, nnri.specifiedPeerDiscoveryMac)) {
+                if (mContext.getResources()
+                        .getBoolean(R.bool.config_wifiAwareNdpSecurityUpdateOnSameNdi)) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.v(TAG, "Using the same NDI to the same peer with security upgrade "
+                                + "feature enabled.");
+                    }
+                    return nnri.interfaceName;
+                }
                 invalid.add(nnri.interfaceName);
             } else {
                 inuse.add(nnri.interfaceName);

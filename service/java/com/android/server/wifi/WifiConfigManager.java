@@ -4014,6 +4014,22 @@ public class WifiConfigManager {
         saveToStore(true);
     }
 
+    /**
+     * This method updates whether or not a security is enabled.
+     *
+     * @param networkId networkId corresponding to the network to be updated.
+     * @param securityType the target security type
+     * @param enable indicates whether the type is enabled or not.
+     */
+    public void setSecurityParamsEnabled(int networkId, int securityType, boolean enable) {
+        WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
+        if (internalConfig == null) {
+            return;
+        }
+        internalConfig.setSecurityParamsEnabled(securityType, enable);
+        saveToStore(true);
+    }
+
     private static final int SUBJECT_ALTERNATIVE_NAMES_EMAIL = 1;
     private static final int SUBJECT_ALTERNATIVE_NAMES_DNS = 2;
     private static final int SUBJECT_ALTERNATIVE_NAMES_URI = 6;

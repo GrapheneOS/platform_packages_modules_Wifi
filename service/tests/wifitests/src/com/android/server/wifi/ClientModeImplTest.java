@@ -8348,4 +8348,104 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative).sendQosPolicyResponse(
                 eq(WIFI_IFACE_NAME), eq(dialogToken + 1), eq(true), any());
     }
+
+    private void verifyUpdatePskEnablement(
+            boolean isWpa2PersonalOnlyNetworkInRange,
+            boolean isWpa2Wpa3PersonalTransitionNetworkInRange,
+            boolean isWpa3PersonalOnlyNetworkInRange, boolean shouldBeUpdated)
+            throws Exception {
+
+        when(mScanRequestProxy.isWpa2PersonalOnlyNetworkInRange(any()))
+                .thenReturn(isWpa2PersonalOnlyNetworkInRange);
+        when(mScanRequestProxy.isWpa2Wpa3PersonalTransitionNetworkInRange(any()))
+                .thenReturn(isWpa2Wpa3PersonalTransitionNetworkInRange);
+        when(mScanRequestProxy.isWpa3PersonalOnlyNetworkInRange(any()))
+                .thenReturn(isWpa3PersonalOnlyNetworkInRange);
+        initializeAndAddNetworkAndVerifySuccess();
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.networkId = TEST_NETWORK_ID;
+        config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
+
+        IActionListener connectActionListener = mock(IActionListener.class);
+        mCmi.connectNetwork(
+                new NetworkUpdateResult(TEST_NETWORK_ID),
+                new ActionListenerWrapper(connectActionListener),
+                Process.SYSTEM_UID, OP_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(connectActionListener).onSuccess();
+        if (shouldBeUpdated) {
+            verify(mWifiConfigManager).setSecurityParamsEnabled(
+                    eq(TEST_NETWORK_ID), eq(WifiConfiguration.SECURITY_TYPE_PSK),
+                    eq(true));
+        } else {
+            verify(mWifiConfigManager, never()).updateIsAddedByAutoUpgradeFlag(
+                    anyInt(), anyInt(), anyBoolean());
+        }
+    }
+
+    @Test
+    public void testPskIsReEnableWithOnlyPskNetwork() throws Exception {
+        boolean isWpa2PersonalOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
+        boolean isWpa3PersonalOnlyNetworkInRange = false;
+        boolean shouldBeUpdated = true;
+
+        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+                isWpa2Wpa3PersonalTransitionNetworkInRange,
+                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+    }
+
+    @Test
+    public void testPskIsNotReEnableWithPskSaeNetwork() throws Exception {
+        boolean isWpa2PersonalOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3PersonalTransitionNetworkInRange = true;
+        boolean isWpa3PersonalOnlyNetworkInRange = false;
+        boolean shouldBeUpdated = false;
+
+        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+                isWpa2Wpa3PersonalTransitionNetworkInRange,
+                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+    }
+
+    @Test
+    public void testPskIsNotReEnableWithSaeNetwork() throws Exception {
+        boolean isWpa2PersonalOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
+        boolean isWpa3PersonalOnlyNetworkInRange = true;
+        boolean shouldBeUpdated = false;
+
+        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+                isWpa2Wpa3PersonalTransitionNetworkInRange,
+                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+    }
+
+    @Test
+    public void testPskIsNotReEnableWithoutPskNetwork() throws Exception {
+        boolean isWpa2PersonalOnlyNetworkInRange = false;
+        boolean isWpa2Wpa3PersonalTransitionNetworkInRange = true;
+        boolean isWpa3PersonalOnlyNetworkInRange = false;
+        boolean shouldBeUpdated = false;
+
+        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+                isWpa2Wpa3PersonalTransitionNetworkInRange,
+                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+    }
+
+    @Test
+    public void testPskIsNotReEnableForNonUserSelectedNetwork() throws Exception {
+        boolean isWpa2PersonalOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
+        boolean isWpa3PersonalOnlyNetworkInRange = false;
+        boolean shouldBeUpdated = false;
+
+        // Only a request from settings or setup wizard are considered a user selected network.
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
+
+        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+                isWpa2Wpa3PersonalTransitionNetworkInRange,
+                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+    }
 }

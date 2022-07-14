@@ -34,6 +34,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.app.admin.SecurityLog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -853,6 +854,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mFacade,
                 mNotificationManager,
                 mWifiInjector.getWifiDialogManager(),
+                mClock,
+                mContext.getSystemService(AlarmManager.class),
                 isTrustOnFirstUseSupported(),
                 mWifiGlobals.isInsecureEnterpriseConfigurationAllowed(),
                 mInsecureEapNetworkHandlerCallbacksImpl,
@@ -1282,6 +1285,27 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
+     * If there is only PSK networks and PSK is disabled,
+     * PSK should be enabled back when a user selects this network explicitly.
+     */
+    private void updatePskTypeForUserSelectNetwork(int networkId, boolean isUserSelected) {
+        if (!isUserSelected) return;
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
+        if (null == config) return;
+        SecurityParams params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        if (null == params || params.isEnabled()) return;
+
+        // Re-enable PSK when there is only PSK network.
+        if (mScanRequestProxy.isWpa3PersonalOnlyNetworkInRange(config.SSID)) return;
+        if (mScanRequestProxy.isWpa2Wpa3PersonalTransitionNetworkInRange(config.SSID)) return;
+        if (!mScanRequestProxy.isWpa2PersonalOnlyNetworkInRange(config.SSID)) return;
+
+        logd("Re-enable PSK type for the user selected PSK network.");
+        mWifiConfigManager.setSecurityParamsEnabled(config.networkId,
+                WifiConfiguration.SECURITY_TYPE_PSK, true);
+    }
+
+    /**
      * Initiates connection to a network specified by the user/app. This method checks if the
      * requesting app holds the NETWORK_SETTINGS permission.
      *
@@ -1301,6 +1325,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 + packageName + ", forceReconnect = " + forceReconnect + ", isUserSelected = "
                 + mIsUserSelected);
         updateSaeAutoUpgradeFlagForUserSelectNetwork(netId);
+        updatePskTypeForUserSelectNetwork(netId, mIsUserSelected);
         if (!forceReconnect && (mLastNetworkId == netId || mTargetNetworkId == netId)) {
             // We're already connecting/connected to the user specified network, don't trigger a
             // reconnection unless it was forced.
@@ -5899,10 +5924,23 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     handleStatus = NOT_HANDLED;
                     break;
                 }
-                case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
+                case CMD_ACCEPT_EAP_SERVER_CERTIFICATE: {
+                    String ssid = (String) message.obj;
+                    if (mTargetWifiConfiguration == null
+                            || !mTargetWifiConfiguration.SSID.equals(ssid)) {
+                        break;
+                    }
+
                     startL3Provisioning();
                     break;
+                }
                 case CMD_REJECT_EAP_SERVER_CERTIFICATE: {
+                    String ssid = (String) message.obj;
+                    if (mTargetWifiConfiguration == null
+                            || !mTargetWifiConfiguration.SSID.equals(ssid)) {
+                        break;
+                    }
+
                     int l2FailureReason = message.arg1;
                     reportConnectionAttemptEnd(
                             WifiMetrics.ConnectionEvent.FAILURE_NETWORK_DISCONNECTION,
@@ -6419,6 +6457,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
+                case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
+                    // Got a delayed approval for TOFU network, trigger a scan to
+                    // accelerate the auto-connection.
+                    mWifiConnectivityManager.forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
+                    break;
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
