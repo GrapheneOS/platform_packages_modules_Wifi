@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"La red debe verificarse"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Revisa los detalles de la red <xliff:g id="SSID">%1$s</xliff:g> antes de conectarte. Toca para continuar."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"No se ha podido instalar el certificado."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"No se puede conectar a <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"La cadena de certificados del servidor no es válida."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Aceptar"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"No se puede verificar esta red"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Conectar de todos modos"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"No conectar"</string>

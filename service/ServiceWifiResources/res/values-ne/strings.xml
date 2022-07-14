@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"नेटवर्कको पुष्टि गरिनु पर्ने हुन्छ"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"<xliff:g id="SSID">%1$s</xliff:g> मा कनेक्ट गर्नुअघि यसका नेटवर्कसम्बन्धी विवरण जाँच्नुहोस्। जारी राख्न ट्याप गर्नुहोस्।"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"प्रमाणपत्र इन्सटल गर्न सकिएन।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> मा कनेक्ट गर्न सकिएन"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"सर्भरको प्रमाणपत्रको चेन अवैध छ।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ठिक छ"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"यो नेटवर्क पुष्टि गर्न सकिएन"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"जे भए पनि कनेक्ट गर्नुहोस्"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"कनेक्ट नगर्नुहोस्"</string>

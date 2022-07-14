@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Ağın doğrulanması gerekiyor"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Bağlanmadan önce <xliff:g id="SSID">%1$s</xliff:g> ağ ayrıntılarını inceleyin. Devam etmek için dokunun."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Sertifika yükleme işlemi başarısız."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> ağına bağlanılamıyor"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Sunucu sertifikası zinciri geçersiz."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Tamam"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Bu ağ doğrulanamıyor"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Yine de bağlan"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Bağlanma"</string>

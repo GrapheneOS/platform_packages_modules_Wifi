@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Rețeaua trebuie să fie verificată"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Examinați detaliile rețelei pentru <xliff:g id="SSID">%1$s</xliff:g> înainte de conectare. Atingeți pentru a continua."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Certificatul nu a fost instalat."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Nu se poate conecta la <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Lanțul de certificate al serverului este nevalid."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"OK"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Rețeaua nu poate fi verificată"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Conectează oricum"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Nu conecta"</string>

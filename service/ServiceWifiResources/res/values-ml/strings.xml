@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"നെറ്റ്‌വർക്ക് പരിശോധിച്ചുറപ്പിക്കേണ്ടതുണ്ട്"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"കണക്റ്റ് ചെയ്യുന്നതിന് മുമ്പ് <xliff:g id="SSID">%1$s</xliff:g> എന്നതിന്റെ നെറ്റ്‌വർക്ക് വിശദാംശങ്ങൾ അവലോകനം ചെയ്യുക. തുടരാൻ ടാപ്പ് ചെയ്യുക."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"സർട്ടിഫിക്കറ്റ് ഇൻസ്റ്റാൾ ചെയ്യാനായില്ല."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> എന്നതിലേക്ക് കണക്‌റ്റ് ചെയ്യാനാകുന്നില്ല"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"സെർവർ സർട്ടിഫിക്കറ്റ് ചെയിൻ അസാധുവാണ്."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ശരി"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ഈ നെറ്റ്‌വർക്ക് പരിശോധിച്ചുറപ്പിക്കാനാകുന്നില്ല"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"എന്തായാലും കണക്‌റ്റ് ചെയ്യുക"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"കണക്റ്റ് ചെയ്യരുത്"</string>
