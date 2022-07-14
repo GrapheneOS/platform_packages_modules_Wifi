@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Мрежа мора да се верификује"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Прегледајте појединости мреже <xliff:g id="SSID">%1$s</xliff:g> пре повезивања. Додирните да бисте наставили."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Инсталација сертификата није успела."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Повезивање на мрежу <xliff:g id="VALUE">%1$s</xliff:g> није успело"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Ланац сертификата за сервер је неважећи."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Потврди"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Не можемо да верификујемо ову мрежу"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Ипак повежи"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Не повезуј"</string>
