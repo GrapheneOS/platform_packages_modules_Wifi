@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.Process;
 import android.os.Vibrator;
 import android.text.Editable;
@@ -261,7 +262,7 @@ public class WifiDialogActivity extends Activity  {
                 dialog.dismiss();
             }
             mActiveDialogsPerId.clear();
-        } else {
+        } else if (getSystemService(PowerManager.class).isInteractive()) {
             // If we're stopping because we're switching to a new Activity, remove and cancel all
             // the dialogs.
             while (mActiveDialogsPerId.size() > 0) {
