@@ -3200,9 +3200,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         blocklistReason, mLastScanRssi);
                 WifiScoreCard.NetworkConnectionStats recentStats = mWifiScoreCard.lookupNetwork(
                         ssid).getRecentStats();
+                // Skip the secondary internet connection failure for association rejection
+                final boolean shouldSkip = isSecondaryInternet() &&
+                        (level2FailureReason
+                                == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT
+                                || level2FailureReason
+                                == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION);
                 if (recentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE)
                         >= WifiBlocklistMonitor.NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF
-                        && configuration.getNetworkSelectionStatus().isNetworkEnabled()) {
+                        && configuration.getNetworkSelectionStatus().isNetworkEnabled()
+                        && !shouldSkip) {
                     mWifiConfigManager.updateNetworkSelectionStatus(mTargetNetworkId,
                             WifiConfiguration.NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES);
                 }
@@ -5179,9 +5186,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         // not being set until association success.
                         mTargetBssid = bssid;
                     }
-                    mWifiConfigManager.updateNetworkSelectionStatus(mTargetNetworkId,
-                            WifiConfiguration.NetworkSelectionStatus
-                                    .DISABLED_ASSOCIATION_REJECTION);
+                    if (!isSecondaryInternet()) {
+                        mWifiConfigManager.updateNetworkSelectionStatus(mTargetNetworkId,
+                                WifiConfiguration.NetworkSelectionStatus
+                                        .DISABLED_ASSOCIATION_REJECTION);
+                    }
                     setAssociationRejectionStatusInConfig(mTargetNetworkId, assocRejectEventInfo);
                     int level2FailureReason =
                             WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN;
@@ -5191,6 +5200,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         level2FailureReason = WifiMetricsProto.ConnectionEvent
                                 .ASSOCIATION_REJECTION_AP_UNABLE_TO_HANDLE_NEW_STA;
                     }
+
                     // If rejection occurred while Metrics is tracking a ConnectionEvent, end it.
                     reportConnectionAttemptEnd(
                             timedOut
@@ -5198,6 +5208,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                     : WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION,
                             WifiMetricsProto.ConnectionEvent.HLF_NONE,
                             level2FailureReason);
+
                     if (level2FailureReason != WifiMetricsProto.ConnectionEvent
                             .ASSOCIATION_REJECTION_AP_UNABLE_TO_HANDLE_NEW_STA) {
                         mWifiLastResortWatchdog.noteConnectionFailureAndTriggerIfNeeded(
