@@ -125,6 +125,20 @@ public class WifiSettingsConfigStore {
      */
     public static final Key<String> WIFI_STATIC_CHIP_INFO = new Key<>("wifi_static_chip_info", "");
 
+    /**
+     * Whether to show a dialog when third party apps attempt to enable wifi.
+     */
+    public static final Key<Boolean> SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI =
+            new Key<>("show_dialog_when_third_party_apps_enable_wifi", false);
+
+    /**
+     * Whether the
+     * {@link WifiManager#setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean)} API was
+     * called to set the value of {@link #SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI}.
+     */
+    public static final Key<Boolean> SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API =
+            new Key<>("show_dialog_when_third_party_apps_enable_wifi_set_by_api", false);
+
     /******** Wifi shared pref keys ***************/
 
     private final Context mContext;

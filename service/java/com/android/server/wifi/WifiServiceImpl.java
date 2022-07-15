@@ -46,6 +46,8 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_NAN;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
+import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
+import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import android.Manifest;
@@ -1189,8 +1191,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // Show a user-confirmation dialog for legacy third-party apps targeting less than Q.
         if (enable && isTargetSdkLessThanQ && isThirdParty
-                && mContext.getResources().getBoolean(
-                R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi)) {
+                && showDialogWhenThirdPartyAppsEnableWifi()) {
             mLog.info("setWifiEnabled must show user confirmation dialog for uid=%").c(callingUid)
                     .flush();
             mWifiThreadRunner.post(() -> {
@@ -3143,6 +3144,54 @@ public class WifiServiceImpl extends BaseWifiService {
                 WifiManager.API_SET_NETWORK_SELECTION_CONFIG,
                 Process.myTid(),
                 uid, Binder.getCallingPid(), "<unknown>", true);
+    }
+
+    /**
+     * See {@link WifiManager#setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean)}
+     */
+    @Override
+    public void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean enable) {
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + ", is not allowed to enable warning dialog "
+                    + "to display when third party apps start wifi");
+        }
+        mLog.info("uid=% enableWarningDialog=%").c(uid).c(enable).flush();
+        mWifiInjector.getSettingsConfigStore().put(
+                SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI, enable);
+        mWifiInjector.getSettingsConfigStore().put(
+                SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API, true);
+        mLastCallerInfoManager.put(
+                WifiManager.API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG,
+                Process.myTid(),
+                uid, Binder.getCallingPid(), "<unknown>", enable);
+    }
+
+    private boolean showDialogWhenThirdPartyAppsEnableWifi() {
+        if (mWifiInjector.getSettingsConfigStore().get(
+                SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)) {
+            // API was called to override the overlay value.
+            return mWifiInjector.getSettingsConfigStore().get(
+                    SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI);
+        } else {
+            return mContext.getResources().getBoolean(
+                    R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi);
+        }
+    }
+
+    /**
+     * See {@link WifiManager#isThirdPartyAppEnablingWifiConfirmationDialogEnabled()}
+     */
+    @Override
+    public boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled() {
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + ", is not allowed to check if warning "
+                    + "dialog is enabled when third party apps start wifi");
+        }
+        return showDialogWhenThirdPartyAppsEnableWifi();
     }
 
     /**
