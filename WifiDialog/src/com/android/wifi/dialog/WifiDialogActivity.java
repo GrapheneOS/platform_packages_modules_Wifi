@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.Process;
 import android.os.Vibrator;
 import android.text.Editable;
@@ -65,6 +66,8 @@ import java.util.Set;
  * Main Activity of the WifiDialog application. All dialogs should be created and managed from here.
  */
 public class WifiDialogActivity extends Activity  {
+    private static int sNumActiveInstances = 0;
+
     private static final String TAG = "WifiDialog";
     private static final String KEY_DIALOG_INTENTS = "KEY_DIALOG_INTENTS";
 
@@ -194,6 +197,10 @@ public class WifiDialogActivity extends Activity  {
     @Override
     protected void onStart() {
         super.onStart();
+        sNumActiveInstances++;
+        if (mIsVerboseLoggingEnabled) {
+            Log.v(TAG, "onStart() incrementing sActiveInstances to " + sNumActiveInstances);
+        }
         registerReceiver(
                 mCloseSystemDialogsReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         ArraySet<Integer> invalidDialogIds = new ArraySet<>();
@@ -237,6 +244,10 @@ public class WifiDialogActivity extends Activity  {
     @Override
     protected void onStop() {
         super.onStop();
+        sNumActiveInstances--;
+        if (mIsVerboseLoggingEnabled) {
+            Log.v(TAG, "onStop() decrementing sActiveInstances to " + sNumActiveInstances);
+        }
         unregisterReceiver(mCloseSystemDialogsReceiver);
 
         if (isChangingConfigurations()) {
@@ -251,7 +262,7 @@ public class WifiDialogActivity extends Activity  {
                 dialog.dismiss();
             }
             mActiveDialogsPerId.clear();
-        } else {
+        } else if (getSystemService(PowerManager.class).isInteractive()) {
             // If we're stopping because we're switching to a new Activity, remove and cancel all
             // the dialogs.
             while (mActiveDialogsPerId.size() > 0) {
@@ -296,7 +307,15 @@ public class WifiDialogActivity extends Activity  {
     protected void onDestroy() {
         super.onDestroy();
         if (isFinishing()) {
-            // Kill the process now instead of waiting indefinitely for ActivityManager to kill it.
+            if (sNumActiveInstances > 0) {
+                if (mIsVerboseLoggingEnabled) {
+                    Log.v(TAG, "Finished with sNumActiveInstances: " + sNumActiveInstances);
+                }
+                return;
+            }
+            if (mIsVerboseLoggingEnabled) {
+                Log.v(TAG, "Finished with no active instances left. Killing process.");
+            }
             Process.killProcess(android.os.Process.myPid());
         }
     }
