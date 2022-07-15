@@ -1366,10 +1366,18 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public int getWifiEnabledState() {
         enforceAccessPermission();
-        if (mVerboseLoggingEnabled) {
-            mLog.info("getWifiEnabledState uid=%").c(Binder.getCallingUid()).flush();
+        int state = mActiveModeWarden.getWifiState();
+        // If the wifi is enabling, call it on the wifi handler to get the state after wifi enabled.
+        // This is only needed for pre-T.
+        if (state == WifiManager.WIFI_STATE_ENABLING && !SdkLevel.isAtLeastT()) {
+            state = mWifiThreadRunner.call(() -> mActiveModeWarden.getWifiState(),
+                    WifiManager.WIFI_STATE_ENABLING);
         }
-        return mActiveModeWarden.getWifiState();
+        if (mVerboseLoggingEnabled) {
+            mLog.info("getWifiEnabledState uid=% state=%").c(Binder.getCallingUid()).c(
+                    state).flush();
+        }
+        return state;
     }
 
     /**
