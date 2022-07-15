@@ -3574,8 +3574,6 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mClientModeManager.isSecondaryInternet()).thenReturn(true);
         when(mClientModeManager.isSecondaryInternetDbsAp()).thenReturn(true);
         initializeAndAddNetworkAndVerifySuccess();
-        mTestConfig.dbsSecondaryInternet = true;
-        mConnectedNetwork.dbsSecondaryInternet = true;
         connect();
         verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_LOCAL_MAC_ADDRESS_SECONDARY_DBS);
         verify(mWifiMetrics).logStaEvent(
