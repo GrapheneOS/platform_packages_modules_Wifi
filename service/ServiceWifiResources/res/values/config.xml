@@ -880,6 +880,9 @@
         <item>com.company2.example.test.name2</item>
         -->
     </string-array>
+    <!-- Indicates whether or not P2P interface removal can be approved automatically when P2P
+         is not connected. -->
+    <bool translatable="false" name="config_wifiUserApprovalNotRequireForDisconnectedP2p">false</bool>
 
     <!-- boolean indicating whether the Easy Connect (DPP) AKM is supported -->
     <bool translatable="false" name ="config_wifiDppAkmSupported">false</bool>
@@ -905,6 +908,14 @@
         <!-- Below is a sample configuration for this list:
         <item>XYZ</item>
         <item>ABC</item>
+        -->
+    </string-array>
+    <!-- list of package names for which WifiRttManager.startRanging() will not be throttled when
+    the app is in background. -->
+    <string-array translatable="false" name="config_wifiBackgroundRttThrottleExceptionList">
+        <!-- Below is a sample configuration for this list:
+        <item>com.company1.example.test.name1</item>
+        <item>com.company2.example.test.name2</item>
         -->
     </string-array>
 
