@@ -284,7 +284,7 @@ public class WifiInjector {
         mSoftApBackupRestore = new SoftApBackupRestore(mContext, mSettingsMigrationDataHolder);
         mWifiStateTracker = new WifiStateTracker(mBatteryStats);
         mWifiThreadRunner = new WifiThreadRunner(wifiHandler);
-        mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner);
+        mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner, mFrameworkFacade);
         mWifiP2pServiceHandlerThread = new HandlerThread("WifiP2pService");
         mWifiP2pServiceHandlerThread.start();
         mPasspointProvisionerHandlerThread =
