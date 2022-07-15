@@ -68,6 +68,8 @@ public class WifiGlobals {
     private final int mWifiLowConnectedScoreScanPeriodSeconds;
     // This is read from the overlay, cache it after boot up.
     private final boolean mWifiAllowInsecureEnterpriseConfiguration;
+    // This is read from the overlay, cache it after boot up.
+    private final boolean mIsP2pMacRandomizationSupported;
 
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
@@ -100,6 +102,8 @@ public class WifiGlobals {
                 R.integer.config_wifiLowConnectedScoreScanPeriodSeconds);
         mWifiAllowInsecureEnterpriseConfiguration = mContext.getResources().getBoolean(
                 R.bool.config_wifiAllowInsecureEnterpriseConfigurationsForSettingsAndSUW);
+        mIsP2pMacRandomizationSupported = mContext.getResources().getBoolean(
+                R.bool.config_wifi_p2p_mac_randomization_supported);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -262,6 +266,11 @@ public class WifiGlobals {
         return mWifiAllowInsecureEnterpriseConfiguration;
     }
 
+    /** Get whether or not P2P MAC randomization is supported */
+    public boolean isP2pMacRandomizationSupported() {
+        return mIsP2pMacRandomizationSupported;
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -285,5 +294,6 @@ public class WifiGlobals {
                 + mIsUsingExternalScorer);
         pw.println("mWifiAllowInsecureEnterpriseConfiguratio"
                 + mWifiAllowInsecureEnterpriseConfiguration);
+        pw.println("mIsP2pMacRandomizationSupported" + mIsP2pMacRandomizationSupported);
     }
 }
