@@ -145,12 +145,16 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
                             Log.i(TAG, "IServiceNotification.onRegistration for: " + fqName
                                     + ", " + name + " preexisting=" + preexisting);
                         }
-                        if (!initSupplicantService()) {
-                            Log.e(TAG, "Initializing ISupplicant failed.");
-                            supplicantServiceDiedHandler(mDeathRecipientCookie);
-                        } else {
-                            Log.i(TAG, "Completed initialization of ISupplicant.");
+                        if (mISupplicant == null) {
+                            Log.e(TAG, "ISupplicant interface is null!");
+                            return;
                         }
+                        if (!linkToSupplicantDeath(mSupplicantDeathRecipient,
+                                ++mDeathRecipientCookie)) {
+                            Log.e(TAG, "Registering ISupplicant death recipient failed.");
+                            return;
+                        }
+                        Log.i(TAG, "Completed service registration of ISupplicant.");
                     }
                 }
             };
@@ -288,28 +292,6 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
             }
             return true;
         }
-    }
-
-    private boolean initSupplicantService() {
-        synchronized (mLock) {
-            try {
-                mISupplicant = getSupplicantMockable();
-            } catch (RemoteException e) {
-                Log.e(TAG, "ISupplicant.getService exception: " + e);
-                return false;
-            } catch (NoSuchElementException e) {
-                Log.e(TAG, "ISupplicant.getService exception: " + e);
-                return false;
-            }
-            if (mISupplicant == null) {
-                Log.e(TAG, "Got null ISupplicant service. Stopping supplicant HIDL startup");
-                return false;
-            }
-            if (!linkToSupplicantDeath(mSupplicantDeathRecipient, ++mDeathRecipientCookie)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     protected int getCurrentNetworkId(@NonNull String ifaceName) {
@@ -678,30 +660,6 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-
-    /**
-     * Start the supplicant daemon for V1_1 service.
-     *
-     * @return true on success, false otherwise.
-     */
-    private boolean startDaemon_V1_1() {
-        synchronized (mLock) {
-            try {
-                // This should startup supplicant daemon using the lazy start HAL mechanism.
-                getSupplicantMockableV1_1();
-            } catch (RemoteException e) {
-                Log.e(TAG, "Exception while trying to start supplicant: "
-                        + e);
-                supplicantServiceDiedHandler(mDeathRecipientCookie);
-                return false;
-            } catch (NoSuchElementException e) {
-                // We're starting the daemon, so expect |NoSuchElementException|.
-                Log.d(TAG, "Successfully triggered start of supplicant using HIDL");
-            }
-            return true;
-        }
-    }
-
     /**
      * Start the supplicant daemon.
      *
@@ -709,14 +667,24 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean startDaemon() {
         synchronized (mLock) {
-            if (isV1_1()) {
-                Log.i(TAG, "Starting supplicant using HIDL");
-                return startDaemon_V1_1();
-            } else {
-                Log.i(TAG, "Starting supplicant using init");
-                return mFrameworkFacade.startSupplicant();
+            try {
+                if (isV1_1()) {
+                    Log.i(TAG, "Starting supplicant using HIDL 1.1");
+                    mISupplicant = getSupplicantMockableV1_1();
+                } else {
+                    Log.i(TAG, "Starting supplicant using init");
+                    if (!mFrameworkFacade.startSupplicant()) {
+                        return false;
+                    }
+                    mISupplicant = getSupplicantMockable();
+                }
+            } catch (RemoteException | NoSuchElementException e) {
+                Log.e(TAG, "Exception while trying to start supplicant: " + e);
+                supplicantServiceDiedHandler(mDeathRecipientCookie);
+                return false;
             }
         }
+        return true;
     }
 
     /**
@@ -802,9 +770,9 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
 
     protected ISupplicant getSupplicantMockable() throws RemoteException, NoSuchElementException {
         synchronized (mLock) {
-            ISupplicant iSupplicant = ISupplicant.getService();
+            ISupplicant iSupplicant = ISupplicant.getService(true);
             if (iSupplicant == null) {
-                throw new NoSuchElementException("Cannot get root service.");
+                throw new NoSuchElementException("Cannot get ISupplicant default service.");
             }
             return iSupplicant;
         }
@@ -815,19 +783,6 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         synchronized (mLock) {
             android.hardware.wifi.supplicant.V1_1.ISupplicant iSupplicantDerived =
                     android.hardware.wifi.supplicant.V1_1.ISupplicant.castFrom(
-                            getSupplicantMockable());
-            if (iSupplicantDerived == null) {
-                throw new NoSuchElementException("Cannot cast to V1.1 service.");
-            }
-            return iSupplicantDerived;
-        }
-    }
-
-    protected android.hardware.wifi.supplicant.V1_2.ISupplicant getSupplicantMockableV1_2()
-            throws RemoteException, NoSuchElementException {
-        synchronized (mLock) {
-            android.hardware.wifi.supplicant.V1_2.ISupplicant iSupplicantDerived =
-                    android.hardware.wifi.supplicant.V1_2.ISupplicant.castFrom(
                             getSupplicantMockable());
             if (iSupplicantDerived == null) {
                 throw new NoSuchElementException("Cannot cast to V1.1 service.");
