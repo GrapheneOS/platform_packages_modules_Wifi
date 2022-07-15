@@ -2582,7 +2582,6 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testNonPersistentRandomizationDbsMacAddress() {
         setUpWifiConfigurationForNonPersistentRandomization();
         WifiConfiguration config = getFirstInternalWifiConfiguration();
-        config.dbsSecondaryInternet = true;
         MacAddress randomMac = config.getRandomizedMacAddress();
         MacAddress newMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
                 true);
