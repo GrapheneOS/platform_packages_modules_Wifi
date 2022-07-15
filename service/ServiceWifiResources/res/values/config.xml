@@ -550,6 +550,10 @@
     <integer translatable="false" name="config_wifiDisableReasonAuthenticationFailureThreshold"> 3 </integer>
     <integer translatable="false" name="config_wifiDisableReasonDhcpFailureThreshold"> 2 </integer>
     <integer translatable="false" name="config_wifiDisableReasonNetworkNotFoundThreshold"> 2 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonNoInternetTemporaryThreshold"> 1 </integer>
+
+    <!-- Base duration to set a network disabled after validation failure happen-->
+    <integer translatable="false" name="config_wifiDisableReasonNoInternetTemporaryDurationMs"> 600000 </integer>
 
     <!-- List of constants that indicate the number of consecutive failures per type needed to block a BSSID.
     A blocked BSSID will not be considered in network selection and firmware roaming.-->
@@ -570,6 +574,9 @@
     ie. 5/10/20/40/80/160/320/640 minutes - capped at 640 minutes because the default for
     config_wifiBssidBlocklistMonitorFailureStreakCap is set to 7-->
     <integer translatable="false" name="config_wifiBssidBlocklistMonitorBaseBlockDurationMs"> 300000 </integer>
+
+    <!-- Base duration to block a bssid after validation failure happen-->
+    <integer translatable="false" name="config_wifiBssidBlocklistMonitorValidationFailureBaseBlockDurationMs"> 300000 </integer>
 
     <!-- Base duration to block a BSSID after the external connected scorer sets wifi as unusable.
     The block duration is increased exponentially if the same BSSID is repeated marked as unusable.
