@@ -1294,6 +1294,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     String dialogOption = getNextOption();
                     boolean simpleTimeoutSpecified = false;
                     long simpleTimeoutMs = 0;
+                    boolean useLegacy = false;
                     while (dialogOption != null) {
                         switch (dialogOption) {
                             case "-t":
@@ -1319,6 +1320,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                             case "-c":
                                 simpleTimeoutMs = Integer.parseInt(getNextArgRequired());
                                 simpleTimeoutSpecified = true;
+                                break;
+                            case "-s":
+                                useLegacy = true;
                                 break;
                             default:
                                 pw.println("Ignoring unknown option " + dialogOption);
@@ -1349,18 +1353,32 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     simpleQueue.offer("Dialog was cancelled.");
                                 }
                             };
-                    WifiDialogManager.DialogHandle simpleDialogHandle =
-                            mWifiDialogManager.createSimpleDialogWithUrl(
-                                    title,
-                                    message,
-                                    messageUrl,
-                                    messageUrlStart,
-                                    messageUrlEnd,
-                                    positiveButtonText,
-                                    negativeButtonText,
-                                    neutralButtonText,
-                                    wifiEnableRequestCallback,
-                                    mWifiThreadRunner);
+                    WifiDialogManager.DialogHandle simpleDialogHandle;
+                    if (useLegacy) {
+                        simpleDialogHandle = mWifiDialogManager.createLegacySimpleDialogWithUrl(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                wifiEnableRequestCallback,
+                                mWifiThreadRunner);
+                    } else {
+                        simpleDialogHandle = mWifiDialogManager.createSimpleDialogWithUrl(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                wifiEnableRequestCallback,
+                                mWifiThreadRunner);
+                    }
                     if (simpleTimeoutSpecified) {
                         simpleDialogHandle.launchDialog(simpleTimeoutMs);
                         pw.println("Launched dialog with " + simpleTimeoutMs + " millisecond"
@@ -2392,6 +2410,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -n - Negative Button Text");
         pw.println("    -x - Neutral Button Text");
         pw.println("    -c - Optional timeout in milliseconds");
+        pw.println("    -s - Use the legacy dialog implementation on the system process");
         pw.println("  launch-dialog-p2p-invitation-sent <device_name> <pin> [-i <display_id>]");
         pw.println("    Launches a P2P Invitation Sent dialog.");
         pw.println("    <device_name> - Name of the device the invitation was sent to");
