@@ -2796,7 +2796,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.clearCurrentSecurityType();
             mWifiInfo.resetMultiLinkInfo();
         }
-        updateLayer2Information();
+        // Update the L2 Information to IP Layer only after STA is authorized for data transfer.
+        if (state == SupplicantState.COMPLETED) {
+            updateLayer2Information();
+        }
         // SSID might have been updated, so call updateCapabilities
         updateCapabilities();
 
