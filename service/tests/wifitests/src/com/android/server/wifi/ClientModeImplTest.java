@@ -4268,6 +4268,40 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiMetrics).incrementNumOfCarrierWifiConnectionNonAuthFailure();
     }
 
+    private void testAssociationRejectionForRole(boolean isSecondary) throws Exception {
+        if (isSecondary) {
+            when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+            when(mClientModeManager.isSecondaryInternet()).thenReturn(true);
+        }
+        initializeAndAddNetworkAndVerifySuccess();
+        mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
+        mCmi.sendMessage(WifiMonitor.ASSOCIATION_REJECTION_EVENT,
+                new AssocRejectEventInfo(TEST_SSID, TEST_BSSID_STR,
+                        ISupplicantStaIfaceCallback.StatusCode.AP_UNABLE_TO_HANDLE_NEW_STA, false));
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                eq(mTestConfig), eq(WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA),
+                anyInt());
+        if (isSecondary) {
+            verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+        }
+        else {
+            verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+        }
+    }
+
+    @Test
+    public void testAssociationRejectionPrimary() throws Exception {
+        testAssociationRejectionForRole(false);
+    }
+
+    @Test
+    public void testAssociationRejectionSecondary() throws Exception {
+        testAssociationRejectionForRole(true);
+    }
+
     /**
      * Verifies that WifiLastResortWatchdog is not notified of authentication failures of type
      * ERROR_AUTH_FAILURE_WRONG_PSWD.
