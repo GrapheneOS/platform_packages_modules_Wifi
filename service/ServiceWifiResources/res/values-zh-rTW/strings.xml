@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"必須驗證網路"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"連線之前，請先確認 <xliff:g id="SSID">%1$s</xliff:g> 的網路資訊是否正確。輕觸這裡即可繼續。"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"憑證安裝失敗。"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"無法連線至「<xliff:g id="VALUE">%1$s</xliff:g>」"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"伺服器憑證鏈結無效。"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"確定"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"無法驗證這個網路"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"仍要連線"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"不要連線"</string>

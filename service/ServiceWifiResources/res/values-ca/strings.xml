@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Cal verificar la xarxa"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Revisa els detalls de la xarxa <xliff:g id="SSID">%1$s</xliff:g> abans de connectar-te. Toca per continuar."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Ha fallat la instal·lació del certificat."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"No es pot connectar a <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"La cadena de certificats del servidor no és vàlida."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"D\'acord"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"No es pot verificar aquesta xarxa"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Connecta\'t de totes maneres"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"No et connectis"</string>
