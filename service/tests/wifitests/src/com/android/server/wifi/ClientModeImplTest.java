@@ -4268,6 +4268,40 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiMetrics).incrementNumOfCarrierWifiConnectionNonAuthFailure();
     }
 
+    private void testAssociationRejectionForRole(boolean isSecondary) throws Exception {
+        if (isSecondary) {
+            when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+            when(mClientModeManager.isSecondaryInternet()).thenReturn(true);
+        }
+        initializeAndAddNetworkAndVerifySuccess();
+        mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
+        mCmi.sendMessage(WifiMonitor.ASSOCIATION_REJECTION_EVENT,
+                new AssocRejectEventInfo(TEST_SSID, TEST_BSSID_STR,
+                        ISupplicantStaIfaceCallback.StatusCode.AP_UNABLE_TO_HANDLE_NEW_STA, false));
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                eq(mTestConfig), eq(WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA),
+                anyInt());
+        if (isSecondary) {
+            verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+        }
+        else {
+            verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+        }
+    }
+
+    @Test
+    public void testAssociationRejectionPrimary() throws Exception {
+        testAssociationRejectionForRole(false);
+    }
+
+    @Test
+    public void testAssociationRejectionSecondary() throws Exception {
+        testAssociationRejectionForRole(true);
+    }
+
     /**
      * Verifies that WifiLastResortWatchdog is not notified of authentication failures of type
      * ERROR_AUTH_FAILURE_WRONG_PSWD.
@@ -4454,6 +4488,40 @@ public class ClientModeImplTest extends WifiBaseTest {
         final Layer2InformationParcelable info = captor.getValue();
         assertEquals(info.l2Key, "Wad");
         assertEquals(info.cluster, "Gab");
+    }
+
+    /**
+     * Verifies that Layer2 information is updated only when supplicant state change moves
+     * to COMPLETED and on Wi-Fi disconnection. ie when device connect, roam & disconnect.
+     */
+    @Test
+    public void testLayer2InformationUpdate() throws Exception {
+        when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(
+                Pair.create("Wad", "Gab"));
+        // Simulate connection
+        connect();
+
+        // Simulate Roaming
+        when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(
+                Pair.create("aaa", "bbb"));
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR1,
+                        SupplicantState.ASSOCIATED));
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR1,
+                        SupplicantState.COMPLETED));
+        mLooper.dispatchAll();
+
+
+        // Simulate disconnection
+        when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(new Pair<>(null, null));
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR1,
+                        SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+
+        verify(mWifiScoreCard, times(3)).getL2KeyAndGroupHint(any());
+        verify(mIpClient, times(3)).updateLayer2Information(any());
     }
 
     /**

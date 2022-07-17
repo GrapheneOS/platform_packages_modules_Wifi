@@ -580,6 +580,7 @@ package android.net.wifi {
     method @Deprecated public boolean isDeviceToDeviceRttSupported();
     method public boolean isPortableHotspotSupported();
     method public boolean isStaConcurrencyForRestrictedConnectionsSupported();
+    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled();
     method public boolean isVerboseLoggingEnabled();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isWifiApEnabled();
     method public boolean isWifiScannerSupported();
@@ -618,6 +619,7 @@ package android.net.wifi {
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public boolean setSoftApConfiguration(@NonNull android.net.wifi.SoftApConfiguration);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}, conditional=true) public void setSsidsAllowlist(@NonNull java.util.Set<android.net.wifi.WifiSsid>);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public boolean setStaConcurrencyForMultiInternetMode(int);
+    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setVerboseLoggingEnabled(boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setVerboseLoggingLevel(int);
     method @Deprecated @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public boolean setWifiApConfiguration(android.net.wifi.WifiConfiguration);
@@ -654,6 +656,7 @@ package android.net.wifi {
     field public static final int API_SET_NETWORK_SELECTION_CONFIG = 8; // 0x8
     field public static final int API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY = 7; // 0x7
     field public static final int API_SET_SCAN_SCHEDULE = 6; // 0x6
+    field public static final int API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG = 9; // 0x9
     field public static final int API_SOFT_AP = 3; // 0x3
     field public static final int API_TETHERED_HOTSPOT = 4; // 0x4
     field public static final int API_WIFI_ENABLED = 2; // 0x2

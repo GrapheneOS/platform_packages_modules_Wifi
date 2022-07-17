@@ -136,10 +136,10 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
     private @Mock IServiceManager mServiceManagerMock;
     private @Mock ISupplicant mISupplicantMock;
-    private android.hardware.wifi.supplicant.V1_1.ISupplicant mISupplicantMockV11;
-    private android.hardware.wifi.supplicant.V1_2.ISupplicant mISupplicantMockV12;
-    private android.hardware.wifi.supplicant.V1_3.ISupplicant mISupplicantMockV13;
-    private android.hardware.wifi.supplicant.V1_3.ISupplicant mISupplicantMockV14;
+    private @Mock android.hardware.wifi.supplicant.V1_1.ISupplicant mISupplicantMockV11;
+    private @Mock android.hardware.wifi.supplicant.V1_2.ISupplicant mISupplicantMockV12;
+    private @Mock android.hardware.wifi.supplicant.V1_3.ISupplicant mISupplicantMockV13;
+    private @Mock android.hardware.wifi.supplicant.V1_3.ISupplicant mISupplicantMockV14;
     private @Mock ISupplicantIface mISupplicantIfaceMock;
     private @Mock ISupplicantStaIface mISupplicantStaIfaceMock;
     private @Mock android.hardware.wifi.supplicant.V1_1.ISupplicantStaIface
@@ -286,6 +286,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         when(mServiceManagerMock.registerForNotifications(anyString(), anyString(),
                 any(IServiceNotification.Stub.class))).thenReturn(true);
         when(mISupplicantMock.linkToDeath(any(IHwBinder.DeathRecipient.class),
+                anyLong())).thenReturn(true);
+        when(mISupplicantMockV11.linkToDeath(any(IHwBinder.DeathRecipient.class),
                 anyLong())).thenReturn(true);
         doAnswer(new AnswerWithArguments() {
             public void answer(ISupplicantStaIface.getMacAddressCallback cb) {
@@ -1944,7 +1946,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     @Test
     public void testStartDaemonV1_0() throws Exception {
         executeAndValidateInitializationSequence();
-        assertTrue(mDut.startDaemon());
         verify(mFrameworkFacade).startSupplicant();
     }
 
@@ -1995,7 +1996,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mHandler.post(() -> cb.serviceDied(cookie));
                 return true;
             }
-        }).when(mISupplicantMock).linkToDeath(any(IHwBinder.DeathRecipient.class), any(long.class));
+        }).when(mISupplicantMockV11).linkToDeath(any(IHwBinder.DeathRecipient.class),
+                any(long.class));
 
         mDut.terminate();
         mLooper.dispatchAll();
@@ -2653,6 +2655,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mWifiMonitor);
         // Initialize SupplicantStaIfaceHal, should call serviceManager.registerForNotifications
         assertTrue(mDut.initialize());
+        assertTrue(mDut.startDaemon());
         // verify: service manager initialization sequence
         mInOrder.verify(mServiceManagerMock).linkToDeath(mServiceManagerDeathCaptor.capture(),
                 anyLong());
@@ -2660,7 +2663,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 eq(ISupplicant.kInterfaceName), eq(""), mServiceNotificationCaptor.capture());
         // act: cause the onRegistration(...) callback to execute
         mServiceNotificationCaptor.getValue().onRegistration(ISupplicant.kInterfaceName, "", true);
-
         assertTrue(mDut.isInitializationComplete());
         assertEquals(shouldSucceed, mDut.setupIface(WLAN0_IFACE_NAME));
         mInOrder.verify(mISupplicantMock).linkToDeath(mSupplicantDeathCaptor.capture(),
@@ -2716,6 +2718,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mISupplicantStaIfaceMockV11, mWifiMonitor);
         // Initialize SupplicantStaIfaceHal, should call serviceManager.registerForNotifications
         assertTrue(mDut.initialize());
+        assertTrue(mDut.startDaemon());
         // verify: service manager initialization sequence
         mInOrder.verify(mServiceManagerMock).linkToDeath(mServiceManagerDeathCaptor.capture(),
                 anyLong());
@@ -2726,7 +2729,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.setupIface(WLAN0_IFACE_NAME) == shouldSucceed);
-        mInOrder.verify(mISupplicantMock).linkToDeath(mSupplicantDeathCaptor.capture(),
+        mInOrder.verify(mISupplicantMockV11).linkToDeath(mSupplicantDeathCaptor.capture(),
                 anyLong());
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)
@@ -2788,6 +2791,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mISupplicantStaIfaceMockV12, mWifiMonitor);
         // Initialize SupplicantStaIfaceHal, should call serviceManager.registerForNotifications
         assertTrue(mDut.initialize());
+        assertTrue(mDut.startDaemon());
         // verify: service manager initialization sequence
         mInOrder.verify(mServiceManagerMock).linkToDeath(mServiceManagerDeathCaptor.capture(),
                 anyLong());
@@ -2798,7 +2802,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.setupIface(WLAN0_IFACE_NAME));
-        mInOrder.verify(mISupplicantMock).linkToDeath(mSupplicantDeathCaptor.capture(),
+        mInOrder.verify(mISupplicantMockV11).linkToDeath(mSupplicantDeathCaptor.capture(),
                 anyLong());
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)
@@ -2848,6 +2852,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mISupplicantStaIfaceMockV13, mWifiMonitor);
         // Initialize SupplicantStaIfaceHal, should call serviceManager.registerForNotifications
         assertTrue(mDut.initialize());
+        assertTrue(mDut.startDaemon());
         // verify: service manager initialization sequence
         mInOrder.verify(mServiceManagerMock).linkToDeath(mServiceManagerDeathCaptor.capture(),
                 anyLong());
@@ -2858,7 +2863,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.setupIface(WLAN0_IFACE_NAME));
-        mInOrder.verify(mISupplicantMock).linkToDeath(mSupplicantDeathCaptor.capture(),
+        mInOrder.verify(mISupplicantMockV11).linkToDeath(mSupplicantDeathCaptor.capture(),
                 anyLong());
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)
@@ -2902,6 +2907,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 mISupplicantStaIfaceMockV14, mWifiMonitor);
         // Initialize SupplicantStaIfaceHal, should call serviceManager.registerForNotifications
         assertTrue(mDut.initialize());
+        assertTrue(mDut.startDaemon());
         // verify: service manager initialization sequence
         mInOrder.verify(mServiceManagerMock).linkToDeath(mServiceManagerDeathCaptor.capture(),
                 anyLong());
@@ -2912,7 +2918,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.setupIface(WLAN0_IFACE_NAME));
-        mInOrder.verify(mISupplicantMock).linkToDeath(mSupplicantDeathCaptor.capture(),
+        mInOrder.verify(mISupplicantMockV11).linkToDeath(mSupplicantDeathCaptor.capture(),
                 anyLong());
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)
@@ -3239,7 +3245,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         when(mServiceManagerMock.getTransport(eq(android.hardware.wifi.supplicant.V1_1.ISupplicant
                 .kInterfaceName), anyString()))
                 .thenReturn(IServiceManager.Transport.HWBINDER);
-        mISupplicantMockV11 = mock(android.hardware.wifi.supplicant.V1_1.ISupplicant.class);
     }
 
     private void setupMocksForHalV1_2() throws Exception {
@@ -3247,7 +3252,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         when(mServiceManagerMock.getTransport(eq(android.hardware.wifi.supplicant.V1_2.ISupplicant
                 .kInterfaceName), anyString()))
                 .thenReturn(IServiceManager.Transport.HWBINDER);
-        mISupplicantMockV12 = mock(android.hardware.wifi.supplicant.V1_2.ISupplicant.class);
     }
 
     private void setupMocksForHalV1_3() throws Exception {
@@ -3255,7 +3259,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         when(mServiceManagerMock.getTransport(eq(android.hardware.wifi.supplicant.V1_3.ISupplicant
                 .kInterfaceName), anyString()))
                 .thenReturn(IServiceManager.Transport.HWBINDER);
-        mISupplicantMockV13 = mock(android.hardware.wifi.supplicant.V1_3.ISupplicant.class);
     }
 
     private void setupMocksForHalV1_4() throws Exception {
@@ -3263,7 +3266,6 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         when(mServiceManagerMock.getTransport(eq(android.hardware.wifi.supplicant.V1_4.ISupplicant
                 .kInterfaceName), anyString()))
                 .thenReturn(IServiceManager.Transport.HWBINDER);
-        mISupplicantMockV14 = mock(android.hardware.wifi.supplicant.V1_4.ISupplicant.class);
     }
 
     private void setupMocksForPmkCache(boolean isHalSupported) throws Exception {

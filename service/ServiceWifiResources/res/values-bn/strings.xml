@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"নেটওয়ার্ক যাচাই করা প্রয়োজন"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"কানেক্ট করার আগে <xliff:g id="SSID">%1$s</xliff:g>-এর নেটওয়ার্ক সংক্রান্ত বিবরণ পর্যালোচনা করুন। চালিয়ে যেতে ট্যাপ করুন।"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"সার্টিফিকেট ইনস্টল করা যায়নি।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>-এ কানেক্ট করা যাচ্ছে না"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"সার্ভার সার্টিফিকেট চেন সঠিক নয়।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ঠিক আছে"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"এই নেটওয়ার্ক যাচাই করা যায়নি"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"তবুও কানেক্ট করুন"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"কানেক্ট করবেন না"</string>

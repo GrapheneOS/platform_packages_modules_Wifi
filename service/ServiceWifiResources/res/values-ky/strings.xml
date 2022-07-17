@@ -49,7 +49,7 @@
     <string name="wifi_connect_alert_title" msgid="2368200646665663612">"Туташууга уруксатпы?"</string>
     <string name="wifi_connect_alert_message" msgid="7226456300982080746">"%1$s колдонмосу %2$s Wifi тармагына туташкысы келет"</string>
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"Колдонмо"</string>
-    <string name="accept" msgid="8346431649376483879">"Кабыл алуу"</string>
+    <string name="accept" msgid="8346431649376483879">"Ооба"</string>
     <string name="decline" msgid="4172251727603762084">"Баш тартуу"</string>
     <string name="ok" msgid="847575529546290102">"Жарайт"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Чакыруу жөнөтүлдү"</string>
@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Тармакты текшерүү керек"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Туташуудан мурун <xliff:g id="SSID">%1$s</xliff:g> тармагынын чоо-жайын карап чыгыңыз. Улантуу үчүн басып коюңуз."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Тастыктама орнотулган жок."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> менен туташпай жатат"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Сервердин тастыктама чынжыры жараксыз."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Макул"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Бул тармак ырасталган жок"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Баары бир туташуу"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Туташпасын"</string>

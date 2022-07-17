@@ -45,7 +45,7 @@ abstract class SupplicantStaIfaceCallbackHidlV1_4Impl extends
         // Create an older callback for function delegation,
         // and it would cascadingly create older one.
         mCallbackV13 = mStaIfaceHal.new SupplicantStaIfaceHalCallbackV1_3(mIfaceName);
-        mCallbackV10 = mStaIfaceHal.new SupplicantStaIfaceHalCallback(mIfaceName);
+        mCallbackV10 = mCallbackV13.getCallbackV10();
     }
 
     @Override

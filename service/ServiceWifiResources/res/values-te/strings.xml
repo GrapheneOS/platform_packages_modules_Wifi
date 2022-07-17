@@ -29,7 +29,7 @@
     <string name="notification_channel_network_available" msgid="8454366142428864948">"నెట్‌వర్క్ అందుబాటులో ఉంది"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"సూచించిన Wi‑Fi నెట్‌వర్క్‌లను అనుమతించాలా?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> సూచించిన నెట్‌వర్క్‌లు. పరికరం ఆటోమేటిక్‌గా కనెక్ట్ అవచ్చు."</string>
-    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించు"</string>
+    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించండి"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"వద్దు"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi-Fiకి కనెక్ట్ చేయాలా?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"పరికర లొకేషన్‌ను ట్రాక్ చేయడానికి ఉపయోగపడే SIM IDని ఈ నెట్‌వర్క్‌లు అందుకుంటాయి"</string>
@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"నెట్‌వర్క్‌ను వెరిఫై చేయాల్సిన అవసరం ఉంది"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"కనెక్ట్ చేయడానికి ముందు <xliff:g id="SSID">%1$s</xliff:g>‌కి సంబంధించిన నెట్‌వర్క్ వివరాలను రివ్యూ చేయండి. కొనసాగడానికి ట్యాప్ చేయండి."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"సర్టిఫికెట్‌ను ఇన్‌స్టాల్ చేయడం విఫలమైంది."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>కు కనెక్ట్ చేయడం సాధ్యపడదు"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"సర్వర్ సర్టిఫికెట్ చెయిన్ చెల్లదు."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"సరే"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ఈ నెట్‌వర్క్‌ను వెరిఫై చేయడం సాధ్యం కాదు"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"ఏదేమైనా కనెక్ట్ చేయండి"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"కనెక్ట్ చేయవద్దు"</string>
