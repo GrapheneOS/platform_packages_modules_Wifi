@@ -1691,6 +1691,36 @@ public class WifiScoreCardTest extends WifiBaseTest {
         assertEquals(16_677, perNetwork.getRxLinkBandwidthKbps());
     }
 
+
+    @Test
+    public void testLinkBandwidthAfterLongTimeGap() {
+        mWifiInfo.setRssi(-70);
+        mWifiInfo.setFrequency(2437);
+        mWifiScoreCard.noteConnectionAttempt(mWifiInfo, -53, mWifiInfo.getSSID());
+        PerNetwork perNetwork = mWifiScoreCard.lookupNetwork(mWifiInfo.getSSID());
+        mWifiScoreCard.noteIpConfiguration(mWifiInfo);
+        mNewLlStats.on_time = 1000;
+        mOldLlStats.timeStampInMs = 7_000;
+        mNewLlStats.timeStampInMs = 10_000;
+        long txBytes = 2_000_000L;
+        long rxBytes = 4_000_000L;
+        // Add BANDWIDTH_STATS_COUNT_THR polls with regular interval
+        for (int i = 0; i < BANDWIDTH_STATS_COUNT_THR * 2; i++) {
+            addTotalBytes(txBytes * i, rxBytes * i);
+            millisecondsPass(3_000);
+            perNetwork.updateLinkBandwidth(mOldLlStats, mNewLlStats, mWifiInfo, mTotalTxBytes,
+                    mTotalRxBytes);
+        }
+        // One update with a very large time interval
+        mWifiInfo.setRssi(-64);
+        addTotalBytes(txBytes, rxBytes);
+        millisecondsPass(26 * 24 * 3_600_000L);
+        perNetwork.updateLinkBandwidth(mOldLlStats, mNewLlStats, mWifiInfo, mTotalTxBytes,
+                mTotalRxBytes);
+        assertEquals(16_000, perNetwork.getTxLinkBandwidthKbps());
+        assertEquals(32_000, perNetwork.getRxLinkBandwidthKbps());
+    }
+
     @Test
     public void testLinkBandwidthInvalidTrafficStats() {
         mWifiInfo.setRssi(-70);
