@@ -124,6 +124,7 @@ import android.net.DhcpInfo;
 import android.net.DhcpOption;
 import android.net.DhcpResultsParcelable;
 import android.net.MacAddress;
+import android.net.Network;
 import android.net.NetworkStack;
 import android.net.Uri;
 import android.net.wifi.CoexUnsafeChannel;
@@ -10623,5 +10624,28 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork(TEST_SSID);
         assertEquals(-1, mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME,
                 mAttribution));
+    }
+
+    /**
+     * Tests that {@link WifiServiceImpl#getCurrentNetwork} throws
+     * {@link SecurityException} if the caller doesn't have the necessary permissions.
+     */
+    @Test(expected = SecurityException.class)
+    public void testGetCurrentNetworkNoPermission() throws Exception {
+        doThrow(SecurityException.class)
+                .when(mContext).enforceCallingOrSelfPermission(eq(ACCESS_WIFI_STATE), any());
+        mWifiServiceImpl.getCurrentNetwork();
+    }
+
+    /**
+     * Verifies that WifiServiceImpl#getCurrentNetwork() returns the current Wifi network.
+     */
+    @Test
+    public void testGetCurrentNetworkWithNetworkSettingsPermission() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        Network mockNetwork = mock(Network.class);
+        when(mActiveModeWarden.getCurrentNetwork()).thenReturn(mockNetwork);
+        assertEquals(mockNetwork, mWifiServiceImpl.getCurrentNetwork());
     }
 }

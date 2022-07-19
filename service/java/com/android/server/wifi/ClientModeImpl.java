@@ -1855,30 +1855,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
-     * Should only be used internally.
-     * External callers should use {@link #syncGetCurrentNetwork()}.
-     */
-    private Network getCurrentNetwork() {
-        if (mNetworkAgent != null) {
-            return mNetworkAgent.getNetwork();
-        } else {
-            return null;
-        }
-    }
-
-    /**
      * Get Network object of currently connected wifi network, or null if not connected.
      * @return Network object of current wifi network
      */
-    public Network syncGetCurrentNetwork() {
-        return mWifiThreadRunner.call(
-                () -> {
-                    if (getCurrentState() == mL3ConnectedState
-                            || getCurrentState() == mRoamingState) {
-                        return getCurrentNetwork();
-                    }
-                    return null;
-                }, null);
+    public Network getCurrentNetwork() {
+        if (getCurrentState() != mL3ConnectedState
+                && getCurrentState() != mRoamingState) return null;
+        return (mNetworkAgent != null) ? mNetworkAgent.getNetwork() : null;
     }
 
     /**
@@ -3822,6 +3805,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * Helper method called when a L3 connection is successfully established to a network.
      */
     void registerConnected() {
+        if (isPrimary()) {
+            mWifiInjector.getActiveModeWarden().setCurrentNetwork(getCurrentNetwork());
+        }
         if (mLastNetworkId != WifiConfiguration.INVALID_NETWORK_ID) {
             WifiConfiguration config = getConnectedWifiConfigurationInternal();
             boolean shouldSetUserConnectChoice = config != null
@@ -3841,6 +3827,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     void registerDisconnected() {
+        if (isPrimary()) {
+            mWifiInjector.getActiveModeWarden().setCurrentNetwork(getCurrentNetwork());
+        }
         if (mLastNetworkId != WifiConfiguration.INVALID_NETWORK_ID) {
             mWifiConfigManager.updateNetworkAfterDisconnect(mLastNetworkId);
         }
@@ -7197,11 +7186,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 scanResultInfo = new ProvisioningConfiguration.ScanResultInfo(scanResult.SSID,
                         scanResult.BSSID, ies);
             }
-
+            final Network network = (mNetworkAgent != null) ? mNetworkAgent.getNetwork() : null;
             if (!isUsingStaticIp) {
                 prov = new ProvisioningConfiguration.Builder()
                     .withPreDhcpAction()
-                    .withNetwork(getCurrentNetwork())
+                    .withNetwork(network)
                     .withDisplayName(config.SSID)
                     .withScanResultInfo(scanResultInfo)
                     .withLayer2Information(layer2Info);
@@ -7209,7 +7198,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 StaticIpConfiguration staticIpConfig = config.getStaticIpConfiguration();
                 prov = new ProvisioningConfiguration.Builder()
                         .withStaticConfiguration(staticIpConfig)
-                        .withNetwork(getCurrentNetwork())
+                        .withNetwork(network)
                         .withDisplayName(config.SSID)
                         .withLayer2Information(layer2Info);
             }
