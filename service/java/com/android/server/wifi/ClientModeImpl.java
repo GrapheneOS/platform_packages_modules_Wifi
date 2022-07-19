@@ -3205,9 +3205,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         ssid).getRecentStats();
                 // Skip the secondary internet connection failure for association rejection
                 final boolean shouldSkip = isSecondaryInternet() &&
-                        (level2FailureReason
+                        (level2FailureCode
                                 == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT
-                                || level2FailureReason
+                                || level2FailureCode
                                 == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION);
                 if (recentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE)
                         >= WifiBlocklistMonitor.NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF

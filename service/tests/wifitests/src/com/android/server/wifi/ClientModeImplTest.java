@@ -4271,6 +4271,8 @@ public class ClientModeImplTest extends WifiBaseTest {
             when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
             when(mClientModeManager.isSecondaryInternet()).thenReturn(true);
         }
+        when(mPerNetworkRecentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE))
+                .thenReturn(WifiBlocklistMonitor.NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF);
         initializeAndAddNetworkAndVerifySuccess();
         mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
         mCmi.sendMessage(WifiMonitor.ASSOCIATION_REJECTION_EVENT,
@@ -4283,10 +4285,14 @@ public class ClientModeImplTest extends WifiBaseTest {
         if (isSecondary) {
             verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+            verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES);
         }
         else {
             verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
+            verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
+                    WifiConfiguration.NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES);
         }
     }
 
