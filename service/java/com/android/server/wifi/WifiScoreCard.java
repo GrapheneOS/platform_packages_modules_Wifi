@@ -1439,7 +1439,7 @@ public class WifiScoreCard {
             int filterInKbps = mBandwidthSampleValid[link] ? mBandwidthSampleKbps[link] : avgKbps;
 
             long currTimeMs = mClock.getElapsedSinceBootMillis();
-            int timeDeltaSec = (int) (currTimeMs - mBandwidthSampleValidTimeMs[link]) / 1000;
+            int timeDeltaSec = (int) ((currTimeMs - mBandwidthSampleValidTimeMs[link]) / 1000);
 
             // If the operation condition changes since the last valid sample or the current sample
             // has higher BW, use a faster filter. Otherwise, use a slow filter

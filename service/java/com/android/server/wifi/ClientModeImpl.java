@@ -3604,8 +3604,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         String currentMacString = mWifiNative.getMacAddress(mInterfaceName);
         MacAddress currentMac = getMacAddressFromBssidString(currentMacString);
         MacAddress newMac = mWifiConfigManager.getRandomizedMacAndUpdateIfNeeded(config,
-                isSecondaryInternet() && mClientModeManager.isSecondaryInternetDbsAp()
-                        && config.dbsSecondaryInternet);
+                isSecondaryInternet() && mClientModeManager.isSecondaryInternetDbsAp());
         if (!WifiConfiguration.isValidMacAddressForRandomization(newMac)) {
             Log.wtf(getTag(), "Config generated an invalid MAC address");
         } else if (Objects.equals(newMac, currentMac)) {
