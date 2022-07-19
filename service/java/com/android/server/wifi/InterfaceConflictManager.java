@@ -250,13 +250,16 @@ public class InterfaceConflictManager {
             // is this a command which was waiting for a user decision?
             boolean isReexecutedCommand = msg.getData().getBoolean(
                     MESSAGE_BUNDLE_KEY_PENDING_USER, false);
-            if (isReexecutedCommand) {
+            // is this a command that was issued while we were already waiting for a user decision?
+            boolean wasInWaitingState = WaitingState.wasMessageInWaitingState(msg);
+            if (isReexecutedCommand || (wasInWaitingState && !mUserJustApproved)) {
                 mUserApprovalPending = false;
                 mUserApprovalPendingTag = null;
 
                 if (mVerboseLoggingEnabled) {
-                    Log.d(TAG, tag + ": Re-executing a command with user approval result - "
-                            + mUserJustApproved);
+                    Log.d(TAG, tag + ": Executing a command with user approval result: "
+                            + mUserJustApproved + ", isReexecutedCommand: " + isReexecutedCommand
+                            + ", wasInWaitingState: " + wasInWaitingState);
                 }
                 return mUserJustApproved ? ICM_EXECUTE_COMMAND : ICM_ABORT_COMMAND;
             }
