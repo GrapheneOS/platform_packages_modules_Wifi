@@ -493,4 +493,51 @@ public class InterfaceConflictManagerTest {
                 any(), any(), any());
         verify(mDialogHandle).launchDialog();
     }
+
+    /**
+     * Verify that reset() will dismiss any dialogs, transition the waiting state machine to their
+     * target state, and reset InterfaceConflictManager to accept new requests.
+     */
+    @Test
+    public void testReset() {
+        initInterfaceConflictManager();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
+        Message msg = Message.obtain();
+
+        // can create interface - but with side effects
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                        new WorkSource(10, "something else"))));
+
+        // send request
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS));
+        verify(mStateMachine).transitionTo(mWaitingState);
+        verify(mStateMachine).deferMessage(msg);
+        verify(mWifiDialogManager).createLegacySimpleDialog(any(), any(), any(), any(),
+                any(), any(), any());
+        verify(mDialogHandle).launchDialog();
+
+        // reset
+        mDut.reset();
+
+        // State machine should have gone back to target
+        verify(mWaitingState).sendTransitionStateCommand(mTargetState);
+        // Dialog should have been dismissed
+        verify(mDialogHandle).dismissDialog();
+        // New request should launch dialog like normal.
+        Message newMsg = Message.obtain();
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", newMsg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS));
+        verify(mStateMachine, times(2)).transitionTo(mWaitingState);
+        verify(mStateMachine, times(1)).deferMessage(newMsg);
+        verify(mWifiDialogManager, times(2)).createLegacySimpleDialog(any(), any(), any(), any(),
+                any(), any(), any());
+        verify(mDialogHandle, times(2)).launchDialog();
+    }
 }

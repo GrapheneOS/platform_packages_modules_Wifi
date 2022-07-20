@@ -6509,6 +6509,55 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         runTestP2pWithUserApproval(false);
     }
 
+    /**
+     * Validate InterfaceConflictManager is reset if user approval occurs after wifi turned off.
+     */
+    @Test
+    public void testInterfaceConflictManagerResetIfWifiTurnedOff() throws Exception {
+        ArgumentCaptor<State> mTargetStateCaptor = ArgumentCaptor.forClass(State.class);
+        ArgumentCaptor<WaitingState> mWaitingStateCaptor = ArgumentCaptor.forClass(
+                WaitingState.class);
+        InOrder inOrder = inOrder(mInterfaceConflictManager);
+
+        simulateWifiStateChange(true);
+        simulateInitChannel(mClient1);
+
+        // simulate user approval needed
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenAnswer(
+                        new MockAnswerUtil.AnswerWithArguments() {
+                            public int answer(String tag, Message msg, StateMachine stateMachine,
+                                    WaitingState waitingState, State targetState,
+                                    int createIfaceType,
+                                    WorkSource requestorWs) {
+                                stateMachine.deferMessage(msg);
+                                stateMachine.transitionTo(waitingState);
+                                return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
+                            }
+                        });
+
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.DISCOVER_PEERS);
+        mLooper.dispatchAll();
+        inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
+                any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any());
+
+        // Turn off Wi-Fi
+        simulateWifiStateChange(false);
+
+        // simulate user approval triggered and granted
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenReturn(
+                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+        mWaitingStateCaptor.getValue().sendTransitionStateCommand(mTargetStateCaptor.getValue());
+        mLooper.dispatchAll();
+
+        // Verify InterfaceConflictManager is reset
+        verify(mInterfaceConflictManager).reset();
+        verify(mWifiNative, never()).setupInterface(any(), any(),
+                eq(new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
     /*
      * Verify the connection event ends due to the provision discovery failure.
      */
