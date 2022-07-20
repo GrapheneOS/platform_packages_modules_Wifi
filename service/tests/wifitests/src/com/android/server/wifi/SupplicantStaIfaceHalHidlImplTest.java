@@ -1402,6 +1402,46 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Tests the handling of incorrect network passwords for WPA3-Personal networks using
+     * callback V1_4.
+     */
+    @Test
+    public void testWpa3AuthRejectionPassword_1_4() throws Exception {
+        setupMocksForHalV1_4();
+        executeAndValidateInitializationSequenceV1_4();
+        assertNotNull(mISupplicantStaIfaceCallbackV14);
+
+        executeAndValidateConnectSequenceWithKeyMgmt(SUPPLICANT_NETWORK_ID, false,
+                WifiConfiguration.SECURITY_TYPE_SAE, null);
+
+        int statusCode = ISupplicantStaIfaceCallback.StatusCode.UNSPECIFIED_FAILURE;
+        AssociationRejectionData rejectionData = new AssociationRejectionData();
+        rejectionData.ssid = NativeUtil.decodeSsid(SUPPLICANT_SSID);
+        rejectionData.bssid = NativeUtil.macAddressToByteArray(BSSID);
+        rejectionData.statusCode = statusCode;
+        rejectionData.timedOut = false;
+        rejectionData.isMboAssocDisallowedReasonCodePresent = false;
+        rejectionData.isOceRssiBasedAssocRejectAttrPresent = false;
+
+        mISupplicantStaIfaceCallbackV14.onAssociationRejected_1_4(rejectionData);
+        verify(mWifiMonitor).broadcastAuthenticationFailureEvent(eq(WLAN0_IFACE_NAME),
+                eq(WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD), eq(-1),
+                eq(SUPPLICANT_SSID), eq(MacAddress.fromString(BSSID)));
+        ArgumentCaptor<AssocRejectEventInfo> assocRejectEventInfoCaptor =
+                ArgumentCaptor.forClass(AssocRejectEventInfo.class);
+        verify(mWifiMonitor).broadcastAssociationRejectionEvent(
+                eq(WLAN0_IFACE_NAME), assocRejectEventInfoCaptor.capture());
+        AssocRejectEventInfo assocRejectEventInfo = assocRejectEventInfoCaptor.getValue();
+        assertNotNull(assocRejectEventInfo);
+        assertEquals(SUPPLICANT_SSID, assocRejectEventInfo.ssid);
+        assertEquals(BSSID, assocRejectEventInfo.bssid);
+        assertEquals(statusCode, assocRejectEventInfo.statusCode);
+        assertFalse(assocRejectEventInfo.timedOut);
+        assertNull(assocRejectEventInfo.oceRssiBasedAssocRejectInfo);
+        assertNull(assocRejectEventInfo.mboAssocDisallowedInfo);
+    }
+
+    /**
      * Tests the handling of association rejection for WPA3-Personal networks
      */
     @Test
