@@ -28,6 +28,7 @@ import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.util.HexEncoding;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.util.LocalLog;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -57,6 +58,7 @@ public class WifiAwareClientState {
     private final Context mContext;
     private final IWifiAwareEventCallback mCallback;
     private final SparseArray<WifiAwareDiscoverySessionState> mSessions = new SparseArray<>();
+    private final LocalLog mLocalLog;
 
     private final int mClientId;
     private ConfigRequest mConfigRequest;
@@ -78,7 +80,7 @@ public class WifiAwareClientState {
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
             boolean notifyIdentityChange, long creationTime,
-            WifiPermissionsUtil wifiPermissionsUtil, Bundle extra) {
+            WifiPermissionsUtil wifiPermissionsUtil, Bundle extra, LocalLog localLog) {
         mContext = context;
         mClientId = clientId;
         mUid = uid;
@@ -93,6 +95,7 @@ public class WifiAwareClientState {
         mCreationTime = creationTime;
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mExtra = extra;
+        mLocalLog = localLog;
     }
 
     /**
@@ -107,11 +110,13 @@ public class WifiAwareClientState {
      * the client. Destroys all discovery sessions belonging to this client.
      */
     public void destroy() {
+        mLocalLog.log("onAwareSessionTerminated, ClientId:" + mClientId);
         for (int i = 0; i < mSessions.size(); ++i) {
             mSessions.valueAt(i).terminate();
         }
         mSessions.clear();
         mConfigRequest = null;
+
         try {
             mCallback.onAttachTerminate();
         } catch (RemoteException e1) {
@@ -238,13 +243,11 @@ public class WifiAwareClientState {
      *            client.
      */
     public void onInterfaceAddressChange(byte[] mac) {
-        if (mDbg) {
-            Log.v(TAG,
-                    "onInterfaceAddressChange: mClientId=" + mClientId + ", mNotifyIdentityChange="
-                            + mNotifyIdentityChange + ", mac=" + String.valueOf(
-                            HexEncoding.encode(mac)) + ", mLastDiscoveryInterfaceMac="
-                            + String.valueOf(HexEncoding.encode(mLastDiscoveryInterfaceMac)));
-        }
+        mLocalLog.log("onInterfaceAddressChange: mClientId=" + mClientId
+                + ", mNotifyIdentityChange=" + mNotifyIdentityChange
+                + ", mac=" + String.valueOf(HexEncoding.encode(mac))
+                + ", mLastDiscoveryInterfaceMac="
+                + String.valueOf(HexEncoding.encode(mLastDiscoveryInterfaceMac)));
         if (mNotifyIdentityChange && !Arrays.equals(mac, mLastDiscoveryInterfaceMac)) {
             try {
                 boolean hasPermission = mWifiPermissionsUtil.checkCallersLocationPermission(
