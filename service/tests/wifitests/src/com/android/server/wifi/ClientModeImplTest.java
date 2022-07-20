@@ -267,7 +267,18 @@ public class ClientModeImplTest extends WifiBaseTest {
     private static final String TEST_AP_MLD_MAC_ADDRESS_STR = "02:03:04:05:06:07";
     private static final MacAddress TEST_AP_MLD_MAC_ADDRESS =
             MacAddress.fromString(TEST_AP_MLD_MAC_ADDRESS_STR);
+
+    private static final String TEST_MLO_LINK_ADDR_STR = "02:03:04:05:06:0A";
+    private static final MacAddress TEST_MLO_LINK_ADDR =
+            MacAddress.fromString(TEST_MLO_LINK_ADDR_STR);
+
+
+    private static final String TEST_MLO_LINK_ADDR_1_STR = "02:03:04:05:06:0B";
+    private static final MacAddress TEST_MLO_LINK_ADDR_1 =
+            MacAddress.fromString(TEST_MLO_LINK_ADDR_1_STR);
+
     private static final int TEST_MLO_LINK_ID = 1;
+    private static final int TEST_MLO_LINK_ID_1 = 2;
 
     private long mBinderToken;
     private MockitoSession mSession;
@@ -8413,7 +8424,11 @@ public class ClientModeImplTest extends WifiBaseTest {
     private void setScanResultWithMloInfo() {
         List<MloLink> mloLinks = new ArrayList<>();
         MloLink link1 = new MloLink();
+        link1.setApMacAddress(MacAddress.fromString(TEST_BSSID_STR));
+        link1.setLinkId(TEST_MLO_LINK_ID);
         MloLink link2 = new MloLink();
+        link2.setApMacAddress(MacAddress.fromString(TEST_BSSID_STR1));
+        link2.setLinkId(TEST_MLO_LINK_ID_1);
         mloLinks.add(link1);
         mloLinks.add(link2);
 
@@ -8426,6 +8441,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     private void setScanResultWithoutMloInfo() {
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11AC;
+
         when(mScanResult.getApMldMacAddress()).thenReturn(null);
         when(mScanResult.getApMloLinkId()).thenReturn(MloLink.INVALID_MLO_LINK_ID);
         when(mScanResult.getAffiliatedMloLinks()).thenReturn(Collections.emptyList());
@@ -8438,6 +8455,22 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration config = createTestNetwork(false);
         setupAndStartConnectSequence(config);
         validateSuccessfulConnectSequence(config);
+    }
+
+    private void setConnectionMloLinksInfo() {
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
+        info.links = new WifiNative.ConnectionMloLink[2];
+
+        info.links[0] = new WifiNative.ConnectionMloLink();
+        info.links[0].linkId = TEST_MLO_LINK_ID;
+        info.links[0].staMacAddress = TEST_MLO_LINK_ADDR;
+
+        info.links[1] = new WifiNative.ConnectionMloLink();
+        info.links[1].linkId = TEST_MLO_LINK_ID_1;
+        info.links[1].staMacAddress = TEST_MLO_LINK_ADDR_1;
+
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
     /**
@@ -8498,6 +8531,33 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertNull(connectionInfo.getApMldMacAddress());
         assertEquals(MloLink.INVALID_MLO_LINK_ID, connectionInfo.getApMloLinkId());
         assertTrue(connectionInfo.getAffiliatedMloLinks().isEmpty());
+    }
+
+    /**
+     * Verify API calls on affiliated BSSIDs during association and disconnect.
+     */
+    @Test
+    public void verifyAffiliatedBssidsAssocDisconnect() throws Exception {
+        List<String> affiliatedBssids = Arrays.asList(TEST_BSSID_STR1);
+
+        connect();
+        setScanResultWithMloInfo();
+        setConnectionMloLinksInfo();
+        mLooper.dispatchAll();
+
+        // Association
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).setAffiliatedBssids(eq(TEST_BSSID_STR), eq(affiliatedBssids));
+
+        // Disconnect
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).removeAffiliatedBssids(eq(TEST_BSSID_STR));
     }
 
     /**
