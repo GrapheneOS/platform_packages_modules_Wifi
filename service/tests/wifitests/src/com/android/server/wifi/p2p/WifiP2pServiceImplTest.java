@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.p2p;
 
+import static android.net.NetworkInfo.DetailedState.CONNECTING;
 import static android.net.NetworkInfo.DetailedState.FAILED;
 import static android.net.NetworkInfo.DetailedState.IDLE;
 import static android.net.wifi.WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE;
@@ -1131,6 +1132,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION != intent.getAction()) {
                 return false;
             }
+            if (mState == null) {
+                return true;
+            }
             NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
             return networkInfo.getDetailedState() == mState;
         }
@@ -1772,9 +1776,15 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     any(), eq(true), any());
             verify(mWifiPermissionsUtil, never()).checkCanAccessWifiDirect(
                     any(), any(), anyInt(), anyBoolean());
+            verify(mContext).sendBroadcastWithMultiplePermissions(
+                    argThat(new WifiP2pServiceImplTest
+                           .P2pConnectionChangedIntentMatcherForNetworkState(CONNECTING)), any());
         } else {
             verify(mWifiPermissionsUtil).checkCanAccessWifiDirect(
                     eq("testPkg1"), eq("testFeature"), anyInt(), eq(false));
+            verify(mContext, never()).sendBroadcastWithMultiplePermissions(
+                    argThat(new WifiP2pServiceImplTest
+                           .P2pConnectionChangedIntentMatcherForNetworkState(CONNECTING)), any());
         }
     }
 
@@ -3667,6 +3677,20 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         Message message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.STOP_DISCOVERY_FAILED, message.what);
         assertEquals(WifiP2pManager.P2P_UNSUPPORTED, message.arg1);
+    }
+
+    /**
+     * Verify WifiP2pManager.STOP_DISCOVERY_FAILED is returned when creating group.
+     */
+    @Test
+    public void testStopDiscoveryFailureWhenCreatingGroup() throws Exception {
+        // Move to group creating state
+        testConnectWithConfigValidAsGroupSuccess();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.STOP_DISCOVERY);
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.STOP_DISCOVERY_FAILED, message.what);
+        assertEquals(WifiP2pManager.BUSY, message.arg1);
     }
 
     /**
@@ -6593,14 +6617,24 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         String[] permission_gold = new String[] {
                 android.Manifest.permission.TETHER_PRIVILEGED};
         ArgumentCaptor<String []> permissionCaptor = ArgumentCaptor.forClass(String[].class);
-        // 2 connection changed event:
+        String[] permission;
+        // 3 connection changed event:
         // * Enter Enabled state
+        // * Enter Group Connecting state
         // * Tethering request.
-        verify(mContext, times(2)).sendBroadcastWithMultiplePermissions(
-                argThat(new WifiP2pServiceImplTest
-                       .P2pConnectionChangedIntentMatcherForNetworkState(IDLE)),
-                permissionCaptor.capture());
-        String[] permission = permissionCaptor.getAllValues().get(1);
+        if (SdkLevel.isAtLeastT()) {
+            verify(mContext, times(3)).sendBroadcastWithMultiplePermissions(
+                    argThat(new WifiP2pServiceImplTest
+                           .P2pConnectionChangedIntentMatcherForNetworkState(null)),
+                    permissionCaptor.capture());
+            permission = permissionCaptor.getAllValues().get(2);
+        } else {
+            verify(mContext, times(2)).sendBroadcastWithMultiplePermissions(
+                    argThat(new WifiP2pServiceImplTest
+                          .P2pConnectionChangedIntentMatcherForNetworkState(IDLE)),
+                    permissionCaptor.capture());
+            permission = permissionCaptor.getAllValues().get(1);
+        }
         Arrays.sort(permission);
         Arrays.sort(permission_gold);
         assertEquals(permission_gold, permission);
