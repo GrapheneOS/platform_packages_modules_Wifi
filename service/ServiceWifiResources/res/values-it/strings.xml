@@ -137,12 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"La rete deve essere verificata"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Controlla i dettagli della rete per <xliff:g id="SSID">%1$s</xliff:g> prima di connetterti. Tocca per continuare."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Installazione del certificato non riuscita."</string>
-    <!-- no translation found for wifi_tofu_invalid_cert_chain_title (332710627417595752) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_invalid_cert_chain_message (7047987920029432392) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_invalid_cert_chain_ok_text (9098567577510279854) -->
-    <skip />
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Impossibile connettersi a <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"La catena di certificati del server non è valida."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"OK"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Impossibile verificare questa rete"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Connetti comunque"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Non connettere"</string>
