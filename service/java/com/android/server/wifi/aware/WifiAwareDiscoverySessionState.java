@@ -28,6 +28,7 @@ import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.util.HexEncoding;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.LocalLog;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -57,6 +58,7 @@ public class WifiAwareDiscoverySessionState {
     private long mUpdateTime;
     private boolean mInstantModeEnabled;
     private int mInstantModeBand;
+    private final LocalLog mLocalLog;
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac) {
@@ -80,7 +82,7 @@ public class WifiAwareDiscoverySessionState {
     public WifiAwareDiscoverySessionState(WifiAwareNativeApi wifiAwareNativeApi, int sessionId,
             byte pubSubId, IWifiAwareDiscoverySessionCallback callback, boolean isPublishSession,
             boolean isRangingEnabled, long creationTime, boolean instantModeEnabled,
-            int instantModeBand) {
+            int instantModeBand, LocalLog localLog) {
         mWifiAwareNativeApi = wifiAwareNativeApi;
         mSessionId = sessionId;
         mPubSubId = pubSubId;
@@ -91,6 +93,7 @@ public class WifiAwareDiscoverySessionState {
         mUpdateTime = creationTime;
         mInstantModeEnabled = instantModeEnabled;
         mInstantModeBand = instantModeBand;
+        mLocalLog = localLog;
     }
 
     /**
@@ -384,9 +387,7 @@ public class WifiAwareDiscoverySessionState {
         PeerInfo newPeerInfo = new PeerInfo(requestorInstanceId, peerMac);
         mPeerInfoByRequestorInstanceId.put(newPeerId, newPeerInfo);
 
-        if (mDbg) {
-            Log.v(TAG, "New peer info: peerId=" + newPeerId + ", peerInfo=" + newPeerInfo);
-        }
+        mLocalLog.log("New peer info: peerId=" + newPeerId + ", peerInfo=" + newPeerInfo);
 
         return newPeerId;
     }

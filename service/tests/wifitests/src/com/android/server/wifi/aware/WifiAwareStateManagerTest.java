@@ -86,6 +86,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
+import android.util.LocalLog;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -166,6 +167,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     private Bundle mExtras = new Bundle();
     private WifiManager.ActiveCountryCodeChangedCallback mActiveCountryCodeChangedCallback;
     private HandlerThread mWifiHandlerThread;
+    private LocalLog mLocalLog = new LocalLog(512);
 
     /**
      * Pre-test configuration. Initialize and install mocks.
@@ -216,6 +218,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         WifiThreadRunner wifiThreadRunner = new WifiThreadRunner(wifiHandler);
         when(mWifiInjector.getWifiNative()).thenReturn(mWifiNative);
         when(mWifiInjector.getWifiThreadRunner()).thenReturn(wifiThreadRunner);
+        when(mWifiInjector.getWifiAwareLocalLog()).thenReturn(mLocalLog);
         mDut = new WifiAwareStateManager(mWifiInjector);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
