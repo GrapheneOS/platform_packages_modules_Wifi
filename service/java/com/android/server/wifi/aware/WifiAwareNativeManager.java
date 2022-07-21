@@ -17,22 +17,19 @@
 package com.android.server.wifi.aware;
 
 import android.annotation.NonNull;
-import android.hardware.wifi.V1_0.IWifiNanIface;
-import android.hardware.wifi.V1_0.WifiStatus;
-import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.os.Handler;
-import android.os.RemoteException;
 import android.os.WorkSource;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.WifiNanIface;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 
 /**
- * Manages the interface to Wi-Fi Aware HIDL (HAL).
+ * Manages the interface to the Wi-Fi Aware HAL.
  */
 public class WifiAwareNativeManager {
     private static final String TAG = "WifiAwareNativeManager";
@@ -45,7 +42,7 @@ public class WifiAwareNativeManager {
     private HalDeviceManager mHalDeviceManager;
     private Handler mHandler;
     private WifiAwareNativeCallback mWifiAwareNativeCallback;
-    private IWifiNanIface mWifiNanIface = null;
+    private WifiNanIface mWifiNanIface = null;
     private InterfaceDestroyedListener mInterfaceDestroyedListener;
     private int mReferenceCount = 0;
 
@@ -62,33 +59,9 @@ public class WifiAwareNativeManager {
      */
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         mVerboseHalLoggingEnabled = halVerboseEnabled;
-    }
-
-    /**
-     * (HIDL) Cast the input to a 1.2 NAN interface (possibly resulting in a null).
-     *
-     * Separate function so can be mocked in unit tests.
-     */
-    public android.hardware.wifi.V1_2.IWifiNanIface mockableCastTo_1_2(IWifiNanIface iface) {
-        return android.hardware.wifi.V1_2.IWifiNanIface.castFrom(iface);
-    }
-
-    /**
-     * (HIDL) Cast the input to a 1.5 NAN interface (possibly resulting in a null).
-     *
-     * Separate function so can be mocked in unit tests.
-     */
-    public android.hardware.wifi.V1_5.IWifiNanIface mockableCastTo_1_5(IWifiNanIface iface) {
-        return android.hardware.wifi.V1_5.IWifiNanIface.castFrom(iface);
-    }
-
-    /**
-     * (HIDL) Cast the input to a 1.6 NAN interface (possibly resulting in a null).
-     *
-     * Separate function so can be mocked in unit tests.
-     */
-    public android.hardware.wifi.V1_6.IWifiNanIface mockableCastTo_1_6(IWifiNanIface iface) {
-        return android.hardware.wifi.V1_6.IWifiNanIface.castFrom(iface);
+        if (mWifiNanIface != null) {
+            mWifiNanIface.enableVerboseLogging(mVerboseHalLoggingEnabled);
+        }
     }
 
     /**
@@ -119,11 +92,11 @@ public class WifiAwareNativeManager {
     }
 
     /**
-     * Returns the native HAL WifiNanIface through which commands to the NAN HAL are dispatched.
+     * Returns the WifiNanIface through which commands to the NAN HAL are dispatched.
      * Return may be null if not initialized/available.
      */
     @VisibleForTesting
-    public IWifiNanIface getWifiNanIface() {
+    public WifiNanIface getWifiNanIface() {
         synchronized (mLock) {
             return mWifiNanIface;
         }
@@ -135,8 +108,8 @@ public class WifiAwareNativeManager {
     public void tryToGetAware(@NonNull WorkSource requestorWs) {
         synchronized (mLock) {
             if (mVerboseHalLoggingEnabled) {
-                Log.d(TAG, "tryToGetAware: mWifiNanIface=" + mWifiNanIface + ", mReferenceCount="
-                        + mReferenceCount + ", requestorWs=" + requestorWs);
+                Log.d(TAG, "tryToGetAware: mWifiNanIface=" + mWifiNanIface
+                        + ", mReferenceCount=" + mReferenceCount + ", requestorWs=" + requestorWs);
             }
 
             if (mWifiNanIface != null) {
@@ -150,48 +123,22 @@ public class WifiAwareNativeManager {
             }
 
             mInterfaceDestroyedListener = new InterfaceDestroyedListener();
-            IWifiNanIface iface = mHalDeviceManager.createNanIface(mInterfaceDestroyedListener,
+            WifiNanIface iface = mHalDeviceManager.createNanIface(mInterfaceDestroyedListener,
                     mHandler, requestorWs);
             if (iface == null) {
-                Log.e(TAG, "Was not able to obtain an IWifiNanIface (even though enabled!?)");
+                Log.e(TAG, "Was not able to obtain a WifiNanIface (even though enabled!?)");
                 awareIsDown(true);
             } else {
-                if (mVerboseHalLoggingEnabled) Log.v(TAG, "Obtained an IWifiNanIface");
-
-                try {
-                    android.hardware.wifi.V1_2.IWifiNanIface iface12 = mockableCastTo_1_2(iface);
-                    android.hardware.wifi.V1_5.IWifiNanIface iface15 = mockableCastTo_1_5(iface);
-                    android.hardware.wifi.V1_6.IWifiNanIface iface16 = mockableCastTo_1_6(iface);
-                    WifiStatus status;
-                    if (iface16 != null) {
-                        mWifiAwareNativeCallback.mIsHal12OrLater = true;
-                        mWifiAwareNativeCallback.mIsHal15OrLater = true;
-                        mWifiAwareNativeCallback.mIsHal16OrLater = true;
-                        status = iface16.registerEventCallback_1_6(mWifiAwareNativeCallback);
-                    } else if (iface15 != null) {
-                        mWifiAwareNativeCallback.mIsHal12OrLater = true;
-                        mWifiAwareNativeCallback.mIsHal15OrLater = true;
-                        status = iface15.registerEventCallback_1_5(mWifiAwareNativeCallback);
-                    } else if (iface12 != null) {
-                        mWifiAwareNativeCallback.mIsHal12OrLater = true;
-                        status = iface12.registerEventCallback_1_2(mWifiAwareNativeCallback);
-                    } else {
-                        status = iface.registerEventCallback(mWifiAwareNativeCallback);
-                    }
-                    if (status.code != WifiStatusCode.SUCCESS) {
-                        Log.e(TAG, "IWifiNanIface.registerEventCallback error: " + statusString(
-                                status));
-                        mHalDeviceManager.removeIface(iface);
-                        awareIsDown(false);
-                        return;
-                    }
-                } catch (RemoteException e) {
-                    Log.e(TAG, "IWifiNanIface.registerEventCallback exception: " + e);
+                if (mVerboseHalLoggingEnabled) Log.v(TAG, "Obtained a WifiNanIface");
+                if (!iface.registerFrameworkCallback(mWifiAwareNativeCallback)) {
+                    Log.e(TAG, "Unable to register callback with WifiNanIface");
+                    mHalDeviceManager.removeNanIface(iface);
                     awareIsDown(false);
                     return;
                 }
                 mWifiNanIface = iface;
                 mReferenceCount = 1;
+                mWifiNanIface.enableVerboseLogging(mVerboseHalLoggingEnabled);
             }
         }
     }
@@ -220,7 +167,7 @@ public class WifiAwareNativeManager {
             }
             mInterfaceDestroyedListener.active = false;
             mInterfaceDestroyedListener = null;
-            mHalDeviceManager.removeIface(mWifiNanIface);
+            mHalDeviceManager.removeNanIface(mWifiNanIface);
             mWifiNanIface = null;
             mWifiAwareNativeCallback.resetChannelInfo();
         }
@@ -245,15 +192,15 @@ public class WifiAwareNativeManager {
                 return false;
             }
 
-            return mHalDeviceManager.replaceRequestorWs(mWifiNanIface, requestorWs);
+            return mHalDeviceManager.replaceRequestorWsForNanIface(mWifiNanIface, requestorWs);
         }
     }
 
     private void awareIsDown(boolean markAsAvailable) {
         synchronized (mLock) {
             if (mVerboseHalLoggingEnabled) {
-                Log.d(TAG, "awareIsDown: mWifiNanIface=" + mWifiNanIface + ", mReferenceCount ="
-                        + mReferenceCount);
+                Log.d(TAG, "awareIsDown: mWifiNanIface=" + mWifiNanIface
+                        + ", mReferenceCount =" + mReferenceCount);
             }
             mWifiNanIface = null;
             mReferenceCount = 0;
@@ -268,22 +215,13 @@ public class WifiAwareNativeManager {
         @Override
         public void onDestroyed(@NonNull String ifaceName) {
             if (mVerboseHalLoggingEnabled) {
-                Log.d(TAG, "Interface was destroyed: mWifiNanIface=" + mWifiNanIface + ", active="
-                        + active);
+                Log.d(TAG, "Interface was destroyed: mWifiNanIface=" + mWifiNanIface
+                        + ", active=" + active);
             }
             if (active && mWifiNanIface != null) {
                 awareIsDown(true);
             } // else: we released it locally so no need to disable usage
         }
-    }
-
-    private static String statusString(WifiStatus status) {
-        if (status == null) {
-            return "status=null";
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append(status.code).append(" (").append(status.description).append(")");
-        return sb.toString();
     }
 
     /**

@@ -408,10 +408,14 @@ public class HalDeviceManager {
     /**
      * Create NAN interface if possible (see createStaIface doc).
      */
-    public IWifiNanIface createNanIface(@Nullable InterfaceDestroyedListener destroyedListener,
+    public WifiNanIface createNanIface(@Nullable InterfaceDestroyedListener destroyedListener,
             @Nullable Handler handler, @NonNull WorkSource requestorWs) {
-        return (IWifiNanIface) createIface(HDM_CREATE_IFACE_NAN, CHIP_CAPABILITY_ANY,
+        IWifiNanIface iface = (IWifiNanIface) createIface(HDM_CREATE_IFACE_NAN, CHIP_CAPABILITY_ANY,
                 destroyedListener, handler, requestorWs);
+        if (iface == null) {
+            return null;
+        }
+        return new WifiNanIface(iface);
     }
 
     /**
@@ -435,6 +439,13 @@ public class HalDeviceManager {
         }
         mIWifiP2pIfaces.remove(ifaceName);
         return true;
+    }
+
+    /**
+     * Wrapper around {@link #removeIface(IWifiIface)} for NAN ifaces.
+     */
+    public boolean removeNanIface(WifiNanIface iface) {
+        return removeIface(iface.getNanIface());
     }
 
     private InterfaceCacheEntry getInterfaceCacheEntry(IWifiIface iface) {
@@ -584,6 +595,14 @@ public class HalDeviceManager {
         IWifiP2pIface iface = mIWifiP2pIfaces.get(ifaceName);
         if (iface == null) return false;
         return replaceRequestorWs(iface, newRequestorWs);
+    }
+
+    /**
+     * Wrapper around {@link #replaceRequestorWs(IWifiIface, WorkSource)} for NAN ifaces.
+     */
+    public boolean replaceRequestorWsForNanIface(@NonNull WifiNanIface iface,
+            @NonNull WorkSource newRequestorWs) {
+        return replaceRequestorWs(iface.getNanIface(), newRequestorWs);
     }
 
     /**

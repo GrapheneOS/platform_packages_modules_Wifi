@@ -1732,6 +1732,11 @@ public class WifiP2pManager {
      * stop through listener callbacks {@link ActionListener#onSuccess} or
      * {@link ActionListener#onFailure}.
      *
+     * <p> If P2P Group is in the process of being created, this call will fail (report failure via
+     * {@code listener}. The applicantion should listen to
+     * {@link #WIFI_P2P_CONNECTION_CHANGED_ACTION} to ensure the state is not
+     * {@link android.net.NetworkInfo.State#CONNECTING} and repeat calling when the state changes.
+     *
      * @param channel is the channel created at {@link #initialize}
      * @param listener for callbacks on success or failure. Can be null.
      */

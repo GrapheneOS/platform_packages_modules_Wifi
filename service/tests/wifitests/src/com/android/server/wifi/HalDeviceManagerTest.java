@@ -490,8 +490,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         // fiddle with the "chip" by removing the STA
         chipMock.interfaceNames.get(IfaceType.STA).remove("wlan0");
 
-        // now try to request another NAN
-        IWifiIface nanIface2 =
+        // Now try to request another NAN. Since we are calling the createNanIface method,
+        // expect a WifiNanIface wrapper object instead of an IWifiIface HIDL object.
+        WifiNanIface nanIface2 =
                 mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0);
         collector.checkThat("NAN can't be created", nanIface2, IsNull.nullValue());
         mTestLooper.dispatchAll();
@@ -2819,8 +2820,11 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_0);
         assertNull("Should not create this nan", nanDetails);
-        nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_0);
-        collector.checkThat("NAN should not be created", nanIface, IsNull.nullValue());
+        // Expect a WifiNanIface wrapper object this time, since we are calling
+        // createNanIface instead of createIface.
+        WifiNanIface nanIface2 =
+                mDut.createNanIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("NAN should not be created", nanIface2, IsNull.nullValue());
 
         // tear down AP
         mDut.removeIface(apIface);
