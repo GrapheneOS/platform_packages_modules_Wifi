@@ -432,7 +432,8 @@ public class WifiDataStall {
                 + MAX_TIME_MARGIN_LAST_TWO_POLLS_MS;
         if (timeDeltaLastTwoPollsMs > 0 && timeDeltaLastTwoPollsMs <= maxTimeDeltaMs) {
             mWifiMetrics.incrementConnectionDuration(timeDeltaLastTwoPollsMs,
-                    mIsThroughputSufficient, mIsCellularDataAvailable);
+                    mIsThroughputSufficient, mIsCellularDataAvailable, wifiInfo.getRssi(),
+                    mTxTputKbps, mRxTputKbps);
         }
 
         boolean possibleDataStallTx = isTxTputLow
