@@ -1126,11 +1126,6 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateConnectSequenceWithKeyMgmt(SUPPLICANT_NETWORK_ID, false,
                 WifiConfiguration.SECURITY_TYPE_SAE, null);
 
-        mISupplicantStaIfaceCallback.onStateChanged(
-                StaIfaceCallbackState.ASSOCIATING,
-                NativeUtil.macAddressToByteArray(BSSID),
-                SUPPLICANT_NETWORK_ID,
-                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
         int statusCode = StaIfaceStatusCode.UNSPECIFIED_FAILURE;
         AssociationRejectionData rejectionData = createAssocRejectData(SUPPLICANT_SSID, BSSID,
                 statusCode, false);
