@@ -2415,13 +2415,14 @@ public class HalDeviceManager {
         }
 
         for (int createType: CREATE_TYPES_BY_PRIORITY) {
-            if (val1NumIfacesToBeRemoved[createType] < val2NumIfacesToBeRemoved[createType]) {
+            if (val1NumIfacesToBeRemoved[createType] != val2NumIfacesToBeRemoved[createType]) {
                 if (VDBG) {
-                    Log.d(TAG, "decision based on createType=" + createType + ": "
-                            + val1NumIfacesToBeRemoved[createType]
-                            + " < " + val2NumIfacesToBeRemoved[createType]);
+                    Log.d(TAG, "decision based on num ifaces to be removed, createType="
+                            + createType + ", new proposal will remove "
+                            + val1NumIfacesToBeRemoved[createType] + " iface, and old proposal"
+                            + "will remove " + val2NumIfacesToBeRemoved[createType] + " iface");
                 }
-                return true;
+                return val1NumIfacesToBeRemoved[createType] < val2NumIfacesToBeRemoved[createType];
             }
         }
 
