@@ -137,6 +137,7 @@ public class ActiveModeWarden {
     private boolean mIsMultiplePrimaryBugreportTaken = false;
     private boolean mIsShuttingdown = false;
     private boolean mVerboseLoggingEnabled = false;
+    private boolean mAllowRootToGetLocalOnlyCmm = true;
     /** Cache to store the external scorer for primary and secondary (MBB) client mode manager. */
     @Nullable private Pair<IBinder, IWifiConnectedNetworkScorer> mClientModeManagerScorer;
 
@@ -422,6 +423,15 @@ public class ActiveModeWarden {
         for (PrimaryClientModeManagerChangedCallback callback : mPrimaryChangedCallbacks) {
             callback.onChange(prevPrimaryClientModeManager, newPrimaryClientModeManager);
         }
+    }
+
+    /**
+     * Used for testing with wifi shell command. If enabled the root will be able to request for a
+     * secondary local-only CMM when commands like add-request is used. If disabled, add-request
+     * will fallback to using the primary CMM.
+     */
+    public void allowRootToGetLocalOnlyCmm(boolean enabled) {
+        mAllowRootToGetLocalOnlyCmm = enabled;
     }
 
     /**
@@ -2120,6 +2130,9 @@ public class ActiveModeWarden {
                     WorkSource workSource = requestInfo.requestorWs;
                     for (int i = 0; i < workSource.size(); i++) {
                         int curUid = workSource.getUid(i);
+                        if (mAllowRootToGetLocalOnlyCmm && curUid == 0) { // 0 is root UID.
+                            continue;
+                        }
                         if (mWifiPermissionsUtil.checkEnterCarModePrioritized(curUid)) {
                             requestInfo.listener.onAnswer(primaryManager);
                             if (mVerboseLoggingEnabled) {
