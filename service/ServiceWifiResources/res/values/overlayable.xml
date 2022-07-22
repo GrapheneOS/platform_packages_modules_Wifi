@@ -344,6 +344,11 @@
           <item type="string" name="wifi_interface_priority_message_plural" />
           <item type="string" name="wifi_interface_priority_approve" />
           <item type="string" name="wifi_interface_priority_reject" />
+          <item type="string" name="wifi_interface_priority_interface_name_sta" />
+          <item type="string" name="wifi_interface_priority_interface_name_ap" />
+          <item type="string" name="wifi_interface_priority_interface_name_ap_bridge" />
+          <item type="string" name="wifi_interface_priority_interface_name_p2p" />
+          <item type="string" name="wifi_interface_priority_interface_name_nan" />
           <item type="string" name="wifi_ca_cert_dialog_title" />
           <item type="string" name="wifi_ca_cert_dialog_continue_text" />
           <item type="string" name="wifi_ca_cert_dialog_abort_text" />

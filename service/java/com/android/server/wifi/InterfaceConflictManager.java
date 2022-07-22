@@ -388,15 +388,16 @@ public class InterfaceConflictManager {
     private String getInterfaceName(@HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType) {
         switch (createIfaceType) {
             case HDM_CREATE_IFACE_STA:
-                return "STA";
+                return mResources.getString(R.string.wifi_interface_priority_interface_name_sta);
             case HDM_CREATE_IFACE_AP:
-                return "AP";
+                return mResources.getString(R.string.wifi_interface_priority_interface_name_ap);
             case HDM_CREATE_IFACE_AP_BRIDGE:
-                return "AP";
+                return mResources.getString(
+                        R.string.wifi_interface_priority_interface_name_ap_bridge);
             case HDM_CREATE_IFACE_P2P:
-                return "Wi-Fi Direct";
+                return mResources.getString(R.string.wifi_interface_priority_interface_name_p2p);
             case HDM_CREATE_IFACE_NAN:
-                return "Wi-Fi Aware";
+                return mResources.getString(R.string.wifi_interface_priority_interface_name_nan);
         }
         return "Unknown";
     }
