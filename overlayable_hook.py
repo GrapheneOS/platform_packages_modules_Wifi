@@ -41,7 +41,7 @@ def is_in_aosp():
 
 def get_changed_resource_file(base_dir, commit_files):
     config_file = base_dir + "values/config.xml"
-    string_file = base_dir + "values/string.xml"
+    string_file = base_dir + "values/strings.xml"
     styles_file = base_dir + "values/styles.xml"
     drawable_dir = base_dir + "drawable/"
     layout_dir = base_dir + "layout/"
