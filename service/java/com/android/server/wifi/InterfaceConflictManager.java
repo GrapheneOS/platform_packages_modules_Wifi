@@ -334,8 +334,10 @@ public class InterfaceConflictManager {
         CharSequence requestorAppName = mFrameworkFacade.getAppName(mContext,
                 requestorWs.getPackageName(0), requestorWs.getUid(0));
         String requestedInterface = getInterfaceName(createIfaceType);
+        Set<String> impactedInterfacesSet = new HashSet<>();
         Set<String> impactedPackagesSet = new HashSet<>();
         for (Pair<Integer, WorkSource> detail : impact) {
+            impactedInterfacesSet.add(getInterfaceName(detail.first));
             for (int j = 0; j < detail.second.size(); ++j) {
                 impactedPackagesSet.add(
                         mFrameworkFacade.getAppName(mContext, detail.second.getPackageName(j),
@@ -343,14 +345,17 @@ public class InterfaceConflictManager {
             }
         }
         String impactedPackages = TextUtils.join(", ", impactedPackagesSet);
+        String impactedInterfaces = TextUtils.join(", ", impactedInterfacesSet);
 
         mWifiDialogManager.createLegacySimpleDialog(
-                mResources.getString(R.string.wifi_interface_priority_title, requestorAppName),
+                mResources.getString(R.string.wifi_interface_priority_title,
+                        requestorAppName, requestedInterface),
                 impactedPackagesSet.size() == 1 ? mResources.getString(
                         R.string.wifi_interface_priority_message, requestorAppName,
-                        requestedInterface, impactedPackages)
+                        requestedInterface, impactedPackages, impactedInterfaces)
                         : mResources.getString(R.string.wifi_interface_priority_message_plural,
-                                requestorAppName, requestedInterface, impactedPackages),
+                                requestorAppName, requestedInterface, impactedPackages,
+                                impactedInterfaces),
                 mResources.getString(R.string.wifi_interface_priority_approve),
                 mResources.getString(R.string.wifi_interface_priority_reject),
                 null,
