@@ -18,7 +18,6 @@ package com.android.server.wifi;
 
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -73,7 +72,8 @@ public class WifiDialogManager {
     private final Set<Integer> mActiveDialogIds = new ArraySet<>();
     private final @NonNull SparseArray<DialogHandleInternal> mActiveDialogHandles =
             new SparseArray<>();
-    private final @NonNull ArraySet<Dialog> mActiveLegacySimpleDialogs = new ArraySet<>();
+    private final @NonNull ArraySet<LegacySimpleDialogHandle> mActiveLegacySimpleDialogs =
+            new ArraySet<>();
 
     private final @NonNull WifiContext mContext;
     private final @NonNull WifiThreadRunner mWifiThreadRunner;
@@ -87,14 +87,20 @@ public class WifiDialogManager {
             mWifiThreadRunner.post(() -> {
                 if (!context.getSystemService(PowerManager.class).isInteractive()) {
                     // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
+                    // However, we should change the window type to TYPE_APPLICATION_OVERLAY so that
+                    // it does not show over the lock screen when the screen turns on again.
+                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
+                        dialogHandle.changeWindowType(
+                                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+                    }
                     return;
                 }
                 if (mVerboseLoggingEnabled) {
                     Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received while screen on, cancelling"
                             + " all legacy dialogs.");
                 }
-                for (Dialog dialog : mActiveLegacySimpleDialogs) {
-                    dialog.cancel();
+                for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
+                    dialogHandle.cancelDialog();
                 }
             });
         }
@@ -420,6 +426,8 @@ public class WifiDialogManager {
         @NonNull WifiThreadRunner mCallbackThreadRunner;
         private Runnable mTimeoutRunnable;
         private AlertDialog mAlertDialog;
+        int mWindowType = WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG;
+        long mTimeoutMs = 0;
 
         LegacySimpleDialogHandle(
                 final String title,
@@ -478,10 +486,17 @@ public class WifiDialogManager {
         }
 
         void launchDialog(long timeoutMs) {
-            if (mAlertDialog != null) {
-                // Dialog is already launched, ignore.
-                return;
+            if (mAlertDialog != null && mAlertDialog.isShowing()) {
+                // Dialog is already launched. Dismiss and create a new one.
+                mAlertDialog.setOnDismissListener(null);
+                mAlertDialog.dismiss();
             }
+            if (mTimeoutRunnable != null) {
+                // Reset the timeout runnable if one has already been created.
+                mWifiThreadRunner.removeCallbacks(mTimeoutRunnable);
+                mTimeoutRunnable = null;
+            }
+            mTimeoutMs = timeoutMs;
             mAlertDialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
                     .setTitle(mTitle)
                     .setMessage(mMessage)
@@ -510,13 +525,13 @@ public class WifiDialogManager {
                         mCallbackThreadRunner.post(mCallback::onCancelled);
                     })
                     .setOnDismissListener((dialogDismiss) -> {
-                        if (mTimeoutRunnable != null) {
-                            mWifiThreadRunner.removeCallbacks(mTimeoutRunnable);
-                        }
-                        mTimeoutRunnable = null;
                         mWifiThreadRunner.post(() -> {
+                            if (mTimeoutRunnable != null) {
+                                mWifiThreadRunner.removeCallbacks(mTimeoutRunnable);
+                                mTimeoutRunnable = null;
+                            }
                             mAlertDialog = null;
-                            mActiveLegacySimpleDialogs.remove(mAlertDialog);
+                            mActiveLegacySimpleDialogs.remove(this);
                         });
                     })
                     .create();
@@ -526,7 +541,7 @@ public class WifiDialogManager {
                 window.setGravity(mGravity);
             }
             final WindowManager.LayoutParams lp = window.getAttributes();
-            window.setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+            window.setType(mWindowType);
             lp.setFitInsetsTypes(WindowInsets.Type.statusBars()
                     | WindowInsets.Type.navigationBars());
             lp.setFitInsetsSides(WindowInsets.Side.all());
@@ -539,18 +554,30 @@ public class WifiDialogManager {
             if (messageView != null) {
                 messageView.setMovementMethod(LinkMovementMethod.getInstance());
             }
-            if (timeoutMs > 0) {
+            if (mTimeoutMs > 0) {
                 mTimeoutRunnable = mAlertDialog::cancel;
-                mWifiThreadRunner.postDelayed(mTimeoutRunnable, timeoutMs);
+                mWifiThreadRunner.postDelayed(mTimeoutRunnable, mTimeoutMs);
             }
-            mActiveLegacySimpleDialogs.add(mAlertDialog);
+            mActiveLegacySimpleDialogs.add(this);
         }
 
         void dismissDialog() {
             if (mAlertDialog != null) {
                 mAlertDialog.dismiss();
             }
-            mAlertDialog = null;
+        }
+
+        void cancelDialog() {
+            if (mAlertDialog != null) {
+                mAlertDialog.cancel();
+            }
+        }
+
+        void changeWindowType(int windowType) {
+            mWindowType = windowType;
+            if (mActiveLegacySimpleDialogs.contains(this)) {
+                launchDialog(mTimeoutMs);
+            }
         }
     }
 
