@@ -1429,6 +1429,35 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify device status is reset to UNAVAILABLE on P2P disabled.
+     */
+    @Test
+    public void testP2pDeviceUnavailableOnP2pDisabled() throws Exception {
+        setTargetSdkGreaterThanT();
+        forceP2pEnabled(mClient1);
+
+        simulateWifiStateChange(false);
+        mLooper.dispatchAll();
+        // Device status is AVAILABLE
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+        assertEquals(WifiP2pDevice.AVAILABLE,
+                ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+
+        // Force to back disable state
+        mockEnterDisabledState();
+
+        // Device status is UNAVAILABLE
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+        verify(mClientHandler, times(2)).sendMessage(mMessageCaptor.capture());
+        assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+        assertEquals(WifiP2pDevice.UNAVAILABLE,
+                ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+    }
+
+    /**
      * Verify that p2p init / teardown when wifi off / on
      * with a client connected
      */

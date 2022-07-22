@@ -2243,6 +2243,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
 
             @Override
+            public void enter() {
+                updateThisDevice(WifiP2pDevice.UNAVAILABLE);
+            }
+
+            @Override
             public boolean processMessage(Message message) {
                 if (mVerboseLoggingEnabled) logd(getName() + message.toString());
                 boolean wasInWaitingState = WaitingState.wasMessageInWaitingState(message);
