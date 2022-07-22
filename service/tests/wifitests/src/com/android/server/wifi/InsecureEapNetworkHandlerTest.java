@@ -71,7 +71,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     private static final int ACTION_TAP = 2;
     private static final String WIFI_IFACE_NAME = "wlan-test-9";
     private static final int FRAMEWORK_NETWORK_ID = 2;
-    private static final String TEST_SSID = "test_ssid";
+    private static final String TEST_SSID = "\"test_ssid\"";
 
     @Mock WifiContext mContext;
     @Mock WifiConfigManager mWifiConfigManager;

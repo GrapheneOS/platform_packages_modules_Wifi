@@ -45,6 +45,7 @@ import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.os.RemoteException;
 import android.text.TextUtils;
 
@@ -58,6 +59,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -95,6 +97,7 @@ public class SupplicantStaNetworkHalHidlImplTest extends WifiBaseTest {
     @Mock private Context mContext;
     @Mock private WifiMonitor mWifiMonitor;
     @Mock private WifiGlobals mWifiGlobals;
+    @Mock private SsidTranslator mSsidTranslator;
     private long mAdvanceKeyMgmtFeatures = 0;
 
     private SupplicantNetworkVariables mSupplicantVariables;
@@ -122,7 +125,7 @@ public class SupplicantStaNetworkHalHidlImplTest extends WifiBaseTest {
                 Context context, WifiMonitor monitor, WifiGlobals wifiGlobals,
                 long advanceKeyMgmtFeatures) {
             super(iSupplicantStaNetwork, ifaceName, context, monitor, wifiGlobals,
-                    advanceKeyMgmtFeatures);
+                    mSsidTranslator, advanceKeyMgmtFeatures);
         }
 
         @Override
@@ -187,9 +190,31 @@ public class SupplicantStaNetworkHalHidlImplTest extends WifiBaseTest {
         mResources = new MockResources();
         when(mContext.getResources()).thenReturn(mResources);
         when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+        when(mSsidTranslator.getTranslatedSsid(any())).thenAnswer(
+                (Answer<WifiSsid>) invocation -> getTranslatedSsid(invocation.getArgument(0)));
+        when(mSsidTranslator.getOriginalSsid(any(), any())).thenAnswer(
+                (Answer<WifiSsid>) invocation -> getOriginalSsid(invocation.getArgument(0)));
 
         mAdvanceKeyMgmtFeatures |= WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
         createSupplicantStaNetwork(SupplicantStaNetworkVersion.V1_0);
+    }
+
+    /** Mock translating an SSID */
+    private WifiSsid getTranslatedSsid(WifiSsid ssid) {
+        byte[] ssidBytes = ssid.getBytes();
+        for (int i = 0; i < ssidBytes.length; i++) {
+            ssidBytes[i]++;
+        }
+        return WifiSsid.fromBytes(ssidBytes);
+    }
+
+    /** Get the original SSID from the mock translation */
+    private WifiSsid getOriginalSsid(WifiSsid translatedSsid) {
+        byte[] ssidBytes = translatedSsid.getBytes();
+        for (int i = 0; i < ssidBytes.length; i++) {
+            ssidBytes[i]--;
+        }
+        return WifiSsid.fromBytes(ssidBytes);
     }
 
     /**
@@ -2338,7 +2363,7 @@ public class SupplicantStaNetworkHalHidlImplTest extends WifiBaseTest {
             case V1_0:
                 mSupplicantNetwork = new SupplicantStaNetworkHalHidlImpl(
                         mISupplicantStaNetworkMock, IFACE_NAME, mContext, mWifiMonitor,
-                        mWifiGlobals, mAdvanceKeyMgmtFeatures);
+                        mWifiGlobals, mSsidTranslator, mAdvanceKeyMgmtFeatures);
                 break;
             case V1_2:
                 mSupplicantNetwork = new SupplicantStaNetworkHalSpyV1_2(

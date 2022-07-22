@@ -157,6 +157,7 @@ public class WifiConnectivityManager {
     private final AlarmManager mAlarmManager;
     private final Handler mEventHandler;
     private final ExternalPnoScanRequestManager mExternalPnoScanRequestManager;
+    private final @NonNull SsidTranslator mSsidTranslator;
     private final Clock mClock;
     private final ScoringParams mScoringParams;
     private final LocalLog mLocalLog;
@@ -1226,7 +1227,8 @@ public class WifiConnectivityManager {
             ActiveModeWarden activeModeWarden,
             FrameworkFacade frameworkFacade,
             WifiGlobals wifiGlobals,
-            ExternalPnoScanRequestManager externalPnoScanRequestManager) {
+            ExternalPnoScanRequestManager externalPnoScanRequestManager,
+            @NonNull SsidTranslator ssidTranslator) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1252,6 +1254,7 @@ public class WifiConnectivityManager {
         mAlarmManager = context.getSystemService(AlarmManager.class);
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mExternalPnoScanRequestManager = externalPnoScanRequestManager;
+        mSsidTranslator = ssidTranslator;
 
         // Listen for screen state change events.
         // TODO: We should probably add a shared broadcast receiver in the wifi stack which
@@ -2276,20 +2279,24 @@ public class WifiConnectivityManager {
             pnoNetwork.frequencies = channelList.stream().mapToInt(Integer::intValue).toArray();
         }
         for (WifiConfiguration config : networks) {
-            if (pnoSet.contains(config.SSID)) {
-                continue;
+            for (WifiSsid originalSsid : mSsidTranslator.getAllPossibleOriginalSsids(
+                    WifiSsid.fromString(config.SSID))) {
+                if (pnoSet.contains(originalSsid.toString())) {
+                    continue;
+                }
+                WifiScanner.PnoSettings.PnoNetwork pnoNetwork =
+                        WifiConfigurationUtil.createPnoNetwork(config);
+                pnoNetwork.ssid = originalSsid.toString();
+                pnoList.add(pnoNetwork);
+                pnoSet.add(originalSsid.toString());
+                if (!pnoFrequencyCullingEnabled) {
+                    continue;
+                }
+                Set<Integer> channelList = new HashSet<>();
+                addChannelFromWifiScoreCard(channelList, config.SSID, 0,
+                        MAX_PNO_SCAN_FREQUENCY_AGE_MS);
+                pnoNetwork.frequencies = channelList.stream().mapToInt(Integer::intValue).toArray();
             }
-            WifiScanner.PnoSettings.PnoNetwork pnoNetwork =
-                    WifiConfigurationUtil.createPnoNetwork(config);
-            pnoList.add(pnoNetwork);
-            pnoSet.add(config.SSID);
-            if (!pnoFrequencyCullingEnabled) {
-                continue;
-            }
-            Set<Integer> channelList = new HashSet<>();
-            addChannelFromWifiScoreCard(channelList, config.SSID, 0,
-                    MAX_PNO_SCAN_FREQUENCY_AGE_MS);
-            pnoNetwork.frequencies = channelList.stream().mapToInt(Integer::intValue).toArray();
         }
         return pnoList;
     }

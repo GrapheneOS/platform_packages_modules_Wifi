@@ -20,14 +20,18 @@ import android.hardware.wifi.supplicant.V1_0.ISupplicantStaNetwork;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaNetworkCallback;
 import android.hardware.wifi.supplicant.V1_0.SupplicantStatus;
 import android.hardware.wifi.supplicant.V1_0.SupplicantStatusCode;
+import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiEnterpriseConfig.Ocsp;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.util.ArrayUtils;
@@ -94,6 +98,7 @@ public class SupplicantStaNetworkHalHidlImpl {
     private final String mIfaceName;
     private final WifiMonitor mWifiMonitor;
     private final WifiGlobals mWifiGlobals;
+    private final SsidTranslator mSsidTranslator;
     private ISupplicantStaNetwork mISupplicantStaNetwork;
     private ISupplicantStaNetworkCallback mISupplicantStaNetworkCallback;
 
@@ -137,12 +142,14 @@ public class SupplicantStaNetworkHalHidlImpl {
 
     SupplicantStaNetworkHalHidlImpl(ISupplicantStaNetwork iSupplicantStaNetwork, String ifaceName,
             Context context, WifiMonitor monitor, WifiGlobals wifiGlobals,
+            @NonNull SsidTranslator ssidTranslator,
             long advanceKeyMgmtFeature) {
         mISupplicantStaNetwork = iSupplicantStaNetwork;
         mContext = context;
         mIfaceName = ifaceName;
         mWifiMonitor = monitor;
         mWifiGlobals = wifiGlobals;
+        mSsidTranslator = ssidTranslator;
         mAdvanceKeyMgmtFeatures = advanceKeyMgmtFeature;
     }
 
@@ -172,7 +179,8 @@ public class SupplicantStaNetworkHalHidlImpl {
             /** SSID */
             config.SSID = null;
             if (getSsid() && !ArrayUtils.isEmpty(mSsid)) {
-                config.SSID = NativeUtil.encodeSsid(mSsid);
+                config.SSID = mSsidTranslator.getTranslatedSsid(
+                        WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(mSsid))).toString();
             } else {
                 Log.e(TAG, "failed to read ssid");
                 return false;
@@ -277,8 +285,21 @@ public class SupplicantStaNetworkHalHidlImpl {
             if (config == null) return false;
             /** SSID */
             if (config.SSID != null) {
-                if (!setSsid(NativeUtil.decodeSsid(config.SSID))) {
-                    Log.e(TAG, "failed to set SSID: " + config.SSID);
+                String networkSelectionBssidString = config.getNetworkSelectionStatus()
+                        .getNetworkSelectionBSSID();
+                MacAddress networkSelectionBssid = null;
+                if (networkSelectionBssidString != null && !networkSelectionBssidString.equals(
+                        ClientModeImpl.SUPPLICANT_BSSID_ANY)) {
+                    networkSelectionBssid = MacAddress.fromString(networkSelectionBssidString);
+                }
+                WifiSsid originalSsid = mSsidTranslator.getOriginalSsid(
+                        WifiSsid.fromString(config.SSID), networkSelectionBssid);
+                if (originalSsid == null) {
+                    Log.e(TAG, "failed to get original SSID for : " + config.SSID);
+                    return false;
+                }
+                if (!setSsid(NativeUtil.byteArrayToArrayList(originalSsid.getBytes()))) {
+                    Log.e(TAG, "failed to set SSID: " + originalSsid);
                     return false;
                 }
             }

@@ -788,8 +788,8 @@ public class WifiServiceImpl extends BaseWifiService {
             mTetheredSoftApTracker.handleBootCompleted();
             mLohsSoftApTracker.handleBootCompleted();
             mWifiInjector.getSarManager().handleBootCompleted();
+            mWifiInjector.getSsidTranslator().handleBootCompleted();
             updateVerboseLoggingEnabled();
-            mIsBootComplete = true;
         });
     }
 

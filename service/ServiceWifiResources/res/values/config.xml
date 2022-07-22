@@ -919,4 +919,20 @@
         -->
     </string-array>
 
+    <!-- Lists each alternate character set per locale language for SSID translation to UTF-8. This
+         will translate all SSIDs encoded with the specified character set from the native layer
+         into UTF-8 SSIDs. The translated SSIDs are then converted back to the original character
+         set when passed back to the native layer. This effectively switches all non-UTF-8 APs into
+         UTF-8 APs from the perspective of the framework and apps, and is intended to provide
+         backwards compatibility with apps that only work with UTF-8 SSIDs. Values must be in the
+         form of the locale language and canonical java.nio Charset name, separated by a comma. If
+         the locale language is "all", then the character set will apply to all locale languages
+         that do not specify their own character set. -->
+    <string-array translatable="false" name="config_wifiCharsetsForSsidTranslation">
+        <!-- Below is a sample configuration for this list:
+        <item>all,EUC-JP</item>
+        <item>zh,GBK</item>
+        <item>ko,EUC-KR</item>
+        -->
+    </string-array>
 </resources>

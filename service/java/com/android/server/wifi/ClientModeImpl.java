@@ -5449,8 +5449,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     NetworkConnectionEventInfo connectionInfo =
                             (NetworkConnectionEventInfo) message.obj;
                     String quotedOrHexConnectingSsid = getConnectingSsidInternal();
-                    String quotedOrHexConnectedSsid = NativeUtil.encodeSsid(
-                            NativeUtil.byteArrayToArrayList(connectionInfo.wifiSsid.getBytes()));
+                    String quotedOrHexConnectedSsid = connectionInfo.wifiSsid.toString();
                     if (quotedOrHexConnectingSsid != null
                             && !quotedOrHexConnectingSsid.equals(quotedOrHexConnectedSsid)) {
                         // possibly a NETWORK_CONNECTION_EVENT for a successful roam on the previous
@@ -6452,6 +6451,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         @Override
         public void exit() {
             logd("ClientModeImpl: Leaving Connected state");
+            if (mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                // Clear the recorded BSSID/Charsets associations to avoid holding onto stale info.
+                mWifiInjector.getSsidTranslator().clearRecordedBssidCharsets();
+            }
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                      WifiConnectivityManager.WIFI_STATE_TRANSITIONING);
