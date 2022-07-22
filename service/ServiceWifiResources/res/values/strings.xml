@@ -191,6 +191,11 @@
     <string name="wifi_interface_priority_message_plural">This may cause problems for these apps: <xliff:g id="apps">%3$s</xliff:g>.</string>
     <string name="wifi_interface_priority_approve">Allow</string>
     <string name="wifi_interface_priority_reject">Don\'t allow</string>
+    <string name="wifi_interface_priority_interface_name_sta">STA</string>
+    <string name="wifi_interface_priority_interface_name_ap">Wi\u2011Fi Hotspot</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge">Wi\u2011Fi Hotspot</string>
+    <string name="wifi_interface_priority_interface_name_p2p">Wi\u2011Fi Direct</string>
+    <string name="wifi_interface_priority_interface_name_nan">Wi\u2011Fi Aware</string>
 
     <!-- Trust On First Use dialog and notification text. -->
     <string name="wifi_ca_cert_dialog_title">Is this network trusted?</string>
