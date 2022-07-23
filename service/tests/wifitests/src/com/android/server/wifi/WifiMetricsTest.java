@@ -5598,12 +5598,12 @@ public class WifiMetricsTest extends WifiBaseTest {
     public void testConnectionDurationStats() throws Exception {
         for (int i = 0; i < 2; i++) {
             mWifiMetrics.incrementWifiScoreCount(TEST_IFACE_NAME, 52);
-            mWifiMetrics.incrementConnectionDuration(5000, false, true);
+            mWifiMetrics.incrementConnectionDuration(5000, false, true, -50, 10000, 10000);
             mWifiMetrics.incrementWifiScoreCount(TEST_IFACE_NAME, 40);
-            mWifiMetrics.incrementConnectionDuration(5000, false, true);
-            mWifiMetrics.incrementConnectionDuration(3000, true, true);
-            mWifiMetrics.incrementConnectionDuration(1000, false, false);
-            mWifiMetrics.incrementConnectionDuration(500, true, false);
+            mWifiMetrics.incrementConnectionDuration(5000, false, true, -50, 10000, 10000);
+            mWifiMetrics.incrementConnectionDuration(3000, true, true, -50, 10000, 10000);
+            mWifiMetrics.incrementConnectionDuration(1000, false, false, -50, 10000, 10000);
+            mWifiMetrics.incrementConnectionDuration(500, true, false, -50, 10000, 10000);
         }
         dumpProtoAndDeserialize();
 
@@ -6546,18 +6546,18 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(wifiInfo.getFrequency()).thenReturn(5810);
         mWifiMetrics.incrementWifiScoreCount("",  60);
         mWifiMetrics.handlePollResult(TEST_IFACE_NAME, wifiInfo);
-        mWifiMetrics.incrementConnectionDuration(3000, true, true);
+        mWifiMetrics.incrementConnectionDuration(3000, true, true, -50, 10002, 10001);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, 3000, true, true,
-                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_5G_HIGH));
+                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_5G_HIGH, -50, 10002, 10001));
 
         when(wifiInfo.getFrequency()).thenReturn(2412);
         mWifiMetrics.incrementWifiScoreCount("",  30);
         mWifiMetrics.handlePollResult(TEST_IFACE_NAME, wifiInfo);
-        mWifiMetrics.incrementConnectionDuration(2000, false, true);
+        mWifiMetrics.incrementConnectionDuration(2000, false, true, -55, 20002, 20001);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, 2000, true, true,
-                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_2G));
+                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_2G, -55, 20002, 20001));
     }
 
     /**

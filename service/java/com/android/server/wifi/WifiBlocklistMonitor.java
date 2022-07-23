@@ -446,9 +446,12 @@ public class WifiBlocklistMonitor {
             case REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE:
                 return mContext.getResources().getInteger(R.integer
                         .config_wifiBssidBlocklistMonitorConnectedScoreBaseBlockDurationMs);
+            case REASON_NETWORK_VALIDATION_FAILURE:
+                return mContext.getResources().getInteger(
+                        R.integer.config_wifiBssidBlocklistMonitorValidationFailureBaseBlockDurationMs);
             default:
                 return mContext.getResources().getInteger(
-                        R.integer.config_wifiBssidBlocklistMonitorBaseBlockDurationMs);
+                    R.integer.config_wifiBssidBlocklistMonitorBaseBlockDurationMs);
         }
     }
 
@@ -983,6 +986,13 @@ public class WifiBlocklistMonitor {
                         mContext.getResources().getInteger(R.integer
                                 .config_wifiDisableReasonNetworkNotFoundThreshold),
                         5 * 60 * 1000));
+        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY,
+                new DisableReasonInfo(
+                "NETWORK_SELECTION_DISABLED_NO_INTERNET_TEMPORARY",
+                mContext.getResources().getInteger(R.integer
+                    .config_wifiDisableReasonNoInternetTemporaryThreshold),
+                mContext.getResources().getInteger(R.integer
+                    .config_wifiDisableReasonNoInternetTemporaryDurationMs)));
     }
 
     /**
