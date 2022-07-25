@@ -22,6 +22,7 @@ import static android.net.wifi.WifiEnterpriseConfig.OCSP_REQUIRE_CERT_STATUS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import android.content.pm.UserInfo;
 import android.net.IpConfiguration;
@@ -38,6 +39,8 @@ import android.os.PatternMatcher;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Test;
 
@@ -1329,5 +1332,63 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
                   WifiConfigurationUtil.VALIDATE_FOR_ADD));
         assertTrue(WifiConfigurationUtil.validate(config, supportedFeatures,
                   WifiConfigurationUtil.VALIDATE_FOR_UPDATE));
+    }
+
+    @Test
+    public void testConvertMultiTypeConfigsToLegacyConfigs() {
+        assumeTrue(SdkLevel.isAtLeastS());
+        List<WifiConfiguration> expectedResult = new ArrayList<>();
+        List<WifiConfiguration> multiTypeConfigs = new ArrayList<>();
+
+        // Genreate configurations
+        WifiConfiguration pskSaeConfig = new WifiConfiguration();
+        pskSaeConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        // PSK is disabled in this configuration.
+        pskSaeConfig.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+        pskSaeConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
+
+        WifiConfiguration openOweConfig = new WifiConfiguration();
+        openOweConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
+        openOweConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_OWE);
+
+        WifiConfiguration pskConfig = new WifiConfiguration();
+        pskConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        pskConfig.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+
+        WifiConfiguration saeConfig = new WifiConfiguration();
+        saeConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
+
+        WifiConfiguration openConfig = new WifiConfiguration();
+        openConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
+
+        WifiConfiguration oweConfig = new WifiConfiguration();
+        oweConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_OWE);
+
+        // Prepare the input
+        multiTypeConfigs.add(pskSaeConfig);
+        multiTypeConfigs.add(openOweConfig);
+
+        // Prepare expected results
+        expectedResult.clear();
+        expectedResult.add(pskConfig);
+        expectedResult.add(saeConfig);
+        expectedResult.add(openConfig);
+        expectedResult.add(oweConfig);
+        List<WifiConfiguration> singleTypeConfigsWithDisabledType =
+                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(
+                        multiTypeConfigs, false);
+        WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
+                expectedResult, singleTypeConfigsWithDisabledType);
+
+        // Prepare expected results
+        expectedResult.clear();
+        expectedResult.add(saeConfig);
+        expectedResult.add(openConfig);
+        expectedResult.add(oweConfig);
+        List<WifiConfiguration> singleTypeConfigsWithoutDisabledType =
+                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(
+                        multiTypeConfigs, true);
+        WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
+                expectedResult, singleTypeConfigsWithoutDisabledType);
     }
 }
