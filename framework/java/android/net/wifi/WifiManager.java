@@ -4735,7 +4735,7 @@ public class WifiManager {
      * If the LocalOnlyHotspot cannot be created, the {@link LocalOnlyHotspotCallback#onFailed(int)}
      * method will be called. Example failures include errors bringing up the network or if
      * there is an incompatible operating mode.  For example, if the user is currently using Wifi
-     * Tethering to provide an upstream to another device, LocalOnlyHotspot will not start due to
+     * Tethering to provide an upstream to another device, LocalOnlyHotspot may not start due to
      * an incompatible mode. The possible error codes include:
      * {@link LocalOnlyHotspotCallback#ERROR_NO_CHANNEL},
      * {@link LocalOnlyHotspotCallback#ERROR_GENERIC},
