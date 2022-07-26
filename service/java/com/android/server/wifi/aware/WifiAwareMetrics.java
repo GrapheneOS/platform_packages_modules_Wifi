@@ -21,7 +21,6 @@ import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB;
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB_ANY_PEER;
 
-import android.hardware.wifi.V1_0.NanStatusType;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.text.TextUtils;
 import android.util.Log;
@@ -30,6 +29,7 @@ import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.MetricsUtils;
 
@@ -229,7 +229,7 @@ public class WifiAwareMetrics {
             data.mUsesIdentityCallback |= usesIdentityCallback;
             data.mMaxConcurrentAttaches = Math.max(data.mMaxConcurrentAttaches,
                     currentConcurrentCount);
-            recordAttachStatus(NanStatusType.SUCCESS);
+            recordAttachStatus(NanStatusCode.SUCCESS);
         }
     }
 
@@ -363,7 +363,7 @@ public class WifiAwareMetrics {
                 addNanHalStatusToHistogram(status, mSubscribeStatusData);
             }
 
-            if (status == NanStatusType.NO_RESOURCES_AVAILABLE) {
+            if (status == NanStatusCode.NO_RESOURCES_AVAILABLE) {
                 mAppsWithDiscoverySessionResourceFailure.add(uid);
             }
         }
@@ -471,7 +471,7 @@ public class WifiAwareMetrics {
                 addNanHalStatusToHistogram(status, mInBandNdpStatusData);
             }
 
-            if (status == NanStatusType.SUCCESS) {
+            if (status == NanStatusCode.SUCCESS) {
                 long creationTime = mClock.getElapsedSinceBootMillis() - startTimestamp;
                 MetricsUtils.addValueToLogHistogram(creationTime, mNdpCreationTimeDuration,
                         DURATION_LOG_HISTOGRAM);
@@ -825,7 +825,7 @@ public class WifiAwareMetrics {
      * Adds the NanStatusType to the histogram (translating to the proto enumeration of the status).
      */
     public static void addNanHalStatusToHistogram(int halStatus, SparseIntArray histogram) {
-        int protoStatus = convertNanStatusTypeToProtoEnum(halStatus);
+        int protoStatus = convertNanStatusCodeToProtoEnum(halStatus);
         int newValue = histogram.get(protoStatus) + 1;
         histogram.put(protoStatus, newValue);
     }
@@ -849,38 +849,38 @@ public class WifiAwareMetrics {
     }
 
     /**
-     * Convert a HAL NanStatusType enum to a Metrics proto enum NanStatusTypeEnum.
+     * Convert a NanStatusCode to a Metrics proto enum NanStatusCodeEnum.
      */
-    public static int convertNanStatusTypeToProtoEnum(int nanStatusType) {
-        switch (nanStatusType) {
-            case NanStatusType.SUCCESS:
+    public static int convertNanStatusCodeToProtoEnum(int nanStatusCode) {
+        switch (nanStatusCode) {
+            case NanStatusCode.SUCCESS:
                 return WifiMetricsProto.WifiAwareLog.SUCCESS;
-            case NanStatusType.INTERNAL_FAILURE:
+            case NanStatusCode.INTERNAL_FAILURE:
                 return WifiMetricsProto.WifiAwareLog.INTERNAL_FAILURE;
-            case NanStatusType.PROTOCOL_FAILURE:
+            case NanStatusCode.PROTOCOL_FAILURE:
                 return WifiMetricsProto.WifiAwareLog.PROTOCOL_FAILURE;
-            case NanStatusType.INVALID_SESSION_ID:
+            case NanStatusCode.INVALID_SESSION_ID:
                 return WifiMetricsProto.WifiAwareLog.INVALID_SESSION_ID;
-            case NanStatusType.NO_RESOURCES_AVAILABLE:
+            case NanStatusCode.NO_RESOURCES_AVAILABLE:
                 return WifiMetricsProto.WifiAwareLog.NO_RESOURCES_AVAILABLE;
-            case NanStatusType.INVALID_ARGS:
+            case NanStatusCode.INVALID_ARGS:
                 return WifiMetricsProto.WifiAwareLog.INVALID_ARGS;
-            case NanStatusType.INVALID_PEER_ID:
+            case NanStatusCode.INVALID_PEER_ID:
                 return WifiMetricsProto.WifiAwareLog.INVALID_PEER_ID;
-            case NanStatusType.INVALID_NDP_ID:
+            case NanStatusCode.INVALID_NDP_ID:
                 return WifiMetricsProto.WifiAwareLog.INVALID_NDP_ID;
-            case NanStatusType.NAN_NOT_ALLOWED:
+            case NanStatusCode.NAN_NOT_ALLOWED:
                 return WifiMetricsProto.WifiAwareLog.NAN_NOT_ALLOWED;
-            case NanStatusType.NO_OTA_ACK:
+            case NanStatusCode.NO_OTA_ACK:
                 return WifiMetricsProto.WifiAwareLog.NO_OTA_ACK;
-            case NanStatusType.ALREADY_ENABLED:
+            case NanStatusCode.ALREADY_ENABLED:
                 return WifiMetricsProto.WifiAwareLog.ALREADY_ENABLED;
-            case NanStatusType.FOLLOWUP_TX_QUEUE_FULL:
+            case NanStatusCode.FOLLOWUP_TX_QUEUE_FULL:
                 return WifiMetricsProto.WifiAwareLog.FOLLOWUP_TX_QUEUE_FULL;
-            case NanStatusType.UNSUPPORTED_CONCURRENCY_NAN_DISABLED:
+            case NanStatusCode.UNSUPPORTED_CONCURRENCY_NAN_DISABLED:
                 return WifiMetricsProto.WifiAwareLog.UNSUPPORTED_CONCURRENCY_NAN_DISABLED;
             default:
-                Log.e(TAG, "Unrecognized NanStatusType: " + nanStatusType);
+                Log.e(TAG, "Unrecognized NanStatusCode: " + nanStatusCode);
                 return WifiMetricsProto.WifiAwareLog.UNKNOWN_HAL_STATUS;
         }
     }

@@ -20,7 +20,6 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_2
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_5GHZ;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_DISABLED;
 
-import android.hardware.wifi.V1_0.NanStatusType;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.PublishConfig;
@@ -31,6 +30,8 @@ import android.os.SystemClock;
 import android.util.LocalLog;
 import android.util.Log;
 import android.util.SparseArray;
+
+import com.android.server.wifi.WifiNanIface.NanStatusCode;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -168,7 +169,7 @@ public class WifiAwareDiscoverySessionState {
      */
     public void terminate() {
         try {
-            mCallback.onSessionTerminated(NanStatusType.SUCCESS);
+            mCallback.onSessionTerminated(NanStatusCode.SUCCESS);
         } catch (RemoteException e) {
             Log.w(TAG,
                     "onSessionTerminatedLocal onSessionTerminated(): RemoteException (FYI): " + e);
@@ -204,7 +205,7 @@ public class WifiAwareDiscoverySessionState {
         if (!mIsPublishSession) {
             Log.e(TAG, "A SUBSCRIBE session is being used to publish");
             try {
-                mCallback.onSessionConfigFail(NanStatusType.INTERNAL_FAILURE);
+                mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.e(TAG, "updatePublish: RemoteException=" + e);
             }
@@ -215,7 +216,7 @@ public class WifiAwareDiscoverySessionState {
         boolean success = mWifiAwareNativeApi.publish(transactionId, mPubSubId, config);
         if (!success) {
             try {
-                mCallback.onSessionConfigFail(NanStatusType.INTERNAL_FAILURE);
+                mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.w(TAG, "updatePublish onSessionConfigFail(): RemoteException (FYI): " + e);
             }
@@ -235,7 +236,7 @@ public class WifiAwareDiscoverySessionState {
         if (mIsPublishSession) {
             Log.e(TAG, "A PUBLISH session is being used to subscribe");
             try {
-                mCallback.onSessionConfigFail(NanStatusType.INTERNAL_FAILURE);
+                mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.e(TAG, "updateSubscribe: RemoteException=" + e);
             }
@@ -246,7 +247,7 @@ public class WifiAwareDiscoverySessionState {
         boolean success = mWifiAwareNativeApi.subscribe(transactionId, mPubSubId, config);
         if (!success) {
             try {
-                mCallback.onSessionConfigFail(NanStatusType.INTERNAL_FAILURE);
+                mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.w(TAG, "updateSubscribe onSessionConfigFail(): RemoteException (FYI): " + e);
             }
@@ -272,7 +273,7 @@ public class WifiAwareDiscoverySessionState {
             Log.e(TAG, "sendMessage: attempting to send a message to an address which didn't "
                     + "match/contact us");
             try {
-                mCallback.onMessageSendFail(messageId, NanStatusType.INTERNAL_FAILURE);
+                mCallback.onMessageSendFail(messageId, NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.e(TAG, "sendMessage: RemoteException=" + e);
             }
@@ -283,7 +284,7 @@ public class WifiAwareDiscoverySessionState {
                 peerInfo.mInstanceId, peerInfo.mMac, message, messageId);
         if (!success) {
             try {
-                mCallback.onMessageSendFail(messageId, NanStatusType.INTERNAL_FAILURE);
+                mCallback.onMessageSendFail(messageId, NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.e(TAG, "sendMessage: RemoteException=" + e);
             }

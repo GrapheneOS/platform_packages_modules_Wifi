@@ -23,7 +23,6 @@ import android.annotation.NonNull;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.hardware.wifi.V1_0.NanStatusType;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.AwareResources;
@@ -55,6 +54,7 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.SystemBuildProperties;
+import com.android.server.wifi.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -300,7 +300,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         } catch (RemoteException e) {
             Log.e(TAG, "Error on linkToDeath - " + e);
             try {
-                callback.onConnectFail(NanStatusType.INTERNAL_FAILURE);
+                callback.onConnectFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e1) {
                 Log.e(TAG, "Error on onConnectFail()");
             }
