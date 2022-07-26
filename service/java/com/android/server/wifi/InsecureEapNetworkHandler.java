@@ -320,7 +320,7 @@ public class InsecureEapNetworkHandler {
                 if (TextUtils.isEmpty(title) || TextUtils.isEmpty(message)) return true;
 
                 if (isUserSelected) {
-                    mTofuAlertDialog = mWifiDialogManager.createSimpleDialog(
+                    mTofuAlertDialog = mWifiDialogManager.createLegacySimpleDialog(
                         title,
                         message,
                         null /* positiveButtonText */,
@@ -547,7 +547,7 @@ public class InsecureEapNetworkHandler {
             messageUrlStart = hint.length() + 1;
             messageUrlEnd = message.length();
         }
-        mTofuAlertDialog = mWifiDialogManager.createSimpleDialogWithUrl(
+        mTofuAlertDialog = mWifiDialogManager.createLegacySimpleDialogWithUrl(
                 title,
                 message,
                 messageUrl,
