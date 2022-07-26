@@ -3870,6 +3870,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean setNetworkCentricQosPolicyFeatureEnabled(@NonNull String ifaceName,
             boolean isEnabled) {
+        Log.wtf(TAG, "setNetworkCentricQosPolicyFeatureEnabled is not supported");
         return false;
     }
 
@@ -3885,7 +3886,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     public boolean sendQosPolicyResponse(String ifaceName, int qosPolicyRequestId,
             boolean morePolicies,
             @NonNull List<SupplicantStaIfaceHal.QosPolicyStatus> qosPolicyStatusList) {
-        Log.e(TAG, "sendQosPolicyResponse is not supported by the HIDL HAL");
+        Log.wtf(TAG, "sendQosPolicyResponse is not supported by the HIDL HAL");
         return false;
     }
 
@@ -3895,7 +3896,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      * @param ifaceName Name of the interface.
      */
     public boolean removeAllQosPolicies(String ifaceName) {
-        Log.e(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
+        Log.wtf(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
         return false;
     }
 
