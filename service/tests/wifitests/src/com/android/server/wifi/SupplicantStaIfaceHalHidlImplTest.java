@@ -1430,14 +1430,14 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         mISupplicantStaIfaceCallbackV14.onAssociationRejected_1_4(rejectionData);
         verify(mWifiMonitor).broadcastAuthenticationFailureEvent(eq(WLAN0_IFACE_NAME),
                 eq(WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD), eq(-1),
-                eq(SUPPLICANT_SSID), eq(MacAddress.fromString(BSSID)));
+                eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(MacAddress.fromString(BSSID)));
         ArgumentCaptor<AssocRejectEventInfo> assocRejectEventInfoCaptor =
                 ArgumentCaptor.forClass(AssocRejectEventInfo.class);
         verify(mWifiMonitor).broadcastAssociationRejectionEvent(
                 eq(WLAN0_IFACE_NAME), assocRejectEventInfoCaptor.capture());
         AssocRejectEventInfo assocRejectEventInfo = assocRejectEventInfoCaptor.getValue();
         assertNotNull(assocRejectEventInfo);
-        assertEquals(SUPPLICANT_SSID, assocRejectEventInfo.ssid);
+        assertEquals(TRANSLATED_SUPPLICANT_SSID.toString(), assocRejectEventInfo.ssid);
         assertEquals(BSSID, assocRejectEventInfo.bssid);
         assertEquals(statusCode, assocRejectEventInfo.statusCode);
         assertFalse(assocRejectEventInfo.timedOut);
