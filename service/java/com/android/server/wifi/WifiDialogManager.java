@@ -18,11 +18,15 @@ package com.android.server.wifi;
 
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
+import android.os.PowerManager;
 import android.os.UserHandle;
 import android.provider.Browser;
 import android.text.SpannableString;
@@ -67,10 +71,31 @@ public class WifiDialogManager {
     private final Set<Integer> mActiveDialogIds = new ArraySet<>();
     private final @NonNull SparseArray<DialogHandleInternal> mActiveDialogHandles =
             new SparseArray<>();
+    private final @NonNull ArraySet<Dialog> mActiveLegacySimpleDialogs = new ArraySet<>();
 
     private final @NonNull WifiContext mContext;
     private final @NonNull WifiThreadRunner mWifiThreadRunner;
     private final @NonNull FrameworkFacade mFrameworkFacade;
+
+    // Broadcast receiver for listening to ACTION_CLOSE_SYSTEM_DIALOGS
+    private final BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mWifiThreadRunner.post(() -> {
+                if (!context.getSystemService(PowerManager.class).isInteractive()) {
+                    // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
+                    return;
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received while screen on, cancelling"
+                            + " all legacy dialogs.");
+                }
+                for (Dialog dialog : mActiveLegacySimpleDialogs) {
+                    dialog.cancel();
+                }
+            });
+        }
+    };
 
     /**
      * Constructs a WifiDialogManager
@@ -86,6 +111,8 @@ public class WifiDialogManager {
         mContext = context;
         mWifiThreadRunner = wifiThreadRunner;
         mFrameworkFacade = frameworkFacade;
+        mContext.registerReceiver(
+                mCloseSystemDialogsReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
     }
 
     /**
@@ -485,6 +512,7 @@ public class WifiDialogManager {
                         mTimeoutRunnable = null;
                         mWifiThreadRunner.post(() -> {
                             mAlertDialog = null;
+                            mActiveLegacySimpleDialogs.remove(mAlertDialog);
                         });
                     })
                     .create();
@@ -508,6 +536,7 @@ public class WifiDialogManager {
                 mTimeoutRunnable = mAlertDialog::cancel;
                 mWifiThreadRunner.postDelayed(mTimeoutRunnable, timeoutMs);
             }
+            mActiveLegacySimpleDialogs.add(mAlertDialog);
         }
 
         void dismissDialog() {
