@@ -257,6 +257,12 @@ public class PasspointNetworkNominateHelperTest {
                 eq(TEST_NETWORK_ID), any(ScanResult.class), anyInt(), any());
         verify(mWifiConfigManager).updateScanDetailForNetwork(
                 eq(TEST_NETWORK_ID), any(ScanDetail.class));
+
+        // When empty Scan result received later, should be not candidate return.
+        when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
+        candidates = mNominateHelper
+                .getPasspointNetworkCandidates(Collections.emptyList(), false);
+        assertTrue(candidates.isEmpty());
     }
 
     /**
