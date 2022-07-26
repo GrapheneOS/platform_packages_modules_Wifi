@@ -7017,25 +7017,178 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(StaEvent.DISCONNECT_PASSPOINT_TAC));
     }
 
-    /**
-     * Verify that the Transition Disable event is routed correctly.
-     */
-    @Test
-    public void testTransitionDisableEvent() throws Exception {
+    private void verifyTransitionDisableEvent(String caps, int indication, boolean shouldUpdate)
+            throws Exception {
         final int networkId = FRAMEWORK_NETWORK_ID;
-        final int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL
-                | WifiMonitor.TDI_USE_WPA3_ENTERPRISE;
+        ScanResult scanResult = new ScanResult(WifiSsid.fromUtf8Text(sFilsSsid),
+                sFilsSsid, TEST_BSSID_STR, 1245, 0, caps, -78, 2412, 1025, 22, 33, 20, 0, 0, true);
+        ScanResult.InformationElement ie = createIE(ScanResult.InformationElement.EID_SSID,
+                sFilsSsid.getBytes(StandardCharsets.UTF_8));
+        scanResult.informationElements = new ScanResult.InformationElement[]{ie};
+        when(mScanRequestProxy.getScanResults()).thenReturn(Arrays.asList(scanResult));
+        when(mScanRequestProxy.getScanResult(eq(TEST_BSSID_STR))).thenReturn(scanResult);
 
         initializeAndAddNetworkAndVerifySuccess();
 
         startConnectSuccess();
 
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR, false));
+        mLooper.dispatchAll();
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR,
+                        SupplicantState.COMPLETED));
+        mLooper.dispatchAll();
+
+        assertEquals("L3ProvisioningState", getCurrentState().getName());
+
         mCmi.sendMessage(WifiMonitor.TRANSITION_DISABLE_INDICATION,
                 networkId, indication);
         mLooper.dispatchAll();
 
-        verify(mWifiConfigManager).updateNetworkTransitionDisable(
-                eq(networkId), eq(indication));
+        if (shouldUpdate) {
+            verify(mWifiConfigManager).updateNetworkTransitionDisable(
+                    eq(networkId), eq(indication));
+        } else {
+            verify(mWifiConfigManager, never()).updateNetworkTransitionDisable(
+                    anyInt(), anyInt());
+        }
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateSaeOnlyTransitionDisableIndicationFromPskSaeBss() throws Exception {
+        String caps = "[PSK][SAE]";
+        int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateSaeOnlyTransitionDisableIndicationFromSaeBss() throws Exception {
+        String caps = "[SAE]";
+        int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testDropSaeOnlyTransitionDisableIndicationFromPskBss() throws Exception {
+        String caps = "[PSK]";
+        int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL;
+        boolean shouldUpdate = false;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateSaePkTransitionDisableIndicationFromPskSaeBss() throws Exception {
+        String caps = "[PSK][SAE]";
+        int indication = WifiMonitor.TDI_USE_SAE_PK;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateSaePkTransitionDisableIndicationFromSaeBss() throws Exception {
+        String caps = "[SAE]";
+        int indication = WifiMonitor.TDI_USE_SAE_PK;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testDropSaePkTransitionDisableIndicationFromPskBss() throws Exception {
+        String caps = "[PSK]";
+        int indication = WifiMonitor.TDI_USE_SAE_PK;
+        boolean shouldUpdate = false;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateOweOnlyTransitionDisableIndicationFromOpenOweBss() throws Exception {
+        String caps = "[OWE_TRANSITION]";
+        int indication = WifiMonitor.TDI_USE_ENHANCED_OPEN;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateOweOnlyTransitionDisableIndicationFromOweBss() throws Exception {
+        String caps = "[OWE]";
+        int indication = WifiMonitor.TDI_USE_ENHANCED_OPEN;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testDropOweOnlyTransitionDisableIndicationFromOpenBss() throws Exception {
+        String caps = "";
+        int indication = WifiMonitor.TDI_USE_ENHANCED_OPEN;
+        boolean shouldUpdate = false;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateWpa3EnterpriseTransitionDisableIndicationFromTransitionBss()
+            throws Exception {
+        String caps = "[EAP/SHA1-EAP/SHA256][RSN][MFPC]";
+        int indication = WifiMonitor.TDI_USE_WPA3_ENTERPRISE;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testUpdateWpa3EnterpriseTransitionDisableIndicationFromWpa3EnterpriseBss()
+            throws Exception {
+        String caps = "[EAP/SHA256][RSN][MFPC][MFPR]";
+        int indication = WifiMonitor.TDI_USE_WPA3_ENTERPRISE;
+        boolean shouldUpdate = true;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
+    }
+
+    /**
+     * Verify that the Transition Disable event is routed correctly.
+     */
+    @Test
+    public void testDropWpa3EnterpriseTransitionDisableIndicationFromWpa2EnterpriseBss()
+            throws Exception {
+        String caps = "[EAP/SHA1]";
+        int indication = WifiMonitor.TDI_USE_WPA3_ENTERPRISE;
+        boolean shouldUpdate = false;
+        verifyTransitionDisableEvent(caps, indication, shouldUpdate);
     }
 
     /**
