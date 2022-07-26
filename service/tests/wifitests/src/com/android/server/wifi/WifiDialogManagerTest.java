@@ -36,6 +36,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -78,6 +79,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     @Mock WifiContext mWifiContext;
     @Mock WifiThreadRunner mWifiThreadRunner;
     @Mock FrameworkFacade mFrameworkFacade;
+    @Mock Resources mResources;
     @Mock PowerManager mPowerManager;
 
     @Before
@@ -85,6 +87,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         when(mWifiContext.getWifiDialogApkPkgName()).thenReturn(WIFI_DIALOG_APK_PKG_NAME);
         when(mWifiContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
+        when(mWifiContext.getResources()).thenReturn(mResources);
         when(mPowerManager.isInteractive()).thenReturn(true);
         doThrow(SecurityException.class).when(mWifiContext).startActivityAsUser(any(), any(),
                 any());

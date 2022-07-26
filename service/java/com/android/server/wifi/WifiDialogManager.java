@@ -37,6 +37,7 @@ import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -49,6 +50,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.wifi.resources.R;
 
 import java.util.Set;
 
@@ -76,6 +78,7 @@ public class WifiDialogManager {
     private final @NonNull WifiContext mContext;
     private final @NonNull WifiThreadRunner mWifiThreadRunner;
     private final @NonNull FrameworkFacade mFrameworkFacade;
+    private final int mGravity;
 
     // Broadcast receiver for listening to ACTION_CLOSE_SYSTEM_DIALOGS
     private final BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
@@ -111,6 +114,7 @@ public class WifiDialogManager {
         mContext = context;
         mWifiThreadRunner = wifiThreadRunner;
         mFrameworkFacade = frameworkFacade;
+        mGravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
         mContext.registerReceiver(
                 mCloseSystemDialogsReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
     }
@@ -518,6 +522,9 @@ public class WifiDialogManager {
                     .create();
             mAlertDialog.setCanceledOnTouchOutside(false);
             final Window window = mAlertDialog.getWindow();
+            if (mGravity != Gravity.NO_GRAVITY) {
+                window.setGravity(mGravity);
+            }
             final WindowManager.LayoutParams lp = window.getAttributes();
             window.setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
             lp.setFitInsetsTypes(WindowInsets.Type.statusBars()
