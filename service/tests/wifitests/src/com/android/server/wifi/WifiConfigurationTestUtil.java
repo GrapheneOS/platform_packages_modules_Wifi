@@ -704,7 +704,7 @@ public class WifiConfigurationTestUtil {
             WifiConfiguration expected, WifiConfiguration actual, boolean isSupplicantBackup) {
         assertNotNull(expected);
         assertNotNull(actual);
-        assertEquals(expected.SSID, actual.SSID);
+        assertEquals(WifiSsid.fromString(expected.SSID), WifiSsid.fromString(actual.SSID));
         assertEquals(expected.BSSID, actual.BSSID);
         assertEquals(expected.preSharedKey, actual.preSharedKey);
         assertEquals(expected.wepKeys, actual.wepKeys);

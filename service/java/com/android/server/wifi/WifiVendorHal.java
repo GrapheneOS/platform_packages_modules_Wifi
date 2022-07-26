@@ -276,6 +276,7 @@ public class WifiVendorHal {
     private static Context sContext;
     private final HalDeviceManager mHalDeviceManager;
     private final WifiGlobals mWifiGlobals;
+    private final SsidTranslator mSsidTranslator;
     private final HalDeviceManagerStatusListener mHalDeviceManagerStatusCallbacks;
     private final IWifiStaIfaceEventCallback mIWifiStaIfaceEventCallback;
     private final ChipEventCallback mIWifiChipEventCallback;
@@ -290,11 +291,13 @@ public class WifiVendorHal {
     private final Handler mHalEventHandler;
 
     public WifiVendorHal(Context context, HalDeviceManager halDeviceManager, Handler handler,
-            WifiGlobals wifiGlobals) {
+            WifiGlobals wifiGlobals,
+            @NonNull SsidTranslator ssidTranslator) {
         sContext = context;
         mHalDeviceManager = halDeviceManager;
         mHalEventHandler = handler;
         mWifiGlobals = wifiGlobals;
+        mSsidTranslator = ssidTranslator;
         mHalDeviceManagerStatusCallbacks = new HalDeviceManagerStatusListener();
         mIWifiStaIfaceEventCallback = new StaIfaceEventCallback();
         mIWifiChipEventCallback = new ChipEventCallback();
@@ -3558,25 +3561,39 @@ public class WifiVendorHal {
     }
 
     // This is only filling up the fields of Scan Result used by Gscan clients.
-    private static ScanResult hidlToFrameworkScanResult(StaScanResult scanResult) {
+    private ScanResult hidlToFrameworkScanResult(StaScanResult scanResult) {
         if (scanResult == null) return null;
+        WifiSsid originalSsid = WifiSsid.fromBytes(
+                NativeUtil.byteArrayFromArrayList(scanResult.ssid));
+        MacAddress bssid;
+        try {
+            bssid = MacAddress.fromString(NativeUtil.macAddressFromByteArray(scanResult.bssid));
+        } catch (IllegalArgumentException e) {
+            mLog.e("Failed to get BSSID of scan result: " + e);
+            return null;
+        }
         ScanResult frameworkScanResult = new ScanResult();
-        frameworkScanResult.SSID = NativeUtil.encodeSsid(scanResult.ssid);
-        frameworkScanResult.wifiSsid =
-                WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(scanResult.ssid));
-        frameworkScanResult.BSSID = NativeUtil.macAddressFromByteArray(scanResult.bssid);
+        frameworkScanResult.setWifiSsid(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(
+                originalSsid, bssid));
+        frameworkScanResult.BSSID = bssid.toString();
         frameworkScanResult.level = scanResult.rssi;
         frameworkScanResult.frequency = scanResult.frequency;
         frameworkScanResult.timestamp = scanResult.timeStampInUs;
         return frameworkScanResult;
     }
 
-    private static ScanResult[] hidlToFrameworkScanResults(ArrayList<StaScanResult> scanResults) {
+    private ScanResult[] hidlToFrameworkScanResults(ArrayList<StaScanResult> scanResults) {
         if (scanResults == null || scanResults.isEmpty()) return new ScanResult[0];
         ScanResult[] frameworkScanResults = new ScanResult[scanResults.size()];
         int i = 0;
         for (StaScanResult scanResult : scanResults) {
-            frameworkScanResults[i++] = hidlToFrameworkScanResult(scanResult);
+            ScanResult frameworkScanResult = hidlToFrameworkScanResult(scanResult);
+            if (frameworkScanResult == null) {
+                mLog.e("hidlToFrameworkScanResults: unable to convert hidl to framework scan"
+                        + " result!");
+                continue;
+            }
+            frameworkScanResults[i++] = frameworkScanResult;
         }
         return frameworkScanResults;
     }
@@ -3592,7 +3609,7 @@ public class WifiVendorHal {
         }
     }
 
-    private static WifiScanner.ScanData[] hidlToFrameworkScanDatas(
+    private WifiScanner.ScanData[] hidlToFrameworkScanDatas(
             int cmdId, ArrayList<StaScanData> scanDatas) {
         if (scanDatas == null || scanDatas.isEmpty()) return new WifiScanner.ScanData[0];
         WifiScanner.ScanData[] frameworkScanDatas = new WifiScanner.ScanData[scanDatas.size()];
@@ -3631,7 +3648,12 @@ public class WifiVendorHal {
                 if (mScan == null || cmdId != mScan.cmdId) return;
                 eventHandler = mScan.eventHandler;
             }
-            eventHandler.onFullScanResult(hidlToFrameworkScanResult(result), bucketsScanned);
+            ScanResult frameworkScanResult = hidlToFrameworkScanResult(result);
+            if (frameworkScanResult == null) {
+                mLog.e("onBackgroundFullScanResult: unable to convert hidl to framework scan"
+                        + " result!");
+            }
+            eventHandler.onFullScanResult(frameworkScanResult, bucketsScanned);
         }
 
         @Override

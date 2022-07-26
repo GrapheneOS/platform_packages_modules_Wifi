@@ -96,6 +96,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
+import org.mockito.stubbing.Answer;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.FileDescriptor;
@@ -123,6 +124,7 @@ import java.util.stream.Collectors;
 public class WifiConfigManagerTest extends WifiBaseTest {
 
     private static final String TEST_SSID = "\"test_ssid\"";
+    private static final String UNTRANSLATED_HEX_SSID = "abcdef";
     private static final String TEST_BSSID = "0a:08:5c:67:89:00";
     private static final long TEST_WALLCLOCK_CREATION_TIME_MILLIS = 9845637;
     private static final long TEST_WALLCLOCK_UPDATE_TIME_MILLIS = 75455637;
@@ -193,6 +195,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     @Mock private ClientModeManager mPrimaryClientModeManager;
     @Mock private WifiGlobals mWifiGlobals;
     @Mock private BuildProperties mBuildProperties;
+    @Mock private SsidTranslator mSsidTranslator;
     private LruConnectionTracker mLruConnectionTracker;
 
     private MockResources mResources;
@@ -334,6 +337,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mPrimaryClientModeManager);
         when(mPrimaryClientModeManager.getSupportedFeatures()).thenReturn(
                 WifiManager.WIFI_FEATURE_WPA3_SAE | WifiManager.WIFI_FEATURE_OWE);
@@ -342,6 +346,22 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(WifiConfigStore.createUserFiles(anyInt(), anyBoolean())).thenReturn(mock(List.class));
         when(mTelephonyManager.createForSubscriptionId(anyInt())).thenReturn(mDataTelephonyManager);
         when(mBuildProperties.isUserBuild()).thenReturn(false);
+        when(mSsidTranslator.getTranslatedSsid(any())).thenAnswer(
+                (Answer<WifiSsid>) invocation -> getTranslatedSsid(invocation.getArgument(0)));
+        when(mSsidTranslator.getAllPossibleOriginalSsids(any())).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> Arrays.asList(invocation.getArgument(0),
+                        WifiSsid.fromString(UNTRANSLATED_HEX_SSID))
+        );
+    }
+
+    /** Mock translating an SSID */
+    private WifiSsid getTranslatedSsid(WifiSsid ssid) {
+        byte[] originalBytes = ssid.getBytes();
+        byte[] translatedBytes = new byte[originalBytes.length + 1];
+        for (int i = 0; i < originalBytes.length; i++) {
+            translatedBytes[i] = (byte) (originalBytes[i] + 1);
+        }
+        return WifiSsid.fromBytes(translatedBytes);
     }
 
     private void mockIsDeviceOwner(boolean result) {
@@ -4392,15 +4412,17 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Retrieve the hidden network list & verify the order of the networks returned.
         List<WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks =
                 mWifiConfigManager.retrieveHiddenNetworkList(false);
-        assertEquals(3, hiddenNetworks.size());
+        assertEquals(4, hiddenNetworks.size());
         assertEquals(network3.SSID, hiddenNetworks.get(0).ssid);
-        assertEquals(network2.SSID, hiddenNetworks.get(1).ssid);
-        assertEquals(network1.SSID, hiddenNetworks.get(2).ssid);
+        assertEquals(UNTRANSLATED_HEX_SSID, hiddenNetworks.get(1).ssid); // Possible original SSID
+        assertEquals(network2.SSID, hiddenNetworks.get(2).ssid);
+        assertEquals(network1.SSID, hiddenNetworks.get(3).ssid);
 
         hiddenNetworks = mWifiConfigManager.retrieveHiddenNetworkList(true);
-        assertEquals(2, hiddenNetworks.size());
+        assertEquals(3, hiddenNetworks.size());
         assertEquals(network2.SSID, hiddenNetworks.get(0).ssid);
-        assertEquals(network1.SSID, hiddenNetworks.get(1).ssid);
+        assertEquals(UNTRANSLATED_HEX_SSID, hiddenNetworks.get(1).ssid); // Possible original SSID
+        assertEquals(network1.SSID, hiddenNetworks.get(2).ssid);
     }
 
     /**
@@ -5065,8 +5087,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testLoadFromStoreIgnoresMalformedNetworks() {
         WifiConfiguration validNetwork = WifiConfigurationTestUtil.createPskNetwork();
         WifiConfiguration invalidNetwork = WifiConfigurationTestUtil.createPskNetwork();
-        // SSID larger than 32 chars.
-        invalidNetwork.SSID = "\"sdhdfsjdkdskkdfskldfslksflfdslsflfsalaladlalaala;lalalal\"";
+        // Hex SSID larger than 32 chars.
+        invalidNetwork.SSID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
         // Set up the store data.
         List<WifiConfiguration> sharedNetworks = Arrays.asList(validNetwork, invalidNetwork);
@@ -5622,12 +5644,19 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     private boolean isNetworkInConfigStoreData(
             WifiConfiguration configuration, List<WifiConfiguration> networkList) {
+        WifiConfiguration translatedConfig = new WifiConfiguration(configuration);
+        if (translatedConfig.SSID != null && translatedConfig.SSID.length() > 0
+                && translatedConfig.SSID.charAt(0) != '\"') {
+            // Translate the SSID only if it's specified in hexadecimal.
+            translatedConfig.SSID = getTranslatedSsid(WifiSsid.fromString(configuration.SSID))
+                    .toString();
+        }
         for (WifiConfiguration retrievedConfig : networkList) {
             for (SecurityParams p: retrievedConfig.getSecurityParamsList()) {
                 WifiConfiguration tmpConfig = new WifiConfiguration(retrievedConfig);
                 tmpConfig.setSecurityParams(p);
                 if (tmpConfig.getProfileKey().equals(
-                        configuration.getProfileKey())) {
+                        translatedConfig.getProfileKey())) {
                     return true;
                 }
             }
@@ -7613,5 +7642,53 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 .getConfiguredNetwork(openNetId).creatorUid);
         assertEquals(TEST_UPDATE_NAME, mWifiConfigManager
                 .getConfiguredNetwork(openNetId).creatorName);
+    }
+
+    @Test
+    public void testAddNetworkWithHexadecimalSsid() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.SSID = UNTRANSLATED_HEX_SSID.toUpperCase();
+        WifiSsid translatedSsid = getTranslatedSsid(WifiSsid.fromString(openNetwork.SSID));
+        List<WifiConfiguration> networks = new ArrayList<>();
+        networks.add(openNetwork);
+
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+
+        List<WifiConfiguration> retrievedNetworks =
+                mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        // Verify the profile keys with translated SSIDs are the same
+        openNetwork.SSID = translatedSsid.toString();
+        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
+                networks, retrievedNetworks);
+        // Verify the retrieved SSID is all lowercase.
+        assertEquals(retrievedNetworks.get(0).SSID, retrievedNetworks.get(0).SSID.toLowerCase());
+        // Verify the retrieved SSID is translated.
+        assertEquals(retrievedNetworks.get(0).SSID, translatedSsid.toString());
+    }
+
+    @Test
+    public void testAddNetworkWithHexadecimalSsidWithLongTranslation() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        // Create a 32 byte SSID
+        openNetwork.SSID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // Translation adds an extra byte over the 32 byte limit
+        WifiSsid translatedSsid = getTranslatedSsid(WifiSsid.fromString(openNetwork.SSID));
+        List<WifiConfiguration> networks = new ArrayList<>();
+        networks.add(openNetwork);
+
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+
+        List<WifiConfiguration> retrievedNetworks =
+                mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        // Verify the profile keys with translated SSIDs are the same
+        openNetwork.SSID = translatedSsid.toString();
+        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
+                networks, retrievedNetworks);
+        // Verify the retrieved SSID is all lowercase.
+        assertEquals(retrievedNetworks.get(0).SSID, retrievedNetworks.get(0).SSID.toLowerCase());
+        // Verify the retrieved SSID is translated.
+        assertEquals(retrievedNetworks.get(0).SSID, translatedSsid.toString());
+        // Verify the retrieved SSID byte length is greater than 32.
+        assertTrue(WifiSsid.fromString(retrievedNetworks.get(0).SSID).getBytes().length > 32);
     }
 }
