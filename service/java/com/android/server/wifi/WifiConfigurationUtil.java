@@ -30,6 +30,7 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiSsid;
 import android.os.PatternMatcher;
 import android.text.TextUtils;
 import android.util.Log;
@@ -404,34 +405,20 @@ public class WifiConfigurationUtil {
             Log.e(TAG, "validateSsid failed: empty string");
             return false;
         }
-        if (ssid.startsWith("\"")) {
-            // UTF-8 SSID string
-            byte[] ssidBytes = ssid.getBytes(StandardCharsets.UTF_8);
-            if (ssidBytes.length < SSID_UTF_8_MIN_LEN) {
-                Log.e(TAG, "validateSsid failed: utf-8 ssid string size too small: "
-                        + ssidBytes.length);
-                return false;
-            }
-            if (ssidBytes.length > SSID_UTF_8_MAX_LEN) {
-                Log.e(TAG, "validateSsid failed: utf-8 ssid string size too large: "
-                        + ssidBytes.length);
-                return false;
-            }
-        } else {
-            // HEX SSID string
-            if (ssid.length() < SSID_HEX_MIN_LEN) {
-                Log.e(TAG, "validateSsid failed: hex string size too small: " + ssid.length());
-                return false;
-            }
-            if (ssid.length() > SSID_HEX_MAX_LEN) {
-                Log.e(TAG, "validateSsid failed: hex string size too large: " + ssid.length());
-                return false;
-            }
+        if (!ssid.startsWith("\"") && ssid.length() > SSID_HEX_MAX_LEN) {
+            Log.e(TAG, "validateSsid failed: hex ssid " + ssid + " longer than 32 bytes");
+            return false;
         }
+        WifiSsid wifiSsid;
         try {
-            NativeUtil.decodeSsid(ssid);
+            wifiSsid = WifiSsid.fromString(ssid);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "validateSsid failed: malformed string: " + ssid);
+            return false;
+        }
+        int ssidLength = wifiSsid.getBytes().length;
+        if (ssidLength == 0) {
+            Log.e(TAG, "validateSsid failed: ssid 0 length!");
             return false;
         }
         return true;

@@ -1766,10 +1766,10 @@ public class WifiNative {
             List<NativeScanResult> nativeResults) {
         ArrayList<ScanDetail> results = new ArrayList<>();
         for (NativeScanResult result : nativeResults) {
-            WifiSsid wifiSsid = WifiSsid.fromBytes(result.getSsid());
+            WifiSsid originalSsid = WifiSsid.fromBytes(result.getSsid());
             MacAddress bssidMac = result.getBssid();
             if (bssidMac == null) {
-                Log.e(TAG, "Invalid MAC (BSSID) for SSID " + wifiSsid);
+                Log.e(TAG, "Invalid MAC (BSSID) for SSID " + originalSsid);
                 continue;
             }
             String bssid = bssidMac.toString();
@@ -1788,7 +1788,9 @@ public class WifiNative {
                 continue;
             }
 
-            ScanDetail scanDetail = new ScanDetail(networkDetail, wifiSsid, bssid, flags,
+            WifiSsid translatedSsid = mWifiInjector.getSsidTranslator()
+                    .getTranslatedSsidAndRecordBssidCharset(originalSsid, bssidMac);
+            ScanDetail scanDetail = new ScanDetail(networkDetail, translatedSsid, bssid, flags,
                     result.getSignalMbm() / 100, result.getFrequencyMhz(), result.getTsf(), ies,
                     null, result.getInformationElements());
             ScanResult scanResult = scanDetail.getScanResult();

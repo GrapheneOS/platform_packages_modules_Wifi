@@ -112,6 +112,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
+import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -157,6 +158,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     private static final int TEST_RSSI = -50;
     private static final ParcelUuid GROUP_UUID = ParcelUuid
             .fromString("0000110B-0000-1000-8000-00805F9B34FB");
+    private static final String UNTRANSLATED_HEX_SSID = "abcdef";
 
     private @Mock WifiContext mContext;
     private @Mock Resources mResources;
@@ -185,6 +187,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     private @Mock ActiveModeWarden mActiveModeWarden;
     private @Mock ClientModeManager mPrimaryClientModeManager;
     private @Mock WifiGlobals mWifiGlobals;
+    private @Mock SsidTranslator mSsidTranslator;
     private @Mock Clock mClock;
     private MockitoSession mStaticMockSession = null;
     private TestLooper mLooper;
@@ -226,6 +229,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiInjector.getWifiNotificationManager()).thenReturn(mWifiNotificationManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
         when(mNotificationBuilder.setSmallIcon(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setTicker(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setContentTitle(any())).thenReturn(mNotificationBuilder);
@@ -259,6 +263,10 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 WifiManager.WIFI_FEATURE_WPA3_SAE | WifiManager.WIFI_FEATURE_OWE);
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
+        when(mSsidTranslator.getAllPossibleOriginalSsids(any())).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> Arrays.asList(invocation.getArgument(0),
+                        WifiSsid.fromString(UNTRANSLATED_HEX_SSID))
+        );
         when(mConnectionStatusListener.asBinder()).thenReturn(mBinder);
         when(mUserApprovalStatusListener.asBinder()).thenReturn(mBinder);
 
@@ -2944,10 +2952,10 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         mWifiNetworkSuggestionsManager.setHasUserApprovedForApp(true, TEST_UID_3, TEST_PACKAGE_3);
         List<WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks =
                 mWifiNetworkSuggestionsManager.retrieveHiddenNetworkList(true /* autoJoinOnly */);
-        assertEquals(2, hiddenNetworks.size());
+        assertEquals(3, hiddenNetworks.size());
         hiddenNetworks =
                 mWifiNetworkSuggestionsManager.retrieveHiddenNetworkList(false /* autoJoinOnly */);
-        assertEquals(3, hiddenNetworks.size());
+        assertEquals(4, hiddenNetworks.size());
         assertEquals(hiddenNetworkSuggestion1.wifiConfiguration.SSID, hiddenNetworks.get(0).ssid);
     }
 
@@ -5247,6 +5255,12 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 new ArrayList<WifiNetworkSuggestion>() {{
                     add(networkSuggestion);
                 }};
+
+        // Verify no crash with unmatched update
+        mNetworkListenerCaptor.getValue().onSecurityParamsUpdate(networkSuggestion
+                .wifiConfiguration, networkSuggestion.wifiConfiguration.getSecurityParamsList());
+        mNetworkListenerCaptor.getValue().onSecurityParamsUpdate(null, Collections.EMPTY_LIST);
+
         assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
                 mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
                         TEST_PACKAGE_1, TEST_FEATURE));

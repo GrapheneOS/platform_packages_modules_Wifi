@@ -100,14 +100,14 @@ public class PasspointNetworkNominateHelper {
      */
     public List<Pair<ScanDetail, WifiConfiguration>> getPasspointNetworkCandidates(
             List<ScanDetail> scanDetails, boolean isFromSuggestion) {
-        filterAndUpdateScanDetails(scanDetails);
-        return findBestMatchScanDetailForProviders(isFromSuggestion);
+        return findBestMatchScanDetailForProviders(isFromSuggestion,
+                filterAndUpdateScanDetails(scanDetails));
     }
 
     /**
      * Filter out non-passpoint networks
      */
-    private void filterAndUpdateScanDetails(List<ScanDetail> scanDetails) {
+    @NonNull private List<ScanDetail> filterAndUpdateScanDetails(List<ScanDetail> scanDetails) {
         // Sweep the ANQP cache to remove any expired ANQP entries.
         mPasspointManager.sweepCache();
         List<ScanDetail> filteredScanDetails = new ArrayList<>();
@@ -125,6 +125,7 @@ public class PasspointNetworkNominateHelper {
             mCachedScanDetails.clear();
             mCachedScanDetails.addAll(filteredScanDetails);
         }
+        return filteredScanDetails;
     }
 
     /**
@@ -181,24 +182,24 @@ public class PasspointNetworkNominateHelper {
      * Match available providers for each scan detail and add their configs to WifiConfigManager.
      * Then for each available provider, find the best scan detail for it.
      * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
+     * @param scanDetailList Scan details to choose from.
      * @return List of pair of scanDetail and WifiConfig from matched available provider.
      */
     private @NonNull List<Pair<ScanDetail, WifiConfiguration>> findBestMatchScanDetailForProviders(
-            boolean isFromSuggestion) {
-        List<ScanDetail> scanDetails = mCachedScanDetails;
+            boolean isFromSuggestion, List<ScanDetail> scanDetailList) {
         if (mResources.getBoolean(
                 R.bool.config_wifiPasspointUseApWanLinkStatusAnqpElement)) {
-            scanDetails = mCachedScanDetails.stream()
+            scanDetailList = scanDetailList.stream()
                     .filter(a -> !isApWanLinkStatusDown(a))
                     .collect(Collectors.toList());
         }
         if (mPasspointManager.isProvidersListEmpty()
-                || !mPasspointManager.isWifiPasspointEnabled() || scanDetails.isEmpty()) {
+                || !mPasspointManager.isWifiPasspointEnabled() || scanDetailList.isEmpty()) {
             return Collections.emptyList();
         }
         List<Pair<ScanDetail, WifiConfiguration>> results = new ArrayList<>();
         Map<PasspointProvider, List<PasspointNetworkCandidate>> candidatesPerProvider =
-                getMatchedCandidateGroupByProvider(scanDetails, true);
+                getMatchedCandidateGroupByProvider(scanDetailList, true);
         // For each provider find the best scanDetails(prefer home) for it and create selection
         // candidate pair.
         for (Map.Entry<PasspointProvider, List<PasspointNetworkCandidate>> candidates :

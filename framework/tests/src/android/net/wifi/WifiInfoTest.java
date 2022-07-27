@@ -608,7 +608,7 @@ public class WifiInfoTest {
         // Non-UTF-8
         byte[] gbkBytes = "服務集識別碼".getBytes(Charset.forName("GBK"));
         builder.setSsid(gbkBytes);
-        assertEquals(HexEncoding.encodeToString(gbkBytes), builder.build().getSSID());
+        assertEquals(HexEncoding.encodeToString(gbkBytes, false), builder.build().getSSID());
     }
 
     @Test

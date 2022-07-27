@@ -87,19 +87,24 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     private final String mIfaceName;
     private final Context mContext;
     private final WifiMonitor mWifiMonitor;
+    private final SsidTranslator mSsidTranslator;
     private final Object mLock;
     // Used to help check for PSK password mismatch & EAP connection failure.
     private int mStateBeforeDisconnect = StaIfaceCallbackState.INACTIVE;
+    // Current SSID in WifiSsid.toString() format. May be translated to UTF-8 if SSID translation
+    // is enabled.
     private String mCurrentSsid = null;
 
     SupplicantStaIfaceCallbackAidlImpl(@NonNull SupplicantStaIfaceHalAidlImpl staIfaceHal,
             @NonNull String ifaceName, @NonNull Object lock,
-            @NonNull Context context, @NonNull WifiMonitor wifiMonitor) {
+            @NonNull Context context, @NonNull WifiMonitor wifiMonitor,
+            @NonNull SsidTranslator ssidTranslator) {
         mStaIfaceHal = staIfaceHal;
         mIfaceName = ifaceName;
         mLock = lock;
         mContext = context;
         mWifiMonitor = wifiMonitor;
+        mSsidTranslator = ssidTranslator;
     }
 
     @Override
@@ -155,7 +160,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             mStaIfaceHal.logCallback("onStateChanged");
             SupplicantState newSupplicantState =
                     supplicantAidlStateToFrameworkState(newState);
-            WifiSsid wifiSsid = WifiSsid.fromBytes(ssid);
+            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid));
             String bssidStr = NativeUtil.macAddressFromByteArray(bssid);
             if (newState != StaIfaceCallbackState.DISCONNECTED) {
                 // onStateChanged(DISCONNECTED) may come before onDisconnected(), so add this
@@ -174,7 +179,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
                         wifiSsid, bssidStr);
             } else if (newState == StaIfaceCallbackState.ASSOCIATING) {
-                mCurrentSsid = NativeUtil.encodeSsid(NativeUtil.byteArrayToArrayList(ssid));
+                mCurrentSsid = wifiSsid.toString();
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(
                     mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), wifiSsid,
@@ -356,7 +361,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             }
             mWifiMonitor.broadcastAuthenticationFailureEvent(
                     mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
-                    mCurrentSsid, bssidAsMacAddress);
+                    assocRejectInfo.ssid, bssidAsMacAddress);
         }
         mWifiMonitor.broadcastAssociationRejectionEvent(mIfaceName, assocRejectInfo);
         mStateBeforeDisconnect = StaIfaceCallbackState.INACTIVE;
@@ -369,6 +374,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             assocRejectData.statusCode = halToFrameworkStatusCode(assocRejectData.statusCode);
             assocRejectData.mboAssocDisallowedReason = halToFrameworkMboAssocDisallowedReasonCode(
                     assocRejectData.mboAssocDisallowedReason);
+            assocRejectData.ssid = mSsidTranslator.getTranslatedSsid(
+                    WifiSsid.fromBytes(assocRejectData.ssid)).getBytes();
             AssocRejectEventInfo assocRejectInfo = new AssocRejectEventInfo(assocRejectData);
             handleAssocRejectEvent(assocRejectInfo);
         }
@@ -466,7 +473,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         WifiConfiguration newWifiConfiguration = new WifiConfiguration();
 
         // Set up SSID
-        WifiSsid wifiSsid = WifiSsid.fromBytes(ssid);
+        WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid));
         newWifiConfiguration.SSID = wifiSsid.toString();
 
         // Set up password or PSK
@@ -1133,7 +1140,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public void onNetworkNotFound(byte[] ssid) {
         mStaIfaceHal.logCallback("onNetworkNotFoundNotification");
         mWifiMonitor.broadcastNetworkNotFoundEvent(mIfaceName,
-                NativeUtil.encodeSsid(NativeUtil.byteArrayToArrayList(ssid)));
+                mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid)).toString());
     }
 
     @Override

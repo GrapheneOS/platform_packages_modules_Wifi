@@ -142,7 +142,7 @@ public class InterfaceConflictManagerTest {
                 R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)).thenReturn(true);
 
         when(mFrameworkFacade.getAppName(any(), anyString(), anyInt())).thenReturn(TEST_APP_NAME);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(),
+        when(mWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(), any(),
                 any())).thenReturn(mDialogHandle);
     }
 
@@ -238,7 +238,7 @@ public class InterfaceConflictManagerTest {
                         interfaceType, TEST_WS));
         mTestLooper.dispatchAll();
         assertEquals("State not in waiting", mSm.B, mSm.getCurrentState());
-        verify(mWifiDialogManager).createSimpleDialog(any(), any(), any(), any(), any(),
+        verify(mWifiDialogManager).createLegacySimpleDialog(any(), any(), any(), any(), any(),
                 mCallbackCaptor.capture(), any());
 
         // user approve
@@ -277,7 +277,7 @@ public class InterfaceConflictManagerTest {
                         interfaceType, TEST_WS));
         mTestLooper.dispatchAll();
         assertEquals("State not in waiting", mSm.B, mSm.getCurrentState());
-        verify(mWifiDialogManager).createSimpleDialog(any(), any(), any(), any(), any(),
+        verify(mWifiDialogManager).createLegacySimpleDialog(any(), any(), any(), any(), any(),
                 mCallbackCaptor.capture(), any());
 
         // user rejects
@@ -329,8 +329,8 @@ public class InterfaceConflictManagerTest {
                 mDut.manageInterfaceConflictForStateMachine("Some Tag", msg, mSm, mSm.B, mSm.A,
                         interfaceType, TEST_WS));
         mTestLooper.dispatchAll();
-        verify(mWifiDialogManager, never()).createSimpleDialog(any(), any(), any(), any(), any(),
-                any(), any());
+        verify(mWifiDialogManager, never()).createLegacySimpleDialog(any(), any(), any(), any(),
+                any(), any(), any());
     }
 
     @Test
@@ -367,7 +367,7 @@ public class InterfaceConflictManagerTest {
                 mDut.manageInterfaceConflictForStateMachine("Some Tag", msg, mSm, mSm.B, mSm.A,
                         interfaceType, TEST_WS));
         mTestLooper.dispatchAll();
-        verify(mWifiDialogManager).createSimpleDialog(any(), any(), any(), any(), any(),
+        verify(mWifiDialogManager).createLegacySimpleDialog(any(), any(), any(), any(), any(),
                 any(), any());
     }
 }

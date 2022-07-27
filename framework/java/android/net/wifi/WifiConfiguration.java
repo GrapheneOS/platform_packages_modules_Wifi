@@ -3585,7 +3585,7 @@ public class WifiConfiguration implements Parcelable {
             if (TextUtils.isEmpty(keyMgmt)) {
                 throw new IllegalStateException("Not an EAP network");
             }
-            String keyId = trimStringForKeyId(SSID) + "_" + keyMgmt + "_"
+            String keyId = WifiSsid.fromString(SSID).toString() + "_" + keyMgmt + "_"
                     + trimStringForKeyId(enterpriseConfig.getKeyId(current != null
                     ? current.enterpriseConfig : null));
 
@@ -3706,7 +3706,7 @@ public class WifiConfiguration implements Parcelable {
             return mPasspointUniqueId;
         }
 
-        String key = SSID + getDefaultSecurityType();
+        String key = getSsidAndSecurityTypeString();
         if (!shared) {
             key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
         }
@@ -3718,7 +3718,7 @@ public class WifiConfiguration implements Parcelable {
      *  return the SSID + security type in String format.
      */
     public String getSsidAndSecurityTypeString() {
-        return SSID + getDefaultSecurityType();
+        return WifiSsid.fromString(SSID) + getDefaultSecurityType();
     }
 
     /**
@@ -4239,7 +4239,7 @@ public class WifiConfiguration implements Parcelable {
             return mPasspointUniqueId;
         }
 
-        String key = SSID + getDefaultSecurityType();
+        String key = getSsidAndSecurityTypeString();
         if (!shared) {
             key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
         }
@@ -4336,7 +4336,7 @@ public class WifiConfiguration implements Parcelable {
             // subscriptionId (the default one) first.
             return subscriptionId + "-" + mPasspointUniqueId;
         } else {
-            String key = SSID + getSecurityTypeName(securityType);
+            String key = WifiSsid.fromString(SSID) + getSecurityTypeName(securityType);
             if (!shared) {
                 key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
             }

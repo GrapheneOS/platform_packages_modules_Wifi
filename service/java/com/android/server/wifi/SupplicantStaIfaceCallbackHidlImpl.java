@@ -59,18 +59,23 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
     private final String mIfaceName;
     private final Object mLock;
     private final WifiMonitor mWifiMonitor;
+    private final SsidTranslator mSsidTranslator;
     // Used to help check for PSK password mismatch & EAP connection failure.
     private int mStateBeforeDisconnect = State.INACTIVE;
+    // Current SSID in WifiSsid.toString() format. May be translated to UTF-8 if SSID translation
+    // is enabled.
     private String mCurrentSsid = null;
 
     SupplicantStaIfaceCallbackHidlImpl(@NonNull SupplicantStaIfaceHalHidlImpl staIfaceHal,
             @NonNull String ifaceName,
             @NonNull Object lock,
-            @NonNull WifiMonitor wifiMonitor) {
+            @NonNull WifiMonitor wifiMonitor,
+            @NonNull SsidTranslator ssidTranslator) {
         mStaIfaceHal = staIfaceHal;
         mIfaceName = ifaceName;
         mLock = lock;
         mWifiMonitor = wifiMonitor;
+        mSsidTranslator = ssidTranslator;
     }
 
     /**
@@ -171,8 +176,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
             mStaIfaceHal.logCallback("onStateChanged");
             SupplicantState newSupplicantState =
                     supplicantHidlStateToFrameworkState(newState);
-            WifiSsid wifiSsid =
-                    WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid));
+            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(
+                    WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid)));
             String bssidStr = NativeUtil.macAddressFromByteArray(bssid);
             if (newState != State.DISCONNECTED) {
                 // onStateChanged(DISCONNECTED) may come before onDisconnected(), so add this
@@ -190,7 +195,7 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
                         wifiSsid, bssidStr);
             } else if (newState == State.ASSOCIATING) {
-                mCurrentSsid = NativeUtil.encodeSsid(ssid);
+                mCurrentSsid = wifiSsid.toString();
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(
                     mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), wifiSsid,
@@ -350,7 +355,7 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
             }
             mWifiMonitor.broadcastAuthenticationFailureEvent(
                     mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
-                    mCurrentSsid, bssidAsMacAddress);
+                    assocRejectInfo.ssid, bssidAsMacAddress);
         }
         mWifiMonitor.broadcastAssociationRejectionEvent(mIfaceName, assocRejectInfo);
         mStateBeforeDisconnect = State.INACTIVE;
@@ -361,6 +366,10 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
         assocRejectData.statusCode = halToFrameworkStatusCode(assocRejectData.statusCode);
         assocRejectData.mboAssocDisallowedReason = halToFrameworkMboAssocDisallowedReasonCode(
                 assocRejectData.mboAssocDisallowedReason);
+        assocRejectData.ssid = NativeUtil.byteArrayToArrayList(
+                mSsidTranslator.getTranslatedSsid(
+                        WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(assocRejectData.ssid)))
+                        .getBytes());
         AssocRejectEventInfo assocRejectInfo = new AssocRejectEventInfo(assocRejectData);
         handleAssocRejectEvent(assocRejectInfo);
     }

@@ -136,6 +136,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     private final Clock mClock;
     private final WifiMetrics mWifiMetrics;
     private final WifiGlobals mWifiGlobals;
+    private final @NonNull SsidTranslator mSsidTranslator;
 
     private final IServiceNotification mServiceNotificationCallback =
             new IServiceNotification.Stub() {
@@ -185,7 +186,8 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     public SupplicantStaIfaceHalHidlImpl(Context context, WifiMonitor monitor,
             FrameworkFacade frameworkFacade, Handler handler,
             Clock clock, WifiMetrics wifiMetrics,
-            WifiGlobals wifiGlobals) {
+            WifiGlobals wifiGlobals,
+            @NonNull SsidTranslator ssidTranslator) {
         mContext = context;
         mWifiMonitor = monitor;
         mFrameworkFacade = frameworkFacade;
@@ -193,6 +195,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         mClock = clock;
         mWifiMetrics = wifiMetrics;
         mWifiGlobals = wifiGlobals;
+        mSsidTranslator = ssidTranslator;
 
         mServiceManagerDeathRecipient = new ServiceManagerDeathRecipient();
         mSupplicantDeathRecipient = new SupplicantDeathRecipient();
@@ -1359,7 +1362,8 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         synchronized (mLock) {
             SupplicantStaNetworkHalHidlImpl network =
                     new SupplicantStaNetworkHalHidlImpl(iSupplicantStaNetwork, ifaceName, mContext,
-                            mWifiMonitor, mWifiGlobals, getAdvancedCapabilities(ifaceName));
+                            mWifiMonitor, mWifiGlobals, mSsidTranslator,
+                            getAdvancedCapabilities(ifaceName));
             if (network != null) {
                 network.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseHalLoggingEnabled);
             }
@@ -2774,7 +2778,8 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
 
     protected class SupplicantStaIfaceHalCallback extends SupplicantStaIfaceCallbackHidlImpl {
         SupplicantStaIfaceHalCallback(@NonNull String ifaceName) {
-            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, new Object(), mWifiMonitor);
+            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, new Object(), mWifiMonitor,
+                    mSsidTranslator);
         }
     }
 
@@ -2788,7 +2793,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     protected class SupplicantStaIfaceHalCallbackV1_2 extends
             SupplicantStaIfaceCallbackHidlV1_2Impl {
         SupplicantStaIfaceHalCallbackV1_2(@NonNull String ifaceName) {
-            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, mContext);
+            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, mContext, mSsidTranslator);
         }
     }
 
@@ -2802,7 +2807,8 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     protected class SupplicantStaIfaceHalCallbackV1_4 extends
             SupplicantStaIfaceCallbackHidlV1_4Impl {
         SupplicantStaIfaceHalCallbackV1_4(@NonNull String ifaceName) {
-            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, new Object(), mWifiMonitor);
+            super(SupplicantStaIfaceHalHidlImpl.this, ifaceName, new Object(), mWifiMonitor,
+                    mSsidTranslator);
         }
     }
 
@@ -3864,6 +3870,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean setNetworkCentricQosPolicyFeatureEnabled(@NonNull String ifaceName,
             boolean isEnabled) {
+        Log.wtf(TAG, "setNetworkCentricQosPolicyFeatureEnabled is not supported");
         return false;
     }
 
@@ -3879,7 +3886,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     public boolean sendQosPolicyResponse(String ifaceName, int qosPolicyRequestId,
             boolean morePolicies,
             @NonNull List<SupplicantStaIfaceHal.QosPolicyStatus> qosPolicyStatusList) {
-        Log.e(TAG, "sendQosPolicyResponse is not supported by the HIDL HAL");
+        Log.wtf(TAG, "sendQosPolicyResponse is not supported by the HIDL HAL");
         return false;
     }
 
@@ -3889,7 +3896,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      * @param ifaceName Name of the interface.
      */
     public boolean removeAllQosPolicies(String ifaceName) {
-        Log.e(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
+        Log.wtf(TAG, "removeAllQosPolicies is not supported by the HIDL HAL");
         return false;
     }
 

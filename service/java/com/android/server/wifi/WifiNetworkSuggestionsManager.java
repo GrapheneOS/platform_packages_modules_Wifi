@@ -46,6 +46,7 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.os.Handler;
 import android.os.Process;
@@ -77,6 +78,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -191,6 +193,7 @@ public class WifiNetworkSuggestionsManager {
             if (configuration == null || securityParams == null || securityParams.isEmpty()) {
                 Log.e(TAG, "onSecurityParamsUpdate: must have valid config and "
                         + "securityParams");
+                return;
             }
             onSecurityParamsUpdateForSuggestion(configuration, securityParams);
         }
@@ -1961,17 +1964,23 @@ public class WifiNetworkSuggestionsManager {
     public List<WifiScanner.ScanSettings.HiddenNetwork> retrieveHiddenNetworkList(
             boolean autoJoinOnly) {
         List<WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks = new ArrayList<>();
+        Set<WifiSsid> ssidSet = new LinkedHashSet<>();
         for (PerAppInfo appInfo : mActiveNetworkSuggestionsPerApp.values()) {
             if (!appInfo.hasUserApproved) continue;
             for (ExtendedWifiNetworkSuggestion ewns : appInfo.extNetworkSuggestions.values()) {
                 if (!ewns.wns.wifiConfiguration.hiddenSSID) continue;
                 if (autoJoinOnly && !ewns.isAutojoinEnabled) continue;
-                hiddenNetworks.add(
-                        new WifiScanner.ScanSettings.HiddenNetwork(
-                                ewns.wns.wifiConfiguration.SSID));
-                if (hiddenNetworks.size() >= NUMBER_OF_HIDDEN_NETWORK_FOR_ONE_SCAN) {
-                    return hiddenNetworks;
+                ssidSet.addAll(mWifiInjector.getSsidTranslator().getAllPossibleOriginalSsids(
+                        WifiSsid.fromString(ewns.wns.wifiConfiguration.SSID)));
+                if (ssidSet.size() >= NUMBER_OF_HIDDEN_NETWORK_FOR_ONE_SCAN) {
+                    break;
                 }
+            }
+        }
+        for (WifiSsid ssid : ssidSet) {
+            hiddenNetworks.add(new WifiScanner.ScanSettings.HiddenNetwork(ssid.toString()));
+            if (hiddenNetworks.size() >= NUMBER_OF_HIDDEN_NETWORK_FOR_ONE_SCAN) {
+                break;
             }
         }
         return hiddenNetworks;

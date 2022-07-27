@@ -181,6 +181,7 @@ public class WifiInjector {
     private final WifiConfigManager mWifiConfigManager;
     private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final LocalLog mConnectivityLocalLog;
+    private final LocalLog mWifiAwareLocalLog;
     private final ThroughputScorer mThroughputScorer;
     private final WifiNetworkSelector mWifiNetworkSelector;
     private final SavedNetworkNominator mSavedNetworkNominator;
@@ -245,6 +246,7 @@ public class WifiInjector {
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
     @NonNull private final WifiDialogManager mWifiDialogManager;
+    @NonNull private final SsidTranslator mSsidTranslator;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -285,6 +287,7 @@ public class WifiInjector {
         mWifiStateTracker = new WifiStateTracker(mBatteryStats);
         mWifiThreadRunner = new WifiThreadRunner(wifiHandler);
         mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner, mFrameworkFacade);
+        mSsidTranslator = new SsidTranslator(mContext, wifiHandler);
         mWifiP2pServiceHandlerThread = new HandlerThread("WifiP2pService");
         mWifiP2pServiceHandlerThread.start();
         mPasspointProvisionerHandlerThread =
@@ -306,10 +309,11 @@ public class WifiInjector {
         mHalDeviceManager = new HalDeviceManager(mContext, mClock, this, wifiHandler);
         mInterfaceConflictManager = new InterfaceConflictManager(mContext, mFrameworkFacade,
                 mHalDeviceManager, mWifiThreadRunner, mWifiDialogManager);
-        mWifiVendorHal = new WifiVendorHal(mContext, mHalDeviceManager, wifiHandler, mWifiGlobals);
+        mWifiVendorHal = new WifiVendorHal(mContext, mHalDeviceManager, wifiHandler, mWifiGlobals,
+                mSsidTranslator);
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, wifiHandler, mClock, mWifiMetrics,
-                mWifiGlobals);
+                mWifiGlobals, mSsidTranslator);
         mHostapdHal = new HostapdHal(mContext, wifiHandler);
         mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
                 Context.WIFI_NL80211_SERVICE);
@@ -360,6 +364,9 @@ public class WifiInjector {
         int maxLinesHighRam = mContext.getResources().getInteger(
                 R.integer.config_wifiConnectivityLocalLogMaxLinesHighRam);
         mConnectivityLocalLog = new LocalLog(
+                mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? maxLinesLowRam
+                        : maxLinesHighRam);
+        mWifiAwareLocalLog = new LocalLog(
                 mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? maxLinesLowRam
                         : maxLinesHighRam);
         mWifiDiagnostics = new WifiDiagnostics(
@@ -471,7 +478,7 @@ public class WifiInjector {
                 mClock, mConnectivityLocalLog, mWifiScoreCard, mWifiBlocklistMonitor,
                 mWifiChannelUtilizationScan, mPasspointManager, mMultiInternetManager,
                 mDeviceConfigFacade, mActiveModeWarden, mFrameworkFacade, mWifiGlobals,
-                mExternalPnoScanRequestManager);
+                mExternalPnoScanRequestManager, mSsidTranslator);
         mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden);
         mCountryCode = new WifiCountryCode(mContext, mActiveModeWarden,
                 mCmiMonitor, mWifiNative, mSettingsConfigStore);
@@ -1119,6 +1126,11 @@ public class WifiInjector {
         return mWifiDialogManager;
     }
 
+    @NonNull
+    public SsidTranslator getSsidTranslator() {
+        return mSsidTranslator;
+    }
+
     public BuildProperties getBuildProperties() {
         return mBuildProperties;
     }
@@ -1145,5 +1157,10 @@ public class WifiInjector {
     @NonNull
     public BufferedReader createBufferedReader(String filename) throws FileNotFoundException {
         return new BufferedReader(new FileReader(filename));
+    }
+
+    @NonNull
+    public LocalLog getWifiAwareLocalLog() {
+        return mWifiAwareLocalLog;
     }
 }

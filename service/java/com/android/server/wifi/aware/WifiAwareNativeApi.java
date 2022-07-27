@@ -351,15 +351,13 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             boolean notifyIdentityChange, boolean initialConfiguration, boolean isInteractive,
             boolean isIdle, boolean rangingEnabled, boolean isInstantCommunicationEnabled,
             int instantModeChannel) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "enableAndConfigure: transactionId=" + transactionId + ", configRequest="
-                    + configRequest + ", notifyIdentityChange=" + notifyIdentityChange
-                    + ", initialConfiguration=" + initialConfiguration
-                    + ", isInteractive=" + isInteractive + ", isIdle=" + isIdle
-                    + ", isRangingEnabled=" + rangingEnabled
-                    + ", isInstantCommunicationEnabled=" + isInstantCommunicationEnabled
-                    + ", instantModeChannel=" + instantModeChannel);
-        }
+        Log.d(TAG, "enableAndConfigure: transactionId=" + transactionId + ", configRequest="
+                + configRequest + ", notifyIdentityChange=" + notifyIdentityChange
+                + ", initialConfiguration=" + initialConfiguration
+                + ", isInteractive=" + isInteractive + ", isIdle=" + isIdle
+                + ", isRangingEnabled=" + rangingEnabled
+                + ", isInstantCommunicationEnabled=" + isInstantCommunicationEnabled
+                + ", instantModeChannel=" + instantModeChannel);
         recordTransactionId(transactionId);
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -533,10 +531,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param interfaceName The name of the interface, e.g. "aware0".
      */
     public boolean createAwareNetworkInterface(short transactionId, String interfaceName) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "createAwareNetworkInterface: transactionId=" + transactionId + ", "
+        Log.d(TAG, "createAwareNetworkInterface: transactionId=" + transactionId + ", "
                     + "interfaceName=" + interfaceName);
-        }
         recordTransactionId(transactionId);
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -555,10 +551,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param interfaceName The name of the interface, e.g. "aware0".
      */
     public boolean deleteAwareNetworkInterface(short transactionId, String interfaceName) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "deleteAwareNetworkInterface: transactionId=" + transactionId + ", "
-                    + "interfaceName=" + interfaceName);
-        }
+        Log.d(TAG, "deleteAwareNetworkInterface: transactionId=" + transactionId + ", "
+                + "interfaceName=" + interfaceName);
         recordTransactionId(transactionId);
 
         WifiNanIface iface = mHal.getWifiNanIface();

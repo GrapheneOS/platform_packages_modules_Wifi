@@ -71,7 +71,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     private static final int ACTION_TAP = 2;
     private static final String WIFI_IFACE_NAME = "wlan-test-9";
     private static final int FRAMEWORK_NETWORK_ID = 2;
-    private static final String TEST_SSID = "test_ssid";
+    private static final String TEST_SSID = "\"test_ssid\"";
 
     @Mock WifiContext mContext;
     @Mock WifiConfigManager mWifiConfigManager;
@@ -105,10 +105,10 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         when(mContext.getText(anyInt())).thenReturn("TestStr");
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mContext.getResources()).thenReturn(mResources);
-        when(mWifiDialogManager.createSimpleDialogWithUrl(
+        when(mWifiDialogManager.createLegacySimpleDialogWithUrl(
                 any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any()))
                 .thenReturn(mTofuAlertDialog);
-        when(mWifiDialogManager.createSimpleDialog(
+        when(mWifiDialogManager.createLegacySimpleDialog(
                 any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mTofuAlertDialog);
 
@@ -677,7 +677,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         if (isUserSelected) {
             ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                     ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-            verify(mWifiDialogManager).createSimpleDialogWithUrl(
+            verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
                     any(), any(), any(), anyInt(), anyInt(), any(), any(), any(),
                     dialogCallbackCaptor.capture(), any());
             if (action == ACTION_ACCEPT) {
@@ -699,7 +699,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 br.onReceive(mContext, intent);
                 ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                         ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-                verify(mWifiDialogManager).createSimpleDialogWithUrl(
+                verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
                         any(), any(), any(), anyInt(), anyInt(), any(), any(), any(),
                         dialogCallbackCaptor.capture(), any());
                 if (action == ACTION_ACCEPT) {
@@ -736,7 +736,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
             verify(mCallbacks).onReject(eq(config.SSID));
         } else if (action == ACTION_TAP) {
-            verify(mWifiDialogManager).createSimpleDialogWithUrl(
+            verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
                     any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any());
             verify(mTofuAlertDialog).launchDialog();
         }

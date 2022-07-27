@@ -106,6 +106,7 @@ import com.android.server.wifi.util.ArrayUtils;
 import libcore.util.HexEncoding;
 
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,6 +195,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final @NonNull WifiDialogManager mWifiDialogManager;
     private final HalDeviceManager mHalDeviceManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
+    private final SsidTranslator mSsidTranslator;
 
     private class SoftApCallbackProxy extends ISoftApCallback.Stub {
         private final PrintWriter mPrintWriter;
@@ -414,6 +416,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mWifiDialogManager = wifiInjector.getWifiDialogManager();
         mHalDeviceManager = wifiInjector.getHalDeviceManager();
         mInterfaceConflictManager = wifiInjector.getInterfaceConflictManager();
+        mSsidTranslator = wifiInjector.getSsidTranslator();
     }
 
     @Override
@@ -1304,6 +1307,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     String dialogOption = getNextOption();
                     boolean simpleTimeoutSpecified = false;
                     long simpleTimeoutMs = 0;
+                    boolean useLegacy = false;
                     while (dialogOption != null) {
                         switch (dialogOption) {
                             case "-t":
@@ -1329,6 +1333,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                             case "-c":
                                 simpleTimeoutMs = Integer.parseInt(getNextArgRequired());
                                 simpleTimeoutSpecified = true;
+                                break;
+                            case "-s":
+                                useLegacy = true;
                                 break;
                             default:
                                 pw.println("Ignoring unknown option " + dialogOption);
@@ -1359,18 +1366,32 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     simpleQueue.offer("Dialog was cancelled.");
                                 }
                             };
-                    WifiDialogManager.DialogHandle simpleDialogHandle =
-                            mWifiDialogManager.createSimpleDialogWithUrl(
-                                    title,
-                                    message,
-                                    messageUrl,
-                                    messageUrlStart,
-                                    messageUrlEnd,
-                                    positiveButtonText,
-                                    negativeButtonText,
-                                    neutralButtonText,
-                                    wifiEnableRequestCallback,
-                                    mWifiThreadRunner);
+                    WifiDialogManager.DialogHandle simpleDialogHandle;
+                    if (useLegacy) {
+                        simpleDialogHandle = mWifiDialogManager.createLegacySimpleDialogWithUrl(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                wifiEnableRequestCallback,
+                                mWifiThreadRunner);
+                    } else {
+                        simpleDialogHandle = mWifiDialogManager.createSimpleDialogWithUrl(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                wifiEnableRequestCallback,
+                                mWifiThreadRunner);
+                    }
                     if (simpleTimeoutSpecified) {
                         simpleDialogHandle.launchDialog(simpleTimeoutMs);
                         pw.println("Launched dialog with " + simpleTimeoutMs + " millisecond"
@@ -1674,6 +1695,14 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 }
                 case "stop-dpp":
                     mWifiService.stopDppSession();
+                    return 0;
+                case "set-ssid-charset":
+                    String lang = getNextArgRequired();
+                    Charset charset = Charset.forName(getNextArgRequired());
+                    mSsidTranslator.setMockLocaleCharset(lang, charset);
+                    return 0;
+                case "clear-ssid-charsets":
+                    mSsidTranslator.clearMockLocaleCharsets();
                     return 0;
                 default:
                     return handleDefaultCommands(cmd);
@@ -2402,6 +2431,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -n - Negative Button Text");
         pw.println("    -x - Neutral Button Text");
         pw.println("    -c - Optional timeout in milliseconds");
+        pw.println("    -s - Use the legacy dialog implementation on the system process");
         pw.println("  launch-dialog-p2p-invitation-sent <device_name> <pin> [-i <display_id>]");
         pw.println("    Launches a P2P Invitation Sent dialog.");
         pw.println("    <device_name> - Name of the device the invitation was sent to");
@@ -2668,6 +2698,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    enrolleeURI - Bootstrapping URI received from Enrollee");
         pw.println("  stop-dpp");
         pw.println("    Stop DPP session.");
+        pw.println("  set-ssid-charset <locale_language> <charset_name>");
+        pw.println("    Sets the SSID translation charset for the given locale language.");
+        pw.println("    Example: set-ssid-charset zh GBK");
+        pw.println("  clear-ssid-charsets");
+        pw.println("    Clears the SSID translation charsets set in set-ssid-charset.");
     }
 
     @Override

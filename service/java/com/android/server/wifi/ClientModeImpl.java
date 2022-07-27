@@ -3205,9 +3205,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         ssid).getRecentStats();
                 // Skip the secondary internet connection failure for association rejection
                 final boolean shouldSkip = isSecondaryInternet() &&
-                        (level2FailureReason
+                        (level2FailureCode
                                 == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT
-                                || level2FailureReason
+                                || level2FailureCode
                                 == WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION);
                 if (recentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_CONNECTION_FAILURE)
                         >= WifiBlocklistMonitor.NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF
@@ -5078,8 +5078,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
                 case WifiMonitor.TRANSITION_DISABLE_INDICATION: {
                     log("Received TRANSITION_DISABLE_INDICATION: networkId=" + message.arg1
-                            + ", indication=" + message.arg2);
-                    mWifiConfigManager.updateNetworkTransitionDisable(message.arg1, message.arg2);
+                            + ", indication=" + message.arg2 + ", bssid=" + mLastBssid);
+                    if (isValidTransitionDisableIndicationSource(mLastBssid, message.arg2)) {
+                        mWifiConfigManager.updateNetworkTransitionDisable(message.arg1,
+                                message.arg2);
+                    } else {
+                        Log.w(getTag(), "Drop TRANSITION_DISABLE_INDICATION event"
+                                + " from an invalid source.");
+                    }
                     break;
                 }
                 case WifiMonitor.QOS_POLICY_RESET_EVENT: {
@@ -5104,6 +5110,34 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 logStateAndMessage(message, this);
             }
             return handleStatus;
+        }
+
+        private boolean isValidTransitionDisableIndicationSource(String bssid,
+                @WifiMonitor.TransitionDisableIndication int indicationBit) {
+            ScanResult result = mScanRequestProxy.getScanResult(mLastBssid);
+            if (null == result) return false;
+
+            // SAE TDI should only come from a PSK/SAE BSS or a SAE BSS.
+            if (0 != (indicationBit & WifiMonitor.TDI_USE_WPA3_PERSONAL)) {
+                return ScanResultUtil.isScanResultForSaeNetwork(result)
+                        || ScanResultUtil.isScanResultForPskSaeTransitionNetwork(result);
+            }
+            // SAE_PK TDI should only come from a SAE BSS.
+            if (0 != (indicationBit & WifiMonitor.TDI_USE_SAE_PK)) {
+                return ScanResultUtil.isScanResultForSaeNetwork(result);
+            }
+            // WPA3 Enterprise TDI should only come from a WPA2/WPA3 Enterprise
+            // BSS or a WPA3 Enterprise BSS.
+            if (0 != (indicationBit & WifiMonitor.TDI_USE_WPA3_ENTERPRISE)) {
+                return ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(result)
+                        || ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(result);
+            }
+            // OWE TDI should only come from an OPEN/OWE BSS or an OWE BSS.
+            if (0 != (indicationBit & WifiMonitor.TDI_USE_ENHANCED_OPEN)) {
+                return ScanResultUtil.isScanResultForOweNetwork(result)
+                        || ScanResultUtil.isScanResultForOweTransitionNetwork(result);
+            }
+            return false;
         }
     }
 
@@ -5415,8 +5449,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     NetworkConnectionEventInfo connectionInfo =
                             (NetworkConnectionEventInfo) message.obj;
                     String quotedOrHexConnectingSsid = getConnectingSsidInternal();
-                    String quotedOrHexConnectedSsid = NativeUtil.encodeSsid(
-                            NativeUtil.byteArrayToArrayList(connectionInfo.wifiSsid.getBytes()));
+                    String quotedOrHexConnectedSsid = connectionInfo.wifiSsid.toString();
                     if (quotedOrHexConnectingSsid != null
                             && !quotedOrHexConnectingSsid.equals(quotedOrHexConnectedSsid)) {
                         // possibly a NETWORK_CONNECTION_EVENT for a successful roam on the previous
@@ -6418,6 +6451,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         @Override
         public void exit() {
             logd("ClientModeImpl: Leaving Connected state");
+            if (mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                // Clear the recorded BSSID/Charsets associations to avoid holding onto stale info.
+                mWifiInjector.getSsidTranslator().clearRecordedBssidCharsets();
+            }
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                      WifiConnectivityManager.WIFI_STATE_TRANSITIONING);
