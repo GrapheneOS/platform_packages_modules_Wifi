@@ -545,6 +545,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(DialogInterface.OnDismissListener.class);
         verify(builder).setOnDismissListener(dismissListenerCaptor.capture());
         dismissListenerCaptor.getValue().onDismiss(dialog);
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
 
         // Verify that the timeout runnable was removed.
         verify(mWifiThreadRunner).removeCallbacks(runnableArgumentCaptor.getValue());
@@ -702,6 +703,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(DialogInterface.OnDismissListener.class);
         verify(builder).setOnDismissListener(dismissListenerCaptor.capture());
         dismissListenerCaptor.getValue().onDismiss(dialog);
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
 
         // Verify that the timeout runnable was removed.
         verify(mWifiThreadRunner).removeCallbacks(runnableArgumentCaptor.getValue());
@@ -746,6 +748,53 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         // Verify dialog was cancelled.
         verify(dialog).cancel();
+    }
+
+    @Test
+    public void testLegacySimpleDialog_windowTypeChangedDueToScreenOff() {
+        SimpleDialogCallback callback = mock(SimpleDialogCallback.class);
+        WifiThreadRunner callbackThreadRunner = mock(WifiThreadRunner.class);
+        WifiDialogManager wifiDialogManager =
+                new WifiDialogManager(mWifiContext, mWifiThreadRunner, mFrameworkFacade);
+
+        AlertDialog.Builder builder = mock(AlertDialog.Builder.class);
+        AlertDialog dialog = mock(AlertDialog.class);
+        when(builder.setTitle(any())).thenReturn(builder);
+        when(builder.setMessage(any())).thenReturn(builder);
+        when(builder.setPositiveButton(any(), any())).thenReturn(builder);
+        when(builder.setNegativeButton(any(), any())).thenReturn(builder);
+        when(builder.setNeutralButton(any(), any())).thenReturn(builder);
+        when(builder.setOnCancelListener(any())).thenReturn(builder);
+        when(builder.setOnDismissListener(any())).thenReturn(builder);
+        when(builder.create()).thenReturn(dialog);
+        Window window = mock(Window.class);
+        WindowManager.LayoutParams layoutParams = mock(WindowManager.LayoutParams.class);
+        when(window.getAttributes()).thenReturn(layoutParams);
+        when(dialog.getWindow()).thenReturn(window);
+        when(mFrameworkFacade.makeAlertDialogBuilder(any())).thenReturn(builder);
+
+        DialogHandle dialogHandle = wifiDialogManager.createLegacySimpleDialog(TEST_TITLE,
+                TEST_MESSAGE, TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT,
+                TEST_NEUTRAL_BUTTON_TEXT,
+                callback, callbackThreadRunner);
+        launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
+        verify(window).setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+
+        // Receive ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
+        when(dialog.isShowing()).thenReturn(true);
+        when(mPowerManager.isInteractive()).thenReturn(false);
+        ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
+                BroadcastReceiver.class);
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any());
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
+
+        // Verify dialog was dismissed and relaunched with window type TYPE_APPLICATION_OVERLAY.
+        verify(dialog, never()).cancel();
+        verify(dialog).dismiss();
+        verify(window).setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+        verify(dialog, times(2)).show();
     }
 
     /**
