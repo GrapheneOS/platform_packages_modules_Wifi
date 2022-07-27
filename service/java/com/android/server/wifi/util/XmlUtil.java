@@ -375,6 +375,7 @@ public class XmlUtil {
         public static final String XML_TAG_SECURITY_PARAMS_LIST = "SecurityParamsList";
         public static final String XML_TAG_SECURITY_PARAMS = "SecurityParams";
         public static final String XML_TAG_SECURITY_TYPE = "SecurityType";
+        public static final String XML_TAG_IS_ENABLED = "IsEnabled";
         public static final String XML_TAG_SAE_IS_H2E_ONLY_MODE = "SaeIsH2eOnlyMode";
         public static final String XML_TAG_SAE_IS_PK_ONLY_MODE = "SaeIsPkOnlyMode";
         public static final String XML_TAG_IS_ADDED_BY_AUTO_UPGRADE = "IsAddedByAutoUpgrade";
@@ -453,6 +454,9 @@ public class XmlUtil {
                 XmlUtil.writeNextValue(
                         out, XML_TAG_SECURITY_TYPE,
                         params.getSecurityType());
+                XmlUtil.writeNextValue(
+                        out, XML_TAG_IS_ENABLED,
+                        params.isEnabled());
                 XmlUtil.writeNextValue(
                         out, XML_TAG_SAE_IS_H2E_ONLY_MODE,
                         params.isSaeH2eOnlyMode());
@@ -701,6 +705,9 @@ public class XmlUtil {
                 switch (tagName) {
                     case WifiConfigurationXmlUtil.XML_TAG_SECURITY_TYPE:
                         params = SecurityParams.createSecurityParamsBySecurityType((int) value);
+                        break;
+                    case WifiConfigurationXmlUtil.XML_TAG_IS_ENABLED:
+                        params.setEnabled((boolean) value);
                         break;
                     case WifiConfigurationXmlUtil.XML_TAG_SAE_IS_H2E_ONLY_MODE:
                         if (null == params) {
