@@ -56,6 +56,8 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TR
 import static com.android.server.wifi.LocalOnlyHotspotRequestInfo.HOTSPOT_NO_ERROR;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_NONE;
+import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
+import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -782,6 +784,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledMetricsNormalAppBelowQSdk() throws Exception {
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
@@ -886,6 +891,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledSuccessForAppsTargetingBelowQSdk() throws Exception {
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
@@ -1056,6 +1064,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledDialogForThirdPartyAppsTargetingBelowQSdk() throws Exception {
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
         when(mResources.getBoolean(
                 R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
                 .thenReturn(true);
@@ -1206,6 +1217,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledNoDialogForNonThirdPartyAppsTargetingBelowQSdk() {
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
         when(mResources.getBoolean(
                 R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
                 .thenReturn(true);
@@ -7598,6 +7612,53 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mLastCallerInfoManager).put(
                 eq(WifiManager.API_SET_NETWORK_SELECTION_CONFIG),
                 anyInt(), anyInt(), anyInt(), any(), eq(true));
+    }
+
+    @Test
+    public void testSetThirdPartyAppEnablingWifiConfirmationDialogEnabled() throws Exception {
+        boolean enable = true;
+
+        // no permission to call APIs
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt()))
+                .thenReturn(false);
+        assertThrows(SecurityException.class, () ->
+                mWifiServiceImpl.setThirdPartyAppEnablingWifiConfirmationDialogEnabled(enable));
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.isThirdPartyAppEnablingWifiConfirmationDialogEnabled());
+
+        // has permission to call APIs
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        mWifiServiceImpl.setThirdPartyAppEnablingWifiConfirmationDialogEnabled(enable);
+        verify(mWifiSettingsConfigStore).put(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI), eq(enable));
+        verify(mWifiSettingsConfigStore).put(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API), eq(true));
+        verify(mLastCallerInfoManager).put(
+                eq(WifiManager.API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG),
+                anyInt(), anyInt(), anyInt(), any(), eq(enable));
+
+        // get value before set by API
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
+        when(mResources.getBoolean(
+                R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
+                .thenReturn(false);
+        assertFalse(mWifiServiceImpl.isThirdPartyAppEnablingWifiConfirmationDialogEnabled());
+        verify(mWifiSettingsConfigStore, never())
+                .get(eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI));
+
+        // get value after set by API
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(true);
+        when(mWifiSettingsConfigStore.get(eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI)))
+                .thenReturn(true);
+        assertTrue(mWifiServiceImpl.isThirdPartyAppEnablingWifiConfirmationDialogEnabled());
+        verify(mWifiSettingsConfigStore).get(eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI));
+        verify(mWifiSettingsConfigStore, times(2)).get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API));
     }
 
     @Test(expected = SecurityException.class)
