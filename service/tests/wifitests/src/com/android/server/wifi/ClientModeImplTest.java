@@ -4279,22 +4279,26 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
         mCmi.sendMessage(WifiMonitor.ASSOCIATION_REJECTION_EVENT,
                 new AssocRejectEventInfo(TEST_SSID, TEST_BSSID_STR,
-                        ISupplicantStaIfaceCallback.StatusCode.AP_UNABLE_TO_HANDLE_NEW_STA, false));
+                        ISupplicantStaIfaceCallback.StatusCode.SUPPORTED_CHANNEL_NOT_VALID, false));
         mLooper.dispatchAll();
         verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
-                eq(mTestConfig), eq(WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA),
+                eq(mTestConfig), eq(WifiBlocklistMonitor.REASON_ASSOCIATION_REJECTION),
                 anyInt());
         if (isSecondary) {
             verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
             verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES);
+            verify(mWifiLastResortWatchdog, never()).noteConnectionFailureAndTriggerIfNeeded(
+                    anyString(), anyString(), anyInt(), anyBoolean());
         }
         else {
             verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION);
             verify(mWifiConfigManager).updateNetworkSelectionStatus(FRAMEWORK_NETWORK_ID,
                     WifiConfiguration.NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES);
+            verify(mWifiLastResortWatchdog).noteConnectionFailureAndTriggerIfNeeded(
+                    anyString(), anyString(), anyInt(), anyBoolean());
         }
     }
 
