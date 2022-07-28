@@ -5246,7 +5246,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             level2FailureReason);
 
                     if (level2FailureReason != WifiMetricsProto.ConnectionEvent
-                            .ASSOCIATION_REJECTION_AP_UNABLE_TO_HANDLE_NEW_STA) {
+                            .ASSOCIATION_REJECTION_AP_UNABLE_TO_HANDLE_NEW_STA
+                            && !isSecondaryInternet()) {
                         mWifiLastResortWatchdog.noteConnectionFailureAndTriggerIfNeeded(
                                 getConnectingSsidInternal(), bssid,
                                 WifiLastResortWatchdog.FAILURE_CODE_ASSOCIATION,
