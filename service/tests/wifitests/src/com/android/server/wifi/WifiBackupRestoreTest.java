@@ -257,6 +257,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"2\" />\n"
+                    + "<boolean name=\"IsEnabled\" value=\"true\" />\n"
                     + "<boolean name=\"SaeIsH2eOnlyMode\" value=\"false\" />\n"
                     + "<boolean name=\"SaeIsPkOnlyMode\" value=\"false\" />\n"
                     + "<boolean name=\"IsAddedByAutoUpgrade\" value=\"false\" />\n"

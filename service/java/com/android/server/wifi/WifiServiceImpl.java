@@ -4892,6 +4892,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 mWifiInjector.getOemWifiNetworkFactory().dump(fd, pw, args);
                 mWifiInjector.getRestrictedWifiNetworkFactory().dump(fd, pw, args);
                 mWifiInjector.getMultiInternetWifiNetworkFactory().dump(fd, pw, args);
+                mWifiInjector.getSsidTranslator().dump(pw);
                 pw.println("Wlan Wake Reasons:" + mWifiNative.getWlanWakeReasonCount());
                 pw.println();
                 mWifiConfigManager.dump(fd, pw, args);
