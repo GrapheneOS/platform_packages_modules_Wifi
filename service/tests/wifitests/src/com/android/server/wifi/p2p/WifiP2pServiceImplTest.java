@@ -4091,6 +4091,32 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with a name
+     * whose length exceeds 22.
+     */
+    @Test
+    public void testSetDeviceNameFailureWithANameLongerThanMaxPostfixLength() throws Exception {
+        // Move to enabled state
+        forceP2pEnabled(mClient1);
+        mTestThisDevice.status = mTestThisDevice.AVAILABLE;
+
+        mTestThisDevice.deviceName = "12345678901234567890123";
+        when(mWifiNative.setDeviceName(anyString())).thenReturn(true);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
+        sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
+        verify(mWifiNative).setDeviceName(eq(mTestThisDevice.deviceName));
+        verify(mWifiNative).setP2pSsidPostfix(
+                eq("-" + mTestThisDevice.deviceName.substring(
+                        0, WifiP2pServiceImpl.GROUP_NAME_POSTFIX_LENGTH_MAX)));
+        verify(mWifiSettingsConfigStore).put(
+                eq(WIFI_P2P_DEVICE_NAME), eq(mTestThisDevice.deviceName));
+        checkSendThisDeviceChangedBroadcast();
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.SET_DEVICE_NAME_SUCCEEDED, message.what);
+    }
+
+    /**
      * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with an empty name.
      */
     @Test
@@ -4123,6 +4149,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // clear the one called on entering P2pEnabledState.
         reset(mWifiNative);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
         when(mWifiNative.setDeviceName(anyString())).thenReturn(false);
         sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
         verify(mWifiNative).setDeviceName(eq(mTestThisDevice.deviceName));
