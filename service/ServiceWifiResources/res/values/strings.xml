@@ -183,12 +183,16 @@
 
     <!-- External approver for interface priority calls. -->
     <string name="wifi_interface_priority_title"><xliff:g id="app">%1$s</xliff:g> wants to use a networking resource</string>
-    <!-- Note: additional available arguments for customized message (not used in default string):
-          %1$s: application name
-          %2$s: interface name
+    <!-- Note: additional available arguments for customized title (not necessarily used in default string):
+          %1$s: requestor application name
+          %2$s: requested interface name
      -->
     <string name="wifi_interface_priority_message">This may cause problems for <xliff:g id="apps">%3$s</xliff:g>.</string>
     <string name="wifi_interface_priority_message_plural">This may cause problems for these apps: <xliff:g id="apps">%3$s</xliff:g>.</string>
+    <!-- Note: along with arguments available to the title (see above), the message can also use:
+          %3$s: impacted application names
+          %4$s: impacted interface names
+     -->
     <string name="wifi_interface_priority_approve">Allow</string>
     <string name="wifi_interface_priority_reject">Don\'t allow</string>
     <string name="wifi_interface_priority_interface_name_sta">STA</string>
