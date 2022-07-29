@@ -1490,6 +1490,29 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         verify(mSettingsStore).handleAirplaneModeToggled();
     }
 
+    /**
+     * Wi-Fi remains on when airplane mode changes if airplane mode enhancement is enabled.
+     */
+    @Test
+    public void testWifiRemainsOnAirplaneModeEnhancement() throws Exception {
+        enterClientModeActiveState();
+        assertInEnabledState();
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(true);
+
+        // Wi-Fi remains on when APM enhancement enabled
+        assertWifiShutDown(() -> {
+            when(mSettingsStore.shouldWifiRemainEnabledWhenApmEnabled()).thenReturn(true);
+            mActiveModeWarden.airplaneModeToggled();
+            mLooper.dispatchAll();
+        }, 0);
+
+        // Wi-Fi shuts down when APM enhancement disabled
+        assertWifiShutDown(() -> {
+            when(mSettingsStore.shouldWifiRemainEnabledWhenApmEnabled()).thenReturn(false);
+            mActiveModeWarden.airplaneModeToggled();
+            mLooper.dispatchAll();
+        });
+    }
 
     /**
      * Disabling location mode when in scan mode will disable wifi

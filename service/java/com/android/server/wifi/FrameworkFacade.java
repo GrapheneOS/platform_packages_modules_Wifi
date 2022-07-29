@@ -91,6 +91,13 @@ public class FrameworkFacade {
     }
 
     /**
+     * Mockable getter for user context from ActivityManager
+     */
+    public Context getUserContext(Context context) {
+        return context.createContextAsUser(UserHandle.of(ActivityManager.getCurrentUser()), 0);
+    }
+
+    /**
      * Mockable setter for Settings.Global
      */
     public boolean setIntegerSetting(ContentResolver contentResolver, String name, int value) {
@@ -112,6 +119,14 @@ public class FrameworkFacade {
         return Settings.Global.getInt(getContentResolver(context), name, def);
     }
 
+    /**
+     * Mockable getter for Settings.Global.getInt with SettingNotFoundException
+     */
+    public int getIntegerSetting(ContentResolver contentResolver, String name)
+            throws Settings.SettingNotFoundException {
+        return Settings.Global.getInt(contentResolver, name);
+    }
+
     public long getLongSetting(Context context, String name, long def) {
         return Settings.Global.getLong(getContentResolver(context), name, def);
     }
@@ -129,6 +144,13 @@ public class FrameworkFacade {
      */
     public int getSecureIntegerSetting(Context context, String name, int def) {
         return Settings.Secure.getInt(getContentResolver(context), name, def);
+    }
+
+    /**
+     * Mockable facade to Settings.Secure.putInt(.).
+     */
+    public boolean setSecureIntegerSetting(Context context, String name, int def) {
+        return Settings.Secure.putInt(getContentResolver(context), name, def);
     }
 
     /**
