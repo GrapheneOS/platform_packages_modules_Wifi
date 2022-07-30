@@ -202,20 +202,20 @@ public class SsidTranslatorTest extends WifiBaseTest{
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_LOCALE_CHANGED));
 
-        // BSSID does not match any seen scan results, use GBK.
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(gbkSsid);
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(gbkSsid);
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
-
-        // Record a BSSID using UTF-8. All non-matching BSSIDs should return UTF-8.
-        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress);
+        // BSSID does not match any seen scan results, use UTF-8.
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(utf8Ssid);
 
-        // Update scan results with GBK scans. The GBK BSSID and null BSSID should return GBK now.
+        // Record a BSSID using GBK. All non-matching BSSIDs should return GBK.
         ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(gbkSsid);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(gbkSsid);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
+
+        // Record a BSSID using UTF-8. The UTF-8 and null BSSIDs should return UTF-8 now.
+        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
 
@@ -225,11 +225,11 @@ public class SsidTranslatorTest extends WifiBaseTest{
                 (byte) 0xaa, (byte) 0xbb, (byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff});
         assertThat(ssidTranslator.getOriginalSsid(unknownSsid, null)).isEqualTo(unknownSsid);
 
-        // Clear the scan results. Now we should return GBK SSIDs for every BSSID again.
+        // Clear the scan results. Now we should return UTF-8 SSIDs for every BSSID again.
         ssidTranslator.clearRecordedBssidCharsets();
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(gbkSsid);
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(gbkSsid);
-        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(utf8Ssid);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(utf8Ssid);
+        assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(utf8Ssid);
 
         // SSID is too long for any encoding, so return null.
         assertThat(ssidTranslator.getOriginalSsid(WifiSsid.fromBytes(

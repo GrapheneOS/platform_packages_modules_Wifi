@@ -231,12 +231,10 @@ public class SsidTranslator {
     }
 
     /**
-     * Converts the specified translated SSID back to its original Charset. If the BSSID is recorded
-     * as translated, then SSID is converted back to the alternate Charset. If the BSSID is recorded
-     * as untranslated, then the SSID is left unconverted.
+     * Converts the specified translated SSID back to its original Charset if the BSSID is recorded
+     * as translated, or there are translated BSSIDs but no untranslated BSSIDs for this SSID.
      *
-     * If the BSSID has not been recorded at all, then we will convert the SSID back to the
-     * alternate Charset unless the only BSSIDs corresponding to the SSID are untranslated.
+     * If the BSSID has not been recorded at all, then we will return the SSID as-is.
      *
      * @param translatedSsid translated SSID.
      * @param bssid optional BSSID to look up the Charset.
@@ -252,13 +250,8 @@ public class SsidTranslator {
         boolean ssidWasTranslatedForThisBssid = ssidWasTranslatedForSomeBssids
                 && mTranslatedBssids.get(translatedSsid).contains(bssid);
         boolean ssidNotTranslatedForSomeBssids = mUntranslatedBssids.containsKey(translatedSsid);
-        boolean ssidNotTranslatedForThisBssid = ssidNotTranslatedForSomeBssids
-                && mUntranslatedBssids.get(translatedSsid).contains(bssid);
-        boolean needToUntranslate = ssidWasTranslatedForThisBssid
-                || !ssidNotTranslatedForSomeBssids
-                || (ssidWasTranslatedForSomeBssids
-                && !ssidNotTranslatedForThisBssid);
-        if (needToUntranslate) {
+        if (ssidWasTranslatedForThisBssid
+                || (ssidWasTranslatedForSomeBssids && !ssidNotTranslatedForSomeBssids)) {
             // Try to get the SSID in the alternate Charset.
             WifiSsid altCharsetSsid = translateSsid(
                     translatedSsid, StandardCharsets.UTF_8, mCurrentLocaleAlternateCharset);
