@@ -379,6 +379,9 @@
           <item type="string" name="wifi_enabled_apm_first_time_message" />
           <item type="string" name="apm_enabled_first_time_title" />
           <item type="string" name="apm_enabled_first_time_message" />
+          <item type="string" name="wifi_network_disabled_by_admin_title" />
+          <item type="string" name="wifi_network_disabled_by_admin_message" />
+          <item type="string" name="wifi_network_disabled_by_admin_button" />
           <!-- Params from strings.xml that can be overlayed -->
 
           <!-- Params from styles.xml that can be overlayed -->
