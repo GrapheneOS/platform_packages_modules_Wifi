@@ -633,8 +633,12 @@ public class SoftApManager implements ActiveModeManager {
 
         intent.putExtra(WifiManager.EXTRA_WIFI_AP_INTERFACE_NAME, mApInterfaceName);
         intent.putExtra(WifiManager.EXTRA_WIFI_AP_MODE, mOriginalModeConfiguration.getTargetMode());
-        mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
-                android.Manifest.permission.ACCESS_WIFI_STATE);
+        if (SdkLevel.isAtLeastSv2()) {
+            mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
+                    android.Manifest.permission.ACCESS_WIFI_STATE);
+        } else {
+            mContext.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
+        }
     }
 
     private int setMacAddress() {
