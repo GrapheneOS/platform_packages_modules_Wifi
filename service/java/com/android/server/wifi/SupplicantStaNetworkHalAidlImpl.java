@@ -351,24 +351,25 @@ public class SupplicantStaNetworkHalAidlImpl {
             /** Key Management Scheme */
             BitSet allowedKeyManagement = securityParams.getAllowedKeyManagement();
             if (allowedKeyManagement.cardinality() != 0) {
-                // Add FT flags if supported.
-                BitSet keyMgmtMask = addFastTransitionFlags(allowedKeyManagement);
-                // Add SHA256 key management flags.
-                keyMgmtMask = addSha256KeyMgmtFlags(keyMgmtMask);
                 // Add upgradable type key management flags for PSK/SAE.
-                keyMgmtMask = addPskSaeUpgradableTypeFlagsIfSupported(config, keyMgmtMask);
-                if (!setKeyMgmt(wifiConfigurationToSupplicantKeyMgmtMask(keyMgmtMask))) {
+                allowedKeyManagement = addPskSaeUpgradableTypeFlagsIfSupported(config,
+                        allowedKeyManagement);
+                // Add FT flags if supported.
+                allowedKeyManagement = addFastTransitionFlags(allowedKeyManagement);
+                // Add SHA256 key management flags.
+                allowedKeyManagement = addSha256KeyMgmtFlags(allowedKeyManagement);
+                if (!setKeyMgmt(wifiConfigurationToSupplicantKeyMgmtMask(allowedKeyManagement))) {
                     Log.e(TAG, "failed to set Key Management");
                     return false;
                 }
                 // Check and set SuiteB configurations.
-                if (keyMgmtMask.get(WifiConfiguration.KeyMgmt.SUITE_B_192)
+                if (allowedKeyManagement.get(WifiConfiguration.KeyMgmt.SUITE_B_192)
                         && !saveSuiteBConfig(config)) {
                     Log.e(TAG, "failed to set Suite-B-192 configuration");
                     return false;
                 }
                 // Check and set DPP Connection keys
-                if (keyMgmtMask.get(WifiConfiguration.KeyMgmt.DPP)
+                if (allowedKeyManagement.get(WifiConfiguration.KeyMgmt.DPP)
                         && !saveDppConnectionConfig(config)) {
                     Log.e(TAG, "failed to set DPP connection params");
                     return false;
@@ -415,14 +416,15 @@ public class SupplicantStaNetworkHalAidlImpl {
                         return false;
                     }
                 } else if (config.preSharedKey.startsWith("\"")) {
-                    if (securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)) {
+                    if (allowedKeyManagement.get(WifiConfiguration.KeyMgmt.SAE)) {
                         /* WPA3 case, field is SAE Password */
                         if (!setSaePassword(
                                 NativeUtil.removeEnclosingQuotes(config.preSharedKey))) {
                             Log.e(TAG, "failed to set sae password");
                             return false;
                         }
-                    } else {
+                    }
+                    if (allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)) {
                         if (!setPskPassphrase(
                                 NativeUtil.removeEnclosingQuotes(config.preSharedKey))) {
                             Log.e(TAG, "failed to set psk passphrase");
@@ -430,7 +432,8 @@ public class SupplicantStaNetworkHalAidlImpl {
                         }
                     }
                 } else {
-                    if (securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)) {
+                    if (!allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)
+                            && allowedKeyManagement.get(WifiConfiguration.KeyMgmt.SAE)) {
                         return false;
                     }
                     if (!setPsk(NativeUtil.hexStringToByteArray(config.preSharedKey))) {
@@ -483,7 +486,7 @@ public class SupplicantStaNetworkHalAidlImpl {
                 return false;
             }
             /** SAE configuration */
-            if (securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)) {
+            if (allowedKeyManagement.get(WifiConfiguration.KeyMgmt.SAE)) {
                 /**
                  * Hash-to-Element preference.
                  * For devices that don't support H2E, H2E mode will be permanently disabled.
