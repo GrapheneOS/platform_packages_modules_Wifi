@@ -1494,6 +1494,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             mWifiMonitor.startMonitoring(mInterfaceName);
         }
 
+        private WorkSource createRequestorWs(int uid, String packageName) {
+            WorkSource requestorWs = new WorkSource(uid, packageName);
+            logd("Requestor WorkSource: " + requestorWs);
+            return requestorWs;
+        }
+
         private WorkSource createMergedRequestorWs() {
             WorkSource requestorWs = new WorkSource();
             for (WorkSource ws: mActiveClients.values()) {
@@ -2245,11 +2251,16 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             Log.i(TAG, "No active client, ignore ENABLE_P2P.");
                             break;
                         }
+                        String packageName = getCallingPkgName(message.sendingUid, message.replyTo);
+                        if (TextUtils.isEmpty(packageName)) {
+                            Log.i(TAG, "No valid package name, ignore ENABLE_P2P");
+                            break;
+                        }
                         int proceedWithOperation =
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
-                                        createMergedRequestorWs());
+                                        createRequestorWs(message.sendingUid, packageName));
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                         } else if (proceedWithOperation
@@ -2300,11 +2311,16 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         if (!isWifiP2pAvailable()) return NOT_HANDLED;
                         if (mDeathDataByBinder.isEmpty()) return NOT_HANDLED;
 
+                        String packageName = getCallingPkgName(message.sendingUid, message.replyTo);
+                        if (TextUtils.isEmpty(packageName)) {
+                            Log.i(TAG, "No valid package name, do not set up the P2P interface");
+                            return NOT_HANDLED;
+                        }
                         int proceedWithOperation =
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
-                                        createMergedRequestorWs());
+                                        createRequestorWs(message.sendingUid, packageName));
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                             return NOT_HANDLED;
