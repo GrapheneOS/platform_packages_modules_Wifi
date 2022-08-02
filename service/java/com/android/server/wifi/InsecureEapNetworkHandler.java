@@ -559,22 +559,34 @@ public class InsecureEapNetworkHandler {
                 new WifiDialogManager.SimpleDialogCallback() {
                     @Override
                     public void onPositiveButtonClicked() {
+                        if (mCurrentTofuConfig == null) {
+                            return;
+                        }
                         handleAccept(mCurrentTofuConfig.SSID);
                     }
 
                     @Override
                     public void onNegativeButtonClicked() {
+                        if (mCurrentTofuConfig == null) {
+                            return;
+                        }
                         handleReject(mCurrentTofuConfig.SSID);
                     }
 
                     @Override
                     public void onNeutralButtonClicked() {
                         // Not used.
+                        if (mCurrentTofuConfig == null) {
+                            return;
+                        }
                         handleReject(mCurrentTofuConfig.SSID);
                     }
 
                     @Override
                     public void onCancelled() {
+                        if (mCurrentTofuConfig == null) {
+                            return;
+                        }
                         handleReject(mCurrentTofuConfig.SSID);
                     }
                 },
