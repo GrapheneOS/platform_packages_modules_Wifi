@@ -5314,6 +5314,14 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             ccc.limits.add(cccl);
             cm.availableCombinations.add(ccc);
 
+            // Add a combo which doesn't allow any AP.
+            ccc = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+            cccl = new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit();
+            cccl.maxIfaces = 2;
+            cccl.types.add(IfaceConcurrencyType.STA);
+            ccc.limits.add(cccl);
+            cm.availableCombinations.add(ccc);
+
             availableModes_1_6.add(cm);
 
             chipModeIdValidForRtt = CHIP_MODE_ID;

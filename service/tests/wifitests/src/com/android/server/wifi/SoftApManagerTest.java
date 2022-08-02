@@ -85,6 +85,8 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.wifi.resources.R;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -3223,6 +3225,8 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         // Trigger onInstanceFailure to simulate instance removal
         mSoftApHalCallbackCaptor.getValue().onInstanceFailure(TEST_SECOND_INSTANCE_NAME);
+        when(mWifiNative.getBridgedApInstances(any()))
+                .thenReturn(new ArrayList<>(ImmutableList.of(TEST_FIRST_INSTANCE_NAME)));
         mLooper.dispatchAll();
 
         // Bridged AP with a single instance should not be downgraded, so return null.
