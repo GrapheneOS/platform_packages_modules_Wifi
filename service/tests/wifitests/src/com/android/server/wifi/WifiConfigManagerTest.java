@@ -7691,4 +7691,15 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Verify the retrieved SSID byte length is greater than 32.
         assertTrue(WifiSsid.fromString(retrievedNetworks.get(0).SSID).getBytes().length > 32);
     }
+
+    @Test
+    public void testAddNetworkWithInvalidHexadecimalSsidFails() {
+        // Create a 2 and a half byte SSID
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.SSID = "abcde";
+
+        NetworkUpdateResult result = addNetworkToWifiConfigManager(openNetwork);
+
+        assertFalse(result.isSuccess());
+    }
 }

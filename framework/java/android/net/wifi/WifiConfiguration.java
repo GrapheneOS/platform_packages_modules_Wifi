@@ -3585,7 +3585,8 @@ public class WifiConfiguration implements Parcelable {
             if (TextUtils.isEmpty(keyMgmt)) {
                 throw new IllegalStateException("Not an EAP network");
             }
-            String keyId = WifiSsid.fromString(SSID).toString() + "_" + keyMgmt + "_"
+            String keyId = (!TextUtils.isEmpty(SSID) && SSID.charAt(0) != '\"'
+                    ? SSID.toLowerCase() : SSID) + "_" + keyMgmt + "_"
                     + trimStringForKeyId(enterpriseConfig.getKeyId(current != null
                     ? current.enterpriseConfig : null));
 
@@ -3718,7 +3719,8 @@ public class WifiConfiguration implements Parcelable {
      *  return the SSID + security type in String format.
      */
     public String getSsidAndSecurityTypeString() {
-        return WifiSsid.fromString(SSID) + getDefaultSecurityType();
+        return (!TextUtils.isEmpty(SSID) && SSID.charAt(0) != '\"' ? SSID.toLowerCase() : SSID)
+                + getDefaultSecurityType();
     }
 
     /**
@@ -4336,7 +4338,8 @@ public class WifiConfiguration implements Parcelable {
             // subscriptionId (the default one) first.
             return subscriptionId + "-" + mPasspointUniqueId;
         } else {
-            String key = WifiSsid.fromString(SSID) + getSecurityTypeName(securityType);
+            String key = (!TextUtils.isEmpty(SSID) && SSID.charAt(0) != '\"'
+                    ? SSID.toLowerCase() : SSID) + getSecurityTypeName(securityType);
             if (!shared) {
                 key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
             }
