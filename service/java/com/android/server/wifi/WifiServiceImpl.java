@@ -1243,6 +1243,9 @@ public class WifiServiceImpl extends BaseWifiService {
                         wifiInfo == null ? -1 : wifiInfo.getNetworkId());
             }
         }
+        if (!enable) {
+            mWifiInjector.getInterfaceConflictManager().reset();
+        }
         mWifiMetrics.incrementNumWifiToggles(isPrivileged, enable);
         mActiveModeWarden.wifiToggled(new WorkSource(callingUid, packageName));
         mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
