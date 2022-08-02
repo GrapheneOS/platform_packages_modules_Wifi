@@ -1188,7 +1188,6 @@ public class WifiConfigManager {
         internalConfig.trusted = externalConfig.trusted;
         internalConfig.oemPaid = externalConfig.oemPaid;
         internalConfig.oemPrivate = externalConfig.oemPrivate;
-        internalConfig.dbsSecondaryInternet = externalConfig.dbsSecondaryInternet;
         internalConfig.carrierMerged = externalConfig.carrierMerged;
         internalConfig.restricted = externalConfig.restricted;
 
