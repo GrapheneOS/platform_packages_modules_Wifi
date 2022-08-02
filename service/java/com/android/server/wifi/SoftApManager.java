@@ -541,7 +541,8 @@ public class SoftApManager implements ActiveModeManager {
      * downgrade is not possible.
      */
     public String getBridgedApDowngradeIfaceInstanceForRemoval() {
-        if (mCurrentSoftApInfoMap.size() <= 1) {
+        if (!isBridgedMode() || mCurrentSoftApInfoMap.size() == 0
+                || mWifiNative.getBridgedApInstances(mApInterfaceName).size() == 1) {
             return null;
         }
         return getHighestFrequencyInstance(mCurrentSoftApInfoMap.keySet());
@@ -1631,13 +1632,26 @@ public class SoftApManager implements ActiveModeManager {
                         break;
                     case CMD_FAILURE:
                         String instance = (String) message.obj;
-                        if (instance != null && isBridgedMode()
-                                && mCurrentSoftApInfoMap.size() >= 1) {
-                            Log.i(getTag(), "receive instanceFailure on " + instance);
-                            removeIfaceInstanceFromBridgedApIface(instance);
-                            // there is a available instance, keep AP on.
-                            if (mCurrentSoftApInfoMap.size() == 1) {
-                                break;
+                        if (isBridgedMode()) {
+                            List<String> instances =
+                                    mWifiNative.getBridgedApInstances(mApInterfaceName);
+                            if (instance != null) {
+                                Log.i(getTag(), "receive instanceFailure on " + instance);
+                                removeIfaceInstanceFromBridgedApIface(instance);
+                                // there is an available instance, keep AP on.
+                                if (mCurrentSoftApInfoMap.size() == 1) {
+                                    break;
+                                }
+                            } else if (mCurrentSoftApInfoMap.size() == 1 && instances.size() == 1) {
+                                if (!mCurrentSoftApInfoMap.containsKey(instances.get(0))) {
+                                    // there is an available instance but the info doesn't be
+                                    // updated, keep AP on and remove unavailable instance info.
+                                    for (String unavailableInstance
+                                            : mCurrentSoftApInfoMap.keySet()) {
+                                        removeIfaceInstanceFromBridgedApIface(unavailableInstance);
+                                    }
+                                    break;
+                                }
                             }
                         }
                         Log.w(getTag(), "hostapd failure, stop and report failure");

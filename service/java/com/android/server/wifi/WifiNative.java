@@ -995,7 +995,7 @@ public class WifiNative {
      * @return list of instance name when succeed, otherwise null.
      */
     @Nullable
-    private List<String> getBridgedApInstances(@NonNull String ifaceName) {
+    public List<String> getBridgedApInstances(@NonNull String ifaceName) {
         synchronized (mLock) {
             if (mWifiVendorHal.isVendorHalSupported()) {
                 return mWifiVendorHal.getBridgedApInstances(ifaceName);
