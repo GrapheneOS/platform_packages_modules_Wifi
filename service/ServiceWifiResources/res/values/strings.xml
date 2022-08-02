@@ -234,4 +234,9 @@
     <string name="wifi_enable_request_dialog_message">You can turn off Wi\u2011Fi in Quick Settings</string>
     <string name="wifi_enable_request_dialog_positive_button">Allow</string>
     <string name="wifi_enable_request_dialog_negative_button">Don\u0027t allow</string>
+
+    <!-- Dialog for connecting to a network with only disabled type BSSes. -->
+    <string name="wifi_network_disabled_by_admin_title">Unavailable Network</string>
+    <string name="wifi_network_disabled_by_admin_message"><xliff:g id="ssid">%1$s</xliff:g> is disabled by your administrator.</string>
+    <string name="wifi_network_disabled_by_admin_button">Close</string>
 </resources>
