@@ -114,7 +114,7 @@ public class QosPolicyRequestHandlerTest {
                 srcIp != null, srcIp,
                 dstIp != null, dstIp,
                 srcPort != null ? srcPort : DscpPolicy.SOURCE_PORT_ANY,
-                dstPortRange != null ? dstPortRange : new int[]{0, 65535},
+                dstPortRange,
                 protocol != null ? protocol : DscpPolicy.PROTOCOL_ANY);
         return new QosPolicyRequest((byte) policyId, requestType, (byte) dscp, classifierParams);
     }
