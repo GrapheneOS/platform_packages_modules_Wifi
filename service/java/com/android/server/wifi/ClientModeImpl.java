@@ -2862,6 +2862,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.setInformationElements(findMatchingInfoElements(stateChangeResult.bssid));
         } else {
             // Reset parameters according to WifiInfo.reset()
+            mWifiBlocklistMonitor.removeAffiliatedBssids(mWifiInfo.getBSSID());
             mWifiInfo.setNetworkId(WifiConfiguration.INVALID_NETWORK_ID);
             mWifiInfo.setBSSID(null);
             mWifiInfo.setSSID(null);
@@ -2948,6 +2949,24 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mWifiInfo.updateMloLinkState(
                             info.links[i].linkId, MloLink.MLO_LINK_STATE_ACTIVE);
                 }
+                /**
+                 * getAffiliatedMloLinks() returns a list of MloLink objects for all the links
+                 * advertised by AP-MLD including the associated link. Update mWifiBlocklistMonitor
+                 * with all affiliated AP link MAC addresses, excluding the associated link, indexed
+                 * with associated AP link MAC address (BSSID).
+                 * For e.g.
+                 *  link1_bssid -> affiliated {link2_bssid, link3_bssid}
+                 * Above mapping is used to block list all affiliated links when associated link is
+                 * block listed.
+                 */
+                List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
+                List<String> affiliatedBssids = new ArrayList<>();
+                for (MloLink link: links) {
+                    if (!Objects.equals(mWifiInfo.getBSSID(), link.getApMacAddress().toString())) {
+                        affiliatedBssids.add(link.getApMacAddress().toString());
+                    }
+                }
+                mWifiBlocklistMonitor.setAffiliatedBssids(mWifiInfo.getBSSID(), affiliatedBssids);
             }
         }
         if (mVerboseLoggingEnabled) {
@@ -3036,6 +3055,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiScoreReport.stopConnectedNetworkScorer();
         /* Reset data structures */
         mWifiScoreReport.reset();
+        mWifiBlocklistMonitor.removeAffiliatedBssids(mWifiInfo.getBSSID());
         mWifiInfo.reset();
         /* Reset roaming parameters */
         mIsAutoRoaming = false;
@@ -4869,6 +4889,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 if (mFailedToResetMacAddress) {
                     Log.e(getTag(), "Failed to set random MAC address on disconnect");
                 }
+            }
+            if (mWifiInfo.getBSSID() != null) {
+                mWifiBlocklistMonitor.removeAffiliatedBssids(mWifiInfo.getBSSID());
             }
             mWifiInfo.reset();
             mWifiInfo.setSupplicantState(SupplicantState.DISCONNECTED);

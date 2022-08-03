@@ -201,6 +201,44 @@ public class WifiBlocklistMonitor {
         }
     }
 
+    /** Map of BSSID to affiliated BSSIDs. */
+    private Map<String, List<String>> mAffiliatedBssidMap = new ArrayMap<>();
+
+    /**
+     * Set the mapping of BSSID to affiliated BSSIDs.
+     *
+     * @param bssid A unique identifier of the AP.
+     * @param bssids List of affiliated BSSIDs.
+     */
+    public void setAffiliatedBssids(@NonNull String bssid, @NonNull List<String> bssids) {
+        mAffiliatedBssidMap.put(bssid, bssids);
+    }
+
+    /**
+     *  Get affiliated BSSIDs mapped to a BSSID.
+     *
+     * @param bssid A unique identifier of the AP.
+     * @return List of affiliated BSSIDs or an empty list.
+     */
+    public List<String> getAffiliatedBssids(@NonNull String bssid) {
+        List<String> affiliatedBssids = mAffiliatedBssidMap.get(bssid);
+        return affiliatedBssids == null ? Collections.EMPTY_LIST : affiliatedBssids;
+    }
+
+    /**
+     * Remove affiliated BSSIDs mapped to a BSSID.
+     *
+     * @param bssid A unique identifier of the AP.
+     */
+    public void removeAffiliatedBssids(@NonNull String bssid) {
+        mAffiliatedBssidMap.remove(bssid);
+    }
+
+    /** Clear affiliated BSSID mapping table. */
+    public void clearAffiliatedBssids() {
+        mAffiliatedBssidMap.clear();
+    }
+
     /**
      * Create a new instance of WifiBlocklistMonitor
      */
@@ -252,6 +290,8 @@ public class WifiBlocklistMonitor {
         pw.println("WifiBlocklistMonitor - Bssid blocklist begin ----");
         mBssidStatusMap.values().stream().forEach(entry -> pw.println(entry));
         pw.println("WifiBlocklistMonitor - Bssid blocklist end ----");
+        pw.println("Dump of BSSID to Affiliated BSSID mapping");
+        mAffiliatedBssidMap.forEach((bssid, aList) -> pw.println(bssid + " -> " + aList));
         mBssidBlocklistMonitorLogger.dump(pw);
     }
 
@@ -365,6 +405,14 @@ public class WifiBlocklistMonitor {
             return;
         }
         addToBlocklist(status, durationMs, blockReason, rssi);
+        /**
+         * Add affiliated BSSIDs also into the block list with the same parameters as connected
+         * BSSID.
+         */
+        for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
+            status = getOrCreateBssidStatus(affiliatedBssid, config.SSID);
+            addToBlocklist(status, durationMs, blockReason, rssi);
+        }
     }
 
     private String getFailureReasonString(@FailureReason int reasonCode) {
@@ -432,10 +480,22 @@ public class WifiBlocklistMonitor {
                 return false;
             }
             int baseBlockDurationMs = getBaseBlockDurationForReason(reasonCode);
-            addToBlocklist(entry,
-                    getBlocklistDurationWithExponentialBackoff(currentStreak, baseBlockDurationMs),
-                    reasonCode, rssi);
+            long expBackoff = getBlocklistDurationWithExponentialBackoff(currentStreak,
+                    baseBlockDurationMs);
+            addToBlocklist(entry, expBackoff, reasonCode, rssi);
             mWifiScoreCard.incrementBssidBlocklistStreak(ssid, bssid, reasonCode);
+
+            /**
+             * Block list affiliated BSSID with same parameters, e.g. reason code, rssi ..etc.
+             * as connected BSSID.
+             */
+            for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
+                BssidStatus affEntry = getOrCreateBssidStatus(affiliatedBssid, ssid);
+                affEntry.failureCount[reasonCode] = entry.failureCount[reasonCode];
+                addToBlocklist(affEntry, expBackoff, reasonCode, rssi);
+                mWifiScoreCard.incrementBssidBlocklistStreak(ssid, affiliatedBssid, reasonCode);
+            }
+
             return true;
         }
         return false;
@@ -502,6 +562,20 @@ public class WifiBlocklistMonitor {
      */
     public void handleBssidConnectionSuccess(@NonNull String bssid, @NonNull String ssid) {
         mDisabledSsids.remove(ssid);
+        resetFailuresAfterConnection(bssid, ssid);
+        for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
+            resetFailuresAfterConnection(affiliatedBssid, ssid);
+        }
+    }
+
+    /**
+     * Reset all failure counters related to a connection.
+     *
+     * @param bssid A unique identifier of the AP.
+     * @param ssid Network name.
+     */
+    private void resetFailuresAfterConnection(@NonNull String bssid, @NonNull String ssid) {
+
         /**
          * First reset the blocklist streak.
          * This needs to be done even if a BssidStatus is not found, since the BssidStatus may
@@ -549,27 +623,67 @@ public class WifiBlocklistMonitor {
      * And then remove the BSSID from blocklist.
      */
     public void handleNetworkValidationSuccess(@NonNull String bssid, @NonNull String ssid) {
+        resetNetworkValidationFailures(bssid, ssid);
+        /**
+         * Network validation may take more than 1 tries to succeed.
+         * remove the BSSID from blocklist to make sure we are not accidentally blocking good
+         * BSSIDs.
+         **/
+        removeFromBlocklist(bssid, "Network validation success");
+
+        for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
+            resetNetworkValidationFailures(affiliatedBssid, ssid);
+            removeFromBlocklist(affiliatedBssid, "Network validation success");
+        }
+    }
+
+    /**
+     * Clear failure counters related to network validation.
+     *
+     * @param bssid A unique identifier of the AP.
+     * @param ssid Network name.
+     */
+    private void resetNetworkValidationFailures(@NonNull String bssid, @NonNull String ssid) {
         mWifiScoreCard.resetBssidBlocklistStreak(ssid, bssid, REASON_NETWORK_VALIDATION_FAILURE);
         BssidStatus status = mBssidStatusMap.get(bssid);
         if (status == null) {
             return;
         }
         status.failureCount[REASON_NETWORK_VALIDATION_FAILURE] = 0;
-        /**
-         * Network validation may take more than 1 tries to succeed.
-         * remove the BSSID from blocklist to make sure we are not accidentally blocking good
-         * BSSIDs.
-         **/
+    }
+
+    /**
+     * Remove BSSID from block list.
+     *
+     * @param bssid A unique identifier of the AP.
+     * @param reasonString A string to be logged while removing the entry from the block list.
+     */
+    private void removeFromBlocklist(@NonNull String bssid, final String reasonString) {
+        BssidStatus status = mBssidStatusMap.get(bssid);
+        if (status == null) {
+            return;
+        }
+
         if (status.isInBlocklist) {
-            mBssidBlocklistMonitorLogger.logBssidUnblocked(status, "Network validation success");
+            mBssidBlocklistMonitorLogger.logBssidUnblocked(status, reasonString);
             mBssidStatusMap.remove(bssid);
         }
     }
 
     /**
-     * Note a successful DHCP provisioning and clear appropriate faliure counters.
+     * Note a successful DHCP provisioning and clear appropriate failure counters.
      */
     public void handleDhcpProvisioningSuccess(@NonNull String bssid, @NonNull String ssid) {
+        resetDhcpFailures(bssid, ssid);
+        for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
+            resetDhcpFailures(affiliatedBssid, ssid);
+        }
+    }
+
+    /**
+     * Reset failure counters related to DHCP.
+     */
+    private void resetDhcpFailures(@NonNull String bssid, @NonNull String ssid) {
         mWifiScoreCard.resetBssidBlocklistStreak(ssid, bssid, REASON_DHCP_FAILURE);
         BssidStatus status = mBssidStatusMap.get(bssid);
         if (status == null) {
@@ -715,9 +829,10 @@ public class WifiBlocklistMonitor {
                     status.lastRssi < sufficientRssi && scanResult.level >= sufficientRssi;
             boolean goodRssiBreached = status.lastRssi < goodRssi && scanResult.level >= goodRssi;
             if (rssiMinDiffAchieved && (sufficientRssiBreached || goodRssiBreached)) {
-                mBssidBlocklistMonitorLogger.logBssidUnblocked(
-                        status, "rssi significantly improved");
-                mBssidStatusMap.remove(status.bssid);
+                removeFromBlocklist(status.bssid, "rssi significantly improved");
+                for (String affiliatedBssid : getAffiliatedBssids(status.bssid)) {
+                    removeFromBlocklist(affiliatedBssid, "rssi significantly improved");
+                }
                 results.add(scanDetail);
             }
         }
