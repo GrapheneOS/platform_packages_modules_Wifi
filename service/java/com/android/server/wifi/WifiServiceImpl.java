@@ -1242,8 +1242,7 @@ public class WifiServiceImpl extends BaseWifiService {
                         () -> mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false));
                 mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_ON);
             } else {
-                WifiInfo wifiInfo =
-                        getPrimaryClientModeManagerBlockingThreadSafe().syncRequestConnectionInfo();
+                WifiInfo wifiInfo = mActiveModeWarden.getConnectionInfo();
                 mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_OFF,
                         wifiInfo == null ? -1 : wifiInfo.getNetworkId());
             }
@@ -1356,8 +1355,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("restartWifiSubsystem uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
-            WifiInfo wifiInfo =
-                    mActiveModeWarden.getPrimaryClientModeManager().syncRequestConnectionInfo();
+            WifiInfo wifiInfo = mActiveModeWarden.getConnectionInfo();
             mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_RESTART_WIFI_SUB_SYSTEM,
                     wifiInfo == null ? -1 : wifiInfo.getNetworkId());
             mWifiInjector.getSelfRecovery().trigger(REASON_API_CALL);
@@ -3117,9 +3115,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getPrivilegedConnectedNetwork uid=%").c(callingUid).flush();
         }
 
-        WifiInfo wifiInfo = mWifiThreadRunner.call(
-                () -> mActiveModeWarden.getPrimaryClientModeManager().syncRequestConnectionInfo(),
-                new WifiInfo());
+        WifiInfo wifiInfo = mActiveModeWarden.getConnectionInfo();
         int networkId = wifiInfo.getNetworkId();
         if (networkId < 0) {
             if (mVerboseLoggingEnabled) {
@@ -4105,7 +4101,7 @@ public class WifiServiceImpl extends BaseWifiService {
             WifiInfo wifiInfo = mWifiThreadRunner.call(
                     () -> getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
                             uid, callingPackage)
-                            .syncRequestConnectionInfo(), new WifiInfo());
+                            .getConnectionInfo(), new WifiInfo());
             long redactions = wifiInfo.getApplicableRedactions();
             if (mWifiPermissionsUtil.checkLocalMacAddressPermission(uid)) {
                 if (mVerboseLoggingEnabled) {
@@ -6714,7 +6710,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mWifiThreadRunner.post(() -> {
             for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
-                WifiInfo wifiInfo = cmm.syncRequestConnectionInfo();
+                WifiInfo wifiInfo = cmm.getConnectionInfo();
                 if (wifiInfo == null) continue;
 
                 //check minimum security level restriction
@@ -6752,7 +6748,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mWifiThreadRunner.post(() -> {
             for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
-                WifiInfo wifiInfo = cmm.syncRequestConnectionInfo();
+                WifiInfo wifiInfo = cmm.getConnectionInfo();
                 if (wifiInfo == null) continue;
 
                 //skip SSID restriction check for Osu and Passpoint networks

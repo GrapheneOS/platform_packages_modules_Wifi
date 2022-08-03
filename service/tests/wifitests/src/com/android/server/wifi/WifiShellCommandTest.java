@@ -738,7 +738,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
         verify(mWifiService).isScanAlwaysAvailable();
         verify(mWifiService).getConnectionInfo(SHELL_PACKAGE_NAME, null);
 
-        verify(mPrimaryClientModeManager, never()).syncRequestConnectionInfo();
+        verify(mPrimaryClientModeManager, never()).getConnectionInfo();
         verify(mActiveModeWarden, never()).getClientModeManagers();
 
         // rooted shell.
@@ -750,16 +750,16 @@ public class WifiShellCommandTest extends WifiBaseTest {
 
         WifiInfo wifiInfo = new WifiInfo();
         wifiInfo.setSupplicantState(SupplicantState.COMPLETED);
-        when(mPrimaryClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
-        when(additionalClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mPrimaryClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
+        when(additionalClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"status"});
         verify(mActiveModeWarden).getClientModeManagers();
-        verify(mPrimaryClientModeManager).syncRequestConnectionInfo();
+        verify(mPrimaryClientModeManager).getConnectionInfo();
         verify(mPrimaryClientModeManager).getCurrentNetwork();
-        verify(additionalClientModeManager).syncRequestConnectionInfo();
+        verify(additionalClientModeManager).getConnectionInfo();
         verify(additionalClientModeManager).getCurrentNetwork();
     }
 

@@ -378,7 +378,7 @@ public class WifiConnectivityManager {
             // a different band with the primary.
             return false;
         }
-        final WifiInfo primaryInfo = primaryCcm.syncRequestConnectionInfo();
+        final WifiInfo primaryInfo = primaryCcm.getConnectionInfo();
         final int primaryBand = ScanResult.toBand(primaryInfo.getFrequency());
 
         List<WifiCandidates.Candidate> secondaryCmmCandidates;
@@ -511,7 +511,7 @@ public class WifiConnectivityManager {
             mWifiChannelUtilization.refreshChannelStatsAndChannelUtilization(
                     clientModeManager.getWifiLinkLayerStats(),
                     WifiChannelUtilization.UNKNOWN_FREQ);
-            WifiInfo wifiInfo = clientModeManager.syncRequestConnectionInfo();
+            WifiInfo wifiInfo = clientModeManager.getConnectionInfo();
             if (clientModeManager.isConnected()) {
                 connectedSsids.add(wifiInfo.getSSID());
             }
@@ -1304,7 +1304,7 @@ public class WifiConnectivityManager {
 
     @NonNull
     private WifiInfo getPrimaryWifiInfo() {
-        return getPrimaryClientModeManager().syncRequestConnectionInfo();
+        return getPrimaryClientModeManager().getConnectionInfo();
     }
 
     private ClientModeManager getPrimaryClientModeManager() {

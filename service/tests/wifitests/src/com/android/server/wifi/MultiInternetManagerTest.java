@@ -159,9 +159,9 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.isStaStaConcurrencySupportedForMultiInternet()).thenReturn(true);
 
         when(mPrimaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
-        when(mPrimaryCmm.syncRequestConnectionInfo()).thenReturn(null);
+        when(mPrimaryCmm.getConnectionInfo()).thenReturn(null);
         when(mSecondaryCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
-        when(mSecondaryCmm.syncRequestConnectionInfo()).thenReturn(null);
+        when(mSecondaryCmm.getConnectionInfo()).thenReturn(null);
         when(mSecondaryCmm.isSecondaryInternet()).thenReturn(true);
 
         when(mActiveModeWarden.getPrimaryClientModeManagerNullable()).thenReturn(mPrimaryCmm);
@@ -188,12 +188,12 @@ public class MultiInternetManagerTest extends WifiBaseTest {
     }
 
     private void fakePrimaryCmmConnected(boolean isConnected) {
-        when(mPrimaryCmm.syncRequestConnectionInfo()).thenReturn(isConnected ? mPrimaryInfo : null);
+        when(mPrimaryCmm.getConnectionInfo()).thenReturn(isConnected ? mPrimaryInfo : null);
         when(mPrimaryCmm.isConnected()).thenReturn(isConnected);
     }
 
     private void fakeSecondaryCmmConnected(boolean isConnected) {
-        when(mSecondaryCmm.syncRequestConnectionInfo()).thenReturn(
+        when(mSecondaryCmm.getConnectionInfo()).thenReturn(
                 isConnected ? mSecondaryInfo : null);
         when(mSecondaryCmm.isConnected()).thenReturn(isConnected);
     }
@@ -207,7 +207,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerRoleChanged(mSecondaryCmm);
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mSecondaryCmm);
 
-        verify(mSecondaryCmm, never()).syncRequestConnectionInfo();
+        verify(mSecondaryCmm, never()).getConnectionInfo();
         assertEquals(0, mMultiInternetManager.getNetworkConnectionState().size());
     }
 
@@ -403,7 +403,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         // Primary roamed to same frequency as secondary
         mPrimaryInfo.setBSSID(TEST_BSSID3);
         mPrimaryInfo.setFrequency(TEST_FREQUENCY2);
-        when(mPrimaryCmm.syncRequestConnectionInfo()).thenReturn(mPrimaryInfo);
+        when(mPrimaryCmm.getConnectionInfo()).thenReturn(mPrimaryInfo);
         mMultiInternetManager.notifyBssidAssociatedEvent(mPrimaryCmm);
         verify(mSecondaryCmm).disconnect();
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());

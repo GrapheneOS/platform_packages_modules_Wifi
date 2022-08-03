@@ -45,6 +45,7 @@ import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -155,6 +156,8 @@ public class ActiveModeWarden {
     private final Object mServiceApiLock = new Object();
     @GuardedBy("mServiceApiLock")
     private Network mCurrentNetwork;
+    @GuardedBy("mServiceApiLock")
+    private WifiInfo mCurrentConnectionInfo;
 
     /**
      * One of  {@link WifiManager#WIFI_STATE_DISABLED},
@@ -2556,6 +2559,25 @@ public class ActiveModeWarden {
     protected void setCurrentNetwork(Network network) {
         synchronized (mServiceApiLock) {
             mCurrentNetwork = network;
+        }
+    }
+
+    /**
+     * Get the current Wifi network connection info.
+     * @return the default Wifi network connection info
+     */
+    public WifiInfo getConnectionInfo() {
+        synchronized (mServiceApiLock) {
+            return mCurrentConnectionInfo;
+        }
+    }
+
+    /**
+     * Update the current connection information.
+     */
+    public void updateCurrentConnectionInfo() {
+        synchronized (mServiceApiLock) {
+            mCurrentConnectionInfo = getPrimaryClientModeManager().getConnectionInfo();
         }
     }
 }

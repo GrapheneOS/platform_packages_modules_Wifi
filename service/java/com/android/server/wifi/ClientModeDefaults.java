@@ -79,7 +79,7 @@ public interface ClientModeDefaults extends ClientMode {
 
     default void onBluetoothConnectionStateChanged() { }
 
-    default WifiInfo syncRequestConnectionInfo() {
+    default WifiInfo getConnectionInfo() {
         return new WifiInfo();
     }
 
