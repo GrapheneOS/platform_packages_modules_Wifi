@@ -1080,18 +1080,19 @@ public class WifiConfigurationUtil {
      * the merged configs directly.
      *
      * @param configs the list of multi-type configurations.
+     * @param ignoreDisabledType indicates whether or not disabled types should be ignored.
      * @return a list of Wi-Fi configurations with a single security type,
      *         that may contain multiple configurations with the same network ID.
      */
     public static List<WifiConfiguration> convertMultiTypeConfigsToLegacyConfigs(
-            List<WifiConfiguration> configs) {
+            List<WifiConfiguration> configs, boolean ignoreDisabledType) {
         if (!SdkLevel.isAtLeastS()) {
             return configs;
         }
         List<WifiConfiguration> legacyConfigs = new ArrayList<>();
         for (WifiConfiguration config : configs) {
             for (SecurityParams params: config.getSecurityParamsList()) {
-                if (!params.isEnabled()) continue;
+                if (ignoreDisabledType && !params.isEnabled()) continue;
                 if (shouldOmitAutoUpgradeParams(params)) continue;
                 WifiConfiguration legacyConfig = new WifiConfiguration(config);
                 legacyConfig.setSecurityParams(params);
