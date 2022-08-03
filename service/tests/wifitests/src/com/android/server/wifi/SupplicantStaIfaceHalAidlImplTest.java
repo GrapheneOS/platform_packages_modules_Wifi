@@ -122,6 +122,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.Answer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -230,6 +231,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         doReturn(CONNECTED_MAC_ADDRESS_BYTES).when(mISupplicantStaIfaceMock).getMacAddress();
         mHandler = spy(new Handler(mLooper.getLooper()));
         when(mSsidTranslator.getTranslatedSsid(any())).thenReturn(TRANSLATED_SUPPLICANT_SSID);
+        when(mSsidTranslator.getOriginalSsid(any())).thenAnswer((Answer<WifiSsid>) invocation ->
+                WifiSsid.fromString(((WifiConfiguration) invocation.getArgument(0)).SSID));
         mDut = new SupplicantStaIfaceHalSpy();
     }
 

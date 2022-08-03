@@ -68,6 +68,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
@@ -592,8 +593,15 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                     Log.e(TAG, "Failed to remove existing networks");
                     return false;
                 }
+                WifiConfiguration supplicantConfig = new WifiConfiguration(config);
+                if (config.SSID != null) {
+                    WifiSsid supplicantSsid = mSsidTranslator.getOriginalSsid(config);
+                    if (supplicantSsid != null) {
+                        supplicantConfig.SSID = supplicantSsid.toString();
+                    }
+                }
                 Pair<SupplicantStaNetworkHalAidlImpl, WifiConfiguration> pair =
-                        addNetworkAndSaveConfig(ifaceName, config);
+                        addNetworkAndSaveConfig(ifaceName, supplicantConfig);
                 if (pair == null) {
                     Log.e(TAG, "Failed to add/save network configuration: " + config
                             .getProfileKey());
@@ -982,7 +990,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         synchronized (mLock) {
             SupplicantStaNetworkHalAidlImpl networkWrapper =
                     new SupplicantStaNetworkHalAidlImpl(network, ifaceName, mContext,
-                            mWifiMonitor, mWifiGlobals, mSsidTranslator,
+                            mWifiMonitor, mWifiGlobals,
                             getAdvancedCapabilities(ifaceName));
             if (networkWrapper != null) {
                 networkWrapper.enableVerboseLogging(

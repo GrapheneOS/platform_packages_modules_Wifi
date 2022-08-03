@@ -22,9 +22,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.MacAddress;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiSsid;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -344,6 +346,27 @@ public class SsidTranslator {
             return null;
         }
         return translatedSsid;
+    }
+
+    /**
+     * Gets the original SSID of a WifiConfiguration based on its network selection BSSID or
+     * candidate BSSID.
+     */
+    public synchronized @Nullable WifiSsid getOriginalSsid(@NonNull WifiConfiguration config) {
+        WifiConfiguration.NetworkSelectionStatus networkSelectionStatus =
+                config.getNetworkSelectionStatus();
+        String networkSelectionBssid = networkSelectionStatus.getNetworkSelectionBSSID();
+        String candidateBssid = networkSelectionStatus.getCandidate() != null
+                ? networkSelectionStatus.getCandidate().BSSID : null;
+        MacAddress selectedBssid = null;
+        if (!TextUtils.isEmpty(networkSelectionBssid) && !TextUtils.equals(
+                networkSelectionBssid, ClientModeImpl.SUPPLICANT_BSSID_ANY)) {
+            selectedBssid = MacAddress.fromString(networkSelectionBssid);
+        } else if (!TextUtils.isEmpty(candidateBssid) && !TextUtils.equals(
+                candidateBssid, ClientModeImpl.SUPPLICANT_BSSID_ANY)) {
+            selectedBssid = MacAddress.fromString(candidateBssid);
+        }
+        return getOriginalSsid(WifiSsid.fromString(config.SSID), selectedBssid);
     }
 
     /**

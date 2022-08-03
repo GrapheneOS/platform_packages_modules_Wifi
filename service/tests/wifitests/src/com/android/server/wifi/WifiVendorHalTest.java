@@ -475,7 +475,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
 
     /** Mock translating an SSID */
     private WifiSsid getTranslatedSsid(WifiSsid ssid) {
-        byte[] ssidBytes = ssid.getBytes().clone();
+        byte[] ssidBytes = ssid.getBytes();
         for (int i = 0; i < ssidBytes.length; i++) {
             ssidBytes[i]++;
         }

@@ -57,6 +57,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations.WifiStandard;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.IHwBinder.DeathRecipient;
 import android.os.RemoteException;
@@ -994,8 +995,15 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
                     loge("Failed to remove existing networks");
                     return false;
                 }
+                WifiConfiguration supplicantConfig = new WifiConfiguration(config);
+                if (config.SSID != null) {
+                    WifiSsid supplicantSsid = mSsidTranslator.getOriginalSsid(config);
+                    if (supplicantSsid != null) {
+                        supplicantConfig.SSID = supplicantSsid.toString();
+                    }
+                }
                 Pair<SupplicantStaNetworkHalHidlImpl, WifiConfiguration> pair =
-                        addNetworkAndSaveConfig(ifaceName, config);
+                        addNetworkAndSaveConfig(ifaceName, supplicantConfig);
                 if (pair == null) {
                     loge("Failed to add/save network configuration: " + config
                             .getProfileKey());
@@ -1362,7 +1370,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         synchronized (mLock) {
             SupplicantStaNetworkHalHidlImpl network =
                     new SupplicantStaNetworkHalHidlImpl(iSupplicantStaNetwork, ifaceName, mContext,
-                            mWifiMonitor, mWifiGlobals, mSsidTranslator,
+                            mWifiMonitor, mWifiGlobals,
                             getAdvancedCapabilities(ifaceName));
             if (network != null) {
                 network.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseHalLoggingEnabled);

@@ -32,7 +32,6 @@ import android.hardware.wifi.supplicant.OcspType;
 import android.hardware.wifi.supplicant.PairwiseCipherMask;
 import android.hardware.wifi.supplicant.ProtoMask;
 import android.hardware.wifi.supplicant.SaeH2eMode;
-import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
@@ -42,8 +41,6 @@ import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.text.TextUtils;
 import android.util.Log;
-
-import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.util.ArrayUtils;
@@ -108,7 +105,6 @@ public class SupplicantStaNetworkHalAidlImpl {
     private final String mIfaceName;
     private final WifiMonitor mWifiMonitor;
     private final WifiGlobals mWifiGlobals;
-    private final SsidTranslator mSsidTranslator;
     private ISupplicantStaNetwork mISupplicantStaNetwork;
     private ISupplicantStaNetworkCallback mISupplicantStaNetworkCallback;
 
@@ -152,14 +148,12 @@ public class SupplicantStaNetworkHalAidlImpl {
 
     SupplicantStaNetworkHalAidlImpl(ISupplicantStaNetwork staNetwork, String ifaceName,
             Context context, WifiMonitor monitor, WifiGlobals wifiGlobals,
-            @NonNull SsidTranslator ssidTranslator,
             long advanceKeyMgmtFeature) {
         mISupplicantStaNetwork = staNetwork;
         mContext = context;
         mIfaceName = ifaceName;
         mWifiMonitor = monitor;
         mWifiGlobals = wifiGlobals;
-        mSsidTranslator = ssidTranslator;
         mAdvanceKeyMgmtFeatures = advanceKeyMgmtFeature;
     }
 
@@ -191,8 +185,7 @@ public class SupplicantStaNetworkHalAidlImpl {
             /** SSID */
             config.SSID = null;
             if (getSsid() && !ArrayUtils.isEmpty(mSsid)) {
-                config.SSID = mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(mSsid))
-                        .toString();
+                config.SSID = WifiSsid.fromBytes(mSsid).toString();
             } else {
                 Log.e(TAG, "failed to read ssid");
                 return false;
@@ -289,7 +282,8 @@ public class SupplicantStaNetworkHalAidlImpl {
     /**
      * Read network variables from the provided WifiConfiguration object into wpa_supplicant.
      *
-     * @param config WifiConfiguration object to be saved.
+     * @param config WifiConfiguration object to be saved. Note that the SSID will already by the
+     *               raw, untranslated SSID to pass to supplicant directly.
      * @return true if succeeds, false otherwise.
      * @throws IllegalArgumentException on malformed configuration params.
      */
@@ -300,21 +294,9 @@ public class SupplicantStaNetworkHalAidlImpl {
             }
             /** SSID */
             if (config.SSID != null) {
-                String networkSelectionBssidString = config.getNetworkSelectionStatus()
-                        .getNetworkSelectionBSSID();
-                MacAddress networkSelectionBssid = null;
-                if (networkSelectionBssidString != null && !networkSelectionBssidString.equals(
-                        ClientModeImpl.SUPPLICANT_BSSID_ANY)) {
-                    networkSelectionBssid = MacAddress.fromString(networkSelectionBssidString);
-                }
-                WifiSsid originalSsid = mSsidTranslator.getOriginalSsid(
-                        WifiSsid.fromString(config.SSID), networkSelectionBssid);
-                if (originalSsid == null) {
-                    Log.e(TAG, "failed to get original SSID for : " + config.SSID);
-                    return false;
-                }
-                if (!setSsid(originalSsid.getBytes())) {
-                    Log.e(TAG, "failed to set SSID: " + originalSsid);
+                WifiSsid wifiSsid = WifiSsid.fromString(config.SSID);
+                if (!setSsid(wifiSsid.getBytes())) {
+                    Log.e(TAG, "failed to set SSID: " + wifiSsid);
                     return false;
                 }
             }
