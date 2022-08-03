@@ -1188,7 +1188,6 @@ public class WifiConfigManager {
         internalConfig.trusted = externalConfig.trusted;
         internalConfig.oemPaid = externalConfig.oemPaid;
         internalConfig.oemPrivate = externalConfig.oemPrivate;
-        internalConfig.dbsSecondaryInternet = externalConfig.dbsSecondaryInternet;
         internalConfig.carrierMerged = externalConfig.carrierMerged;
         internalConfig.restricted = externalConfig.restricted;
 
@@ -4024,22 +4023,6 @@ public class WifiConfigManager {
             return;
         }
         internalConfig.setSecurityParamsIsAddedByAutoUpgrade(securityType, isAddedByAutoUpgrade);
-        saveToStore(true);
-    }
-
-    /**
-     * This method updates whether or not a security is enabled.
-     *
-     * @param networkId networkId corresponding to the network to be updated.
-     * @param securityType the target security type
-     * @param enable indicates whether the type is enabled or not.
-     */
-    public void setSecurityParamsEnabled(int networkId, int securityType, boolean enable) {
-        WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
-        if (internalConfig == null) {
-            return;
-        }
-        internalConfig.setSecurityParamsEnabled(securityType, enable);
         saveToStore(true);
     }
 

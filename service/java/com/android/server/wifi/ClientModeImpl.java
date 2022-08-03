@@ -1285,24 +1285,69 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
-     * If there is only PSK networks and PSK is disabled,
-     * PSK should be enabled back when a user selects this network explicitly.
+     * Given a network ID for connection, check the security parameters for a
+     * disabled security type.
+     *
+     * Allow the connection only when there are APs with the better security
+     * type (or transition mode), or no APs with the disabled security type.
+     *
+     * @param networkIdForConnection indicates the network id for the desired connection.
+     * @return {@code true} if this connection request should be dropped; {@code false} otherwise.
      */
-    private void updatePskTypeForUserSelectNetwork(int networkId, boolean isUserSelected) {
-        if (!isUserSelected) return;
-        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
-        if (null == config) return;
-        SecurityParams params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
-        if (null == params || params.isEnabled()) return;
+    private boolean shouldDropConnectionRequest(int networkIdForConnection) {
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkIdForConnection);
+        if (null == config) return false;
 
-        // Re-enable PSK when there is only PSK network.
-        if (mScanRequestProxy.isWpa3PersonalOnlyNetworkInRange(config.SSID)) return;
-        if (mScanRequestProxy.isWpa2Wpa3PersonalTransitionNetworkInRange(config.SSID)) return;
-        if (!mScanRequestProxy.isWpa2PersonalOnlyNetworkInRange(config.SSID)) return;
+        List<ScanResult> scanResults = mScanRequestProxy.getScanResults().stream()
+                .filter(r -> TextUtils.equals(config.SSID, r.getWifiSsid().toString()))
+                .collect(Collectors.toList());
+        if (0 == scanResults.size()) return false;
 
-        logd("Re-enable PSK type for the user selected PSK network.");
-        mWifiConfigManager.setSecurityParamsEnabled(config.networkId,
-                WifiConfiguration.SECURITY_TYPE_PSK, true);
+        SecurityParams params;
+        // Check disabled PSK network.
+        params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        if (null != params && !params.isEnabled()) {
+            if (scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForSaeNetwork(r))) {
+                return false;
+            }
+            if (!scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForPskOnlyNetwork(r))) {
+                return false;
+            }
+            return true;
+        }
+        // Check disabled OPEN network.
+        params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
+        if (null != params && !params.isEnabled()) {
+            if (scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForOweNetwork(r))) {
+                return false;
+            }
+            if (!scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForOpenOnlyNetwork(r))) {
+                return false;
+            }
+            return true;
+        }
+        // Check disabled WPA2 Enterprise network.
+        params = config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP);
+        if (null != params && !params.isEnabled()) {
+            if (scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r))) {
+                return false;
+            }
+            if (scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(r))) {
+                return false;
+            }
+            if (!scanResults.stream().anyMatch(r ->
+                    ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(r))) {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -1325,11 +1370,40 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 + packageName + ", forceReconnect = " + forceReconnect + ", isUserSelected = "
                 + mIsUserSelected);
         updateSaeAutoUpgradeFlagForUserSelectNetwork(netId);
-        updatePskTypeForUserSelectNetwork(netId, mIsUserSelected);
         if (!forceReconnect && (mLastNetworkId == netId || mTargetNetworkId == netId)) {
             // We're already connecting/connected to the user specified network, don't trigger a
             // reconnection unless it was forced.
             logi("connectToUserSelectNetwork already connecting/connected=" + netId);
+        } else if (mIsUserSelected && shouldDropConnectionRequest(netId)) {
+            logi("connectToUserSelectNetwork this network is disabled by admin.");
+            WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
+            String title = mContext.getString(R.string.wifi_network_disabled_by_admin_title);
+            String message = mContext.getString(R.string.wifi_network_disabled_by_admin_message,
+                    config.SSID);
+            String buttonText = mContext.getString(R.string.wifi_network_disabled_by_admin_button);
+            mWifiInjector.getWifiDialogManager().createLegacySimpleDialog(
+                    title, message,
+                    null /* positiveButtonText */,
+                    null /* negativeButtonText */,
+                    buttonText,
+                    new WifiDialogManager.SimpleDialogCallback() {
+                        @Override
+                        public void onPositiveButtonClicked() {
+                            // Not used.
+                        }
+                        @Override
+                        public void onNegativeButtonClicked() {
+                            // Not used.
+                        }
+                        @Override
+                        public void onNeutralButtonClicked() {
+                            // Not used.
+                        }
+                        @Override
+                        public void onCancelled() {
+                            // Not used.
+                        }
+                    }, mWifiThreadRunner).launchDialog();
         } else {
             mWifiConnectivityManager.prepareForForcedConnection(netId);
             if (UserHandle.getAppId(uid) == Process.SYSTEM_UID) {

@@ -99,10 +99,7 @@ public class WifiCandidates {
          * Returns true for a oem private network.
          */
         boolean isOemPrivate();
-        /**
-         * Returns true for a secondary network with internet.
-         */
-        boolean isSecondaryInternet();
+
         /**
          * Returns true if suggestion came from a carrier or privileged app.
          */
@@ -200,7 +197,6 @@ public class WifiCandidates {
         private final boolean mRestricted;
         private final boolean mOemPaid;
         private final boolean mOemPrivate;
-        private final boolean mSecondaryInternet;
         private final boolean mCarrierOrPrivileged;
         private final int mPredictedThroughputMbps;
         private final int mEstimatedPercentInternetAvailability;
@@ -235,7 +231,6 @@ public class WifiCandidates {
             this.mTrusted = config.trusted;
             this.mOemPaid = config.oemPaid;
             this.mOemPrivate = config.oemPrivate;
-            this.mSecondaryInternet = config.dbsSecondaryInternet;
             this.mCarrierOrPrivileged = isCarrierOrPrivileged;
             this.mPredictedThroughputMbps = predictedThroughputMbps;
             this.mEstimatedPercentInternetAvailability = perBssid == null ? 50 :
@@ -286,11 +281,6 @@ public class WifiCandidates {
         @Override
         public boolean isOemPrivate() {
             return mOemPrivate;
-        }
-
-        @Override
-        public boolean isSecondaryInternet() {
-            return mSecondaryInternet;
         }
 
         @Override
@@ -396,7 +386,6 @@ public class WifiCandidates {
                     + (isRestricted() ? "restricted, " : "")
                     + (isOemPaid() ? "oemPaid, " : "")
                     + (isOemPrivate() ? "oemPrivate, " : "")
-                    + (isSecondaryInternet() ? "secondaryInternet, " : "")
                     + (isCarrierOrPrivileged() ? "priv, " : "")
                     + (isMetered() ? "metered, " : "")
                     + (hasNoInternetAccess() ? "noInternet, " : "")

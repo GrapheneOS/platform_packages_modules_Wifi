@@ -257,6 +257,48 @@ public class ScanResultUtil {
     }
 
     /**
+     *  Helper method to check if the provided |scanResult| corresponds to a pure PSK network.
+     */
+    public static boolean isScanResultForPskOnlyNetwork(@NonNull ScanResult r) {
+        return ScanResultUtil.isScanResultForPskNetwork(r)
+                && !ScanResultUtil.isScanResultForSaeNetwork(r);
+    }
+
+    /**
+     *  Helper method to check if the provided |scanResult| corresponds to a pure SAE network.
+     */
+    public static boolean isScanResultForSaeOnlyNetwork(@NonNull ScanResult r) {
+        return !ScanResultUtil.isScanResultForPskNetwork(r)
+                && ScanResultUtil.isScanResultForSaeNetwork(r);
+    }
+
+    /**
+     *  Helper method to check if the provided |scanResult| corresponds to a pure OPEN network.
+     */
+    public static boolean isScanResultForOpenOnlyNetwork(@NonNull ScanResult r) {
+        return ScanResultUtil.isScanResultForOpenNetwork(r)
+                && !ScanResultUtil.isScanResultForOweNetwork(r);
+    }
+
+    /**
+     *  Helper method to check if the provided |scanResult| corresponds to a pure OWE network.
+     */
+    public static boolean isScanResultForOweOnlyNetwork(@NonNull ScanResult r) {
+        return !ScanResultUtil.isScanResultForOweTransitionNetwork(r)
+                && ScanResultUtil.isScanResultForOweNetwork(r);
+    }
+
+    /**
+     *  Helper method to check if the provided |scanResult| corresponds to a pure
+     *  WPA2 Enterprise network.
+     */
+    public static boolean isScanResultForWpa2EnterpriseOnlyNetwork(@NonNull ScanResult r) {
+        return ScanResultUtil.isScanResultForEapNetwork(r)
+                && !ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(r)
+                && !ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r);
+    }
+
+    /**
      * Helper method to check if the provided |scanResult| corresponds to an open network or not.
      * This checks if the provided capabilities string does not contain either of WEP, PSK, SAE
      * EAP, or unknown encryption types or not.

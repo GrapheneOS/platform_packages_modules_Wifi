@@ -601,16 +601,14 @@ public class ScanRequestProxy {
     public boolean isWpa2PersonalOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForPskNetwork(r)
-                && !ScanResultUtil.isScanResultForSaeNetwork(r));
+                && ScanResultUtil.isScanResultForPskOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 only networks. */
     public boolean isWpa3PersonalOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForSaeNetwork(r)
-                && !ScanResultUtil.isScanResultForPskNetwork(r));
+                && ScanResultUtil.isScanResultForSaeOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2/WPA3 transition mode networks. */
@@ -624,33 +622,27 @@ public class ScanRequestProxy {
     public boolean isOpenOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForOpenNetwork(r)
-                && !ScanResultUtil.isScanResultForOweNetwork(r));
+                && ScanResultUtil.isScanResultForOpenOnlyNetwork(r));
     }
 
     /** Indicate whether there are OWE only networks. */
     public boolean isOweOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForOweNetwork(r)
-                && !ScanResultUtil.isScanResultForOweTransitionNetwork(r));
+                && ScanResultUtil.isScanResultForOweOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2 Enterprise only networks. */
     public boolean isWpa2EnterpriseOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForEapNetwork(r)
-                && !ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(r)
-                && !ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r));
+                && ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 Enterprise only networks. */
     public boolean isWpa3EnterpriseOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r)
-                && !ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(r)
-                && !ScanResultUtil.isScanResultForEapNetwork(r));
+                && ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r));
     }
 }

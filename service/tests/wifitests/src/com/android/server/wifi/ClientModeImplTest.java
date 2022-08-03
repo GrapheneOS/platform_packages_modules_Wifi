@@ -8580,23 +8580,32 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(WIFI_IFACE_NAME), eq(dialogToken + 1), eq(true), any());
     }
 
-    private void verifyUpdatePskEnablement(
-            boolean isWpa2PersonalOnlyNetworkInRange,
-            boolean isWpa2Wpa3PersonalTransitionNetworkInRange,
-            boolean isWpa3PersonalOnlyNetworkInRange, boolean shouldBeUpdated)
-            throws Exception {
+    private void verifyConnectWithDisabledType(
+            WifiConfiguration config, List<ScanResult> results,
+            boolean shouldDropRequest) throws Exception {
+        WifiDialogManager mockWifiDialogManager = mock(WifiDialogManager.class);
+        WifiDialogManager.DialogHandle mockDialogHandle =
+                mock(WifiDialogManager.DialogHandle.class);
+        when(mockWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(),
+                any(), any())).thenReturn(mockDialogHandle);
+        when(mWifiInjector.getWifiDialogManager()).thenReturn(mockWifiDialogManager);
+        // Add some irrelevant networks to ensure they are filtered.
+        final String irrelevantSsid = "IrrelevantSsid";
+        results.add(makeScanResult(irrelevantSsid, "[PSK]"));
+        results.add(makeScanResult(irrelevantSsid, "[SAE]"));
+        results.add(makeScanResult(irrelevantSsid, "[PSK][SAE]"));
+        results.add(makeScanResult(irrelevantSsid, ""));
+        results.add(makeScanResult(irrelevantSsid, "[OWE_TRANSITION]"));
+        results.add(makeScanResult(irrelevantSsid, "[OWE]"));
+        results.add(makeScanResult(irrelevantSsid, "[RSN][EAP/SHA1][MFPC]"));
+        results.add(makeScanResult(irrelevantSsid, "[RSN][EAP/SHA1][EAP/SHA256][MFPC]"));
+        results.add(makeScanResult(irrelevantSsid, "[RSN][EAP/SHA256][MFPC][MFPR]"));
+        when(mScanRequestProxy.getScanResults()).thenReturn(results);
 
-        when(mScanRequestProxy.isWpa2PersonalOnlyNetworkInRange(any()))
-                .thenReturn(isWpa2PersonalOnlyNetworkInRange);
-        when(mScanRequestProxy.isWpa2Wpa3PersonalTransitionNetworkInRange(any()))
-                .thenReturn(isWpa2Wpa3PersonalTransitionNetworkInRange);
-        when(mScanRequestProxy.isWpa3PersonalOnlyNetworkInRange(any()))
-                .thenReturn(isWpa3PersonalOnlyNetworkInRange);
         initializeAndAddNetworkAndVerifySuccess();
 
-        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
-        config.networkId = TEST_NETWORK_ID;
-        config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(TEST_NETWORK_ID))
+                .thenReturn(config);
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
 
         IActionListener connectActionListener = mock(IActionListener.class);
@@ -8606,77 +8615,281 @@ public class ClientModeImplTest extends WifiBaseTest {
                 Process.SYSTEM_UID, OP_PACKAGE_NAME);
         mLooper.dispatchAll();
         verify(connectActionListener).onSuccess();
-        if (shouldBeUpdated) {
-            verify(mWifiConfigManager).setSecurityParamsEnabled(
-                    eq(TEST_NETWORK_ID), eq(WifiConfiguration.SECURITY_TYPE_PSK),
-                    eq(true));
+        if (shouldDropRequest) {
+            verify(mockDialogHandle).launchDialog();
+            verify(mWifiNative, never()).connectToNetwork(any(), any());
         } else {
-            verify(mWifiConfigManager, never()).updateIsAddedByAutoUpgradeFlag(
-                    anyInt(), anyInt(), anyBoolean());
+            verify(mockDialogHandle, never()).launchDialog();
+            verify(mWifiNative).connectToNetwork(eq(WIFI_IFACE_NAME), eq(config));
         }
     }
 
+    private ScanResult makeScanResult(String ssid, String caps) {
+        ScanResult scanResult = new ScanResult(WifiSsid.fromUtf8Text(ssid.replace("\"", "")),
+                ssid, TEST_BSSID_STR, 1245, 0, caps, -78, 2412, 1025, 22, 33, 20, 0, 0, true);
+        ScanResult.InformationElement ie = createIE(ScanResult.InformationElement.EID_SSID,
+                ssid.getBytes(StandardCharsets.UTF_8));
+        scanResult.informationElements = new ScanResult.InformationElement[]{ie};
+        return scanResult;
+
+    }
+
+    private void verifyConnectWithDisabledPskType(
+            boolean isWpa2PersonalOnlyNetworkInRange,
+            boolean isWpa2Wpa3PersonalTransitionNetworkInRange,
+            boolean isWpa3PersonalOnlyNetworkInRange, boolean shouldDropRequest)
+            throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.networkId = TEST_NETWORK_ID;
+        config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+        List<ScanResult> results = new ArrayList<>();
+        if (isWpa2PersonalOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[PSK]"));
+        }
+        if (isWpa2Wpa3PersonalTransitionNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[PSK][SAE]"));
+        }
+        if (isWpa3PersonalOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[SAE]"));
+        }
+
+        verifyConnectWithDisabledType(config, results, shouldDropRequest);
+    }
+
     @Test
-    public void testPskIsReEnableWithOnlyPskNetwork() throws Exception {
+    public void testConnectDropWithOnlyDisabledPskNetwork() throws Exception {
         boolean isWpa2PersonalOnlyNetworkInRange = true;
         boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
         boolean isWpa3PersonalOnlyNetworkInRange = false;
-        boolean shouldBeUpdated = true;
+        boolean shouldDropRequest = true;
 
-        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+        verifyConnectWithDisabledPskType(isWpa2PersonalOnlyNetworkInRange,
                 isWpa2Wpa3PersonalTransitionNetworkInRange,
-                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+                isWpa3PersonalOnlyNetworkInRange, shouldDropRequest);
     }
 
     @Test
-    public void testPskIsNotReEnableWithPskSaeNetwork() throws Exception {
+    public void testConnectAllowedWithPskSaeNetwork() throws Exception {
         boolean isWpa2PersonalOnlyNetworkInRange = true;
         boolean isWpa2Wpa3PersonalTransitionNetworkInRange = true;
         boolean isWpa3PersonalOnlyNetworkInRange = false;
-        boolean shouldBeUpdated = false;
+        boolean shouldDropRequest = false;
 
-        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+        verifyConnectWithDisabledPskType(isWpa2PersonalOnlyNetworkInRange,
                 isWpa2Wpa3PersonalTransitionNetworkInRange,
-                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+                isWpa3PersonalOnlyNetworkInRange, shouldDropRequest);
     }
 
     @Test
-    public void testPskIsNotReEnableWithSaeNetwork() throws Exception {
+    public void testConnectAllowedWithSaeNetwork() throws Exception {
         boolean isWpa2PersonalOnlyNetworkInRange = true;
         boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
         boolean isWpa3PersonalOnlyNetworkInRange = true;
-        boolean shouldBeUpdated = false;
+        boolean shouldDropRequest = false;
 
-        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+        verifyConnectWithDisabledPskType(isWpa2PersonalOnlyNetworkInRange,
                 isWpa2Wpa3PersonalTransitionNetworkInRange,
-                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+                isWpa3PersonalOnlyNetworkInRange, shouldDropRequest);
     }
 
     @Test
-    public void testPskIsNotReEnableWithoutPskNetwork() throws Exception {
+    public void testConnectAllowedWithoutPskNetwork() throws Exception {
         boolean isWpa2PersonalOnlyNetworkInRange = false;
         boolean isWpa2Wpa3PersonalTransitionNetworkInRange = true;
         boolean isWpa3PersonalOnlyNetworkInRange = false;
-        boolean shouldBeUpdated = false;
+        boolean shouldDropRequest = false;
 
-        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+        verifyConnectWithDisabledPskType(isWpa2PersonalOnlyNetworkInRange,
                 isWpa2Wpa3PersonalTransitionNetworkInRange,
-                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+                isWpa3PersonalOnlyNetworkInRange, shouldDropRequest);
     }
 
     @Test
-    public void testPskIsNotReEnableForNonUserSelectedNetwork() throws Exception {
+    public void testConnectDisabledPskAllowedForNonUserSelectedNetwork() throws Exception {
         boolean isWpa2PersonalOnlyNetworkInRange = true;
         boolean isWpa2Wpa3PersonalTransitionNetworkInRange = false;
         boolean isWpa3PersonalOnlyNetworkInRange = false;
-        boolean shouldBeUpdated = false;
+        boolean shouldDropRequest = false;
 
         // Only a request from settings or setup wizard are considered a user selected network.
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
 
-        verifyUpdatePskEnablement(isWpa2PersonalOnlyNetworkInRange,
+        verifyConnectWithDisabledPskType(isWpa2PersonalOnlyNetworkInRange,
                 isWpa2Wpa3PersonalTransitionNetworkInRange,
-                isWpa3PersonalOnlyNetworkInRange, shouldBeUpdated);
+                isWpa3PersonalOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    private void verifyConnectWithDisabledOpenType(
+            boolean isOpenOnlyNetworkInRange,
+            boolean isOpenOweTransitionNetworkInRange,
+            boolean isOweOnlyNetworkInRange, boolean shouldDropRequest)
+            throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenOweNetwork();
+        config.networkId = TEST_NETWORK_ID;
+        config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_OPEN, false);
+        List<ScanResult> results = new ArrayList<>();
+        if (isOpenOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, ""));
+        }
+        if (isOpenOweTransitionNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[OWE_TRANSITION]"));
+        }
+        if (isOweOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[OWE]"));
+        }
+
+        verifyConnectWithDisabledType(config, results, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectDropWithOnlyDisabledOpenNetwork() throws Exception {
+        boolean isOpenOnlyNetworkInRange = true;
+        boolean isOpenOweTransitionNetworkInRange = false;
+        boolean isOweOnlyNetworkInRange = false;
+        boolean shouldDropRequest = true;
+
+        verifyConnectWithDisabledOpenType(isOpenOnlyNetworkInRange,
+                isOpenOweTransitionNetworkInRange,
+                isOweOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithOpenOweNetwork() throws Exception {
+        boolean isOpenOnlyNetworkInRange = true;
+        boolean isOpenOweTransitionNetworkInRange = true;
+        boolean isOweOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledOpenType(isOpenOnlyNetworkInRange,
+                isOpenOweTransitionNetworkInRange,
+                isOweOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithOweNetwork() throws Exception {
+        boolean isOpenOnlyNetworkInRange = true;
+        boolean isOpenOweTransitionNetworkInRange = false;
+        boolean isOweOnlyNetworkInRange = true;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledOpenType(isOpenOnlyNetworkInRange,
+                isOpenOweTransitionNetworkInRange,
+                isOweOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithoutOpenNetwork() throws Exception {
+        boolean isOpenOnlyNetworkInRange = false;
+        boolean isOpenOweTransitionNetworkInRange = true;
+        boolean isOweOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledOpenType(isOpenOnlyNetworkInRange,
+                isOpenOweTransitionNetworkInRange,
+                isOweOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectDisabledOpenAllowedForNonUserSelectedNetwork() throws Exception {
+        boolean isOpenOnlyNetworkInRange = true;
+        boolean isOpenOweTransitionNetworkInRange = false;
+        boolean isOweOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        // Only a request from settings or setup wizard are considered a user selected network.
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
+
+        verifyConnectWithDisabledOpenType(isOpenOnlyNetworkInRange,
+                isOpenOweTransitionNetworkInRange,
+                isOweOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    private void verifyConnectWithDisabledWpa2EnterpriseType(
+            boolean isWpa2EnterpriseOnlyNetworkInRange,
+            boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+            boolean isWpa3EnterpriseOnlyNetworkInRange, boolean shouldDropRequest)
+            throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork();
+        config.networkId = TEST_NETWORK_ID;
+        config.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_EAP, false);
+        List<ScanResult> results = new ArrayList<>();
+        if (isWpa2EnterpriseOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[RSN][EAP/SHA1][MFPC]"));
+        }
+        if (isWpa2Wpa3EnterpriseTransitionNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[RSN][EAP/SHA1][EAP/SHA256][MFPC]"));
+        }
+        if (isWpa3EnterpriseOnlyNetworkInRange) {
+            results.add(makeScanResult(config.SSID, "[RSN][EAP/SHA256][MFPC][MFPR]"));
+        }
+
+        verifyConnectWithDisabledType(config, results, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectDropWithOnlyDisabledWpa2EnterpriseNetwork() throws Exception {
+        boolean isWpa2EnterpriseOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange = false;
+        boolean isWpa3EnterpriseOnlyNetworkInRange = false;
+        boolean shouldDropRequest = true;
+
+        verifyConnectWithDisabledWpa2EnterpriseType(isWpa2EnterpriseOnlyNetworkInRange,
+                isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+                isWpa3EnterpriseOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithWpa2Wpa3EnterpriseNetwork() throws Exception {
+        boolean isWpa2EnterpriseOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange = true;
+        boolean isWpa3EnterpriseOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledWpa2EnterpriseType(isWpa2EnterpriseOnlyNetworkInRange,
+                isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+                isWpa3EnterpriseOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithWpa3EnterpriseNetwork() throws Exception {
+        boolean isWpa2EnterpriseOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange = false;
+        boolean isWpa3EnterpriseOnlyNetworkInRange = true;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledWpa2EnterpriseType(isWpa2EnterpriseOnlyNetworkInRange,
+                isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+                isWpa3EnterpriseOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectAllowedWithoutWpa2EnterpriseNetwork() throws Exception {
+        boolean isWpa2EnterpriseOnlyNetworkInRange = false;
+        boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange = true;
+        boolean isWpa3EnterpriseOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        verifyConnectWithDisabledWpa2EnterpriseType(isWpa2EnterpriseOnlyNetworkInRange,
+                isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+                isWpa3EnterpriseOnlyNetworkInRange, shouldDropRequest);
+    }
+
+    @Test
+    public void testConnectDisabledWpa2EnterpriseAllowedForNonUserSelectedNetwork()
+            throws Exception {
+        boolean isWpa2EnterpriseOnlyNetworkInRange = true;
+        boolean isWpa2Wpa3EnterpriseTransitionNetworkInRange = false;
+        boolean isWpa3EnterpriseOnlyNetworkInRange = false;
+        boolean shouldDropRequest = false;
+
+        // Only a request from settings or setup wizard are considered a user selected network.
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
+
+        verifyConnectWithDisabledWpa2EnterpriseType(isWpa2EnterpriseOnlyNetworkInRange,
+                isWpa2Wpa3EnterpriseTransitionNetworkInRange,
+                isWpa3EnterpriseOnlyNetworkInRange, shouldDropRequest);
     }
 }
