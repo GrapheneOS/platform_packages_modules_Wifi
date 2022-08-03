@@ -349,7 +349,7 @@ public class InterfaceConflictManager {
 
         mWifiDialogManager.createLegacySimpleDialog(
                 mResources.getString(R.string.wifi_interface_priority_title,
-                        requestorAppName, requestedInterface),
+                        requestorAppName, requestedInterface, impactedPackages, impactedInterfaces),
                 impactedPackagesSet.size() == 1 ? mResources.getString(
                         R.string.wifi_interface_priority_message, requestorAppName,
                         requestedInterface, impactedPackages, impactedInterfaces)
