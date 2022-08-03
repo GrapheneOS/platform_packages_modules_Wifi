@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.util;
 
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ENTER_CAR_MODE_PRIORITIZED;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
@@ -354,6 +355,35 @@ public class WifiPermissionsUtil {
     }
 
     /**
+     * Check and enforce Location permission in the manifest.
+     *
+     * @param uid uid of the app.
+     * @param isCoarseOnly whether permission type is COARSE or FINE since FINE permission
+     *                     implies having COARSE permission.
+     */
+    public void enforceLocationPermissionInManifest(int uid, boolean isCoarseOnly) {
+        if (!checkCallersLocationPermissionInManifest(uid, isCoarseOnly)) {
+            throw new SecurityException("UID " + uid + " does not have Location permission ("
+                    + "isCoarseOnly = " + isCoarseOnly + " )");
+        }
+    }
+
+    /**
+     * Checks if the app has the location permission in the manifest.
+     *
+     * @param uid uid of the app.
+     * @param isCoarseOnly whether permission type is COARSE or FINE since FINE permission
+     *                     implies having COARSE permission.
+     * @return true if the app does have the permission, false otherwise.
+     */
+    public boolean checkCallersLocationPermissionInManifest(int uid, boolean isCoarseOnly) {
+        // Having FINE permission implies having COARSE permission (but not the reverse)
+        String permissionType = isCoarseOnly ? ACCESS_COARSE_LOCATION : ACCESS_FINE_LOCATION;
+        return mWifiPermissionsWrapper.getUidPermission(permissionType, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
      * Checks that calling process has android.Manifest.permission.ACCESS_FINE_LOCATION or
      * android.Manifest.permission.ACCESS_FINE_LOCATION (depending on config/targetSDK leve)
      * and a corresponding app op is allowed for this package and uid.
@@ -373,7 +403,7 @@ public class WifiPermissionsUtil {
         String permissionType = ACCESS_FINE_LOCATION;
         if (coarseForTargetSdkLessThanQ && isTargetSdkLessThanQ) {
             // Having FINE permission implies having COARSE permission (but not the reverse)
-            permissionType = Manifest.permission.ACCESS_COARSE_LOCATION;
+            permissionType = ACCESS_COARSE_LOCATION;
         }
         if (mWifiPermissionsWrapper.getUidPermission(permissionType, uid)
                 == PackageManager.PERMISSION_DENIED) {
@@ -490,8 +520,7 @@ public class WifiPermissionsUtil {
      */
     public boolean checkCallersCoarseLocationPermission(String pkgName, @Nullable String featureId,
             int uid, @Nullable String message) {
-        if (mWifiPermissionsWrapper.getUidPermission(
-                Manifest.permission.ACCESS_COARSE_LOCATION, uid)
+        if (mWifiPermissionsWrapper.getUidPermission(ACCESS_COARSE_LOCATION, uid)
                 == PackageManager.PERMISSION_DENIED) {
             if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "checkCallersCoarseLocationPermission(" + pkgName + "): uid " + uid
