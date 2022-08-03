@@ -79,6 +79,10 @@ public class InterfaceConflictManager {
     private boolean mUserJustApproved = false;
     private boolean mIsP2pConnected = false;
 
+    private WaitingState mCurrentWaitingState;
+    private State mCurrentTargetState;
+    private WifiDialogManager.DialogHandle mCurrentDialogHandle;
+
     private static final String MESSAGE_BUNDLE_KEY_PENDING_USER = "pending_user_decision";
 
     public InterfaceConflictManager(WifiContext wifiContext, FrameworkFacade frameworkFacade,
@@ -250,13 +254,16 @@ public class InterfaceConflictManager {
             // is this a command which was waiting for a user decision?
             boolean isReexecutedCommand = msg.getData().getBoolean(
                     MESSAGE_BUNDLE_KEY_PENDING_USER, false);
-            if (isReexecutedCommand) {
+            // is this a command that was issued while we were already waiting for a user decision?
+            boolean wasInWaitingState = WaitingState.wasMessageInWaitingState(msg);
+            if (isReexecutedCommand || (wasInWaitingState && !mUserJustApproved)) {
                 mUserApprovalPending = false;
                 mUserApprovalPendingTag = null;
 
                 if (mVerboseLoggingEnabled) {
-                    Log.d(TAG, tag + ": Re-executing a command with user approval result - "
-                            + mUserJustApproved);
+                    Log.d(TAG, tag + ": Executing a command with user approval result: "
+                            + mUserJustApproved + ", isReexecutedCommand: " + isReexecutedCommand
+                            + ", wasInWaitingState: " + wasInWaitingState);
                 }
                 return mUserJustApproved ? ICM_EXECUTE_COMMAND : ICM_ABORT_COMMAND;
             }
@@ -289,15 +296,6 @@ public class InterfaceConflictManager {
                 return ICM_EXECUTE_COMMAND;
             }
 
-            displayUserApprovalDialog(createIfaceType, requestorWs, impact,
-                    (result) -> {
-                        if (mVerboseLoggingEnabled) {
-                            Log.d(TAG, tag + ": User response to creating " + getInterfaceName(
-                                    createIfaceType) + ": " + result);
-                        }
-                        mUserJustApproved = result;
-                        waitingState.sendTransitionStateCommand(targetState);
-                    });
             // defer message to have it executed again automatically when switching
             // states - want to do it now so that it will be at the top of the queue
             // when we switch back. Will need to skip it if the user rejected it!
@@ -307,6 +305,22 @@ public class InterfaceConflictManager {
 
             mUserApprovalPending = true;
             mUserApprovalPendingTag = tag;
+            mCurrentWaitingState = waitingState;
+            mCurrentTargetState = targetState;
+            mUserJustApproved = false;
+            mCurrentDialogHandle = createUserApprovalDialog(createIfaceType, requestorWs, impact,
+                    (result) -> {
+                        if (mVerboseLoggingEnabled) {
+                            Log.d(TAG, tag + ": User response to creating " + getInterfaceName(
+                                    createIfaceType) + ": " + result);
+                        }
+                        mUserJustApproved = result;
+                        mCurrentWaitingState = null;
+                        mCurrentTargetState = null;
+                        mCurrentDialogHandle = null;
+                        waitingState.sendTransitionStateCommand(targetState);
+                    });
+            mCurrentDialogHandle.launchDialog();
 
             return ICM_SKIP_COMMAND_WAIT_FOR_USER;
         }
@@ -321,7 +335,7 @@ public class InterfaceConflictManager {
      *               their corresponding impacted WorkSources).
      * @param handleResult A Consumer to execute with results.
      */
-    private void displayUserApprovalDialog(
+    private WifiDialogManager.DialogHandle createUserApprovalDialog(
             @HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType,
             WorkSource requestorWs,
             List<Pair<Integer, WorkSource>> impact,
@@ -347,7 +361,7 @@ public class InterfaceConflictManager {
         String impactedPackages = TextUtils.join(", ", impactedPackagesSet);
         String impactedInterfaces = TextUtils.join(", ", impactedInterfacesSet);
 
-        mWifiDialogManager.createLegacySimpleDialog(
+        return mWifiDialogManager.createLegacySimpleDialog(
                 mResources.getString(R.string.wifi_interface_priority_title,
                         requestorAppName, requestedInterface),
                 impactedPackagesSet.size() == 1 ? mResources.getString(
@@ -387,7 +401,7 @@ public class InterfaceConflictManager {
                     public void onCancelled() {
                         onNegativeButtonClicked();
                     }
-                }, mThreadRunner).launchDialog();
+                }, mThreadRunner);
     }
 
     private String getInterfaceName(@HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType) {
@@ -405,6 +419,26 @@ public class InterfaceConflictManager {
                 return mResources.getString(R.string.wifi_interface_priority_interface_name_nan);
         }
         return "Unknown";
+    }
+
+    /**
+     * Reset the current state of InterfaceConflictManager, dismiss any open dialogs, and transition
+     * any waiting StateMachines back to their target state.
+     */
+    public void reset() {
+        synchronized (mLock) {
+            if (mCurrentWaitingState != null && mCurrentTargetState != null) {
+                mCurrentWaitingState.sendTransitionStateCommand(mCurrentTargetState);
+            }
+            mCurrentWaitingState = null;
+            mCurrentTargetState = null;
+            if (mCurrentDialogHandle != null) {
+                mCurrentDialogHandle.dismissDialog();
+            }
+            mUserApprovalPending = false;
+            mUserApprovalPendingTag = null;
+            mUserJustApproved = false;
+        }
     }
 
     /**
