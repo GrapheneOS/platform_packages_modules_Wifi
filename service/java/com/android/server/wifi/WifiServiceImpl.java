@@ -1243,6 +1243,9 @@ public class WifiServiceImpl extends BaseWifiService {
                         wifiInfo == null ? -1 : wifiInfo.getNetworkId());
             }
         }
+        if (!enable) {
+            mWifiInjector.getInterfaceConflictManager().reset();
+        }
         mWifiMetrics.incrementNumWifiToggles(isPrivileged, enable);
         mActiveModeWarden.wifiToggled(new WorkSource(callingUid, packageName));
         mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
@@ -3012,7 +3015,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 Collections.emptyList());
         if (isTargetSdkLessThanQOrPrivileged && !callerNetworksOnly) {
             return new ParceledListSlice<>(
-                    WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(configs));
+                    WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(configs, false));
         }
         // Should only get its own configs
         List<WifiConfiguration> creatorConfigs = new ArrayList<>();
@@ -3022,7 +3025,8 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         }
         return new ParceledListSlice<>(
-                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(creatorConfigs));
+                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(
+                        creatorConfigs, true));
     }
 
     /**
@@ -3074,7 +3078,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 () -> mWifiConfigManager.getConfiguredNetworksWithPasswords(),
                 Collections.emptyList());
         return new ParceledListSlice<>(
-                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(configs));
+                WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(configs, false));
     }
 
     /**

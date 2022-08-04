@@ -1854,6 +1854,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     if (mAwareIsDisabling) {
                         deferMessage(msg);
                         waitForResponse = false;
+                        if (WaitingState.wasMessageInWaitingState(msg)) {
+                            mInterfaceConflictMgr.reset();
+                        }
                         break;
                     }
 
