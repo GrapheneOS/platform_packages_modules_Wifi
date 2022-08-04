@@ -1551,8 +1551,19 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         verify(mWifiMock, never()).getChipIds(any());
         when(mWifiMock.isStarted()).thenReturn(true);
         executeAndValidateStartupSequence();
-
         clearInvocations(mWifiMock);
+
+        // Create a STA to get the static chip info from driver and save it to store.
+        validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipV1.STA_CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
 
         // Verify that the latest static chip info is saved to store.
         verify(mWifiSettingsConfigStore).put(eq(WifiSettingsConfigStore.WIFI_STATIC_CHIP_INFO),
