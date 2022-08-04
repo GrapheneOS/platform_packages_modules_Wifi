@@ -36,6 +36,7 @@ import static com.android.server.wifi.LocalOnlyHotspotRequestInfo.HOTSPOT_NO_ERR
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
@@ -266,14 +267,23 @@ public class SoftApManagerTest extends WifiBaseTest {
                     any(), any());
             if (isBridged) {
                 // Verify the bridged mode timer is scheduled
-                verify(mAlarmManager.getAlarmManager()).setExact(anyInt(), anyLong(),
+                ArgumentCaptor<Long> timeoutCaptorOnLowerBand =
+                        ArgumentCaptor.forClass(Long.class);
+                ArgumentCaptor<Long> timeoutCaptorOnHigherBand =
+                        ArgumentCaptor.forClass(Long.class);
+                verify(mAlarmManager.getAlarmManager()).setExact(anyInt(),
+                        timeoutCaptorOnLowerBand.capture(),
                         eq(mSoftApManager.SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG
                                   + TEST_FIRST_INSTANCE_NAME),
                         any(), any());
-                verify(mAlarmManager.getAlarmManager()).setExact(anyInt(), anyLong(),
+                verify(mAlarmManager.getAlarmManager()).setExact(anyInt(),
+                        timeoutCaptorOnHigherBand.capture(),
                         eq(mSoftApManager.SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG
                                   + TEST_SECOND_INSTANCE_NAME),
                         any(), any());
+                // Make sure lower band timeout is larger than higher band timeout.
+                assertTrue(timeoutCaptorOnLowerBand.getValue()
+                        > timeoutCaptorOnHigherBand.getValue());
             }
         }
     }
