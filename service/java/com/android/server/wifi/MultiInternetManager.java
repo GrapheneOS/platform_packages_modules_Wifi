@@ -367,6 +367,7 @@ public class MultiInternetManager {
         if (mode == mStaConcurrencyMultiInternetMode) {
             return true;
         }
+        mStaConcurrencyMultiInternetMode = mode;
         // If the STA+STA multi internet feature was disabled, disconnect the secondary cmm.
         // TODO: b/197670907 : Add client role ROLE_CLIENT_SECONDARY_INTERNET
         if (!enabled) {
@@ -375,10 +376,6 @@ public class MultiInternetManager {
                 if (cmm.isSecondaryInternet()) {
                     cmm.disconnect();
                 }
-            }
-            for (int i = 0; i < mNetworkConnectionStates.size(); i++) {
-                // Clear the connection state for all bands.
-                mNetworkConnectionStates.setValueAt(i, new NetworkConnectionState(null));
             }
             handleConnectionStateChange(MULTI_INTERNET_STATE_NONE, null);
         } else {
@@ -389,7 +386,7 @@ public class MultiInternetManager {
                         getRequestorWorkSource(band));
             }
         }
-        mStaConcurrencyMultiInternetMode = mode;
+
         mSettingsStore.handleWifiMultiInternetMode(mode);
         // Check if there is already multi internet request then start scan for connection.
         if (hasPendingConnectionRequests()) {
@@ -450,20 +447,13 @@ public class MultiInternetManager {
     }
 
     /**
-     * Check if there is connection request on a specific band.
-     * @param band The band for the connection request.
-     * @return true if there is connection request on specific band.
-     */
-    public boolean hasConnectionRequest(int band) {
-        return mNetworkConnectionStates.contains(band)
-                ? (getRequestorWorkSource(band) != null) : false;
-    }
-
-    /**
      * Check if there is unconnected network connection request.
      * @return the band of the connection request that is still not connected.
      */
     public int findUnconnectedRequestBand() {
+        if (mStaConcurrencyMultiInternetMode == WifiManager.WIFI_MULTI_INTERNET_MODE_DISABLED) {
+            return ScanResult.UNSPECIFIED;
+        }
         for (int i = 0; i < mNetworkConnectionStates.size(); i++) {
             if (!mNetworkConnectionStates.valueAt(i).isConnected()) {
                 return mNetworkConnectionStates.keyAt(i);

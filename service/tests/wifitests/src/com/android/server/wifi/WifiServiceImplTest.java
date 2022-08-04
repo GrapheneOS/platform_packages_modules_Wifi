@@ -418,6 +418,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock WifiDialogManager mWifiDialogManager;
     @Mock SsidTranslator mSsidTranslator;
+    @Mock InterfaceConflictManager mInterfaceConflictManager;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
 
@@ -573,6 +574,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
         when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
+        when(mWifiInjector.getInterfaceConflictManager()).thenReturn(mInterfaceConflictManager);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -1342,6 +1344,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         verify(mActiveModeWarden).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(mInterfaceConflictManager).reset();
     }
 
     /**
@@ -1356,6 +1359,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         verify(mActiveModeWarden).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(mInterfaceConflictManager).reset();
     }
 
     /**
@@ -1376,6 +1380,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mActiveModeWarden).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(mInterfaceConflictManager).reset();
     }
 
     /**
@@ -1395,6 +1400,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mActiveModeWarden).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(mInterfaceConflictManager).reset();
     }
 
 
@@ -1414,6 +1420,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mActiveModeWarden).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        verify(mInterfaceConflictManager).reset();
     }
 
     /**
@@ -1431,6 +1438,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
 
         verify(mActiveModeWarden, never()).wifiToggled(any());
+        verify(mInterfaceConflictManager, never()).reset();
     }
 
     /**
@@ -1443,6 +1451,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mSettingsStore.handleWifiToggled(eq(false))).thenReturn(false);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         verify(mActiveModeWarden, never()).wifiToggled(any());
+        verify(mInterfaceConflictManager, never()).reset();
     }
 
     /**

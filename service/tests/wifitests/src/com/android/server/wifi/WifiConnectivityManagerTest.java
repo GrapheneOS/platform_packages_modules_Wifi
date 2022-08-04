@@ -1283,7 +1283,6 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mCandidateWifiConfig1.oemPaid = false;
         mCandidateWifiConfig1.oemPrivate = false;
         mCandidateWifiConfig1.ephemeral = true;
-        mCandidateWifiConfig1.dbsSecondaryInternet = true;
         when(mWifiNS.selectNetwork(argThat(
                 candidates -> (candidates != null)), eq(false))).thenReturn(mCandidateWifiConfig1);
         when(mActiveModeWarden.isStaStaConcurrencySupportedForRestrictedConnections())
@@ -1309,9 +1308,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         // Set screen to on
         setScreenState(true);
 
-        when(mCandidate1.isSecondaryInternet()).thenReturn(true);
         mCandidateWifiConfig1.ephemeral = true;
-        mCandidateWifiConfig1.dbsSecondaryInternet = true;
 
         // Set up the scan candidates
         MacAddress macAddress = MacAddress.fromString(CANDIDATE_BSSID);
@@ -1386,9 +1383,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         // Set screen to on
         setScreenState(true);
 
-        when(mCandidate1.isSecondaryInternet()).thenReturn(true);
         mCandidateWifiConfig1.ephemeral = true;
-        mCandidateWifiConfig1.dbsSecondaryInternet = true;
 
         // Set up the scan candidates
         MacAddress macAddress = MacAddress.fromString(CANDIDATE_BSSID);

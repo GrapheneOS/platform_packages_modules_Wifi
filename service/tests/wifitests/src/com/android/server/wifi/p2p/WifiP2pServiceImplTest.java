@@ -1429,6 +1429,35 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify device status is reset to UNAVAILABLE on P2P disabled.
+     */
+    @Test
+    public void testP2pDeviceUnavailableOnP2pDisabled() throws Exception {
+        setTargetSdkGreaterThanT();
+        forceP2pEnabled(mClient1);
+
+        simulateWifiStateChange(false);
+        mLooper.dispatchAll();
+        // Device status is AVAILABLE
+        sendChannelInfoUpdateMsg("testPkg1", "testFeature", mClient1, mClientMessenger);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+        assertEquals(WifiP2pDevice.AVAILABLE,
+                ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+
+        // Force to back disable state
+        mockEnterDisabledState();
+
+        // Device status is UNAVAILABLE
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+        verify(mClientHandler, times(2)).sendMessage(mMessageCaptor.capture());
+        assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+        assertEquals(WifiP2pDevice.UNAVAILABLE,
+                ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+    }
+
+    /**
      * Verify that p2p init / teardown when wifi off / on
      * with a client connected
      */
@@ -4091,6 +4120,32 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with a name
+     * whose length exceeds 22.
+     */
+    @Test
+    public void testSetDeviceNameFailureWithANameLongerThanMaxPostfixLength() throws Exception {
+        // Move to enabled state
+        forceP2pEnabled(mClient1);
+        mTestThisDevice.status = mTestThisDevice.AVAILABLE;
+
+        mTestThisDevice.deviceName = "12345678901234567890123";
+        when(mWifiNative.setDeviceName(anyString())).thenReturn(true);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
+        sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
+        verify(mWifiNative).setDeviceName(eq(mTestThisDevice.deviceName));
+        verify(mWifiNative).setP2pSsidPostfix(
+                eq("-" + mTestThisDevice.deviceName.substring(
+                        0, WifiP2pServiceImpl.GROUP_NAME_POSTFIX_LENGTH_MAX)));
+        verify(mWifiSettingsConfigStore).put(
+                eq(WIFI_P2P_DEVICE_NAME), eq(mTestThisDevice.deviceName));
+        checkSendThisDeviceChangedBroadcast();
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.SET_DEVICE_NAME_SUCCEEDED, message.what);
+    }
+
+    /**
      * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with an empty name.
      */
     @Test
@@ -4123,6 +4178,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // clear the one called on entering P2pEnabledState.
         reset(mWifiNative);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
         when(mWifiNative.setDeviceName(anyString())).thenReturn(false);
         sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
         verify(mWifiNative).setDeviceName(eq(mTestThisDevice.deviceName));
@@ -6507,6 +6563,55 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Test
     public void testP2pWithUserApprovalReject() throws Exception {
         runTestP2pWithUserApproval(false);
+    }
+
+    /**
+     * Validate InterfaceConflictManager is reset if user approval occurs after wifi turned off.
+     */
+    @Test
+    public void testInterfaceConflictManagerResetIfWifiTurnedOff() throws Exception {
+        ArgumentCaptor<State> mTargetStateCaptor = ArgumentCaptor.forClass(State.class);
+        ArgumentCaptor<WaitingState> mWaitingStateCaptor = ArgumentCaptor.forClass(
+                WaitingState.class);
+        InOrder inOrder = inOrder(mInterfaceConflictManager);
+
+        simulateWifiStateChange(true);
+        simulateInitChannel(mClient1);
+
+        // simulate user approval needed
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenAnswer(
+                        new MockAnswerUtil.AnswerWithArguments() {
+                            public int answer(String tag, Message msg, StateMachine stateMachine,
+                                    WaitingState waitingState, State targetState,
+                                    int createIfaceType,
+                                    WorkSource requestorWs) {
+                                stateMachine.deferMessage(msg);
+                                stateMachine.transitionTo(waitingState);
+                                return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
+                            }
+                        });
+
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.DISCOVER_PEERS);
+        mLooper.dispatchAll();
+        inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
+                any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any());
+
+        // Turn off Wi-Fi
+        simulateWifiStateChange(false);
+
+        // simulate user approval triggered and granted
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenReturn(
+                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+        mWaitingStateCaptor.getValue().sendTransitionStateCommand(mTargetStateCaptor.getValue());
+        mLooper.dispatchAll();
+
+        // Verify InterfaceConflictManager is reset
+        verify(mInterfaceConflictManager).reset();
+        verify(mWifiNative, never()).setupInterface(any(), any(),
+                eq(new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME)));
     }
 
     /*

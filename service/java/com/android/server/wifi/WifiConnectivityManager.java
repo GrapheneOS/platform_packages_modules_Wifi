@@ -470,7 +470,6 @@ public class WifiConnectivityManager {
                     // Secondary candidate cannot be null (otherwise we would have switched to
                     // legacy flow above). Use the explicit bssid for network connection.
                     WifiConfiguration targetNetwork = new WifiConfiguration(secondaryCmmCandidate);
-                    targetNetwork.dbsSecondaryInternet = isDbsAp;
                     targetNetwork.ephemeral = true;
                     targetNetwork.BSSID = targetBssid2; // specify the BSSID to disable roaming.
                     connectToNetworkUsingCmmWithoutMbb(cm, targetNetwork);
