@@ -6625,6 +6625,41 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testIpReachabilityFailureRoamL3ProvisioningState_recreateIpClient()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        connect();
+        expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
+        reset(mWifiNetworkAgent);
+
+        // Save current IpClientCallbacks instance and verify the onProvisioningFailure
+        // from this instance won't trigger wifi disconnection after recreating a new
+        // IpClient and IpClientCallbacks in WaitBeforeL3ProvisioningState.
+        final IpClientCallbacks callback = mIpClientCallback;
+
+        // Trigger ip reachability failure and ensure we do not trigger a disconnect.
+        ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
+        callback.onReachabilityFailure(lossInfo);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkAgent).unregisterAfterReplacement(anyInt());
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+        assertEquals("L3ProvisioningState", getCurrentState().getName());
+
+        // Verify that onProvisioningFailure from the legacy IpClientCallbacks instance
+        // doesn't trigger wifi disconnection.
+        callback.onProvisioningFailure(new LinkProperties());
+        mLooper.dispatchAll();
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+
+        // Verify that onProvisioningFailure from the current IpClientCallbacks instance
+        // triggers wifi disconnection.
+        mIpClientCallback.onProvisioningFailure(new LinkProperties());
+        mLooper.dispatchAll();
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
     public void testIpReachabilityLostAndRoamEventsRace() throws Exception {
         connect();
         expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
