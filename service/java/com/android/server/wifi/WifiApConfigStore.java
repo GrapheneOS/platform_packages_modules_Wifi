@@ -496,9 +496,8 @@ public class WifiApConfigStore {
                 macAddress = config.getPersistentRandomizedMacAddress();
                 if (macAddress == null) {
                     WifiSsid ssid = config.getWifiSsid();
-                    macAddress = mMacAddressUtil.calculatePersistentMac(
-                            ssid != null ? ssid.toString() : null,
-                            mMacAddressUtil.obtainMacRandHashFunctionForSap(Process.WIFI_UID));
+                    macAddress = mMacAddressUtil.calculatePersistentMacForSap(
+                            ssid != null ? ssid.toString() : null, Process.WIFI_UID);
                     if (macAddress == null) {
                         Log.e(TAG, "Failed to calculate MAC from SSID. "
                                 + "Generating new random MAC instead.");
@@ -700,9 +699,8 @@ public class WifiApConfigStore {
     private SoftApConfiguration updatePersistentRandomizedMacAddress(SoftApConfiguration config) {
         // Update randomized MacAddress
         WifiSsid ssid = config.getWifiSsid();
-        MacAddress randomizedMacAddress = mMacAddressUtil.calculatePersistentMac(
-                ssid != null ? ssid.toString() : null,
-                mMacAddressUtil.obtainMacRandHashFunctionForSap(Process.WIFI_UID));
+        MacAddress randomizedMacAddress = mMacAddressUtil.calculatePersistentMacForSap(
+                ssid != null ? ssid.toString() : null, Process.WIFI_UID);
         if (randomizedMacAddress != null) {
             return new SoftApConfiguration.Builder(config)
                     .setRandomizedMacAddress(randomizedMacAddress).build();
