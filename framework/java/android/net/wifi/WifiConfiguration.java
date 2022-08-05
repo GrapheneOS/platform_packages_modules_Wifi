@@ -3816,7 +3816,6 @@ public class WifiConfiguration implements Parcelable {
      * @param httpProxy {@link ProxyInfo} representing the httpProxy to be used by this
      *                  WifiConfiguration. Setting this to {@code null} will explicitly set no
      *                  proxy, removing any proxy that was previously set.
-     * @exception IllegalArgumentException for invalid httpProxy
      */
     public void setHttpProxy(ProxyInfo httpProxy) {
         if (httpProxy == null) {
@@ -3841,7 +3840,7 @@ public class WifiConfiguration implements Parcelable {
                     Arrays.asList(exclusionList));
         }
         if (!httpProxyCopy.isValid()) {
-            throw new IllegalArgumentException("Invalid ProxyInfo: " + httpProxyCopy.toString());
+            Log.w(TAG, "ProxyInfo is not valid: " + httpProxyCopy);
         }
         mIpConfiguration.setProxySettings(proxySettingCopy);
         mIpConfiguration.setHttpProxy(httpProxyCopy);
