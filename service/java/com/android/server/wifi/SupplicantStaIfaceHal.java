@@ -707,8 +707,7 @@ public class SupplicantStaIfaceHal {
         public boolean isValid = true;
 
         public QosPolicyClassifierParams(boolean halHasSrcIp, byte[] halSrcIp, boolean halHasDstIp,
-                byte[] halDstIp, int halSrcPort, @NonNull int[] halDstPortRange,
-                int halProtocol) {
+                byte[] halDstIp, int halSrcPort, int[] halDstPortRange, int halProtocol) {
             srcPort = halSrcPort;
             protocol = halProtocol;
 
@@ -730,10 +729,12 @@ public class SupplicantStaIfaceHal {
                 }
             }
 
-            if (halDstPortRange[0] > halDstPortRange[1]) {
-                isValid = false;
-            } else {
-                dstPortRange = new Range(halDstPortRange[0], halDstPortRange[1]);
+            if (halDstPortRange != null) {
+                if (halDstPortRange[0] > halDstPortRange[1]) {
+                    isValid = false;
+                } else {
+                    dstPortRange = new Range(halDstPortRange[0], halDstPortRange[1]);
+                }
             }
         }
 

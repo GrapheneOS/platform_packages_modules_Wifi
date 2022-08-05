@@ -1354,6 +1354,12 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
         WifiConfiguration pskConfig = new WifiConfiguration();
         pskConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
         pskConfig.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+        pskConfig.getNetworkSelectionStatus().setNetworkSelectionDisableReason(
+                WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_TRANSITION_DISABLE_INDICATION);
+        pskConfig.getNetworkSelectionStatus().setDisableReasonCounter(
+                WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_TRANSITION_DISABLE_INDICATION, 1);
 
         WifiConfiguration saeConfig = new WifiConfiguration();
         saeConfig.addSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
