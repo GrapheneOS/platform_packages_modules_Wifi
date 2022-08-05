@@ -576,6 +576,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 });
         when(mWifiNative.connectToNetwork(any(), any())).thenReturn(true);
         when(mWifiNative.getApfCapabilities(anyString())).thenReturn(APF_CAP);
+        when(mWifiNative.isQosPolicyFeatureEnabled()).thenReturn(true);
     }
 
     /** Reset verify() counters on WifiNative, and restore when() mocks on mWifiNative */
@@ -8546,6 +8547,21 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void verifyQosPolicyResetEventWithNullNetworkAgent() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         assertNull(mCmi.mNetworkAgent);
+        mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkAgent, never()).sendRemoveAllDscpPolicies();
+    }
+
+    /**
+     * Verify that QoS policy reset events are not handled if the QoS policy feature was
+     * not enabled in WifiNative.
+     */
+    @Test
+    public void verifyQosPolicyResetEventWhenQosFeatureNotEnabled() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        connect();
+        assertNotNull(mCmi.mNetworkAgent);
+        when(mWifiNative.isQosPolicyFeatureEnabled()).thenReturn(false);
         mCmi.sendMessage(WifiMonitor.QOS_POLICY_RESET_EVENT, 0, 0, null);
         mLooper.dispatchAll();
         verify(mWifiNetworkAgent, never()).sendRemoveAllDscpPolicies();

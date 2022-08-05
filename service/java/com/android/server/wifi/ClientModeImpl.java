@@ -5163,13 +5163,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case WifiMonitor.QOS_POLICY_RESET_EVENT: {
-                    if (SdkLevel.isAtLeastT() && mNetworkAgent != null) {
+                    if (SdkLevel.isAtLeastT() && mNetworkAgent != null
+                            && mWifiNative.isQosPolicyFeatureEnabled()) {
                         mNetworkAgent.sendRemoveAllDscpPolicies();
                     }
                     break;
                 }
                 case WifiMonitor.QOS_POLICY_REQUEST_EVENT: {
-                    if (SdkLevel.isAtLeastT()) {
+                    if (SdkLevel.isAtLeastT() && mWifiNative.isQosPolicyFeatureEnabled()) {
                         mQosPolicyRequestHandler.queueQosPolicyRequest(
                                 message.arg1, (List<QosPolicyRequest>) message.obj);
                     }
