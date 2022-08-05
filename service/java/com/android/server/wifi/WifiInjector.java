@@ -60,6 +60,7 @@ import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.p2p.WifiP2pMonitor;
 import com.android.server.wifi.p2p.WifiP2pNative;
 import com.android.server.wifi.rtt.RttMetrics;
+import com.android.server.wifi.util.KeystoreWrapper;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.LruConnectionTracker;
 import com.android.server.wifi.util.NetdWrapper;
@@ -209,7 +210,7 @@ public class WifiInjector {
     private IpMemoryStore mIpMemoryStore;
     private final WifiThreadRunner mWifiThreadRunner;
     private final WifiBlocklistMonitor mWifiBlocklistMonitor;
-    private final MacAddressUtil mMacAddressUtil = new MacAddressUtil();
+    private final MacAddressUtil mMacAddressUtil = new MacAddressUtil(new KeystoreWrapper());
     private final MboOceController mMboOceController;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
     private final WifiChannelUtilization mWifiChannelUtilizationScan;

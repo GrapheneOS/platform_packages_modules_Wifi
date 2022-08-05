@@ -32,6 +32,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -139,7 +140,8 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
 
         mRandom = new Random();
         when(mWifiInjector.getMacAddressUtil()).thenReturn(mMacAddressUtil);
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(TEST_RANDOMIZED_MAC);
+        when(mMacAddressUtil.calculatePersistentMacForSap(any(), anyInt()))
+                .thenReturn(TEST_RANDOMIZED_MAC);
         mResources.setBoolean(R.bool.config_wifi_ap_mac_randomization_supported, true);
         mResources.setBoolean(
                 R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled, true);
@@ -686,7 +688,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     public void randomizeBssid_fallbackPathWhenMacCalculationFails() throws Exception {
         mResources.setBoolean(R.bool.config_wifi_ap_mac_randomization_supported, true);
         // Setup the MAC calculation to fail.
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(null);
+        when(mMacAddressUtil.calculatePersistentMacForSap(any(), anyInt())).thenReturn(null);
         SoftApConfiguration baseConfig = new SoftApConfiguration.Builder().build();
 
         WifiApConfigStore store = createWifiApConfigStore();
@@ -1380,7 +1382,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
 
     @Test
     public void testPersistentRandomizedMacAddressWhenCalculatedMacIsNull() throws Exception {
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(null);
+        when(mMacAddressUtil.calculatePersistentMacForSap(any(), anyInt())).thenReturn(null);
         WifiApConfigStore store = createWifiApConfigStore();
         assertNotNull(store.getApConfiguration().getPersistentRandomizedMacAddress());
         assertNotNull(

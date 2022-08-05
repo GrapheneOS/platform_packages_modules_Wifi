@@ -551,12 +551,8 @@ public class WifiConfigManager {
                 mRandomizedMacAddressMapping.remove(config.getNetworkKey());
             }
         }
-        MacAddress result = mMacAddressUtil.calculatePersistentMac(config.getNetworkKey(),
-                mMacAddressUtil.obtainMacRandHashFunction(Process.WIFI_UID));
-        if (result == null) {
-            result = mMacAddressUtil.calculatePersistentMac(config.getNetworkKey(),
-                    mMacAddressUtil.obtainMacRandHashFunction(Process.WIFI_UID));
-        }
+        MacAddress result = mMacAddressUtil.calculatePersistentMacForSta(config.getNetworkKey(),
+                Process.WIFI_UID);
         if (result == null) {
             Log.wtf(TAG, "Failed to generate MAC address from KeyStore even after retrying. "
                     + "Using locally generated MAC address instead.");
