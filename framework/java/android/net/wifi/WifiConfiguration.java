@@ -1476,9 +1476,15 @@ public class WifiConfiguration implements Parcelable {
     public boolean osu;
 
     /**
-     * Last time the system was connected to this configuration.
+     * Last time the system was connected to this configuration represented as the difference,
+     * measured in milliseconds, between the last connected time and midnight, January 1, 1970 UTC.
+     * <P>
+     * Note that this information is only in memory will be cleared (reset to 0) for all
+     * WifiConfiguration(s) after a reboot.
      * @hide
      */
+    @SuppressLint("MutableBareField")
+    @SystemApi
     public long lastConnected;
 
     /**
@@ -1499,6 +1505,8 @@ public class WifiConfiguration implements Parcelable {
      * Number of reboots since this config was last used (either connected or updated).
      * @hide
      */
+    @SuppressLint("MutableBareField")
+    @SystemApi
     public int numRebootsSinceLastUse;
 
     /**
