@@ -1096,6 +1096,17 @@ public class WifiConfigurationUtil {
                 if (shouldOmitAutoUpgradeParams(params)) continue;
                 WifiConfiguration legacyConfig = new WifiConfiguration(config);
                 legacyConfig.setSecurityParams(params);
+                if (!params.isEnabled()) {
+                    legacyConfig.getNetworkSelectionStatus().setNetworkSelectionStatus(
+                            WifiConfiguration.NetworkSelectionStatus
+                                    .NETWORK_SELECTION_PERMANENTLY_DISABLED);
+                    legacyConfig.getNetworkSelectionStatus().setNetworkSelectionDisableReason(
+                            WifiConfiguration.NetworkSelectionStatus
+                                    .DISABLED_TRANSITION_DISABLE_INDICATION);
+                    legacyConfig.getNetworkSelectionStatus().setDisableReasonCounter(
+                            WifiConfiguration.NetworkSelectionStatus
+                                    .DISABLED_TRANSITION_DISABLE_INDICATION, 1);
+                }
                 legacyConfigs.add(legacyConfig);
             }
         }

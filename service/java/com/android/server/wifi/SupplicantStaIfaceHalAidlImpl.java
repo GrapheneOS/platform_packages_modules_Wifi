@@ -111,9 +111,6 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private static final Pattern WPS_DEVICE_TYPE_PATTERN =
             Pattern.compile("^(\\d{1,2})-([0-9a-fA-F]{8})-(\\d{1,2})$");
 
-    private static final int MIN_PORT_NUM = 0;
-    private static final int MAX_PORT_NUM = 65535;
-
     private final Object mLock = new Object();
     private boolean mVerboseLoggingEnabled = false;
     private boolean mVerboseHalLoggingEnabled = false;
@@ -2697,7 +2694,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         byte[] srcIp = null;
         byte[] dstIp = null;
         int srcPort = DscpPolicy.SOURCE_PORT_ANY;
-        int[] dstPortRange = new int[]{MIN_PORT_NUM, MAX_PORT_NUM};
+        int[] dstPortRange = null;
         int protocol = DscpPolicy.PROTOCOL_ANY;
         boolean hasSrcIp = false;
         boolean hasDstIp = false;
@@ -2716,6 +2713,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
         if (qosClassifierParamHasValue(classifierParamMask,
                 QosPolicyClassifierParamsMask.DST_PORT_RANGE)) {
+            dstPortRange = new int[2];
             dstPortRange[0] = classifierParams.dstPortRange.startPort;
             dstPortRange[1] = classifierParams.dstPortRange.endPort;
         }
