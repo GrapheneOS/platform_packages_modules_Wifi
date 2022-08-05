@@ -174,6 +174,9 @@ public class HostapdHalAidlImp implements IHostapdHal {
     private boolean registerCallback(IHostapdCallback callback) {
         synchronized (mLock) {
             String methodStr = "registerCallback";
+            if (!checkHostapdAndLogFailure(methodStr)) {
+                return false;
+            }
             try {
                 mIHostapd.registerCallback(callback);
                 return true;
@@ -500,12 +503,11 @@ public class HostapdHalAidlImp implements IHostapdHal {
                 if (serviceBinder == null) return false;
                 mWaitForDeathLatch = null;
                 serviceBinder.linkToDeath(new HostapdDeathRecipient(serviceBinder), /* flags= */ 0);
-                setDebugParams();
+                if (!setDebugParams()) return false;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
                 return false;
             }
-
             if (!registerCallback(new HostapdCallback())) {
                 Log.e(TAG, "Failed to register callback, stopping hostapd AIDL startup");
                 mIHostapd = null;
