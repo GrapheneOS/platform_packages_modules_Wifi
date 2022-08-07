@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"নেটৱৰ্কৰ স্থিতি"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"নেটৱৰ্ক সম্পৰ্কীয় সতৰ্কবাণী"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"নেটৱৰ্ক উপলব্ধ"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM সতৰ্কবাৰ্তা"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"পৰামর্শ হিচাপে পোৱা নেটৱর্কবোৰক অনুমতি দিবনে?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g>এ পৰামর্শ হিচাপে দিয়া নেটৱর্কবোৰ। ডিভাইচটো স্বয়ংক্ৰিয়ভাৱে সংযোগ হ\'ব পাৰে।"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"অনুমতি দিয়ক"</string>
@@ -125,6 +126,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"এইটোৱে এই এপ্‌সমূহৰ বাবে সমস্যাৰ সৃষ্টি কৰিব পাৰে: <xliff:g id="APPS">%3$s</xliff:g>।"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"অনুমতি দিয়ক"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"অনুমতি নিদিব"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"ৱাই-ফাই হটস্পট"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"ৱাই-ফাই হটস্পট"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"ৱাই-ফাই ডাইৰেক্ট"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"এই নেটৱৰ্কটো বিশ্বাসী হয়নে?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"হয়, সংযোগ কৰক"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"নাই, সংযোগ নকৰিব"</string>
@@ -153,4 +159,14 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"আপুনি ক্ষিপ্ৰ ছেটিঙত ৱাই-ফাই অফ কৰিব পাৰে"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"অনুমতি দিয়ক"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"অনুমতি নিদিব"</string>
+    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
+    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"আপুনি ৱাই-ফাই অন কৰিছে"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"আপোনাৰ ফ’নটোৱে এয়াৰপ্লেন ম’ডত ৱাই-ফাই অন কৰি ৰাখিব, যদিহে আপুনি এই ম’ডত থকাৰ সময়ত ৱাই-ফাই অফ নকৰে"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi অন হৈ থাকিব"</string>
+    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"আপোনাৰ ফ’নটোৱে এয়াৰপ্লেন ম’ডত ৱাই-ফাই অন কৰি ৰাখিব, যদিহে আপুনি এই ম’ডত থকাৰ সময়ত ৱাই-ফাই অফ নকৰে"</string>
 </resources>

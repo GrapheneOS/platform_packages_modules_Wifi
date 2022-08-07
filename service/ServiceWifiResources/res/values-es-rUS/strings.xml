@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"Estado de la red"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"Alertas de red"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"Red disponible"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"Alertas APM"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"¿Quieres permitir las redes Wi‑Fi sugeridas?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> sugirió redes. Es posible que el dispositivo se conecte automáticamente."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Permitir"</string>
@@ -125,6 +126,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Esto podría causar problemas para estas apps: <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Permitir"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"No permitir"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Hotspot Wi-Fi"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Hotspot Wi-Fi"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi-Fi directo"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Reconocimiento de Wi-Fi"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"¿Es una red segura?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Sí, conectar"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"No, no conectar"</string>
@@ -153,4 +159,14 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Puedes desactivar el Wi‑Fi en la Configuración rápida"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Permitir"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"No permitir"</string>
+    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
+    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"Activaste el Wi-Fi"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"El teléfono dejará activado el Wi-Fi en el modo de avión, a menos que lo desactives"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"El Wi-Fi se mantiene activado"</string>
+    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"El teléfono dejará activado el Wi-Fi en el modo de avión, a menos que lo desactives"</string>
 </resources>
