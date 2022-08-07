@@ -1508,6 +1508,11 @@ public class WifiManager {
     @SystemApi
     @RequiresPermission(allOf = {ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, READ_WIFI_CREDENTIAL})
     public List<WifiConfiguration> getPrivilegedConfiguredNetworks() {
+        if (GmsCompat.isEnabled()) {
+            // READ_WIFI_CREDENTIAL is a privileged permission
+            return Collections.emptyList();
+        }
+
         try {
             ParceledListSlice<WifiConfiguration> parceledList =
                     mService.getPrivilegedConfiguredNetworks(mContext.getOpPackageName(),
