@@ -302,7 +302,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         mSharedDataSource = sharedDataSource.getValue();
         mUserDataSource = userDataSource.getValue();
         // SIM is absent
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
         mLooper.dispatchAll();
         verify(mWifiConfigManager).addOnNetworkUpdateListener(mNetworkListenerCaptor.capture());
@@ -835,7 +835,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         List<SubscriptionInfo> subInfoList = new ArrayList<SubscriptionInfo>() {{
                 add(subInfo);
             }};
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(subInfoList);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(subInfoList);
         mSubscriptionsCaptor.getValue().onSubscriptionsChanged();
         when(mWifiKeyStore.putCaCertInKeyStore(any(String.class), any(Certificate.class)))
                 .thenReturn(true);

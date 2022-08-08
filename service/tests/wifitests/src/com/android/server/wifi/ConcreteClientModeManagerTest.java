@@ -214,7 +214,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenReturn(false);
 
         when(mActiveSubscriptionInfo.getSubscriptionId()).thenReturn(TEST_ACTIVE_SUBSCRIPTION_ID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(mSubscriptionInfoList);
         when(mCarrierConfigManager.getConfigForSubId(anyInt())).thenReturn(mCarrierConfigBundle);
         when(mCarrierConfigBundle
