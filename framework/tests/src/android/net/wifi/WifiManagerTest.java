@@ -86,7 +86,9 @@ import static org.mockito.Mockito.when;
 import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.content.AttributionSource;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.IContentProvider;
 import android.content.pm.ApplicationInfo;
 import android.net.DhcpInfo;
 import android.net.DhcpOption;
@@ -189,6 +191,8 @@ public class WifiManagerTest {
     @Mock WifiConnectedNetworkScorer mWifiConnectedNetworkScorer;
     @Mock SuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     @Mock ActiveCountryCodeChangedCallback mActiveCountryCodeChangedCallback;
+    @Mock IContentProvider mIContentProvider;
+    @Mock ContentResolver mContentResolver;
 
     private Handler mHandler;
     private TestLooper mLooper;
@@ -285,6 +289,9 @@ public class WifiManagerTest {
         mApplicationInfo.targetSdkVersion = Build.VERSION_CODES.Q;
         when(mContext.getApplicationInfo()).thenReturn(mApplicationInfo);
         when(mContext.getOpPackageName()).thenReturn(TEST_PACKAGE_NAME);
+        when(mContext.getContentResolver()).thenReturn(mContentResolver);
+        when(mContentResolver.acquireProvider(anyString())).thenReturn(mIContentProvider);
+
         mWifiManager = new WifiManager(mContext, mWifiService, mLooper.getLooper());
         verify(mWifiService).getVerboseLoggingLevel();
         mWifiNetworkSuggestion = new WifiNetworkSuggestion();

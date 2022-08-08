@@ -15,6 +15,7 @@
  */
 package android.net.wifi;
 
+import android.annotation.NonNull;
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
 import android.content.Context;
@@ -29,6 +30,8 @@ import android.os.HandlerThread;
 import android.os.Looper;
 
 import androidx.annotation.VisibleForTesting;
+
+import java.util.function.Consumer;
 
 /**
  * Class for performing registration for all Wifi services.
@@ -64,6 +67,8 @@ public class WifiFrameworkInitializer {
     }
 
     private WifiFrameworkInitializer() {}
+
+    private static volatile Consumer<Context> sBinderCallsStatsInitializer;
 
     /**
      * Called by {@link SystemServiceRegistry}'s static initializer and registers all Wifi services
@@ -145,5 +150,32 @@ public class WifiFrameworkInitializer {
                     return new RttManager(context, wifiRttManager);
                 }
         );
+    }
+
+    /**
+     * Called by {@link ActivityThread}'s static initializer to set the callback enabling Wifi
+     * {@link BinderCallsStats} registeration.
+     *
+     * @param binderCallsStatsConsumer called by WifiManager to create a new binder calls
+     *        stats observer
+     */
+    public static void setBinderCallsStatsInitializer(
+            @NonNull Consumer<Context> binderCallsStatsConsumer) {
+        if (binderCallsStatsConsumer == null) {
+            throw new IllegalArgumentException("binderCallsStatsConsumer must not be null");
+        }
+
+        if (sBinderCallsStatsInitializer != null) {
+            throw new IllegalStateException("setBinderCallsStatsInitializer called twice!");
+        }
+
+        sBinderCallsStatsInitializer = binderCallsStatsConsumer;
+    }
+
+    /** @hide */
+    public static void initializeBinderCallsStats(Context context) {
+        if (sBinderCallsStatsInitializer != null) {
+            sBinderCallsStatsInitializer.accept(context);
+        }
     }
 }
