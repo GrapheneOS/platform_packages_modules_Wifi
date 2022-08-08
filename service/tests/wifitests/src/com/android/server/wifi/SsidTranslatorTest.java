@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +43,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -187,6 +190,8 @@ public class SsidTranslatorTest extends WifiBaseTest{
     public void testGetOriginalSsid() throws Exception {
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
+        ArgumentCaptor<Runnable> timeoutRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        List<Runnable> timeoutRunnables = new ArrayList<>();
         SsidTranslator ssidTranslator = new SsidTranslator(mWifiContext, mHandler);
         ssidTranslator.handleBootCompleted();
         verify(mWifiContext).registerReceiver(
@@ -209,12 +214,18 @@ public class SsidTranslatorTest extends WifiBaseTest{
 
         // Record a BSSID using GBK. All non-matching BSSIDs should return GBK.
         ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress);
+        verify(mHandler, times(1)).postDelayed(
+                timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
+        timeoutRunnables.add(timeoutRunnableCaptor.getValue());
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(gbkSsid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(gbkSsid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
 
         // Record a BSSID using UTF-8. The UTF-8 and null BSSIDs should return UTF-8 now.
         ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress);
+        verify(mHandler, times(2)).postDelayed(
+                timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
+        timeoutRunnables.add(timeoutRunnableCaptor.getValue());
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
@@ -225,8 +236,10 @@ public class SsidTranslatorTest extends WifiBaseTest{
                 (byte) 0xaa, (byte) 0xbb, (byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff});
         assertThat(ssidTranslator.getOriginalSsid(unknownSsid, null)).isEqualTo(unknownSsid);
 
-        // Clear the scan results. Now we should return UTF-8 SSIDs for every BSSID again.
-        ssidTranslator.clearRecordedBssidCharsets();
+        // Timeout the scan results. Now we should return UTF-8 SSIDs for every BSSID again.
+        for (Runnable runnable : timeoutRunnables) {
+            runnable.run();
+        }
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, null)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, utf8MacAddress)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(utf8Ssid);

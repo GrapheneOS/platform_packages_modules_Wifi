@@ -28,9 +28,11 @@ import android.os.Handler;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.wifi.resources.R;
 
@@ -67,17 +69,22 @@ import java.util.Set;
 public class SsidTranslator {
     private static final String TAG = "SsidTranslator";
     private static final String LOCALE_LANGUAGE_ALL = "all";
+    @VisibleForTesting static final long BSSID_CACHE_TIMEOUT_MS = 30_000;
     private final @NonNull WifiContext mWifiContext;
     private final @NonNull Handler mWifiHandler;
 
-    @Nullable Charset mCurrentLocaleAlternateCharset = null;
-    @NonNull Map<String, Charset> mCharsetsPerLocaleLanguage = new HashMap<>();
-    @NonNull Map<String, Charset> mMockCharsetsPerLocaleLanguage = new HashMap<>();
+    private @Nullable Charset mCurrentLocaleAlternateCharset = null;
+    private @NonNull Map<String, Charset> mCharsetsPerLocaleLanguage = new HashMap<>();
+    private @NonNull Map<String, Charset> mMockCharsetsPerLocaleLanguage = new HashMap<>();
 
     // Maps a translated SSID to all of its BSSIDs using the alternate Charset.
-    @NonNull Map<WifiSsid, Set<MacAddress>> mTranslatedBssids = new ArrayMap<>();
+    private @NonNull Map<WifiSsid, Set<MacAddress>> mTranslatedBssids = new ArrayMap<>();
     // Maps a translated SSID to all of its BSSIDs not using the alternate Charset.
-    @NonNull Map<WifiSsid, Set<MacAddress>> mUntranslatedBssids = new ArrayMap<>();
+    private @NonNull Map<WifiSsid, Set<MacAddress>> mUntranslatedBssids = new ArrayMap<>();
+    private final Map<Pair<WifiSsid, MacAddress>, Runnable> mUntranslatedBssidTimeoutRunnables =
+            new ArrayMap<>();
+    private final Map<Pair<WifiSsid, MacAddress>, Runnable> mTranslatedBssidTimeoutRunnables =
+            new ArrayMap<>();
 
     public SsidTranslator(@NonNull WifiContext wifiContext, @NonNull Handler wifiHandler) {
         mWifiContext = wifiContext;
@@ -127,7 +134,17 @@ public class SsidTranslator {
 
     /** Updates mCurrentLocaleCharset to the alternate charset of the current Locale language. */
     private synchronized void updateCurrentLocaleCharset() {
-        clearRecordedBssidCharsets();
+        // Clear existing Charset mappings.
+        for (Runnable runnable : mTranslatedBssidTimeoutRunnables.values()) {
+            mWifiHandler.removeCallbacks(runnable);
+        }
+        mTranslatedBssidTimeoutRunnables.clear();
+        mTranslatedBssids.clear();
+        for (Runnable runnable : mUntranslatedBssidTimeoutRunnables.values()) {
+            mWifiHandler.removeCallbacks(runnable);
+        }
+        mUntranslatedBssidTimeoutRunnables.clear();
+        mUntranslatedBssids.clear();
         mCurrentLocaleAlternateCharset = null;
         // Try to find the Charset for the specific language.
         String language = null;
@@ -213,21 +230,81 @@ public class SsidTranslator {
                     translateSsid(ssid, mCurrentLocaleAlternateCharset, StandardCharsets.UTF_8);
             if (translatedSsid != null) {
                 if (bssid != null) {
-                    if (!mTranslatedBssids.containsKey(translatedSsid)) {
-                        mTranslatedBssids.put(translatedSsid, new ArraySet<>());
+                    mTranslatedBssids.computeIfAbsent(translatedSsid, k -> new ArraySet<>())
+                            .add(bssid);
+                    Pair<WifiSsid, MacAddress> ssidBssidPair = new Pair<>(translatedSsid, bssid);
+                    Runnable oldRunnable = mTranslatedBssidTimeoutRunnables.remove(ssidBssidPair);
+                    if (oldRunnable != null) {
+                        mWifiHandler.removeCallbacks(oldRunnable);
                     }
-                    mTranslatedBssids.get(translatedSsid).add(bssid);
+                    Runnable timeoutRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            handleTranslatedBssidTimeout(translatedSsid, bssid, this);
+                        }
+                    };
+                    mTranslatedBssidTimeoutRunnables.put(ssidBssidPair, timeoutRunnable);
+                    mWifiHandler.postDelayed(timeoutRunnable, BSSID_CACHE_TIMEOUT_MS);
                 }
                 return translatedSsid;
             }
         }
         if (bssid != null) {
-            if (!mUntranslatedBssids.containsKey(ssid)) {
-                mUntranslatedBssids.put(ssid, new ArraySet<>());
+            mUntranslatedBssids.computeIfAbsent(ssid, k -> new ArraySet<>()).add(bssid);
+            Pair<WifiSsid, MacAddress> ssidBssidPair = new Pair<>(ssid, bssid);
+            Runnable oldRunnable = mUntranslatedBssidTimeoutRunnables.remove(ssidBssidPair);
+            if (oldRunnable != null) {
+                mWifiHandler.removeCallbacks(oldRunnable);
             }
-            mUntranslatedBssids.get(ssid).add(bssid);
+            Runnable timeoutRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    handleUntranslatedBssidTimeout(ssid, bssid, this);
+                }
+            };
+            mUntranslatedBssidTimeoutRunnables.put(ssidBssidPair, timeoutRunnable);
+            mWifiHandler.postDelayed(timeoutRunnable, BSSID_CACHE_TIMEOUT_MS);
         }
+
         return ssid;
+    }
+
+    /** Removes a timed out translated ssid/bssid mapping */
+    private synchronized void handleTranslatedBssidTimeout(
+            WifiSsid ssid, MacAddress bssid, Runnable runnable) {
+        Pair<WifiSsid, MacAddress> mapping = new Pair<>(ssid, bssid);
+        if (mTranslatedBssidTimeoutRunnables.get(mapping) != runnable) {
+            // This runnable isn't the active runnable anymore. Ignore.
+            return;
+        }
+        mTranslatedBssidTimeoutRunnables.remove(mapping);
+        Set<MacAddress> bssids = mTranslatedBssids.get(ssid);
+        if (bssids == null) {
+            return;
+        }
+        bssids.remove(bssid);
+        if (bssids.isEmpty()) {
+            mTranslatedBssids.remove(ssid);
+        }
+    }
+
+    /** Removes a timed out untranslated ssid/bssid mapping */
+    private synchronized void handleUntranslatedBssidTimeout(
+            WifiSsid ssid, MacAddress bssid, Runnable runnable) {
+        Pair<WifiSsid, MacAddress> mapping = new Pair<>(ssid, bssid);
+        if (mUntranslatedBssidTimeoutRunnables.get(mapping) != runnable) {
+            // This runnable isn't the active runnable anymore. Ignore.
+            return;
+        }
+        mUntranslatedBssidTimeoutRunnables.remove(mapping);
+        Set<MacAddress> bssids = mUntranslatedBssids.get(ssid);
+        if (bssids == null) {
+            return;
+        }
+        bssids.remove(bssid);
+        if (bssids.isEmpty()) {
+            mUntranslatedBssids.remove(ssid);
+        }
     }
 
     /**
@@ -292,15 +369,6 @@ public class SsidTranslator {
             }
         }
         return untranslatedSsids;
-    }
-
-    /**
-     * Clears the BSSID/Charset associations recorded in
-     * {@link #getTranslatedSsidAndRecordBssidCharset(WifiSsid, MacAddress)}.
-     */
-    public synchronized void clearRecordedBssidCharsets() {
-        mTranslatedBssids.clear();
-        mUntranslatedBssids.clear();
     }
 
     /**
