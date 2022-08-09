@@ -1089,6 +1089,10 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiPermissionsUtil.enforceCoarseLocationPermission(pkgName, featureId, uid);
     }
 
+    private void enforceLocationPermissionInManifest(int uid, boolean isCoarseOnly) {
+        mWifiPermissionsUtil.enforceLocationPermissionInManifest(uid, isCoarseOnly);
+    }
+
     /**
      * Helper method to check if the app is allowed to access public API's deprecated in
      * {@link Build.VERSION_CODES#Q}.
@@ -4318,7 +4322,8 @@ public class WifiServiceImpl extends BaseWifiService {
         int uid = Binder.getCallingUid();
         int pid = Binder.getCallingPid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
-        enforceCoarseLocationPermission(packageName, featureId, uid);
+        // Allow to register if caller owns location permission in the manifest.
+        enforceLocationPermissionInManifest(uid, true /* isCoarseOnly */);
         if (mVerboseLoggingEnabled) {
             mLog.info("registerDriverCountryCodeChangedListener uid=%")
                     .c(Binder.getCallingUid()).flush();
@@ -4329,9 +4334,16 @@ public class WifiServiceImpl extends BaseWifiService {
             mCountryCodeTracker.registerDriverCountryCodeChangedListener(listener,
                     new WifiPermissionsUtil.CallerIdentity(uid, pid, packageName, featureId));
             // Update the client about the current driver country code immediately
-            // after registering.
+            // after registering if the client owns location permission and global location setting
+            // is on.
             try {
-                listener.onDriverCountryCodeChanged(mCountryCode.getCurrentDriverCountryCode());
+                if (mWifiPermissionsUtil.checkCallersCoarseLocationPermission(
+                        packageName, featureId, uid, null)) {
+                    listener.onDriverCountryCodeChanged(mCountryCode.getCurrentDriverCountryCode());
+                } else {
+                    Log.i(TAG, "drop to notify to listener (maybe location off?) for"
+                            + " DriverCountryCodeChangedListener, uid=" + uid);
+                }
             } catch (RemoteException e) {
                 Log.e(TAG, "registerDriverCountryCodeChangedListener: remote exception -- " + e);
             }
