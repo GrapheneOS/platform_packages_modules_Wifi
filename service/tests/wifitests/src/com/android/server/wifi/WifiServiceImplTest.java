@@ -9603,9 +9603,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void registerDriverCountryCodeChangedListenerThrowsSecurityExceptionWithoutPermission() {
         assumeTrue(SdkLevel.isAtLeastT());
         doThrow(new SecurityException())
-                .when(mWifiPermissionsUtil).enforceCoarseLocationPermission(eq(TEST_PACKAGE_NAME),
-                                                                      eq(TEST_FEATURE_ID),
-                                                                      anyInt());
+                .when(mWifiPermissionsUtil).enforceLocationPermissionInManifest(anyInt(), eq(true));
         mWifiServiceImpl.registerDriverCountryCodeChangedListener(
                 mIOnWifiDriverCountryCodeChangedListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
     }
@@ -9648,9 +9646,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
             IOnWifiDriverCountryCodeChangedListener listener)
             throws Exception {
         doNothing()
-                .when(mWifiPermissionsUtil).enforceCoarseLocationPermission(eq(TEST_PACKAGE_NAME),
-                                                                      eq(TEST_FEATURE_ID),
-                                                                      anyInt());
+                .when(mWifiPermissionsUtil).enforceLocationPermissionInManifest(anyInt(),
+                                                                      eq(true));
+        when(mWifiPermissionsUtil.checkCallersCoarseLocationPermission(eq(TEST_PACKAGE_NAME),
+                eq(TEST_FEATURE_ID), anyInt(), any())).thenReturn(true);
         when(mWifiCountryCode.getCurrentDriverCountryCode()).thenReturn(TEST_COUNTRY_CODE);
         mWifiServiceImpl.registerDriverCountryCodeChangedListener(
                 listener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
@@ -9660,11 +9659,35 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a call to registerDriverCountryCodeChangedListener succeeded but we don't nofiy
+     * listener because permission gets denied in OpNote.
+     */
+    @Test
+    public void verifyRegisterDriverCountryCodeChangedListenerSucceededButNoNotifyListener()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        doNothing()
+                .when(mWifiPermissionsUtil).enforceLocationPermissionInManifest(anyInt(),
+                                                                      eq(true));
+        when(mWifiPermissionsUtil.checkCallersCoarseLocationPermission(eq(TEST_PACKAGE_NAME),
+                eq(TEST_FEATURE_ID), anyInt(), any())).thenReturn(false);
+        when(mWifiCountryCode.getCurrentDriverCountryCode()).thenReturn(TEST_COUNTRY_CODE);
+        mWifiServiceImpl.registerDriverCountryCodeChangedListener(
+                  mIOnWifiDriverCountryCodeChangedListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+        mLooper.dispatchAll();
+        verify(mIOnWifiDriverCountryCodeChangedListener, never())
+                .onDriverCountryCodeChanged(TEST_COUNTRY_CODE);
+    }
+
+    /**
      * Verify that DriverCountryCodeChanged will be dropped if register permission was removed.
      */
     @Test
     public void testDriverCountryCodeChangedDropWhenRegisterPermissionRemoved() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
+        doNothing()
+                .when(mWifiPermissionsUtil).enforceLocationPermissionInManifest(anyInt(),
+                                                                      eq(true));
         when(mWifiPermissionsUtil.checkCallersCoarseLocationPermission(
                 eq(TEST_PACKAGE_NAME), eq(TEST_FEATURE_ID), anyInt(), any())).thenReturn(true);
         verifyRegisterDriverCountryCodeChangedListenerSucceededAndTriggerListener(
@@ -9690,6 +9713,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void unregisterDriverCountryCodeChangedListenerRemovesListener() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
+        doNothing()
+                .when(mWifiPermissionsUtil).enforceLocationPermissionInManifest(anyInt(),
+                                                                      eq(true));
         when(mWifiPermissionsUtil.checkCallersCoarseLocationPermission(
                 eq(TEST_PACKAGE_NAME), eq(TEST_FEATURE_ID), anyInt(), any())).thenReturn(true);
         verifyRegisterDriverCountryCodeChangedListenerSucceededAndTriggerListener(

@@ -1608,6 +1608,9 @@ public class WifiManager {
         mLooper = looper;
         mTargetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         updateVerboseLoggingEnabledFromService();
+
+        // Start tracking Binder latency for the wifi process.
+        WifiFrameworkInitializer.initializeBinderCallsStats(context);
     }
 
     /**
@@ -3967,6 +3970,10 @@ public class WifiManager {
      * {@link WifiManager.ActiveCountryCodeChangedCallback#onActiveCountryCodeChanged(String)}
      * or {@link WifiManager.ActiveCountryCodeChangedCallback#onCountryCodeInactive()}
      * on registration.
+     *
+     * Note: When the global location setting is off or the caller does not have runtime location
+     * permission, caller will not receive the callback even if caller register callback succeeded.
+     *
      *
      * Caller can remove a previously registered callback using
      * {@link WifiManager#unregisterActiveCountryCodeChangedCallback(
