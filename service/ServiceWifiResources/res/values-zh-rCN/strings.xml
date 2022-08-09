@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"网络状态"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"网络提醒"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"有可用的网络"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM 警报"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"是否允许系统连接到建议的 WLAN 网络？"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g>建议的网络。设备可能会自动连接到这些网络。"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"允许"</string>
@@ -125,6 +126,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"这可能会导致这些应用出现问题：<xliff:g id="APPS">%3$s</xliff:g>。"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"允许"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"不允许"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"WLAN 热点"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"WLAN 热点"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"WLAN 直连"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"WLAN 感知"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"这是受信任的网络吗？"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"是，连接"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"否，不连接"</string>
@@ -153,4 +159,14 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"您可以在“快捷设置”中关闭 WLAN"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允许"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允许"</string>
+    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
+    <skip />
+    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
+    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"您已开启 WLAN"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"在飞行模式下您的手机将保持 WLAN 开启，除非您在此模式下将其关闭"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"WLAN 保持开启状态"</string>
+    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"在飞行模式下您的手机将保持 WLAN 开启，除非您在此模式下将其关闭"</string>
 </resources>

@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"نیٹ ورک اسٹیٹس"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"نیٹ ورک الرٹس"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"نیٹ ورک دستیاب ہے"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"‏APM الرٹس"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"‏تجویز کردہ Wi‑Fi نیٹ ورکس کو اجازت دیں؟"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> تجویز کردہ نیٹ ورکس۔ آلہ خودکار طور پر منسلک ہو سکتا ہے۔"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"اجازت ہیں"</string>
@@ -125,6 +126,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"اس سے ان ایپس کے لیے مسائل پیدا ہو سکتے ہیں: <xliff:g id="APPS">%3$s</xliff:g>۔"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"اجازت دیں"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"اجازت نہ دیں"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"‏Wi‑Fi ہاٹ اسپاٹ"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"‏Wi‑Fi ہاٹ اسپاٹ"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"‏Wi-Fi ڈائریکٹ"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"کیا یہ نیٹ ورک قابل اعتماد ہے؟"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"ہاں، منسلک کریں"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"نہیں، منسلک نہ کریں"</string>
@@ -153,4 +159,11 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"‏آپ فوری ترتیبات میں Wi-Fi آف کر سکتے ہیں"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"اجازت دیں"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"اجازت نہ دیں"</string>
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"غیر دستیاب نیٹ ورک"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> کو آپ کے منتظم کے ذریعے مسدود کر دیا گیا ہے۔"</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"بند کریں"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"‏آپ نے Wi‑Fi آن کر دیا ہے"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"‏آپ کا فون ہوائی جہاز وضع میں Wi‑Fi کو آن رکھے گا، جب تک کہ آپ اس وضع میں رہتے ہوئے اسے بند نہ کر دیں"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"‏Wi‑Fi آن رہتا ہے"</string>
+    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"‏آپ کا فون ہوائی جہاز وضع میں Wi‑Fi کو آن رکھے گا، جب تک کہ آپ اس وضع میں رہتے ہوئے اسے بند نہ کر دیں"</string>
 </resources>

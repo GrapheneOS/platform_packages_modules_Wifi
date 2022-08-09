@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"నెట్‌వర్క్ స్టేటస్‌"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"నెట్‌వర్క్ హెచ్చరికలు"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"నెట్‌వర్క్ అందుబాటులో ఉంది"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM అలర్ట్‌లు"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"సూచించిన Wi‑Fi నెట్‌వర్క్‌లను అనుమతించాలా?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> సూచించిన నెట్‌వర్క్‌లు. పరికరం ఆటోమేటిక్‌గా కనెక్ట్ అవచ్చు."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించండి"</string>
@@ -125,6 +126,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"ఇది ఈ యాప్‌లకు సమస్యలను కలిగించవచ్చు: <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"అనుమతించండి"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"అనుమతించవద్దు"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi-Fi హాట్‌స్పాట్"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi-Fi హాట్‌స్పాట్"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi‑Fi Direct"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi గురించి అవగాహన"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"ఈ నెట్‌వర్క్ విశ్వసనీయమైనదా?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"అవును, కనెక్ట్ చేయండి"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"వద్దు, కనెక్ట్ చేయవద్దు"</string>
@@ -153,4 +159,11 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"మీరు క్విక్ సెట్టింగ్‌లలో Wi‑Fiని ఆఫ్ చేయవచ్చు"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"అనుమతించండి"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"అనుమతించవద్దు"</string>
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"నెట్‌వర్క్ అందుబాటులో లేదు"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>ను మీ అడ్మినిస్ట్రేటర్ డిజేబుల్ చేశారు."</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"మూసివేయండి"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"మీరు Wi‑Fiని ఆన్ చేశారు"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"మీరు ఈ మోడ్‌లో ఉన్నప్పుడు దాన్ని ఆఫ్ చేస్తే తప్ప, మీ ఫోన్ Wi‑Fiని విమానం మోడ్‌లో ఆన్‌లో ఉంచుతుంది"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi ఆన్‌లోనే ఉంటుంది"</string>
+    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"మీరు ఈ మోడ్‌లో ఉన్నప్పుడు దాన్ని ఆఫ్ చేస్తే తప్ప, మీ ఫోన్ Wi‑Fiని విమానం మోడ్‌లో ఆన్‌లో ఉంచుతుంది"</string>
 </resources>
