@@ -80,27 +80,40 @@ public class WifiDialogManager {
     private final @NonNull FrameworkFacade mFrameworkFacade;
     private final int mGravity;
 
-    // Broadcast receiver for listening to ACTION_CLOSE_SYSTEM_DIALOGS
-    private final BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             mWifiThreadRunner.post(() -> {
-                if (!context.getSystemService(PowerManager.class).isInteractive()) {
-                    // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
-                    // However, we should change the window type to TYPE_APPLICATION_OVERLAY so that
-                    // it does not show over the lock screen when the screen turns on again.
+                String action = intent.getAction();
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "Received action: " + action);
+                }
+                if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                    // Change all window types to TYPE_APPLICATION_OVERLAY to prevent the dialogs
+                    // from appearing over the lock screen when the screen turns on again.
                     for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
                         dialogHandle.changeWindowType(
                                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
                     }
-                    return;
-                }
-                if (mVerboseLoggingEnabled) {
-                    Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received while screen on, cancelling"
-                            + " all legacy dialogs.");
-                }
-                for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
-                    dialogHandle.cancelDialog();
+                } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                    // Change all window types to TYPE_KEYGUARD_DIALOG to show the dialogs over the
+                    // QuickSettings after the screen is unlocked.
+                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
+                        dialogHandle.changeWindowType(
+                                WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+                    }
+                } else if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
+                    if (!context.getSystemService(PowerManager.class).isInteractive()) {
+                        // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
+                        return;
+                    }
+                    if (mVerboseLoggingEnabled) {
+                        Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received while screen on,"
+                                + " cancelling all legacy dialogs.");
+                    }
+                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
+                        dialogHandle.cancelDialog();
+                    }
                 }
             });
         }
@@ -121,12 +134,15 @@ public class WifiDialogManager {
         mWifiThreadRunner = wifiThreadRunner;
         mFrameworkFacade = frameworkFacade;
         mGravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        intentFilter.addAction(Intent.ACTION_USER_PRESENT);
+        intentFilter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         int flags = 0;
         if (SdkLevel.isAtLeastT()) {
             flags = Context.RECEIVER_EXPORTED;
         }
-        mContext.registerReceiver(mCloseSystemDialogsReceiver,
-                new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS), flags);
+        mContext.registerReceiver(mBroadcastReceiver, intentFilter, flags);
     }
 
     /**
