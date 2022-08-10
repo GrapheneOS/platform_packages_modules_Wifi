@@ -476,10 +476,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
         }
 
         ImsMmTelManager imsMmTelManager = ImsMmTelManager.createForSubscriptionId(subId);
-        // If no wifi calling, no delay
+        // If no IMS service over WLAN, no delay
         try {
             if (!imsMmTelManager.isAvailable(
-                    MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE,
+                    MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE
+                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO
+                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT
+                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_SMS
+                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_CALL_COMPOSER,
                     ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
                 Log.d(getTag(), "IMS not registered over IWLAN for subId: " + subId);
                 return 0;
