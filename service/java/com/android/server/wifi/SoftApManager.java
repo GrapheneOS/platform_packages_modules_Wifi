@@ -543,8 +543,11 @@ public class SoftApManager implements ActiveModeManager {
      * downgrade is not possible.
      */
     public String getBridgedApDowngradeIfaceInstanceForRemoval() {
-        if (!isBridgedMode() || mCurrentSoftApInfoMap.size() == 0
-                || mWifiNative.getBridgedApInstances(mApInterfaceName).size() == 1) {
+        if (!isBridgedMode() || mCurrentSoftApInfoMap.size() == 0) {
+            return null;
+        }
+        List<String> instances = mWifiNative.getBridgedApInstances(mApInterfaceName);
+        if (instances == null || instances.size() == 1) {
             return null;
         }
         return getHighestFrequencyInstance(mCurrentSoftApInfoMap.keySet());
@@ -1642,7 +1645,8 @@ public class SoftApManager implements ActiveModeManager {
                                 if (mCurrentSoftApInfoMap.size() == 1) {
                                     break;
                                 }
-                            } else if (mCurrentSoftApInfoMap.size() == 1 && instances.size() == 1) {
+                            } else if (mCurrentSoftApInfoMap.size() == 1 && instances != null
+                                    && instances.size() == 1) {
                                 if (!mCurrentSoftApInfoMap.containsKey(instances.get(0))) {
                                     // there is an available instance but the info doesn't be
                                     // updated, keep AP on and remove unavailable instance info.
