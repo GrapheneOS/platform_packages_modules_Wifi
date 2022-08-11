@@ -3992,12 +3992,23 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
             SupplicantStaNetworkHalHidlImpl networkHandle =
                     checkSupplicantStaNetworkAndLogFailure(ifaceName, "setEapAnonymousIdentity");
             if (networkHandle == null) return false;
+            if (anonymousIdentity == null) return false;
+            WifiConfiguration currentConfig = getCurrentNetworkLocalConfig(ifaceName);
+            if (currentConfig == null) return false;
+            if (!currentConfig.isEnterprise()) return false;
+
             try {
-                return networkHandle.setEapAnonymousIdentity(
-                        NativeUtil.stringToByteArrayList(anonymousIdentity));
+                if (!networkHandle.setEapAnonymousIdentity(
+                        NativeUtil.stringToByteArrayList(anonymousIdentity))) {
+                    Log.w(TAG, "Cannot set EAP anonymous identity.");
+                    return false;
+                }
             } catch (IllegalArgumentException ex) {
                 return false;
             }
+            // Update cached config after setting native data successfully.
+            currentConfig.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
+            return true;
         }
     }
 }
