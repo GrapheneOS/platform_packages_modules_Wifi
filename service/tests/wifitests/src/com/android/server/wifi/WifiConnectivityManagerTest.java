@@ -3554,6 +3554,38 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 anyObject(), anyObject(), anyObject(), anyObject());
     }
 
+    @Test
+    public void testNoRetryScanWhenScreenOff() {
+        // Set screen to ON
+        setScreenState(true);
+
+        doAnswer(new AnswerWithArguments() {
+            public void answer(ScanSettings settings, Executor executor, ScanListener listener,
+                    WorkSource workSource) throws Exception {
+                listener.onFailure(-1, "ScanFailure");
+            }}).when(mWifiScanner).startScan(anyObject(), anyObject(), anyObject(), anyObject());
+
+        // Set WiFi to disconnected state to trigger the single scan based periodic scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+
+
+        // turn the screen off
+        setScreenState(false);
+        // Fire the alarm timer 2x timers
+        for (int i = 0; i < (WifiConnectivityManager.MAX_SCAN_RESTART_ALLOWED * 2); i++) {
+            mAlarmManager.dispatch(WifiConnectivityManager.RESTART_SINGLE_SCAN_TIMER_TAG);
+            mLooper.dispatchAll();
+        }
+
+        // Verify that the connectivity scan has happened 2 times. Note, the first scan is due
+        // to the initial request, and the second scan is the first retry after failure.
+        // There are no more retries afterwards because the screen is off.
+        verify(mWifiScanner, times(2)).startScan(
+                anyObject(), anyObject(), anyObject(), anyObject());
+    }
+
     /**
      * Verify that a successful scan result resets scan retry counter
      *
@@ -3566,6 +3598,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void verifyScanFailureCountIsResetAfterOnResult() {
+        setScreenState(true);
         // Setup WifiScanner to fail
         doAnswer(new AnswerWithArguments() {
             public void answer(ScanSettings settings, Executor executor, ScanListener listener,

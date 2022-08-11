@@ -980,12 +980,12 @@ public class WifiConnectivityManager {
                     + " reason: " + reason + " description: " + description);
 
             // reschedule the scan
-            if (mSingleScanRestartCount++ < MAX_SCAN_RESTART_ALLOWED) {
+            if (mSingleScanRestartCount++ < MAX_SCAN_RESTART_ALLOWED && mScreenOn) {
                 scheduleDelayedSingleScan(mIsFullBandScan);
             } else {
-                mSingleScanRestartCount = 0;
                 localLog("Failed to successfully start single scan for "
-                        + MAX_SCAN_RESTART_ALLOWED + " times");
+                        + mSingleScanRestartCount + " times, mScreenOn=" + mScreenOn);
+                mSingleScanRestartCount = 0;
             }
         }
 
