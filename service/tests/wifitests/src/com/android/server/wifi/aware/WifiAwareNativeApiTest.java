@@ -571,7 +571,6 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
         when(mIWifiNanIfaceMock.disableRequest(anyShort())).thenReturn(status);
         assertTrue(mDut.disable((short) 10));
         verify(mIWifiNanIfaceMock).disableRequest((short) 10);
-        verify(mWifiAwareNativeManagerMock).releaseAware();
     }
 
     // utilities
