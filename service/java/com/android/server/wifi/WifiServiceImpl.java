@@ -6128,7 +6128,11 @@ public class WifiServiceImpl extends BaseWifiService {
         final int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
         enforceAccessPermission();
-        enforceLocationPermission(packageName, featureId, uid);
+        if (SdkLevel.isAtLeastT()) {
+            enforceLocationPermissionInManifest(uid, false /* isCoarseOnly */);
+        } else {
+            enforceLocationPermission(packageName, featureId, uid);
+        }
         if (mVerboseLoggingEnabled) {
             mLog.info("registerSuggestionConnectionStatusListener uid=%").c(uid).flush();
         }
