@@ -1307,7 +1307,8 @@ public class PasspointManagerTest extends WifiBaseTest {
     @Test
     public void getWifiConfigsForPasspointProfilesWithoutNonPersistentMacRandomization() {
         MacAddress randomizedMacAddress = MacAddress.fromString("01:23:45:67:89:ab");
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(randomizedMacAddress);
+        when(mMacAddressUtil.calculatePersistentMacForSta(any(), anyInt()))
+                .thenReturn(randomizedMacAddress);
         when(mWifiConfigManager.shouldUseNonPersistentRandomization(any())).thenReturn(false);
         PasspointProvider provider = addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME,
                 TEST_PACKAGE, false, null);
@@ -1317,8 +1318,8 @@ public class PasspointManagerTest extends WifiBaseTest {
         WifiConfiguration config = mManager.getWifiConfigsForPasspointProfiles(
                 Collections.singletonList(provider.getConfig().getUniqueId())).get(0);
         assertEquals(config.getRandomizedMacAddress(), randomizedMacAddress);
-        verify(mMacAddressUtil).calculatePersistentMac(
-                eq(provider.getConfig().getUniqueId()), any());
+        verify(mMacAddressUtil).calculatePersistentMacForSta(
+                eq(provider.getConfig().getUniqueId()), anyInt());
     }
 
     /**
@@ -1330,7 +1331,8 @@ public class PasspointManagerTest extends WifiBaseTest {
     @Test
     public void getWifiConfigsForPasspointProfilesWithNonPersistentMacRandomization() {
         MacAddress randomizedMacAddress = MacAddress.fromString("01:23:45:67:89:ab");
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(randomizedMacAddress);
+        when(mMacAddressUtil.calculatePersistentMacForSta(any(), anyInt()))
+                .thenReturn(randomizedMacAddress);
         when(mWifiConfigManager.shouldUseNonPersistentRandomization(any())).thenReturn(true);
         PasspointProvider provider = addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME,
                 TEST_PACKAGE, false, null);
