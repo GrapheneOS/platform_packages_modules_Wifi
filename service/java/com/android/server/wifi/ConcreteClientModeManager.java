@@ -449,7 +449,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
             return 0;
         }
 
-        List<SubscriptionInfo> subInfoList = subscriptionManager.getActiveSubscriptionInfoList();
+        List<SubscriptionInfo> subInfoList = subscriptionManager
+                .getCompleteActiveSubscriptionInfoList();
         if (subInfoList == null) {
             Log.d(getTag(), "Active SubscriptionInfo list not found");
             return 0;

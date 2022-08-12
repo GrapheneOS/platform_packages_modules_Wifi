@@ -240,7 +240,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mTelephonyManager.getActiveModemCount()).thenReturn(2);
         when(mCarrierConfigManager.getConfigForSubId(anyInt()))
                 .thenReturn(generateTestCarrierConfig(false));
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(mSubInfoList);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(mSubInfoList);
         mMockingSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
                 .mockStatic(SubscriptionManager.class).startMocking();
 
@@ -1044,7 +1044,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(subInfo1.getSubscriptionId()).thenReturn(DATA_SUBID);
         SubscriptionInfo subInfo2 = mock(SubscriptionInfo.class);
         when(subInfo2.getSubscriptionId()).thenReturn(NON_DATA_SUBID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo1, subInfo2));
         assertTrue(mWifiCarrierInfoManager.isSimReady(DATA_SUBID));
     }
@@ -1054,7 +1054,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
      */
     @Test
     public void isSimPresentWithInvalidOrEmptySubscriptionIdList() {
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
@@ -1063,7 +1063,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
 
         SubscriptionInfo subInfo = mock(SubscriptionInfo.class);
         when(subInfo.getSubscriptionId()).thenReturn(NON_DATA_SUBID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo));
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
@@ -1079,7 +1079,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(subInfo1.getSubscriptionId()).thenReturn(DATA_SUBID);
         SubscriptionInfo subInfo2 = mock(SubscriptionInfo.class);
         when(subInfo2.getSubscriptionId()).thenReturn(NON_DATA_SUBID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo1, subInfo2));
         when(mDataTelephonyManager.getSimApplicationState())
                 .thenReturn(TelephonyManager.SIM_STATE_NETWORK_LOCKED);
@@ -1095,7 +1095,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(subInfo1.getSubscriptionId()).thenReturn(DATA_SUBID);
         SubscriptionInfo subInfo2 = mock(SubscriptionInfo.class);
         when(subInfo2.getSubscriptionId()).thenReturn(NON_DATA_SUBID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo1, subInfo2));
         when(mCarrierConfigManager.getConfigForSubId(anyInt())).thenReturn(null);
         ArgumentCaptor<BroadcastReceiver> receiver =
@@ -1114,13 +1114,13 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     public void getBestMatchSubscriptionIdWithEmptyActiveSubscriptionInfoList() {
         WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork(
                 WifiEnterpriseConfig.Eap.AKA, WifiEnterpriseConfig.Phase2.NONE);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(null);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(null);
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
 
         assertEquals(INVALID_SUBID, mWifiCarrierInfoManager.getBestMatchSubscriptionId(config));
 
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
@@ -1219,7 +1219,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
      */
     @Test
     public void getMatchingImsiCarrierIdWithDeactiveCarrierId() {
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
 
         assertNull(mWifiCarrierInfoManager.getMatchingImsiBySubId(INVALID_SUBID));
@@ -1253,13 +1253,13 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
      */
     @Test
     public void getMatchingImsiCarrierIdWithEmptyActiveSubscriptionInfoList() {
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(null);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(null);
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
 
         assertNull(mWifiCarrierInfoManager.getMatchingImsiCarrierId(MATCH_PREFIX_IMSI));
 
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
@@ -1426,11 +1426,11 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     public void tryUpdateCarrierIdForPasspointWithEmptyActiveSubscriptionList() {
         PasspointConfiguration config = mock(PasspointConfiguration.class);
         when(config.getCarrierId()).thenReturn(DATA_CARRIER_ID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(null);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(null);
 
         assertFalse(mWifiCarrierInfoManager.tryUpdateCarrierIdForPasspoint(config));
 
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
 
         assertFalse(mWifiCarrierInfoManager.tryUpdateCarrierIdForPasspoint(config));
@@ -1576,11 +1576,11 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
      */
     @Test
     public void getCarrierPrivilegeWithNoActiveSubscription() {
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(null);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(null);
         assertEquals(TelephonyManager.UNKNOWN_CARRIER_ID,
                 mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(TEST_PACKAGE));
 
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Collections.emptyList());
         assertEquals(TelephonyManager.UNKNOWN_CARRIER_ID,
                 mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(TEST_PACKAGE));
@@ -1594,7 +1594,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     public void getCarrierPrivilegeWithPackageHasNoPrivilege() {
         SubscriptionInfo subInfo = mock(SubscriptionInfo.class);
         when(subInfo.getSubscriptionId()).thenReturn(DATA_SUBID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo));
         when(mDataTelephonyManager.checkCarrierPrivilegesForPackage(TEST_PACKAGE))
                 .thenReturn(TelephonyManager.CARRIER_PRIVILEGE_STATUS_NO_ACCESS);
@@ -1611,7 +1611,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         SubscriptionInfo subInfo = mock(SubscriptionInfo.class);
         when(subInfo.getSubscriptionId()).thenReturn(DATA_SUBID);
         when(subInfo.getCarrierId()).thenReturn(DATA_CARRIER_ID);
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(subInfo));
         when(mDataTelephonyManager.checkCarrierPrivilegesForPackage(TEST_PACKAGE))
                 .thenReturn(TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS);
