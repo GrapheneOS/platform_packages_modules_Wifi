@@ -143,21 +143,21 @@ public class FrameworkFacade {
      * Mockable facade to Settings.Secure.getInt(.).
      */
     public int getSecureIntegerSetting(Context context, String name, int def) {
-        return Settings.Secure.getInt(getContentResolver(context), name, def);
+        return Settings.Secure.getInt(context.getContentResolver(), name, def);
     }
 
     /**
      * Mockable facade to Settings.Secure.putInt(.).
      */
     public boolean setSecureIntegerSetting(Context context, String name, int def) {
-        return Settings.Secure.putInt(getContentResolver(context), name, def);
+        return Settings.Secure.putInt(context.getContentResolver(), name, def);
     }
 
     /**
      * Mockable facade to Settings.Secure.getString(.).
      */
     public String getSecureStringSetting(Context context, String name) {
-        return Settings.Secure.getString(getContentResolver(context), name);
+        return Settings.Secure.getString(context.getContentResolver(), name);
     }
 
     /**

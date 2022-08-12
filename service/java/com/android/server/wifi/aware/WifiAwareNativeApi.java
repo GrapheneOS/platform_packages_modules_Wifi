@@ -389,7 +389,6 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
         boolean result = iface.disable(transactionId);
-        mHal.releaseAware();
         return result;
     }
 
