@@ -8007,12 +8007,30 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test register callback without permission.
+     * Test register callback without ACCESS_WIFI_STATE permission.
      */
     @Test(expected = SecurityException.class)
-    public void testRegisterSuggestionNetworkCallbackWithMissingPermission() {
+    public void testRegisterSuggestionNetworkCallbackWithMissingAccessWifiPermission() {
         doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
                 eq(ACCESS_WIFI_STATE), eq("WifiService"));
+        mWifiServiceImpl.registerSuggestionConnectionStatusListener(
+                mSuggestionConnectionStatusListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+    }
+
+    /**
+     * Test register callback without ACCESS_FINE_LOCATION permission.
+     */
+    @Test(expected = SecurityException.class)
+    public void testRegisterSuggestionNetworkCallbackWithMissingFinePermission() {
+        doNothing().when(mContext).enforceCallingOrSelfPermission(
+                eq(ACCESS_WIFI_STATE), eq("WifiService"));
+        if (SdkLevel.isAtLeastT()) {
+            doThrow(new SecurityException()).when(mWifiPermissionsUtil)
+                    .enforceLocationPermissionInManifest(anyInt(), eq(false));
+        } else {
+            doThrow(new SecurityException()).when(mWifiPermissionsUtil)
+                    .enforceLocationPermission(anyString(), anyString(), anyInt());
+        }
         mWifiServiceImpl.registerSuggestionConnectionStatusListener(
                 mSuggestionConnectionStatusListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
     }
