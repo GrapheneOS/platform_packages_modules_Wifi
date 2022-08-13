@@ -221,7 +221,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(DeviceConfigFacade.DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC,
                 mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
-        assertEquals(false, mDeviceConfigFacade.isApmEnhancementEnabled());
     }
 
     /**
@@ -416,6 +415,5 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(5000, mDeviceConfigFacade.getTrafficStatsThresholdMaxKbyte());
         assertEquals(30, mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
-        assertEquals(true, mDeviceConfigFacade.isApmEnhancementEnabled());
     }
 }

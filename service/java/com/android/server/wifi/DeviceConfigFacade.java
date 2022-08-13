@@ -21,6 +21,7 @@ import static com.android.server.wifi.util.InformationElementUtil.BssLoad.CHANNE
 import android.content.Context;
 import android.os.Handler;
 import android.provider.DeviceConfig;
+import android.provider.Settings;
 import android.util.ArraySet;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -808,6 +809,8 @@ public class DeviceConfigFacade {
      * Gets the feature flag for APM enhancement
      */
     public boolean isApmEnhancementEnabled() {
-        return mApmEnhancementEnabled;
+        // reads the value set by Bluetooth device config for APM enhancement feature flag
+        return Settings.Global.getInt(
+                mContext.getContentResolver(), "apm_enhancement_enabled", 0) == 1;
     }
 }
