@@ -300,7 +300,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 .thenReturn(true);
         when(mWifiPermissionsUtil.isDeviceInDemoMode(any())).thenReturn(false);
         when(mWifiLastResortWatchdog.shouldIgnoreSsidUpdate()).thenReturn(false);
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(TEST_RANDOMIZED_MAC);
+        when(mMacAddressUtil.calculatePersistentMacForSta(any(), anyInt()))
+                .thenReturn(TEST_RANDOMIZED_MAC);
         when(mWifiScoreCard.lookupNetwork(any())).thenReturn(mPerNetwork);
 
         WifiContext wifiContext = mock(WifiContext.class);
@@ -434,7 +435,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testRandomizedMacIsGeneratedEvenIfKeyStoreFails() {
-        when(mMacAddressUtil.calculatePersistentMac(any(), any())).thenReturn(null);
+        when(mMacAddressUtil.calculatePersistentMacForSta(any(), anyInt())).thenReturn(null);
 
         // Try adding a network.
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
@@ -443,9 +444,6 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyAddNetworkToWifiConfigManager(openNetwork);
         List<WifiConfiguration> retrievedNetworks =
                 mWifiConfigManager.getConfiguredNetworksWithPasswords();
-
-        // Verify that we have attempted to generate the MAC address twice (1 retry)
-        verify(mMacAddressUtil, times(2)).calculatePersistentMac(any(), any());
         assertEquals(1, retrievedNetworks.size());
 
         // Verify that despite KeyStore returning null, we are still getting a valid MAC address.
@@ -2717,7 +2715,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Verify the MAC address is valid, and is NOT calculated from the (SSID + security type)
         assertTrue(WifiConfiguration.isValidMacAddressForRandomization(
                 getFirstInternalWifiConfiguration().getRandomizedMacAddress()));
-        verify(mMacAddressUtil, never()).calculatePersistentMac(any(), any());
+        verify(mMacAddressUtil, never()).calculatePersistentMacForSta(any(), anyInt());
     }
 
     /**
@@ -6547,7 +6545,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testGetPersistRandomMacAddress() {
         WifiConfiguration network = WifiConfigurationTestUtil.createPskNetwork();
         mWifiConfigManager.getPersistentMacAddress(network);
-        verify(mMacAddressUtil).calculatePersistentMac(eq(network.getNetworkKey()), any());
+        verify(mMacAddressUtil).calculatePersistentMacForSta(eq(network.getNetworkKey()), anyInt());
     }
 
     private void verifyAddUpgradableNetwork(

@@ -97,6 +97,32 @@ public class WifiNanIface {
     }
 
     /**
+     * NAN DP (data-path) channel config options.
+     */
+    public static class NanDataPathChannelCfg {
+        public static final int CHANNEL_NOT_REQUESTED = 0;
+        public static final int REQUEST_CHANNEL_SETUP = 1;
+        public static final int FORCE_CHANNEL_SETUP = 2;
+
+        /**
+         * Convert NanDataPathChannelCfg from framework to HIDL.
+         */
+        public static int toHidl(int code) {
+            switch (code) {
+                case CHANNEL_NOT_REQUESTED:
+                    return android.hardware.wifi.V1_0.NanDataPathChannelCfg.CHANNEL_NOT_REQUESTED;
+                case REQUEST_CHANNEL_SETUP:
+                    return android.hardware.wifi.V1_0.NanDataPathChannelCfg.REQUEST_CHANNEL_SETUP;
+                case FORCE_CHANNEL_SETUP:
+                    return android.hardware.wifi.V1_0.NanDataPathChannelCfg.FORCE_CHANNEL_SETUP;
+                default:
+                    Log.e(TAG, "Unknown NanDataPathChannelCfg received from framework: " + code);
+                    return -1;
+            }
+        }
+    }
+
+    /**
      * Ranging in the context of discovery session indication controls.
      */
     public static class NanRangingIndication {
@@ -1049,7 +1075,7 @@ public class WifiNanIface {
             NanInitiateDataPathRequest req = new NanInitiateDataPathRequest();
             req.peerId = peerId;
             copyArray(peer, req.peerDiscMacAddr);
-            req.channelRequestType = channelRequestType;
+            req.channelRequestType = NanDataPathChannelCfg.toHidl(channelRequestType);
             req.channel = channel;
             req.ifaceName = interfaceName;
             req.securityConfig.securityType = NanDataPathSecurityType.OPEN;
@@ -1093,7 +1119,7 @@ public class WifiNanIface {
                     new android.hardware.wifi.V1_6.NanInitiateDataPathRequest();
             req.peerId = peerId;
             copyArray(peer, req.peerDiscMacAddr);
-            req.channelRequestType = channelRequestType;
+            req.channelRequestType = NanDataPathChannelCfg.toHidl(channelRequestType);
             req.channel = channel;
             req.ifaceName = interfaceName;
             req.securityConfig.securityType = NanDataPathSecurityType.OPEN;
