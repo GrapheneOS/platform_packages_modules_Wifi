@@ -19,8 +19,6 @@ package com.android.server.wifi.aware;
 import static android.net.RouteInfo.RTN_UNICAST;
 
 import android.content.Context;
-import android.hardware.wifi.V1_0.NanDataPathChannelCfg;
-import android.hardware.wifi.V1_0.NanStatusType;
 import android.net.ConnectivityManager;
 import android.net.IpPrefix;
 import android.net.LinkAddress;
@@ -56,6 +54,8 @@ import android.util.SparseArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.WifiNanIface.NanDataPathChannelCfg;
+import com.android.server.wifi.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
@@ -740,7 +740,7 @@ public class WifiAwareDataPathStateManager {
                     NETWORK_FACTORY_SCORE_AVAIL, naConfig, mNetworkFactory.getProvider(), nnri);
             mNiWrapper.setConnected(nnri.networkAgent);
         }
-        mAwareMetrics.recordNdpStatus(NanStatusType.SUCCESS, isOutOfBand, ndpInfo.startTimestamp);
+        mAwareMetrics.recordNdpStatus(NanStatusCode.SUCCESS, isOutOfBand, ndpInfo.startTimestamp);
         mAwareMetrics.recordNdpCreation(nnri.uid, nnri.packageName, mNetworkRequestsCache);
     }
 
@@ -865,7 +865,7 @@ public class WifiAwareDataPathStateManager {
         }
         AwareNetworkRequestInformation nnri = nnriE.getValue();
         NdpInfo ndpInfo = nnri.ndpInfos.get(ndpId);
-        mAwareMetrics.recordNdpStatus(NanStatusType.INTERNAL_FAILURE,
+        mAwareMetrics.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE,
                 nnri.networkSpecifier.isOutOfBand(), ndpInfo.startTimestamp);
         mMgr.endDataPath(ndpId);
         nnri.ndpInfos.remove(ndpId);
