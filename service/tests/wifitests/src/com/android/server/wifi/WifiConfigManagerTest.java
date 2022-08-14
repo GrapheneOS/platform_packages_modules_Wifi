@@ -4930,7 +4930,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         List<SubscriptionInfo> subList = new ArrayList<>() {{
                 add(mock(SubscriptionInfo.class));
             }};
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(subList);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(subList);
         when(mSubscriptionManager.getActiveSubscriptionIdList())
                 .thenReturn(new int[]{DATA_SUBID});
 
@@ -4987,7 +4987,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         List<SubscriptionInfo> subList = new ArrayList<>() {{
                 add(mock(SubscriptionInfo.class));
             }};
-        when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(subList);
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(subList);
         when(mSubscriptionManager.getActiveSubscriptionIdList())
                 .thenReturn(new int[]{DATA_SUBID});
 
