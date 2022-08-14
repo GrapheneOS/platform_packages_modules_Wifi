@@ -887,6 +887,7 @@ public class SoftApManager implements ActiveModeManager {
         public static final int CMD_UPDATE_COUNTRY_CODE = 16;
         public static final int CMD_CHARGING_STATE_CHANGED = 17;
 
+        private final State mActiveState = new ActiveState();
         private final State mIdleState = new IdleState();
         private final State mStartedState = new StartedState();
 
@@ -917,12 +918,20 @@ public class SoftApManager implements ActiveModeManager {
             super(TAG, looper);
 
             // CHECKSTYLE:OFF IndentationCheck
-            addState(mIdleState);
-                addState(mStartedState, mIdleState);
+            addState(mActiveState);
+                addState(mIdleState, mActiveState);
+                addState(mStartedState, mActiveState);
             // CHECKSTYLE:ON IndentationCheck
 
             setInitialState(mIdleState);
             start();
+        }
+
+        private class ActiveState extends State {
+            @Override
+            public void exit() {
+                mModeListener.onStopped(SoftApManager.this);
+            }
         }
 
         private class IdleState extends State {
@@ -934,15 +943,10 @@ public class SoftApManager implements ActiveModeManager {
             }
 
             @Override
-            public void exit() {
-                mModeListener.onStopped(SoftApManager.this);
-            }
-
-            @Override
             public boolean processMessage(Message message) {
                 switch (message.what) {
                     case CMD_STOP:
-                        mStateMachine.quitNow();
+                        quitNow();
                         break;
                     case CMD_START:
                         mRequestorWs = (WorkSource) message.obj;
