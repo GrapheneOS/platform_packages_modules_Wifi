@@ -275,6 +275,9 @@ abstract class SupplicantStaIfaceCallbackHidlV1_4Impl extends
     @Override
     public void onNetworkNotFound(ArrayList<Byte> ssid) {
         mStaIfaceHal.logCallback("onNetworkNotFoundNotification");
+        if (mStaIfaceHal.connectToFallbackSsid(mIfaceName)) {
+            return;
+        }
         mWifiMonitor.broadcastNetworkNotFoundEvent(mIfaceName, mSsidTranslator.getTranslatedSsid(
                 WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid))).toString());
     }
