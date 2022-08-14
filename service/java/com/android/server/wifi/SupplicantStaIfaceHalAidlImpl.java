@@ -68,6 +68,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
@@ -124,6 +125,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private Map<String, SupplicantStaNetworkHalAidlImpl>
             mCurrentNetworkRemoteHandles = new HashMap<>();
     private Map<String, WifiConfiguration> mCurrentNetworkLocalConfigs = new HashMap<>();
+    private Map<String, WifiSsid> mCurrentNetworkFallbackSsids = new HashMap<>();
     private Map<String, List<Pair<SupplicantStaNetworkHalAidlImpl, WifiConfiguration>>>
             mLinkedNetworkLocalAndRemoteConfigs = new HashMap<>();
     @VisibleForTesting
@@ -564,10 +566,48 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      * @return true if it succeeds, false otherwise
      */
     public boolean connectToNetwork(@NonNull String ifaceName, @NonNull WifiConfiguration config) {
+        return connectToNetwork(ifaceName, config, null);
+    }
+
+    /**
+     * Connects to the fallback SSID (if any) of the current network upon a network not found
+     * notification.
+     */
+    public boolean connectToFallbackSsid(@NonNull String ifaceName) {
         synchronized (mLock) {
-            Log.d(TAG, "connectToNetwork " + config.getProfileKey());
+            WifiSsid fallbackSsid = mCurrentNetworkFallbackSsids.remove(ifaceName);
+            if (fallbackSsid == null) {
+                return false;
+            }
+            Log.d(TAG, "connectToFallbackSsid " + fallbackSsid);
+            return connectToNetwork(
+                    ifaceName, getCurrentNetworkLocalConfig(ifaceName), fallbackSsid);
+        }
+    }
+
+    /**
+     * Add the provided network configuration to wpa_supplicant and initiate connection to it.
+     * This method does the following:
+     * 1. If |config| is different to the current supplicant network, removes all supplicant
+     * networks and saves |config|.
+     * 2. Selects an SSID from the 2 possible original SSIDs derived from config.SSID to pass to
+     *    wpa_supplicant, and stores the unused one as fallback if the first one is not found.
+     * 3. Select the new network in wpa_supplicant.
+     *
+     * @param ifaceName Name of the interface.
+     * @param config WifiConfiguration parameters for the provided network.
+     * @param actualSsid The actual, untranslated SSID to send to supplicant. If this is null, then
+     *                   we will connect to either of the 2 possible original SSIDs based on the
+     *                   config's network selection BSSID or network selection candidate. If that
+     *                   SSID is not found, then we will immediately connect to the other one.
+     * @return true if it succeeds, false otherwise
+     */
+    private boolean connectToNetwork(@NonNull String ifaceName, @NonNull WifiConfiguration config,
+            WifiSsid actualSsid) {
+        synchronized (mLock) {
+            Log.d(TAG, "connectToNetwork " + config.getProfileKey() + ", actualSsid=" + actualSsid);
             WifiConfiguration currentConfig = getCurrentNetworkLocalConfig(ifaceName);
-            if (WifiConfigurationUtil.isSameNetwork(config, currentConfig)) {
+            if (actualSsid == null && WifiConfigurationUtil.isSameNetwork(config, currentConfig)) {
                 String networkSelectionBSSID = config.getNetworkSelectionStatus()
                         .getNetworkSelectionBSSID();
                 String networkSelectionBSSIDCurrent = currentConfig.getNetworkSelectionStatus()
@@ -588,12 +628,38 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 mCurrentNetworkRemoteHandles.remove(ifaceName);
                 mCurrentNetworkLocalConfigs.remove(ifaceName);
                 mLinkedNetworkLocalAndRemoteConfigs.remove(ifaceName);
+                mCurrentNetworkFallbackSsids.remove(ifaceName);
                 if (!removeAllNetworks(ifaceName)) {
                     Log.e(TAG, "Failed to remove existing networks");
                     return false;
                 }
+                WifiConfiguration supplicantConfig = new WifiConfiguration(config);
+                if (actualSsid != null) {
+                    supplicantConfig.SSID = actualSsid.toString();
+                } else {
+                    if (config.SSID != null) {
+                        // No actual SSID supplied, so select from the network selection BSSID
+                        // or the latest candidate BSSID.
+                        WifiSsid supplicantSsid = mSsidTranslator.getOriginalSsid(config);
+                        if (supplicantSsid != null) {
+                            supplicantConfig.SSID = supplicantSsid.toString();
+                            List<WifiSsid> allPossibleSsids = mSsidTranslator
+                                    .getAllPossibleOriginalSsids(WifiSsid.fromString(config.SSID));
+                            WifiSsid selectedSsid = mSsidTranslator.getOriginalSsid(config);
+                            allPossibleSsids.remove(selectedSsid);
+                            if (!allPossibleSsids.isEmpty()) {
+                                // Store the unused SSID to fallback on in
+                                // connectToFallbackSsid(String) if the chosen SSID isn't found.
+                                mCurrentNetworkFallbackSsids.put(
+                                        ifaceName, allPossibleSsids.get(0));
+                            }
+                            Log.d(TAG, "Selecting supplicant SSID " + supplicantSsid);
+                            supplicantConfig.SSID = supplicantSsid.toString();
+                        }
+                    }
+                }
                 Pair<SupplicantStaNetworkHalAidlImpl, WifiConfiguration> pair =
-                        addNetworkAndSaveConfig(ifaceName, config);
+                        addNetworkAndSaveConfig(ifaceName, supplicantConfig);
                 if (pair == null) {
                     Log.e(TAG, "Failed to add/save network configuration: " + config
                             .getProfileKey());
@@ -982,7 +1048,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         synchronized (mLock) {
             SupplicantStaNetworkHalAidlImpl networkWrapper =
                     new SupplicantStaNetworkHalAidlImpl(network, ifaceName, mContext,
-                            mWifiMonitor, mWifiGlobals, mSsidTranslator,
+                            mWifiMonitor, mWifiGlobals,
                             getAdvancedCapabilities(ifaceName));
             if (networkWrapper != null) {
                 networkWrapper.enableVerboseLogging(
