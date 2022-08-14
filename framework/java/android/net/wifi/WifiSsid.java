@@ -69,7 +69,7 @@ public final class WifiSsid implements Parcelable {
      */
     @NonNull
     public byte[] getBytes() {
-        return mBytes;
+        return mBytes.clone();
     }
 
     /**

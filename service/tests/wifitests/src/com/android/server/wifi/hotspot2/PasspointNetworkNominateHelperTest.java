@@ -411,7 +411,7 @@ public class PasspointNetworkNominateHelperTest {
         when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
         when(testProvider.isSimCredential()).thenReturn(true);
         // SIM is present
-        when(mSubscriptionManager.getActiveSubscriptionInfoList())
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
                 .thenReturn(Arrays.asList(mock(SubscriptionInfo.class)));
         when(mWifiConfigManager.addOrUpdateNetwork(any(WifiConfiguration.class), anyInt(),
                 any(), eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
