@@ -93,6 +93,7 @@ import com.android.wifi.resources.R;
 import com.google.errorprone.annotations.CompileTimeConstant;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -2981,17 +2982,15 @@ public class WifiVendorHal {
                 // parse the whitelist SSIDs if any
                 if (config.allowlistSsids != null) {
                     for (String ssidStr : config.allowlistSsids) {
-                        byte[] ssid = NativeUtil.byteArrayFromArrayList(
-                                NativeUtil.decodeSsid(ssidStr));
-                        // HIDL code is throwing InvalidArgumentException when ssidWhitelist has
-                        // SSIDs with less than 32 byte length this is due to HAL definition of
-                        // SSID declared it as 32-byte fixed length array. Thus pad additional
-                        // bytes with 0's to pass SSIDs as byte arrays of 32 length
-                        byte[] ssid_32 = new byte[32];
-                        for (int i = 0; i < ssid.length; i++) {
-                            ssid_32[i] = ssid[i];
+                        for (WifiSsid originalSsid : mSsidTranslator.getAllPossibleOriginalSsids(
+                                WifiSsid.fromString(ssidStr))) {
+                            // HIDL code is throwing InvalidArgumentException when ssidWhitelist has
+                            // SSIDs with less than 32 byte length this is due to HAL definition of
+                            // SSID declared it as 32-byte fixed length array. Thus pad additional
+                            // bytes with 0's to pass SSIDs as byte arrays of 32 length
+                            roamingConfig.ssidWhitelist.add(
+                                    Arrays.copyOf(originalSsid.getBytes(), 32));
                         }
-                        roamingConfig.ssidWhitelist.add(ssid_32);
                     }
                 }
 

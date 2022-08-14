@@ -122,6 +122,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.Answer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -230,6 +231,14 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         doReturn(CONNECTED_MAC_ADDRESS_BYTES).when(mISupplicantStaIfaceMock).getMacAddress();
         mHandler = spy(new Handler(mLooper.getLooper()));
         when(mSsidTranslator.getTranslatedSsid(any())).thenReturn(TRANSLATED_SUPPLICANT_SSID);
+        when(mSsidTranslator.getOriginalSsid(any())).thenAnswer((Answer<WifiSsid>) invocation ->
+                WifiSsid.fromString(((WifiConfiguration) invocation.getArgument(0)).SSID));
+        when(mSsidTranslator.getAllPossibleOriginalSsids(TRANSLATED_SUPPLICANT_SSID)).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> {
+                    List<WifiSsid> ssids = new ArrayList<>();
+                    ssids.add(TRANSLATED_SUPPLICANT_SSID);
+                    return ssids;
+                });
         mDut = new SupplicantStaIfaceHalSpy();
     }
 
@@ -346,7 +355,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     @Test
     public void testConnectWithEmptyExistingNetwork() throws Exception {
         executeAndValidateInitializationSequence();
-        executeAndValidateConnectSequence(0, false);
+        executeAndValidateConnectSequence(0, false, TRANSLATED_SUPPLICANT_SSID.toString());
     }
 
     /**
@@ -358,7 +367,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
             throws Exception {
         executeAndValidateInitializationSequence();
         WifiConfiguration config = executeAndValidateConnectSequence(
-                SUPPLICANT_NETWORK_ID, false);
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString());
         // Reset mocks for mISupplicantStaIfaceMock because we finished the first connection.
         reset(mISupplicantStaIfaceMock);
         setupMocksForConnectSequence(true);
@@ -377,7 +386,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void connectToNetworkWithSameNetworkDoesNotRemoveNetworkFromSupplicant()
             throws Exception {
         executeAndValidateInitializationSequence();
-        WifiConfiguration config = executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false);
+        WifiConfiguration config = executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         // Reset mocks for mISupplicantStaIfaceMock because we finished the first connection.
         reset(mISupplicantStaIfaceMock);
         setupMocksForConnectSequence(true /*haveExistingNetwork*/);
@@ -395,7 +405,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void connectToNetworkWithSameNetworkButDifferentBssidUpdatesNetworkFromSupplicant()
             throws Exception {
         executeAndValidateInitializationSequence();
-        WifiConfiguration config = executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false);
+        WifiConfiguration config = executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         String testBssid = "11:22:33:44:55:66";
         when(mSupplicantStaNetworkMock.setBssid(eq(testBssid))).thenReturn(true);
 
@@ -515,7 +526,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 WLAN0_IFACE_NAME, SUPPLICANT_NETWORK_ID, null));
 
         WifiConfiguration config = executeAndValidateConnectSequence(
-                frameworkNetId, false);
+                frameworkNetId, false, TRANSLATED_SUPPLICANT_SSID.toString());
 
         // Mismatched framework network id, return false
         assertFalse(mDut.updateLinkedNetworks(WLAN0_IFACE_NAME, frameworkNetId + 1, null));
@@ -572,7 +583,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testRoamFailureDueToBssidSet() throws Exception {
         executeAndValidateInitializationSequence();
         int connectedNetworkId = 5;
-        executeAndValidateConnectSequence(connectedNetworkId, false);
+        executeAndValidateConnectSequence(connectedNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         when(mSupplicantStaNetworkMock.setBssid(anyString())).thenReturn(false);
 
         WifiConfiguration roamingConfig = new WifiConfiguration();
@@ -616,7 +628,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
 
         // Connect to a network and verify current network is set.
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.setCurrentNetworkBssid(WLAN0_IFACE_NAME, testBssid));
         verify(mSupplicantStaNetworkMock).setBssid(eq(testBssid));
         reset(mSupplicantStaNetworkMock);
@@ -634,7 +646,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testRoamFailureDueToReassociate() throws Exception {
         executeAndValidateInitializationSequence();
         int connectedNetworkId = 5;
-        executeAndValidateConnectSequence(connectedNetworkId, false);
+        executeAndValidateConnectSequence(connectedNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
 
         doThrow(new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN))
                 .when(mISupplicantStaIfaceMock).reassociate();
@@ -658,7 +671,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Return null when not connected to the network.
         assertTrue(mDut.getCurrentNetworkWpsNfcConfigurationToken(WLAN0_IFACE_NAME) == null);
         verify(mSupplicantStaNetworkMock, never()).getWpsNfcConfigurationToken();
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertEquals(token, mDut.getCurrentNetworkWpsNfcConfigurationToken(WLAN0_IFACE_NAME));
         verify(mSupplicantStaNetworkMock).getWpsNfcConfigurationToken();
     }
@@ -675,7 +688,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Fail when not connected to a network.
         assertFalse(mDut.setCurrentNetworkBssid(WLAN0_IFACE_NAME, bssidStr));
         verify(mSupplicantStaNetworkMock, never()).setBssid(eq(bssidStr));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.setCurrentNetworkBssid(WLAN0_IFACE_NAME, bssidStr));
         verify(mSupplicantStaNetworkMock).setBssid(eq(bssidStr));
     }
@@ -697,7 +710,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 encryptedIdentity));
         verify(mSupplicantStaNetworkMock, never()).sendNetworkEapIdentityResponse(eq(identity),
                 eq(encryptedIdentity));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.sendCurrentNetworkEapIdentityResponse(WLAN0_IFACE_NAME, identity,
                 encryptedIdentity));
         verify(mSupplicantStaNetworkMock).sendNetworkEapIdentityResponse(eq(identity),
@@ -716,7 +729,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         // Return null when not connected to the network.
         assertEquals(null, mDut.getCurrentNetworkEapAnonymousIdentity(WLAN0_IFACE_NAME));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         // Return anonymous identity for the current network.
         assertEquals(
                 anonymousIdentity, mDut.getCurrentNetworkEapAnonymousIdentity(WLAN0_IFACE_NAME));
@@ -735,7 +748,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Fail when not connected to a network.
         assertFalse(mDut.sendCurrentNetworkEapSimGsmAuthResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock, never()).sendNetworkEapSimGsmAuthResponse(eq(params));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.sendCurrentNetworkEapSimGsmAuthResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock).sendNetworkEapSimGsmAuthResponse(eq(params));
     }
@@ -753,7 +766,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Fail when not connected to a network.
         assertFalse(mDut.sendCurrentNetworkEapSimUmtsAuthResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock, never()).sendNetworkEapSimUmtsAuthResponse(eq(params));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.sendCurrentNetworkEapSimUmtsAuthResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock).sendNetworkEapSimUmtsAuthResponse(eq(params));
     }
@@ -771,7 +784,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Fail when not connected to a network.
         assertFalse(mDut.sendCurrentNetworkEapSimUmtsAutsResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock, never()).sendNetworkEapSimUmtsAutsResponse(eq(params));
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.sendCurrentNetworkEapSimUmtsAutsResponse(WLAN0_IFACE_NAME, params));
         verify(mSupplicantStaNetworkMock).sendNetworkEapSimUmtsAutsResponse(eq(params));
     }
@@ -942,7 +955,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testStateChangeToAssociatedCallback() throws Exception {
         executeAndValidateInitializationSequence();
         int frameworkNetworkId = 6;
-        executeAndValidateConnectSequence(frameworkNetworkId, false);
+        executeAndValidateConnectSequence(frameworkNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         assertNotNull(mISupplicantStaIfaceCallback);
 
         mISupplicantStaIfaceCallback.onStateChanged(
@@ -963,7 +977,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         InOrder wifiMonitorInOrder = inOrder(mWifiMonitor);
         executeAndValidateInitializationSequence();
         int frameworkNetworkId = 6;
-        executeAndValidateConnectSequence(frameworkNetworkId, false);
+        executeAndValidateConnectSequence(frameworkNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         assertNotNull(mISupplicantStaIfaceCallback);
 
         mISupplicantStaIfaceCallback.onStateChanged(
@@ -1014,8 +1029,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testAuthFailurePasswordOnDisconnect() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
-        executeAndValidateConnectSequenceWithKeyMgmt(
-                0, false, WifiConfiguration.SECURITY_TYPE_PSK, null);
+        executeAndValidateConnectSequenceWithKeyMgmt(0, false,
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_PSK, null);
 
         int reasonCode = 3;
         mISupplicantStaIfaceCallback.onDisconnected(
@@ -1054,8 +1069,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testWapiPskWrongPasswordNotification() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
-        executeAndValidateConnectSequenceWithKeyMgmt(
-                0, false, WifiConfiguration.SECURITY_TYPE_WAPI_PSK, null);
+        executeAndValidateConnectSequenceWithKeyMgmt(0, false,
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_WAPI_PSK,
+                null);
 
         mISupplicantStaIfaceCallback.onStateChanged(
                 StaIfaceCallbackState.ASSOCIATING,
@@ -1082,8 +1098,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testAuthFailureEapOnDisconnect() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
-        executeAndValidateConnectSequenceWithKeyMgmt(
-                0, false, WifiConfiguration.SECURITY_TYPE_EAP, null);
+        executeAndValidateConnectSequenceWithKeyMgmt(0, false,
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_EAP, null);
 
         int reasonCode = 3;
         mISupplicantStaIfaceCallback.onDisconnected(
@@ -1129,7 +1145,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertNotNull(mISupplicantStaIfaceCallback);
 
         executeAndValidateConnectSequenceWithKeyMgmt(SUPPLICANT_NETWORK_ID, false,
-                WifiConfiguration.SECURITY_TYPE_SAE, null);
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_SAE, null);
 
         int statusCode = StaIfaceStatusCode.UNSPECIFIED_FAILURE;
         AssociationRejectionData rejectionData = createAssocRejectData(SUPPLICANT_SSID, BSSID,
@@ -1163,7 +1179,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertNotNull(mISupplicantStaIfaceCallback);
 
         WifiConfiguration config = executeAndValidateConnectSequenceWithKeyMgmt(
-                SUPPLICANT_NETWORK_ID, false,
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
                 WifiConfiguration.SECURITY_TYPE_SAE, null, true);
         mISupplicantStaIfaceCallback.onStateChanged(
                 StaIfaceCallbackState.ASSOCIATING,
@@ -1200,7 +1216,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertNotNull(mISupplicantStaIfaceCallback);
 
         executeAndValidateConnectSequenceWithKeyMgmt(SUPPLICANT_NETWORK_ID, false,
-                WifiConfiguration.SECURITY_TYPE_WEP, "97CA326539");
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_WEP,
+                "97CA326539");
 
         mISupplicantStaIfaceCallback.onStateChanged(
                 StaIfaceCallbackState.ASSOCIATING,
@@ -2099,7 +2116,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
         int frameworkNetworkId = 6;
-        executeAndValidateConnectSequence(frameworkNetworkId, false);
+        executeAndValidateConnectSequence(frameworkNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
 
         mISupplicantStaIfaceCallback.onStateChanged(
                 StaIfaceCallbackState.COMPLETED,
@@ -2123,7 +2141,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
 
         // Connect to a network.
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
 
         // Disable it.
         assertTrue(mDut.disableCurrentNetwork(WLAN0_IFACE_NAME));
@@ -2174,9 +2192,44 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testNetworkNotFoundCallback() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         mISupplicantStaIfaceCallback.onNetworkNotFound(NativeUtil.byteArrayFromArrayList(
                 NativeUtil.decodeSsid(SUPPLICANT_SSID)));
 
+        verify(mWifiMonitor).broadcastNetworkNotFoundEvent(
+                eq(WLAN0_IFACE_NAME), eq(TRANSLATED_SUPPLICANT_SSID.toString()));
+    }
+
+    /**
+     * Tests the handling of network not found notification.
+     */
+    @Test
+    public void testNetworkNotFoundCallbackTriggersConnectToFallbackSsid() throws Exception {
+        executeAndValidateInitializationSequence();
+        assertNotNull(mISupplicantStaIfaceCallback);
+        // Setup mocks to return two possible original SSIDs. We will pick
+        // TRANSLATED_SUPPLICANT_SSID as the first SSID to try.
+        when(mSsidTranslator.getAllPossibleOriginalSsids(TRANSLATED_SUPPLICANT_SSID)).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> {
+                    List<WifiSsid> ssids = new ArrayList<>();
+                    ssids.add(TRANSLATED_SUPPLICANT_SSID);
+                    ssids.add(WifiSsid.fromString(SUPPLICANT_SSID));
+                    return ssids;
+                });
+        executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
+        mISupplicantStaIfaceCallback.onNetworkNotFound(NativeUtil.byteArrayFromArrayList(
+                NativeUtil.decodeSsid(SUPPLICANT_SSID)));
+
+        // Validate that we initiated another connect sequence to the fallback SUPPLICANT_SSID.
+        verify(mWifiMonitor, never()).broadcastNetworkNotFoundEvent(
+                eq(WLAN0_IFACE_NAME), eq(TRANSLATED_SUPPLICANT_SSID.toString()));
+        validateConnectSequence(false, 2, SUPPLICANT_SSID);
+
+        // Fallback SSID was not found, broadcast the network not found event now.
+        mISupplicantStaIfaceCallback.onNetworkNotFound(NativeUtil.byteArrayFromArrayList(
+                NativeUtil.decodeSsid(SUPPLICANT_SSID)));
         verify(mWifiMonitor).broadcastNetworkNotFoundEvent(
                 eq(WLAN0_IFACE_NAME), eq(TRANSLATED_SUPPLICANT_SSID.toString()));
     }
@@ -2193,8 +2246,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertNull(mDut.getCurrentNetworkSecurityParams(WLAN0_IFACE_NAME));
 
         // Connecting to network with PSK candidate security params should return PSK params.
-        executeAndValidateConnectSequenceWithKeyMgmt(
-                0, false, WifiConfiguration.SECURITY_TYPE_PSK, "97CA326539");
+        executeAndValidateConnectSequenceWithKeyMgmt(0, false,
+                TRANSLATED_SUPPLICANT_SSID.toString(), WifiConfiguration.SECURITY_TYPE_PSK,
+                "97CA326539");
         assertTrue(mDut.getCurrentNetworkSecurityParams(WLAN0_IFACE_NAME)
                 .isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK));
     }
@@ -2294,7 +2348,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 .thenReturn(true);
 
         executeAndValidateInitializationSequence();
-        executeAndValidateConnectSequence(4, false);
+        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
         assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
 
         ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
@@ -2502,13 +2556,17 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
      * Helper function to validate the connect sequence.
      */
     private void validateConnectSequence(
-            final boolean haveExistingNetwork, int numNetworkAdditions) throws Exception {
+            final boolean haveExistingNetwork, int numNetworkAdditions, String ssid)
+            throws Exception {
         if (haveExistingNetwork) {
             verify(mISupplicantStaIfaceMock).removeNetwork(anyInt());
         }
         verify(mISupplicantStaIfaceMock, times(numNetworkAdditions)).addNetwork();
+        ArgumentCaptor<WifiConfiguration> configCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
         verify(mSupplicantStaNetworkMock, times(numNetworkAdditions))
-                .saveWifiConfiguration(any(WifiConfiguration.class));
+                .saveWifiConfiguration(configCaptor.capture());
+        assertTrue(TextUtils.equals(configCaptor.getValue().SSID, ssid));
         verify(mSupplicantStaNetworkMock, times(numNetworkAdditions)).select();
     }
 
@@ -2517,12 +2575,14 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
      *
      * @param newFrameworkNetworkId Framework Network Id of the new network to connect.
      * @param haveExistingNetwork Removes the existing network.
+     * @param ssid Raw SSID to send to supplicant.
      * @return the WifiConfiguration object of the new network to connect.
      */
     private WifiConfiguration executeAndValidateConnectSequence(
-            final int newFrameworkNetworkId, final boolean haveExistingNetwork) throws Exception {
+            final int newFrameworkNetworkId, final boolean haveExistingNetwork,
+            String ssid) throws Exception {
         return executeAndValidateConnectSequenceWithKeyMgmt(newFrameworkNetworkId,
-                haveExistingNetwork, WifiConfiguration.SECURITY_TYPE_PSK, null);
+                haveExistingNetwork, ssid, WifiConfiguration.SECURITY_TYPE_PSK, null);
     }
 
     /**
@@ -2530,6 +2590,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
      *
      * @param newFrameworkNetworkId Framework Network Id of the new network to connect.
      * @param haveExistingNetwork Removes the existing network.
+     * @param ssid Raw SSID to send to supplicant.
      * @param securityType The security type.
      * @param wepKey if configurations are for a WEP network else null.
      * @param hasEverConnected indicate that this configuration is ever connected or not.
@@ -2537,11 +2598,13 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
      */
     private WifiConfiguration executeAndValidateConnectSequenceWithKeyMgmt(
             final int newFrameworkNetworkId, final boolean haveExistingNetwork,
-            int securityType, String wepKey, boolean hasEverConnected) throws Exception {
+            String ssid, int securityType, String wepKey, boolean hasEverConnected)
+            throws Exception {
         setupMocksForConnectSequence(haveExistingNetwork);
         WifiConfiguration config = new WifiConfiguration();
         config.setSecurityParams(securityType);
         config.networkId = newFrameworkNetworkId;
+        config.SSID = ssid;
         config.wepKeys[0] = wepKey;
         config.wepTxKeyIndex = 0;
         WifiConfiguration.NetworkSelectionStatus networkSelectionStatus =
@@ -2550,7 +2613,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         networkSelectionStatus.setHasEverConnected(hasEverConnected);
         config.setNetworkSelectionStatus(networkSelectionStatus);
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
-        validateConnectSequence(haveExistingNetwork, 1);
+        validateConnectSequence(haveExistingNetwork, 1, config.SSID);
         return config;
     }
 
@@ -2559,16 +2622,17 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
      *
      * @param newFrameworkNetworkId Framework Network Id of the new network to connect.
      * @param haveExistingNetwork Removes the existing network.
+     * @param ssid Raw SSID to send to supplicant.
      * @param securityType The security type.
      * @param wepKey if configurations are for a WEP network else null.
      * @return the WifiConfiguration object of the new network to connect.
      */
     private WifiConfiguration executeAndValidateConnectSequenceWithKeyMgmt(
             final int newFrameworkNetworkId, final boolean haveExistingNetwork,
-            int securityType, String wepKey) throws Exception {
+            String ssid, int securityType, String wepKey) throws Exception {
         return executeAndValidateConnectSequenceWithKeyMgmt(
                 newFrameworkNetworkId, haveExistingNetwork,
-                securityType, wepKey, false);
+                ssid, securityType, wepKey, false);
     }
 
     /**
@@ -2595,7 +2659,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         } else {
             roamNetworkId = connectedNetworkId + 1;
         }
-        executeAndValidateConnectSequence(connectedNetworkId, false);
+        executeAndValidateConnectSequence(connectedNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
         setupMocksForRoamSequence(roamBssid);
 
         WifiConfiguration roamingConfig = new WifiConfiguration();
@@ -2630,7 +2695,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
             verify(mSupplicantStaNetworkMock, never()).setBssid(anyString());
             verify(mISupplicantStaIfaceMock, never()).reassociate();
         } else {
-            validateConnectSequence(false, 2);
+            validateConnectSequence(false, 2, null);
             verify(mSupplicantStaNetworkMock, never()).setBssid(anyString());
             verify(mISupplicantStaIfaceMock, never()).reassociate();
         }

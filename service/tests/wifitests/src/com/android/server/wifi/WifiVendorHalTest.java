@@ -463,11 +463,19 @@ public class WifiVendorHalTest extends WifiBaseTest {
         when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any()))
                 .thenAnswer((Answer<WifiSsid>) invocation ->
                         getTranslatedSsid(invocation.getArgument(0)));
+        when(mSsidTranslator.getAllPossibleOriginalSsids(any()))
+                .thenAnswer((Answer<List<WifiSsid>>) invocation -> {
+                    WifiSsid ssid = invocation.getArgument(0);
+                    if (ssid.getBytes().length > 32) {
+                        return Collections.emptyList();
+                    }
+                    return Collections.singletonList(ssid);
+                });
     }
 
     /** Mock translating an SSID */
     private WifiSsid getTranslatedSsid(WifiSsid ssid) {
-        byte[] ssidBytes = ssid.getBytes().clone();
+        byte[] ssidBytes = ssid.getBytes();
         for (int i = 0; i < ssidBytes.length; i++) {
             ssidBytes[i]++;
         }
@@ -2475,8 +2483,12 @@ public class WifiVendorHalTest extends WifiBaseTest {
         // Add an SSID that is too long (> 32 bytes) due to the multi-byte utf-8 characters
         roamingConfig.allowlistSsids.add("\"123456789012345678901234567890\u0F00\u05D0\"");
         when(mIWifiStaIface.configureRoaming(any())).thenReturn(mWifiStatusSuccess);
-        assertFalse(mWifiVendorHal.configureRoaming(TEST_IFACE_NAME, roamingConfig));
-        verify(mIWifiStaIface, never()).configureRoaming(any());
+        assertTrue(mWifiVendorHal.configureRoaming(TEST_IFACE_NAME, roamingConfig));
+        ArgumentCaptor<StaRoamingConfig> staRoamingConfigCaptor = ArgumentCaptor.forClass(
+                StaRoamingConfig.class);
+        verify(mIWifiStaIface).configureRoaming(staRoamingConfigCaptor.capture());
+        verify(mSsidTranslator).getAllPossibleOriginalSsids(any());
+        assertTrue(staRoamingConfigCaptor.getValue().ssidWhitelist.isEmpty());
     }
 
     /**
