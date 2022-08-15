@@ -679,7 +679,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public void requestMacAddresses(int uid, int[] peerIds,
             IWifiAwareMacAddressProvider callback) {
         mSm.getHandler().post(() -> {
-            if (VDBG) Log.v(TAG, "requestMacAddresses: uid=" + uid + ", peerIds=" + peerIds);
+            if (VDBG) {
+                Log.v(TAG, "requestMacAddresses: uid=" + uid + ", peerIds="
+                        + Arrays.toString(peerIds));
+            }
             Map<Integer, MacAddrMapping> peerIdToMacMap = new HashMap<>();
             for (int i = 0; i < mClients.size(); ++i) {
                 WifiAwareClientState client = mClients.valueAt(i);

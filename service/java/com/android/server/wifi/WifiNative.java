@@ -3162,7 +3162,7 @@ public class WifiNative {
 
         @Override
         public int hashCode() {
-            return Objects.hash(ssid, flags, auth_bit_field, frequencies);
+            return Objects.hash(ssid, flags, auth_bit_field, Arrays.hashCode(frequencies));
         }
 
         android.net.wifi.nl80211.PnoNetwork toNativePnoNetwork() {

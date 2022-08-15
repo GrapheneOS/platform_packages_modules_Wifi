@@ -7339,18 +7339,18 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui3, option3);
         mLooper.dispatchAll();
         assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
-                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui1)).size());
+                WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui1)).size());
         assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
-                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2)).size());
+                WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui2)).size());
         assertEquals(2, mWifiConfigManager.getCustomDhcpOptions(
                 WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2, oui3)).size());
 
         mWifiConfigManager.removeCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui1);
         mLooper.dispatchAll();
         assertEquals(0, mWifiConfigManager.getCustomDhcpOptions(
-                WifiSsid.fromString(TEST_SSID), Arrays.asList(oui1)).size());
-        List<DhcpOption> actual2 = mWifiConfigManager
-                .getCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2));
+                WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui1)).size());
+        List<DhcpOption> actual2 = mWifiConfigManager.getCustomDhcpOptions(
+                WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui2));
         assertEquals(option2, actual2);
         List<DhcpOption> actual23 = mWifiConfigManager
                 .getCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2, oui3));

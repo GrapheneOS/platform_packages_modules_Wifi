@@ -386,10 +386,12 @@ public final class HomeSp implements Parcelable {
         builder.append("FriendlyName: ").append(mFriendlyName).append("\n");
         builder.append("IconURL: ").append(mIconUrl).append("\n");
         builder.append("HomeNetworkIDs: ").append(mHomeNetworkIds).append("\n");
-        builder.append("MatchAllOIs: ").append(mMatchAllOis).append("\n");
-        builder.append("MatchAnyOIs: ").append(mMatchAnyOis).append("\n");
-        builder.append("OtherHomePartners: ").append(mOtherHomePartners).append("\n");
-        builder.append("RoamingConsortiumOIs: ").append(mRoamingConsortiumOis).append("\n");
+        builder.append("MatchAllOIs: ").append(Arrays.toString(mMatchAllOis)).append("\n");
+        builder.append("MatchAnyOIs: ").append(Arrays.toString(mMatchAnyOis)).append("\n");
+        builder.append("OtherHomePartners: ").append(Arrays.toString(mOtherHomePartners))
+                .append("\n");
+        builder.append("RoamingConsortiumOIs: ").append(Arrays.toString(mRoamingConsortiumOis))
+                .append("\n");
         return builder.toString();
     }
 
