@@ -328,8 +328,8 @@ public class WakeupController {
     }
 
     /** Sets verbose logging flag based on verbose level. */
-    public void enableVerboseLogging(int verbose) {
-        mVerboseLoggingEnabled = verbose > 0;
+    public void enableVerboseLogging(boolean verboseEnabled) {
+        mVerboseLoggingEnabled = verboseEnabled;
         mWakeupLock.enableVerboseLogging(mVerboseLoggingEnabled);
     }
 
