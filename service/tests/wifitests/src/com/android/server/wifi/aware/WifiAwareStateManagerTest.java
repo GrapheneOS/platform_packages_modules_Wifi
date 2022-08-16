@@ -630,7 +630,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
         ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
-        InOrder inOrder = inOrder(mMockContext, mMockNative, mockCallback);
+        InOrder inOrder = inOrder(mMockContext, mMockNative, mockCallback, mMockNativeManager);
 
         when(mMockNative.enableAndConfigure(anyShort(), any(), anyBoolean(),
                 anyBoolean(), eq(true), eq(false), eq(false), eq(false), anyInt()))
@@ -645,8 +645,10 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
                 configRequest, false, mExtras);
         mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
                 eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
+        inOrder.verify(mMockNativeManager).releaseAware();
         inOrder.verify(mockCallback).onConnectFail(NanStatusType.INTERNAL_FAILURE);
 
         validateInternalClientInfoCleanedUp(clientId);

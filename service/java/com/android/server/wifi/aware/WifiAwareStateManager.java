@@ -2600,6 +2600,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mPowerManager.isInteractive(), mPowerManager.isDeviceIdleMode(),
                 rangingRequired, enableInstantMode, instantModeChannel);
         if (!success) {
+            if (mCurrentAwareConfiguration == null) {
+                mWifiAwareNativeManager.releaseAware();
+            }
             try {
                 callback.onConnectFail(NanStatusType.INTERNAL_FAILURE);
                 mAwareMetrics.recordAttachStatus(NanStatusType.INTERNAL_FAILURE);
