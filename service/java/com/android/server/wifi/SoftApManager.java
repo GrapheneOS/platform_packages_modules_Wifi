@@ -1596,12 +1596,12 @@ public class SoftApManager implements ActiveModeManager {
                         break;
                     case CMD_NO_ASSOCIATED_STATIONS_TIMEOUT:
                         if (!mTimeoutEnabled) {
-                            Log.wtf(getTag(), "Timeout message received while timeout is disabled."
+                            Log.i(getTag(), "Timeout message received while timeout is disabled."
                                     + " Dropping.");
                             break;
                         }
                         if (getConnectedClientList().size() != 0) {
-                            Log.wtf(getTag(), "Timeout message received but has clients. "
+                            Log.i(getTag(), "Timeout message received but has clients. "
                                     + "Dropping.");
                             break;
                         }
@@ -1614,12 +1614,12 @@ public class SoftApManager implements ActiveModeManager {
                     case CMD_NO_ASSOCIATED_STATIONS_TIMEOUT_ON_ONE_INSTANCE:
                         String idleInstance = (String) message.obj;
                         if (!isBridgedMode() || mCurrentSoftApInfoMap.size() != 2) {
-                            Log.wtf(getTag(), "Ignore Bridged Mode Timeout message received"
+                            Log.d(getTag(), "Ignore Bridged Mode Timeout message received"
                                     + " in single AP state. Dropping it from " + idleInstance);
                             break;
                         }
                         if (!mBridgedModeOpportunisticsShutdownTimeoutEnabled) {
-                            Log.wtf(getTag(), "Bridged Mode Timeout message received"
+                            Log.i(getTag(), "Bridged Mode Timeout message received"
                                     + " while timeout is disabled. Dropping.");
                             break;
                         }
