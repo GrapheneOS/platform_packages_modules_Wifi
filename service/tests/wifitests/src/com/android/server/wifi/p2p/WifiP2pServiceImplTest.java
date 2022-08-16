@@ -1297,6 +1297,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             mTetherStateReceiver = mBcastRxCaptor.getAllValues().get(2);
         }
 
+        verify(mWifiPermissionsUtil, never()).isLocationModeEnabled();
+        verify(mContext, never()).sendBroadcastMultiplePermissions(any(Intent.class), any());
+        verify(mContext, never()).sendBroadcast(any(Intent.class), anyString(), any(Bundle.class));
         mWifiP2pServiceImpl.mNetdWrapper = mNetdWrapper;
         mP2pStateMachineMessenger = mWifiP2pServiceImpl.getP2pStateMachineMessenger();
     }
@@ -1325,6 +1328,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         mClient1 = new Binder();
         mClient2 = new Binder();
         when(mContext.createContextAsUser(any(), anyInt())).thenReturn(mContext);
+        mWifiP2pServiceImpl.handleBootCompleted();
     }
 
     @After
