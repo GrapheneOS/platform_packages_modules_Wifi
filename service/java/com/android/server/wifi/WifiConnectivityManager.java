@@ -32,6 +32,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.ScanResult;
@@ -411,6 +412,16 @@ public class WifiConnectivityManager {
         localLog(listenerName + ":secondaryCmmCandidate "
                 + secondaryCmmCandidate.getNetworkSelectionStatus().getCandidate().SSID + " / "
                 + secondaryCmmCandidate.getNetworkSelectionStatus().getCandidate().BSSID);
+        // Check if secondary candidate is the same SSID and network id with primary.
+        final boolean isDbsAp = TextUtils.equals(primaryInfo.getSSID(),
+                secondaryCmmCandidate.SSID) && (primaryInfo.getNetworkId()
+                == secondaryCmmCandidate.networkId);
+        final boolean isUsingStaticIp =
+                (secondaryCmmCandidate.getIpAssignment() == IpConfiguration.IpAssignment.STATIC);
+        if (isDbsAp && isUsingStaticIp) {
+            localLog(listenerName + ": Can't connect to DBS AP with Static IP.");
+            return false;
+        }
 
         // At this point secondaryCmmCandidate must be multi internet.
         final WorkSource secondaryRequestorWs = mMultiInternetConnectionRequestorWs;
@@ -459,10 +470,6 @@ public class WifiConnectivityManager {
                     // Set the concrete client mode manager to secondary internet usage.
                     ConcreteClientModeManager ccm = (ConcreteClientModeManager) cm;
                     ccm.setSecondaryInternet(true);
-                    // Check if secondary candidate is the same SSID and network Id with primary.
-                    final boolean isDbsAp = TextUtils.equals(primaryInfo.getSSID(),
-                            secondaryCmmCandidate.SSID) && (primaryInfo.getNetworkId()
-                            == secondaryCmmCandidate.networkId);
                     ccm.setSecondaryInternetDbsAp(isDbsAp);
                     localLog(listenerName + ": WNS candidate(secondary)-"
                             + secondaryCmmCandidate.SSID + " / "
