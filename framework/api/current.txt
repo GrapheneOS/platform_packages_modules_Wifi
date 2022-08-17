@@ -207,6 +207,7 @@ package android.net.wifi {
     method public void writeToParcel(android.os.Parcel, int);
     field public String BSSID;
     field public String FQDN;
+    field public static final int RANDOMIZATION_ALWAYS = 100; // 0x64
     field public static final int RANDOMIZATION_AUTO = 3; // 0x3
     field public static final int RANDOMIZATION_NONE = 0; // 0x0
     field public static final int RANDOMIZATION_NON_PERSISTENT = 2; // 0x2
