@@ -2249,7 +2249,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             @Override
             public void enter() {
-                updateThisDevice(WifiP2pDevice.UNAVAILABLE);
+                if (mIsBootComplete) {
+                    updateThisDevice(WifiP2pDevice.UNAVAILABLE);
+                }
             }
 
             @Override

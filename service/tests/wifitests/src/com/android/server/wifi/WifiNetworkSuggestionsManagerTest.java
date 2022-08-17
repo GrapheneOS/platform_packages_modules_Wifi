@@ -2377,7 +2377,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 mWifiNetworkSuggestionsManager.remove(networkSuggestionList2, TEST_UID_1,
                         TEST_PACKAGE_1, WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT));
         assertTrue(mWifiNetworkSuggestionsManager.getAllNetworkSuggestions().isEmpty());
-        mInorder.verify(mAppOpsManager).stopWatchingMode(mAppOpChangedListenerCaptor.getValue());
+        verify(mAppOpsManager, never()).stopWatchingMode(mAppOpChangedListenerCaptor.getValue());
 
         mInorder.verifyNoMoreInteractions();
     }
