@@ -491,6 +491,10 @@ public class WifiConfigManager {
      * @return
      */
     public boolean shouldUseNonPersistentRandomization(WifiConfiguration config) {
+        if (config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_ALWAYS) {
+            return true;
+        }
+
         if (!isMacRandomizationSupported()
                 || config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_NONE) {
             return false;
@@ -640,7 +644,8 @@ public class WifiConfigManager {
     private MacAddress updateRandomizedMacIfNeeded(WifiConfiguration config) {
         boolean shouldUpdateMac = config.randomizedMacExpirationTimeMs
                 < mClock.getWallClockMillis() || mClock.getWallClockMillis()
-                - config.randomizedMacLastModifiedTimeMs >= NON_PERSISTENT_MAC_REFRESH_MS_MAX;
+                - config.randomizedMacLastModifiedTimeMs >= NON_PERSISTENT_MAC_REFRESH_MS_MAX ||
+                config.macRandomizationSetting == WifiConfiguration.RANDOMIZATION_ALWAYS;
         if (!shouldUpdateMac) {
             return config.getRandomizedMacAddress();
         }

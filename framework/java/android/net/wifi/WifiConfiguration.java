@@ -1856,7 +1856,8 @@ public class WifiConfiguration implements Parcelable {
             RANDOMIZATION_NONE,
             RANDOMIZATION_PERSISTENT,
             RANDOMIZATION_NON_PERSISTENT,
-            RANDOMIZATION_AUTO})
+            RANDOMIZATION_AUTO,
+            RANDOMIZATION_ALWAYS})
     public @interface MacRandomizationSetting {}
 
     /**
@@ -1881,15 +1882,21 @@ public class WifiConfiguration implements Parcelable {
     public static final int RANDOMIZATION_AUTO = 3;
 
     /**
+     * Generate a randomize MAC always
+     */
+    public static final int RANDOMIZATION_ALWAYS = 100;
+
+    /**
      * Level of MAC randomization for this network.
      * One of {@link #RANDOMIZATION_NONE}, {@link #RANDOMIZATION_AUTO},
      * {@link #RANDOMIZATION_PERSISTENT} or {@link #RANDOMIZATION_NON_PERSISTENT}.
-     * By default this field is set to {@link #RANDOMIZATION_AUTO}.
+     * {@link #RANDOMIZATION_PERSISTENT} or {@link #RANDOMIZATION_NON_PERSISTENT} or RANDOMIZATION_ALWAYS.
+     * By default this field is set to RANDOMIZATION_ALWAYS in GrapheneOS.
      * @hide
      */
     @SystemApi
     @MacRandomizationSetting
-    public int macRandomizationSetting = RANDOMIZATION_AUTO;
+    public int macRandomizationSetting = RANDOMIZATION_ALWAYS;
 
     /**
      * Set the MAC randomization setting for this network.
