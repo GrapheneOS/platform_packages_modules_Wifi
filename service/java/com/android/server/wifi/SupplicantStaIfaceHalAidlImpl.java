@@ -427,6 +427,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 return false;
             }
             serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
+            setLogLevel(mVerboseHalLoggingEnabled);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
