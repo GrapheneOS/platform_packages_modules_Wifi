@@ -172,6 +172,7 @@ package android.net.wifi {
     method public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public String BSSID;
     field @Deprecated public String FQDN;
+    field @Deprecated public static final int RANDOMIZATION_ALWAYS = 100; // 0x64
     field @Deprecated public static final int RANDOMIZATION_AUTO = 3; // 0x3
     field @Deprecated public static final int RANDOMIZATION_NONE = 0; // 0x0
     field @Deprecated public static final int RANDOMIZATION_NON_PERSISTENT = 2; // 0x2
