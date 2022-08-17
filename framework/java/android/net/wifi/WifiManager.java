@@ -1771,6 +1771,9 @@ public class WifiManager {
     @NonNull
     public List<Pair<WifiConfiguration, Map<Integer, List<ScanResult>>>> getAllMatchingWifiConfigs(
             @NonNull List<ScanResult> scanResults) {
+        if (GmsCompat.isEnabled()) {
+            return Collections.emptyList();
+        }
         List<Pair<WifiConfiguration, Map<Integer, List<ScanResult>>>> configs = new ArrayList<>();
         try {
             Map<String, Map<Integer, List<ScanResult>>> results =
