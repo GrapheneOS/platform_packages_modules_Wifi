@@ -261,6 +261,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean mCurrentIdentityNotification = false;
     private boolean mCurrentRangingEnabled = false;
     private boolean mInstantCommModeGlobalEnable = false;
+    private int mOverrideInstantMode = INSTANT_MODE_DISABLED;
     private int mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
     private static final int AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ = 2437; // Channel 6
     private int mAwareBand5InstantCommunicationChannelFreq = -1; // -1 is not set, 0 is unsupported.
@@ -439,6 +440,22 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 pw_out.println(out.toString());
                 return 0;
             }
+            case "set_override_instant_communication_mode": {
+                String arg = parentShell.getNextArgRequired();
+                if (TextUtils.equals(arg, "2G")) {
+                    mOverrideInstantMode = INSTANT_MODE_24GHZ;
+                } else if (TextUtils.equals(arg, "5G")) {
+                    mOverrideInstantMode = INSTANT_MODE_5GHZ;
+                } else {
+                    pw_err.println("Unknown band -- " + arg);
+                    return -1;
+                }
+                return 0;
+            }
+            case "clear_override_instant_communication_mode": {
+                mOverrideInstantMode = INSTANT_MODE_DISABLED;
+                return 0;
+            }
             default:
                 pw_err.println("Unknown 'wifiaware state_mgr <cmd>'");
         }
@@ -469,6 +486,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         + "accept requests from ANY requestor (null peer spec)");
         pw.println(" get_instant_communication_channel 2G|5G: get instant communication mode "
                 + "channel available for the target band");
+        pw.println(" set_override_instant_communication_mode 2G|5G: override the instant "
+                + "communication mode to 'enabled' with the specified band");
+        pw.println(" clear_override_instant_communication_mode: clear the override of the instant "
+                + "communication mode");
     }
 
     /**
@@ -3666,6 +3687,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private int getInstantModeFromAllClients() {
+        if (mOverrideInstantMode != INSTANT_MODE_DISABLED) {
+            return mOverrideInstantMode;
+        }
         int instantMode = INSTANT_MODE_DISABLED;
         for (int i = 0; i < mClients.size(); ++i) {
             int currentClient = mClients.valueAt(i).getInstantMode((long) mContext.getResources()
