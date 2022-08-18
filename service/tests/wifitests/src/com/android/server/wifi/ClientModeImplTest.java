@@ -6566,6 +6566,24 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testIpReachabilityFailureRoamWithNullConfigDisconnect() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        connect();
+        expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
+        reset(mWifiNetworkAgent);
+
+        // mock the current network as removed
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(null);
+
+        // Trigger ip reachability failure and ensure we disconnect.
+        ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
+        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mLooper.dispatchAll();
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
     public void testIpReachabilityFailureRoamL3ProvisioningState() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         connect();
