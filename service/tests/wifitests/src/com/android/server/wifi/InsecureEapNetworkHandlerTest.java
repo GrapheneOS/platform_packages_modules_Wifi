@@ -223,7 +223,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
         assertTrue(mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
         verify(mCallbacks).onError(eq(config.SSID));
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
     }
 
     /**
@@ -468,7 +470,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         assertEquals(needUserApproval,
                 mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
         verify(mCallbacks).onError(eq(config.SSID));
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
     }
 
     /**
@@ -496,7 +500,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         assertEquals(needUserApproval,
                 mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
         verify(mCallbacks).onError(eq(config.SSID));
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
     }
 
     /**
@@ -545,7 +551,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         assertTrue(mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
         verify(mCallbacks).onError(eq(config.SSID));
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
     }
 
     /**
@@ -568,7 +576,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         assertTrue(mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
         verify(mCallbacks).onError(eq(config.SSID));
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
     }
 
     /**
@@ -648,7 +658,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 any(), eq(mHandler));
         mTestAlarmManager.dispatch(InsecureEapNetworkHandler.NOTIFICATION_WAITING_TIMER_TAG);
         mLooper.dispatchAll();
-        verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                eq(WifiConfiguration.NetworkSelectionStatus
+                        .DISABLED_BY_WIFI_MANAGER));
         verify(mWifiNative).disconnect(eq(WIFI_IFACE_NAME));
     }
 
@@ -723,7 +735,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         }
 
         if (action == ACTION_ACCEPT) {
-            verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(true));
+            verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                    eq(WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE));
             if (isTrustOnFirstUseSupported) {
                 verify(mWifiConfigManager).updateCaCertificate(
                         eq(config.networkId), eq(expectedCaCert), eq(expectedServerCert));
@@ -733,7 +746,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             }
             verify(mCallbacks).onAccept(eq(config.SSID));
         } else if (action == ACTION_REJECT) {
-            verify(mWifiConfigManager).allowAutojoin(eq(config.networkId), eq(false));
+            verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
+                    eq(WifiConfiguration.NetworkSelectionStatus
+                            .DISABLED_BY_WIFI_MANAGER));
             verify(mCallbacks).onReject(eq(config.SSID));
         } else if (action == ACTION_TAP) {
             verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
