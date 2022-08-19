@@ -1165,4 +1165,9 @@ public class WifiInjector {
     public LocalLog getWifiAwareLocalLog() {
         return mWifiAwareLocalLog;
     }
+
+    @NonNull
+    public WifiKeyStore getWifiKeyStore() {
+        return mWifiKeyStore;
+    }
 }
