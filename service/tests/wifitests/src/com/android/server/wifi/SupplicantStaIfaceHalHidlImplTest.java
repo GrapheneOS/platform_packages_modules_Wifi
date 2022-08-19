@@ -56,6 +56,7 @@ import android.app.test.MockAnswerUtil;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
 import android.hardware.wifi.V1_0.WifiChannelWidthInMhz;
+import android.hardware.wifi.supplicant.DebugLevel;
 import android.hardware.wifi.supplicant.V1_0.ISupplicant;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantIface;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIface;
@@ -448,6 +449,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         // Trying setting up the wlan0 interface again & ensure it fails.
         assertFalse(mDut.setupIface(WLAN0_IFACE_NAME));
+        verify(mISupplicantMockV11)
+                .setDebugParams(eq(DebugLevel.INFO), eq(false), eq(false));
         verifyNoMoreInteractions(mISupplicantMockV11);
     }
 
@@ -1908,7 +1911,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         // If verbose logging is not enabled, show key should not be enabled.
         assertTrue(mDut.setLogLevel(false));
-        verify(mISupplicantMock)
+        verify(mISupplicantMock, times(2))
                 .setDebugParams(eq(ISupplicant.DebugLevel.INFO), eq(false), eq(false));
     }
 

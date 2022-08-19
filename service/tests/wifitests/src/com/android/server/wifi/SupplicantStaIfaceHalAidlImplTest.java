@@ -297,6 +297,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
         // Trying setting up the wlan0 interface again & ensure it fails.
         assertFalse(mDut.setupIface(WLAN0_IFACE_NAME));
+        verify(mISupplicantMock)
+                .setDebugParams(eq(DebugLevel.INFO), eq(false), eq(false));
         verifyNoMoreInteractions(mISupplicantMock);
     }
 
@@ -1531,7 +1533,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         // If verbose logging is not enabled, show key should not be enabled.
         assertTrue(mDut.setLogLevel(false));
-        verify(mISupplicantMock)
+        verify(mISupplicantMock, times(2))
                 .setDebugParams(eq(DebugLevel.INFO), eq(false), eq(false));
     }
 
