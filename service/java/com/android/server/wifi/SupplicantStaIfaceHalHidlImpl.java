@@ -683,6 +683,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
                     }
                     mISupplicant = getSupplicantMockable();
                 }
+                setLogLevel(mVerboseHalLoggingEnabled);
             } catch (RemoteException | NoSuchElementException e) {
                 Log.e(TAG, "Exception while trying to start supplicant: " + e);
                 supplicantServiceDiedHandler(mDeathRecipientCookie);
