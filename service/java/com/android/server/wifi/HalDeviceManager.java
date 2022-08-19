@@ -2492,8 +2492,10 @@ public class HalDeviceManager {
         }
         if (mWifiUserApprovalRequiredForD2dInterfacePriority
                 && newRequestorWsPriority > PRIORITY_BG
-                && (requestedCreateType == HDM_CREATE_IFACE_P2P
-                        || requestedCreateType == HDM_CREATE_IFACE_NAN)) {
+                && (requestedCreateType == HDM_CREATE_IFACE_AP
+                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                || requestedCreateType == HDM_CREATE_IFACE_P2P
+                || requestedCreateType == HDM_CREATE_IFACE_NAN)) {
             return true;
         }
         // If the new request is higher priority than existing priority, then the new requestor
