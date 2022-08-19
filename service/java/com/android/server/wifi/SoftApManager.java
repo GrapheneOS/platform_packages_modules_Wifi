@@ -63,6 +63,7 @@ import com.android.server.wifi.WifiNative.SoftApHalCallback;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.coex.CoexManager.CoexListener;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.server.wifi.util.WaitingState;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -98,6 +99,7 @@ public class SoftApManager implements ActiveModeManager {
     private final ActiveModeWarden mActiveModeWarden;
     private final SoftApNotifier mSoftApNotifier;
     private final BatteryManager mBatteryManager;
+    private final InterfaceConflictManager mInterfaceConflictManager;
 
     @VisibleForTesting
     static final long SOFT_AP_PENDING_DISCONNECTION_CHECK_DELAY_MS = 1000;
@@ -331,6 +333,7 @@ public class SoftApManager implements ActiveModeManager {
             @NonNull WifiNative wifiNative,
             @NonNull CoexManager coexManager,
             @NonNull BatteryManager batteryManager,
+            @NonNull InterfaceConflictManager interfaceConflictManager,
             String countryCode,
             @NonNull Listener<SoftApManager> listener,
             @NonNull WifiServiceImpl.SoftApCallbackInternal callback,
@@ -352,6 +355,7 @@ public class SoftApManager implements ActiveModeManager {
         mWifiNative = wifiNative;
         mCoexManager = coexManager;
         mBatteryManager = batteryManager;
+        mInterfaceConflictManager = interfaceConflictManager;
         if (SdkLevel.isAtLeastS()) {
             mCoexListener = new CoexListener() {
                 @Override
@@ -892,6 +896,7 @@ public class SoftApManager implements ActiveModeManager {
 
         private final State mActiveState = new ActiveState();
         private final State mIdleState = new IdleState();
+        private final WaitingState mWaitingState = new WaitingState(this);
         private final State mStartedState = new StartedState();
 
         private final InterfaceCallback mWifiNativeInterfaceCallback = new InterfaceCallback() {
@@ -923,6 +928,7 @@ public class SoftApManager implements ActiveModeManager {
             // CHECKSTYLE:OFF IndentationCheck
             addState(mActiveState);
                 addState(mIdleState, mActiveState);
+                addState(mWaitingState, mActiveState);
                 addState(mStartedState, mActiveState);
             // CHECKSTYLE:ON IndentationCheck
 
@@ -1042,6 +1048,25 @@ public class SoftApManager implements ActiveModeManager {
                         mCurrentSoftApConfiguration =
                                 ApConfigUtil.remove6gBandForUnsupportedSecurity(
                                     mCurrentSoftApConfiguration);
+
+                        int icmResult =
+                                mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
+                                        TAG, message, mStateMachine, mWaitingState,
+                                        mIdleState, isBridgeRequired()
+                                                ? HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDGE
+                                                : HalDeviceManager.HDM_CREATE_IFACE_AP,
+                                        mRequestorWs);
+                        if (icmResult == InterfaceConflictManager.ICM_ABORT_COMMAND) {
+                            Log.e(getTag(), "User refused to set up interface");
+                            updateApState(WifiManager.WIFI_AP_STATE_FAILED,
+                                    WifiManager.WIFI_AP_STATE_DISABLED,
+                                    WifiManager.SAP_START_FAILURE_GENERAL);
+                            mModeListener.onStartFailure(SoftApManager.this);
+                            break;
+                        } else if (icmResult
+                                == InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER) {
+                            break;
+                        }
 
                         mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
                                 mWifiNativeInterfaceCallback, mRequestorWs,
