@@ -757,8 +757,8 @@ public class WifiInjector {
             @NonNull WorkSource requestorWs,
             @NonNull ActiveModeManager.SoftApRole role,
             boolean verboseLoggingEnabled) {
-        return new SoftApManager(mContext, mWifiHandlerThread.getLooper(),
-                mFrameworkFacade, mWifiNative, mCoexManager, makeBatteryManager(),
+        return new SoftApManager(mContext, mWifiHandlerThread.getLooper(), mFrameworkFacade,
+                mWifiNative, mCoexManager, makeBatteryManager(), mInterfaceConflictManager,
                 mCountryCode.getCountryCode(), listener, callback, mWifiApConfigStore,
                 config, mWifiMetrics, mSarManager, mWifiDiagnostics,
                 new SoftApNotifier(mContext, mFrameworkFacade, mWifiNotificationManager),
@@ -1164,5 +1164,10 @@ public class WifiInjector {
     @NonNull
     public LocalLog getWifiAwareLocalLog() {
         return mWifiAwareLocalLog;
+    }
+
+    @NonNull
+    public WifiKeyStore getWifiKeyStore() {
+        return mWifiKeyStore;
     }
 }

@@ -1608,9 +1608,6 @@ public class WifiManager {
         mLooper = looper;
         mTargetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         updateVerboseLoggingEnabledFromService();
-
-        // Start tracking Binder latency for the wifi process.
-        WifiFrameworkInitializer.initializeBinderCallsStats(context);
     }
 
     /**

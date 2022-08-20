@@ -121,8 +121,12 @@ public class WifiDialogManager {
         mWifiThreadRunner = wifiThreadRunner;
         mFrameworkFacade = frameworkFacade;
         mGravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
-        mContext.registerReceiver(
-                mCloseSystemDialogsReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+        int flags = 0;
+        if (SdkLevel.isAtLeastT()) {
+            flags = Context.RECEIVER_EXPORTED;
+        }
+        mContext.registerReceiver(mCloseSystemDialogsReceiver,
+                new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS), flags);
     }
 
     /**

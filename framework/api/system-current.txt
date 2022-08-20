@@ -517,7 +517,6 @@ package android.net.wifi {
 
   public class WifiFrameworkInitializer {
     method public static void registerServiceWrappers();
-    method public static void setBinderCallsStatsInitializer(@NonNull java.util.function.Consumer<android.content.Context>);
   }
 
   public class WifiInfo implements android.os.Parcelable android.net.TransportInfo {
