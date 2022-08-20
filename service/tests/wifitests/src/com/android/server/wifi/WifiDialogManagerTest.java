@@ -34,6 +34,7 @@ import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -741,7 +742,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         // Receive ACTION_CLOSE_SYSTEM_DIALOGS.
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any());
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
+                eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
@@ -785,7 +787,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         when(mPowerManager.isInteractive()).thenReturn(false);
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any());
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
+                eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);

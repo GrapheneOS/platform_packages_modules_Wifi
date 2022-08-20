@@ -56,6 +56,7 @@ import android.app.test.MockAnswerUtil;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
 import android.hardware.wifi.V1_0.WifiChannelWidthInMhz;
+import android.hardware.wifi.supplicant.DebugLevel;
 import android.hardware.wifi.supplicant.V1_0.ISupplicant;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantIface;
 import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIface;
@@ -78,6 +79,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
 import android.os.Handler;
@@ -447,6 +449,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         // Trying setting up the wlan0 interface again & ensure it fails.
         assertFalse(mDut.setupIface(WLAN0_IFACE_NAME));
+        verify(mISupplicantMockV11)
+                .setDebugParams(eq(DebugLevel.INFO), eq(false), eq(false));
         verifyNoMoreInteractions(mISupplicantMockV11);
     }
 
@@ -1907,7 +1911,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         // If verbose logging is not enabled, show key should not be enabled.
         assertTrue(mDut.setLogLevel(false));
-        verify(mISupplicantMock)
+        verify(mISupplicantMock, times(2))
                 .setDebugParams(eq(ISupplicant.DebugLevel.INFO), eq(false), eq(false));
     }
 
@@ -3832,15 +3836,35 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetEapAnonymousIdentity() throws Exception {
+        int testFrameworkNetworkId = 9;
         String anonymousIdentity = "adb@realm.com";
         ArrayList<Byte> bytes = NativeUtil.stringToByteArrayList(anonymousIdentity);
         when(mSupplicantStaNetworkMock.setEapAnonymousIdentity(any()))
                 .thenReturn(true);
 
-        executeAndValidateInitializationSequence();
-        executeAndValidateConnectSequence(4, false, TRANSLATED_SUPPLICANT_SSID.toString());
-        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
-        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(eq(bytes));
-    }
+        WifiConfiguration config = new WifiConfiguration();
+        config.networkId = testFrameworkNetworkId;
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP);
+        config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.TLS);
 
+        setupMocksForConnectSequence(false);
+
+        executeAndValidateInitializationSequence();
+        assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
+
+        config.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
+        // Check the data are sent to the native service.
+        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
+        ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(eq(bytes));
+
+        // Clear the first connection interaction.
+        reset(mISupplicantStaIfaceMock);
+        setupMocksForConnectSequence(true);
+        // Check the cached value is updated, and this
+        // config should be considered the same network.
+        assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
+        verify(mISupplicantStaIfaceMock, never()).removeNetwork(anyInt());
+        verify(mISupplicantStaIfaceMock, never()).addNetwork(any());
+    }
 }

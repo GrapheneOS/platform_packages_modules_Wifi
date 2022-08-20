@@ -19,14 +19,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.content.IContentProvider;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Resources;
 import android.net.wifi.IWifiManager;
@@ -53,8 +50,6 @@ public class RssiUtilTest extends WifiBaseTest {
 
     @Mock private Context mContext;
     @Mock private Resources mResources;
-    @Mock IContentProvider mIContentProvider;
-    @Mock ContentResolver mContentResolver;
 
     @Before
     public void setUp() throws Exception {
@@ -62,8 +57,6 @@ public class RssiUtilTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getIntArray(R.array.config_wifiRssiLevelThresholds))
                 .thenReturn(RSSI_THRESHOLDS);
-        when(mContext.getContentResolver()).thenReturn(mContentResolver);
-        when(mContentResolver.acquireProvider(anyString())).thenReturn(mIContentProvider);
     }
 
     /**
@@ -119,10 +112,11 @@ public class RssiUtilTest extends WifiBaseTest {
 
         ApplicationInfo applicationInfo = mock(ApplicationInfo.class);
         applicationInfo.targetSdkVersion = Build.VERSION_CODES.Q;
-        when(mContext.getApplicationInfo()).thenReturn(applicationInfo);
-        when(mContext.getOpPackageName()).thenReturn("TestPackage");
+        Context context = mock(Context.class);
+        when(context.getApplicationInfo()).thenReturn(applicationInfo);
+        when(context.getOpPackageName()).thenReturn("TestPackage");
         WifiManager wifiManager = new WifiManager(
-                mContext, iWifiManager, mock(Looper.class));
+                context, iWifiManager, mock(Looper.class));
 
         int level = wifiManager.getMaxSignalLevel();
         assertThat(level).isEqualTo(4);
