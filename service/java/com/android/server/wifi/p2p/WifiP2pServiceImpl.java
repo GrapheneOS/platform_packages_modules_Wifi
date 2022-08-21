@@ -1048,6 +1048,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         // The deviceAddress will be an empty string when the device is inactive
         // or if it is connected without any ongoing join request
         private WifiP2pConfig mSavedPeerConfig = new WifiP2pConfig();
+        private AlertDialog mLegacyInvitationDialog = null;
         private WifiDialogManager.DialogHandle mInvitationDialogHandle = null;
 
         P2pStateMachine(String name, Looper looper, boolean p2pSupported) {
@@ -3322,6 +3323,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         mWifiNative.p2pConnect(mSavedPeerConfig, FORM_GROUP);
                         transitionTo(mGroupNegotiationState);
                         break;
+                    case WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT:
+                        loge("provision discovery failed status: " + message.arg1);
+                        handleGroupCreationFailure();
+                        transitionTo(mInactiveState);
+                        break;
                     case WifiP2pManager.SET_CONNECTION_REQUEST_RESULT: {
                         if (!handleSetConnectionResult(message,
                                 WifiP2pManager.ExternalApproverRequestListener
@@ -3346,6 +3352,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 if (null != mInvitationDialogHandle) {
                     mInvitationDialogHandle.dismissDialog();
                     mInvitationDialogHandle = null;
+                }
+                if (null != mLegacyInvitationDialog) {
+                    mLegacyInvitationDialog.dismiss();
+                    mLegacyInvitationDialog = null;
                 }
             }
         }
@@ -3380,6 +3390,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         transitionTo(mInactiveState);
                         break;
+                    case WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT:
+                        loge("provision discovery failed status: " + message.arg1);
+                        handleGroupCreationFailure();
+                        transitionTo(mInactiveState);
+                        break;
                     case WifiP2pManager.SET_CONNECTION_REQUEST_RESULT:
                         if (!handleSetConnectionResult(message,
                                 WifiP2pManager.ExternalApproverRequestListener
@@ -3403,6 +3418,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 if (null != mInvitationDialogHandle) {
                     mInvitationDialogHandle.dismissDialog();
                     mInvitationDialogHandle = null;
+                }
+                if (null != mLegacyInvitationDialog) {
+                    mLegacyInvitationDialog.dismiss();
+                    mLegacyInvitationDialog = null;
                 }
             }
         }
@@ -4293,6 +4312,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     mInvitationDialogHandle.dismissDialog();
                     mInvitationDialogHandle = null;
                 }
+                if (null != mLegacyInvitationDialog) {
+                    mLegacyInvitationDialog.dismiss();
+                    mLegacyInvitationDialog = null;
+                }
             }
         }
 
@@ -4710,7 +4733,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             final EditText pin = textEntryView.findViewById(R.id.wifi_p2p_wps_pin);
 
-            AlertDialog dialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+            mLegacyInvitationDialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
                     .setTitle(r.getString(R.string.wifi_p2p_invitation_to_connect_title))
                     .setView(textEntryView)
                     .setPositiveButton(r.getString(R.string.accept), (dialog1, which) -> {
@@ -4731,7 +4754,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         sendMessage(PEER_CONNECTION_USER_REJECT);
                     })
                     .create();
-            dialog.setCanceledOnTouchOutside(false);
+            mLegacyInvitationDialog.setCanceledOnTouchOutside(false);
 
             // make the enter pin area or the display pin area visible
             switch (wps.setup) {
@@ -4749,7 +4772,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             if ((r.getConfiguration().uiMode & Configuration.UI_MODE_TYPE_APPLIANCE)
                     == Configuration.UI_MODE_TYPE_APPLIANCE) {
-                dialog.setOnKeyListener((dialog3, keyCode, event) -> {
+                mLegacyInvitationDialog.setOnKeyListener((dialog3, keyCode, event) -> {
                     if (keyCode == KeyEvent.KEYCODE_VOLUME_MUTE) {
                         sendMessage(PEER_CONNECTION_USER_ACCEPT);
                         dialog3.dismiss();
@@ -4759,10 +4782,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 });
             }
 
-            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-            dialog.getWindow().addSystemFlags(
+            mLegacyInvitationDialog.getWindow().setType(
+                    WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            mLegacyInvitationDialog.getWindow().addSystemFlags(
                     WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS);
-            dialog.show();
+            mLegacyInvitationDialog.show();
         }
 
         private void showInvitationReceivedDialog() {
@@ -4811,7 +4835,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                     };
 
-            WifiDialogManager.DialogHandle mInvitationDialogHandle =
+            mInvitationDialogHandle =
                     mWifiInjector.getWifiDialogManager().createP2pInvitationReceivedDialog(
                             deviceName,
                             isPinRequested,
@@ -5462,6 +5486,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (null != mInvitationDialogHandle) {
                 mInvitationDialogHandle.dismissDialog();
                 mInvitationDialogHandle = null;
+            }
+            if (null != mLegacyInvitationDialog) {
+                mLegacyInvitationDialog.dismiss();
+                mLegacyInvitationDialog = null;
             }
             if (invalidateSavedPeer) {
                 mSavedPeerConfig.invalidate();
