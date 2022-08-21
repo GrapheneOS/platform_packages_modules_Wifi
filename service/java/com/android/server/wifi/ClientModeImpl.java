@@ -4138,8 +4138,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mLastScanRssi = mWifiConfigManager.findScanRssi(netId,
                             mWifiHealthMonitor.getScanRssiValidTimeMs());
                     mWifiScoreCard.noteConnectionAttempt(mWifiInfo, mLastScanRssi, config.SSID);
-                    mWifiBlocklistMonitor.setAllowlistSsids(config.SSID, Collections.emptyList());
-                    mWifiBlocklistMonitor.updateFirmwareRoamingConfiguration(Set.of(config.SSID));
+                    if (isPrimary()) {
+                        mWifiBlocklistMonitor.setAllowlistSsids(config.SSID,
+                                Collections.emptyList());
+                        mWifiBlocklistMonitor.updateFirmwareRoamingConfiguration(
+                                Set.of(config.SSID));
+                    }
 
                     updateWifiConfigOnStartConnection(config, bssid);
                     reportConnectionAttemptStart(config, mTargetBssid,
@@ -7516,6 +7520,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * SSID allowlist with the linked networks.
      */
     private void updateLinkedNetworks(@NonNull WifiConfiguration config) {
+        if (!isPrimary()) {
+            return;
+        }
         if (!mContext.getResources().getBoolean(R.bool.config_wifiEnableLinkedNetworkRoaming)) {
             return;
         }

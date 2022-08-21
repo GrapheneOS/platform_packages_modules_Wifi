@@ -6131,6 +6131,22 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies that while connecting to secondary STA, framework doesn't change the roaming
+     * configuration.
+     * @throws Exception
+     */
+    @Test
+    public void testConnectSecondaryStaNotChangeRoamingConfig() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).connectToNetwork(eq(WIFI_IFACE_NAME), eq(mTestConfig));
+        verify(mWifiBlocklistMonitor, never()).setAllowlistSsids(anyString(), any());
+    }
+
+    /**
      * Tests the wifi info is updated correctly for connecting network.
      */
     @Test
@@ -7719,8 +7735,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         triggerConnect();
     }
 
-    @Test
-    public void testNetworkRemovedUpdatesLinkedNetworks() throws Exception {
+    private void testNetworkRemovedUpdatesLinkedNetworks(boolean isSecondary) throws Exception {
+        if (isSecondary) {
+            when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        }
         mResources.setBoolean(R.bool.config_wifiEnableLinkedNetworkRoaming, true);
         WifiConfiguration connectedConfig = WifiConfigurationTestUtil.createPskNetwork("\"ssid1\"");
         connectedConfig.networkId = FRAMEWORK_NETWORK_ID;
@@ -7743,7 +7761,21 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removeConfig);
         mLooper.dispatchAll();
 
-        verify(mWifiConfigManager).updateLinkedNetworks(connectedConfig.networkId);
+        if (!isSecondary) {
+            verify(mWifiConfigManager).updateLinkedNetworks(connectedConfig.networkId);
+        } else {
+            verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
+        }
+    }
+
+    @Test
+    public void testNetworkRemovedUpdatesLinkedNetworksPrimary() throws Exception {
+        testNetworkRemovedUpdatesLinkedNetworks(false);
+    }
+
+    @Test
+    public void testNetworkRemovedUpdatesLinkedNetworksSecondary() throws Exception {
+        testNetworkRemovedUpdatesLinkedNetworks(true);
     }
 
     @Test
