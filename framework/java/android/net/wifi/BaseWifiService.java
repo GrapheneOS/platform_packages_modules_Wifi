@@ -199,8 +199,13 @@ public class BaseWifiService extends IWifiManager.Stub {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    /** TO BE REMOVED */
     public void allowAutojoinGlobal(boolean choice) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void allowAutojoinGlobal(boolean choice, String packageName, Bundle extras) {
         throw new UnsupportedOperationException();
     }
 

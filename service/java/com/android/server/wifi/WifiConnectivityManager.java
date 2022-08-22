@@ -187,6 +187,7 @@ public class WifiConnectivityManager {
     private int mWifiState = WIFI_STATE_UNKNOWN;
     private int mInitialScanState = INITIAL_SCAN_STATE_COMPLETE;
     private boolean mAutoJoinEnabledExternal = true; // enabled by default
+    private boolean mAutoJoinEnabledExternalSetByDeviceAdmin = false;
     private boolean mUntrustedConnectionAllowed = false;
     private Set<Integer> mRestrictedConnectionAllowedUids = new ArraySet<>();
     private boolean mOemPaidConnectionAllowed = false;
@@ -2406,6 +2407,8 @@ public class WifiConnectivityManager {
                 + " wifiEnabled=" + mWifiEnabled
                 + " mAutoJoinEnabled=" + mAutoJoinEnabled
                 + " mAutoJoinEnabledExternal=" + mAutoJoinEnabledExternal
+                + " mAutoJoinEnabledExternalSetByDeviceAdmin="
+                + mAutoJoinEnabledExternalSetByDeviceAdmin
                 + " mSpecificNetworkRequestInProgress=" + mSpecificNetworkRequestInProgress
                 + " mTrustedConnectionAllowed=" + mTrustedConnectionAllowed
                 + " isSufficiencyCheckEnabled=" + mNetworkSelector.isSufficiencyCheckEnabled()
@@ -3035,9 +3038,14 @@ public class WifiConnectivityManager {
     /**
      * Turn on/off the auto join at runtime
      */
-    public void setAutoJoinEnabledExternal(boolean enable) {
+    public void setAutoJoinEnabledExternal(boolean enable, boolean isDeviceAdmin) {
         localLog("Set auto join " + (enable ? "enabled" : "disabled"));
-
+        if (!mAutoJoinEnabledExternal && mAutoJoinEnabledExternalSetByDeviceAdmin
+                && !isDeviceAdmin) {
+            localLog("Set auto join ignored since it was disabled by a device admin.");
+            return;
+        }
+        mAutoJoinEnabledExternalSetByDeviceAdmin = isDeviceAdmin;
         if (mAutoJoinEnabledExternal != enable) {
             mAutoJoinEnabledExternal = enable;
             checkAllStatesAndEnableAutoJoin();
