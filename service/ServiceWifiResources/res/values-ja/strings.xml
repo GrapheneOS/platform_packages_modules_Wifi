@@ -159,12 +159,9 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"クイック設定で Wi‑Fi を OFF にできます"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"許可"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"許可しない"</string>
-    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
-    <skip />
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"使用できないネットワーク"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> は管理者によって無効にされています。"</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"閉じる"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"Wi-Fi を OFF にしました"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"機内モードでも Wi-Fi を OFF にしない限り、スマートフォンで Wi-Fi を引き続き利用できます"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi-Fi を ON のままにする"</string>

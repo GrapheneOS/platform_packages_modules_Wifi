@@ -159,12 +159,9 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"您可以在「快速設定」中關閉 Wi-Fi"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允許"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允許"</string>
-    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
-    <skip />
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"無法使用網絡"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"您的管理員已停用「<xliff:g id="SSID">%1$s</xliff:g>」。"</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"關閉"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"您已開啟 Wi‑Fi"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"您的手機會在飛行模式下保持 Wi-Fi 連線，直至您在此模式下關閉 Wi-Fi 為止"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"保持 Wi-Fi 連線"</string>
