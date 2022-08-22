@@ -90,7 +90,9 @@ public class InsecureEapNetworkHandler {
                     // Disconnect this network to avoid staying at connecting state.
                     // Once the user accepts this via notification, this network could
                     // be auto-connected.
-                    mWifiConfigManager.allowAutojoin(mCurrentTofuConfig.networkId, false);
+                    mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
+                            WifiConfiguration.NetworkSelectionStatus
+                            .DISABLED_BY_WIFI_MANAGER);
 
                     // If the connecting network is changed, do not need to disconnect
                     // the network anymore.
@@ -456,7 +458,8 @@ public class InsecureEapNetworkHandler {
                         + ", CA cert = " + mPendingCaCert);
             }
         }
-        mWifiConfigManager.allowAutojoin(mCurrentTofuConfig.networkId, true);
+        mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
         dismissDialogAndNotification();
         clearInternalData();
 
@@ -467,7 +470,8 @@ public class InsecureEapNetworkHandler {
     void handleReject(@NonNull String ssid) {
         if (!isConnectionValid(ssid)) return;
 
-        mWifiConfigManager.allowAutojoin(mCurrentTofuConfig.networkId, false);
+        mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WIFI_MANAGER);
         dismissDialogAndNotification();
         clearInternalData();
         clearNativeData();
@@ -477,7 +481,9 @@ public class InsecureEapNetworkHandler {
 
     private void handleError(@Nullable String ssid) {
         if (mCurrentTofuConfig != null) {
-            mWifiConfigManager.allowAutojoin(mCurrentTofuConfig.networkId, false);
+            mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
+                    WifiConfiguration.NetworkSelectionStatus
+                    .DISABLED_BY_WIFI_MANAGER);
         }
         dismissDialogAndNotification();
         clearInternalData();
