@@ -78,7 +78,6 @@ public class WifiDialogManager {
     private final @NonNull WifiContext mContext;
     private final @NonNull WifiThreadRunner mWifiThreadRunner;
     private final @NonNull FrameworkFacade mFrameworkFacade;
-    private final int mGravity;
 
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -133,7 +132,6 @@ public class WifiDialogManager {
         mContext = context;
         mWifiThreadRunner = wifiThreadRunner;
         mFrameworkFacade = frameworkFacade;
-        mGravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         intentFilter.addAction(Intent.ACTION_USER_PRESENT);
@@ -557,8 +555,9 @@ public class WifiDialogManager {
                     .create();
             mAlertDialog.setCanceledOnTouchOutside(false);
             final Window window = mAlertDialog.getWindow();
-            if (mGravity != Gravity.NO_GRAVITY) {
-                window.setGravity(mGravity);
+            int gravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
+            if (gravity != Gravity.NO_GRAVITY) {
+                window.setGravity(gravity);
             }
             final WindowManager.LayoutParams lp = window.getAttributes();
             window.setType(mWindowType);
