@@ -159,12 +159,9 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"„Wi‑Fi“ galite išjungti sparčiuosiuose nustatymuose"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Leisti"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Neleisti"</string>
-    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
-    <skip />
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Nepasiekiamas tinklas"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"„<xliff:g id="SSID">%1$s</xliff:g>“ išjungė administratorius."</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Uždaryti"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"Įjungėte „Wi‑Fi“"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"Telefono „Wi‑Fi“ ryšys liks įjungtas lėktuvo režimu, nebent jį išjungsite šiuo režimu."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"„Wi‑Fi“ lieka įjungtas"</string>

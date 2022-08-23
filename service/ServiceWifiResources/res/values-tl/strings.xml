@@ -159,12 +159,9 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Puwede mong i-off ang Wi‑Fi sa Mga Mabilisang Setting"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Payagan"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Huwag payagan"</string>
-    <!-- no translation found for wifi_network_disabled_by_admin_title (9057697656855227293) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_message (7830360441333155462) -->
-    <skip />
-    <!-- no translation found for wifi_network_disabled_by_admin_button (3350310756265122689) -->
-    <skip />
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Hindi Available na Network"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Na-disable ng iyong administrator ang <xliff:g id="SSID">%1$s</xliff:g>."</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Isara"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"Na-on mo ang Wi‑Fi"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"Papanatilihing naka-on ng iyong telepono ang Wi-Fi sa airplane mode, maliban na lang kung i-off mo ito habang nasa mode na ito"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Mananatiling naka-on ang Wi‑Fi"</string>
