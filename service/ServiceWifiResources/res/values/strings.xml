@@ -241,8 +241,8 @@
     <string name="wifi_network_disabled_by_admin_button">Close</string>
 
     <!-- Notifying the user that the device will remember Wi-Fi state in APM. -->
-    <string name="wifi_enabled_apm_first_time_title">You turned on Wi\u2011Fi</string>
-    <string name="wifi_enabled_apm_first_time_message">Your phone will keep Wi\u2011Fi on in airplane mode, unless you turn it off while in this mode</string>
+    <string name="wifi_enabled_apm_first_time_title">Wi\u2011Fi on in airplane mode</string>
+    <string name="wifi_enabled_apm_first_time_message">If you keep Wi\u2011Fi on, it will stay on the next time you\'re in airplane mode</string>
     <string name="apm_enabled_first_time_title">Wi\u2011Fi stays on</string>
-    <string name="apm_enabled_first_time_message">Your phone will keep Wi\u2011Fi on in airplane mode, unless you turn it off while in this mode</string>
+    <string name="apm_enabled_first_time_message">Your phone remembers to keep Wi\u2011Fi on in airplane mode. To change this, turn off Wi\u2011Fi.</string>
 </resources>
