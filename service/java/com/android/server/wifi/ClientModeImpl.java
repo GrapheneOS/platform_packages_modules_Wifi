@@ -5779,7 +5779,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                         sendMessageDelayed(obtainMessage(CMD_RSSI_POLL, mRssiPollToken, 0),
                                 mWifiGlobals.getPollRssiIntervalMillis());
-                        if (mVerboseLoggingEnabled) sendRssiChangeBroadcast(mWifiInfo.getRssi());
                         if (isPrimary()) {
                             mWifiTrafficPoller.notifyOnDataActivity(
                                     mWifiInfo.txSuccess, mWifiInfo.rxSuccess);

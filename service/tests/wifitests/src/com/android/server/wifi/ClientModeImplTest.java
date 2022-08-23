@@ -47,6 +47,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
@@ -141,6 +142,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.Process;
+import android.os.UserHandle;
 import android.os.test.TestLooper;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
@@ -5109,6 +5111,28 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     *  Verifies that no RSSI change broadcast should be sent
+     */
+    private void failOnRssiChangeBroadcast() throws Exception {
+        mCmi.enableVerboseLogging(true);
+        doAnswer(invocation -> {
+            final Intent intent = invocation.getArgument(0);
+            if (WifiManager.RSSI_CHANGED_ACTION.equals(intent.getAction())) {
+                fail("Should not send RSSI_CHANGED broadcast!");
+            }
+            return null;
+        }).when(mContext).sendBroadcastAsUser(any(), any());
+
+        doAnswer(invocation -> {
+            final Intent intent = invocation.getArgument(0);
+            if (WifiManager.RSSI_CHANGED_ACTION.equals(intent.getAction())) {
+                fail("Should not send RSSI_CHANGED broadcast!");
+            }
+            return null;
+        }).when(mContext).sendBroadcastAsUser(any(), any(), anyString());
+    }
+
+    /**
      * Verify that we check for data stall during rssi poll
      * and then check that wifi link layer usage data are being updated.
      */
@@ -5117,6 +5141,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.enableRssiPolling(true);
         connect();
 
+        failOnRssiChangeBroadcast();
         WifiLinkLayerStats oldLLStats = new WifiLinkLayerStats();
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(oldLLStats);
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
@@ -5141,6 +5166,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.enableRssiPolling(true);
         connect();
 
+        failOnRssiChangeBroadcast();
         WifiLinkLayerStats stats = new WifiLinkLayerStats();
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(stats);
         when(mWifiDataStall.checkDataStallAndThroughputSufficiency(any(),
