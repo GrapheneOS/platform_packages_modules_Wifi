@@ -471,7 +471,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         mSoftApManager = createSoftApManager(apConfig, TEST_COUNTRY_CODE, ROLE_SOFTAP_TETHERED);
 
         verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_FAILED,
-                WifiManager.SAP_START_FAILURE_GENERAL);
+                WifiManager.SAP_START_FAILURE_USER_REJECTED);
         verify(mListener).onStartFailure(mSoftApManager);
     }
 
