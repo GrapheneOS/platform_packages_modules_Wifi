@@ -6668,6 +6668,38 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mWifiNative).p2pReject(eq(mTestWifiP2pDevice.deviceAddress));
     }
 
+    @Test
+    public void testDismissDialogOnReceiveProvDiscFailureEvent() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        forceP2pEnabled(mClient1);
+
+        mockEnterUserAuthorizingNegotiationRequestState(WpsInfo.PBC);
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT,
+                WifiP2pMonitor.PROV_DISC_STATUS_REJECTED,
+                pdEvent);
+        verify(mDialogHandle).dismissDialog();
+    }
+
+    @Test
+    public void testDismissDialogOnReceiveProvDiscFailureEventPreT() throws Exception {
+        assumeFalse(SdkLevel.isAtLeastT());
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        forceP2pEnabled(mClient1);
+
+        mockEnterUserAuthorizingNegotiationRequestState(WpsInfo.PBC);
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT,
+                WifiP2pMonitor.PROV_DISC_STATUS_REJECTED,
+                pdEvent);
+        verify(mAlertDialog).dismiss();
+    }
+
     /**
      * Verify the tethering request is sent with TETHER_PRIVILEGED permission.
      */
