@@ -30,8 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-//import java.util.HashMap;
-//import java.util.Map;
+import java.util.Arrays;
 
 /**
  * Unit tests for {@link com.android.server.wifi.MemoryStoreImpl}.
@@ -104,7 +103,7 @@ public class MemoryStoreImplTest extends WifiBaseTest {
     @Test
     public void wifiScoreCardReadShouldCallIpMemoryStoreRetrieveBlob() throws Exception {
         final byte[] myBlob = new byte[]{0x0, 0x3};
-        final String myL2Key = "L2Key:" + myBlob;
+        final String myL2Key = "L2Key:" + Arrays.toString(myBlob);
         final android.net.ipmemorystore.Status statusSuccess =
                 new android.net.ipmemorystore.Status(android.net.ipmemorystore.Status.SUCCESS);
 
@@ -142,7 +141,7 @@ public class MemoryStoreImplTest extends WifiBaseTest {
     @Test
     public void wifiScoreCardWriteShouldCallIpMemoryStoreStoreBlob() throws Exception {
         final byte[] myBlob = new byte[]{0x0, 0x3, 0x1};
-        final String myL2Key = "L2Key:" + myBlob;
+        final String myL2Key = "L2Key:" + Arrays.toString(myBlob);
         when(mWifiInjector.getIpMemoryStore()).thenReturn(mIpMemoryStore);
         mMemoryStoreImpl.start();
         mMemoryStoreImpl.write(myL2Key, DATA_NAME, myBlob);
@@ -165,7 +164,7 @@ public class MemoryStoreImplTest extends WifiBaseTest {
     @Test
     public void exceptionDisablesFurtherOperations() throws Exception {
         final byte[] myBlob = new byte[]{0x0, 0x3, 0x1};
-        final String myL2Key = "L2Key:" + myBlob;
+        final String myL2Key = "L2Key:" + Arrays.toString(myBlob);
         when(mWifiInjector.getIpMemoryStore()).thenReturn(mIpMemoryStore);
         doThrow(new RuntimeException("Just a test"))
                 .when(mIpMemoryStore).storeBlob(any(), any(), any(), any(), any());
