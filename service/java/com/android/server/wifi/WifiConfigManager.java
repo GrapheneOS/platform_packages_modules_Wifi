@@ -162,7 +162,7 @@ public class WifiConfigManager {
          * Invoked when user connect choice is removed.
          * @param choiceKey The network profile key of the user connect choice that was removed.
          */
-        default void onConnectChoiceRemoved(String choiceKey){ }
+        default void onConnectChoiceRemoved(@NonNull String choiceKey){ }
 
         /**
          * Invoke when security params changed, especially when NetworkTransitionDisable event
