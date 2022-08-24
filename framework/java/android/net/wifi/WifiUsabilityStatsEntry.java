@@ -879,7 +879,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
                 && mContentionTimeStats.length == NUM_WME_ACCESS_CATEGORIES) {
             return mContentionTimeStats[ac];
         }
-        Log.e(TAG, "The ContentionTimeStats is not filled out correctly: " + mContentionTimeStats);
+        Log.e(TAG, "The ContentionTimeStats is not filled out correctly: "
+                + Arrays.toString(mContentionTimeStats));
         return new ContentionTimeStats();
     }
 
