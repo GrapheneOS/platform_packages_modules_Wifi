@@ -18,9 +18,12 @@ package com.android.server.wifi;
 
 import android.app.ActivityManager;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Icon;
+import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.provider.Settings;
 
@@ -117,6 +120,7 @@ public class WifiSettingsStore {
     // SystemMessage.NOTE_WIFI_APM_NOTIFICATION
     private static final int WIFI_APM_NOTIFICATION_ID = 73;
 
+    private final String mApmEnhancementHelpLink;
     private final WifiContext mContext;
     private final WifiSettingsConfigStore mSettingsConfigStore;
     private final WifiThreadRunner mWifiThreadRunner;
@@ -135,6 +139,7 @@ public class WifiSettingsStore {
         mDeviceConfigFacade = deviceConfigFacade;
         mAirplaneModeOn = getPersistedAirplaneModeOn();
         mPersistWifiState = getPersistedWifiState();
+        mApmEnhancementHelpLink = mContext.getString(R.string.config_wifiApmEnhancementHelpLink);
     }
 
     private int getUserSecureIntegerSetting(String name, int def) {
@@ -188,6 +193,12 @@ public class WifiSettingsStore {
         String settingsPackage = mFrameworkFacade.getSettingsPackageName(mContext);
         if (settingsPackage == null) return;
 
+        Intent openLinkIntent = new Intent(Intent.ACTION_VIEW)
+                .setData(Uri.parse(mApmEnhancementHelpLink))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent tapPendingIntent = mFrameworkFacade.getActivity(mContext, 0, openLinkIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         String title = mContext.getResources().getString(titleId);
         String message = mContext.getResources().getString(messageId);
         Notification.Builder builder = mFrameworkFacade.makeNotificationBuilder(mContext,
@@ -196,6 +207,7 @@ public class WifiSettingsStore {
                 .setLocalOnly(true)
                 .setContentTitle(title)
                 .setContentText(message)
+                .setContentIntent(tapPendingIntent)
                 .setStyle(new Notification.BigTextStyle().bigText(message))
                 .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
                         R.drawable.ic_wifi_settings));

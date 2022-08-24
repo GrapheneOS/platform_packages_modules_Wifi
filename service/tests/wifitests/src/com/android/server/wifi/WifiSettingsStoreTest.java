@@ -52,6 +52,8 @@ import android.provider.Settings;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.wifi.resources.R;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -85,6 +87,7 @@ public class WifiSettingsStoreTest extends WifiBaseTest {
         when(mContext.getContentResolver()).thenReturn(mContentResolver);
         when(mContext.getResources()).thenReturn(mResources);
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
+        when(mContext.getString(R.string.config_wifiApmEnhancementHelpLink)).thenReturn("test URL");
         when(mResources.getString(anyInt())).thenReturn("resource");
         when(mFrameworkFacade.getIntegerSetting(mContentResolver, Settings.Global.AIRPLANE_MODE_ON,
                 APM_DISABLED)).thenReturn(APM_DISABLED);
@@ -101,6 +104,7 @@ public class WifiSettingsStoreTest extends WifiBaseTest {
         when(mNotificationBuilder.setSmallIcon(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setContentTitle(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setContentText(any())).thenReturn(mNotificationBuilder);
+        when(mNotificationBuilder.setContentIntent(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setStyle(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setLocalOnly(anyBoolean())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setAutoCancel(anyBoolean())).thenReturn(mNotificationBuilder);
