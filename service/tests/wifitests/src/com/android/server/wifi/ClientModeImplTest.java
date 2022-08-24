@@ -47,6 +47,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
@@ -141,6 +142,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.Process;
+import android.os.UserHandle;
 import android.os.test.TestLooper;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
@@ -5120,6 +5122,28 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     *  Verifies that no RSSI change broadcast should be sent
+     */
+    private void failOnRssiChangeBroadcast() throws Exception {
+        mCmi.enableVerboseLogging(true);
+        doAnswer(invocation -> {
+            final Intent intent = invocation.getArgument(0);
+            if (WifiManager.RSSI_CHANGED_ACTION.equals(intent.getAction())) {
+                fail("Should not send RSSI_CHANGED broadcast!");
+            }
+            return null;
+        }).when(mContext).sendBroadcastAsUser(any(), any());
+
+        doAnswer(invocation -> {
+            final Intent intent = invocation.getArgument(0);
+            if (WifiManager.RSSI_CHANGED_ACTION.equals(intent.getAction())) {
+                fail("Should not send RSSI_CHANGED broadcast!");
+            }
+            return null;
+        }).when(mContext).sendBroadcastAsUser(any(), any(), anyString());
+    }
+
+    /**
      * Verify that we check for data stall during rssi poll
      * and then check that wifi link layer usage data are being updated.
      */
@@ -5128,6 +5152,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.enableRssiPolling(true);
         connect();
 
+        failOnRssiChangeBroadcast();
         WifiLinkLayerStats oldLLStats = new WifiLinkLayerStats();
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(oldLLStats);
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
@@ -5152,6 +5177,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.enableRssiPolling(true);
         connect();
 
+        failOnRssiChangeBroadcast();
         WifiLinkLayerStats stats = new WifiLinkLayerStats();
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(stats);
         when(mWifiDataStall.checkDataStallAndThroughputSufficiency(any(),
@@ -6128,6 +6154,22 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(TEST_BSSID_STR, wifiInfo.getBSSID());
         assertTrue(WifiSsid.fromUtf8Text(sFilsSsid).equals(wifiInfo.getWifiSsid()));
         assertEquals("L3ConnectedState", getCurrentState().getName());
+    }
+
+    /**
+     * Verifies that while connecting to secondary STA, framework doesn't change the roaming
+     * configuration.
+     * @throws Exception
+     */
+    @Test
+    public void testConnectSecondaryStaNotChangeRoamingConfig() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).connectToNetwork(eq(WIFI_IFACE_NAME), eq(mTestConfig));
+        verify(mWifiBlocklistMonitor, never()).setAllowlistSsids(anyString(), any());
     }
 
     /**
@@ -7719,8 +7761,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         triggerConnect();
     }
 
-    @Test
-    public void testNetworkRemovedUpdatesLinkedNetworks() throws Exception {
+    private void testNetworkRemovedUpdatesLinkedNetworks(boolean isSecondary) throws Exception {
+        if (isSecondary) {
+            when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        }
         mResources.setBoolean(R.bool.config_wifiEnableLinkedNetworkRoaming, true);
         WifiConfiguration connectedConfig = WifiConfigurationTestUtil.createPskNetwork("\"ssid1\"");
         connectedConfig.networkId = FRAMEWORK_NETWORK_ID;
@@ -7743,7 +7787,21 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removeConfig);
         mLooper.dispatchAll();
 
-        verify(mWifiConfigManager).updateLinkedNetworks(connectedConfig.networkId);
+        if (!isSecondary) {
+            verify(mWifiConfigManager).updateLinkedNetworks(connectedConfig.networkId);
+        } else {
+            verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
+        }
+    }
+
+    @Test
+    public void testNetworkRemovedUpdatesLinkedNetworksPrimary() throws Exception {
+        testNetworkRemovedUpdatesLinkedNetworks(false);
+    }
+
+    @Test
+    public void testNetworkRemovedUpdatesLinkedNetworksSecondary() throws Exception {
+        testNetworkRemovedUpdatesLinkedNetworks(true);
     }
 
     @Test

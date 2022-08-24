@@ -60,9 +60,6 @@ rule android.net.shared.InetAddressUtils* com.android.wifi.x.@0
 rule android.net.shared.InitialConfiguration* com.android.wifi.x.@0
 rule android.net.shared.IpConfigurationParcelableUtil* com.android.wifi.x.@0
 rule android.net.shared.Layer2Information* com.android.wifi.x.@0
-rule android.net.shared.LinkPropertiesParcelableUtil* com.android.wifi.x.@0
-rule android.net.shared.NetdUtils* com.android.wifi.x.@0
-rule android.net.shared.NetworkMonitorUtils* com.android.wifi.x.@0
 rule android.net.shared.ParcelableUtil* com.android.wifi.x.@0
 rule android.net.shared.PrivateDnsConfig* com.android.wifi.x.@0
 rule android.net.shared.ProvisioningConfiguration* com.android.wifi.x.@0
