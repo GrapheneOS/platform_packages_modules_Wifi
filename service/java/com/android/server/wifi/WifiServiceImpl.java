@@ -3897,7 +3897,8 @@ public class WifiServiceImpl extends BaseWifiService {
                     asLast = asLast.getNext();
                 }
                 isDeviceAdmin = mWifiPermissionsUtil.isAdmin(asLast.getUid(),
-                        asLast.getPackageName());
+                        asLast.getPackageName()) || mWifiPermissionsUtil.isLegacyDeviceAdmin(
+                                asLast.getUid(), asLast.getPackageName());
             }
         }
         boolean finalIsDeviceAdmin = isDeviceAdmin;
