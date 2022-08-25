@@ -46,6 +46,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -458,7 +459,7 @@ public class WifiBackupRestore {
         }
         if (mDebugLastIpConfigBackupDataRestored != null) {
             pw.println("Last old ipconfig backup data restored: "
-                    + mDebugLastIpConfigBackupDataRestored);
+                    + Arrays.toString(mDebugLastIpConfigBackupDataRestored));
         }
     }
 
