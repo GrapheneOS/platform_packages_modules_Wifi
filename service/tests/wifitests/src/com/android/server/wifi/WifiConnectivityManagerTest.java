@@ -3847,9 +3847,40 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void verifyGetFirmwareRoamingInfoIsNotCalledWhenEnableWiFiAndWcmOff() {
         reset(mWifiConnectivityHelper);
-        mWifiConnectivityManager.setAutoJoinEnabledExternal(false);
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, false);
         setWifiEnabled(true);
         verify(mWifiConnectivityHelper, times(0)).getFirmwareRoamingInfo();
+    }
+
+    /**
+     * Verify if setAutoJoinEnabledExternal is disabled by a device admin, it cannot be re-enabled
+     * by a non device admin caller.
+     */
+    @Test
+    public void testSetAutoJoinEnabledExternalDeviceOwnerPrivileged() {
+        assertTrue(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+
+        // test disable/enable by non device admin
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, false);
+        assertFalse(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false);
+        assertTrue(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+
+        // test disable by device admin
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, true);
+        assertFalse(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+
+        // verify that a non device admin cannot re-enable autoJoin
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false);
+        assertFalse(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+
+        // verify device admin setting autojoin back to true
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(true, true);
+        assertTrue(mWifiConnectivityManager.getAutoJoinEnabledExternal());
+
+        // verify that a non device admin can now modify autoJoin
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, false);
+        assertFalse(mWifiConnectivityManager.getAutoJoinEnabledExternal());
     }
 
     /*
@@ -4290,7 +4321,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
 
         // Disable externally.
-        mWifiConnectivityManager.setAutoJoinEnabledExternal(false);
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, false);
 
         // Enable trusted connection. This should NOT trigger a pno scan for auto-join.
         mWifiConnectivityManager.setTrustedConnectionAllowed(true);
@@ -4605,12 +4636,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void verifyForceConnectivityScan() {
         // Auto-join enabled
-        mWifiConnectivityManager.setAutoJoinEnabledExternal(true);
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false);
         mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
         verify(mWifiScanner).startScan(any(), any(), any(), any());
 
         // Auto-join disabled, no new scans
-        mWifiConnectivityManager.setAutoJoinEnabledExternal(false);
+        mWifiConnectivityManager.setAutoJoinEnabledExternal(false, false);
         mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
         verify(mWifiScanner, times(1)).startScan(any(), any(), any(), any());
 

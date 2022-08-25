@@ -1238,7 +1238,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
             if (enable) {
                 mWifiThreadRunner.post(
-                        () -> mWifiConnectivityManager.setAutoJoinEnabledExternal(true));
+                        () -> mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false));
                 mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_ON);
             } else {
                 WifiInfo wifiInfo =
@@ -3874,16 +3874,33 @@ public class WifiServiceImpl extends BaseWifiService {
      * @param choice the OEM's choice to allow auto-join
      */
     @Override
-    public void allowAutojoinGlobal(boolean choice) {
+    public void allowAutojoinGlobal(boolean choice, String packageName, Bundle extras) {
         int callingUid = Binder.getCallingUid();
+        boolean isDeviceAdmin = mWifiPermissionsUtil.isAdmin(callingUid, packageName);
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(callingUid)
-                && !isDeviceOrProfileOwner(callingUid, mContext.getOpPackageName())) {
+                && !isDeviceAdmin) {
             throw new SecurityException("Uid " + callingUid
                     + " is not allowed to set wifi global autojoin");
         }
         mLog.info("allowAutojoinGlobal=% uid=%").c(choice).c(callingUid).flush();
-        mWifiThreadRunner.post(() -> mWifiConnectivityManager.setAutoJoinEnabledExternal(choice));
+        if (!isDeviceAdmin && SdkLevel.isAtLeastS()) {
+            // direct caller is not device admin but there exists and attribution chain. Check
+            // if the original caller is device admin.
+            AttributionSource as = extras.getParcelable(
+                    WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE);
+            if (as != null) {
+                AttributionSource asLast = as;
+                while (asLast.getNext() != null) {
+                    asLast = asLast.getNext();
+                }
+                isDeviceAdmin = mWifiPermissionsUtil.isAdmin(asLast.getUid(),
+                        asLast.getPackageName());
+            }
+        }
+        boolean finalIsDeviceAdmin = isDeviceAdmin;
+        mWifiThreadRunner.post(() -> mWifiConnectivityManager.setAutoJoinEnabledExternal(choice,
+                finalIsDeviceAdmin));
         mLastCallerInfoManager.put(WifiManager.API_AUTOJOIN_GLOBAL, Process.myTid(),
                 callingUid, Binder.getCallingPid(), "<unknown>", choice);
     }
