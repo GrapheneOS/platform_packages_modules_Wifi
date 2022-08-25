@@ -4882,8 +4882,14 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
             assertEquals(null, ewns.connectChoice);
             assertEquals(0, ewns.connectChoiceRssi);
         }
+
         // Add suggestion and change user approval have 2, set and remove user choice have 2.
         verify(mWifiConfigManager, times(4)).saveToStore(true);
+
+        reset(mWifiConfigManager);
+        listener.onConnectChoiceRemoved(USER_CONNECT_CHOICE);
+        listener.onConnectChoiceRemoved(null);
+        verify(mWifiConfigManager, never()).saveToStore(anyBoolean());
     }
 
     /**

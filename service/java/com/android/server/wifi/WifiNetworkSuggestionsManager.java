@@ -183,7 +183,10 @@ public class WifiNetworkSuggestionsManager {
         }
 
         @Override
-        public void onConnectChoiceRemoved(String choiceKey) {
+        public void onConnectChoiceRemoved(@NonNull String choiceKey) {
+            if (choiceKey == null) {
+                return;
+            }
             onUserConnectChoiceRemoveForSuggestion(choiceKey);
         }
 
@@ -2701,13 +2704,15 @@ public class WifiNetworkSuggestionsManager {
     }
 
     private void onUserConnectChoiceRemoveForSuggestion(String choiceKey) {
-        mActiveNetworkSuggestionsPerApp.values().stream()
+        if (mActiveNetworkSuggestionsPerApp.values().stream()
                 .flatMap(e -> e.extNetworkSuggestions.values().stream())
                 .filter(ewns -> TextUtils.equals(ewns.connectChoice, choiceKey))
-                .forEach(ewns -> {
+                .peek(ewns -> {
                     ewns.connectChoice = null;
                     ewns.connectChoiceRssi = 0;
-                });
+                }).count() == 0) {
+            return;
+        }
         saveToStore();
     }
 
