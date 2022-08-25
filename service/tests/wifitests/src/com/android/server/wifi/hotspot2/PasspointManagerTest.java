@@ -2825,6 +2825,12 @@ public class PasspointManagerTest extends WifiBaseTest {
 
         verify(provider2, never()).setUserConnectChoice(any(), anyInt());
         verify(mWifiConfigManager, times(3)).saveToStore(true);
+
+        reset(mWifiConfigManager);
+        when(provider.getConnectChoice()).thenReturn(null);
+        listener.onConnectChoiceRemoved(USER_CONNECT_CHOICE);
+        listener.onConnectChoiceRemoved(null);
+        verify(mWifiConfigManager, never()).saveToStore(anyBoolean());
     }
 
     /*

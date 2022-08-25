@@ -281,18 +281,22 @@ public class PasspointManager {
             onUserConnectChoiceSet(networks, choiceKey, rssi);
         }
         @Override
-        public void onConnectChoiceRemoved(String choiceKey) {
+        public void onConnectChoiceRemoved(@NonNull String choiceKey) {
+            if (choiceKey == null) {
+                return;
+            }
             onUserConnectChoiceRemove(choiceKey);
         }
 
     }
 
     private void onUserConnectChoiceRemove(String choiceKey) {
-        mProviders.values().stream()
+        if (mProviders.values().stream()
                 .filter(provider -> TextUtils.equals(provider.getConnectChoice(), choiceKey))
-                .forEach(provider -> {
-                    provider.setUserConnectChoice(null, 0);
-                });
+                .peek(provider -> provider.setUserConnectChoice(null, 0))
+                .count() == 0) {
+            return;
+        }
         mWifiConfigManager.saveToStore(true);
     }
 
