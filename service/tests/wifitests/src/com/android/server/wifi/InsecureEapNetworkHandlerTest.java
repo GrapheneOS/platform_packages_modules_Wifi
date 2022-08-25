@@ -347,7 +347,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
                 (byte) 0x90, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
 
-        when(mockCert.getBasicConstraints()).thenReturn(isCa ? 99 : 0);
+        when(mockCert.getBasicConstraints()).thenReturn(isCa ? 99 : -1);
         return mockCert;
     }
 
@@ -603,6 +603,29 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mHandler);
         X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
         mInsecureEapNetworkHandler.setPendingCertificate("NotExist", 0, mockSelfSignedCert);
+    }
+
+    @Test
+    public void testExistingCertChainIsClearedOnPreparingNewConnection() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        // Missing root CA cert.
+        mInsecureEapNetworkHandler.setPendingCertificate(config.SSID, 0,
+                generateMockCert("server", "ca", false));
+
+        // The wrong cert chain should be cleared after this call.
+        mInsecureEapNetworkHandler.prepareConnection(config);
+
+        X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
+        mInsecureEapNetworkHandler.setPendingCertificate(config.SSID, 0, mockSelfSignedCert);
+
+        assertTrue(mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected));
+        verify(mCallbacks, never()).onError(any());
     }
 
     @Test

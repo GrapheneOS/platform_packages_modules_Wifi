@@ -206,6 +206,7 @@ public class InsecureEapNetworkHandler {
         }
 
         mCurrentTofuConfig = config;
+        mServerCertChain.clear();
         dismissDialogAndNotification();
         registerCertificateNotificationReceiver();
         // Remove cached PMK in the framework and supplicant to avoid
@@ -391,7 +392,7 @@ public class InsecureEapNetworkHandler {
         for (X509Certificate cert: mServerCertChain) {
             String subject = cert.getSubjectDN().getName();
             String issuer = cert.getIssuerDN().getName();
-            boolean isCa = cert.getBasicConstraints() > 0;
+            boolean isCa = cert.getBasicConstraints() >= 0;
             Log.d(TAG, "Subject: " + subject + ", Issuer: " + issuer + ", isCA: " + isCa);
 
             if (parentCert == null) {
