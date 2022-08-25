@@ -445,14 +445,18 @@ public final class RangingResult implements Parcelable {
     /** @hide */
     @Override
     public String toString() {
-        return new StringBuilder("RangingResult: [status=").append(mStatus).append(", mac=").append(
-                mMac).append(", peerHandle=").append(
-                mPeerHandle == null ? "<null>" : mPeerHandle.peerId).append(", distanceMm=").append(
-                mDistanceMm).append(", distanceStdDevMm=").append(mDistanceStdDevMm).append(
-                ", rssi=").append(mRssi).append(", numAttemptedMeasurements=").append(
-                mNumAttemptedMeasurements).append(", numSuccessfulMeasurements=").append(
-                mNumSuccessfulMeasurements).append(", lci=").append(mLci).append(", lcr=").append(
-                mLcr).append(", responderLocation=").append(mResponderLocation)
+        return new StringBuilder("RangingResult: [status=").append(mStatus)
+                .append(", mac=").append(mMac)
+                .append(", peerHandle=").append(
+                        mPeerHandle == null ? "<null>" : mPeerHandle.peerId)
+                .append(", distanceMm=").append(mDistanceMm)
+                .append(", distanceStdDevMm=").append(mDistanceStdDevMm)
+                .append(", rssi=").append(mRssi)
+                .append(", numAttemptedMeasurements=").append(mNumAttemptedMeasurements)
+                .append(", numSuccessfulMeasurements=").append(mNumSuccessfulMeasurements)
+                .append(", lci=").append(Arrays.toString(mLci))
+                .append(", lcr=").append(Arrays.toString(mLcr))
+                .append(", responderLocation=").append(mResponderLocation)
                 .append(", timestamp=").append(mTimestamp).append(", is80211mcMeasurement=")
                 .append(mIs80211mcMeasurement).append("]").toString();
     }
@@ -483,7 +487,7 @@ public final class RangingResult implements Parcelable {
     @Override
     public int hashCode() {
         return Objects.hash(mStatus, mMac, mPeerHandle, mDistanceMm, mDistanceStdDevMm, mRssi,
-                mNumAttemptedMeasurements, mNumSuccessfulMeasurements, mLci, mLcr,
-                mResponderLocation, mTimestamp, mIs80211mcMeasurement);
+                mNumAttemptedMeasurements, mNumSuccessfulMeasurements, Arrays.hashCode(mLci),
+                Arrays.hashCode(mLcr), mResponderLocation, mTimestamp, mIs80211mcMeasurement);
     }
 }

@@ -6749,4 +6749,46 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mNetdWrapper, never()).setInterfaceUp(anyString());
         verify(mWifiMonitor, never()).registerHandler(anyString(), anyInt(), any());
     }
+
+    @Test
+    public void testPbcReconnectForUnknownGroupInvitation() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.getGroupCapability(any())).thenReturn(0);
+        when(mWifiNative.p2pReinvoke(anyInt(), any())).thenReturn(true);
+        when(mWifiNative.p2pGetSsid(any())).thenReturn(null);
+        when(mTestWifiP2pDevice.isGroupOwner()).thenReturn(false);
+        when(mTestWifiP2pDevice.isInvitationCapable()).thenReturn(true);
+
+        mockPeersList();
+        // Trigger reinvoke to enter Group Negotiation state
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.PBC;
+        sendConnectMsg(mClientMessenger, mTestWifiP2pPeerConfig);
+        // Got the unknown group result from the peer.
+        sendInvitationResultMsg(WifiP2pServiceImpl.P2pStatus.UNKNOWN_P2P_GROUP);
+
+        // For PBC request, p2p should start from negotiation request directly.
+        verify(mWifiNative, never()).p2pProvisionDiscovery(any());
+        verify(mWifiNative).p2pConnect(eq(mTestWifiP2pPeerConfig), anyBoolean());
+    }
+
+    @Test
+    public void testPinReconnectForUnknownGroupInvitation() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.getGroupCapability(any())).thenReturn(0);
+        when(mWifiNative.p2pReinvoke(anyInt(), any())).thenReturn(true);
+        when(mWifiNative.p2pGetSsid(any())).thenReturn(null);
+        when(mTestWifiP2pDevice.isGroupOwner()).thenReturn(false);
+        when(mTestWifiP2pDevice.isInvitationCapable()).thenReturn(true);
+
+        mockPeersList();
+        // Trigger reinvoke to enter Group Negotiation state
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.KEYPAD;
+        sendConnectMsg(mClientMessenger, mTestWifiP2pPeerConfig);
+        // Got the unknown group result from the peer.
+        sendInvitationResultMsg(WifiP2pServiceImpl.P2pStatus.UNKNOWN_P2P_GROUP);
+
+        // For Keypad/Display pin-based request, p2p should start the p2p connection
+        // from provision discovery to exchange pin codes.
+        verify(mWifiNative).p2pProvisionDiscovery(mTestWifiP2pPeerConfig);
+    }
 }

@@ -3669,7 +3669,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
                             // Reinvocation has failed, try group negotiation
                             mSavedPeerConfig.netId = WifiP2pGroup.NETWORK_ID_PERSISTENT;
-                            p2pConnectWithPinDisplay(mSavedPeerConfig, P2P_CONNECT_TRIGGER_OTHER);
+                            if (mSavedPeerConfig.wps.setup == WpsInfo.PBC) {
+                                p2pConnectWithPinDisplay(mSavedPeerConfig,
+                                        P2P_CONNECT_TRIGGER_OTHER);
+                            } else {
+                                // Non-PBC method needs to exchange PIN by provision discovery.
+                                transitionTo(mProvisionDiscoveryState);
+                            }
                         } else if (status == P2pStatus.INFORMATION_IS_CURRENTLY_UNAVAILABLE) {
 
                             // Devices setting persistent_reconnect to 0 in wpa_supplicant

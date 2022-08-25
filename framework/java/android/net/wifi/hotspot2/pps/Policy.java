@@ -397,9 +397,9 @@ public final class Policy implements Parcelable {
     @Override
     public int hashCode() {
         return Objects.hash(mMinHomeDownlinkBandwidth, mMinHomeUplinkBandwidth,
-                mMinRoamingDownlinkBandwidth, mMinRoamingUplinkBandwidth, mExcludedSsidList,
-                mRequiredProtoPortMap, mMaximumBssLoadValue, mPreferredRoamingPartnerList,
-                mPolicyUpdate);
+                mMinRoamingDownlinkBandwidth, mMinRoamingUplinkBandwidth,
+                Arrays.hashCode(mExcludedSsidList), mRequiredProtoPortMap, mMaximumBssLoadValue,
+                mPreferredRoamingPartnerList, mPolicyUpdate);
     }
 
     @Override
@@ -412,7 +412,8 @@ public final class Policy implements Parcelable {
                 .append("\n");
         builder.append("MinRoamingUplinkBandwidth: ").append(mMinRoamingUplinkBandwidth)
                 .append("\n");
-        builder.append("ExcludedSSIDList: ").append(mExcludedSsidList).append("\n");
+        builder.append("ExcludedSSIDList: ").append(Arrays.toString(mExcludedSsidList))
+                .append("\n");
         builder.append("RequiredProtoPortMap: ").append(mRequiredProtoPortMap).append("\n");
         builder.append("MaximumBSSLoadValue: ").append(mMaximumBssLoadValue).append("\n");
         builder.append("PreferredRoamingPartnerList: ").append(mPreferredRoamingPartnerList)
