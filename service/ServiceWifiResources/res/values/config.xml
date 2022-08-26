@@ -844,6 +844,8 @@
     <!-- Indicate the gravity of Wifi dialogs. Must be an integer corresponding to a
          android.view.Gravity.GravityFlags constant. Default = Gravity.NO_GRAVITY (0) -->
     <integer translatable="false" name="config_wifiDialogGravity">0</integer>
+    <!-- Indicate whether to cancel Wifi dialogs when the screen is touched outside the dialog. -->
+    <bool translatable="false" name="config_wifiDialogCanceledOnTouchOutside">false</bool>
     <!-- Whether to show a confirmation dialog to the user if a third party app targeting below SDK
          level Q tries to enable Wi-Fi -->
     <bool translatable="false" name="config_showConfirmationDialogForThirdPartyAppsEnablingWifi">false</bool>

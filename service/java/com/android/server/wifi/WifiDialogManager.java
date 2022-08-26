@@ -553,7 +553,8 @@ public class WifiDialogManager {
                         });
                     })
                     .create();
-            mAlertDialog.setCanceledOnTouchOutside(false);
+            mAlertDialog.setCanceledOnTouchOutside(mContext.getResources().getBoolean(
+                    R.bool.config_wifiDialogCanceledOnTouchOutside));
             final Window window = mAlertDialog.getWindow();
             int gravity = mContext.getResources().getInteger(R.integer.config_wifiDialogGravity);
             if (gravity != Gravity.NO_GRAVITY) {
