@@ -202,7 +202,8 @@ abstract class SupplicantStaIfaceCallbackHidlV1_2Impl extends
                 .getNameForUid(Process.WIFI_UID);
         newWifiConfiguration.status = WifiConfiguration.Status.ENABLED;
 
-        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration);
+        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration,
+                false);
     }
 
     @Override

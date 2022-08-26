@@ -2831,8 +2831,11 @@ public class WifiNative {
          * peer DPP configurator.
          *
          * @param newWifiConfiguration New Wi-Fi configuration received from the configurator
+         * @param connStatusRequested Flag to indicate that the configurator requested
+         *                            connection status
          */
-        void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration);
+        void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration,
+                boolean connStatusRequested);
 
         /**
          * DPP Success event.
@@ -2864,6 +2867,13 @@ public class WifiNative {
          * @param key Configurator's private EC key.
          */
         void onDppConfiguratorKeyUpdate(byte[] key);
+
+        /**
+         * Indicates that DPP connection status result frame is sent
+         *
+         * @param result DPP Status value indicating the result of a connection attempt.
+         */
+        void onConnectionStatusResultSent(int result);
     }
 
     /**
