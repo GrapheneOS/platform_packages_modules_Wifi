@@ -4064,7 +4064,9 @@ public class WifiServiceImpl extends BaseWifiService {
             WorkSource reqWs = cmm.getRequestorWs();
             // If there are more than 1 secondary CMM for same app, return any one (should not
             // happen currently since we don't support 3 STA's concurrently).
-            if (reqWs.equals(new WorkSource(callingUid, callingPackageName))) {
+            if (reqWs.equals(new WorkSource(callingUid, callingPackageName))
+                    || (TextUtils.equals(reqWs.getPackageName(0), callingPackageName)
+                    && reqWs.getUid(0) == callingUid)) {
                 mLog.info("getConnectionInfo providing secondary CMM info").flush();
                 return cmm;
             }

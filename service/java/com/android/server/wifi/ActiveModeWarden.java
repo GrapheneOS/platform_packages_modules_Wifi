@@ -2212,9 +2212,13 @@ public class ActiveModeWarden {
                         requestInfo.clientRole, requestInfo.didUserApprove)) {
                     // Can create an additional client mode manager.
                     Log.v(TAG, "Starting a new ClientModeManager");
-                    startAdditionalClientModeManager(
-                            requestInfo.clientRole,
-                            requestInfo.listener, requestInfo.requestorWs);
+                    WorkSource ifCreatorWs = new WorkSource(requestInfo.requestorWs);
+                    if (requestInfo.didUserApprove) {
+                        // If user select to connect from the UI, promote the priority
+                        ifCreatorWs.add(mFacade.getSettingsWorkSource(mContext));
+                    }
+                    startAdditionalClientModeManager(requestInfo.clientRole, requestInfo.listener,
+                            ifCreatorWs);
                     return;
                 }
 
