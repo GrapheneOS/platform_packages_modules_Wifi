@@ -122,7 +122,7 @@ interface IWifiManager
 
     boolean disableNetwork(int netId, String packageName);
 
-    void allowAutojoinGlobal(boolean choice);
+    void allowAutojoinGlobal(boolean choice, String packageName, in Bundle extras);
 
     void queryAutojoinGlobal(in IBooleanListener listener);
 
