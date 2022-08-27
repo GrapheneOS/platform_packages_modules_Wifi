@@ -3902,7 +3902,8 @@ public class WifiNative {
      */
     @Immutable
     public static final class TxFateReport extends FateReport {
-        TxFateReport(byte fate, long driverTimestampUSec, byte frameType, byte[] frameBytes) {
+        public TxFateReport(byte fate, long driverTimestampUSec, byte frameType,
+                byte[] frameBytes) {
             super(fate, driverTimestampUSec, frameType, frameBytes);
         }
 
@@ -3945,7 +3946,8 @@ public class WifiNative {
      */
     @Immutable
     public static final class RxFateReport extends FateReport {
-        RxFateReport(byte fate, long driverTimestampUSec, byte frameType, byte[] frameBytes) {
+        public RxFateReport(byte fate, long driverTimestampUSec, byte frameType,
+                byte[] frameBytes) {
             super(fate, driverTimestampUSec, frameType, frameBytes);
         }
 
