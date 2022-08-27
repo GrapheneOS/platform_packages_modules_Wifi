@@ -162,8 +162,11 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Utilgængeligt netværk"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> er blevet deaktiveret af din administrator."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Luk"</string>
-    <string name="wifi_enabled_apm_first_time_title" msgid="8764862768737059575">"Du har aktiveret Wi-Fi"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="4481035490155027372">"Din telefon beholder Wi-Fi aktiveret i flytilstand, medmindre du deaktiverer Wi-Fi, mens flytilstand er slået til"</string>
+    <!-- no translation found for wifi_enabled_apm_first_time_title (4814302384637588804) -->
+    <skip />
+    <!-- no translation found for wifi_enabled_apm_first_time_message (3804474326110512024) -->
+    <skip />
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi deaktiveres ikke"</string>
-    <string name="apm_enabled_first_time_message" msgid="3441803973110703716">"Din telefon beholder Wi-Fi aktiveret i flytilstand, medmindre du deaktiverer Wi-Fi, mens flytilstand er slået til"</string>
+    <!-- no translation found for apm_enabled_first_time_message (8381594447227021365) -->
+    <skip />
 </resources>
