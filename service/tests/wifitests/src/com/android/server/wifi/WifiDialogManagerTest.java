@@ -34,6 +34,7 @@ import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -738,15 +739,25 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
 
-        // Receive ACTION_CLOSE_SYSTEM_DIALOGS.
+        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
+        when(mPowerManager.isInteractive()).thenReturn(false);
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any());
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
+                eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
 
-        // Verify dialog was cancelled.
+        verify(dialog, never()).cancel();
+
+        // ACTION_CLOSE_SYSTEM_DIALOGS while screen on should cancel the dialog.
+        when(mPowerManager.isInteractive()).thenReturn(true);
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), anyInt());
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
+
         verify(dialog).cancel();
     }
 
@@ -780,14 +791,14 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
         verify(window).setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
 
-        // Receive ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
+        // Receive ACTION_SCREEN_OFF.
         when(dialog.isShowing()).thenReturn(true);
-        when(mPowerManager.isInteractive()).thenReturn(false);
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any());
+        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
+                eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
-                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+                new Intent(Intent.ACTION_SCREEN_OFF));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
 
         // Verify dialog was dismissed and relaunched with window type TYPE_APPLICATION_OVERLAY.
