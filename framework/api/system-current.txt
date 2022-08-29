@@ -703,6 +703,7 @@ package android.net.wifi {
     field public static final int SAP_START_FAILURE_GENERAL = 0; // 0x0
     field public static final int SAP_START_FAILURE_NO_CHANNEL = 1; // 0x1
     field public static final int SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION = 2; // 0x2
+    field public static final int SAP_START_FAILURE_USER_REJECTED = 3; // 0x3
     field public static final int VERBOSE_LOGGING_LEVEL_DISABLED = 0; // 0x0
     field public static final int VERBOSE_LOGGING_LEVEL_ENABLED = 1; // 0x1
     field public static final int VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY = 2; // 0x2
