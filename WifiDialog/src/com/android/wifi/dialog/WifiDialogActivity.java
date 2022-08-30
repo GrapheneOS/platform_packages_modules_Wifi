@@ -374,7 +374,8 @@ public class WifiDialogActivity extends Activity  {
             }
             removeIntentAndPossiblyFinish(dialogId);
         });
-        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCanceledOnTouchOutside(getResources().getBoolean(
+                getBooleanId("config_wifiDialogCanceledOnTouchOutside")));
         if (mGravity != Gravity.NO_GRAVITY) {
             dialog.getWindow().setGravity(mGravity);
         }

@@ -233,6 +233,7 @@
           <item type="bool" name="config_wifiSoftapOweSupported" />
           <item type="bool" name="config_wifiSoftapOweTransitionSupported" />
           <item type="integer" name="config_wifiDialogGravity" />
+          <item type="bool" name="config_wifiDialogCanceledOnTouchOutside" />
           <item type="bool" name="config_showConfirmationDialogForThirdPartyAppsEnablingWifi" />
           <item type="integer" name="config_p2pInvitationReceivedDialogTimeoutMs"/>
           <item type="bool" name="config_p2pInvitationReceivedDialogNotificationSound"/>
