@@ -588,8 +588,11 @@ public class WifiCountryCode {
                     Log.i(TAG, "restart SoftAp required because country code changed to "
                             + country);
                     SoftApModeConfiguration modeConfig = sm.getSoftApModeConfiguration();
+                    SoftApModeConfiguration newModeConfig = new SoftApModeConfiguration(
+                            modeConfig.getTargetMode(), modeConfig.getSoftApConfiguration(),
+                            modeConfig.getCapability(), country);
                     mActiveModeWarden.stopSoftAp(modeConfig.getTargetMode());
-                    mActiveModeWarden.startSoftAp(modeConfig, sm.getRequestorWs());
+                    mActiveModeWarden.startSoftAp(newModeConfig, sm.getRequestorWs());
                 } else {
                     // The API:updateCountryCode in SoftApManager is asynchronous, it requires a
                     // new callback support in S to trigger "notifyListener" for
