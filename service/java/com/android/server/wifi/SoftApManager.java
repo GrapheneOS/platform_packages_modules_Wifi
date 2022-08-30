@@ -1059,7 +1059,7 @@ public class SoftApManager implements ActiveModeManager {
                             Log.e(getTag(), "User refused to set up interface");
                             updateApState(WifiManager.WIFI_AP_STATE_FAILED,
                                     WifiManager.WIFI_AP_STATE_DISABLED,
-                                    WifiManager.SAP_START_FAILURE_GENERAL);
+                                    WifiManager.SAP_START_FAILURE_USER_REJECTED);
                             mModeListener.onStartFailure(SoftApManager.this);
                             break;
                         } else if (icmResult
