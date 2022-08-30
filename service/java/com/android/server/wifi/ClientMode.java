@@ -298,4 +298,11 @@ public interface ClientMode {
      * update the capabilities
      */
     void updateCapabilities();
+
+    /**
+     * Check if BSSID belongs to any of the affiliated link BSSID's.
+     * @param bssid BSSID of the AP
+     * @return true if BSSID matches to one of the affiliated link BSSIDs, false otherwise.
+     */
+    boolean isAffiliatedLinkBssid(String bssid);
 }

@@ -1508,4 +1508,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
     public void updateCapabilities() {
         getClientMode().updateCapabilities();
     }
+
+    @Override
+    public boolean isAffiliatedLinkBssid(String bssid) {
+        return getClientMode().isAffiliatedLinkBssid(bssid);
+    }
 }
