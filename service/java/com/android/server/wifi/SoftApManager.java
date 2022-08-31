@@ -334,7 +334,6 @@ public class SoftApManager implements ActiveModeManager {
             @NonNull CoexManager coexManager,
             @NonNull BatteryManager batteryManager,
             @NonNull InterfaceConflictManager interfaceConflictManager,
-            String countryCode,
             @NonNull Listener<SoftApManager> listener,
             @NonNull WifiServiceImpl.SoftApCallbackInternal callback,
             @NonNull WifiApConfigStore wifiApConfigStore,
@@ -370,7 +369,7 @@ public class SoftApManager implements ActiveModeManager {
         } else {
             mCoexListener = null;
         }
-        mCountryCode = countryCode;
+        mCountryCode = apConfig.getCountryCode();
         mModeListener = listener;
         mSoftApCallback = callback;
         mWifiApConfigStore = wifiApConfigStore;
@@ -383,7 +382,7 @@ public class SoftApManager implements ActiveModeManager {
         }
         // Store mode configuration before update the configuration.
         mOriginalModeConfiguration = new SoftApModeConfiguration(apConfig.getTargetMode(),
-                mCurrentSoftApConfiguration, mCurrentSoftApCapability);
+                mCurrentSoftApConfiguration, mCurrentSoftApCapability, mCountryCode);
         if (mCurrentSoftApConfiguration != null) {
             mIsUnsetBssid = mCurrentSoftApConfiguration.getBssid() == null;
             if (mCurrentSoftApCapability.areFeaturesSupported(
@@ -539,7 +538,7 @@ public class SoftApManager implements ActiveModeManager {
      */
     public SoftApModeConfiguration getSoftApModeConfiguration() {
         return new SoftApModeConfiguration(mOriginalModeConfiguration.getTargetMode(),
-                mCurrentSoftApConfiguration, mCurrentSoftApCapability);
+                mCurrentSoftApConfiguration, mCurrentSoftApCapability, mCountryCode);
     }
 
     /**

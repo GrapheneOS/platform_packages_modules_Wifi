@@ -1565,7 +1565,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
         if (!startSoftApInternal(new SoftApModeConfiguration(
                 WifiManager.IFACE_IP_MODE_TETHERED, softApConfig,
-                mTetheredSoftApTracker.getSoftApCapability()), requestorWs)) {
+                mTetheredSoftApTracker.getSoftApCapability(),
+                mCountryCode.getCountryCode()), requestorWs)) {
             mTetheredSoftApTracker.setFailedWhileEnabling();
             return false;
         }
@@ -1610,7 +1611,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
         if (!startSoftApInternal(new SoftApModeConfiguration(
                 WifiManager.IFACE_IP_MODE_TETHERED, softApConfig,
-                mTetheredSoftApTracker.getSoftApCapability()), requestorWs)) {
+                mTetheredSoftApTracker.getSoftApCapability(),
+                mCountryCode.getCountryCode()), requestorWs)) {
             mTetheredSoftApTracker.setFailedWhileEnabling();
             return false;
         }
@@ -2201,7 +2203,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
             mActiveConfig = new SoftApModeConfiguration(
                     WifiManager.IFACE_IP_MODE_LOCAL_ONLY,
-                    softApConfig, lohsCapability);
+                    softApConfig, lohsCapability, mCountryCode.getCountryCode());
             mIsExclusive = (request.getCustomConfig() != null);
             // Report the error if we got failure in startSoftApInternal
             if (!startSoftApInternal(mActiveConfig, request.getWorkSource())) {
@@ -4064,7 +4066,9 @@ public class WifiServiceImpl extends BaseWifiService {
             WorkSource reqWs = cmm.getRequestorWs();
             // If there are more than 1 secondary CMM for same app, return any one (should not
             // happen currently since we don't support 3 STA's concurrently).
-            if (reqWs.equals(new WorkSource(callingUid, callingPackageName))) {
+            if (reqWs.equals(new WorkSource(callingUid, callingPackageName))
+                    || (TextUtils.equals(reqWs.getPackageName(0), callingPackageName)
+                    && reqWs.getUid(0) == callingUid)) {
                 mLog.info("getConnectionInfo providing secondary CMM info").flush();
                 return cmm;
             }
