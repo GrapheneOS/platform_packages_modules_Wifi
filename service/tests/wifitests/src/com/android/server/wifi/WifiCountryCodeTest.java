@@ -28,6 +28,7 @@ import static org.mockito.Mockito.doAnswer;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
 
 import androidx.test.filters.SmallTest;
@@ -622,7 +623,11 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     public void testCountryCodeChangedWhenSoftApManagerActiveAndForceSoftApRestart()
             throws Exception {
         mForcedSoftApRestateWhenCountryCodeChanged = true;
+        ArgumentCaptor<SoftApModeConfiguration> softApModeConfigCaptor =
+                ArgumentCaptor.forClass(SoftApModeConfiguration.class);
         when(mSoftApManager.getSoftApModeConfiguration()).thenReturn(mSoftApModeConfiguration);
+        when(mSoftApModeConfiguration.getTargetMode())
+                .thenReturn(WifiManager.IFACE_IP_MODE_TETHERED);
         createWifiCountryCode();
         // SoftApManager actived
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mSoftApManager);
@@ -632,7 +637,8 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         verify(mSoftApManager).getSoftApModeConfiguration();
         verify(mActiveModeWarden).stopSoftAp(anyInt());
-        verify(mActiveModeWarden).startSoftAp(eq(mSoftApModeConfiguration), any());
+        verify(mActiveModeWarden).startSoftAp(softApModeConfigCaptor.capture(), any());
+        assertEquals(softApModeConfigCaptor.getValue().getCountryCode(), mTelephonyCountryCode);
     }
 
     @Test

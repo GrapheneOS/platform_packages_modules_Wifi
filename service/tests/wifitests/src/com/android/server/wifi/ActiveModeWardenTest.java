@@ -411,7 +411,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     private void enterSoftApActiveMode() throws Exception {
         enterSoftApActiveMode(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability));
+                mSoftApCapability, TEST_COUNTRYCODE));
     }
 
     private int mTimesCreatedSoftApManager = 1;
@@ -977,7 +977,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Test
     public void doesntCallWifiServiceCallbackOnLOHSStateChanged() throws Exception {
         enterSoftApActiveMode(new SoftApModeConfiguration(
-                WifiManager.IFACE_IP_MODE_LOCAL_ONLY, null, mSoftApCapability));
+                WifiManager.IFACE_IP_MODE_LOCAL_ONLY, null, mSoftApCapability, TEST_COUNTRYCODE));
 
         mSoftApListener.onStarted(mSoftApManager);
         mSoftApManagerCallback.onStateChanged(WifiManager.WIFI_AP_STATE_ENABLED, 0);
@@ -1027,7 +1027,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         Builder configBuilder = new SoftApConfiguration.Builder();
         configBuilder.setSsid("ThisIsAConfig");
         SoftApModeConfiguration softApConfig = new SoftApModeConfiguration(
-                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(), mSoftApCapability);
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(), mSoftApCapability,
+                TEST_COUNTRYCODE);
         enterSoftApActiveMode(softApConfig);
     }
 
@@ -1054,12 +1055,12 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         configBuilder1.setSsid("ThisIsAConfig");
         SoftApModeConfiguration softApConfig1 = new SoftApModeConfiguration(
                 WifiManager.IFACE_IP_MODE_TETHERED, configBuilder1.build(),
-                mSoftApCapability);
+                mSoftApCapability, TEST_COUNTRYCODE);
         Builder configBuilder2 = new SoftApConfiguration.Builder();
         configBuilder2.setSsid("ThisIsASecondConfig");
         SoftApModeConfiguration softApConfig2 = new SoftApModeConfiguration(
                 WifiManager.IFACE_IP_MODE_TETHERED, configBuilder2.build(),
-                mSoftApCapability);
+                mSoftApCapability, TEST_COUNTRYCODE);
 
         doAnswer(new Answer<SoftApManager>() {
             public SoftApManager answer(InvocationOnMock invocation) {
@@ -1245,12 +1246,12 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiInjector.getWifiApConfigStore()).thenReturn(mWifiApConfigStore);
         SoftApModeConfiguration tetherConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability);
+                mSoftApCapability, TEST_COUNTRYCODE);
         SoftApConfiguration lohsConfigWC = mWifiApConfigStore.generateLocalOnlyHotspotConfig(
                 mContext, null, mSoftApCapability);
         SoftApModeConfiguration lohsConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_LOCAL_ONLY, lohsConfigWC,
-                mSoftApCapability);
+                mSoftApCapability, TEST_COUNTRYCODE);
 
         // mock SoftAPManagers
         when(mSoftApManager.getRole()).thenReturn(ROLE_SOFTAP_TETHERED);
@@ -2147,7 +2148,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // try to start Soft AP
         mActiveModeWarden.startSoftAp(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability), TEST_WORKSOURCE);
+                mSoftApCapability, TEST_COUNTRYCODE), TEST_WORKSOURCE);
         mLooper.dispatchAll();
 
         verify(mWifiInjector, never())
@@ -2161,7 +2162,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // try to start LOHS
         mActiveModeWarden.startSoftAp(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_LOCAL_ONLY, null,
-                mSoftApCapability), TEST_WORKSOURCE);
+                mSoftApCapability, TEST_COUNTRYCODE), TEST_WORKSOURCE);
         mLooper.dispatchAll();
 
         verify(mWifiInjector, never())
@@ -2206,7 +2207,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         // Turn on SoftAp.
         mActiveModeWarden.startSoftAp(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability), TEST_WORKSOURCE);
+                mSoftApCapability, TEST_COUNTRYCODE), TEST_WORKSOURCE);
         mLooper.dispatchAll();
         verify(mWifiInjector)
                 .makeSoftApManager(any(), any(), any(), eq(TEST_WORKSOURCE), any(), anyBoolean());
@@ -2284,7 +2285,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         mActiveModeWarden.startSoftAp(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability), TEST_WORKSOURCE);
+                mSoftApCapability, TEST_COUNTRYCODE), TEST_WORKSOURCE);
         // add an "unexpected" sta mode stop to simulate a single interface device
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
@@ -2320,7 +2321,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         mActiveModeWarden.startSoftAp(
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
-                mSoftApCapability), TEST_WORKSOURCE);
+                mSoftApCapability, TEST_COUNTRYCODE), TEST_WORKSOURCE);
         mLooper.dispatchAll();
 
         when(mSettingsStore.isWifiToggleEnabled()).thenReturn(true);
@@ -4568,6 +4569,54 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 requestedClientModeManager.capture());
         assertEquals(ROLE_CLIENT_SECONDARY_LONG_LIVED,
                 requestedClientModeManager.getValue().getRole());
+    }
+
+    @Test
+    public void testRequestForSecondaryLocalOnlyForAppWithUserConnect() throws Exception {
+        // Ensure that we can create more client ifaces.
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isSystem(TEST_PACKAGE, TEST_UID)).thenReturn(false);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(
+                TEST_PACKAGE, Build.VERSION_CODES.S, TEST_UID))
+                .thenReturn(false);
+        assertTrue(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
+                TEST_WORKSOURCE, ROLE_CLIENT_LOCAL_ONLY, true));
+
+        enterClientModeActiveState();
+        ArgumentCaptor<ClientModeManager> requestedClientModeManager =
+                ArgumentCaptor.forClass(ClientModeManager.class);
+        ExternalClientModeManagerRequestListener externalRequestListener = mock(
+                ExternalClientModeManagerRequestListener.class);
+        Mutable<Listener<ConcreteClientModeManager>> additionalClientListener =
+                new Mutable<>();
+        ConcreteClientModeManager additionalClientModeManager =
+                mock(ConcreteClientModeManager.class);
+        doAnswer((invocation) -> {
+            Object[] args = invocation.getArguments();
+            additionalClientListener.value =
+                    (Listener<ConcreteClientModeManager>) args[0];
+            return additionalClientModeManager;
+        }).when(mWifiInjector).makeClientModeManager(
+                any(Listener.class), any(), any(), anyBoolean());
+        when(additionalClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME_1);
+        when(additionalClientModeManager.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
+
+        // mock requesting local only secondary
+        mActiveModeWarden.requestLocalOnlyClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, true);
+        mLooper.dispatchAll();
+        WorkSource ws = new WorkSource(TEST_WORKSOURCE);
+        ws.add(SETTINGS_WORKSOURCE);
+        verify(mWifiInjector).makeClientModeManager(
+                any(), eq(ws), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
+        additionalClientListener.value.onStarted(additionalClientModeManager);
+        mLooper.dispatchAll();
+        // Verify the primary is given to the externalRequestListener
+        verify(externalRequestListener).onAnswer(requestedClientModeManager.capture());
+
+        assertEquals(ROLE_CLIENT_LOCAL_ONLY, requestedClientModeManager.getValue().getRole());
     }
 
     @Test
