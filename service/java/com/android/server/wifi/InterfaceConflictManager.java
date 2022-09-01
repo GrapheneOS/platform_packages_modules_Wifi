@@ -361,7 +361,7 @@ public class InterfaceConflictManager {
         String impactedPackages = TextUtils.join(", ", impactedPackagesSet);
         String impactedInterfaces = TextUtils.join(", ", impactedInterfacesSet);
 
-        return mWifiDialogManager.createLegacySimpleDialog(
+        return mWifiDialogManager.createSimpleDialog(
                 mResources.getString(R.string.wifi_interface_priority_title,
                         requestorAppName, requestedInterface, impactedPackages, impactedInterfaces),
                 impactedPackagesSet.size() == 1 ? mResources.getString(

@@ -66,6 +66,7 @@ import android.app.test.TestAlarmManager;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.ScanResult;
@@ -314,6 +315,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private SsidTranslator mSsidTranslator;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
+    @Mock WifiCandidates.Candidate mCandidate3;
     private WifiConfiguration mCandidateWifiConfig1;
     private WifiConfiguration mCandidateWifiConfig2;
     private List<WifiCandidates.Candidate> mCandidateList;
@@ -332,8 +334,10 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     private static final int CANDIDATE_NETWORK_ID = 0;
     private static final int CANDIDATE_NETWORK_ID_2 = 2;
     private static final String CANDIDATE_SSID = "\"AnSsid\"";
+    private static final String CANDIDATE_SSID_2 = "\"AnSsid2\"";
     private static final String CANDIDATE_BSSID = "6c:f3:7f:ae:8c:f3";
     private static final String CANDIDATE_BSSID_2 = "6c:f3:7f:ae:8d:f3";
+    private static final String CANDIDATE_BSSID_3 = "6c:f3:7f:ae:8c:f4";
     private static final String INVALID_SCAN_RESULT_BSSID = "6c:f3:7f:ae:8c:f4";
     private static final int TEST_FREQUENCY = 2420;
     private static final long CURRENT_SYSTEM_TIME_MS = 1000;
@@ -1258,37 +1262,69 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         return scanDatas[0];
     }
 
+    private WifiConfiguration getTestWifiConfig(int networkId, String ssid) {
+        WifiConfiguration config = generateWifiConfig(
+                networkId, 0, ssid, false, true, null, null,
+                WifiConfigurationTestUtil.SECURITY_PSK);
+        config.BSSID = ClientModeImpl.SUPPLICANT_BSSID_ANY;
+        config.oemPaid = false;
+        config.oemPrivate = false;
+        config.ephemeral = true;
+        when(mWifiConfigManager.getConfiguredNetwork(networkId)).thenReturn(config);
+        return config;
+    }
+
+    private WifiCandidates.Candidate getTestWifiCandidate(int networkId, String ssid, String bssid,
+            int rssi, int frequency) {
+        WifiCandidates.Candidate candidate = mock(WifiCandidates.Candidate.class);
+        when(candidate.isOemPaid()).thenReturn(false);
+        when(candidate.isOemPrivate()).thenReturn(false);
+
+        // Set up the scan candidates
+        ScanResult result = new ScanResult(WifiSsid.fromString(ssid),
+                ssid, bssid, 1245, 0, "some caps", rssi, frequency,
+                1025, 22, 33, 20, 0, 0, true);
+        ScanResultMatchInfo matchInfo = ScanResultMatchInfo.fromScanResult(result);
+        WifiCandidates.Key key = new WifiCandidates.Key(matchInfo, MacAddress.fromString(bssid),
+                networkId, WifiConfiguration.SECURITY_TYPE_PSK);
+        when(candidate.getKey()).thenReturn(key);
+        when(candidate.getScanRssi()).thenReturn(rssi);
+        when(candidate.getFrequency()).thenReturn(frequency);
+        return candidate;
+    }
+
     /**
-     * Setup all the mocks for the positive case, individual negative test cases below override
-     * specific params.
+     * Set up the mocks for the multi internet use case unit tests.
      */
-    private void setupMocksForMultiInternetTests() {
+    private void setupMocksForMultiInternetTests(boolean isDbs) {
+        mCandidateWifiConfig1 = getTestWifiConfig(CANDIDATE_NETWORK_ID, CANDIDATE_SSID);
+        mCandidateWifiConfig2 = getTestWifiConfig(CANDIDATE_NETWORK_ID_2, CANDIDATE_SSID_2);
+
         mScanData = createScanDataWithDifferentBands();
         when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
         when(mActiveModeWarden.isStaStaConcurrencySupportedForMultiInternet()).thenReturn(true);
         when(mActiveModeWarden.getPrimaryClientModeManagerNullable())
                 .thenReturn(mPrimaryClientModeManager);
-        when(mCandidate1.isOemPaid()).thenReturn(false);
-        when(mCandidate1.isOemPrivate()).thenReturn(false);
-        ScanResultMatchInfo matchInfo = mock(ScanResultMatchInfo.class);
-        when(matchInfo.getDefaultSecurityParams()).thenReturn(
-                mCandidateWifiConfig1.getDefaultSecurityParams());
-        WifiCandidates.Key key = new WifiCandidates.Key(matchInfo,
-                MacAddress.fromString(CANDIDATE_BSSID), 0);
-        when(mCandidate1.getKey()).thenReturn(key);
-        when(mCandidate1.getScanRssi()).thenReturn(-40);
-        when(mCandidate1.getFrequency()).thenReturn(TEST_FREQUENCY);
-        when(mCandidate1.getKey()).thenReturn(key);
-
-        mCandidateWifiConfig1.oemPaid = false;
-        mCandidateWifiConfig1.oemPrivate = false;
-        mCandidateWifiConfig1.ephemeral = true;
-        when(mWifiNS.selectNetwork(argThat(
-                candidates -> (candidates != null)), eq(false))).thenReturn(mCandidateWifiConfig1);
         when(mActiveModeWarden.isStaStaConcurrencySupportedForRestrictedConnections())
                 .thenReturn(true);
         when(mActiveModeWarden.canRequestMoreClientModeManagersInRole(
                 any(), eq(ROLE_CLIENT_SECONDARY_LONG_LIVED), eq(false))).thenReturn(true);
+        mCandidate1 = getTestWifiCandidate(CANDIDATE_NETWORK_ID, CANDIDATE_SSID, CANDIDATE_BSSID,
+                -40,
+                TEST_FREQUENCY);
+        mCandidate2 = getTestWifiCandidate(CANDIDATE_NETWORK_ID_2, CANDIDATE_SSID_2,
+                CANDIDATE_BSSID_2, -60,
+                TEST_FREQUENCY_2);
+        // A DBS candidate with same SSID as mCandidate1
+        mCandidate3 = getTestWifiCandidate(CANDIDATE_NETWORK_ID, CANDIDATE_SSID, CANDIDATE_BSSID_3,
+                -40,
+                TEST_FREQUENCY_3);
+        mCandidateList = new ArrayList<WifiCandidates.Candidate>(
+                Arrays.asList(mCandidate1, mCandidate2));
+        if (isDbs) mCandidateList.add(mCandidate3);
+        when(mWifiNS.getCandidatesFromScan(any(), any(), any(), anyBoolean(), anyBoolean(),
+                anyBoolean(), any(), anyBoolean())).thenReturn(mCandidateList);
+
         doAnswer(new AnswerWithArguments() {
             public void answer(ExternalClientModeManagerRequestListener listener,
                     WorkSource requestorWs, String ssid, String bssid) {
@@ -1299,33 +1335,88 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mSecondaryClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
     }
 
-    @Test
-    public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnly() {
-        setupMocksForMultiInternetTests();
-        when(mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed())
-                .thenReturn(false);
+    /**
+     * Set up the primary network selection mocks for the multi internet use case unit tests.
+     */
+    private void setupMockPrimaryNetworkSelect(int networkId, String bssid, int rssi,
+            int frequency) {
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
+        config.getNetworkSelectionStatus().setCandidate(
+                new ScanResult(WifiSsid.fromUtf8Text(config.SSID),
+                        config.SSID, bssid, 1245, 0, "some caps", rssi, frequency,
+                        1025, 22, 33, 20, 0, 0, true));
+        // Selection for primary
+        when(mWifiNS.selectNetwork(any()))
+                .then(new AnswerWithArguments() {
+                    public WifiConfiguration answer(List<WifiCandidates.Candidate> candidateList) {
+                        if (candidateList != null) {
+                            for (WifiCandidates.Candidate candidate : candidateList) {
+                                if (networkId == candidate.getKey().networkId) {
+                                    return config;
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                });
+    }
 
+    /**
+     * Set up the secondary network selection mocks for the multi internet use case unit tests.
+     */
+    private void setupMockSecondaryNetworkSelect(int networkId, String bssid, int rssi,
+            int frequency) {
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
+        config.getNetworkSelectionStatus().setCandidate(
+                new ScanResult(WifiSsid.fromUtf8Text(config.SSID),
+                        config.SSID, bssid, 1245, 0, "some caps", rssi, frequency,
+                        1025, 22, 33, 20, 0, 0, true));
+        // Selection for secondary
+        when(mWifiNS.selectNetwork(any(), anyBoolean()))
+                .then(new AnswerWithArguments() {
+                    public WifiConfiguration answer(List<WifiCandidates.Candidate> candidateList,
+                            boolean override) {
+                        if (candidateList != null) {
+                            for (WifiCandidates.Candidate candidate : candidateList) {
+                                if (networkId == candidate.getKey().networkId) {
+                                    return config;
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                });
+    }
+
+    /**
+     * Set up the client manager wifi info mocks for the multi internet use case unit tests.
+     */
+    private void mockClientManagerInfo(ConcreteClientModeManager clientManager,
+            WifiConfiguration configuration) {
+        WifiInfo wifiInfo = getWifiInfo();
+        wifiInfo.setNetworkId(configuration.networkId);
+        wifiInfo.setSSID(WifiSsid.fromString(configuration.SSID));
+        wifiInfo.setBSSID(configuration.BSSID);
+        wifiInfo.setFrequency(
+                configuration.getNetworkSelectionStatus().getCandidate().frequency);
+        wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PSK);
+        when(clientManager.isConnected()).thenReturn(true);
+        when(clientManager.isDisconnected()).thenReturn(false);
+        when(clientManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+    }
+
+    private void testMultiInternetSecondaryConnectionRequest(boolean isDbsOnly, boolean isDhcp,
+            boolean success) {
+        when(mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed())
+                .thenReturn(!isDbsOnly);
+        setupMockPrimaryNetworkSelect(CANDIDATE_NETWORK_ID, CANDIDATE_BSSID, -50, TEST_FREQUENCY);
+        WifiConfiguration targetConfig = isDbsOnly ? mCandidateWifiConfig1 : mCandidateWifiConfig2;
+        String targetBssid = isDbsOnly ? CANDIDATE_BSSID_3 : CANDIDATE_BSSID_2;
+        targetConfig.setIpAssignment(
+                isDhcp ? IpConfiguration.IpAssignment.DHCP : IpConfiguration.IpAssignment.STATIC);
+        setupMockSecondaryNetworkSelect(targetConfig.networkId, targetBssid, -50, TEST_FREQUENCY_3);
         // Set screen to on
         setScreenState(true);
-
-        mCandidateWifiConfig1.ephemeral = true;
-
-        // Set up the scan candidates
-        MacAddress macAddress = MacAddress.fromString(CANDIDATE_BSSID);
-        ScanResult result1 = new ScanResult(WifiSsid.fromUtf8Text(CANDIDATE_SSID),
-                TEST_SSID, TEST_CONNECTED_BSSID, 1245, 0, "some caps", -78, 2450,
-                1025, 22, 33, 20, 0, 0, true);
-        ScanResultMatchInfo matchInfo1 = ScanResultMatchInfo.fromScanResult(result1);
-        WifiCandidates.Key key = new WifiCandidates.Key(matchInfo1, macAddress,
-                TEST_CONNECTED_NETWORK_ID,
-                WifiConfiguration.SECURITY_TYPE_OPEN);
-        WifiCandidates.Candidate otherCandidate = mock(WifiCandidates.Candidate.class);
-        when(otherCandidate.getKey()).thenReturn(key);
-        List<WifiCandidates.Candidate> candidateList = new ArrayList<>();
-        candidateList.add(mCandidate1);
-        candidateList.add(otherCandidate);
-        when(mWifiNS.getCandidatesFromScan(any(), any(), any(), anyBoolean(), anyBoolean(),
-                anyBoolean(), any(), anyBoolean())).thenReturn(candidateList);
 
         // Set WiFi to disconnected state to trigger scan
         mWifiConnectivityManager.handleConnectionStateChanged(
@@ -1334,27 +1425,29 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
         // Verify a connection starting
         verify(mWifiNS).selectNetwork((List<WifiCandidates.Candidate>)
-                argThat(new WifiCandidatesListSizeMatcher(2)));
+                argThat(new WifiCandidatesListSizeMatcher(mCandidateList.size())));
         verify(mPrimaryClientModeManager).startConnectToNetwork(anyInt(), anyInt(), any());
 
-        WifiInfo info1 = getWifiInfo();
-        info1.setNetworkId(TEST_CONNECTED_NETWORK_ID);
-        info1.setSSID(WifiSsid.fromUtf8Text(TEST_SSID));
-        info1.setBSSID(TEST_CONNECTED_BSSID);
-        info1.setFrequency(TEST_FREQUENCY_5G);
-        info1.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN);
-        when(mPrimaryClientModeManager.isConnected()).thenReturn(true);
-        when(mPrimaryClientModeManager.isDisconnected()).thenReturn(false);
-        when(mPrimaryClientModeManager.syncRequestConnectionInfo()).thenReturn(info1);
+        // mCandidateWifiConfig1 is connected as primary
+        mockClientManagerInfo(mPrimaryClientModeManager, mCandidateWifiConfig1);
+
         when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(true);
-        WorkSource testWorkSource = new WorkSource();
         // Set the connection pending status
         mMultiInternetConnectionStatusListenerCaptor.getValue().onStatusChange(
                 MultiInternetManager.MULTI_INTERNET_STATE_CONNECTION_REQUESTED,
-                testWorkSource);
-        mMultiInternetConnectionStatusListenerCaptor.getValue().onStartScan(testWorkSource);
+                new WorkSource());
+        mMultiInternetConnectionStatusListenerCaptor.getValue().onStartScan(new WorkSource());
+        if (!success) {
+            verify(mSecondaryClientModeManager, never()).startConnectToNetwork(
+                    targetConfig.networkId, Process.WIFI_UID, targetBssid);
+            verify(mSecondaryClientModeManager, never()).enableRoaming(false);
+            verify(mActiveModeWarden, never()).requestSecondaryLongLivedClientModeManager(
+                    any(), any(), any(), any());
+            return;
+        }
+
         verify(mSecondaryClientModeManager, times(2)).startConnectToNetwork(
-                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
+                targetConfig.networkId, Process.WIFI_UID, targetBssid);
         verify(mSecondaryClientModeManager, times(2)).enableRoaming(false);
         verify(mActiveModeWarden, times(2)).requestSecondaryLongLivedClientModeManager(
                 any(), any(), any(), any());
@@ -1375,69 +1468,21 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnly() {
+        setupMocksForMultiInternetTests(true);
+        testMultiInternetSecondaryConnectionRequest(true, true, true);
+    }
+
+    @Test
+    public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnlyFailOnStaticIp() {
+        setupMocksForMultiInternetTests(true);
+        testMultiInternetSecondaryConnectionRequest(true, false, false);
+    }
+
+    @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithMultiApAllowed() {
-        setupMocksForMultiInternetTests();
-        when(mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed())
-                .thenReturn(true);
-
-        // Set screen to on
-        setScreenState(true);
-
-        mCandidateWifiConfig1.ephemeral = true;
-
-        // Set up the scan candidates
-        MacAddress macAddress = MacAddress.fromString(CANDIDATE_BSSID);
-        WifiCandidates.Key key = new WifiCandidates.Key(mock(ScanResultMatchInfo.class),
-                macAddress, 0, WifiConfiguration.SECURITY_TYPE_OPEN);
-        WifiCandidates.Candidate otherCandidate = mock(WifiCandidates.Candidate.class);
-        when(otherCandidate.getKey()).thenReturn(key);
-        List<WifiCandidates.Candidate> candidateList = new ArrayList<>();
-        candidateList.add(mCandidate1);
-        candidateList.add(otherCandidate);
-        when(mWifiNS.getCandidatesFromScan(any(), any(), any(), anyBoolean(), anyBoolean(),
-                anyBoolean(), any(), anyBoolean())).thenReturn(candidateList);
-
-        // Set WiFi to disconnected state to trigger scan
-        mWifiConnectivityManager.handleConnectionStateChanged(
-                mPrimaryClientModeManager,
-                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
-        mLooper.dispatchAll();
-        // Verify a connection starting
-        verify(mWifiNS).selectNetwork((List<WifiCandidates.Candidate>)
-                argThat(new WifiCandidatesListSizeMatcher(2)));
-        verify(mPrimaryClientModeManager).startConnectToNetwork(anyInt(), anyInt(), any());
-
-        WifiInfo info1 = getWifiInfo();
-        info1.setFrequency(TEST_FREQUENCY_5G);
-        when(mPrimaryClientModeManager.isConnected()).thenReturn(true);
-        when(mPrimaryClientModeManager.isDisconnected()).thenReturn(false);
-        when(mPrimaryClientModeManager.syncRequestConnectionInfo()).thenReturn(info1);
-        when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(true);
-        WorkSource testWorkSource = new WorkSource();
-        // Set the connection pending status
-        mMultiInternetConnectionStatusListenerCaptor.getValue().onStatusChange(
-                MultiInternetManager.MULTI_INTERNET_STATE_CONNECTION_REQUESTED,
-                testWorkSource);
-        mMultiInternetConnectionStatusListenerCaptor.getValue().onStartScan(testWorkSource);
-        verify(mSecondaryClientModeManager, times(2)).startConnectToNetwork(
-                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
-        verify(mSecondaryClientModeManager, times(2)).enableRoaming(false);
-        verify(mActiveModeWarden, times(2)).requestSecondaryLongLivedClientModeManager(
-                any(), any(), any(), any());
-
-        // Simulate connection failing on the secondary
-        clearInvocations(mSecondaryClientModeManager, mPrimaryClientModeManager, mWifiNS);
-        mWifiConnectivityManager.handleConnectionAttemptEnded(
-                mSecondaryClientModeManager,
-                WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION,
-                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, CANDIDATE_BSSID,
-                WifiConfigurationTestUtil.createPskNetwork(CANDIDATE_SSID));
-        // verify connection is never restarted when a connection on the secondary STA fails.
-        verify(mWifiNS, never()).selectNetwork(any());
-        verify(mSecondaryClientModeManager, never()).startConnectToNetwork(
-                anyInt(), anyInt(), any());
-        verify(mPrimaryClientModeManager, never()).startConnectToNetwork(
-                anyInt(), anyInt(), any());
+        setupMocksForMultiInternetTests(false);
+        testMultiInternetSecondaryConnectionRequest(false, true, true);
     }
 
     /**

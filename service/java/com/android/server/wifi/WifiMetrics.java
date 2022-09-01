@@ -33,6 +33,7 @@ import android.content.pm.ResolveInfo;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SecurityParams;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
@@ -1773,6 +1774,32 @@ public class WifiMetrics {
     private static final int SCREEN_ON = 1;
     private static final int SCREEN_OFF = 0;
 
+    private int convertSecurityTypeToWifiMetricsNetworkType(
+            @WifiConfiguration.SecurityType int type) {
+        switch (type) {
+            case WifiConfiguration.SECURITY_TYPE_OPEN:
+                return WifiMetricsProto.ConnectionEvent.TYPE_OPEN;
+            case WifiConfiguration.SECURITY_TYPE_PSK:
+                return WifiMetricsProto.ConnectionEvent.TYPE_WPA2;
+            case WifiConfiguration.SECURITY_TYPE_EAP:
+                return WifiMetricsProto.ConnectionEvent.TYPE_EAP;
+            case WifiConfiguration.SECURITY_TYPE_SAE:
+                return WifiMetricsProto.ConnectionEvent.TYPE_WPA3;
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT:
+                return WifiMetricsProto.ConnectionEvent.TYPE_EAP;
+            case WifiConfiguration.SECURITY_TYPE_OWE:
+                return WifiMetricsProto.ConnectionEvent.TYPE_OWE;
+            case WifiConfiguration.SECURITY_TYPE_WAPI_PSK:
+            case WifiConfiguration.SECURITY_TYPE_WAPI_CERT:
+                return WifiMetricsProto.ConnectionEvent.TYPE_WAPI;
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE:
+                return WifiMetricsProto.ConnectionEvent.TYPE_EAP;
+            // No metric network type for WEP, OSEN, and DPP.
+            default:
+                return WifiMetricsProto.ConnectionEvent.TYPE_UNKNOWN;
+        }
+    }
+
     /**
      * Create a new connection event and check if the new one overlaps with previous one.
      * Call when wifi attempts to make a new network connection
@@ -1871,11 +1898,16 @@ public class WifiMetrics {
                 currentConnectionEvent.mConnectionEvent.networkType =
                         WifiMetricsProto.ConnectionEvent.TYPE_UNKNOWN;
                 currentConnectionEvent.mConnectionEvent.isOsuProvisioned = false;
+                SecurityParams params = config.getNetworkSelectionStatus()
+                        .getCandidateSecurityParams();
                 if (config.isPasspoint()) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_PASSPOINT;
                     currentConnectionEvent.mConnectionEvent.isOsuProvisioned =
                             !TextUtils.isEmpty(config.updateIdentifier);
+                } else if (null != params) {
+                    currentConnectionEvent.mConnectionEvent.networkType =
+                            convertSecurityTypeToWifiMetricsNetworkType(params.getSecurityType());
                 } else if (WifiConfigurationUtil.isConfigForSaeNetwork(config)) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_WPA3;
