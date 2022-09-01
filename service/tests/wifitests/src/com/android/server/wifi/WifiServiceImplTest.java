@@ -7738,7 +7738,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(originalCaller.getUid()).thenReturn(OTHER_TEST_UID);
         when(originalCaller.getPackageName()).thenReturn(TEST_PACKAGE_NAME_OTHER);
         when(attributionSource.getNext()).thenReturn(originalCaller);
-        // mock the original caller to be device admin
+        // mock the original caller to be device admin via the isAdmin check
         when(mWifiPermissionsUtil.isAdmin(OTHER_TEST_UID, TEST_PACKAGE_NAME_OTHER))
                 .thenReturn(true);
         mWifiServiceImpl.allowAutojoinGlobal(true, TEST_PACKAGE_NAME, mAttribution);
@@ -7751,6 +7751,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.allowAutojoinGlobal(false, TEST_PACKAGE_NAME, mAttribution);
         mLooper.dispatchAll();
         verify(mWifiConnectivityManager).setAutoJoinEnabledExternal(false, false);
+
+        // mock the original caller to be device admin via the isLegacyDeviceAdmin check
+        when(mWifiPermissionsUtil.isLegacyDeviceAdmin(OTHER_TEST_UID, TEST_PACKAGE_NAME_OTHER))
+                .thenReturn(true);
+        mWifiServiceImpl.allowAutojoinGlobal(true, TEST_PACKAGE_NAME, mAttribution);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager, times(2)).setAutoJoinEnabledExternal(true, true);
     }
 
     @Test
