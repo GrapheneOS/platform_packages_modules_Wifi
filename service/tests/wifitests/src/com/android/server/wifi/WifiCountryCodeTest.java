@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_DEFAULT_COUNTRY_CODE;
@@ -24,24 +25,30 @@ import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsMmTelManager;
 
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -57,6 +64,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
 
     private static final String TAG = "WifiCountryCodeTest";
     private static final String TEST_COUNTRY_CODE = "JP";
+    private static final int TEST_ACTIVE_SUBSCRIPTION_ID = 1;
     private String mDefaultCountryCode = "US";
     private String mTelephonyCountryCode = "JP";
     private String mWorldModeCountryCode = "00";
@@ -76,8 +84,13 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     @Mock WifiInfo mWifiInfo;
     @Mock WifiCountryCode.ChangeListener mExternalChangeListener;
     @Mock SoftApModeConfiguration mSoftApModeConfiguration;
+    @Mock SubscriptionManager mSubscriptionManager;
+    @Mock SubscriptionInfo  mActiveSubscriptionInfo;
+    @Mock ImsMmTelManager mImsMmTelManager;
     private WifiCountryCode mWifiCountryCode;
     private List<ClientModeManager> mClientManagerList;
+    private List<SubscriptionInfo> mSubscriptionInfoList = new ArrayList<>();
+    private MockitoSession mStaticMockSession = null;
 
     @Captor
     private ArgumentCaptor<ActiveModeWarden.ModeChangeCallback> mModeChangeCallbackCaptor;
@@ -116,8 +129,26 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         }).when(mSettingsConfigStore).put(eq(WIFI_DEFAULT_COUNTRY_CODE), any(String.class));
 
         when(mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE)).thenReturn(mDefaultCountryCode);
+        when(mContext.getSystemService(SubscriptionManager.class)).thenReturn(mSubscriptionManager);
+        mSubscriptionInfoList.add(mActiveSubscriptionInfo);
+
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList())
+            .thenReturn(mSubscriptionInfoList);
+        when(mActiveSubscriptionInfo.getSubscriptionId()).thenReturn(TEST_ACTIVE_SUBSCRIPTION_ID);
+        mStaticMockSession = mockitoSession()
+            .mockStatic(ImsMmTelManager.class)
+            .startMocking();
+
+        lenient().when(ImsMmTelManager.createForSubscriptionId(eq(TEST_ACTIVE_SUBSCRIPTION_ID)))
+                .thenReturn(mImsMmTelManager);
+        when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenReturn(false);
 
         createWifiCountryCode();
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        mStaticMockSession.finishMocking();
     }
 
     private void createWifiCountryCode() {
@@ -272,6 +303,17 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         // Wifi get L2 connected.
         mClientModeImplListenerCaptor.getValue().onConnectionStart(mClientModeManager);
 
+        // Wifi Calling is available
+        when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenReturn(true);
+        // Telephony country code arrives.
+        mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
+        // Telephony country code won't be applied at this time.
+        assertEquals("00", mWifiCountryCode.getCurrentDriverCountryCode());
+        // Wifi is not forced to disconnect
+        verify(mClientModeManager, times(0)).disconnect();
+
+        // Wifi Calling is not available
+        when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenReturn(false);
         // Wifi traffic is high
         when(mWifiInfo.getSuccessfulTxPacketsPerSecond()).thenReturn(20.0);
         // Telephony country code arrives.

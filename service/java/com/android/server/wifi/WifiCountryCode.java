@@ -23,7 +23,12 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.os.SystemProperties;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsMmTelManager;
+import android.telephony.ims.feature.MmTelFeature;
+import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -277,6 +282,34 @@ public class WifiCountryCode {
         DBG = verbose;
     }
 
+    private boolean isWifiCallingAvailable() {
+        SubscriptionManager subscriptionManager =
+                mContext.getSystemService(SubscriptionManager.class);
+        if (subscriptionManager == null) {
+            Log.d(TAG, "SubscriptionManager not found");
+            return false;
+        }
+
+        List<SubscriptionInfo> subInfoList = subscriptionManager
+                .getCompleteActiveSubscriptionInfoList();
+        if (subInfoList == null) {
+            Log.d(TAG, "Active SubscriptionInfo list not found");
+            return false;
+        }
+        for (SubscriptionInfo subInfo : subInfoList) {
+            int subscriptionId = subInfo.getSubscriptionId();
+            ImsMmTelManager imsMmTelManager = ImsMmTelManager.createForSubscriptionId(
+                    subscriptionId);
+            if (imsMmTelManager != null && imsMmTelManager.isAvailable(
+                    MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE,
+                    ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
+                Log.d(TAG, "WifiCalling is available on subId " + subscriptionId);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void initializeTelephonyCountryCodeIfNeeded() {
         // If we don't have telephony country code set yet, poll it.
         if (mTelephonyCountryCode == null) {
@@ -405,6 +438,10 @@ public class WifiCountryCode {
     }
 
     private boolean shouldDisconnectWifiToForceUpdate() {
+        if (isWifiCallingAvailable()) {
+            return false;
+        }
+
         if (mTelephonyCountryCode == null
                 || mTelephonyCountryCode.equals(mDriverCountryCode)) {
             return false;
