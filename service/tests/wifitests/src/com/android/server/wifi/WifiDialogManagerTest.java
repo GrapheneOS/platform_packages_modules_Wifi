@@ -552,6 +552,23 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(mWifiThreadRunner).removeCallbacks(runnableArgumentCaptor.getValue());
     }
 
+    @Test
+    public void testSimpleDialog_nullWifiResourceApkName_doesNotLaunchDialog() {
+        Assume.assumeTrue(SdkLevel.isAtLeastT());
+        when(mWifiContext.getWifiDialogApkPkgName()).thenReturn(null);
+        SimpleDialogCallback callback = mock(SimpleDialogCallback.class);
+        WifiThreadRunner callbackThreadRunner = mock(WifiThreadRunner.class);
+        WifiDialogManager wifiDialogManager =
+                new WifiDialogManager(mWifiContext, mWifiThreadRunner, mFrameworkFacade);
+
+        DialogHandle dialogHandle = wifiDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
+                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
+                callback, callbackThreadRunner);
+        launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
+
+        verify(mWifiContext, never()).startActivityAsUser(any(), eq(UserHandle.CURRENT));
+    }
+
     /**
      * Verifies that launching a simple dialog will result in the correct callback methods invoked
      * when a response is received.
