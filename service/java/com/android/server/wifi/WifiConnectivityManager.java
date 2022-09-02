@@ -852,6 +852,9 @@ public class WifiConnectivityManager {
 
         @Override
         public void onResults(WifiScanner.ScanData[] results) {
+            if (mIsLocationModeEnabled) {
+                mExternalPnoScanRequestManager.onScanResultsAvailable(mScanDetails);
+            }
             if (!mWifiEnabled || !mAutoJoinEnabled) {
                 clearScanDetails();
                 mWaitForFullBandScanResults = false;
@@ -1079,6 +1082,9 @@ public class WifiConnectivityManager {
                 }
                 mScanDetails.add(new ScanDetail(result));
             }
+            if (mIsLocationModeEnabled) {
+                mExternalPnoScanRequestManager.onScanResultsAvailable(mScanDetails);
+            }
 
             // Create a new list to avoid looping call trigger concurrent exception.
             List<ScanDetail> scanDetailList = new ArrayList<>(mScanDetails);
@@ -1103,9 +1109,6 @@ public class WifiConnectivityManager {
                             resetLowRssiNetworkRetryDelay();
                         }
                     });
-            if (mIsLocationModeEnabled) {
-                mExternalPnoScanRequestManager.onPnoNetworkFound(results);
-            }
         }
     }
 

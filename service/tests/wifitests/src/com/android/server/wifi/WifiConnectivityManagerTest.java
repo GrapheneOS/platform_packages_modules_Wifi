@@ -4764,7 +4764,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         InOrder inOrder = inOrder(mWifiScanner, mExternalPnoScanRequestManager);
 
         inOrder.verify(mWifiScanner).startDisconnectedPnoScan(any(), any(), any(), any());
-        inOrder.verify(mExternalPnoScanRequestManager).onPnoNetworkFound(any());
+        inOrder.verify(mExternalPnoScanRequestManager).onScanResultsAvailable(any());
+
+        // mock connectivity scan
+        mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
+        // verify mExternalPnoScanRequestManager is notified again
+        inOrder.verify(mExternalPnoScanRequestManager).onScanResultsAvailable(any());
     }
 
     /**
