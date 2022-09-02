@@ -950,9 +950,14 @@ public class WifiPermissionsUtil {
     }
 
     private DevicePolicyManager retrieveDevicePolicyManagerFromUserContext(int uid) {
-        Context userContext = createPackageContextAsUser(uid);
-        if (userContext == null) return null;
-        return retrieveDevicePolicyManagerFromContext(userContext);
+        long ident = Binder.clearCallingIdentity();
+        try {
+            Context userContext = createPackageContextAsUser(uid);
+            if (userContext == null) return null;
+            return retrieveDevicePolicyManagerFromContext(userContext);
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
     }
 
     @Nullable
