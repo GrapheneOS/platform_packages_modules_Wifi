@@ -20,7 +20,6 @@ package com.android.server.wifi.rtt;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 import static com.android.server.wifi.rtt.RttTestUtils.compareListContentsNoOrdering;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -81,8 +80,8 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
-import com.android.server.wifi.WifiRttControllerHal;
 import com.android.server.wifi.WifiSettingsConfigStore;
+import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
@@ -132,9 +131,9 @@ public class RttServiceImplTest extends WifiBaseTest {
     private ArgumentCaptor<HalDeviceManager.InterfaceRttControllerLifecycleCallback>
             mRttLifecycleCbCaptor = ArgumentCaptor.forClass(
             HalDeviceManager.InterfaceRttControllerLifecycleCallback.class);
-    private ArgumentCaptor<WifiRttControllerHal.RttControllerRangingResultsCallback>
+    private ArgumentCaptor<WifiRttController.RttControllerRangingResultsCallback>
             mRangingResultsCbCaptor = ArgumentCaptor.forClass(
-            WifiRttControllerHal.RttControllerRangingResultsCallback.class);
+            WifiRttController.RttControllerRangingResultsCallback.class);
 
     private BinderLinkToDeathAnswer mBinderLinkToDeathCounter = new BinderLinkToDeathAnswer();
     private BinderUnlinkToDeathAnswer mBinderUnlinkToDeathCounter = new BinderUnlinkToDeathAnswer();
@@ -152,7 +151,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     public Clock mockClock;
 
     @Mock
-    public WifiRttControllerHal mockRttControllerHal;
+    public WifiRttController mockRttControllerHal;
 
     @Mock
     public HalDeviceManager mockHalDeviceManager;
@@ -319,7 +318,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         for (int i = 0; i < numIter; ++i) {
             clock.time += MEASUREMENT_DURATION;
-            // (2) verify that the request was issued to the WifiRttControllerHal
+            // (2) verify that the request was issued to the WifiRttController
             verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(requests[i]));
             verifyWakeupSet(i % 2 != 0, 0);
 
@@ -390,12 +389,12 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // verify that the request is translated from the PeerHandle issued to WifiRttControllerHal
+        // verify that the request is translated from the PeerHandle issued to WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
         verifyWakeupSet(true, 0);
 
         RangingRequest finalRequest = mRequestCaptor.getValue();
-        assertNotEquals("Request to WifiRttControllerHal is not null", null, finalRequest);
+        assertNotEquals("Request to WifiRttController is not null", null, finalRequest);
         assertEquals("Size of request", request.mRttPeers.size() - 1,
                 finalRequest.mRttPeers.size());
         assertEquals("Aware peer 1 MAC", MacAddress.fromBytes(peerMapping1.macAddress),
@@ -463,7 +462,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // verify that the request is translated from the PeerHandle issued to WifiRttControllerHal
+        // verify that the request is translated from the PeerHandle issued to WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
         verifyWakeupSet(true, 0);
 
@@ -482,7 +481,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Validate failed ranging flow (WifiRttControllerHal failure).
+     * Validate failed ranging flow (WifiRttController failure).
      */
     @Test
     public void testRangingFlowHalFailure() throws Exception {
@@ -511,10 +510,10 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         for (int i = 0; i < numIter; ++i) {
-            // (2) verify that the request was issued to the WifiRttControllerHal
+            // (2) verify that the request was issued to the WifiRttController
             verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(requests[i]));
 
-            // (3) verify that failure callback dispatched (for the WifiRttControllerHal failure)
+            // (3) verify that failure callback dispatched (for the WifiRttController failure)
             if (i == 0) {
                 verify(mockCallback).onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
             } else {
@@ -563,7 +562,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -614,7 +613,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockIbinder, times(numIter)).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
 
         for (int i = 0; i < numIter; ++i) {
-            // (3) verify first request and all odd requests were issued to the WifiRttControllerHal
+            // (3) verify first request and all odd requests were issued to the WifiRttController
             if (i == 0 || i % 2 == 1) {
                 verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(requests[i]));
                 verifyWakeupSet(true, 0);
@@ -629,12 +628,12 @@ public class RttServiceImplTest extends WifiBaseTest {
                         (ArrayList) mListCaptor.capture());
                 RangingRequest request0 = requests[0];
                 assertEquals(request0.mRttPeers.size(), mListCaptor.getValue().size());
-                assertArrayEquals(MacAddress.fromString("00:01:02:03:04:00").toByteArray(),
-                        (byte[]) mListCaptor.getValue().get(0));
-                assertArrayEquals(MacAddress.fromString("0A:0B:0C:0D:0E:00").toByteArray(),
-                        (byte[]) mListCaptor.getValue().get(1));
-                assertArrayEquals(MacAddress.fromString("08:09:08:07:06:05").toByteArray(),
-                        (byte[]) mListCaptor.getValue().get(2));
+                assertTrue(MacAddress.fromString("00:01:02:03:04:00")
+                        .equals(mListCaptor.getValue().get(0)));
+                assertTrue(MacAddress.fromString("0A:0B:0C:0D:0E:00")
+                        .equals(mListCaptor.getValue().get(1)));
+                assertTrue(MacAddress.fromString("08:09:08:07:06:05")
+                        .equals(mListCaptor.getValue().get(2)));
             }
 
             // (5) HAL calls back with all results - should get requests for the odd attempts and
@@ -740,7 +739,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         // verify metrics
         verify(mockMetrics).recordRequest(eq(worksourceRequest), eq(request));
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -788,7 +787,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         // verify metrics
         verify(mockMetrics).recordRequest(eq(worksourceRequest), eq(request));
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -826,7 +825,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -879,7 +878,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -923,7 +922,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // (2) verify that the request was issued to the WifiRttControllerHal
+        // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
         verifyWakeupSet(true, 0);
 
@@ -966,7 +965,7 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mockCallback, mExtras);
         mMockLooper.dispatchAll();
 
-        // verify that request 1 was issued to the WifiRttControllerHal
+        // verify that request 1 was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request1));
         int cmdId1 = mIntCaptor.getValue();
         verifyWakeupSet(true, 0);
@@ -975,7 +974,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mAlarmManager.dispatch(RttServiceImpl.HAL_RANGING_TIMEOUT_TAG);
         mMockLooper.dispatchAll();
 
-        // verify that the failure callback + request 2 were issued to the WifiRttControllerHal
+        // verify that the failure callback + request 2 were issued to the WifiRttController
         verify(mockRttControllerHal).rangeCancel(eq(cmdId1), any());
         verify(mockCallback).onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request2));
@@ -1460,7 +1459,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         IRttCallback mockCallback2 = mock(IRttCallback.class);
         IRttCallback mockCallback3 = mock(IRttCallback.class);
 
-        // (1) request 2 ranging operations: request 1 should be sent to the WifiRttControllerHal
+        // (1) request 2 ranging operations: request 1 should be sent to the WifiRttController
         mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request1,
                 mockCallback, mExtras);
         mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request2,
