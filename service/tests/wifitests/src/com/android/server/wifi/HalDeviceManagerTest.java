@@ -87,6 +87,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.HalDeviceManager.InterfaceDestroyedListener;
+import com.android.server.wifi.hal.WifiNanIface;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.util.WorkSourceHelper;
 import com.android.wifi.resources.R;

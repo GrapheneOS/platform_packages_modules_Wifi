@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.aware;
 
+import android.net.MacAddress;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
@@ -27,11 +28,12 @@ import android.util.Log;
 import android.util.SparseIntArray;
 
 import com.android.modules.utils.BasicShellCommandHandler;
-import com.android.server.wifi.WifiNanIface;
-import com.android.server.wifi.WifiNanIface.PowerParameters;
+import com.android.server.wifi.hal.WifiNanIface;
+import com.android.server.wifi.hal.WifiNanIface.PowerParameters;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -473,8 +475,15 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "sendMessage: null interface");
             return false;
         }
-        return iface.sendMessage(
-                transactionId, pubSubId, requestorInstanceId, dest, message);
+
+        try {
+            MacAddress destMac = MacAddress.fromBytes(dest);
+            return iface.sendMessage(
+                    transactionId, pubSubId, requestorInstanceId, destMac, message);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid dest mac received: " + Arrays.toString(dest));
+            return false;
+        }
     }
 
     /**
@@ -600,8 +609,15 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "initiateDataPath: null interface");
             return false;
         }
-        return iface.initiateDataPath(transactionId, peerId, channelRequestType, channel, peer,
-                interfaceName, isOutOfBand, appInfo, capabilities, securityConfig);
+
+        try {
+            MacAddress peerMac = MacAddress.fromBytes(peer);
+            return iface.initiateDataPath(transactionId, peerId, channelRequestType, channel,
+                    peerMac, interfaceName, isOutOfBand, appInfo, capabilities, securityConfig);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
     }
 
     /**
