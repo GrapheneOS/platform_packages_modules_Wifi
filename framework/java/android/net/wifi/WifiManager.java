@@ -9708,6 +9708,13 @@ public class WifiManager {
     public static final String EXTRA_P2P_DISPLAY_PIN = "android.net.wifi.extra.P2P_DISPLAY_PIN";
 
     /**
+     * Extra boolean indicating ACTION_CLOSE_SYSTEM_DIALOGS should not close the Wi-Fi dialogs.
+     * @hide
+     */
+    public static final String EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI =
+            "android.net.wifi.extra.CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI";
+
+    /**
      * Returns a set of packages that aren't DO or PO but should be able to manage WiFi networks.
      * @hide
      */

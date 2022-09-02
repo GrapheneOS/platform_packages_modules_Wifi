@@ -84,6 +84,10 @@ public class WifiDialogActivity extends Activity  {
     private BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent.getBooleanExtra(
+                    WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
+                return;
+            }
             if (mIsVerboseLoggingEnabled) {
                 Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received, cancelling all dialogs.");
             }

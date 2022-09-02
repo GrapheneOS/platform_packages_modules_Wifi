@@ -102,6 +102,10 @@ public class WifiDialogManager {
                                 WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
                     }
                 } else if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
+                    if (intent.getBooleanExtra(
+                            WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
+                        return;
+                    }
                     if (!context.getSystemService(PowerManager.class).isInteractive()) {
                         // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
                         return;
@@ -272,6 +276,9 @@ public class WifiDialogManager {
             registerDialog();
             mIntent.putExtra(WifiManager.EXTRA_DIALOG_ID, mDialogId);
             boolean launched = false;
+            // Collapse the QuickSettings since we can't show WifiDialog dialogs over it.
+            mContext.sendBroadcast(new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                    .putExtra(WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, true));
             if (SdkLevel.isAtLeastT() && mDisplayId != Display.DEFAULT_DISPLAY) {
                 try {
                     mContext.startActivityAsUser(mIntent,

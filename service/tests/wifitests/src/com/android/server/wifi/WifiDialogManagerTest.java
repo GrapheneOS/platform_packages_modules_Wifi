@@ -756,12 +756,21 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
 
-        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
-        when(mPowerManager.isInteractive()).thenReturn(false);
+        // ACTION_CLOSE_SYSTEM_DIALOGS with EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI should be
+        // ignored.
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
                 eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                        .putExtra(WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, true));
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
+
+        verify(dialog, never()).cancel();
+
+        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
+        when(mPowerManager.isInteractive()).thenReturn(false);
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
@@ -770,7 +779,6 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         // ACTION_CLOSE_SYSTEM_DIALOGS while screen on should cancel the dialog.
         when(mPowerManager.isInteractive()).thenReturn(true);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), anyInt());
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
