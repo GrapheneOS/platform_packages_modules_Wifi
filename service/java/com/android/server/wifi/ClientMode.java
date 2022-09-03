@@ -95,7 +95,11 @@ public interface ClientMode {
 
     boolean syncQueryPasspointIcon(long bssid, String fileName);
 
-    Network syncGetCurrentNetwork();
+    /**
+     * Get the current Wifi network information
+     * @return network
+     */
+    Network getCurrentNetwork();
 
     DhcpResultsParcelable syncGetDhcpResultsParcelable();
 
