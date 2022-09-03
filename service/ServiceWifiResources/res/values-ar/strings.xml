@@ -162,11 +162,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"شبكة غير متوفّرة"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"تم إيقاف معرّف <xliff:g id="SSID">%1$s</xliff:g> من قِبل المشرف."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"إغلاق"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_title (4814302384637588804) -->
-    <skip />
-    <!-- no translation found for wifi_enabled_apm_first_time_message (3804474326110512024) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"‏شبكة Wi‑Fi مفعَّلة في \"وضع الطيران\"."</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"‏إذا واصلت تفعيل شبكة Wi‑Fi، ستظل مفعَّلة في المرة القادمة التي تفعِّل فيها \"وضع الطيران\"."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"‏تظل شبكة Wi-Fi مفعّلة"</string>
-    <!-- no translation found for apm_enabled_first_time_message (8381594447227021365) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"‏يتذكر هاتفك الاحتفاظ بشبكة Wi‑Fi مفعَّلة في \"وضع الطيران\". لتغيير ذلك، أوقِف شبكة Wi‑Fi."</string>
 </resources>

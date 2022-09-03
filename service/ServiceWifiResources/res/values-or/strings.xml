@@ -162,11 +162,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"ଅନୁପଲବ୍ଧ ନେଟୱାର୍କ"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>କୁ ଆପଣଙ୍କ ଆଡମିନିଷ୍ଟ୍ରେଟରଙ୍କ ଦ୍ୱାରା ଅକ୍ଷମ କରାଯାଇଛି।"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"ବନ୍ଦ କରନ୍ତୁ"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_title (4814302384637588804) -->
-    <skip />
-    <!-- no translation found for wifi_enabled_apm_first_time_message (3804474326110512024) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"ଏୟାରପ୍ଲେନ ମୋଡରେ ୱାଇ-ଫାଇ ଚାଲୁ ଅଛି"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"ଯଦି ଆପଣ ୱାଇ-ଫାଇ ଚାଲୁ ରଖନ୍ତି, ତେବେ ଆପଣ ପରବର୍ତ୍ତୀ ଥର ଏୟାରପ୍ଲେନ ମୋଡରେ ଥିବା ସମୟରେ ଏହା ଚାଲୁ ରହିବ"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"ୱାଇ-ଫାଇ ଚାଲୁ ରହିବ"</string>
-    <!-- no translation found for apm_enabled_first_time_message (8381594447227021365) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"ଆପଣଙ୍କ ଫୋନ ଏୟାରପ୍ଲେନ ମୋଡରେ ୱାଇ-ଫାଇ ଚାଲୁ ରଖିବାକୁ ମନେ ରଖେ। ଏହାକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ, ୱାଇ-ଫାଇ ବନ୍ଦ କରନ୍ତୁ।"</string>
 </resources>

@@ -162,11 +162,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"નેટવર્ક ઉપલબ્ધ નથી"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>ને તમારા ઍડમિનિસ્ટ્રેટર દ્વારા બંધ કરવામાં આવ્યું છે."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"બંધ કરો"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_title (4814302384637588804) -->
-    <skip />
-    <!-- no translation found for wifi_enabled_apm_first_time_message (3804474326110512024) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"એરપ્લેન મોડમાં વાઇ-ફાઇ ચાલુ રહેશે"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"જો તમે વાઇ-ફાઇ ચાલુ રાખો છો, તો તમે જ્યારે આગલી વખતે એરપ્લેન મોડ પર જશો ત્યારે તે ચાલુ રહેશે"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"વાઇ-ફાઇ ચાલુ રહેશે"</string>
-    <!-- no translation found for apm_enabled_first_time_message (8381594447227021365) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"તમારો ફોન વાઇ-ફાઇને એરપ્લેન મોડમાં ચાલુ રાખવાનું યાદ રાખે છે. આમાં ફેરફાર કરવા માટે, વાઇ-ફાઇ બંધ કરો."</string>
 </resources>
