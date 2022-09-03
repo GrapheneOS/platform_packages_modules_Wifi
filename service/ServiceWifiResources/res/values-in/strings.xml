@@ -90,7 +90,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32764" msgid="7349538467012877101">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP 32764"</string>
   <string-array name="wifi_eap_error_message_code_32764_carrier_overrides">
-    <item msgid="3909719534712787947">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi masalah saat menghubungkan ke Verizon Wi-Fi Access. Harap hubungi kami di 800-922-0204. (Error = 32764)"</item>
+    <item msgid="3909719534712787947">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi error saat menghubungkan ke Verizon Wi-Fi Access. Harap hubungi kami di 800-922-0204. (Error = 32764)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
@@ -102,19 +102,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi masalah saat menghubungkan ke Verizon Wi-Fi Access. Coba lagi nanti atau coba dari lokasi lain."</item>
+    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi error saat menghubungkan ke Verizon Wi-Fi Access. Coba lagi nanti atau coba dari lokasi lain."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi masalah saat menghubungkan ke Verizon Wi-Fi Access karena error 16384."</item>
+    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi error saat menghubungkan ke Verizon Wi-Fi Access karena error 16384."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi masalah saat menghubungkan ke Verizon Wi-Fi Access karena error 16385."</item>
+    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi error saat menghubungkan ke Verizon Wi-Fi Access karena error 16385."</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : Error autentikasi EAP, kode error tidak diketahui"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi masalah saat menghubungkan ke Verizon Wi-Fi Access."</item>
+    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Terjadi error saat menghubungkan ke Verizon Wi-Fi Access."</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"Hotspot dinonaktifkan"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Tidak ada perangkat yang terhubung. Ketuk untuk mengubah."</string>
