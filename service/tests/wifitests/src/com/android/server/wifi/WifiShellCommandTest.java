@@ -754,9 +754,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new String[]{"status"});
         verify(mActiveModeWarden).getClientModeManagers();
         verify(mPrimaryClientModeManager).syncRequestConnectionInfo();
-        verify(mPrimaryClientModeManager).syncGetCurrentNetwork();
+        verify(mPrimaryClientModeManager).getCurrentNetwork();
         verify(additionalClientModeManager).syncRequestConnectionInfo();
-        verify(additionalClientModeManager).syncGetCurrentNetwork();
+        verify(additionalClientModeManager).getCurrentNetwork();
     }
 
     @Test

@@ -86,7 +86,7 @@ public interface ClientModeDefaults extends ClientMode {
         return false;
     }
 
-    default Network syncGetCurrentNetwork() {
+    default Network getCurrentNetwork() {
         return null;
     }
 

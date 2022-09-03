@@ -1295,8 +1295,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
-    public Network syncGetCurrentNetwork() {
-        return getClientMode().syncGetCurrentNetwork();
+    public Network getCurrentNetwork() {
+        return getClientMode().getCurrentNetwork();
     }
 
     @Override
