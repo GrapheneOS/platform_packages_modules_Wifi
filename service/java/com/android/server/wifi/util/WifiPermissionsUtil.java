@@ -1224,6 +1224,22 @@ public class WifiPermissionsUtil {
     }
 
     /**
+     * Returns true if a package is a device admin.
+     * Note that device admin is a deprecated concept so this should only be used in very specific
+     * cases which require such checks.
+     */
+    public boolean isLegacyDeviceAdmin(int uid, String packageName) {
+        if (packageName == null) {
+            Log.e(TAG, "isLegacyDeviceAdmin: packageName is null, returning false");
+            return false;
+        }
+        DevicePolicyManager devicePolicyManager =
+                retrieveDevicePolicyManagerFromUserContext(uid);
+        if (devicePolicyManager == null) return false;
+        return devicePolicyManager.packageHasActiveAdmins(packageName);
+    }
+
+    /**
      * Returns true if the device may not connect to the configuration due to admin restriction
      */
     public boolean isAdminRestrictedNetwork(@Nullable WifiConfiguration config) {

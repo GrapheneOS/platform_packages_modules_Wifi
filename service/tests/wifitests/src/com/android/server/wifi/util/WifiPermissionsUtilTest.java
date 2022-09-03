@@ -1030,6 +1030,43 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
                 MANAGED_PROFILE_UID, TEST_PACKAGE_NAME));
     }
 
+    @Test
+    public void testIsLegacyDeviceAdmin() throws Exception {
+        setupMocks();
+        WifiPermissionsUtil wifiPermissionsUtil = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+
+        when(mMockContext.createPackageContextAsUser(
+                TEST_WIFI_STACK_APK_NAME, 0, UserHandle.getUserHandleForUid(MANAGED_PROFILE_UID)))
+                .thenReturn(mMockContext);
+        when(mMockContext.getSystemService(DevicePolicyManager.class))
+                .thenReturn(mDevicePolicyManager);
+
+        when(mDevicePolicyManager.packageHasActiveAdmins(TEST_PACKAGE_NAME))
+                .thenReturn(true);
+        assertTrue(wifiPermissionsUtil.isLegacyDeviceAdmin(
+                MANAGED_PROFILE_UID, TEST_PACKAGE_NAME));
+
+        when(mDevicePolicyManager.packageHasActiveAdmins(TEST_PACKAGE_NAME))
+                .thenReturn(false);
+        assertFalse(wifiPermissionsUtil.isLegacyDeviceAdmin(
+                MANAGED_PROFILE_UID, TEST_PACKAGE_NAME));
+
+        // DevicePolicyManager does not exist.
+        when(mMockContext.getSystemService(Context.DEVICE_POLICY_SERVICE))
+                .thenReturn(null);
+        assertFalse(wifiPermissionsUtil.isLegacyDeviceAdmin(
+                MANAGED_PROFILE_UID, TEST_PACKAGE_NAME));
+
+        // Invalid package name.
+        doThrow(new PackageManager.NameNotFoundException())
+                .when(mMockContext).createPackageContextAsUser(
+                        TEST_WIFI_STACK_APK_NAME, 0,
+                        UserHandle.getUserHandleForUid(MANAGED_PROFILE_UID));
+        assertFalse(wifiPermissionsUtil.isLegacyDeviceAdmin(
+                MANAGED_PROFILE_UID, TEST_PACKAGE_NAME));
+    }
+
     /**
      * Verifies the helper method exposed for checking if the calling uid is a ProfileOwner
      * of an organization owned device.
