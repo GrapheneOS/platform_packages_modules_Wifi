@@ -63,6 +63,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.LocationManager;
+import android.net.Network;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.SoftApCapability;
@@ -169,6 +170,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock UserManager mUserManager;
     @Mock PackageManager mPackageManager;
+    @Mock Network mNetwork;
 
     Listener<ConcreteClientModeManager> mClientListener;
     Listener<SoftApManager> mSoftApListener;
@@ -336,6 +338,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mActiveModeWarden.wifiToggled(TEST_WORKSOURCE);
         mLooper.dispatchAll();
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(mClientModeManager.getCurrentNetwork()).thenReturn(mNetwork);
         when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(TEST_FEATURE_SET);
         // ClientModeManager starts in SCAN_ONLY role.
         mClientListener.onRoleChanged(mClientModeManager);
@@ -380,6 +383,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SCAN_ONLY);
         when(mClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME);
+        when(mClientModeManager.getCurrentNetwork()).thenReturn(null);
         when(mWifiNative.getSupportedFeatureSet(null)).thenReturn(TEST_FEATURE_SET);
         if (!isClientModeSwitch) {
             mClientListener.onStarted(mClientModeManager);
@@ -4785,5 +4789,16 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertEquals(featureLongBits | featureInfra,
                 testGetSupportedFeaturesCaseForRtt(
                         featureLongBits | featureInfra | featureD2dRtt | featureD2apRtt, true));
+    }
+
+    @Test
+    public void testGetCurrentNetworkScanOnly() throws Exception {
+        enterScanOnlyModeActiveState();
+        assertNull(mActiveModeWarden.getCurrentNetwork());
+    }
+
+    @Test public void testGetCurrentNetworkClientMode() throws Exception {
+        mActiveModeWarden.setCurrentNetwork(mNetwork);
+        assertEquals(mNetwork, mActiveModeWarden.getCurrentNetwork());
     }
 }

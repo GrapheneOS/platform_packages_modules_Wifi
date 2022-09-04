@@ -5208,7 +5208,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mVerboseLoggingEnabled) {
             mLog.info("getCurrentNetwork uid=%").c(Binder.getCallingUid()).flush();
         }
-        return getPrimaryClientModeManagerBlockingThreadSafe().syncGetCurrentNetwork();
+        return mActiveModeWarden.getCurrentNetwork();
     }
 
     public static String toHexString(String s) {
