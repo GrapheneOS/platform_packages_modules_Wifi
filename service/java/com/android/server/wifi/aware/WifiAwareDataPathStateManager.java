@@ -123,6 +123,7 @@ public class WifiAwareDataPathStateManager {
     private WifiAwareNetworkFactory mNetworkFactory;
     public NetdWrapper mNetdWrapper;
     private final LocalLog mLocalLog;
+    private final SparseArray<Object> mDelayNetworkValidationMap = new SparseArray<>();
 
     // internal debug flag to override API check
     /* package */ boolean mAllowNdpResponderFromAnyOverride = false;
@@ -716,12 +717,18 @@ public class WifiAwareDataPathStateManager {
                 Log.d(TAG, "Failed address validation");
             }
             if (!isAddressValidationExpired(nnri, ndpInfo.ndpId)) {
+                Object token = mDelayNetworkValidationMap.get(ndpInfo.ndpId);
+                if (token == null) {
+                    token = new Object();
+                    mDelayNetworkValidationMap.put(ndpInfo.ndpId, token);
+                }
                 mHandler.postDelayed(() ->
                         handleAddressValidation(nnri, ndpInfo, isOutOfBand, mac),
-                        ADDRESS_VALIDATION_RETRY_INTERVAL_MS);
+                        token, ADDRESS_VALIDATION_RETRY_INTERVAL_MS);
             }
             return;
         }
+        mDelayNetworkValidationMap.remove(ndpInfo.ndpId);
 
         // Network agent may already setup finished. Update peer network info.
         if (nnri.networkAgent == null) {
@@ -749,6 +756,7 @@ public class WifiAwareDataPathStateManager {
                 > ADDRESS_VALIDATION_TIMEOUT_MS) {
             Log.e(TAG, "Timed-out while waiting for IPv6 address to be usable");
             mMgr.endDataPath(ndpId);
+            mDelayNetworkValidationMap.remove(ndpId);
             if (nnri.specifiedPeerDiscoveryMac != null) {
                 declareUnfullfillable(nnri);
             }
@@ -770,6 +778,8 @@ public class WifiAwareDataPathStateManager {
      */
     public void onDataPathEnd(int ndpId) {
         mLocalLog.log("onDataPathEnd: ndpId=" + ndpId);
+
+        cleanNetworkValidationTask(ndpId);
 
         Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
                 getNetworkRequestByNdpId(ndpId);
@@ -1073,7 +1083,9 @@ public class WifiAwareDataPathStateManager {
                 if (nnri.ndpInfos.size() != 0) {
                     if (VDBG) Log.v(TAG, "releaseNetworkFor: in progress NDP being terminated");
                     for (int index = 0; index < nnri.ndpInfos.size(); index++) {
-                        mMgr.endDataPath(nnri.ndpInfos.keyAt(index));
+                        int ndpId = nnri.ndpInfos.keyAt(index);
+                        cleanNetworkValidationTask(ndpId);
+                        mMgr.endDataPath(ndpId);
                     }
                     nnri.state = AwareNetworkRequestInformation.STATE_TERMINATING;
                 } else {
@@ -1859,6 +1871,14 @@ public class WifiAwareDataPathStateManager {
                 }
             }
             return Pair.create(port, transportProtocol);
+        }
+    }
+
+    private void cleanNetworkValidationTask(int ndpId) {
+        Object token = mDelayNetworkValidationMap.get(ndpId);
+        if (token != null) {
+            mHandler.removeCallbacksAndMessages(token);
+            mDelayNetworkValidationMap.remove(ndpId);
         }
     }
 

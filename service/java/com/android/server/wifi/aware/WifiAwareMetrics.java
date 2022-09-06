@@ -454,6 +454,9 @@ public class WifiAwareMetrics {
             mMaxNdiInSystem = Math.max(mMaxNdiInSystem, ndiInSystem.size());
             mMaxNdpInSystem = Math.max(mMaxNdpInSystem, numNdpInSystem);
             mMaxSecureNdpInSystem = Math.max(mMaxSecureNdpInSystem, numSecureNdpInSystem);
+            if (ndpPerNdiMap.isEmpty()) {
+                return;
+            }
             mMaxNdpPerNdi = Math.max(mMaxNdpPerNdi, Collections.max(ndpPerNdiMap.values()));
         }
     }
