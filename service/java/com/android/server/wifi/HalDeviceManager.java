@@ -1393,6 +1393,11 @@ public class HalDeviceManager {
                     return null;
                 }
 
+                SparseArray<StaticChipInfo> staticChipInfoPerId = new SparseArray<>();
+                for (StaticChipInfo staticChipInfo : getStaticChipInfos()) {
+                    staticChipInfoPerId.put(staticChipInfo.getChipId(), staticChipInfo);
+                }
+
                 int chipInfoIndex = 0;
                 WifiChipInfo[] chipsInfo = new WifiChipInfo[chipIdsResp.value.size()];
 
@@ -1410,35 +1415,39 @@ public class HalDeviceManager {
                         return null;
                     }
 
+                    StaticChipInfo staticChipInfo = staticChipInfoPerId.get(chipId);
                     Mutable<ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode>>
                             availableModesResp = new Mutable<>();
-                    android.hardware.wifi.V1_6.IWifiChip chipV16 =
-                            getWifiChipForV1_6Mockable(chipResp.value);
-                    if (chipV16 != null) {
-                        chipV16.getAvailableModes_1_6((WifiStatus status,
-                                ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> modes) -> {
-                            statusOk.value = status.code == WifiStatusCode.SUCCESS;
-                            if (statusOk.value) {
-                                availableModesResp.value = modes;
-                            } else {
-                                Log.e(TAG, "getAvailableModes_1_6 failed: "
-                                        + statusString(status));
-                            }
-                        });
-                    } else {
-                        chipResp.value.getAvailableModes((WifiStatus status,
-                                ArrayList<IWifiChip.ChipMode> modes) -> {
-                            statusOk.value = status.code == WifiStatusCode.SUCCESS;
-                            if (statusOk.value) {
-                                availableModesResp.value = upgradeV1_0ChipModesToV1_6(modes);
-                            } else {
-                                Log.e(TAG, "getAvailableModes failed: "
-                                        + statusString(status));
-                            }
-                        });
-                    }
-                    if (!statusOk.value) {
-                        return null;
+                    if (staticChipInfo == null) {
+                        android.hardware.wifi.V1_6.IWifiChip chipV16 =
+                                getWifiChipForV1_6Mockable(chipResp.value);
+                        if (chipV16 != null) {
+                            chipV16.getAvailableModes_1_6((WifiStatus status,
+                                    ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> modes)
+                                    -> {
+                                statusOk.value = status.code == WifiStatusCode.SUCCESS;
+                                if (statusOk.value) {
+                                    availableModesResp.value = modes;
+                                } else {
+                                    Log.e(TAG, "getAvailableModes_1_6 failed: "
+                                            + statusString(status));
+                                }
+                            });
+                        } else {
+                            chipResp.value.getAvailableModes((WifiStatus status,
+                                    ArrayList<IWifiChip.ChipMode> modes) -> {
+                                statusOk.value = status.code == WifiStatusCode.SUCCESS;
+                                if (statusOk.value) {
+                                    availableModesResp.value = upgradeV1_0ChipModesToV1_6(modes);
+                                } else {
+                                    Log.e(TAG, "getAvailableModes failed: "
+                                            + statusString(status));
+                                }
+                            });
+                        }
+                        if (!statusOk.value) {
+                            return null;
+                        }
                     }
 
                     Mutable<Boolean> currentModeValidResp = new Mutable<>(false);
@@ -1642,7 +1651,11 @@ public class HalDeviceManager {
 
                     chipInfo.chip = chipResp.value;
                     chipInfo.chipId = chipId;
-                    chipInfo.availableModes = availableModesResp.value;
+                    if (staticChipInfo != null) {
+                        chipInfo.availableModes = staticChipInfo.getAvailableModes();
+                    } else {
+                        chipInfo.availableModes = availableModesResp.value;
+                    }
                     chipInfo.currentModeIdValid = currentModeValidResp.value;
                     chipInfo.currentModeId = currentModeResp.value;
                     chipInfo.chipCapabilities = chipCapabilities.value;
