@@ -227,4 +227,9 @@ public interface ClientModeDefaults extends ClientMode {
 
     @Override
     default void updateCapabilities() { }
+
+    @Override
+    default boolean isAffiliatedLinkBssid(String bssid) {
+        return false;
+    }
 }

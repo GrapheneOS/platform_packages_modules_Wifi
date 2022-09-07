@@ -3708,11 +3708,11 @@ public class WifiNative {
     }
 
     public static class RingBufferStatus{
-        String name;
-        int flag;
-        int ringBufferId;
-        int ringBufferByteSize;
-        int verboseLevel;
+        public String name;
+        public int flag;
+        public int ringBufferId;
+        public int ringBufferByteSize;
+        public int verboseLevel;
         int writtenBytes;
         int readBytes;
         int writtenRecords;
