@@ -210,8 +210,9 @@ public class WifiBackupRestore {
             throws XmlPullParserException, IOException {
         XmlUtil.writeNextSectionStart(out, XML_TAG_SECTION_HEADER_NETWORK_LIST);
         for (WifiConfiguration configuration : configurations) {
-            // We don't want to backup/restore enterprise/passpoint configurations.
-            if (configuration.isEnterprise() || configuration.isPasspoint()) {
+            // We don't want to backup/restore enterprise/passpoint/ephemeral configurations
+            if (configuration.isEnterprise() || configuration.isPasspoint()
+                    || configuration.ephemeral) {
                 continue;
             }
             if (!mWifiPermissionsUtil.checkConfigOverridePermission(configuration.creatorUid)) {
