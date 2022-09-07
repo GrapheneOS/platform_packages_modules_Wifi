@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.icu.text.MessageFormat;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -350,7 +351,7 @@ public class WifiDialogActivity extends Activity  {
         if (!WifiManager.ACTION_LAUNCH_DIALOG.equals(action)) {
             return false;
         }
-        AlertDialog dialog = null;
+        final AlertDialog dialog;
         int dialogType = intent.getIntExtra(
                 WifiManager.EXTRA_DIALOG_TYPE, WifiManager.DIALOG_TYPE_UNKNOWN);
         switch (dialogType) {
@@ -383,7 +384,7 @@ public class WifiDialogActivity extends Activity  {
                     Log.v(TAG, "Could not create dialog with id= " + dialogId
                             + " for unknown type: " + dialogType);
                 }
-                break;
+                return false;
         }
         if (dialog == null) {
             return false;
@@ -401,10 +402,6 @@ public class WifiDialogActivity extends Activity  {
             dialog.getWindow().setGravity(mGravity);
         }
         mActiveDialogsPerId.put(dialogId, dialog);
-        dialog.show();
-        if (mIsVerboseLoggingEnabled) {
-            Log.v(TAG, "Showing dialog " + dialogId);
-        }
         long timeoutMs = intent.getLongExtra(WifiManager.EXTRA_DIALOG_TIMEOUT_MS, 0);
         if (timeoutMs > 0) {
             // Use the original expiration time in case we've reloaded this dialog after a
@@ -419,10 +416,19 @@ public class WifiDialogActivity extends Activity  {
                 intent.putExtra(
                         EXTRA_DIALOG_EXPIRATION_TIME_MS, SystemClock.uptimeMillis() + timeoutMs);
             }
-            CountDownTimer countDownTimer = new CountDownTimer(timeoutMs, timeoutMs) {
+            CountDownTimer countDownTimer = new CountDownTimer(timeoutMs, 100) {
                 @Override
                 public void onTick(long millisUntilFinished) {
-                    // Do nothing.
+                    if (dialogType == WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED) {
+                        int secondsRemaining = (int) millisUntilFinished / 1000;
+                        if (millisUntilFinished % 1000 != 0) {
+                            // Round up to the nearest whole second.
+                            secondsRemaining++;
+                        }
+                        dialog.setMessage(MessageFormat.format(
+                                getString(getStringId("wifi_p2p_invitation_seconds_remaining")),
+                                secondsRemaining));
+                    }
                 }
 
                 @Override
@@ -431,6 +437,15 @@ public class WifiDialogActivity extends Activity  {
                 }
             }.start();
             mActiveCountDownTimersPerId.put(dialogId, countDownTimer);
+        } else {
+            if (dialogType == WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED) {
+                // Set the message back to null if we aren't using a timeout.
+                dialog.setMessage(null);
+            }
+        }
+        dialog.show();
+        if (mIsVerboseLoggingEnabled) {
+            Log.v(TAG, "Showing dialog " + dialogId);
         }
         // Allow message URLs to be clickable.
         TextView messageView = dialog.findViewById(android.R.id.message);
@@ -621,6 +636,8 @@ public class WifiDialogActivity extends Activity  {
         AlertDialog dialog = new AlertDialog.Builder(this,
                 getStyleId("wifi_p2p_invitation_received_dialog"))
                 .setTitle(getString(getStringId("wifi_p2p_invitation_to_connect_title")))
+                // Set the message to "" to allow us to modify it after building (b/36913966).
+                .setMessage("")
                 .setView(textEntryView)
                 .setPositiveButton(getStringId("accept"), (dialogPositive, which) -> {
                     String pin = null;
