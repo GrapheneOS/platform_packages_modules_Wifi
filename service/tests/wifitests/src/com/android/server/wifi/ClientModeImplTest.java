@@ -8571,9 +8571,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                         SupplicantState.ASSOCIATED));
         mLooper.dispatchAll();
         // Validate Affiliated BSSID match
-        assertTrue(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR));
-        assertTrue(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR1));
-        assertFalse(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR2));
+        assertTrue(mCmi.isAffiliatedLinkBssid(MacAddress.fromString(TEST_BSSID_STR)));
+        assertTrue(mCmi.isAffiliatedLinkBssid(MacAddress.fromString(TEST_BSSID_STR1)));
+        assertFalse(mCmi.isAffiliatedLinkBssid(MacAddress.fromString(TEST_BSSID_STR2)));
     }
 
     /**
