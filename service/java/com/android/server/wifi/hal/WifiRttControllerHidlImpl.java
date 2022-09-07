@@ -56,6 +56,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
     private boolean mVerboseLoggingEnabled = false;
 
     private android.hardware.wifi.V1_0.IWifiRttController mWifiRttController;
+    private android.hardware.wifi.V1_4.IWifiRttController mWifiRttController14;
+    private android.hardware.wifi.V1_6.IWifiRttController mWifiRttController16;
     private final WifiRttControllerEventCallback mWifiRttControllerEventCallback;
     private final WifiRttControllerEventCallback14 mWifiRttControllerEventCallback14;
     private final WifiRttControllerEventCallback16 mWifiRttControllerEventCallback16;
@@ -66,6 +68,10 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
     public WifiRttControllerHidlImpl(
             @NonNull android.hardware.wifi.V1_0.IWifiRttController rttController) {
         mWifiRttController = rttController;
+        mWifiRttController14 =
+                android.hardware.wifi.V1_4.IWifiRttController.castFrom(mWifiRttController);
+        mWifiRttController16 =
+                android.hardware.wifi.V1_6.IWifiRttController.castFrom(mWifiRttController);
         mWifiRttControllerEventCallback = new WifiRttControllerEventCallback();
         mWifiRttControllerEventCallback14 = new WifiRttControllerEventCallback14();
         mWifiRttControllerEventCallback16 = new WifiRttControllerEventCallback16();
@@ -147,12 +153,10 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
 
     private boolean setupInternal(String methodStr) {
         try {
-            android.hardware.wifi.V1_4.IWifiRttController rttController14 = getRttControllerV1_4();
-            android.hardware.wifi.V1_6.IWifiRttController rttController16 = getRttControllerV1_6();
-            if (rttController16 != null) {
-                rttController16.registerEventCallback_1_6(mWifiRttControllerEventCallback16);
-            } else if (rttController14 != null) {
-                rttController14.registerEventCallback_1_4(mWifiRttControllerEventCallback14);
+            if (mWifiRttController16 != null) {
+                mWifiRttController16.registerEventCallback_1_6(mWifiRttControllerEventCallback16);
+            } else if (mWifiRttController14 != null) {
+                mWifiRttController14.registerEventCallback_1_4(mWifiRttControllerEventCallback14);
             } else {
                 mWifiRttController.registerEventCallback(mWifiRttControllerEventCallback);
             }
@@ -186,9 +190,9 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         }
 
         updateRttCapabilities();
-        if (getRttControllerV1_6() != null) {
+        if (mWifiRttController16 != null) {
             return sendRangeRequest16(cmdId, request);
-        } else if (getRttControllerV1_4() != null) {
+        } else if (mWifiRttController14 != null) {
             return sendRangeRequest14(cmdId, request);
         } else {
             return sendRangeRequest(cmdId, request);
@@ -233,8 +237,7 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         }
 
         try {
-            android.hardware.wifi.V1_4.IWifiRttController rttController14 = getRttControllerV1_4();
-            WifiStatus status = rttController14.rangeRequest_1_4(cmdId, rttConfig);
+            WifiStatus status = mWifiRttController14.rangeRequest_1_4(cmdId, rttConfig);
             return isOk(status, methodStr);
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
@@ -257,8 +260,7 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         }
 
         try {
-            android.hardware.wifi.V1_6.IWifiRttController rttController16 = getRttControllerV1_6();
-            WifiStatus status = rttController16.rangeRequest_1_6(cmdId, rttConfig);
+            WifiStatus status = mWifiRttController16.rangeRequest_1_6(cmdId, rttConfig);
             return isOk(status, methodStr);
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
@@ -523,10 +525,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         if (mVerboseLoggingEnabled) Log.v(TAG, "updateRttCapabilities");
 
         try {
-            android.hardware.wifi.V1_4.IWifiRttController rttController14 = getRttControllerV1_4();
-            android.hardware.wifi.V1_6.IWifiRttController rttController16 = getRttControllerV1_6();
-            if (rttController16 != null) {
-                rttController16.getCapabilities_1_6(
+            if (mWifiRttController16 != null) {
+                mWifiRttController16.getCapabilities_1_6(
                         (status, capabilities16) -> {
                             if (status.code != WifiStatusCode.SUCCESS) {
                                 Log.e(TAG, "updateRttCapabilities:"
@@ -540,8 +540,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
                             }
                             mRttCapabilities = new WifiRttController.Capabilities(capabilities16);
                         });
-            } else if (rttController14 != null) {
-                rttController14.getCapabilities_1_4(
+            } else if (mWifiRttController14 != null) {
+                mWifiRttController14.getCapabilities_1_4(
                         (status, capabilities14) -> {
                             if (status.code != WifiStatusCode.SUCCESS) {
                                 Log.e(TAG, "updateRttCapabilities:"
@@ -943,14 +943,6 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
                 callback : mRangingResultsCallbacks) {
             callback.onRangingResults(cmdId, rangingResults);
         }
-    }
-
-    private android.hardware.wifi.V1_4.IWifiRttController getRttControllerV1_4() {
-        return android.hardware.wifi.V1_4.IWifiRttController.castFrom(mWifiRttController);
-    }
-
-    private android.hardware.wifi.V1_6.IWifiRttController getRttControllerV1_6() {
-        return android.hardware.wifi.V1_6.IWifiRttController.castFrom(mWifiRttController);
     }
 
     private boolean isOk(WifiStatus status, String methodStr) {
