@@ -6822,4 +6822,53 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pInvite(any(), eq(mTestWifiP2pPeerConfig.deviceAddress));
     }
+
+    @Test
+    public void testSurplusProvisionDiscoveryRequestsBehavior() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
+
+        mockEnterGroupCreatedState();
+
+        // The first provision discvoery request triggers the dialog.
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                eq(mTestWifiP2pDevice.deviceAddress), anyBoolean(),
+                any(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+
+        // Handle it programmatically.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_REJECT);
+
+        // Send another provision discvoery request again.
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        // This surplus request should not trigger a dialog.
+        reset(mWifiDialogManager);
+        reset(mDialogHandle);
+        verify(mWifiDialogManager, never()).createP2pInvitationReceivedDialog(
+                any(), anyBoolean(), any(), anyInt(), any(), any());
+
+        when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
+                anyInt(), any(), any())).thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))
+                .thenReturn(mDialogHandle);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(
+                WifiP2pServiceImpl.P2P_PEER_AUTH_TIMEOUT_MS + 1);
+
+        // Send another provision discvoery request again after the timeout
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        // Another dialog should be triggered.
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                eq(mTestWifiP2pDevice.deviceAddress), anyBoolean(),
+                any(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+    }
 }
