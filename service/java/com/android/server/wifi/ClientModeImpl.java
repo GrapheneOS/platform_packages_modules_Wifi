@@ -4660,14 +4660,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     /**
      * Check if BSSID belongs to any of the affiliated link BSSID's.
-     * @param bssid BSSID of the AP
+     * @param bssid BSSID of the AP.
      * @return true if BSSID matches to one of the affiliated link BSSIDs, false otherwise.
      */
-    public boolean isAffiliatedLinkBssid(@NonNull  String bssid) {
+    public boolean isAffiliatedLinkBssid(@NonNull MacAddress bssid) {
         List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
         for (MloLink link: links) {
-            if (Objects.equals(bssid, link.getApMacAddress().toString())) {
-                logv(bssid + " is an affiliated link BSSID");
+            if (link.getApMacAddress().equals(bssid)) {
                 return true;
             }
         }

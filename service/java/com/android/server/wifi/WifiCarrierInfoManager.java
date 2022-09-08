@@ -772,7 +772,8 @@ public class WifiCarrierInfoManager {
         int dataSubId = SubscriptionManager.getDefaultDataSubscriptionId();
         int matchSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
         for (SubscriptionInfo subInfo : mActiveSubInfos) {
-            if (subInfo.getCarrierId() == carrierId) {
+            if (subInfo.getCarrierId() == carrierId
+                    && getCarrierConfigForSubId(subInfo.getSubscriptionId()) != null) {
                 matchSubId = subInfo.getSubscriptionId();
                 if (matchSubId == dataSubId) {
                     // Priority of Data sub is higher than non data sub.

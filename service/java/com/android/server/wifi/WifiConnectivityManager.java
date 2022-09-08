@@ -64,6 +64,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.hotspot2.PasspointManager;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -176,6 +177,7 @@ public class WifiConnectivityManager {
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final ActiveModeWarden mActiveModeWarden;
     private final FrameworkFacade mFrameworkFacade;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
 
     private WifiScanner mScanner;
     private final MultiInternetManager mMultiInternetManager;
@@ -1238,7 +1240,8 @@ public class WifiConnectivityManager {
             FrameworkFacade frameworkFacade,
             WifiGlobals wifiGlobals,
             ExternalPnoScanRequestManager externalPnoScanRequestManager,
-            @NonNull SsidTranslator ssidTranslator) {
+            @NonNull SsidTranslator ssidTranslator,
+            WifiPermissionsUtil wifiPermissionsUtil) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1265,6 +1268,7 @@ public class WifiConnectivityManager {
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mExternalPnoScanRequestManager = externalPnoScanRequestManager;
         mSsidTranslator = ssidTranslator;
+        mWifiPermissionsUtil = wifiPermissionsUtil;
 
         // Listen for screen state change events.
         // TODO: We should probably add a shared broadcast receiver in the wifi stack which
@@ -2744,7 +2748,8 @@ public class WifiConnectivityManager {
             mOpenNetworkNotifier.handleConnectionFailure();
             // Only attempt to reconnect when connection on the primary CMM fails, since MBB
             // CMM will be destroyed after the connection failure.
-            if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+            if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY
+                    && !mWifiPermissionsUtil.isAdminRestrictedNetwork(config)) {
                 retryConnectionOnLatestCandidates(clientModeManager, bssid, config,
                         failureCode == FAILURE_AUTHENTICATION_FAILURE
                                 && failureReason == AUTH_FAILURE_EAP_FAILURE);

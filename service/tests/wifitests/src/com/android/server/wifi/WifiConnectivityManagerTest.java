@@ -108,6 +108,7 @@ import com.android.server.wifi.ActiveModeWarden.ExternalClientModeManagerRequest
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.LruConnectionTracker;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -313,6 +314,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private WifiGlobals mWifiGlobals;
     @Mock private ExternalPnoScanRequestManager mExternalPnoScanRequestManager;
     @Mock private SsidTranslator mSsidTranslator;
+    @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -597,7 +599,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 mWifiMetrics, mTestHandler, mClock,
                 mLocalLog, mWifiScoreCard, mWifiBlocklistMonitor, mWifiChannelUtilization,
                 mPasspointManager, mMultiInternetManager, mDeviceConfigFacade, mActiveModeWarden,
-                mFacade, mWifiGlobals, mExternalPnoScanRequestManager, mSsidTranslator);
+                mFacade, mWifiGlobals, mExternalPnoScanRequestManager, mSsidTranslator,
+                mWifiPermissionsUtil);
         mLooper.dispatchAll();
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
@@ -2143,6 +2146,48 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         // Simulate the connection failing
         WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(CANDIDATE_SSID);
+        mWifiConnectivityManager.handleConnectionAttemptEnded(
+                mPrimaryClientModeManager,
+                WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, CANDIDATE_BSSID,
+                config);
+
+        // Verify another connection do not start.
+        verify(mPrimaryClientModeManager).startConnectToNetwork(anyInt(), anyInt(), any());
+    }
+
+    /**
+     * Verify that we do not try to reconnect to an admin restricted network
+     */
+    @Test
+    public void testRetryConnectionIgnoreNetworkWithAdminRestriction() {
+        // Setup WifiNetworkSelector to return 2 valid candidates from scan results
+        MacAddress macAddress = MacAddress.fromString(CANDIDATE_BSSID_2);
+        WifiCandidates.Key key = new WifiCandidates.Key(mock(ScanResultMatchInfo.class),
+                macAddress, 0, WifiConfiguration.SECURITY_TYPE_OPEN);
+        WifiCandidates.Candidate otherCandidate = mock(WifiCandidates.Candidate.class);
+        when(otherCandidate.getKey()).thenReturn(key);
+        List<WifiCandidates.Candidate> candidateList = new ArrayList<>();
+        candidateList.add(mCandidate1);
+        candidateList.add(otherCandidate);
+        when(mWifiNS.getCandidatesFromScan(any(), any(), any(), anyBoolean(), anyBoolean(),
+                anyBoolean(), any(), anyBoolean())).thenReturn(candidateList);
+
+        // Set WiFi to disconnected state to trigger scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+        // Verify a connection starting
+        verify(mWifiNS).selectNetwork((List<WifiCandidates.Candidate>)
+                argThat(new WifiCandidatesListSizeMatcher(2)));
+        verify(mPrimaryClientModeManager).startConnectToNetwork(anyInt(), anyInt(), any());
+
+        // mock the WifiConfiguration to have an admin restriction
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(CANDIDATE_SSID);
+        when(mWifiPermissionsUtil.isAdminRestrictedNetwork(config)).thenReturn(true);
+
+        // Simulate the connection failing
         mWifiConnectivityManager.handleConnectionAttemptEnded(
                 mPrimaryClientModeManager,
                 WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION,

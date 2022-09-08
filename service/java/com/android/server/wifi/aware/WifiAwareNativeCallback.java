@@ -23,8 +23,8 @@ import android.util.SparseIntArray;
 
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.server.wifi.WifiNanIface;
-import com.android.server.wifi.WifiNanIface.NanClusterEventType;
 import com.android.server.wifi.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.hal.WifiNanIface.NanClusterEventType;
 
 import org.json.JSONArray;
 import org.json.JSONException;
