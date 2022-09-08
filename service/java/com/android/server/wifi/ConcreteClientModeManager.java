@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.ConnectivityManager.NetworkCallback;
 import android.net.DhcpResultsParcelable;
+import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
@@ -1514,7 +1515,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
-    public boolean isAffiliatedLinkBssid(String bssid) {
+    public boolean isAffiliatedLinkBssid(MacAddress bssid) {
         return getClientMode().isAffiliatedLinkBssid(bssid);
     }
 }
