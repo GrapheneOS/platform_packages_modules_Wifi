@@ -464,6 +464,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     static final WifiSsid TEST_WIFI_SSID1 = WifiSsid.fromUtf8Text(SSID_NO_QUOTE1);
     static final String   TEST_BSSID_STR = "01:02:03:04:05:06";
     static final String   TEST_BSSID_STR1 = "02:01:04:03:06:05";
+    static final String   TEST_BSSID_STR2 = "02:01:04:03:06:04";
     static final int      sFreq = 2437;
     static final int      sFreq1 = 5240;
     static final String   WIFI_IFACE_NAME = "mockWlan";
@@ -8556,6 +8557,24 @@ public class ClientModeImplTest extends WifiBaseTest {
         info.links[1].staMacAddress = TEST_MLO_LINK_ADDR_1;
 
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+    }
+
+    /**
+     * Verify Affiliated link BSSID matching
+     */
+    @Test
+    public  void testAffiliatedLinkBssidMatch() throws Exception {
+        setConnection();
+        setScanResultWithMloInfo();
+        // Associate
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        // Validate Affiliated BSSID match
+        assertTrue(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR));
+        assertTrue(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR1));
+        assertFalse(mCmi.isAffiliatedLinkBssid(TEST_BSSID_STR2));
     }
 
     /**

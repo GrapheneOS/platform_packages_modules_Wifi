@@ -4658,6 +4658,23 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         updateCapabilities(getConnectedWifiConfigurationInternal());
     }
 
+    /**
+     * Check if BSSID belongs to any of the affiliated link BSSID's.
+     * @param bssid BSSID of the AP
+     * @return true if BSSID matches to one of the affiliated link BSSIDs, false otherwise.
+     */
+    public boolean isAffiliatedLinkBssid(@NonNull  String bssid) {
+        List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
+        for (MloLink link: links) {
+            if (Objects.equals(bssid, link.getApMacAddress().toString())) {
+                logv(bssid + " is an affiliated link BSSID");
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     private void updateCapabilities(WifiConfiguration currentWifiConfiguration) {
         updateCapabilities(getCapabilities(currentWifiConfiguration, getConnectedBssidInternal()));
     }

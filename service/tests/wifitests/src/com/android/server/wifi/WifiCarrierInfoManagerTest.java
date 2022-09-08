@@ -2228,4 +2228,29 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 Collections.emptySet());
         verify(mWifiNetworkSuggestionsManager).updateCarrierPrivilegedApps(any());
     }
+
+    @Test
+    public void testGetMatchingSubId() {
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+
+        // Make two subscription from same carrier
+        when(mDataSubscriptionInfo.getCarrierId()).thenReturn(DATA_CARRIER_ID);
+        when(mDataSubscriptionInfo.getSubscriptionId()).thenReturn(DATA_SUBID);
+        when(mNonDataSubscriptionInfo.getCarrierId()).thenReturn(DATA_CARRIER_ID);
+        when(mNonDataSubscriptionInfo.getSubscriptionId()).thenReturn(NON_DATA_SUBID);
+        mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
+
+        // Data sim should be selected
+        assertEquals(DATA_SUBID, mWifiCarrierInfoManager.getMatchingSubId(DATA_CARRIER_ID));
+
+        // Disable data sim.
+        when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID)).thenReturn(null);
+        receiver.getValue().onReceive(mContext,
+                new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
+        mLooper.dispatchAll();
+        // Non-data sim should be selected
+        assertEquals(NON_DATA_SUBID, mWifiCarrierInfoManager.getMatchingSubId(DATA_CARRIER_ID));
+    }
 }
