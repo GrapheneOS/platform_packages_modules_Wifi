@@ -74,7 +74,7 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiInjector;
-import com.android.server.wifi.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;

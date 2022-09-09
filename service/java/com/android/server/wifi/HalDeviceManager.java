@@ -63,6 +63,7 @@ import android.util.SparseIntArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.HalDeviceManagerUtil.StaticChipInfo;
+import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
 import com.android.server.wifi.util.WorkSourceHelper;
 import com.android.wifi.resources.R;
@@ -664,11 +665,11 @@ public class HalDeviceManager {
                 return;
             }
 
-            if (mWifiRttControllerHal == null) {
-                mWifiRttControllerHal = createRttControllerIfPossible();
+            if (mWifiRttController == null) {
+                mWifiRttController = createRttControllerIfPossible();
             }
-            if (mWifiRttControllerHal != null) {
-                proxy.onNewRttController(mWifiRttControllerHal);
+            if (mWifiRttController != null) {
+                proxy.onNewRttController(mWifiRttController);
             }
         }
     }
@@ -743,12 +744,12 @@ public class HalDeviceManager {
          *
          * @param controller The RTT controller object.
          */
-        void onNewRttController(@NonNull WifiRttControllerHal controller);
+        void onNewRttController(@NonNull WifiRttController controller);
 
         /**
          * Called when the previously provided RTT controller is destroyed. Clients must discard
          * their copy. A new copy may be provided later by
-         * {@link #onNewRttController(WifiRttControllerHal)}.
+         * {@link #onNewRttController(WifiRttController)}.
          */
         void onRttControllerDestroyed();
     }
@@ -966,7 +967,7 @@ public class HalDeviceManager {
 
     private IServiceManager mServiceManager;
     private IWifi mWifi;
-    private WifiRttControllerHal mWifiRttControllerHal;
+    private WifiRttController mWifiRttController;
     private HashMap<String, IWifiP2pIface> mIWifiP2pIfaces = new HashMap<>();
     private final WifiEventCallback mWifiEventCallback = new WifiEventCallback();
     private final WifiEventCallbackV15 mWifiEventCallbackV15 = new WifiEventCallbackV15();
@@ -1109,7 +1110,7 @@ public class HalDeviceManager {
         managerStatusListenerDispatch();
         dispatchAllDestroyedListeners();
 
-        mWifiRttControllerHal = null;
+        mWifiRttController = null;
         dispatchRttControllerLifecycleOnDestroyed();
         mRttControllerLifecycleCallbacks.clear();
         mIWifiP2pIfaces.clear();
@@ -1469,6 +1470,11 @@ public class HalDeviceManager {
                     return null;
                 }
 
+                SparseArray<StaticChipInfo> staticChipInfoPerId = new SparseArray<>();
+                for (StaticChipInfo staticChipInfo : getStaticChipInfos()) {
+                    staticChipInfoPerId.put(staticChipInfo.getChipId(), staticChipInfo);
+                }
+
                 int chipInfoIndex = 0;
                 WifiChipInfo[] chipsInfo = new WifiChipInfo[chipIdsResp.value.size()];
 
@@ -1486,35 +1492,39 @@ public class HalDeviceManager {
                         return null;
                     }
 
+                    StaticChipInfo staticChipInfo = staticChipInfoPerId.get(chipId);
                     Mutable<ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode>>
                             availableModesResp = new Mutable<>();
-                    android.hardware.wifi.V1_6.IWifiChip chipV16 =
-                            getWifiChipForV1_6Mockable(chipResp.value);
-                    if (chipV16 != null) {
-                        chipV16.getAvailableModes_1_6((WifiStatus status,
-                                ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> modes) -> {
-                            statusOk.value = status.code == WifiStatusCode.SUCCESS;
-                            if (statusOk.value) {
-                                availableModesResp.value = modes;
-                            } else {
-                                Log.e(TAG, "getAvailableModes_1_6 failed: "
-                                        + statusString(status));
-                            }
-                        });
-                    } else {
-                        chipResp.value.getAvailableModes((WifiStatus status,
-                                ArrayList<IWifiChip.ChipMode> modes) -> {
-                            statusOk.value = status.code == WifiStatusCode.SUCCESS;
-                            if (statusOk.value) {
-                                availableModesResp.value = upgradeV1_0ChipModesToV1_6(modes);
-                            } else {
-                                Log.e(TAG, "getAvailableModes failed: "
-                                        + statusString(status));
-                            }
-                        });
-                    }
-                    if (!statusOk.value) {
-                        return null;
+                    if (staticChipInfo == null) {
+                        android.hardware.wifi.V1_6.IWifiChip chipV16 =
+                                getWifiChipForV1_6Mockable(chipResp.value);
+                        if (chipV16 != null) {
+                            chipV16.getAvailableModes_1_6((WifiStatus status,
+                                    ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> modes)
+                                    -> {
+                                statusOk.value = status.code == WifiStatusCode.SUCCESS;
+                                if (statusOk.value) {
+                                    availableModesResp.value = modes;
+                                } else {
+                                    Log.e(TAG, "getAvailableModes_1_6 failed: "
+                                            + statusString(status));
+                                }
+                            });
+                        } else {
+                            chipResp.value.getAvailableModes((WifiStatus status,
+                                    ArrayList<IWifiChip.ChipMode> modes) -> {
+                                statusOk.value = status.code == WifiStatusCode.SUCCESS;
+                                if (statusOk.value) {
+                                    availableModesResp.value = upgradeV1_0ChipModesToV1_6(modes);
+                                } else {
+                                    Log.e(TAG, "getAvailableModes failed: "
+                                            + statusString(status));
+                                }
+                            });
+                        }
+                        if (!statusOk.value) {
+                            return null;
+                        }
                     }
 
                     Mutable<Boolean> currentModeValidResp = new Mutable<>(false);
@@ -1718,7 +1728,11 @@ public class HalDeviceManager {
 
                     chipInfo.chip = chipResp.value;
                     chipInfo.chipId = chipId;
-                    chipInfo.availableModes = availableModesResp.value;
+                    if (staticChipInfo != null) {
+                        chipInfo.availableModes = staticChipInfo.getAvailableModes();
+                    } else {
+                        chipInfo.availableModes = availableModesResp.value;
+                    }
                     chipInfo.currentModeIdValid = currentModeValidResp.value;
                     chipInfo.currentModeId = currentModeResp.value;
                     chipInfo.chipCapabilities = chipCapabilities.value;
@@ -3207,7 +3221,7 @@ public class HalDeviceManager {
         }
 
         @Override
-        public void onNewRttController(WifiRttControllerHal controller) {
+        public void onNewRttController(WifiRttController controller) {
             mHandler.post(() -> mCallback.onNewRttController(controller));
         }
 
@@ -3223,7 +3237,7 @@ public class HalDeviceManager {
                     + mRttControllerLifecycleCallbacks.size());
         }
         for (InterfaceRttControllerLifecycleCallbackProxy cbp : mRttControllerLifecycleCallbacks) {
-            cbp.onNewRttController(mWifiRttControllerHal);
+            cbp.onNewRttController(mWifiRttController);
         }
     }
 
@@ -3240,26 +3254,26 @@ public class HalDeviceManager {
      */
     private void updateRttControllerWhenInterfaceChanges() {
         synchronized (mLock) {
-            if (mWifiRttControllerHal != null && mWifiRttControllerHal.validate()) {
+            if (mWifiRttController != null && mWifiRttController.validate()) {
                 if (mDbg) {
                     Log.d(TAG, "Current RttController is valid, Don't try to create a new one");
                 }
                 return;
             }
-            boolean controllerDestroyed = mWifiRttControllerHal != null;
-            mWifiRttControllerHal = null;
+            boolean controllerDestroyed = mWifiRttController != null;
+            mWifiRttController = null;
             if (mRttControllerLifecycleCallbacks.size() == 0) {
                 Log.d(TAG, "updateRttController: no one is interested in RTT controllers");
                 return;
             }
 
-            WifiRttControllerHal newRttController = createRttControllerIfPossible();
+            WifiRttController newRttController = createRttControllerIfPossible();
             if (newRttController == null) {
                 if (controllerDestroyed) {
                     dispatchRttControllerLifecycleOnDestroyed();
                 }
             } else {
-                mWifiRttControllerHal = newRttController;
+                mWifiRttController = newRttController;
                 dispatchRttControllerLifecycleOnNew();
             }
         }
@@ -3270,7 +3284,7 @@ public class HalDeviceManager {
      *
      * @return The new RttController - or null on failure.
      */
-    private WifiRttControllerHal createRttControllerIfPossible() {
+    private WifiRttController createRttControllerIfPossible() {
         synchronized (mLock) {
             if (!isWifiStarted()) {
                 Log.d(TAG, "createRttControllerIfPossible: Wifi is not started");
@@ -3337,13 +3351,12 @@ public class HalDeviceManager {
                     Log.e(TAG, "IWifiChip.createRttController exception: " + e);
                 }
                 if (rttResp.value != null) {
-                    WifiRttControllerHal wifiRttControllerHal =
-                            new WifiRttControllerHal(rttResp.value);
-                    if (!wifiRttControllerHal.setup()) {
+                    WifiRttController wifiRttController = new WifiRttController(rttResp.value);
+                    if (!wifiRttController.setup()) {
                         return null;
                     }
-                    wifiRttControllerHal.enableVerboseLogging(mDbg);
-                    return wifiRttControllerHal;
+                    wifiRttController.enableVerboseLogging(mDbg);
+                    return wifiRttController;
                 }
             }
         }

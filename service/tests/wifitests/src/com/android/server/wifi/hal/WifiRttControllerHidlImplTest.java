@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.server.wifi;
+package com.android.server.wifi.hal;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -58,8 +59,8 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WifiRttControllerHalTest {
-    private WifiRttControllerHal mDut;
+public class WifiRttControllerHidlImplTest {
+    private WifiRttController mDut;
     private WifiStatus mStatusSuccess;
 
     private ArgumentCaptor<ArrayList> mRttConfigCaptor = ArgumentCaptor.forClass(ArrayList.class);
@@ -68,6 +69,7 @@ public class WifiRttControllerHalTest {
             ArgumentCaptor.forClass(IWifiRttController.getCapabilitiesCallback.class);
     private ArgumentCaptor<IWifiRttControllerEventCallback.Stub> mEventCallbackArgumentCaptor =
             ArgumentCaptor.forClass(IWifiRttControllerEventCallback.Stub.class);
+    private ArgumentCaptor<ArrayList> mArrayListCaptor = ArgumentCaptor.forClass(ArrayList.class);
 
     @Rule
     public ErrorCollector collector = new ErrorCollector();
@@ -76,7 +78,7 @@ public class WifiRttControllerHalTest {
     public IWifiRttController mockRttController;
 
     @Mock
-    WifiRttControllerHal.RttControllerRangingResultsCallback mockRangingResultsCallback;
+    public WifiRttController.RttControllerRangingResultsCallback mockRangingResultsCallback;
 
     @Before
     public void setUp() throws Exception {
@@ -91,7 +93,7 @@ public class WifiRttControllerHalTest {
         when(mockRttController.rangeCancel(anyInt(), any(ArrayList.class))).thenReturn(
                 mStatusSuccess);
 
-        mDut = new WifiRttControllerHal(mockRttController);
+        mDut = new WifiRttController(mockRttController);
         mDut.setup();
         mDut.registerRangingResultsCallback(mockRangingResultsCallback);
         verify(mockRttController).getCapabilities(mGetCapCbCatpr.capture());
@@ -260,9 +262,9 @@ public class WifiRttControllerHalTest {
     @Test
     public void testRangeCancel() throws Exception {
         int cmdId = 66;
-        ArrayList<byte[]> macAddresses = new ArrayList<>();
-        byte[] mac1 = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
-        byte[] mac2 = {0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+        ArrayList<MacAddress> macAddresses = new ArrayList<>();
+        MacAddress mac1 = MacAddress.fromString("00:01:02:03:04:05");
+        MacAddress mac2 = MacAddress.fromString("0A:0B:0C:0D:0E:0F");
         macAddresses.add(mac1);
         macAddresses.add(mac2);
 
@@ -270,7 +272,9 @@ public class WifiRttControllerHalTest {
         mDut.rangeCancel(cmdId, macAddresses);
 
         // (2) verify HAL call and parameters
-        verify(mockRttController).rangeCancel(cmdId, macAddresses);
+        verify(mockRttController).rangeCancel(eq(cmdId), mArrayListCaptor.capture());
+        assertArrayEquals(mac1.toByteArray(), (byte[]) mArrayListCaptor.getValue().get(0));
+        assertArrayEquals(mac2.toByteArray(), (byte[]) mArrayListCaptor.getValue().get(1));
 
         verifyNoMoreInteractions(mockRttController);
     }
@@ -307,7 +311,7 @@ public class WifiRttControllerHalTest {
 
         RangingResult rttResult = rttR.get(0);
         collector.checkThat("status", rttResult.getStatus(),
-                equalTo(WifiRttControllerHal.FRAMEWORK_RTT_STATUS_SUCCESS));
+                equalTo(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS));
         collector.checkThat("mac", rttResult.getMacAddress().toByteArray(),
                 equalTo(MacAddress.fromString("05:06:07:08:09:0A").toByteArray()));
         collector.checkThat("distanceCm", rttResult.getDistanceMm(), equalTo(1500));

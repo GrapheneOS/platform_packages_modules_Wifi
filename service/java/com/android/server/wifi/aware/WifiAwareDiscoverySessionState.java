@@ -31,7 +31,7 @@ import android.util.LocalLog;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.android.server.wifi.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
