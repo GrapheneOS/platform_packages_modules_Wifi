@@ -219,6 +219,16 @@ public class WifiNanIface {
     }
 
     /**
+     * See comments for {@link IWifiNanIface#getNanIface()}
+     *
+     * TODO: Remove this API. Will only be used temporarily until HalDeviceManager is refactored.
+     */
+    public android.hardware.wifi.V1_0.IWifiNanIface getNanIface() {
+        return validateAndCall("getNanIface", null,
+                () -> mWifiNanIface.getNanIface());
+    }
+
+    /**
      * See comments for {@link IWifiNanIface#registerFrameworkCallback(Callback)}
      */
     public boolean registerFrameworkCallback(Callback cb) {
