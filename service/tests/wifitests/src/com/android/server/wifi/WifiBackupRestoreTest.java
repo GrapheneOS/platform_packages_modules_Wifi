@@ -534,6 +534,24 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a single ephemeral network configuration is not serialized.
+     */
+    @Test
+    public void testSingleEphemeralNetworkNotBackupRestore() {
+        List<WifiConfiguration> configurations = new ArrayList<>();
+        WifiConfiguration configuration = WifiConfigurationTestUtil.createWepNetworkWithSingleKey();
+        configuration.ephemeral = true;
+        configurations.add(configuration);
+
+        byte[] backupData = mWifiBackupRestore.retrieveBackupDataFromConfigurations(configurations);
+        List<WifiConfiguration> retrievedConfigurations =
+                mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
+        assertTrue(retrievedConfigurations.isEmpty());
+        // No valid data to check in dump.
+        mCheckDump = false;
+    }
+
+    /**
      * Verify that a single PSK network configuration with static ip/proxy settings is serialized &
      * deserialized correctly.
      */
