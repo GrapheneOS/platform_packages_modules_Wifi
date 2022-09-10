@@ -824,6 +824,34 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 openNetwork.SSID));
     }
 
+    @Test
+    public void testOverrideWifiConfigModifyAllNetworks() {
+        ArgumentCaptor<WifiConfiguration> wifiConfigCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(false);
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
+
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        verify(mWcmListener).onNetworkAdded(wifiConfigCaptor.capture());
+        assertEquals(openNetwork.networkId, wifiConfigCaptor.getValue().networkId);
+        assertNotEquals(WifiConfiguration.INVALID_NETWORK_ID, openNetwork.networkId);
+        reset(mWcmListener);
+
+        // try to modify the network with another UID and assert failure
+        WifiConfiguration configToUpdate = wifiConfigCaptor.getValue();
+        configToUpdate.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_NONE;
+        NetworkUpdateResult result =
+                mWifiConfigManager.addOrUpdateNetwork(configToUpdate, TEST_OTHER_USER_UID);
+        assertEquals(WifiConfiguration.INVALID_NETWORK_ID, result.getNetworkId());
+
+        // give the override wifi config permission and verify success
+        when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
+        result = mWifiConfigManager.addOrUpdateNetwork(configToUpdate, TEST_OTHER_USER_UID);
+        assertEquals(configToUpdate.networkId, result.getNetworkId());
+    }
+
     /**
      * Verifies that the organization owned device admin could modify other other fields in the
      * Wificonfiguration but not the macRandomizationSetting field for networks they do not own.
