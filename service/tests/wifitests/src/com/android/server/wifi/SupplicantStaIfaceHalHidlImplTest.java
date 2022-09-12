@@ -3831,11 +3831,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 .isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK));
     }
 
-    /**
-     * Tests the setting of EAP anonymous identity.
-     */
-    @Test
-    public void testSetEapAnonymousIdentity() throws Exception {
+    private void verifySetEapAnonymousIdentity(boolean updateToNativeService)
+            throws Exception {
         int testFrameworkNetworkId = 9;
         String anonymousIdentity = "adb@realm.com";
         ArrayList<Byte> bytes = NativeUtil.stringToByteArrayList(anonymousIdentity);
@@ -3854,9 +3851,13 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
 
         config.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
         // Check the data are sent to the native service.
-        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
-        ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(eq(bytes));
+        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity,
+                updateToNativeService));
+        if (updateToNativeService) {
+            verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(eq(bytes));
+        } else {
+            verify(mSupplicantStaNetworkMock, never()).setEapAnonymousIdentity(any());
+        }
 
         // Clear the first connection interaction.
         reset(mISupplicantStaIfaceMock);
@@ -3866,5 +3867,21 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
         verify(mISupplicantStaIfaceMock, never()).removeNetwork(anyInt());
         verify(mISupplicantStaIfaceMock, never()).addNetwork(any());
+    }
+
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentity() throws Exception {
+        verifySetEapAnonymousIdentity(true);
+    }
+
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentityNotUpdateToNativeService() throws Exception {
+        verifySetEapAnonymousIdentity(false);
     }
 }

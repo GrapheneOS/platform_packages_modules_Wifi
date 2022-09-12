@@ -2340,11 +2340,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 qosPolicyRequestList.get(1).requestType);
     }
 
-    /**
-     * Tests the setting of EAP anonymous identity.
-     */
-    @Test
-    public void testSetEapAnonymousIdentity() throws Exception {
+    private void verifySetEapAnonymousIdentity(boolean updateToNativeService)
+            throws Exception {
         int testFrameworkNetworkId = 9;
         String anonymousIdentity = "abc@realm.org";
         byte[] bytes = anonymousIdentity.getBytes();
@@ -2363,10 +2360,15 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         config.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
         // Check the data are sent to the native service.
-        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity));
-        ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-        verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(captor.capture());
-        assertTrue(Arrays.equals(bytes, captor.getValue()));
+        assertTrue(mDut.setEapAnonymousIdentity(WLAN0_IFACE_NAME, anonymousIdentity,
+                updateToNativeService));
+        if (updateToNativeService) {
+            ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+            verify(mSupplicantStaNetworkMock).setEapAnonymousIdentity(captor.capture());
+            assertTrue(Arrays.equals(bytes, captor.getValue()));
+        } else {
+            verify(mSupplicantStaNetworkMock, never()).setEapAnonymousIdentity(any());
+        }
 
         // Clear the first connection interaction.
         reset(mISupplicantStaIfaceMock);
@@ -2376,6 +2378,22 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
         verify(mISupplicantStaIfaceMock, never()).removeNetwork(anyInt());
         verify(mISupplicantStaIfaceMock, never()).addNetwork();
+    }
+
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentity() throws Exception {
+        verifySetEapAnonymousIdentity(true);
+    }
+
+    /**
+     * Tests the setting of EAP anonymous identity.
+     */
+    @Test
+    public void testSetEapAnonymousIdentityNotUpdateToNativeService() throws Exception {
+        verifySetEapAnonymousIdentity(false);
     }
 
     private WifiConfiguration createTestWifiConfiguration() {
