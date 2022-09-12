@@ -21,6 +21,7 @@ import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiScanner;
 
+import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
 
@@ -344,10 +345,10 @@ public interface IWifiChip {
     /**
      * Select one of the preset TX power scenarios.
      *
-     * @param scenario Pre-set scenario from {@link WifiChip.TxPowerScenario}
+     * @param sarInfo SarInfo to select the proper scenario.
      * @return true if successful, false otherwise.
      */
-    boolean selectTxPowerScenario(@WifiChip.TxPowerScenario int scenario);
+    boolean selectTxPowerScenario(SarInfo sarInfo);
 
     /**
      * Set the current coex unsafe channels to avoid and their restrictions.
