@@ -9688,6 +9688,12 @@ public class WifiManager {
             "android.net.wifi.extra.DIALOG_NEUTRAL_BUTTON_TEXT";
 
     /**
+     * Extra long indicating the timeout in milliseconds of a dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_TIMEOUT_MS = "android.net.wifi.extra.DIALOG_TIMEOUT_MS";
+
+    /**
      * Extra String indicating a P2P device name for a P2P Invitation Sent/Received dialog.
      * @hide
      */
