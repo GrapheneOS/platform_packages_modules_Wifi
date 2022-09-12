@@ -100,6 +100,13 @@
     <string name="wifi_p2p_invitation_sent_title">Invitation sent</string>
     <string name="wifi_p2p_invitation_to_connect_title">Invitation to connect</string>
 
+    <!-- The message of the P2P Invitation Received dialog indicating the seconds left to accept before auto rejection [CHAR_LIMIT=NONE] [ICU SYNTAX] -->
+    <string name="wifi_p2p_invitation_seconds_remaining">
+        {0,plural,
+            one{Accept in # second.}
+            other{Accept in # seconds.}
+        }
+    </string>
     <string name="wifi_p2p_from_message">From: </string>
     <string name="wifi_p2p_to_message">To: </string>
     <string name="wifi_p2p_enter_pin_message">Type the required PIN: </string>

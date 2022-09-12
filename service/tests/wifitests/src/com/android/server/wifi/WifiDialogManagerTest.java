@@ -756,12 +756,21 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
 
-        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
-        when(mPowerManager.isInteractive()).thenReturn(false);
+        // ACTION_CLOSE_SYSTEM_DIALOGS with EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI should be
+        // ignored.
         ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(),
                 eq(SdkLevel.isAtLeastT() ? Context.RECEIVER_EXPORTED : 0));
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                        .putExtra(WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, true));
+        dispatchMockWifiThreadRunner(mWifiThreadRunner);
+
+        verify(dialog, never()).cancel();
+
+        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
+        when(mPowerManager.isInteractive()).thenReturn(false);
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
@@ -770,7 +779,6 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         // ACTION_CLOSE_SYSTEM_DIALOGS while screen on should cancel the dialog.
         when(mPowerManager.isInteractive()).thenReturn(true);
-        verify(mWifiContext).registerReceiver(broadcastReceiverCaptor.capture(), any(), anyInt());
         broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
                 new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
@@ -1063,77 +1071,5 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback1, times(1)).onAccepted(null);
         verify(callback2, times(1)).onAccepted(null);
-    }
-
-    /**
-     * Verifies that a P2P Invitation Received dialog is cancelled after the specified timeout
-     */
-    @Test
-    public void testP2pInvitationReceivedDialog_timeout_cancelsDialog() {
-        WifiDialogManager wifiDialogManager =
-                new WifiDialogManager(mWifiContext, mWifiThreadRunner, mFrameworkFacade);
-
-        // Launch Dialog without timeout.
-        P2pInvitationReceivedDialogCallback callback =
-                mock(P2pInvitationReceivedDialogCallback.class);
-        WifiThreadRunner callbackThreadRunner = mock(WifiThreadRunner.class);
-        DialogHandle dialogHandle = wifiDialogManager.createP2pInvitationReceivedDialog(
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY,
-                callback, callbackThreadRunner);
-        launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
-        Intent intent = verifyStartActivityAsUser(1, mWifiContext);
-        int dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null);
-
-        // Verify cancel runnable wasn't posted.
-        verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt());
-
-        // Launch Dialog with timeout
-        callback = mock(P2pInvitationReceivedDialogCallback.class);
-        dialogHandle = wifiDialogManager.createP2pInvitationReceivedDialog(
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY,
-                callback, callbackThreadRunner);
-        launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
-        intent = verifyStartActivityAsUser(2, mWifiContext);
-        dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null);
-
-        // Verify the timeout runnable was posted and run it.
-        ArgumentCaptor<Runnable> runnableArgumentCaptor = ArgumentCaptor.forClass(Runnable.class);
-        verify(mWifiThreadRunner, times(1))
-                .postDelayed(runnableArgumentCaptor.capture(), eq((long) TIMEOUT_MILLIS));
-        runnableArgumentCaptor.getValue().run();
-
-        // Verify that a dismiss Intent was sent and the callback was declined.
-        intent = verifyStartActivityAsUser(3, mWifiContext);
-        assertThat(intent.getAction()).isEqualTo(WifiManager.ACTION_DISMISS_DIALOG);
-        ComponentName component = intent.getComponent();
-        assertThat(component.getPackageName()).isEqualTo(WIFI_DIALOG_APK_PKG_NAME);
-        assertThat(component.getClassName())
-                .isEqualTo(WifiDialogManager.WIFI_DIALOG_ACTIVITY_CLASSNAME);
-        assertThat(intent.hasExtra(WifiManager.EXTRA_DIALOG_ID)).isTrue();
-        assertThat(intent.getIntExtra(WifiManager.EXTRA_DIALOG_ID, -1)).isEqualTo(dialogId);
-        dispatchMockWifiThreadRunner(callbackThreadRunner);
-        verify(callback).onDeclined();
-
-        // Launch Dialog with timeout
-        callback = mock(P2pInvitationReceivedDialogCallback.class);
-        dialogHandle = wifiDialogManager.createP2pInvitationReceivedDialog(
-                TEST_DEVICE_NAME, false, null, Display.DEFAULT_DISPLAY,
-                callback, callbackThreadRunner);
-        launchDialogSynchronous(dialogHandle, TIMEOUT_MILLIS, mWifiThreadRunner);
-        intent = verifyStartActivityAsUser(4, mWifiContext);
-        dialogId = verifyP2pInvitationReceivedDialogLaunchIntent(intent,
-                TEST_DEVICE_NAME, false, null);
-        // Reply before the timeout is over
-        wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
-        dispatchMockWifiThreadRunner(callbackThreadRunner);
-
-        // Verify callback was replied to, and the cancel runnable was posted but then removed.
-        verify(callback).onAccepted(null);
-        verify(callback, never()).onDeclined();
-        verify(mWifiThreadRunner, times(2))
-                .postDelayed(runnableArgumentCaptor.capture(), eq((long) TIMEOUT_MILLIS));
-        verify(mWifiThreadRunner).removeCallbacks(runnableArgumentCaptor.getValue());
     }
 }
