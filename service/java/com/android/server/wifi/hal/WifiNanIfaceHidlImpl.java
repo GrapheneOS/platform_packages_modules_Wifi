@@ -46,6 +46,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.server.wifi.aware.Capabilities;
+import com.android.server.wifi.util.GeneralUtil.Mutable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ import java.util.function.Supplier;
 public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     private static final String TAG = "WifiNanIfaceHidlImpl";
     private android.hardware.wifi.V1_0.IWifiNanIface mWifiNanIface;
+    private String mIfaceName;
     private WifiNanIfaceCallbackHidlImpl mHalCallback;
     private WifiNanIface.Callback mFrameworkCallback;
 
@@ -95,6 +97,15 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
         final String methodStr = "registerFrameworkCallback";
         return validateAndCall(methodStr, false,
                 () -> registerFrameworkCallbackInternal(methodStr, callback));
+    }
+
+    /**
+     * See comments for {@link IWifiNanIface#getName()}
+     */
+    public String getName() {
+        final String methodStr = "getName";
+        return validateAndCall(methodStr, null,
+                () -> getNameInternal(methodStr));
     }
 
     /**
@@ -268,6 +279,22 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
             handleRemoteException(e, methodStr);
             return false;
         }
+    }
+
+    private String getNameInternal(String methodStr) {
+        if (mIfaceName != null) return mIfaceName;
+        Mutable<String> nameResp = new Mutable<>();
+        try {
+            mWifiNanIface.getName((WifiStatus status, String name) -> {
+                if (isOk(status, methodStr)) {
+                    nameResp.value = name;
+                    mIfaceName = name;
+                }
+            });
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+        }
+        return nameResp.value;
     }
 
     private boolean getCapabilitiesInternal(String methodStr, short transactionId) {

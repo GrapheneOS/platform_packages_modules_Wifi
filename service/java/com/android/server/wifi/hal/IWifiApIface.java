@@ -61,6 +61,13 @@ public interface IWifiApIface {
     boolean resetToFactoryMacAddress();
 
     /**
+     * Check whether {@link #setMacAddress(MacAddress)} is supported by this HAL.
+     *
+     * @return true if supported, false otherwise.
+     */
+    boolean isSetMacAddressSupported();
+
+    /**
      * Changes the MAC address of the interface to the given MAC address.
      *
      * @param mac MAC address to change to.

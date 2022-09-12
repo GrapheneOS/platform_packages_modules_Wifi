@@ -37,7 +37,7 @@ import java.util.function.Supplier;
  * Wrapper around a WifiStaIface.
  * May be initialized using a HIDL or AIDL WifiStaIface.
  */
-public class WifiStaIface {
+public class WifiStaIface implements WifiHal.WifiInterface {
     private static final String TAG = "WifiStaIface";
     private final IWifiStaIface mWifiStaIface;
 
@@ -142,6 +142,7 @@ public class WifiStaIface {
     /**
      * See comments for {@link IWifiStaIface#getName()}
      */
+    @Override
     @Nullable
     public String getName() {
         return validateAndCall("getName", null,
