@@ -168,6 +168,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "set-network-selection-config",
             "set-ipreach-disconnect",
             "get-ipreach-disconnect",
+            "take-bugreport",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -196,6 +197,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final HalDeviceManager mHalDeviceManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
     private final SsidTranslator mSsidTranslator;
+    private final WifiDiagnostics mWifiDiagnostics;
+    private final DeviceConfigFacade mDeviceConfig;
 
     private class SoftApCallbackProxy extends ISoftApCallback.Stub {
         private final PrintWriter mPrintWriter;
@@ -417,6 +420,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mHalDeviceManager = wifiInjector.getHalDeviceManager();
         mInterfaceConflictManager = wifiInjector.getInterfaceConflictManager();
         mSsidTranslator = wifiInjector.getSsidTranslator();
+        mWifiDiagnostics = wifiInjector.getWifiDiagnostics();
+        mDeviceConfig = wifiInjector.getDeviceConfigFacade();
     }
 
     @Override
@@ -1699,6 +1704,12 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 case "clear-ssid-charsets":
                     mSsidTranslator.clearMockLocaleCharsets();
                     return 0;
+                case "take-bugreport": {
+                    if (mDeviceConfig.isInterfaceFailureBugreportEnabled()) {
+                        mWifiDiagnostics.takeBugReport("Wifi bugreport test", "");
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -2463,6 +2474,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Sets whether CMD_IP_REACHABILITY_LOST events should trigger disconnects.");
         pw.println("  get-ipreach-disconnect");
         pw.println("    Gets setting of CMD_IP_REACHABILITY_LOST events triggering disconnects.");
+        pw.println("  take-bugreport");
+        pw.println("    take bugreport through betterBug. "
+                + "If it failed, take bugreport through bugreport manager.");
     }
 
     private void onHelpPrivileged(PrintWriter pw) {
