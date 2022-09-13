@@ -4245,12 +4245,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 resetWifiP2pInfo();
                 mDetailedState = NetworkInfo.DetailedState.DISCONNECTED;
                 sendP2pConnectionChangedBroadcast();
-                // When location mode is off, tethering service cannot receive regular
-                // p2p connection changed event to stop tethering, send a
-                // dedicated update to stop it.
-                if (!mWifiPermissionsUtil.isLocationModeEnabled()) {
-                    sendP2pTetherRequestBroadcast();
-                }
+                // Ensure tethering service to stop tethering.
+                sendP2pTetherRequestBroadcast();
             }
         }
 
