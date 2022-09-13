@@ -757,7 +757,9 @@ interface ISupplicantStaIfaceHal {
      *
      * @param ifaceName Name of the interface.
      * @param anonymousIdentity the anonymouns identity.
+     * @param updateToNativeService write the data to the native service.
      * @return true if succeeds, false otherwise.
      */
-    boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity);
+    boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity,
+            boolean updateToNativeService);
 }

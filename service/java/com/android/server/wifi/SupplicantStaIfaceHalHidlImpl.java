@@ -3986,9 +3986,11 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      *
      * @param ifaceName Name of the interface.
      * @param anonymousIdentity the anonymouns identity.
+     * @param updateToNativeService write the data to the native service.
      * @return true if succeeds, false otherwise.
      */
-    public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity) {
+    public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity,
+            boolean updateToNativeService) {
         synchronized (mLock) {
             SupplicantStaNetworkHalHidlImpl networkHandle =
                     checkSupplicantStaNetworkAndLogFailure(ifaceName, "setEapAnonymousIdentity");
@@ -3999,10 +4001,12 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
             if (!currentConfig.isEnterprise()) return false;
 
             try {
-                if (!networkHandle.setEapAnonymousIdentity(
-                        NativeUtil.stringToByteArrayList(anonymousIdentity))) {
-                    Log.w(TAG, "Cannot set EAP anonymous identity.");
-                    return false;
+                if (updateToNativeService) {
+                    if (!networkHandle.setEapAnonymousIdentity(
+                            NativeUtil.stringToByteArrayList(anonymousIdentity))) {
+                        Log.w(TAG, "Cannot set EAP anonymous identity.");
+                        return false;
+                    }
                 }
             } catch (IllegalArgumentException ex) {
                 return false;
