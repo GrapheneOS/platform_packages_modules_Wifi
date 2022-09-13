@@ -5055,6 +5055,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             String decoratedPseudonym = mWifiCarrierInfoManager
                                     .decoratePseudonymWith3GppRealm(config,
                                             anonymousIdentity);
+                            boolean updateToNativeService = false;
                             if (decoratedPseudonym != null
                                     && !decoratedPseudonym.equals(anonymousIdentity)) {
                                 anonymousIdentity = decoratedPseudonym;
@@ -5064,9 +5065,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 if (mVerboseLoggingEnabled) {
                                     log("Update decorated pseudonym: " + anonymousIdentity);
                                 }
-                                mWifiNative.setEapAnonymousIdentity(mInterfaceName,
-                                        anonymousIdentity);
+                                updateToNativeService = true;
                             }
+                            mWifiNative.setEapAnonymousIdentity(mInterfaceName,
+                                    anonymousIdentity, updateToNativeService);
                             if (mVerboseLoggingEnabled) {
                                 log("EAP Pseudonym: " + anonymousIdentity);
                             }
