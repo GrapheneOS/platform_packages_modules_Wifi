@@ -6224,8 +6224,7 @@ public class WifiServiceImpl extends BaseWifiService {
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
         if (!mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)
-                || !mWifiPermissionsUtil.checkCallersLocationPermission(packageName, featureId,
-                uid, false, null)) {
+                || !mWifiPermissionsUtil.checkCallersLocationPermissionInManifest(uid, false)) {
             throw new SecurityException(TAG + " Caller uid " + uid + " has no permission");
         }
         if (mVerboseLoggingEnabled) {

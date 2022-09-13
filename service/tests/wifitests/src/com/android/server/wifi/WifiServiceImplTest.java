@@ -9610,8 +9610,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .thenReturn(WifiManager.WIFI_FEATURE_PNO);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
-        when(mWifiPermissionsUtil.checkCallersLocationPermission(
-                any(), any(), anyInt(), anyBoolean(), any())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkCallersLocationPermissionInManifest(
+                anyInt(), anyBoolean())).thenReturn(true);
         IPnoScanResultsCallback callback = mock(IPnoScanResultsCallback.class);
         List<WifiSsid> ssids = new ArrayList<>();
         ssids.add(WifiSsid.fromString("\"TEST_SSID_1\""));
@@ -9630,8 +9630,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mActiveModeWarden.getSupportedFeatureSet()).thenReturn(0L);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
-        when(mWifiPermissionsUtil.checkCallersLocationPermission(
-                any(), any(), anyInt(), anyBoolean(), any())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkCallersLocationPermissionInManifest(
+                anyInt(), anyBoolean())).thenReturn(true);
         IPnoScanResultsCallback callback = mock(IPnoScanResultsCallback.class);
         List<WifiSsid> ssids = new ArrayList<>();
         ssids.add(WifiSsid.fromString("\"TEST_SSID_1\""));
