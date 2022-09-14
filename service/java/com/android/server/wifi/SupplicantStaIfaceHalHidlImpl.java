@@ -94,7 +94,7 @@ import javax.annotation.concurrent.ThreadSafe;
  */
 @ThreadSafe
 public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
-    private static final String TAG = "SupplicantStaIfaceHalHidlImp";
+    private static final String TAG = "SupplicantStaIfaceHalHidlImpl";
     @VisibleForTesting
     public static final String HAL_INSTANCE_NAME = "default";
     @VisibleForTesting
