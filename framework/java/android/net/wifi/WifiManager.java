@@ -9688,6 +9688,12 @@ public class WifiManager {
             "android.net.wifi.extra.DIALOG_NEUTRAL_BUTTON_TEXT";
 
     /**
+     * Extra long indicating the timeout in milliseconds of a dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_TIMEOUT_MS = "android.net.wifi.extra.DIALOG_TIMEOUT_MS";
+
+    /**
      * Extra String indicating a P2P device name for a P2P Invitation Sent/Received dialog.
      * @hide
      */
@@ -9704,6 +9710,13 @@ public class WifiManager {
      * @hide
      */
     public static final String EXTRA_P2P_DISPLAY_PIN = "android.net.wifi.extra.P2P_DISPLAY_PIN";
+
+    /**
+     * Extra boolean indicating ACTION_CLOSE_SYSTEM_DIALOGS should not close the Wi-Fi dialogs.
+     * @hide
+     */
+    public static final String EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI =
+            "android.net.wifi.extra.CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI";
 
     /**
      * Returns a set of packages that aren't DO or PO but should be able to manage WiFi networks.

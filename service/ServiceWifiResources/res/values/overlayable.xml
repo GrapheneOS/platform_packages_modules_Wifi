@@ -231,6 +231,7 @@
           <item type="bool" name="config_wifiDriverSupportedNl80211RegChangedEvent" />
           <item type="integer" name="config_wifiVerboseLoggingAlwaysOnLevel" />
           <item type="string" name="config_wifiCertInstallationHelpLink" />
+          <item type="string" name="config_wifiApmEnhancementHelpLink" />
           <item type="integer" name="config_wifiConfigurationRestoreNetworksBatchNum" />
           <item type="array" name="config_oemPrivilegedWifiAdminPackages" />
           <item type="bool" name="config_wifiSoftapOweSupported" />
@@ -290,6 +291,7 @@
           <item type="string" name="ok" />
           <item type="string" name="wifi_p2p_invitation_sent_title" />
           <item type="string" name="wifi_p2p_invitation_to_connect_title" />
+          <item type="string" name="wifi_p2p_invitation_seconds_remaining" />
           <item type="string" name="wifi_p2p_from_message" />
           <item type="string" name="wifi_p2p_to_message" />
           <item type="string" name="wifi_p2p_enter_pin_message" />

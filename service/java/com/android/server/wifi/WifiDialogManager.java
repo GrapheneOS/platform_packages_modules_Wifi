@@ -102,6 +102,10 @@ public class WifiDialogManager {
                                 WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
                     }
                 } else if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
+                    if (intent.getBooleanExtra(
+                            WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
+                        return;
+                    }
                     if (!context.getSystemService(PowerManager.class).isInteractive()) {
                         // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
                         return;
@@ -246,7 +250,6 @@ public class WifiDialogManager {
     private class DialogHandleInternal {
         private int mDialogId = WifiManager.INVALID_DIALOG_ID;
         private @Nullable Intent mIntent;
-        private Runnable mTimeoutRunnable;
         private int mDisplayId = Display.DEFAULT_DISPLAY;
 
         void setIntent(@Nullable Intent intent) {
@@ -270,8 +273,12 @@ public class WifiDialogManager {
                 return;
             }
             registerDialog();
+            mIntent.putExtra(WifiManager.EXTRA_DIALOG_TIMEOUT_MS, timeoutMs);
             mIntent.putExtra(WifiManager.EXTRA_DIALOG_ID, mDialogId);
             boolean launched = false;
+            // Collapse the QuickSettings since we can't show WifiDialog dialogs over it.
+            mContext.sendBroadcast(new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                    .putExtra(WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, true));
             if (SdkLevel.isAtLeastT() && mDisplayId != Display.DEFAULT_DISPLAY) {
                 try {
                     mContext.startActivityAsUser(mIntent,
@@ -288,17 +295,6 @@ public class WifiDialogManager {
             if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "Launching dialog with id=" + mDialogId);
             }
-            if (timeoutMs > 0) {
-                mTimeoutRunnable = () -> onTimeout();
-                mWifiThreadRunner.postDelayed(mTimeoutRunnable, timeoutMs);
-            }
-        }
-
-        /**
-         * Callback to run when the dialog times out.
-         */
-        void onTimeout() {
-            dismissDialog();
         }
 
         /**
@@ -347,10 +343,6 @@ public class WifiDialogManager {
                 // Already unregistered.
                 return;
             }
-            if (mTimeoutRunnable != null) {
-                mWifiThreadRunner.removeCallbacks(mTimeoutRunnable);
-            }
-            mTimeoutRunnable = null;
             mActiveDialogIds.remove(mDialogId);
             mActiveDialogHandles.remove(mDialogId);
             if (mVerboseLoggingEnabled) {
@@ -428,12 +420,6 @@ public class WifiDialogManager {
         void notifyOnCancelled() {
             mCallbackThreadRunner.post(() -> mCallback.onCancelled());
             unregisterDialog();
-        }
-
-        @Override
-        void onTimeout() {
-            dismissDialog();
-            notifyOnCancelled();
         }
     }
 
@@ -909,12 +895,6 @@ public class WifiDialogManager {
         void notifyOnDeclined() {
             mCallbackThreadRunner.post(() -> mCallback.onDeclined());
             unregisterDialog();
-        }
-
-        @Override
-        void onTimeout() {
-            dismissDialog();
-            notifyOnDeclined();
         }
     }
 

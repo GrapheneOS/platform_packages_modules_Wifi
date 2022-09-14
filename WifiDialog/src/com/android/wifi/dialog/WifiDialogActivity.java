@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.icu.text.MessageFormat;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -32,8 +33,12 @@ import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.Process;
+import android.os.SystemClock;
 import android.os.Vibrator;
 import android.text.Editable;
 import android.text.SpannableString;
@@ -70,7 +75,10 @@ public class WifiDialogActivity extends Activity  {
 
     private static final String TAG = "WifiDialog";
     private static final String KEY_DIALOG_INTENTS = "KEY_DIALOG_INTENTS";
+    private static final String EXTRA_DIALOG_EXPIRATION_TIME_MS =
+            "com.android.wifi.dialog.DIALOG_START_TIME_MS";
 
+    private @NonNull Handler mHandler = new Handler(Looper.getMainLooper());
     private @Nullable WifiContext mWifiContext;
     private @Nullable WifiManager mWifiManager;
     private boolean mIsVerboseLoggingEnabled;
@@ -79,11 +87,16 @@ public class WifiDialogActivity extends Activity  {
     private @NonNull Set<Intent> mSavedStateIntents = new ArraySet<>();
     private @NonNull SparseArray<Intent> mLaunchIntentsPerId = new SparseArray<>();
     private @NonNull SparseArray<Dialog> mActiveDialogsPerId = new SparseArray<>();
+    private @NonNull SparseArray<CountDownTimer> mActiveCountDownTimersPerId = new SparseArray<>();
 
     // Broadcast receiver for listening to ACTION_CLOSE_SYSTEM_DIALOGS
     private BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent.getBooleanExtra(
+                    WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
+                return;
+            }
             if (mIsVerboseLoggingEnabled) {
                 Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received, cancelling all dialogs.");
             }
@@ -262,6 +275,10 @@ public class WifiDialogActivity extends Activity  {
                 dialog.dismiss();
             }
             mActiveDialogsPerId.clear();
+            for (int i = 0; i < mActiveCountDownTimersPerId.size(); i++) {
+                mActiveCountDownTimersPerId.valueAt(i).cancel();
+            }
+            mActiveCountDownTimersPerId.clear();
         } else if (getSystemService(PowerManager.class).isInteractive()) {
             // If we're stopping because we're switching to a new Activity, remove and cancel all
             // the dialogs.
@@ -291,6 +308,11 @@ public class WifiDialogActivity extends Activity  {
         mActiveDialogsPerId.remove(dialogId);
         if (dialog != null && dialog.isShowing()) {
             dialog.cancel();
+        }
+        CountDownTimer timer = mActiveCountDownTimersPerId.get(dialogId);
+        mActiveCountDownTimersPerId.remove(dialogId);
+        if (timer != null) {
+            timer.cancel();
         }
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Dialog id " + dialogId + " removed.");
@@ -329,7 +351,7 @@ public class WifiDialogActivity extends Activity  {
         if (!WifiManager.ACTION_LAUNCH_DIALOG.equals(action)) {
             return false;
         }
-        Dialog dialog = null;
+        final AlertDialog dialog;
         int dialogType = intent.getIntExtra(
                 WifiManager.EXTRA_DIALOG_TYPE, WifiManager.DIALOG_TYPE_UNKNOWN);
         switch (dialogType) {
@@ -362,7 +384,7 @@ public class WifiDialogActivity extends Activity  {
                     Log.v(TAG, "Could not create dialog with id= " + dialogId
                             + " for unknown type: " + dialogType);
                 }
-                break;
+                return false;
         }
         if (dialog == null) {
             return false;
@@ -380,6 +402,47 @@ public class WifiDialogActivity extends Activity  {
             dialog.getWindow().setGravity(mGravity);
         }
         mActiveDialogsPerId.put(dialogId, dialog);
+        long timeoutMs = intent.getLongExtra(WifiManager.EXTRA_DIALOG_TIMEOUT_MS, 0);
+        if (timeoutMs > 0) {
+            // Use the original expiration time in case we've reloaded this dialog after a
+            // configuration change.
+            long expirationTimeMs = intent.getLongExtra(EXTRA_DIALOG_EXPIRATION_TIME_MS, 0);
+            if (expirationTimeMs > 0) {
+                timeoutMs = expirationTimeMs - SystemClock.uptimeMillis();
+                if (timeoutMs < 0) {
+                    timeoutMs = 0;
+                }
+            } else {
+                intent.putExtra(
+                        EXTRA_DIALOG_EXPIRATION_TIME_MS, SystemClock.uptimeMillis() + timeoutMs);
+            }
+            CountDownTimer countDownTimer = new CountDownTimer(timeoutMs, 100) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    if (dialogType == WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED) {
+                        int secondsRemaining = (int) millisUntilFinished / 1000;
+                        if (millisUntilFinished % 1000 != 0) {
+                            // Round up to the nearest whole second.
+                            secondsRemaining++;
+                        }
+                        dialog.setMessage(MessageFormat.format(
+                                getString(getStringId("wifi_p2p_invitation_seconds_remaining")),
+                                secondsRemaining));
+                    }
+                }
+
+                @Override
+                public void onFinish() {
+                    removeIntentAndPossiblyFinish(dialogId);
+                }
+            }.start();
+            mActiveCountDownTimersPerId.put(dialogId, countDownTimer);
+        } else {
+            if (dialogType == WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED) {
+                // Set the message back to null if we aren't using a timeout.
+                dialog.setMessage(null);
+            }
+        }
         dialog.show();
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Showing dialog " + dialogId);
@@ -416,7 +479,7 @@ public class WifiDialogActivity extends Activity  {
     /**
      * Returns a simple dialog for the given Intent, or {@code null} if no dialog could be created.
      */
-    private @Nullable Dialog createSimpleDialog(
+    private @Nullable AlertDialog createSimpleDialog(
             int dialogId,
             @Nullable String title,
             @Nullable String message,
@@ -488,7 +551,7 @@ public class WifiDialogActivity extends Activity  {
      * Returns a P2P Invitation Sent Dialog for the given Intent, or {@code null} if no Dialog
      * could be created.
      */
-    private @Nullable Dialog createP2pInvitationSentDialog(
+    private @Nullable AlertDialog createP2pInvitationSentDialog(
             final int dialogId,
             final @NonNull String deviceName,
             @Nullable String displayPin) {
@@ -536,7 +599,7 @@ public class WifiDialogActivity extends Activity  {
      * Returns a P2P Invitation Received Dialog for the given Intent, or {@code null} if no Dialog
      * could be created.
      */
-    private @Nullable Dialog createP2pInvitationReceivedDialog(
+    private @Nullable AlertDialog createP2pInvitationReceivedDialog(
             final int dialogId,
             final @NonNull String deviceName,
             final boolean isPinRequested,
@@ -573,6 +636,8 @@ public class WifiDialogActivity extends Activity  {
         AlertDialog dialog = new AlertDialog.Builder(this,
                 getStyleId("wifi_p2p_invitation_received_dialog"))
                 .setTitle(getString(getStringId("wifi_p2p_invitation_to_connect_title")))
+                // Set the message to "" to allow us to modify it after building (b/36913966).
+                .setMessage("")
                 .setView(textEntryView)
                 .setPositiveButton(getStringId("accept"), (dialogPositive, which) -> {
                     String pin = null;
