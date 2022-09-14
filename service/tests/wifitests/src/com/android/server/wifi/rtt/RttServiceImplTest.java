@@ -17,6 +17,10 @@
 
 package com.android.server.wifi.rtt;
 
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCI;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCR;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT;
+
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 import static com.android.server.wifi.rtt.RttTestUtils.compareListContentsNoOrdering;
 
@@ -1327,6 +1331,19 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
+    }
+
+    @Test
+    public void testGetRttCharacteristics() {
+        WifiRttController.Capabilities cap = new WifiRttController.Capabilities();
+        cap.lcrSupported = true;
+        cap.oneSidedRttSupported = true;
+        cap.lciSupported = true;
+        when(mockRttControllerHal.getRttCapabilities()).thenReturn(cap);
+        Bundle characteristics = mDut.getRttCharacteristics();
+        assertTrue(characteristics.getBoolean(CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT));
+        assertTrue(characteristics.getBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCI));
+        assertTrue(characteristics.getBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCR));
     }
 
     /**
