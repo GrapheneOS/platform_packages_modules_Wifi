@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.WifiBaseTest;
-import com.android.server.wifi.WifiNanIface;
+import com.android.server.wifi.hal.WifiNanIface;
 
 import org.junit.Before;
 import org.junit.Rule;

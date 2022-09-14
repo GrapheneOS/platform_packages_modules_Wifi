@@ -63,6 +63,7 @@ import android.util.SparseIntArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.HalDeviceManagerUtil.StaticChipInfo;
+import com.android.server.wifi.hal.WifiNanIface;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
 import com.android.server.wifi.util.WorkSourceHelper;

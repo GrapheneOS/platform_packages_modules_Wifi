@@ -23,7 +23,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.HalDeviceManager;
-import com.android.server.wifi.WifiNanIface;
+import com.android.server.wifi.hal.WifiNanIface;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
