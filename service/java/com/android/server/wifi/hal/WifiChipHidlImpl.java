@@ -46,6 +46,7 @@ import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
@@ -468,13 +469,13 @@ public class WifiChipHidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#selectTxPowerScenario(int)}
+     * See comments for {@link IWifiChip#selectTxPowerScenario(SarInfo)}
      */
     @Override
-    public boolean selectTxPowerScenario(@WifiChip.TxPowerScenario int scenario) {
+    public boolean selectTxPowerScenario(SarInfo sarInfo) {
         String methodStr = "selectTxPowerScenario";
         return validateAndCall(methodStr, false,
-                () -> selectTxPowerScenarioInternal(methodStr, scenario));
+                () -> selectTxPowerScenarioInternal(methodStr, sarInfo));
     }
 
     /**
@@ -835,9 +836,9 @@ public class WifiChipHidlImpl implements IWifiChip {
     private int getModeInternal(String methodStr) {
         Mutable<Integer> modeResp = new Mutable<>(-1);
         try {
-            mWifiChip.getId((status, id) -> {
+            mWifiChip.getMode((status, mode) -> {
                 if (isOk(status, methodStr)) {
-                    modeResp.value = id;
+                    modeResp.value = mode;
                 } else if (status.code == WifiStatusCode.ERROR_NOT_AVAILABLE) {
                     modeResp.value = 0; // valid response
                 }
@@ -1136,23 +1137,87 @@ public class WifiChipHidlImpl implements IWifiChip {
         }
     }
 
-    private boolean selectTxPowerScenarioInternal(String methodStr,
-            @WifiChip.TxPowerScenario int scenario) {
+    private boolean selectTxPowerScenarioInternal(String methodStr, SarInfo sarInfo) {
+        if (getWifiChipV1_2Mockable() != null) {
+            return selectTxPowerScenarioInternal_1_2(methodStr, sarInfo);
+        } else if (getWifiChipV1_1Mockable() != null) {
+            return selectTxPowerScenarioInternal_1_1(methodStr, sarInfo);
+        }
+        return false;
+    }
+
+    private boolean selectTxPowerScenarioInternal_1_1(String methodStr, SarInfo sarInfo) {
+        methodStr += "_1_1";
         try {
-            android.hardware.wifi.V1_1.IWifiChip chip11 = getWifiChipV1_1Mockable();
-            android.hardware.wifi.V1_2.IWifiChip chip12 = getWifiChipV1_2Mockable();
-            if (chip11 == null && chip12 == null) return false;
             WifiStatus status;
-            if (chip12 != null) {
-                status = chip12.selectTxPowerScenario_1_2(
-                        frameworkToHalTxPowerScenarioV1_2(scenario));
-            } else {
-                status = chip11.selectTxPowerScenario(
-                        frameworkToHalTxPowerScenarioV1_1(scenario));
+            android.hardware.wifi.V1_1.IWifiChip chip11 = getWifiChipV1_1Mockable();
+
+            if (sarPowerBackoffRequired_1_1(sarInfo)) {
+                // Power backoff is needed, so calculate the required scenario
+                // and attempt to set it.
+                int halScenario = frameworkToHalTxPowerScenario_1_1(sarInfo);
+                if (sarInfo.setSarScenarioNeeded(halScenario)) {
+                    Log.d(TAG, "Attempting to set SAR scenario to " + halScenario);
+                    status = chip11.selectTxPowerScenario(halScenario);
+                    return isOk(status, methodStr);
+                }
+                // Reaching here means setting SAR scenario would be redundant,
+                // do nothing and return with success.
+                return true;
             }
-            return isOk(status, methodStr);
+
+            // We don't need to perform power backoff, so attempt to reset the SAR scenario.
+            if (sarInfo.resetSarScenarioNeeded()) {
+                status = chip11.resetTxPowerScenario();
+                Log.d(TAG, "Attempting to reset the SAR scenario");
+                return isOk(status, methodStr);
+            }
+
+            // Resetting SAR scenario would be redundant; do nothing and return with success.
+            return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
+            return false;
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "IllegalArgumentException in " + methodStr);
+            return false;
+        }
+    }
+
+    private boolean selectTxPowerScenarioInternal_1_2(String methodStr, SarInfo sarInfo) {
+        methodStr += "_1_2";
+        try {
+            WifiStatus status;
+            android.hardware.wifi.V1_2.IWifiChip chip12 = getWifiChipV1_2Mockable();
+
+            if (sarPowerBackoffRequired_1_2(sarInfo)) {
+                // Power backoff is needed, so calculate the required scenario
+                // and attempt to set it.
+                int halScenario = frameworkToHalTxPowerScenario_1_2(sarInfo);
+                if (sarInfo.setSarScenarioNeeded(halScenario)) {
+                    Log.d(TAG, "Attempting to set SAR scenario to " + halScenario);
+                    status = chip12.selectTxPowerScenario(halScenario);
+                    return isOk(status, methodStr);
+                }
+                // Reaching here means setting SAR scenario would be redundant,
+                // do nothing and return with success.
+                return true;
+            }
+
+            // We don't need to perform power backoff, so attempt to reset the SAR scenario.
+            if (sarInfo.resetSarScenarioNeeded()) {
+                status = chip12.resetTxPowerScenario();
+                Log.d(TAG, "Attempting to reset the SAR scenario");
+                return isOk(status, methodStr);
+            }
+
+            // Resetting SAR scenario would be redundant; do nothing and return with success.
+            return true;
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+            return false;
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "IllegalArgumentException in " + methodStr);
             return false;
         }
     }
@@ -1223,8 +1288,10 @@ public class WifiChipHidlImpl implements IWifiChip {
             return isOk(status, methodStr);
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
-            return false;
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid argument " + useCase + " in " + methodStr);
         }
+        return false;
     }
 
     private boolean startLoggingToDebugRingBufferInternal(String methodStr, String ringName,
@@ -1294,12 +1361,9 @@ public class WifiChipHidlImpl implements IWifiChip {
         public void onDebugRingBufferDataAvailable(
                 WifiDebugRingBufferStatus status, java.util.ArrayList<Byte> data) {
             if (mFrameworkCallback == null) return;
-            WifiChip.WifiDebugRingBufferStatus frameworkStatus =
-                    new WifiChip.WifiDebugRingBufferStatus(status.ringName, status.flags,
-                            status.ringId, status.sizeInBytes, status.freeSizeInBytes,
-                            status.verboseLevel);
             mFrameworkCallback.onDebugRingBufferDataAvailable(
-                    frameworkStatus, NativeUtil.byteArrayFromArrayList(data));
+                    halToFrameworkRingBufferStatus(status),
+                    NativeUtil.byteArrayFromArrayList(data));
         }
 
         @Override
@@ -1703,7 +1767,7 @@ public class WifiChipHidlImpl implements IWifiChip {
         WifiNative.RingBufferStatus[] ans = new WifiNative.RingBufferStatus[ringBuffers.size()];
         int i = 0;
         for (WifiDebugRingBufferStatus b : ringBuffers) {
-            ans[i++] = ringBufferStatus(b);
+            ans[i++] = halToFrameworkRingBufferStatus(b);
         }
         return ans;
     }
@@ -1711,7 +1775,8 @@ public class WifiChipHidlImpl implements IWifiChip {
     /**
      * Creates RingBufferStatus from the Hal version
      */
-    private static WifiNative.RingBufferStatus ringBufferStatus(WifiDebugRingBufferStatus h) {
+    private static WifiNative.RingBufferStatus halToFrameworkRingBufferStatus(
+            WifiDebugRingBufferStatus h) {
         WifiNative.RingBufferStatus ans = new WifiNative.RingBufferStatus();
         ans.name = h.ringName;
         ans.flag = frameworkRingBufferFlagsFromHal(h.flags);
@@ -1814,37 +1879,28 @@ public class WifiChipHidlImpl implements IWifiChip {
         }
     }
 
+    private static boolean bitmapContains(int bitmap, int expectedBit) {
+        return (bitmap & expectedBit) != 0;
+    }
+
     private static int halToFrameworkWifiBand(int halBand) {
-        switch (halBand) {
-            case WifiBand.BAND_UNSPECIFIED:
-                return WifiScanner.WIFI_BAND_UNSPECIFIED;
-            case WifiBand.BAND_24GHZ:
-                return WifiScanner.WIFI_BAND_24_GHZ;
-            case WifiBand.BAND_5GHZ:
-                return WifiScanner.WIFI_BAND_5_GHZ;
-            case WifiBand.BAND_5GHZ_DFS:
-                return WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY;
-            case WifiBand.BAND_5GHZ_WITH_DFS:
-                return WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS;
-            case WifiBand.BAND_24GHZ_5GHZ:
-                return WifiScanner.WIFI_BAND_BOTH;
-            case WifiBand.BAND_24GHZ_5GHZ_WITH_DFS:
-                return WifiScanner.WIFI_BAND_BOTH_WITH_DFS;
-            case WifiBand.BAND_6GHZ:
-                return WifiScanner.WIFI_BAND_6_GHZ;
-            case WifiBand.BAND_24GHZ_5GHZ_6GHZ:
-                return WifiScanner.WIFI_BAND_24_5_6_GHZ;
-            case WifiBand.BAND_24GHZ_5GHZ_WITH_DFS_6GHZ:
-                return WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ;
-            case WifiBand.BAND_60GHZ:
-                return WifiScanner.WIFI_BAND_60_GHZ;
-            case WifiBand.BAND_24GHZ_5GHZ_6GHZ_60GHZ:
-                return WifiScanner.WIFI_BAND_24_5_6_60_GHZ;
-            case WifiBand.BAND_24GHZ_5GHZ_WITH_DFS_6GHZ_60GHZ:
-                return WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
-            default:
-                throw new IllegalArgumentException("bad band " + halBand);
+        int frameworkBand = 0;
+        if (bitmapContains(halBand, WifiBand.BAND_24GHZ)) {
+            frameworkBand |= WifiScanner.WIFI_BAND_24_GHZ;
         }
+        if (bitmapContains(halBand, WifiBand.BAND_5GHZ)) {
+            frameworkBand |= WifiScanner.WIFI_BAND_5_GHZ;
+        }
+        if (bitmapContains(halBand, WifiBand.BAND_5GHZ_DFS)) {
+            frameworkBand |= WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY;
+        }
+        if (bitmapContains(halBand, WifiBand.BAND_6GHZ)) {
+            frameworkBand |= WifiScanner.WIFI_BAND_6_GHZ;
+        }
+        if (bitmapContains(halBand, WifiBand.BAND_60GHZ)) {
+            frameworkBand |= WifiScanner.WIFI_BAND_60_GHZ;
+        }
+        return frameworkBand;
     }
 
     private static @WifiChip.WifiAntennaMode int halToFrameworkAntennaMode(int mode) {
@@ -2028,31 +2084,82 @@ public class WifiChipHidlImpl implements IWifiChip {
         }
     }
 
-    private static int frameworkToHalTxPowerScenarioV1_1(@WifiChip.TxPowerScenario int scenario) {
-        switch (scenario) {
-            case WifiChip.TX_POWER_SCENARIO_VOICE_CALL:
-                return android.hardware.wifi.V1_1.IWifiChip.TxPowerScenario.VOICE_CALL;
-            default:
-                Log.e(TAG, "Invalid TxPowerScenarioV1_1 received: " + scenario);
-                return -1;
+    /**
+     * This method checks if we need to backoff wifi Tx power due to SAR requirements.
+     * It handles the case when the device is running the V1_1 version of WifiChip HAL
+     * In that HAL version, it is required to perform wifi Tx power backoff only if
+     * a voice call is ongoing.
+     */
+    private static boolean sarPowerBackoffRequired_1_1(SarInfo sarInfo) {
+        /* As long as no voice call is active (in case voice call is supported),
+         * no backoff is needed
+         */
+        if (sarInfo.sarVoiceCallSupported) {
+            return (sarInfo.isVoiceCall || sarInfo.isEarPieceActive);
+        } else {
+            return false;
         }
     }
 
-    private static int frameworkToHalTxPowerScenarioV1_2(@WifiChip.TxPowerScenario int scenario) {
-        switch (scenario) {
-            case WifiChip.TX_POWER_SCENARIO_VOICE_CALL:
-                return android.hardware.wifi.V1_2.IWifiChip.TxPowerScenario.VOICE_CALL;
-            case WifiChip.TX_POWER_SCENARIO_ON_HEAD_CELL_OFF:
-                return android.hardware.wifi.V1_2.IWifiChip.TxPowerScenario.ON_HEAD_CELL_OFF;
-            case WifiChip.TX_POWER_SCENARIO_ON_HEAD_CELL_ON:
-                return android.hardware.wifi.V1_2.IWifiChip.TxPowerScenario.ON_HEAD_CELL_ON;
-            case WifiChip.TX_POWER_SCENARIO_ON_BODY_CELL_OFF:
-                return android.hardware.wifi.V1_2.IWifiChip.TxPowerScenario.ON_BODY_CELL_OFF;
-            case WifiChip.TX_POWER_SCENARIO_ON_BODY_CELL_ON:
-                return android.hardware.wifi.V1_2.IWifiChip.TxPowerScenario.ON_BODY_CELL_ON;
-            default:
-                Log.e(TAG, "Invalid TxPowerScenarioV1_2 received: " + scenario);
-                return -1;
+    /**
+     * This method maps the information inside the SarInfo instance into a SAR scenario
+     * when device is running the V1_1 version of WifiChip HAL.
+     * In this HAL version, only one scenario is defined which is for VOICE_CALL (if voice call is
+     * supported).
+     * Otherwise, an exception is thrown.
+     */
+    private static int frameworkToHalTxPowerScenario_1_1(SarInfo sarInfo) {
+        if (sarInfo.sarVoiceCallSupported && (sarInfo.isVoiceCall || sarInfo.isEarPieceActive)) {
+            return android.hardware.wifi.V1_1.IWifiChip.TxPowerScenario.VOICE_CALL;
+        } else {
+            throw new IllegalArgumentException("bad scenario: voice call not active/supported");
+        }
+    }
+
+    /**
+     * This method checks if we need to backoff wifi Tx power due to SAR requirements.
+     * It handles the case when the device is running the V1_2 version of WifiChip HAL
+     */
+    private static boolean sarPowerBackoffRequired_1_2(SarInfo sarInfo) {
+        if (sarInfo.sarSapSupported && sarInfo.isWifiSapEnabled) {
+            return true;
+        }
+        if (sarInfo.sarVoiceCallSupported && (sarInfo.isVoiceCall || sarInfo.isEarPieceActive)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * This method maps the information inside the SarInfo instance into a SAR scenario
+     * when device is running the V1_2 version of WifiChip HAL.
+     * If SAR SoftAP input is supported,
+     * we make these assumptions:
+     *   - All voice calls are treated as if device is near the head.
+     *   - SoftAP scenario is treated as if device is near the body.
+     * In case SoftAP is not supported, then we should revert to the V1_1 HAL
+     * behavior, and the only valid scenario would be when a voice call is ongoing.
+     */
+    private static int frameworkToHalTxPowerScenario_1_2(SarInfo sarInfo) {
+        if (sarInfo.sarSapSupported && sarInfo.sarVoiceCallSupported) {
+            if (sarInfo.isVoiceCall || sarInfo.isEarPieceActive) {
+                return android.hardware.wifi.V1_2.IWifiChip
+                        .TxPowerScenario.ON_HEAD_CELL_ON;
+            } else if (sarInfo.isWifiSapEnabled) {
+                return android.hardware.wifi.V1_2.IWifiChip
+                        .TxPowerScenario.ON_BODY_CELL_ON;
+            } else {
+                throw new IllegalArgumentException("bad scenario: no voice call/softAP active");
+            }
+        } else if (sarInfo.sarVoiceCallSupported) {
+            /* SAR SoftAP input not supported, act like V1_1 */
+            if (sarInfo.isVoiceCall || sarInfo.isEarPieceActive) {
+                return android.hardware.wifi.V1_1.IWifiChip.TxPowerScenario.VOICE_CALL;
+            } else {
+                throw new IllegalArgumentException("bad scenario: voice call not active");
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid case: voice call not supported");
         }
     }
 
