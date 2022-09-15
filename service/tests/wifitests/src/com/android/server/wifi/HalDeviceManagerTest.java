@@ -46,6 +46,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -75,6 +76,7 @@ import android.hidl.manager.V1_0.IServiceNotification;
 import android.hidl.manager.V1_2.IServiceManager;
 import android.net.wifi.WifiContext;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IHwBinder;
 import android.os.RemoteException;
 import android.os.WorkSource;
@@ -159,6 +161,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     private boolean mIsBridgedSoftApSupported = false;
     private boolean mIsStaWithBridgedSoftApConcurrencySupported = false;
     private boolean mWifiUserApprovalRequiredForD2dInterfacePriority = false;
+    private boolean mWaitForDestroyedListeners = false;
 
     private class HalDeviceManagerSpy extends HalDeviceManager {
         HalDeviceManagerSpy() {
@@ -210,6 +213,11 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         protected boolean isStaWithBridgedSoftApConcurrencySupportedMockable() {
             return mIsStaWithBridgedSoftApConcurrencySupported;
         }
+
+        @Override
+        protected boolean isWaitForDestroyedListenersMockable() {
+            return mWaitForDestroyedListeners;
+        }
     }
 
     @Before
@@ -256,6 +264,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 .thenReturn(mIsStaWithBridgedSoftApConcurrencySupported);
         when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
                 .thenReturn(mWifiUserApprovalRequiredForD2dInterfacePriority);
+        when(mResources.getBoolean(R.bool.config_wifiWaitForDestroyedListeners))
+                .thenReturn(mWaitForDestroyedListeners);
 
         mDut = new HalDeviceManagerSpy();
     }
@@ -1164,6 +1174,48 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         verify(staIdl, never()).onDestroyed("wlan0");
         lambdaCaptor.getValue().run();
         verify(staIdl).onDestroyed("wlan0");
+    }
+
+    /**
+     * Verify that when the thread that caused an interface to get destroyed is not the thread the
+     * onDestroy callback is intended to be invoked on, dispatchDestroyedListeners will block till
+     * onDestroy callback is done, provided the overlay config_wifiWaitForDestroyedListeners is
+     * True.
+     */
+    @Test
+    public void testOnDestroyedWaitingWithHandlerTriggeredOnDifferentThread() throws Exception {
+        // Enable waiting for destroy listeners
+        mWaitForDestroyedListeners = true;
+        // Setup a separate thread for destroy
+        HandlerThread mHandlerThread = new HandlerThread("DestroyListener");
+        mHandlerThread.start();
+        Handler staIfaceOnDestroyedHandler = spy(mHandlerThread.getThreadHandler());
+        InterfaceDestroyedListener staIdl = mock(InterfaceDestroyedListener.class);
+        // Setup Wi-Fi
+        TestChipV1 chipMock = new TestChipV1();
+        chipMock.initialize();
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, staIdl, chipMock.chip);
+        executeAndValidateInitializationSequence();
+        // Start Wi-Fi
+        assertTrue(mDut.start());
+        // Create STA Iface.
+        IWifiStaIface staIface = mock(IWifiStaIface.class);
+        doAnswer(new GetNameAnswer("wlan0")).when(staIface).getName(
+                any(IWifiIface.getNameCallback.class));
+        doAnswer(new GetTypeAnswer(IfaceType.STA)).when(staIface).getType(
+                any(IWifiIface.getTypeCallback.class));
+        doAnswer(new CreateXxxIfaceAnswer(chipMock, mStatusOk, staIface)).when(
+                chipMock.chip).createStaIface(any(IWifiChip.createStaIfaceCallback.class));
+        assertEquals(staIface, mDut.createStaIface(staIdl, staIfaceOnDestroyedHandler,
+                TEST_WORKSOURCE_0));
+        // Remove STA interface
+        mDut.removeIface(staIface);
+        // Dispatch
+        mTestLooper.startAutoDispatch();
+        mTestLooper.dispatchAll();
+        // Validate OnDestroyed is called before removing interface.
+        mInOrder.verify(staIdl).onDestroyed("wlan0");
+        mInOrder.verify(chipMock.chip).removeStaIface("wlan0");
     }
 
     /**

@@ -115,6 +115,7 @@ public class HalDeviceManager {
     private boolean mIsStaWithBridgedSoftApConcurrencySupported;
     private boolean mWifiUserApprovalRequiredForD2dInterfacePriority;
     private boolean mIsConcurrencyComboLoadedFromDriver;
+    private boolean mWaitForDestroyedListeners;
     private ArrayMap<IWifiIface, SoftApManager> mSoftApManagers = new ArrayMap<>();
 
     // cache the value for supporting vendor HAL or not
@@ -179,6 +180,7 @@ public class HalDeviceManager {
                 res.getBoolean(R.bool.config_wifiStaWithBridgedSoftApConcurrencySupported);
         mWifiUserApprovalRequiredForD2dInterfacePriority =
                 res.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority);
+        mWaitForDestroyedListeners = res.getBoolean(R.bool.config_wifiWaitForDestroyedListeners);
         mClock = clock;
         mWifiInjector = wifiInjector;
         mEventHandler = handler;
@@ -1019,6 +1021,10 @@ public class HalDeviceManager {
 
     protected boolean isStaWithBridgedSoftApConcurrencySupportedMockable() {
         return mIsStaWithBridgedSoftApConcurrencySupported;
+    }
+
+    protected boolean isWaitForDestroyedListenersMockable() {
+        return mWaitForDestroyedListeners;
     }
 
     // internal implementation
@@ -1985,7 +1991,7 @@ public class HalDeviceManager {
     private void managerStatusListenerDispatch() {
         synchronized (mLock) {
             for (ManagerStatusListenerProxy cb : mManagerStatusListeners) {
-                cb.trigger();
+                cb.trigger(false);
             }
         }
     }
@@ -2985,7 +2991,7 @@ public class HalDeviceManager {
         }
 
         for (InterfaceDestroyedListenerProxy listener : triggerList) {
-            listener.trigger();
+            listener.trigger(isWaitForDestroyedListenersMockable());
         }
     }
 
@@ -3005,7 +3011,7 @@ public class HalDeviceManager {
         }
 
         for (InterfaceDestroyedListenerProxy listener : triggerList) {
-            listener.trigger();
+            listener.trigger(false);
         }
     }
 
@@ -3063,7 +3069,7 @@ public class HalDeviceManager {
             return currentTid == handlerTid;
         }
 
-        void trigger() {
+        void trigger(boolean isRunAtFront) {
             // TODO(b/199792691): The thread check is needed to preserve the existing
             //  assumptions of synchronous execution of the "onDestroyed" callback as much as
             //  possible. This is needed to prevent regressions caused by posting to the handler
@@ -3074,6 +3080,12 @@ public class HalDeviceManager {
             if (requestedToRunInCurrentThread()) {
                 // Already running on the same handler thread. Trigger listener synchronously.
                 action();
+            } else if (isRunAtFront) {
+                // Current thread is not the thread the listener should be invoked on.
+                // Post action to the intended thread and run synchronously.
+                new WifiThreadRunner(mHandler).runAtFront(() -> {
+                    action();
+                });
             } else {
                 // Current thread is not the thread the listener should be invoked on.
                 // Post action to the intended thread.
