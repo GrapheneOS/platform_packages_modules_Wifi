@@ -183,6 +183,7 @@ public class WifiInjector {
     private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final LocalLog mConnectivityLocalLog;
     private final LocalLog mWifiAwareLocalLog;
+    private final LocalLog mWifiHandlerLocalLog;
     private final ThroughputScorer mThroughputScorer;
     private final WifiNetworkSelector mWifiNetworkSelector;
     private final SavedNetworkNominator mSavedNetworkNominator;
@@ -266,7 +267,10 @@ public class WifiInjector {
         mWifiHandlerThread = new HandlerThread("WifiHandlerThread");
         mWifiHandlerThread.start();
         Looper wifiLooper = mWifiHandlerThread.getLooper();
-        Handler wifiHandler = new Handler(wifiLooper);
+        mWifiHandlerLocalLog = new LocalLog(128);
+        Handler wifiHandler = new RunnerHandler(wifiLooper, context.getResources().getInteger(
+                R.integer.config_wifiConfigurationWifiRunnerThresholdInMs),
+                mWifiHandlerLocalLog);
         mWifiDiagnosticsHandlerThread = new HandlerThread("WifiDiagnostics");
         mWifiDiagnosticsHandlerThread.start();
 
@@ -758,7 +762,8 @@ public class WifiInjector {
             @NonNull ActiveModeManager.SoftApRole role,
             boolean verboseLoggingEnabled) {
         return new SoftApManager(mContext, mWifiHandlerThread.getLooper(), mFrameworkFacade,
-                mWifiNative, mCoexManager, makeBatteryManager(), mInterfaceConflictManager,
+                mWifiNative, this,
+                mCoexManager, makeBatteryManager(), mInterfaceConflictManager,
                 listener, callback, mWifiApConfigStore,
                 config, mWifiMetrics, mSarManager, mWifiDiagnostics,
                 new SoftApNotifier(mContext, mFrameworkFacade, mWifiNotificationManager),
@@ -1164,6 +1169,11 @@ public class WifiInjector {
     @NonNull
     public LocalLog getWifiAwareLocalLog() {
         return mWifiAwareLocalLog;
+    }
+
+    @NonNull
+    public LocalLog getWifiHandlerLocalLog() {
+        return mWifiHandlerLocalLog;
     }
 
     @NonNull

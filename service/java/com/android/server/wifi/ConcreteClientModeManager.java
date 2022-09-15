@@ -701,10 +701,10 @@ public class ConcreteClientModeManager implements ClientModeManager {
         public static final int CMD_INTERFACE_DESTROYED = 4;
         public static final int CMD_INTERFACE_DOWN = 5;
         public static final int CMD_SWITCH_TO_SCAN_ONLY_MODE_CONTINUE = 6;
-        private final State mIdleState = new IdleState();
-        private final State mStartedState = new StartedState();
-        private final State mScanOnlyModeState = new ScanOnlyModeState();
-        private final State mConnectModeState = new ConnectModeState();
+        private final State mIdleState;
+        private final State mStartedState;
+        private final State mScanOnlyModeState;
+        private final State mConnectModeState;
         // Workaround since we cannot use transitionTo(mScanOnlyModeState, RoleChangeInfo)
         private RoleChangeInfo mScanRoleChangeInfoToSetOnTransition = null;
         // Workaround since we cannot use transitionTo(mConnectModeState, RoleChangeInfo)
@@ -751,7 +751,12 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
         ClientModeStateMachine(Looper looper) {
             super(TAG, looper);
-
+            final int threshold = mContext.getResources().getInteger(
+                    R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
+            mIdleState = new IdleState(threshold);
+            mStartedState = new StartedState(threshold);
+            mScanOnlyModeState = new ScanOnlyModeState(threshold);
+            mConnectModeState = new ConnectModeState(threshold);
             // CHECKSTYLE:OFF IndentationCheck
             addState(mIdleState);
                 addState(mStartedState, mIdleState);
@@ -821,6 +826,10 @@ public class ConcreteClientModeManager implements ClientModeManager {
                     return "CMD_INTERFACE_DOWN";
                 case CMD_SWITCH_TO_SCAN_ONLY_MODE_CONTINUE:
                     return "CMD_SWITCH_TO_SCAN_ONLY_MODE_CONTINUE";
+                case RunnerState.STATE_ENTER_CMD:
+                    return "Enter";
+                case RunnerState.STATE_EXIT_CMD:
+                    return "Exit";
                 default:
                     return "what:" + what;
             }
@@ -866,16 +875,20 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
         }
 
-        private class IdleState extends State {
+        private class IdleState extends RunnerState {
+            IdleState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
+
             @Override
-            public void enter() {
+            public void enterImpl() {
                 Log.d(getTag(), "entering IdleState");
                 mClientInterfaceName = null;
                 mIfaceIsUp = false;
             }
 
             @Override
-            public void exit() {
+            public void exitImpl() {
                 // Sometimes the wifi handler thread may become blocked that the statemachine
                 // will exit in the IdleState without first entering StartedState. Trigger a
                 // cleanup here in case the above sequence happens. This the statemachine was
@@ -885,7 +898,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            String getMessageLogRec(int what) {
+                return ConcreteClientModeManager.class.getSimpleName() + "."
+                        + IdleState.class.getSimpleName() + "."
+                        + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_START:
                         // Always start in scan mode first.
@@ -917,7 +937,10 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
         }
 
-        private class StartedState extends State {
+        private class StartedState extends RunnerState {
+            StartedState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
 
             private void onUpChanged(boolean isUp) {
                 if (isUp == mIfaceIsUp) {
@@ -935,7 +958,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public void enter() {
+            public void enterImpl() {
                 Log.d(getTag(), "entering StartedState");
                 mIfaceIsUp = false;
                 mIsStopped = false;
@@ -943,7 +966,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            String getMessageLogRec(int what) {
+                return ConcreteClientModeManager.class.getSimpleName() + "."
+                        + StartedState.class.getSimpleName() + "."
+                        + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_START:
                         // Already started, ignore this command.
@@ -1011,7 +1041,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
              * Clean up state, unregister listeners and update wifi state.
              */
             @Override
-            public void exit() {
+            public void exitImpl() {
                 if (mClientInterfaceName != null) {
                     mWifiNative.teardownInterface(mClientInterfaceName);
                     mClientInterfaceName = null;
@@ -1024,9 +1054,13 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
         }
 
-        private class ScanOnlyModeState extends State {
+        private class ScanOnlyModeState extends RunnerState {
+            ScanOnlyModeState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
+
             @Override
-            public void enter() {
+            public void enterImpl() {
                 Log.d(getTag(), "entering ScanOnlyModeState");
 
                 if (mClientInterfaceName != null) {
@@ -1053,7 +1087,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            String getMessageLogRec(int what) {
+                return ConcreteClientModeManager.class.getSimpleName() + "."
+                        + ScanOnlyModeState.class.getSimpleName() + "."
+                        + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_SWITCH_TO_SCAN_ONLY_MODE:
                         // Already in scan only mode, ignore this command.
@@ -1065,7 +1106,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public void exit() {
+            public void exitImpl() {
                 mScanOnlyModeImpl = null;
                 mScanRoleChangeInfoToSetOnTransition = null;
 
@@ -1076,9 +1117,13 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
         }
 
-        private class ConnectModeState extends State {
+        private class ConnectModeState extends RunnerState {
+            ConnectModeState(int threshold) {
+                super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+            }
+
             @Override
-            public void enter() {
+            public void enterImpl() {
                 Log.d(getTag(), "entering ConnectModeState, starting ClientModeImpl");
                 if (mClientInterfaceName == null) {
                     Log.e(getTag(), "Supposed to start ClientModeImpl, but iface is null!");
@@ -1109,7 +1154,14 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public boolean processMessage(Message message) {
+            String getMessageLogRec(int what) {
+                return ConcreteClientModeManager.class.getSimpleName() + "."
+                        + ConnectModeState.class.getSimpleName() + "."
+                        + getWhatToString(what);
+            }
+
+            @Override
+            public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_SWITCH_TO_CONNECT_MODE:
                         RoleChangeInfo roleChangeInfo = (RoleChangeInfo) message.obj;
@@ -1166,7 +1218,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
             }
 
             @Override
-            public void exit() {
+            public void exitImpl() {
                 updateConnectModeState(mRole, WifiManager.WIFI_STATE_DISABLED,
                         WifiManager.WIFI_STATE_DISABLING);
 

@@ -78,6 +78,7 @@ import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
 import android.provider.Settings;
+import android.util.LocalLog;
 import android.util.SparseIntArray;
 
 import androidx.test.filters.SmallTest;
@@ -195,6 +196,8 @@ public class SoftApManagerTest extends WifiBaseTest {
     @Mock WifiInfo mSecondWifiInfo;
     @Mock BatteryManager mBatteryManager;
     @Mock InterfaceConflictManager mInterfaceConflictManager;
+    @Mock WifiInjector mWifiInjector;
+    @Mock LocalLog mLocalLog;
 
     final ArgumentCaptor<WifiNative.InterfaceCallback> mWifiNativeInterfaceCallbackCaptor =
             ArgumentCaptor.forClass(WifiNative.InterfaceCallback.class);
@@ -349,6 +352,8 @@ public class SoftApManagerTest extends WifiBaseTest {
         when(mConcreteClientModeManager.syncRequestConnectionInfo())
                 .thenReturn(mPrimaryWifiInfo);
         when(mWifiNative.forceClientDisconnect(any(), any(), anyInt())).thenReturn(true);
+        when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
+        when(mContext.getResources()).thenReturn(mResources);
 
         // Init Test SoftAp infos
         mTestSoftApInfo = new SoftApInfo();
@@ -395,10 +400,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     private SoftApManager createSoftApManager(SoftApModeConfiguration config,
             ActiveModeManager.SoftApRole role) {
         SoftApManager newSoftApManager = new SoftApManager(
-                mContext,
-                mLooper.getLooper(),
-                mFrameworkFacade,
-                mWifiNative,
+                mContext, mLooper.getLooper(), mFrameworkFacade, mWifiNative, mWifiInjector,
                 mCoexManager,
                 mBatteryManager,
                 mInterfaceConflictManager,
@@ -987,7 +989,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
                 mTestSoftApCapability, TEST_COUNTRY_CODE);
         startSoftApAndVerifyEnabled(softApModeConfig);
-
+        verify(mListener, never()).onStopped(mSoftApManager);
         mSoftApManager.stop();
         mLooper.dispatchAll();
         verify(mListener).onStopped(mSoftApManager);

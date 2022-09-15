@@ -233,6 +233,7 @@
           <item type="string" name="config_wifiCertInstallationHelpLink" />
           <item type="string" name="config_wifiApmEnhancementHelpLink" />
           <item type="integer" name="config_wifiConfigurationRestoreNetworksBatchNum" />
+          <item type="integer" name="config_wifiConfigurationWifiRunnerThresholdInMs" />
           <item type="array" name="config_oemPrivilegedWifiAdminPackages" />
           <item type="bool" name="config_wifiSoftapOweSupported" />
           <item type="bool" name="config_wifiSoftapOweTransitionSupported" />
