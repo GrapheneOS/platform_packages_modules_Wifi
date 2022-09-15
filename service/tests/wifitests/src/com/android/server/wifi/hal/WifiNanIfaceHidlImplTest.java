@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.wifi;
+package com.android.server.wifi.hal;
 
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_128_MASK;
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_256_MASK;
@@ -60,19 +60,19 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 
-public class WifiNanIfaceTest {
+public class WifiNanIfaceHidlImplTest {
     @Mock IWifiNanIface mIWifiNanIface;
     @Mock android.hardware.wifi.V1_2.IWifiNanIface mIWifiNanIface12Mock;
 
     @Rule public ErrorCollector collector = new ErrorCollector();
 
-    private class MockableWifiNanIface extends WifiNanIface {
+    private class MockableWifiNanIface extends WifiNanIfaceHidlImpl {
         MockableWifiNanIface(IWifiNanIface wifiNanIface) {
             super(wifiNanIface);
         }
 
         @Override
-        public android.hardware.wifi.V1_2.IWifiNanIface mockableCastTo_1_2(IWifiNanIface iface) {
+        public android.hardware.wifi.V1_2.IWifiNanIface mockableCastTo_1_2() {
             return mIsInterface12 ? mIWifiNanIface12Mock : null;
         }
     }
@@ -598,7 +598,7 @@ public class WifiNanIfaceTest {
         int channelRequestType =
                 android.hardware.wifi.V1_0.NanDataPathChannelCfg.CHANNEL_NOT_REQUESTED;
         int channel = 2146;
-        byte[] peer = MacAddress.fromString("00:01:02:03:04:05").toByteArray();
+        MacAddress peer = MacAddress.fromString("00:01:02:03:04:05");
         String interfaceName = "aware_data5";
         final byte[] pmk = "01234567890123456789012345678901".getBytes();
         String passphrase = "blahblah";
@@ -627,7 +627,8 @@ public class WifiNanIfaceTest {
 
         android.hardware.wifi.V1_0.NanInitiateDataPathRequest nidpr = captor.getValue();
         collector.checkThat("peerId", peerId, equalTo(nidpr.peerId));
-        collector.checkThat("peerDiscMacAddr", peer, equalTo(nidpr.peerDiscMacAddr));
+        collector.checkThat("peerDiscMacAddr", peer.toByteArray(),
+                equalTo(nidpr.peerDiscMacAddr));
         collector.checkThat("channelRequestType", channelRequestType,
                 equalTo(nidpr.channelRequestType));
         collector.checkThat("channel", channel, equalTo(nidpr.channel));
