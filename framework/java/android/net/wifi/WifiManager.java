@@ -416,7 +416,20 @@ public class WifiManager {
             API_AUTOJOIN_GLOBAL,
             API_SET_SCAN_SCHEDULE,
             API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY,
-            API_SET_NETWORK_SELECTION_CONFIG})
+            API_SET_NETWORK_SELECTION_CONFIG,
+            API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG,
+            API_ADD_NETWORK,
+            API_UPDATE_NETWORK,
+            API_ALLOW_AUTOJOIN,
+            API_CONNECT_CONFIG,
+            API_CONNECT_NETWORK_ID,
+            API_DISABLE_NETWORK,
+            API_ENABLE_NETWORK,
+            API_FORGET,
+            API_SAVE,
+            API_START_SCAN,
+            API_START_LOCAL_ONLY_HOTSPOT
+    })
     public @interface ApiType {}
 
     /**
@@ -499,10 +512,120 @@ public class WifiManager {
     public static final int API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG = 9;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#addNetwork(WifiConfiguration)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_ADD_NETWORK = 10;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#updateNetwork(WifiConfiguration)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_UPDATE_NETWORK = 11;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#allowAutojoin(int, boolean)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_ALLOW_AUTOJOIN = 12;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#connect(WifiConfiguration, ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_CONNECT_CONFIG = 13;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#connect(int, ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_CONNECT_NETWORK_ID = 14;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#disableNetwork(int)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_DISABLE_NETWORK = 15;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#enableNetwork(int, boolean)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_ENABLE_NETWORK = 16;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#forget(int, ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_FORGET = 17;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#save(WifiConfiguration, ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_SAVE = 18;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#startScan()}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_START_SCAN = 19;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#startLocalOnlyHotspot(LocalOnlyHotspotCallback, Handler)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_START_LOCAL_ONLY_HOTSPOT = 20;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 10;
+    public static final int API_MAX = 21;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
