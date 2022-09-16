@@ -2055,7 +2055,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
 
         // Permission approval bypass is only available to requests with both ssid & bssid set.
         // So, find scan result with the best rssi level to set in the request.
-        if (bssid == null && !nullBssid) {
+        if (bssid == null && !nullBssid && !noSsid) {
             ScanResult matchingScanResult =
                     mWifiService.getScanResults(SHELL_PACKAGE_NAME, null)
                             .stream()
