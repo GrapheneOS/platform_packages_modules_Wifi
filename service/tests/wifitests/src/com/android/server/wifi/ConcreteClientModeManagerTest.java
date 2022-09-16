@@ -61,6 +61,7 @@ import android.telephony.SubscriptionManager;
 import android.telephony.ims.ImsMmTelManager;
 import android.telephony.ims.RegistrationManager;
 import android.test.suitebuilder.annotation.SmallTest;
+import android.util.LocalLog;
 import android.util.Log;
 
 import com.android.server.wifi.ClientModeManagerBroadcastQueue.QueuedBroadcast;
@@ -118,6 +119,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
     @Mock DefaultClientModeManager mDefaultClientModeManager;
     @Mock ClientModeManagerBroadcastQueue mBroadcastQueue;
     @Mock ActiveModeWarden mActiveModeWarden;
+    @Mock LocalLog mLocalLog;
 
     private RegistrationManager.RegistrationCallback mImsMmTelManagerRegistrationCallback = null;
     private @RegistrationManager.ImsRegistrationState int mCurrentImsRegistrationState =
@@ -247,6 +249,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
+        when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
         mLooper = new TestLooper();
     }
 
@@ -278,6 +281,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         // DeferStopHandler(): ConnectivityManager.class
         verify(mContext).getSystemService(eq(ConnectivityManager.class));
+        verify(mContext).getResources();
 
         // Ensure that no public broadcasts were sent.
         verifyNoMoreInteractions(mContext);
@@ -470,6 +474,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         verify(mContext).getSystemService(eq(SubscriptionManager.class));
         verify(mImsMmTelManager, never()).registerImsRegistrationCallback(any(), any());
         verify(mImsMmTelManager, never()).unregisterImsRegistrationCallback(any());
+        verify(mContext).getResources();
 
         // Ensure that no public broadcasts were sent.
         verifyNoMoreInteractions(mContext);

@@ -25,6 +25,7 @@ import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiScanner;
 import android.util.Log;
 
+import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
@@ -80,25 +81,6 @@ public class WifiChip {
     public @interface IfaceType {}
 
     /**
-     * Preset wifi radio TX power levels for different scenarios.
-     */
-    public static final int TX_POWER_SCENARIO_VOICE_CALL = 0;
-    public static final int TX_POWER_SCENARIO_ON_HEAD_CELL_OFF = 1;
-    public static final int TX_POWER_SCENARIO_ON_HEAD_CELL_ON = 2;
-    public static final int TX_POWER_SCENARIO_ON_BODY_CELL_OFF = 3;
-    public static final int TX_POWER_SCENARIO_ON_BODY_CELL_ON = 4;
-
-    @IntDef(prefix = { "TX_POWER_SCENARIO_" }, value = {
-            TX_POWER_SCENARIO_VOICE_CALL,
-            TX_POWER_SCENARIO_ON_HEAD_CELL_OFF,
-            TX_POWER_SCENARIO_ON_HEAD_CELL_ON,
-            TX_POWER_SCENARIO_ON_BODY_CELL_OFF,
-            TX_POWER_SCENARIO_ON_BODY_CELL_ON,
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface TxPowerScenario {}
-
-    /**
      * Antenna configurations.
      */
     public static final int WIFI_ANTENNA_MODE_UNSPECIFIED = 0;
@@ -118,6 +100,45 @@ public class WifiChip {
     public @interface WifiAntennaMode {}
 
     /**
+     * Chip capabilities.
+     */
+    public static final int CHIP_CAPABILITY_DEBUG_MEMORY_FIRMWARE_DUMP = 1 << 0;
+    public static final int CHIP_CAPABILITY_DEBUG_MEMORY_DRIVER_DUMP = 1 << 1;
+    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_CONNECT_EVENT = 1 << 2;
+    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_POWER_EVENT = 1 << 3;
+    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_WAKELOCK_EVENT = 1 << 4;
+    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_VENDOR_DATA = 1 << 5;
+    public static final int CHIP_CAPABILITY_DEBUG_HOST_WAKE_REASON_STATS = 1 << 6;
+    public static final int CHIP_CAPABILITY_DEBUG_ERROR_ALERTS = 1 << 7;
+    public static final int CHIP_CAPABILITY_SET_TX_POWER_LIMIT = 1 << 8;
+    public static final int CHIP_CAPABILITY_D2D_RTT = 1 << 9;
+    public static final int CHIP_CAPABILITY_D2AP_RTT = 1 << 10;
+    public static final int CHIP_CAPABILITY_USE_BODY_HEAD_SAR = 1 << 11;
+    public static final int CHIP_CAPABILITY_SET_LATENCY_MODE = 1 << 12;
+    public static final int CHIP_CAPABILITY_P2P_RAND_MAC = 1 << 13;
+    public static final int CHIP_CAPABILITY_WIGIG = 1 << 14;
+
+    @IntDef(prefix = { "CHIP_CAPABILITY_" }, value = {
+            CHIP_CAPABILITY_DEBUG_MEMORY_FIRMWARE_DUMP,
+            CHIP_CAPABILITY_DEBUG_MEMORY_DRIVER_DUMP,
+            CHIP_CAPABILITY_DEBUG_RING_BUFFER_CONNECT_EVENT,
+            CHIP_CAPABILITY_DEBUG_RING_BUFFER_POWER_EVENT,
+            CHIP_CAPABILITY_DEBUG_RING_BUFFER_WAKELOCK_EVENT,
+            CHIP_CAPABILITY_DEBUG_RING_BUFFER_VENDOR_DATA,
+            CHIP_CAPABILITY_DEBUG_HOST_WAKE_REASON_STATS,
+            CHIP_CAPABILITY_DEBUG_ERROR_ALERTS,
+            CHIP_CAPABILITY_SET_TX_POWER_LIMIT,
+            CHIP_CAPABILITY_D2D_RTT,
+            CHIP_CAPABILITY_D2AP_RTT,
+            CHIP_CAPABILITY_USE_BODY_HEAD_SAR,
+            CHIP_CAPABILITY_SET_LATENCY_MODE,
+            CHIP_CAPABILITY_P2P_RAND_MAC,
+            CHIP_CAPABILITY_WIGIG,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ChipCapability {}
+
+    /**
      * Set of interface concurrency types, along with the maximum number of interfaces that can have
      * one of the specified concurrency types for a given ChipConcurrencyCombination. See
      * ChipConcurrencyCombination below for examples.
@@ -130,6 +151,11 @@ public class WifiChip {
                 @IfaceConcurrencyType List<Integer> inTypes) {
             maxIfaces = inMaxIfaces;
             types = inTypes;
+        }
+
+        @Override
+        public String toString() {
+            return "{maxIfaces=" + maxIfaces + ", types=" + types + "}";
         }
     }
 
@@ -161,6 +187,11 @@ public class WifiChip {
 
         public ChipConcurrencyCombination(List<ChipConcurrencyCombinationLimit> inLimits) {
             limits = inLimits;
+        }
+
+        @Override
+        public String toString() {
+            return "{limits=" + limits + "}";
         }
     }
 
@@ -204,11 +235,16 @@ public class WifiChip {
      */
     public static class ChipMode {
         public final int id;
-        public final List<ChipConcurrencyCombination> availableCombininations;
+        public final List<ChipConcurrencyCombination> availableCombinations;
 
-        public ChipMode(int inId, List<ChipConcurrencyCombination> inAvailableCombiniations) {
+        public ChipMode(int inId, List<ChipConcurrencyCombination> inAvailableCombinations) {
             id = inId;
-            availableCombininations = inAvailableCombiniations;
+            availableCombinations = inAvailableCombinations;
+        }
+
+        @Override
+        public String toString() {
+            return "{id=" + id + ", availableCombinations=" + availableCombinations + "}";
         }
     }
 
@@ -261,28 +297,6 @@ public class WifiChip {
         public ChipDebugInfo(String inDriverDescription, String inFirmwareDescription) {
             driverDescription = inDriverDescription;
             firmwareDescription = inFirmwareDescription;
-        }
-    }
-
-    /**
-     * Description of a debug ring buffer supported by the device.
-     */
-    public static class WifiDebugRingBufferStatus {
-        public final String ringName;
-        public final int flags;
-        public final int ringId;
-        public final int sizeInBytes;
-        public final int freeSizeInBytes;
-        public final int verboseLevel;
-
-        public WifiDebugRingBufferStatus(String inRingName, int inFlags, int inRingId,
-                int inSizeInBytes, int inFreeSizeInBytes, int inVerboseLevel) {
-            ringName = inRingName;
-            flags = inFlags;
-            ringId = inRingId;
-            sizeInBytes = inSizeInBytes;
-            freeSizeInBytes = inFreeSizeInBytes;
-            verboseLevel = inVerboseLevel;
         }
     }
 
@@ -374,7 +388,7 @@ public class WifiChip {
          * @param data Raw bytes of data sent by the driver. Must be dumped
          *         out to a bugreport and post processed.
          */
-        void onDebugRingBufferDataAvailable(WifiDebugRingBufferStatus status, byte[] data);
+        void onDebugRingBufferDataAvailable(WifiNative.RingBufferStatus status, byte[] data);
 
         /**
          * Indicates that a new iface has been added to the chip.
@@ -734,11 +748,11 @@ public class WifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#selectTxPowerScenario(int)}
+     * See comments for {@link IWifiChip#selectTxPowerScenario(SarInfo)}
      */
-    public boolean selectTxPowerScenario(@WifiChip.TxPowerScenario int scenario) {
+    public boolean selectTxPowerScenario(SarInfo sarInfo) {
         return validateAndCall("selectTxPowerScenario", false,
-                () -> mWifiChip.selectTxPowerScenario(scenario));
+                () -> mWifiChip.selectTxPowerScenario(sarInfo));
     }
 
     /**

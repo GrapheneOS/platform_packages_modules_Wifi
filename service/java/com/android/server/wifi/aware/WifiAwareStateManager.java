@@ -3041,8 +3041,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         if (failedCommand.arg1 == COMMAND_TYPE_CONNECT) {
+            mWifiAwareNativeManager.releaseAware();
             IWifiAwareEventCallback callback = (IWifiAwareEventCallback) failedCommand.obj;
-
             try {
                 callback.onConnectFail(reason);
                 mAwareMetrics.recordAttachStatus(reason);

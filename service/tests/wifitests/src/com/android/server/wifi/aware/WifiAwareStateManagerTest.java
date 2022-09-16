@@ -99,10 +99,10 @@ import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiInjector;
-import com.android.server.wifi.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.hal.WifiNanIface.NanRangingIndication;
+import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -3399,6 +3399,44 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionConfigSuccessResponse(transactionIdConfig, true, pubSubId);
         mDut.onSessionConfigSuccessResponse(transactionIdConfig, false, pubSubId);
         mMockLooper.dispatchAll();
+
+        verifyNoMoreInteractions(mMockNative, mockCallback);
+    }
+
+
+    /**
+     * Verify when attach aware failed, the aware interface will be released.
+     */
+    @Test
+    public void testAttachFailureAndReleaseAware() throws Exception {
+        final int clientId = 132;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        InOrder inOrder = inOrder(mMockNative, mockCallback, mMockNativeManager);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+
+        // (1) connect and succeed
+        mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false, mExtras);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(uid, callingPackage));
+        inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
+                eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt());
+        short transactionIdConfig = transactionId.getValue();
+        mDut.onConfigFailedResponse(transactionIdConfig, NanStatusCode.INTERNAL_FAILURE);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).releaseAware();
+        inOrder.verify(mockCallback).onConnectFail(NanStatusCode.INTERNAL_FAILURE);
+
 
         verifyNoMoreInteractions(mMockNative, mockCallback);
     }

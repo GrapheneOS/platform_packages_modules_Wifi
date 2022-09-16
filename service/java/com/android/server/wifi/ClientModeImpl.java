@@ -601,21 +601,21 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     int mRunningBeaconCount = 0;
 
     /* Parent state where connections are allowed */
-    private State mConnectableState = new ConnectableState();
+    private State mConnectableState;
     /* Connecting/Connected to an access point */
-    private State mConnectingOrConnectedState = new ConnectingOrConnectedState();
+    private State mConnectingOrConnectedState;
     /* Connecting to an access point */
-    private State mL2ConnectingState = new L2ConnectingState();
+    private State mL2ConnectingState;
     /* Connected at 802.11 (L2) level */
-    private State mL2ConnectedState = new L2ConnectedState();
+    private State mL2ConnectedState;
     /* fetching IP after connection to access point (assoc+auth complete) */
-    private State mL3ProvisioningState = new L3ProvisioningState();
+    private State mL3ProvisioningState;
     /* Connected with IP addr */
-    private State mL3ConnectedState = new L3ConnectedState();
+    private State mL3ConnectedState;
     /* Roaming */
-    private State mRoamingState = new RoamingState();
+    private State mRoamingState;
     /* Network is not connected, supplicant assoc+auth is not complete */
-    private State mDisconnectedState = new DisconnectedState();
+    private State mDisconnectedState;
 
     /*
      * FILS connection related variables.
@@ -861,6 +861,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mInsecureEapNetworkHandlerCallbacksImpl,
                 mInterfaceName,
                 getHandler());
+
+        final int threshold =  mContext.getResources().getInteger(
+                R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
+        mConnectableState = new ConnectableState(threshold);
+        mConnectingOrConnectedState = new ConnectingOrConnectedState(threshold);
+        mL2ConnectingState = new L2ConnectingState(threshold);
+        mL2ConnectedState = new L2ConnectedState(threshold);
+        mL3ProvisioningState = new L3ProvisioningState(threshold);
+        mL3ConnectedState = new L3ConnectedState(threshold);
+        mRoamingState = new RoamingState(threshold);
+        mDisconnectedState = new DisconnectedState(threshold);
 
         addState(mConnectableState); {
             addState(mConnectingOrConnectedState, mConnectableState); {
@@ -2339,6 +2350,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_UNWANTED_NETWORK";
             case CMD_UPDATE_LINKPROPERTIES:
                 return "CMD_UPDATE_LINKPROPERTIES";
+            case CMD_CONNECTABLE_STATE_SETUP:
+                return "CMD_CONNECTABLE_STATE_SETUP";
             case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
                 return "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
             case CMD_REJECT_EAP_SERVER_CERTIFICATE:
@@ -2393,6 +2406,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "NETWORK_NOT_FOUND_EVENT";
             case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
                 return "TOFU_ROOT_CA_CERTIFICATE";
+            case RunnerState.STATE_ENTER_CMD:
+                return "Enter";
+            case RunnerState.STATE_EXIT_CMD:
+                return "Exit";
             default:
                 return "what:" + what;
         }
@@ -3970,7 +3987,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * HSM states
      *******************************************************/
 
-    class ConnectableState extends State {
+    class ConnectableState extends RunnerState {
         private boolean mIsScreenStateChangeReceiverRegistered = false;
         BroadcastReceiver mScreenStateChangeReceiver = new BroadcastReceiver() {
             @Override
@@ -3984,8 +4001,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
         };
 
+        ConnectableState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             Log.d(getTag(), "entering ConnectableState: ifaceName = " + mInterfaceName);
 
             setSuspendOptimizationsNative(SUSPEND_DUE_TO_HIGH_PERF, true);
@@ -4027,7 +4048,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             // Inform metrics that Wifi is being disabled (Toggled, airplane enabled, etc)
             mWifiMetrics.setWifiState(mInterfaceName, WifiMetricsProto.WifiLog.WIFI_DISABLED);
             mWifiMetrics.logStaEvent(mInterfaceName, StaEvent.TYPE_WIFI_DISABLED);
@@ -4045,7 +4066,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + ConnectableState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             switch (message.what) {
                 case CMD_CONNECTABLE_STATE_SETUP:
                     if (mIpClient != null) {
@@ -4881,15 +4908,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendMessage(CMD_NETWORK_STATUS, status);
     }
 
-    class ConnectingOrConnectedState extends State {
+    class ConnectingOrConnectedState extends RunnerState {
+        ConnectingOrConnectedState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Entering ConnectingOrConnectedState");
             mCmiMonitor.onConnectionStart(mClientModeManager);
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Exiting ConnectingOrConnectedState");
             mCmiMonitor.onConnectionEnd(mClientModeManager);
 
@@ -4935,7 +4966,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + ConnectingOrConnectedState.class.getSimpleName() + "." + getWhatToString(
+                    what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
             switch (message.what) {
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT: {
@@ -5257,9 +5295,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
-    class L2ConnectingState extends State {
+    class L2ConnectingState extends RunnerState {
+        L2ConnectingState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Entering L2ConnectingState");
             // Make sure we connect: we enter this state prior to connecting to a new
             // network. In some cases supplicant ignores the connect requests (it might not
@@ -5272,7 +5314,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Exiting L2ConnectingState");
             // Cancel any pending CMD_CONNECTING_WATCHDOG_TIMER since this is only valid in
             // L2ConnectingState anyway.
@@ -5280,7 +5322,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + L2ConnectingState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
             switch (message.what) {
                 case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
@@ -5599,7 +5647,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
-    class L2ConnectedState extends State {
+    class L2ConnectedState extends RunnerState {
+        L2ConnectedState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         class RssiEventHandler implements WifiNative.WifiRssiEventHandler {
             @Override
             public void onRssiThresholdBreached(byte curRssi) {
@@ -5613,7 +5665,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         RssiEventHandler mRssiEventHandler = new RssiEventHandler();
 
         @Override
-        public void enter() {
+        public void enterImpl() {
             mRssiPollToken++;
             if (mEnableRssiPolling) {
                 if (isPrimary()) {
@@ -5658,7 +5710,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             // This is handled by receiving a NETWORK_DISCONNECTION_EVENT in ConnectableState
             // Bug: 15347363
             // For paranoia's sake, call handleNetworkDisconnect
@@ -5679,7 +5731,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + L2ConnectedState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
 
             switch (message.what) {
@@ -6060,9 +6118,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return triggerType;
     }
 
-    class L3ProvisioningState extends State {
+    class L3ProvisioningState extends RunnerState {
+        L3ProvisioningState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             if (mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected)) {
                 return;
             }
@@ -6071,7 +6133,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        public void exitImpl() {
+        }
+
+        @Override
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + L3ProvisioningState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
 
             switch(message.what) {
@@ -6155,10 +6227,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
     }
 
-    class RoamingState extends State {
+    class RoamingState extends RunnerState {
         boolean mAssociated;
+
+        RoamingState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             if (mVerboseLoggingEnabled) {
                 log("RoamingState Enter mScreenOn=" + mScreenOn);
             }
@@ -6170,8 +6247,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mRoamWatchdogCount, 0), ROAM_GUARD_TIMER_MSEC);
             mAssociated = false;
         }
+
         @Override
-        public boolean processMessage(Message message) {
+        public void exitImpl() {
+        }
+
+        @Override
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "." + RoamingState.class.getSimpleName()
+                    + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
 
             switch (message.what) {
@@ -6314,9 +6402,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
-    class L3ConnectedState extends State {
+    class L3ConnectedState extends RunnerState {
+        L3ConnectedState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             if (mVerboseLoggingEnabled) {
                 log("Enter ConnectedState  mScreenOn=" + mScreenOn);
             }
@@ -6350,8 +6442,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // So only record success here.
             mWifiMetrics.noteFirstL3ConnectionAfterBoot(true);
         }
+
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + L3ConnectedState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
 
             switch (message.what) {
@@ -6565,7 +6664,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             logd("ClientModeImpl: Leaving Connected state");
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
@@ -6575,9 +6674,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
-    class DisconnectedState extends State {
+    class DisconnectedState extends RunnerState {
+        DisconnectedState(int threshold) {
+            super(threshold, mWifiInjector.getWifiHandlerLocalLog());
+        }
+
         @Override
-        public void enter() {
+        public void enterImpl() {
             Log.i(getTag(), "disconnectedstate enter");
             // We don't scan frequently if this is a temporary disconnect
             // due to p2p
@@ -6603,7 +6706,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public boolean processMessage(Message message) {
+        String getMessageLogRec(int what) {
+            return ClientModeImpl.class.getSimpleName() + "."
+                    + DisconnectedState.class.getSimpleName() + "." + getWhatToString(what);
+        }
+
+        @Override
+        public boolean processMessageImpl(Message message) {
             boolean handleStatus = HANDLED;
 
             switch (message.what) {
@@ -6637,7 +6746,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void exit() {
+        public void exitImpl() {
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                      WifiConnectivityManager.WIFI_STATE_TRANSITIONING);
