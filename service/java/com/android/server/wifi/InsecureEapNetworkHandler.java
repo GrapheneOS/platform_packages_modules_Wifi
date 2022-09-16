@@ -216,6 +216,15 @@ public class InsecureEapNetworkHandler {
     }
 
     /**
+     * Do necessary clean up on stopping client mode.
+     */
+    public void cleanup() {
+        dismissDialogAndNotification();
+        unregisterCertificateNotificationReceiver();
+        clearInternalData();
+    }
+
+    /**
      * Store the received certifiate for later use.
      *
      * @param ssid the target network SSID.
