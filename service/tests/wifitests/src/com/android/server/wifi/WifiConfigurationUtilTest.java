@@ -23,6 +23,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.content.pm.UserInfo;
 import android.net.IpConfiguration;
@@ -40,9 +42,16 @@ import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -68,6 +77,32 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
             new UserInfo(CURRENT_USER_ID, "owner", 0),
             new UserInfo(CURRENT_USER_MANAGED_PROFILE_USER_ID, "managed profile", 0));
     private static final long SUPPORTED_FEATURES_ALL = Long.MAX_VALUE;
+
+    private MockitoSession mSession;
+
+    @Mock
+    private WifiInjector mWifiInjector;
+    @Mock
+    private WifiGlobals mWifiGlobals;
+
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+        // static mocking
+        mSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
+                .mockStatic(WifiInjector.class, withSettings().lenient())
+                .spyStatic(MacAddress.class)
+                .startMocking();
+        when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
+        when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
+    }
 
     /**
      * Verify that new WifiEnterpriseConfig is detected.
@@ -1396,5 +1431,34 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
                         multiTypeConfigs, true);
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
                 expectedResult, singleTypeConfigsWithoutDisabledType);
+    }
+
+    @Test
+    public void testIsConfigLinkable() throws Exception {
+        WifiConfiguration openConfig = WifiConfigurationTestUtil.createOpenNetwork();
+
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+
+        WifiConfiguration pskDisabledConfig = WifiConfigurationTestUtil.createPskNetwork();
+        pskDisabledConfig.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_PSK, false);
+
+        WifiConfiguration saeConfig = WifiConfigurationTestUtil.createSaeNetwork();
+
+        WifiConfiguration saeDisabledConfig = WifiConfigurationTestUtil.createSaeNetwork();
+        saeDisabledConfig.setSecurityParamsEnabled(WifiConfiguration.SECURITY_TYPE_SAE, false);
+
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(false);
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(openConfig));
+        assertTrue(WifiConfigurationUtil.isConfigLinkable(pskConfig));
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(pskDisabledConfig));
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(saeConfig));
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(saeDisabledConfig));
+
+        when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(openConfig));
+        assertTrue(WifiConfigurationUtil.isConfigLinkable(pskConfig));
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(pskDisabledConfig));
+        assertTrue(WifiConfigurationUtil.isConfigLinkable(saeConfig));
+        assertFalse(WifiConfigurationUtil.isConfigLinkable(saeDisabledConfig));
     }
 }
