@@ -110,6 +110,8 @@ public class WifiSettingsStoreTest extends WifiBaseTest {
         when(mNotificationBuilder.setStyle(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setLocalOnly(anyBoolean())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setAutoCancel(anyBoolean())).thenReturn(mNotificationBuilder);
+        when(mNotificationBuilder.setVisibility(Notification.VISIBILITY_PUBLIC))
+                .thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.build()).thenReturn(mNotification);
 
         mWifiSettingsStore = new WifiSettingsStore(mContext, mWifiSettingsConfigStore,

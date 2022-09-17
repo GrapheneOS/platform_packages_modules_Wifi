@@ -78,7 +78,7 @@ public class WifiThreadRunner {
         Mutable<T> result = new Mutable<>();
         boolean runWithScissorsSuccess = runWithScissors(mHandler,
                 () -> result.value = supplier.get(),
-                RUN_WITH_SCISSORS_TIMEOUT_MILLIS);
+                RUN_WITH_SCISSORS_TIMEOUT_MILLIS, false);
         if (runWithScissorsSuccess) {
             return result.value;
         } else {
@@ -104,7 +104,7 @@ public class WifiThreadRunner {
      */
     public boolean run(@NonNull Runnable runnable) {
         boolean runWithScissorsSuccess =
-                runWithScissors(mHandler, runnable, RUN_WITH_SCISSORS_TIMEOUT_MILLIS);
+                runWithScissors(mHandler, runnable, RUN_WITH_SCISSORS_TIMEOUT_MILLIS, false);
         if (runWithScissorsSuccess) {
             return true;
         } else {
@@ -120,6 +120,31 @@ public class WifiThreadRunner {
         }
     }
 
+    /**
+     * Runs a Runnable on the main Wifi thread on the next iteration and <b>blocks</b> the calling
+     * thread until the Runnable completes execution on the main Wifi thread.
+     *
+     * BEWARE OF DEADLOCKS!!!
+     *
+     * @return true if the runnable executed successfully, false otherwise
+     */
+    public boolean runAtFront(@NonNull Runnable runnable) {
+        boolean runWithScissorsSuccess =
+                runWithScissors(mHandler, runnable, RUN_WITH_SCISSORS_TIMEOUT_MILLIS, true);
+        if (runWithScissorsSuccess) {
+            return true;
+        } else {
+            Throwable callerThreadThrowable = new Throwable("Caller thread Stack trace:");
+            Throwable wifiThreadThrowable = new Throwable("Wifi thread Stack trace:");
+            wifiThreadThrowable.setStackTrace(mHandler.getLooper().getThread().getStackTrace());
+            Log.e(TAG, "WifiThreadRunner.run() timed out!", callerThreadThrowable);
+            Log.e(TAG, "WifiThreadRunner.run() timed out!", wifiThreadThrowable);
+            if (mTimeoutsAreErrors) {
+                throw new RuntimeException("WifiThreadRunner.run() timed out!");
+            }
+            return false;
+        }
+    }
     /**
      * Sets whether or not a RuntimeError should be thrown when a timeout occurs.
      *
@@ -223,6 +248,7 @@ public class WifiThreadRunner {
      *
      * @param r The Runnable that will be executed synchronously.
      * @param timeout The timeout in milliseconds, or 0 to wait indefinitely.
+     * @param atFront Message needs to be posted at the front of the queue or not.
      *
      * @return Returns true if the Runnable was successfully executed.
      *         Returns false on failure, usually because the
@@ -233,7 +259,7 @@ public class WifiThreadRunner {
      * less funny like runUnsafe().
      */
     private boolean runWithScissors(@NonNull Handler handler, @NonNull Runnable r,
-            long timeout) {
+            long timeout, boolean atFront) {
         if (r == null) {
             throw new IllegalArgumentException("runnable must not be null");
         }
@@ -252,7 +278,7 @@ public class WifiThreadRunner {
         }
 
         BlockingRunnable br = new BlockingRunnable(r);
-        return br.postAndWait(handler, timeout);
+        return br.postAndWait(handler, timeout, atFront);
     }
 
     private static final class BlockingRunnable implements Runnable {
@@ -275,9 +301,15 @@ public class WifiThreadRunner {
             }
         }
 
-        public boolean postAndWait(Handler handler, long timeout) {
-            if (!handler.post(this)) {
-                return false;
+        public boolean postAndWait(Handler handler, long timeout, boolean atFront) {
+            if (atFront) {
+                if (!handler.postAtFrontOfQueue(this)) {
+                    return false;
+                }
+            } else {
+                if (!handler.post(this)) {
+                    return false;
+                }
             }
 
             synchronized (this) {
