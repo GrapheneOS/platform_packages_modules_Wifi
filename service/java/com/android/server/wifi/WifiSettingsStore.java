@@ -205,6 +205,7 @@ public class WifiSettingsStore {
                 .setContentTitle(title)
                 .setContentText(message)
                 .setContentIntent(tapPendingIntent)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setStyle(new Notification.BigTextStyle().bigText(message))
                 .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
                         R.drawable.ic_wifi_settings));

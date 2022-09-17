@@ -2484,7 +2484,15 @@ public class WifiServiceImpl extends BaseWifiService {
             // request. Once that UI dialog is added, we can get rid of this hack and use the UI
             // to elevate the priority of LOHS request only if user approves the request to
             // toggle wifi off for LOHS.
-            requestorWs = mFrameworkFacade.getSettingsWorkSource(mContext);
+            if (mContext.getResources().getBoolean(
+                    R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)) {
+                // If the interface conflict dialogs are enabled, then we shouldn't fake the
+                // worksource since we need the correct worksource to display the right app label,
+                // and HDM will allow the iface creation as long as the user accepts the dialog.
+                requestorWs = new WorkSource(uid, packageName);
+            } else {
+                requestorWs = mFrameworkFacade.getSettingsWorkSource(mContext);
+            }
         } else {
             if (isPlatformOrTargetSdkLessThanT(packageName, uid)) {
                 if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {

@@ -950,4 +950,7 @@
         <item>ko,EUC-KR</item>
         -->
     </string-array>
+
+    <!-- ACTION_FILE_BUG_DEEPLINK intent name -->
+    <string name="config_wifiBugreportDeepLink" translatable="false">com.google.android.apps.betterbug.intent.FILE_BUG_DEEPLINK</string>
 </resources>
