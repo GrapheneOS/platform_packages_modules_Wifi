@@ -8876,6 +8876,33 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testSetCarrierNetworkOffloadEnabledWithoutPermissionThrowsException()
+            throws Exception {
+        try {
+            mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
+            fail();
+        } catch (SecurityException e) { }
+    }
+
+    @Test
+    public void testSetCarrierNetworkOffloadEnabled() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(10, true, true);
+
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(5, false, false);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(5, false, false);
+    }
+
+    @Test
+    public void testIsCarrierNetworkOffloadEnabled() throws Exception {
+        when(mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(10, true)).thenReturn(true);
+        assertTrue(mWifiServiceImpl.isCarrierNetworkOffloadEnabled(10, true));
+        verify(mWifiCarrierInfoManager).isCarrierNetworkOffloadEnabled(10, true);
+    }
+
+    @Test
     public void testSetEmergencyScanRequestWithoutPermissionThrowsException() throws Exception {
         when(mContext.checkCallingOrSelfPermission(android.Manifest.permission.NETWORK_STACK))
                 .thenReturn(PackageManager.PERMISSION_DENIED);

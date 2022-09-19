@@ -1953,6 +1953,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     public void testSetAndGetUnmergedCarrierNetworkOffload() {
         assertTrue(mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(DATA_SUBID, false));
         mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(DATA_SUBID, false, false);
+        mLooper.dispatchAll();
         verify(mWifiConfigManager).saveToStore(true);
         assertFalse(mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(DATA_SUBID, false));
     }
@@ -1974,6 +1975,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
 
         listenerCaptor.getValue().onDataEnabledChanged(true, DATA_ENABLED_REASON_USER);
         mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(DATA_SUBID, true, false);
+        mLooper.dispatchAll();
         verify(mWifiConfigManager).saveToStore(true);
         assertFalse(mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(DATA_SUBID, true));
 
@@ -2201,6 +2203,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         verify(mDataTelephonyManager).registerTelephonyCallback(any(), captor.capture());
 
         mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(DATA_SUBID, true, false);
+        mLooper.dispatchAll();
         verify(mOnCarrierOffloadDisabledListener).onCarrierOffloadDisabled(DATA_SUBID, true);
 
         captor.getValue().onDataEnabledChanged(false, DATA_ENABLED_REASON_CARRIER);
