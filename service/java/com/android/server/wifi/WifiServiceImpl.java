@@ -6374,10 +6374,10 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public void setScanThrottleEnabled(boolean enable) {
         enforceNetworkSettingsPermission();
-        mLog.info("setScanThrottleEnabled uid=% verbose=%")
+        mLog.info("setScanThrottleEnabled uid=% enable=%")
                 .c(Binder.getCallingUid())
                 .c(enable).flush();
-        mWifiThreadRunner.post(()-> mScanRequestProxy.setScanThrottleEnabled(enable));
+        mScanRequestProxy.setScanThrottleEnabled(enable);
     }
 
     /**
@@ -6386,10 +6386,12 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public boolean isScanThrottleEnabled() {
         enforceAccessPermission();
+        final boolean enable = mScanRequestProxy.isScanThrottleEnabled();
         if (mVerboseLoggingEnabled) {
-            mLog.info("isScanThrottleEnabled uid=%").c(Binder.getCallingUid()).flush();
+            mLog.info("isScanThrottleEnabled uid=% enable=%")
+                    .c(Binder.getCallingUid()).c(enable).flush();
         }
-        return mWifiThreadRunner.call(()-> mScanRequestProxy.isScanThrottleEnabled(), true);
+        return enable;
     }
 
     /**

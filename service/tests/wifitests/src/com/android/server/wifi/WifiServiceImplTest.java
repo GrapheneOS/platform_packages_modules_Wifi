@@ -8607,11 +8607,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                         eq("WifiService"));
         mWifiServiceImpl.setScanThrottleEnabled(true);
-        mLooper.dispatchAll();
         verify(mScanRequestProxy).setScanThrottleEnabled(true);
 
         mWifiServiceImpl.setScanThrottleEnabled(false);
-        mLooper.dispatchAll();
         verify(mScanRequestProxy).setScanThrottleEnabled(false);
     }
 
@@ -8622,16 +8620,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
                         eq("WifiService"));
 
         mWifiServiceImpl.setScanThrottleEnabled(true);
-        mLooper.dispatchAll();
         verify(mScanRequestProxy, never()).setScanThrottleEnabled(true);
     }
 
     @Test
     public void testIsScanThrottleEnabled() {
         when(mScanRequestProxy.isScanThrottleEnabled()).thenReturn(true);
-        mLooper.startAutoDispatch();
         assertTrue(mWifiServiceImpl.isScanThrottleEnabled());
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mScanRequestProxy).isScanThrottleEnabled();
     }
 
