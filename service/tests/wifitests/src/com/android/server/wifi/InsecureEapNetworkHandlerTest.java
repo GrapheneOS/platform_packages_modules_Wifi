@@ -781,4 +781,16 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         verify(mCallbacks, never()).onError(any());
     }
 
+    @Test
+    public void testCleanUp() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true;
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        BroadcastReceiver br = mBroadcastReceiverCaptor.getValue();
+        mInsecureEapNetworkHandler.cleanup();
+        verify(mContext).unregisterReceiver(br);
+    }
 }

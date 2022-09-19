@@ -775,6 +775,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
                 mSettingsConfigStore, false, mWifiNotificationManager);
 
+        mCmi.mInsecureEapNetworkHandler = mInsecureEapNetworkHandler;
+
         mWifiCoreThread = getCmiHandlerThread(mCmi);
 
         mBinderToken = Binder.clearCallingIdentity();
@@ -8389,6 +8391,16 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onError(testConfig.SSID);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(eq(WIFI_IFACE_NAME));
+    }
+
+    /**
+     * Verify that InsecureEapNetworkHandler cleanup() is called if wifi is disabled.
+     */
+    @Test
+    public void verifyInsecureEapNetworkCleanUpWhenDisabled() throws Exception {
+        mCmi.stop();
+        mLooper.dispatchAll();
+        verify(mInsecureEapNetworkHandler).cleanup();
     }
 
     /**
