@@ -1738,7 +1738,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mDeviceConfigFacade.isAbnormalConnectionFailureBugreportEnabled()) {
             int reasonCode = mWifiScoreCard.detectAbnormalConnectionFailure(ssid);
             if (reasonCode != WifiHealthMonitor.REASON_NO_FAILURE) {
-                String bugTitle = "Wi-Fi BugReport";
+                String bugTitle = "Wi-Fi BugReport: abnormal "
+                        + WifiHealthMonitor.FAILURE_REASON_NAME[reasonCode];
                 String bugDetail = "Detect abnormal "
                         + WifiHealthMonitor.FAILURE_REASON_NAME[reasonCode];
                 mWifiDiagnostics.takeBugReport(bugTitle, bugDetail);
@@ -1750,7 +1751,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mDeviceConfigFacade.isAbnormalDisconnectionBugreportEnabled()) {
             int reasonCode = mWifiScoreCard.detectAbnormalDisconnection(mInterfaceName);
             if (reasonCode != WifiHealthMonitor.REASON_NO_FAILURE) {
-                String bugTitle = "Wi-Fi BugReport";
+                String bugTitle = "Wi-Fi BugReport: abnormal "
+                        + WifiHealthMonitor.FAILURE_REASON_NAME[reasonCode];
                 String bugDetail = "Detect abnormal "
                         + WifiHealthMonitor.FAILURE_REASON_NAME[reasonCode];
                 mWifiDiagnostics.takeBugReport(bugTitle, bugDetail);
@@ -3216,7 +3218,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mDeviceConfigFacade.isOverlappingConnectionBugreportEnabled()
                 && overlapWithLastConnectionMs
                 > mDeviceConfigFacade.getOverlappingConnectionDurationThresholdMs()) {
-            String bugTitle = "Wi-Fi BugReport";
+            String bugTitle = "Wi-Fi BugReport: overlapping connection";
             String bugDetail = "Detect abnormal overlapping connection";
             mWifiDiagnostics.takeBugReport(bugTitle, bugDetail);
         }
