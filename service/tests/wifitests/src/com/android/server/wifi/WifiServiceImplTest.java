@@ -8641,11 +8641,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                         eq("WifiService"));
         mWifiServiceImpl.setAutoWakeupEnabled(true);
-        mLooper.dispatchAll();
         verify(mWakeupController).setEnabled(true);
 
         mWifiServiceImpl.setAutoWakeupEnabled(false);
-        mLooper.dispatchAll();
         verify(mWakeupController).setEnabled(false);
     }
 
@@ -8663,9 +8661,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testIsAutoWakeupEnabled() {
         when(mWakeupController.isEnabled()).thenReturn(true);
-        mLooper.startAutoDispatch();
         assertTrue(mWifiServiceImpl.isAutoWakeupEnabled());
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mWakeupController).isEnabled();
     }
 

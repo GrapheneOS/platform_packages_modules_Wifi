@@ -27,6 +27,7 @@ import android.os.Process;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 
@@ -67,6 +68,7 @@ public class WakeupController {
     private final WifiWakeMetrics mWifiWakeMetrics;
     private final Clock mClock;
     private final ActiveModeWarden mActiveModeWarden;
+    private final Object mLock = new Object();
 
     private final WifiScanner.ScanListener mScanListener = new WifiScanner.ScanListener() {
         @Override
@@ -100,6 +102,7 @@ public class WakeupController {
     };
 
     /** Whether this feature is enabled in Settings. */
+    @GuardedBy("mLock")
     private boolean mWifiWakeupEnabled;
 
     /** Whether the WakeupController is currently active. */
@@ -186,9 +189,11 @@ public class WakeupController {
     }
 
     private void readWifiWakeupEnabledFromSettings() {
-        mWifiWakeupEnabled = mFrameworkFacade.getIntegerSetting(
-                mContext, Settings.Global.WIFI_WAKEUP_ENABLED, 0) == 1;
-        Log.d(TAG, "WifiWake " + (mWifiWakeupEnabled ? "enabled" : "disabled"));
+        synchronized (mLock) {
+            mWifiWakeupEnabled = mFrameworkFacade.getIntegerSetting(
+                    mContext, Settings.Global.WIFI_WAKEUP_ENABLED, 0) == 1;
+            Log.d(TAG, "WifiWake " + (mWifiWakeupEnabled ? "enabled" : "disabled"));
+        }
     }
 
     private void setActive(boolean isActive) {
@@ -203,15 +208,19 @@ public class WakeupController {
      * Enable/Disable the feature.
      */
     public void setEnabled(boolean enable) {
-        mFrameworkFacade.setIntegerSetting(
-                mContext, Settings.Global.WIFI_WAKEUP_ENABLED, enable ? 1 : 0);
+        synchronized (mLock) {
+            mFrameworkFacade.setIntegerSetting(
+                    mContext, Settings.Global.WIFI_WAKEUP_ENABLED, enable ? 1 : 0);
+        }
     }
 
     /**
      * Whether the feature is currently enabled.
      */
     public boolean isEnabled() {
-        return mWifiWakeupEnabled;
+        synchronized (mLock) {
+            return mWifiWakeupEnabled;
+        }
     }
 
     /**
@@ -461,7 +470,9 @@ public class WakeupController {
      */
     @VisibleForTesting
     boolean isEnabledAndReady() {
-        return mWifiWakeupEnabled && mWakeupConfigStoreData.hasBeenRead();
+        synchronized (mLock) {
+            return mWifiWakeupEnabled && mWakeupConfigStoreData.hasBeenRead();
+        }
     }
 
     /** Dumps wakeup controller state. */
