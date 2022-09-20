@@ -51,6 +51,8 @@ public class WifiHalHidlImpl implements IWifiHal {
     private WifiHal.DeathRecipient mFrameworkDeathRecipient;
     private boolean mIsVendorHalSupported;
 
+    private final Object mLock = new Object();
+
     public WifiHalHidlImpl(@NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
         Log.i(TAG, "Creating the Wifi HAL using the HIDL implementation");
         mContext = context;
@@ -67,9 +69,11 @@ public class WifiHalHidlImpl implements IWifiHal {
     @Override
     @Nullable
     public WifiChip getChip(int chipId) {
-        final String methodStr = "getChip";
-        return validateAndCall(methodStr, null,
-                () -> getChipInternal(methodStr, chipId));
+        synchronized (mLock) {
+            final String methodStr = "getChip";
+            return validateAndCall(methodStr, null,
+                    () -> getChipInternal(methodStr, chipId));
+        }
     }
 
     /**
@@ -78,9 +82,11 @@ public class WifiHalHidlImpl implements IWifiHal {
     @Override
     @Nullable
     public List<Integer> getChipIds() {
-        final String methodStr = "getChipIds";
-        return validateAndCall(methodStr, null,
-                () -> getChipIdsInternal(methodStr));
+        synchronized (mLock) {
+            final String methodStr = "getChipIds";
+            return validateAndCall(methodStr, null,
+                    () -> getChipIdsInternal(methodStr));
+        }
     }
 
     /**
@@ -88,9 +94,11 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public boolean registerEventCallback(WifiHal.Callback callback) {
-        final String methodStr = "registerEventCallback";
-        return validateAndCall(methodStr, false,
-                () -> registerEventCallbackInternal(callback));
+        synchronized (mLock) {
+            final String methodStr = "registerEventCallback";
+            return validateAndCall(methodStr, false,
+                    () -> registerEventCallbackInternal(callback));
+        }
     }
 
     /**
@@ -98,7 +106,9 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public boolean isInitializationComplete() {
-        return mWifi != null;
+        synchronized (mLock) {
+            return mWifi != null;
+        }
     }
 
     /**
@@ -106,17 +116,21 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public boolean isSupported() {
-        return mIsVendorHalSupported;
+        synchronized (mLock) {
+            return mIsVendorHalSupported;
+        }
     }
 
     /**
      * See comments for {@link IWifiHal#start()}
      */
     @Override
-    public boolean start() {
-        final String methodStr = "start";
-        return validateAndCall(methodStr, false,
-                () -> startInternal(methodStr));
+    public @WifiHal.WifiStatusCode int start() {
+        synchronized (mLock) {
+            final String methodStr = "start";
+            return validateAndCall(methodStr, WifiHal.WIFI_STATUS_ERROR_UNKNOWN,
+                    () -> startInternal(methodStr));
+        }
     }
 
     /**
@@ -124,9 +138,11 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public boolean isStarted() {
-        final String methodStr = "isStarted";
-        return validateAndCall(methodStr, false,
-                () -> isStartedInternal(methodStr));
+        synchronized (mLock) {
+            final String methodStr = "isStarted";
+            return validateAndCall(methodStr, false,
+                    () -> isStartedInternal(methodStr));
+        }
     }
 
     /**
@@ -134,9 +150,13 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public boolean stop() {
-        final String methodStr = "stop";
-        return validateAndCall(methodStr, false,
-                () -> stopInternal(methodStr));
+        synchronized (mLock) {
+            final String methodStr = "stop";
+            boolean result = validateAndCall(methodStr, false,
+                    () -> stopInternal(methodStr));
+            mWifi = null;
+            return result;
+        }
     }
 
     /**
@@ -144,12 +164,22 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     @Override
     public void initialize(WifiHal.DeathRecipient deathRecipient) {
-        Log.i(TAG, "Initializing the WiFi HAL");
-        mWifi = null;
-        mFrameworkDeathRecipient = deathRecipient;
-        initServiceManagerIfNecessary();
-        if (mIsVendorHalSupported) {
-            initWifiIfNecessary();
+        synchronized (mLock) {
+            Log.i(TAG, "Initializing the WiFi HAL");
+            mFrameworkDeathRecipient = deathRecipient;
+            initServiceManagerIfNecessaryLocked();
+            if (mIsVendorHalSupported) {
+                initWifiIfNecessaryLocked();
+            }
+        }
+    }
+
+    /**
+     * See comments for {@link IWifiHal#invalidate()}
+     */
+    public void invalidate() {
+        synchronized (mLock) {
+            mWifi = null;
         }
     }
 
@@ -208,20 +238,26 @@ public class WifiHalHidlImpl implements IWifiHal {
             } else {
                 status = mWifi.registerEventCallback(mHalCallback10);
             }
-            return isOk(status, methodStr);
+
+            if (!isOk(status, methodStr)) {
+                Log.e(TAG, "Unable to register HAL callback");
+                mWifi = null;
+                return false;
+            }
+            return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
             return false;
         }
     }
 
-    private boolean startInternal(String methodStr) {
+    private @WifiHal.WifiStatusCode int startInternal(String methodStr) {
         try {
             WifiStatus status = mWifi.start();
-            return isOk(status, methodStr);
+            return halToFrameworkWifiStatusCode(status.code);
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
-            return false;
+            return WifiHal.WIFI_STATUS_ERROR_UNKNOWN;
         }
     }
 
@@ -259,8 +295,11 @@ public class WifiHalHidlImpl implements IWifiHal {
 
         @Override
         public void onFailure(WifiStatus status) throws RemoteException {
-            if (mFrameworkCallback == null) return;
-            mFrameworkCallback.onFailure(halToFrameworkWifiStatusCode(status.code));
+            synchronized (mLock) {
+                mWifi = null;
+                if (mFrameworkCallback == null) return;
+                mFrameworkCallback.onFailure(halToFrameworkWifiStatusCode(status.code));
+            }
         }
     }
 
@@ -303,12 +342,15 @@ public class WifiHalHidlImpl implements IWifiHal {
     private class WifiDeathRecipient implements IHwBinder.DeathRecipient {
         @Override
         public void serviceDied(long cookie) {
-            Log.e(TAG, "IWifi HAL service died! Have a listener for it ... cookie=" + cookie);
-            mWifi = null;
-            if (mFrameworkDeathRecipient != null) {
-                mFrameworkDeathRecipient.onDeath();
+            synchronized (mLock) {
+                Log.e(TAG, "IWifi HAL service died! Have a listener for it ... cookie="
+                        + cookie);
+                mWifi = null;
+                if (mFrameworkDeathRecipient != null) {
+                    mFrameworkDeathRecipient.onDeath();
+                }
+                // don't restart: wait for registration notification
             }
-            // don't restart: wait for registration notification
         }
     }
 
@@ -316,19 +358,23 @@ public class WifiHalHidlImpl implements IWifiHal {
             new IServiceNotification.Stub() {
                 @Override
                 public void onRegistration(String fqName, String name, boolean preexisting) {
-                    Log.d(TAG, "IWifi registration notification: fqName=" + fqName
-                            + ", name=" + name + ", preexisting=" + preexisting);
-                    initWifiIfNecessary();
+                    synchronized (mLock) {
+                        Log.d(TAG, "IWifi registration notification: fqName=" + fqName
+                                + ", name=" + name + ", preexisting=" + preexisting);
+                        initWifiIfNecessaryLocked();
+                    }
                 }
             };
 
 
     // Helper Functions
 
-    private void initServiceManagerIfNecessary() {
+    private void initServiceManagerIfNecessaryLocked() {
         if (mServiceManager != null) {
+            Log.i(TAG, "mServiceManager already exists");
             return;
         }
+        Log.i(TAG, "initServiceManagerIfNecessaryLocked");
 
         // Failures of IServiceManager are most likely system breaking.
         // Behavior here will be to WTF and continue.
@@ -357,10 +403,12 @@ public class WifiHalHidlImpl implements IWifiHal {
         mIsVendorHalSupported = isSupportedInternal();
     }
 
-    private void initWifiIfNecessary() {
+    private void initWifiIfNecessaryLocked() {
         if (mWifi != null) {
+            Log.i(TAG, "mWifi already exists");
             return;
         }
+        Log.i(TAG, "initWifiIfNecessaryLocked");
 
         try {
             mWifi = getWifiServiceMockable();
@@ -374,8 +422,8 @@ public class WifiHalHidlImpl implements IWifiHal {
                 return;
             }
 
-            // Stop wifi just in case. Stopping wifi will invalidate the callbacks, so re-register.
-            stop();
+            // Stop wifi just in case. Stop will invalidate the callbacks, so re-register them.
+            stopInternal("stop");
             registerHalCallback();
             Log.i(TAG, "mWifi was retrieved. HAL is running version " + getVersion());
         } catch (RemoteException e) {
