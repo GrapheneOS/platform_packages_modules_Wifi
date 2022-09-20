@@ -50,6 +50,7 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.os.WorkSource;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -117,6 +118,7 @@ public class WifiNative {
     private final ArrayList<ScanDetail> mFakeScanDetails = new ArrayList<>();
     private long mCachedFeatureSet;
     private boolean mQosPolicyFeatureEnabled = false;
+    private final Map<String, String> mWifiCondIfacesForBridgedAp = new ArrayMap<>();
 
     public WifiNative(WifiVendorHal vendorHal,
                       SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
@@ -691,7 +693,12 @@ public class WifiNative {
             if (!mHostapdHal.removeAccessPoint(iface.name)) {
                 Log.e(TAG, "Failed to remove access point on " + iface);
             }
-            if (!mWifiCondManager.tearDownSoftApInterface(iface.name)) {
+            String wificondIface = iface.name;
+            String bridgedApInstance = mWifiCondIfacesForBridgedAp.remove(iface.name);
+            if (bridgedApInstance != null) {
+                wificondIface = bridgedApInstance;
+            }
+            if (!mWifiCondManager.tearDownSoftApInterface(wificondIface)) {
                 Log.e(TAG, "Failed to teardown iface in wificond on " + iface);
             }
             stopHostapdIfNecessary();
@@ -1359,6 +1366,7 @@ public class WifiNative {
                 }
                 // Always select first instance as wificond interface.
                 ifaceInstanceName = instances.get(0);
+                mWifiCondIfacesForBridgedAp.put(iface.name, ifaceInstanceName);
             }
             if (!mWifiCondManager.setupInterfaceForSoftApMode(ifaceInstanceName)) {
                 Log.e(TAG, "Failed to setup iface in wificond on " + iface);
