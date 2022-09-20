@@ -97,6 +97,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
 
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private SoftApManager mSoftApManager;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
 
     private TestLooper mLooper;
 
@@ -185,6 +186,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mResources = getMockResources();
         mResources.setBoolean(R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled, false);
         when(mContext.getResources()).thenReturn(mResources);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.isInterfaceFailureBugreportEnabled()).thenReturn(false);
 
         when(mWifiSettingsConfigStore.get(
                 eq(WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_FEATURES)))
