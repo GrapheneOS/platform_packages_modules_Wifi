@@ -1725,6 +1725,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     /** Stop this ClientModeImpl. Do not interact with ClientModeImpl after it has been stopped. */
     public void stop() {
+        mInsecureEapNetworkHandler.cleanup();
         mSupplicantStateTracker.stop();
         mWifiScoreCard.noteWifiDisabled(mWifiInfo);
         // capture StateMachine LogRecs since we will lose them after we call quitNow()
