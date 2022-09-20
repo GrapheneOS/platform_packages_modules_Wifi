@@ -29,10 +29,7 @@ import android.content.Context;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
-import android.os.Messenger;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.Process;
@@ -40,12 +37,9 @@ import android.os.RemoteException;
 import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.SparseArray;
 
 import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
 
-import com.android.internal.util.AsyncChannel;
 import com.android.internal.util.Protocol;
 import com.android.modules.utils.build.SdkLevel;
 
@@ -53,7 +47,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -262,6 +258,76 @@ public class WifiScanner {
             return channels == null ? new ArrayList<>() : channels;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
+        }
+    }
+
+    private class ServiceListener extends IWifiScannerListener.Stub {
+        private ActionListener mActionListener;
+        private Executor mExecutor;
+
+        ServiceListener(ActionListener listener, Executor executor) {
+            mActionListener = listener;
+            mExecutor = executor;
+        }
+
+        @Override
+        public void onSuccess() {
+            if (mActionListener == null) return;
+            Binder.clearCallingIdentity();
+            mExecutor.execute(mActionListener::onSuccess);
+        }
+
+        @Override
+        public void onFailure(int reason, String description) {
+            if (mActionListener == null) return;
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() ->
+                    mActionListener.onFailure(reason, description));
+        }
+
+        /**
+         * reports results retrieved from background scan and single shot scans
+         */
+        @Override
+        public void onResults(WifiScanner.ScanData[] results) {
+            if (mActionListener == null) return;
+            if (!(mActionListener instanceof ScanListener)) return;
+            ScanListener scanListener = (ScanListener) mActionListener;
+            Binder.clearCallingIdentity();
+            mExecutor.execute(
+                    () -> scanListener.onResults(results));
+        }
+
+        /**
+         * reports full scan result for each access point found in scan
+         */
+        @Override
+        public void onFullResult(ScanResult fullScanResult) {
+            if (mActionListener == null) return;
+            if (!(mActionListener instanceof ScanListener)) return;
+            ScanListener scanListener = (ScanListener) mActionListener;
+            Binder.clearCallingIdentity();
+            mExecutor.execute(
+                    () -> scanListener.onFullResult(fullScanResult));
+        }
+
+        @Override
+        public void onSingleScanCompleted() {
+            if (DBG) Log.d(TAG, "single scan completed");
+            removeListener(mActionListener);
+        }
+
+        /**
+         * Invoked when one of the PNO networks are found in scan results.
+         */
+        @Override
+        public void onPnoNetworkFound(ScanResult[] results) {
+            if (mActionListener == null) return;
+            if (!(mActionListener instanceof PnoScanListener)) return;
+            PnoScanListener pnoScanListener = (PnoScanListener) mActionListener;
+            Binder.clearCallingIdentity();
+            mExecutor.execute(
+                    () -> pnoScanListener.onPnoNetworkFound(results));
         }
     }
 
@@ -1075,9 +1141,11 @@ public class WifiScanner {
     @SystemApi
     @RequiresPermission(Manifest.permission.NETWORK_STACK)
     public void setScanningEnabled(boolean enable) {
-        validateChannel();
-        mAsyncChannel.sendMessage(enable ? CMD_ENABLE : CMD_DISABLE, Process.myTid(),
-                Binder.getCallingPid(), mContext.getOpPackageName());
+        try {
+            mService.setScanningEnabled(enable, Process.myTid(), mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
     }
 
     /**
@@ -1107,13 +1175,24 @@ public class WifiScanner {
             @NonNull ScanListener listener) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = addListener(listener, executor);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_REGISTER_SCAN_LISTENER, 0, key, scanParams);
+        ServiceListener serviceListener = new ServiceListener(listener, executor);
+        if (!addListener(listener, serviceListener)) {
+            Binder.clearCallingIdentity();
+            executor.execute(() ->
+                    // TODO: fix the typo in WifiScanner system API.
+                    listener.onFailure(REASON_DUPLICATE_REQEUST, // NOTYPO
+                            "Outstanding request with same key not stopped yet"));
+            return;
+        }
+        try {
+            mService.registerScanListener(serviceListener,
+                    mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to register listener " + listener);
+            removeListener(listener);
+            throw e.rethrowFromSystemServer();
+        }
     }
 
     /**
@@ -1133,13 +1212,20 @@ public class WifiScanner {
      */
     public void unregisterScanListener(@NonNull ScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = removeListener(listener);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_DEREGISTER_SCAN_LISTENER, 0, key, scanParams);
+        ServiceListener serviceListener = getServiceListener(listener);
+        if (serviceListener == null) {
+            Log.e(TAG, "listener does not exist");
+            return;
+        }
+        try {
+            mService.unregisterScanListener(serviceListener, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            Log.e(TAG, "failed to unregister listener");
+            throw e.rethrowFromSystemServer();
+        } finally {
+            removeListener(listener);
+        }
     }
 
     /**
@@ -1190,15 +1276,18 @@ public class WifiScanner {
     public void startBackgroundScan(ScanSettings settings, ScanListener listener,
             WorkSource workSource) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = addListener(listener);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putParcelable(SCAN_PARAMS_SCAN_SETTINGS_KEY, settings);
-        scanParams.putParcelable(SCAN_PARAMS_WORK_SOURCE_KEY, workSource);
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_START_BACKGROUND_SCAN, 0, key, scanParams);
+        if (getServiceListener(listener) != null) return;
+        ServiceListener serviceListener = new ServiceListener(listener, new SynchronousExecutor());
+        if (!addListener(listener, serviceListener)) {
+            Log.e(TAG, "listener already exist!");
+            return;
+        }
+        try {
+            mService.startBackgroundScan(serviceListener, settings, workSource,
+                    mContext.getOpPackageName(), mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
     }
 
     /**
@@ -1213,13 +1302,19 @@ public class WifiScanner {
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public void stopBackgroundScan(ScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = removeListener(listener);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_STOP_BACKGROUND_SCAN, 0, key, scanParams);
+        ServiceListener serviceListener = getServiceListener(listener);
+        if (serviceListener == null) {
+            Log.e(TAG, "listener does not exist");
+            return;
+        }
+        try {
+            mService.stopBackgroundScan(serviceListener, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        } finally {
+            removeListener(listener);
+        }
     }
 
     /**
@@ -1232,13 +1327,12 @@ public class WifiScanner {
     @Deprecated
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public boolean getScanResults() {
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        Message reply =
-                mAsyncChannel.sendMessageSynchronously(CMD_GET_SCAN_RESULTS, 0, 0, scanParams);
-        return reply.what == CMD_OP_SUCCEEDED;
+        try {
+            return mService.getScanResults(mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
     }
 
     /**
@@ -1265,7 +1359,7 @@ public class WifiScanner {
      */
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public void startScan(ScanSettings settings, ScanListener listener, WorkSource workSource) {
-        startScan(settings, null, listener, workSource);
+        startScan(settings, new SynchronousExecutor(), listener, workSource);
     }
 
     /**
@@ -1283,15 +1377,19 @@ public class WifiScanner {
     public void startScan(ScanSettings settings, @Nullable @CallbackExecutor Executor executor,
             ScanListener listener, WorkSource workSource) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = addListener(listener, executor);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putParcelable(SCAN_PARAMS_SCAN_SETTINGS_KEY, settings);
-        scanParams.putParcelable(SCAN_PARAMS_WORK_SOURCE_KEY, workSource);
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_START_SINGLE_SCAN, 0, key, scanParams);
+        if (getServiceListener(listener) != null) return;
+        ServiceListener serviceListener = new ServiceListener(listener, executor);
+        if (!addListener(listener, serviceListener)) {
+            Log.e(TAG, "listener already exist!");
+            return;
+        }
+        try {
+            mService.startScan(serviceListener, settings, workSource,
+                    mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
     }
 
     /**
@@ -1302,13 +1400,19 @@ public class WifiScanner {
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public void stopScan(ScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = removeListener(listener);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        mAsyncChannel.sendMessage(CMD_STOP_SINGLE_SCAN, 0, key, scanParams);
+        ServiceListener serviceListener = getServiceListener(listener);
+        if (serviceListener == null) {
+            Log.e(TAG, "listener does not exist");
+            return;
+        }
+        try {
+            mService.stopScan(serviceListener, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        } finally {
+            removeListener(listener);
+        }
     }
 
     /**
@@ -1317,38 +1421,32 @@ public class WifiScanner {
     @NonNull
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public List<ScanResult> getSingleScanResults() {
-        validateChannel();
-        Bundle scanParams = new Bundle();
-        scanParams.putString(REQUEST_PACKAGE_NAME_KEY, mContext.getOpPackageName());
-        scanParams.putString(REQUEST_FEATURE_ID_KEY, mContext.getAttributionTag());
-        Message reply = mAsyncChannel.sendMessageSynchronously(CMD_GET_SINGLE_SCAN_RESULTS, 0, 0,
-                scanParams);
-        if (reply.what == WifiScanner.CMD_OP_SUCCEEDED
-                && reply.obj instanceof ParcelableScanResults) {
-            ScanResult[] results = ((ParcelableScanResults) reply.obj).getResults();
-            if (results != null) {
-                return Arrays.asList(results);
-            }
+        try {
+            return mService.getSingleScanResults(mContext.getPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
         }
-        if (reply.obj instanceof OperationResult) {
-            OperationResult result = (OperationResult) reply.obj;
-            Log.e(TAG, "Error retrieving SingleScan results reason: " + result.reason
-                    + " description: " + result.description);
-        } else {
-            Log.e(TAG, "Error retrieving SingleScan results - invalid object: " + reply.obj);
-        }
-        return new ArrayList<>();
     }
 
-    private void startPnoScan(ScanSettings scanSettings, PnoSettings pnoSettings, int key) {
-        // Bundle up both the settings and send it across.
-        Bundle pnoParams = new Bundle();
+    private void startPnoScan(PnoScanListener listener, Executor executor,
+            ScanSettings scanSettings, PnoSettings pnoSettings) {
         // Set the PNO scan flag.
         scanSettings.isPnoScan = true;
-        pnoParams.putParcelable(PNO_PARAMS_SCAN_SETTINGS_KEY, scanSettings);
-        pnoParams.putParcelable(PNO_PARAMS_PNO_SETTINGS_KEY, pnoSettings);
-        mAsyncChannel.sendMessage(CMD_START_PNO_SCAN, 0, key, pnoParams);
+        if (getServiceListener(listener) != null) return;
+        ServiceListener serviceListener = new ServiceListener(listener, executor);
+        if (!addListener(listener, serviceListener)) {
+            Log.w(TAG, "listener already exist!");
+        }
+        try {
+            mService.startPnoScan(serviceListener, scanSettings, pnoSettings,
+                    mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
     }
+
     /**
      * Start wifi connected PNO scan
      * @param scanSettings specifies various parameters for the scan; for more information look at
@@ -1365,11 +1463,8 @@ public class WifiScanner {
             @NonNull @CallbackExecutor Executor executor, PnoScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
         Objects.requireNonNull(pnoSettings, "pnoSettings cannot be null");
-        int key = addListener(listener, executor);
-        if (key == INVALID_KEY) return;
-        validateChannel();
         pnoSettings.isConnected = true;
-        startPnoScan(scanSettings, pnoSettings, key);
+        startPnoScan(listener, executor, scanSettings, pnoSettings);
     }
     /**
      * Start wifi disconnected PNO scan
@@ -1387,11 +1482,8 @@ public class WifiScanner {
             @NonNull @CallbackExecutor Executor executor, PnoScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
         Objects.requireNonNull(pnoSettings, "pnoSettings cannot be null");
-        int key = addListener(listener, executor);
-        if (key == INVALID_KEY) return;
-        validateChannel();
         pnoSettings.isConnected = false;
-        startPnoScan(scanSettings, pnoSettings, key);
+        startPnoScan(listener, executor, scanSettings, pnoSettings);
     }
     /**
      * Stop an ongoing wifi PNO scan
@@ -1402,10 +1494,19 @@ public class WifiScanner {
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void stopPnoScan(ScanListener listener) {
         Objects.requireNonNull(listener, "listener cannot be null");
-        int key = removeListener(listener);
-        if (key == INVALID_KEY) return;
-        validateChannel();
-        mAsyncChannel.sendMessage(CMD_STOP_PNO_SCAN, 0, key);
+        ServiceListener serviceListener = getServiceListener(listener);
+        if (serviceListener == null) {
+            Log.e(TAG, "listener does not exist");
+            return;
+        }
+        try {
+            mService.stopPnoScan(serviceListener, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        } finally {
+            removeListener(listener);
+        }
     }
 
     /** specifies information about an access point of interest */
@@ -1639,15 +1740,8 @@ public class WifiScanner {
     private Context mContext;
     private IWifiScanner mService;
 
-    private static final int INVALID_KEY = 0;
-    private int mListenerKey = 1;
-
-    private final SparseArray mListenerMap = new SparseArray();
-    private final SparseArray<Executor> mExecutorMap = new SparseArray<>();
     private final Object mListenerMapLock = new Object();
-
-    private AsyncChannel mAsyncChannel;
-    private final Handler mInternalHandler;
+    private final Map<ActionListener, ServiceListener> mListenerMap = new HashMap<>();
 
     /**
      * Create a new WifiScanner instance.
@@ -1665,248 +1759,38 @@ public class WifiScanner {
             @NonNull Looper looper) {
         mContext = context;
         mService = service;
-
-        Messenger messenger = null;
-        try {
-            messenger = mService.getMessenger();
-        } catch (RemoteException e) {
-            throw e.rethrowFromSystemServer();
-        }
-
-        if (messenger == null) {
-            throw new IllegalStateException("getMessenger() returned null!  This is invalid.");
-        }
-
-        mAsyncChannel = new AsyncChannel();
-
-        mInternalHandler = new ServiceHandler(looper);
-        mAsyncChannel.connectSync(mContext, mInternalHandler, messenger);
-        // We cannot use fullyConnectSync because it sends the FULL_CONNECTION message
-        // synchronously, which causes WifiScanningService to receive the wrong replyTo value.
-        mAsyncChannel.sendMessage(AsyncChannel.CMD_CHANNEL_FULL_CONNECTION);
-    }
-
-    private void validateChannel() {
-        if (mAsyncChannel == null) throw new IllegalStateException(
-                "No permission to access and change wifi or a bad initialization");
-    }
-
-    private int addListener(ActionListener listener) {
-        return addListener(listener, null);
     }
 
     // Add a listener into listener map. If the listener already exists, return INVALID_KEY and
     // send an error message to internal handler; Otherwise add the listener to the listener map and
     // return the key of the listener.
-    private int addListener(ActionListener listener, Executor executor) {
+    private boolean addListener(ActionListener listener, ServiceListener serviceListener) {
         synchronized (mListenerMapLock) {
-            boolean keyExists = (getListenerKey(listener) != INVALID_KEY);
+            boolean keyExists = mListenerMap.containsKey(listener);
             // Note we need to put the listener into listener map even if it's a duplicate as the
             // internal handler will need the key to find the listener. In case of duplicates,
             // removing duplicate key logic will be handled in internal handler.
-            int key = putListener(listener);
             if (keyExists) {
                 if (DBG) Log.d(TAG, "listener key already exists");
-                OperationResult operationResult = new OperationResult(REASON_DUPLICATE_REQEUST,
-                        "Outstanding request with same key not stopped yet");
-                Message message = Message.obtain(mInternalHandler, CMD_OP_FAILED, 0, key,
-                        operationResult);
-                message.sendToTarget();
-                return INVALID_KEY;
-            } else {
-                mExecutorMap.put(key, executor);
-                return key;
+                return false;
             }
+            mListenerMap.put(listener, serviceListener);
+            return true;
         }
     }
 
-    private int putListener(Object listener) {
-        if (listener == null) return INVALID_KEY;
-        int key;
+    private ServiceListener getServiceListener(ActionListener listener) {
+        if (listener == null) return null;
         synchronized (mListenerMapLock) {
-            do {
-                key = mListenerKey++;
-            } while (key == INVALID_KEY);
-            mListenerMap.put(key, listener);
-        }
-        return key;
-    }
-
-    private static class ListenerWithExecutor {
-        @Nullable final Object mListener;
-        @Nullable final Executor mExecutor;
-
-        ListenerWithExecutor(@Nullable Object listener, @Nullable Executor executor) {
-            mListener = listener;
-            mExecutor = executor;
+            return mListenerMap.get(listener);
         }
     }
 
-    private ListenerWithExecutor getListenerWithExecutor(int key) {
-        if (key == INVALID_KEY) return new ListenerWithExecutor(null, null);
+    private void removeListener(ActionListener listener) {
+        if (listener == null) return;
         synchronized (mListenerMapLock) {
-            Object listener = mListenerMap.get(key);
-            Executor executor = mExecutorMap.get(key);
-            return new ListenerWithExecutor(listener, executor);
+            mListenerMap.remove(listener);
         }
     }
 
-    private int getListenerKey(Object listener) {
-        if (listener == null) return INVALID_KEY;
-        synchronized (mListenerMapLock) {
-            int index = mListenerMap.indexOfValue(listener);
-            if (index == -1) {
-                return INVALID_KEY;
-            } else {
-                return mListenerMap.keyAt(index);
-            }
-        }
-    }
-
-    private Object removeListener(int key) {
-        if (key == INVALID_KEY) return null;
-        synchronized (mListenerMapLock) {
-            Object listener = mListenerMap.get(key);
-            mListenerMap.remove(key);
-            mExecutorMap.remove(key);
-            return listener;
-        }
-    }
-
-    private int removeListener(Object listener) {
-        int key = getListenerKey(listener);
-        if (key == INVALID_KEY) {
-            Log.e(TAG, "listener cannot be found");
-            return key;
-        }
-        synchronized (mListenerMapLock) {
-            mListenerMap.remove(key);
-            mExecutorMap.remove(key);
-            return key;
-        }
-    }
-
-    /** @hide */
-    @VisibleForTesting
-    public Handler getInternalHandler() {
-        return mInternalHandler;
-    }
-
-    /** @hide */
-    public static class OperationResult implements Parcelable {
-        public int reason;
-        public String description;
-
-        public OperationResult(int reason, String description) {
-            this.reason = reason;
-            this.description = description;
-        }
-
-        /** Implement the Parcelable interface {@hide} */
-        public int describeContents() {
-            return 0;
-        }
-
-        /** Implement the Parcelable interface {@hide} */
-        public void writeToParcel(Parcel dest, int flags) {
-            dest.writeInt(reason);
-            dest.writeString(description);
-        }
-
-        /** Implement the Parcelable interface {@hide} */
-        public static final @NonNull Creator<OperationResult> CREATOR =
-                new Creator<OperationResult>() {
-                    public OperationResult createFromParcel(Parcel in) {
-                        int reason = in.readInt();
-                        String description = in.readString();
-                        return new OperationResult(reason, description);
-                    }
-
-                    public OperationResult[] newArray(int size) {
-                        return new OperationResult[size];
-                    }
-                };
-    }
-
-    private class ServiceHandler extends Handler {
-        ServiceHandler(Looper looper) {
-            super(looper);
-        }
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case AsyncChannel.CMD_CHANNEL_FULLY_CONNECTED:
-                    return;
-                case AsyncChannel.CMD_CHANNEL_DISCONNECTED:
-                    Log.e(TAG, "Channel connection lost");
-                    // This will cause all further async API calls on the WifiManager
-                    // to fail and throw an exception
-                    mAsyncChannel = null;
-                    return;
-            }
-
-            if (mAsyncChannel == null) {
-                Log.e(TAG, "Channel was already disconnected!");
-                return;
-            }
-
-            ListenerWithExecutor listenerWithExecutor = getListenerWithExecutor(msg.arg2);
-            Object listener = listenerWithExecutor.mListener;
-
-            if (listener == null) {
-                if (DBG) Log.d(TAG, "invalid listener key = " + msg.arg2);
-                return;
-            } else {
-                if (DBG) Log.d(TAG, "listener key = " + msg.arg2);
-            }
-
-            Executor executor = listenerWithExecutor.mExecutor;
-            if (executor == null) {
-                executor = new SynchronousExecutor();
-            }
-
-            switch (msg.what) {
-                /* ActionListeners grouped together */
-                case CMD_OP_SUCCEEDED: {
-                    ActionListener actionListener = (ActionListener) listener;
-                    Binder.clearCallingIdentity();
-                    executor.execute(actionListener::onSuccess);
-                } break;
-                case CMD_OP_FAILED: {
-                    OperationResult result = (OperationResult) msg.obj;
-                    ActionListener actionListener = (ActionListener) listener;
-                    removeListener(msg.arg2);
-                    Binder.clearCallingIdentity();
-                    executor.execute(() ->
-                            actionListener.onFailure(result.reason, result.description));
-                } break;
-                case CMD_SCAN_RESULT: {
-                    ScanListener scanListener = (ScanListener) listener;
-                    ParcelableScanData parcelableScanData = (ParcelableScanData) msg.obj;
-                    Binder.clearCallingIdentity();
-                    executor.execute(() -> scanListener.onResults(parcelableScanData.getResults()));
-                } break;
-                case CMD_FULL_SCAN_RESULT: {
-                    ScanResult result = (ScanResult) msg.obj;
-                    ScanListener scanListener = ((ScanListener) listener);
-                    Binder.clearCallingIdentity();
-                    executor.execute(() -> scanListener.onFullResult(result));
-                } break;
-                case CMD_SINGLE_SCAN_COMPLETED: {
-                    if (DBG) Log.d(TAG, "removing listener for single scan");
-                    removeListener(msg.arg2);
-                } break;
-                case CMD_PNO_NETWORK_FOUND: {
-                    PnoScanListener pnoScanListener = (PnoScanListener) listener;
-                    ParcelableScanResults parcelableScanResults = (ParcelableScanResults) msg.obj;
-                    Binder.clearCallingIdentity();
-                    executor.execute(() ->
-                            pnoScanListener.onPnoNetworkFound(parcelableScanResults.getResults()));
-                } break;
-                default: {
-                    if (DBG) Log.d(TAG, "Ignoring message " + msg.what);
-                } break;
-            }
-        }
-    }
 }
