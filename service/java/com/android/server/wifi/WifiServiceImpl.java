@@ -5272,11 +5272,12 @@ public class WifiServiceImpl extends BaseWifiService {
             for (int i = mStartIdx; i < nextStartIdx; i++) {
                 WifiConfiguration configuration = mConfigurations.get(i);
                 int networkId =
-                        mWifiConfigManager.addOrUpdateNetwork(configuration, mCallingUid)
+                        mWifiConfigManager.addNetwork(configuration, mCallingUid)
                                 .getNetworkId();
                 if (networkId == WifiConfiguration.INVALID_NETWORK_ID) {
                     Log.e(TAG, "Restore network failed: "
-                            + configuration.getProfileKey());
+                            + configuration.getProfileKey() + ", network might already exist in the"
+                            + " database");
                 } else {
                     // Enable all networks restored.
                     mWifiConfigManager.enableNetwork(networkId, false, mCallingUid, null);
