@@ -5984,6 +5984,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 // reload will save native config and broadcast changed event.
                 updatePersistentNetworks(true);
                 setPendingFactoryReset(false);
+                Log.i(TAG, "factoryReset: de-init P2P interface.");
+                sendMessage(DISABLE_P2P);
             } else {
                 setPendingFactoryReset(true);
             }

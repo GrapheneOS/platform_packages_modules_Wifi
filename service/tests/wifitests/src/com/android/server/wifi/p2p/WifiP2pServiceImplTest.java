@@ -2865,20 +2865,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testStartLocalConnectionWhenCreateGroup() throws Exception {
+        mGroups.clear();
         setTargetSdkGreaterThanT();
         forceP2pEnabled(mClient1);
-
-        // permissions for factory reset
-        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt()))
-                .thenReturn(true);
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_NETWORK_RESET), any()))
-                .thenReturn(false);
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI), any()))
-                .thenReturn(false);
-
-        // There is one group hosted by this device in mGroups.
-        // clear all groups to avoid re-invoking a group.
-        sendSimpleMsg(mClientMessenger, WifiP2pManager.FACTORY_RESET);
 
         sendCreateGroupMsg(mClientMessenger, WifiP2pGroup.NETWORK_ID_PERSISTENT, null);
         if (SdkLevel.isAtLeastT()) {
@@ -4595,6 +4584,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 eq(UserManager.DISALLOW_NETWORK_RESET), any());
         verify(mUserManager).hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI), any());
         verify(mWifiNative, atLeastOnce()).p2pListNetworks(any());
+        verify(mWifiNative).teardownInterface();
         verify(mWifiSettingsConfigStore).put(eq(WIFI_P2P_PENDING_FACTORY_RESET), eq(false));
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
