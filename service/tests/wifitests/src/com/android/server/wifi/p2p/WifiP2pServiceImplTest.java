@@ -1184,6 +1184,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             when(mContext.getAttributionSource()).thenReturn(
                     new AttributionSource(1000, TEST_PACKAGE_NAME, null));
         }
+        when(mContext.getOpPackageName()).thenReturn("android");
+        when(mContext.getAttributionTag()).thenReturn("feature");
         when(mWifiManager.getConnectionInfo()).thenReturn(mWifiInfo);
         when(mWifiSettingsConfigStore.get(eq(WIFI_P2P_DEVICE_NAME))).thenReturn(thisDeviceName);
         when(mWifiSettingsConfigStore.get(eq(WIFI_P2P_PENDING_FACTORY_RESET))).thenReturn(false);
@@ -1310,6 +1312,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         mStaticMockSession = mockitoSession()
                 .mockStatic(NetworkInterface.class)
+                .mockStatic(Process.class)
                 .startMocking();
         lenient().when(NetworkInterface.getByName(eq(IFACE_NAME_P2P)))
                 .thenReturn(mP2pNetworkInterface);
@@ -6790,5 +6793,33 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         // For Keypad/Display pin-based request, p2p should start the p2p connection
         // from provision discovery to exchange pin codes.
         verify(mWifiNative).p2pProvisionDiscovery(mTestWifiP2pPeerConfig);
+    }
+
+    /**
+     * Verify internal reconnect works normally.
+     */
+    @Test
+    public void testInternalReconnectForUnknownP2pGroup() throws Exception {
+        lenient().when(Process.myUid()).thenReturn(Process.SYSTEM_UID);
+        when(mWifiNative.p2pInvite(any(), any())).thenReturn(true);
+        // Put newly formed group to the saved group list.
+        WifiP2pGroup savedGroup = new WifiP2pGroup(mTestWifiP2pNewPersistentGoGroup);
+        savedGroup.setNetworkId(99);
+        mGroups.add(savedGroup);
+
+        forceP2pEnabled(mClient1);
+        sendGroupStartedMsg(mTestWifiP2pNewPersistentGoGroup);
+        simulateTetherReady();
+
+        // Mock an outgoing invitation.
+        mockPeersList();
+        sendSetOngoingPeerConfigMsg(mClientMessenger, mTestWifiP2pPeerConfig);
+        mLooper.dispatchAll();
+
+        // The peer does not know this group, reconnect to the peer.
+        sendInvitationResultMsg(WifiP2pServiceImpl.P2pStatus.UNKNOWN_P2P_GROUP);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).p2pInvite(any(), eq(mTestWifiP2pPeerConfig.deviceAddress));
     }
 }

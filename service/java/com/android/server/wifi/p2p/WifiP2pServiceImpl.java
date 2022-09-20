@@ -3835,12 +3835,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             logd(getName() + "Wifi disconnected, retry p2p");
                         }
                         transitionTo(mInactiveState);
-                        Bundle extras = new Bundle();
-                        extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG,
-                                mSavedPeerConfig);
-                        extras.putBoolean(
-                                WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE, true);
-                        sendMessage(WifiP2pManager.CONNECT, extras);
+                        p2pReconnect();
                         break;
                     default:
                         return NOT_HANDLED;
@@ -4135,12 +4130,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 }
                                 removeClientFromList(netId, mSavedPeerConfig.deviceAddress, false);
                                 // try invitation.
-                                Bundle extras = new Bundle();
-                                extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG,
-                                        mSavedPeerConfig);
-                                extras.putBoolean(
-                                        WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE, true);
-                                sendMessage(WifiP2pManager.CONNECT, extras);
+                                p2pReconnect();
                             }
                         }
                         break;
@@ -6039,6 +6029,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 return mWifiNative.p2pFind(scanType, freq, timeout);
             }
             return false;
+        }
+
+        void p2pReconnect() {
+            Bundle extras = new Bundle();
+            extras.putParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG,
+                    mSavedPeerConfig);
+            extras.putBoolean(
+                    WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE, true);
+            final Message msg = obtainMessage(WifiP2pManager.CONNECT, extras);
+            msg.sendingUid = Process.myUid();
+            sendMessage(msg);
         }
 
         /**
