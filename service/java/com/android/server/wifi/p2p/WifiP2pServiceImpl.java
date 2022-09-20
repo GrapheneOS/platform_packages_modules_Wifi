@@ -2232,6 +2232,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 }
             }
 
+            private void takeBugReportInterfaceFailureIfNeeded(String bugTitle, String bugDetail) {
+                if (mWifiInjector.getDeviceConfigFacade().isInterfaceFailureBugreportEnabled()) {
+                    mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugDetail);
+                }
+            }
+
             private boolean setupInterface() {
                 if (!isWifiP2pAvailable()) {
                     Log.e(TAG, "Ignore P2P enable since wifi is " + mIsWifiEnabled
@@ -2244,7 +2250,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     checkAndSendP2pStateChangedBroadcast();
                 }, getHandler(), requestorWs);
                 if (mInterfaceName == null) {
-                    Log.e(TAG, "Failed to setup interface for P2P");
+                    String errorMsg = "Failed to setup interface for P2P";
+                    Log.e(TAG, errorMsg);
+                    takeBugReportInterfaceFailureIfNeeded("Wi-Fi BugReport (P2P interface failure)",
+                            errorMsg);
                     return false;
                 }
                 setupInterfaceFeatures(mInterfaceName);
