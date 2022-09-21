@@ -270,6 +270,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
     @Mock private SoftApManager mSoftApManager;
     @Mock private SsidTranslator mSsidTranslator;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
 
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
             ArgumentCaptor.forClass(WifiNl80211Manager.ScanEventCallback.class);
@@ -313,6 +314,8 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any()))
                 .thenAnswer((Answer<WifiSsid>) invocation ->
                         getTranslatedSsid(invocation.getArgument(0)));
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.isInterfaceFailureBugreportEnabled()).thenReturn(false);
 
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mStaIfaceHal, mHostapdHal, mWificondControl,
