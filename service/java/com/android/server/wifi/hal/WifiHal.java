@@ -67,6 +67,16 @@ public class WifiHal {
     public @interface WifiStatusCode {}
 
     /**
+     * Interface that can be created by the Wi-Fi HAL.
+     */
+    public interface WifiInterface {
+        /**
+         * Get the name of this interface.
+         */
+        String getName();
+    }
+
+    /**
      * Framework callback object. Will get called when the equivalent events are received
      * from the HAL.
      */
@@ -132,7 +142,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#getChip(int)}
+     * See comments for {@link IWifiHal#getChip(int)}
      */
     @Nullable
     public WifiChip getChip(int chipId) {
@@ -141,7 +151,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#getChipIds()}
+     * See comments for {@link IWifiHal#getChipIds()}
      */
     @Nullable
     public List<Integer> getChipIds() {
@@ -150,7 +160,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#registerEventCallback(Callback)}
+     * See comments for {@link IWifiHal#registerEventCallback(Callback)}
      */
     public boolean registerEventCallback(Callback callback) {
         return validateAndCall("registerEventCallback", false,
@@ -158,7 +168,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#initialize(DeathRecipient)}
+     * See comments for {@link IWifiHal#initialize(DeathRecipient)}
      */
     public void initialize(WifiHal.DeathRecipient deathRecipient) {
         if (mWifiHal != null) {
@@ -167,7 +177,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#isInitializationComplete()}
+     * See comments for {@link IWifiHal#isInitializationComplete()}
      */
     public boolean isInitializationComplete() {
         return validateAndCall("isInitializationComplete", false,
@@ -175,7 +185,7 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#isSupported()}
+     * See comments for {@link IWifiHal#isSupported()}
      */
     public boolean isSupported() {
         return validateAndCall("isSupported", false,
@@ -183,15 +193,15 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#start()} ()}
+     * See comments for {@link IWifiHal#start()}
      */
-    public boolean start() {
-        return validateAndCall("start", false,
+    public @WifiStatusCode int start() {
+        return validateAndCall("start", WIFI_STATUS_ERROR_UNKNOWN,
                 () -> mWifiHal.start());
     }
 
     /**
-     * See comments for {@link WifiHal#isStarted()}
+     * See comments for {@link IWifiHal#isStarted()}
      */
     public boolean isStarted() {
         return validateAndCall("isStarted", false,
@@ -199,10 +209,19 @@ public class WifiHal {
     }
 
     /**
-     * See comments for {@link WifiHal#stop()}
+     * See comments for {@link IWifiHal#stop()}
      */
     public boolean stop() {
         return validateAndCall("stop", false,
                 () -> mWifiHal.stop());
+    }
+
+    /**
+     * See comments for {@link IWifiHal#invalidate()}
+     */
+    public void invalidate() {
+        if (mWifiHal != null) {
+            mWifiHal.invalidate();
+        }
     }
 }
