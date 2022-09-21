@@ -1184,6 +1184,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             when(mContext.getAttributionSource()).thenReturn(
                     new AttributionSource(1000, TEST_PACKAGE_NAME, null));
         }
+        when(mContext.getOpPackageName()).thenReturn("android");
+        when(mContext.getAttributionTag()).thenReturn("feature");
         when(mWifiManager.getConnectionInfo()).thenReturn(mWifiInfo);
         when(mWifiSettingsConfigStore.get(eq(WIFI_P2P_DEVICE_NAME))).thenReturn(thisDeviceName);
         when(mWifiSettingsConfigStore.get(eq(WIFI_P2P_PENDING_FACTORY_RESET))).thenReturn(false);
@@ -1310,6 +1312,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         mStaticMockSession = mockitoSession()
                 .mockStatic(NetworkInterface.class)
+                .mockStatic(Process.class)
                 .startMocking();
         lenient().when(NetworkInterface.getByName(eq(IFACE_NAME_P2P)))
                 .thenReturn(mP2pNetworkInterface);
@@ -2862,20 +2865,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testStartLocalConnectionWhenCreateGroup() throws Exception {
+        mGroups.clear();
         setTargetSdkGreaterThanT();
         forceP2pEnabled(mClient1);
-
-        // permissions for factory reset
-        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt()))
-                .thenReturn(true);
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_NETWORK_RESET), any()))
-                .thenReturn(false);
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI), any()))
-                .thenReturn(false);
-
-        // There is one group hosted by this device in mGroups.
-        // clear all groups to avoid re-invoking a group.
-        sendSimpleMsg(mClientMessenger, WifiP2pManager.FACTORY_RESET);
 
         sendCreateGroupMsg(mClientMessenger, WifiP2pGroup.NETWORK_ID_PERSISTENT, null);
         if (SdkLevel.isAtLeastT()) {
@@ -4592,6 +4584,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 eq(UserManager.DISALLOW_NETWORK_RESET), any());
         verify(mUserManager).hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI), any());
         verify(mWifiNative, atLeastOnce()).p2pListNetworks(any());
+        verify(mWifiNative).teardownInterface();
         verify(mWifiSettingsConfigStore).put(eq(WIFI_P2P_PENDING_FACTORY_RESET), eq(false));
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
@@ -6790,5 +6783,82 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         // For Keypad/Display pin-based request, p2p should start the p2p connection
         // from provision discovery to exchange pin codes.
         verify(mWifiNative).p2pProvisionDiscovery(mTestWifiP2pPeerConfig);
+    }
+
+    /**
+     * Verify internal reconnect works normally.
+     */
+    @Test
+    public void testInternalReconnectForUnknownP2pGroup() throws Exception {
+        lenient().when(Process.myUid()).thenReturn(Process.SYSTEM_UID);
+        when(mWifiNative.p2pInvite(any(), any())).thenReturn(true);
+        // Put newly formed group to the saved group list.
+        WifiP2pGroup savedGroup = new WifiP2pGroup(mTestWifiP2pNewPersistentGoGroup);
+        savedGroup.setNetworkId(99);
+        mGroups.add(savedGroup);
+
+        forceP2pEnabled(mClient1);
+        sendGroupStartedMsg(mTestWifiP2pNewPersistentGoGroup);
+        simulateTetherReady();
+
+        // Mock an outgoing invitation.
+        mockPeersList();
+        sendSetOngoingPeerConfigMsg(mClientMessenger, mTestWifiP2pPeerConfig);
+        mLooper.dispatchAll();
+
+        // The peer does not know this group, reconnect to the peer.
+        sendInvitationResultMsg(WifiP2pServiceImpl.P2pStatus.UNKNOWN_P2P_GROUP);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).p2pInvite(any(), eq(mTestWifiP2pPeerConfig.deviceAddress));
+    }
+
+    @Test
+    public void testSurplusProvisionDiscoveryRequestsBehavior() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
+
+        mockEnterGroupCreatedState();
+
+        // The first provision discvoery request triggers the dialog.
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                eq(mTestWifiP2pDevice.deviceAddress), anyBoolean(),
+                any(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+
+        // Handle it programmatically.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_REJECT);
+
+        // Send another provision discvoery request again.
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        // This surplus request should not trigger a dialog.
+        reset(mWifiDialogManager);
+        reset(mDialogHandle);
+        verify(mWifiDialogManager, never()).createP2pInvitationReceivedDialog(
+                any(), anyBoolean(), any(), anyInt(), any(), any());
+
+        when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
+                anyInt(), any(), any())).thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))
+                .thenReturn(mDialogHandle);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(
+                WifiP2pServiceImpl.P2P_PEER_AUTH_TIMEOUT_MS + 1);
+
+        // Send another provision discvoery request again after the timeout
+        sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
+                pdEvent);
+
+        // Another dialog should be triggered.
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                eq(mTestWifiP2pDevice.deviceAddress), anyBoolean(),
+                any(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
     }
 }

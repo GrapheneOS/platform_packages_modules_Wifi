@@ -73,9 +73,9 @@ public interface IWifiHal {
     /**
      * Start the Wi-Fi HAL.
      *
-     * @return true if successful, false otherwise.
+     * @return {@link WifiHal.WifiStatusCode} indicating the result.
      */
-    boolean start();
+    @WifiHal.WifiStatusCode int start();
 
     /**
      * Get the current state of the HAL.
@@ -93,4 +93,10 @@ public interface IWifiHal {
      * @return true if successful, false otherwise.
      */
     boolean stop();
+
+    /**
+     * Invalidate the Wi-Fi HAL. Call when a significant error occurred external to the root
+     * Wi-Fi HAL, for instance in a Wi-Fi chip retrieved from this HAL.
+     */
+    void invalidate();
 }
