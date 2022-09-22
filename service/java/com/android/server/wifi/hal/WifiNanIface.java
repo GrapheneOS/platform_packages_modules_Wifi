@@ -17,6 +17,7 @@
 package com.android.server.wifi.hal;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.net.MacAddress;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
@@ -35,7 +36,7 @@ import java.util.function.Supplier;
 /**
  * Wrapper class for IWifiNanIface HAL calls.
  */
-public class WifiNanIface {
+public class WifiNanIface implements WifiHal.WifiInterface {
     private static final String TAG = "WifiNanIface";
     private IWifiNanIface mWifiNanIface;
 
@@ -236,6 +237,15 @@ public class WifiNanIface {
                 () -> mWifiNanIface.registerFrameworkCallback(cb));
     }
 
+    /**
+     * See comments for {@link IWifiNanIface#getName()}
+     */
+    @Override
+    @Nullable
+    public String getName() {
+        return validateAndCall("getName", null,
+                () -> mWifiNanIface.getName());
+    }
 
     /**
      * See comments for {@link IWifiNanIface#getCapabilities(short)}

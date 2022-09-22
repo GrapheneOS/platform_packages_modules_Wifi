@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.hal;
 
+import android.annotation.Nullable;
 import android.net.MacAddress;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
@@ -46,6 +47,14 @@ public interface IWifiNanIface {
      * @return true if successful, false otherwise
      */
     boolean registerFrameworkCallback(WifiNanIface.Callback callback);
+
+    /**
+     * Get the name of this interface.
+     *
+     * @return Name of this interface, or null on error.
+     */
+    @Nullable
+    String getName();
 
     /**
      * Query the firmware's capabilities.

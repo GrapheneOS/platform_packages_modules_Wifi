@@ -30,6 +30,7 @@ import com.android.server.wifi.util.GeneralUtil.Mutable;
 public class WifiP2pIfaceHidlImpl implements IWifiP2pIface {
     private static final String TAG = "WifiP2pIfaceHidlImpl";
     private android.hardware.wifi.V1_0.IWifiP2pIface mWifiP2pIface;
+    private String mIfaceName;
 
     public WifiP2pIfaceHidlImpl(@NonNull android.hardware.wifi.V1_0.IWifiP2pIface p2pIface) {
         mWifiP2pIface = p2pIface;
@@ -44,12 +45,13 @@ public class WifiP2pIfaceHidlImpl implements IWifiP2pIface {
             handleNullIface(methodStr);
             return null;
         }
-
+        if (mIfaceName != null) return mIfaceName;
         Mutable<String> nameResp = new Mutable<>();
         try {
             mWifiP2pIface.getName((WifiStatus status, String name) -> {
                 if (isOk(status, methodStr)) {
                     nameResp.value = name;
+                    mIfaceName = name;
                 }
             });
         } catch (RemoteException e) {
