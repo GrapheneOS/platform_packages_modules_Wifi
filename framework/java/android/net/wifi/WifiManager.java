@@ -9577,6 +9577,13 @@ public class WifiManager {
      * mode(s), that is allowed for the current regulatory domain. An empty list implies that there
      * are no available channels for use.
      *
+     * Note: the {@code band} parameter which is specified as a {@code WifiScanner#WIFI_BAND_*}
+     * constant is limited to one of the band values specified below. Specifically, if the 5GHz
+     * band is included then it must include the DFS channels - an exception will be thrown
+     * otherwise. The caller should not make any assumptions about whether DFS channels are allowed.
+     * This API will indicate whether DFS channels are allowed for the specified operation mode(s)
+     * per device policy.
+     *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
      *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED} - no band specified; Looks for the
@@ -9620,6 +9627,13 @@ public class WifiManager {
      * mode(s) per the current regulatory domain and device-specific constraints such as concurrency
      * state and interference due to other radios. An empty list implies that there are no available
      * channels for use.
+     *
+     * Note: the {@code band} parameter which is specified as a {@code WifiScanner#WIFI_BAND_*}
+     * constant is limited to one of the band values specified below. Specifically, if the 5GHz
+     * band is included then it must include the DFS channels - an exception will be thrown
+     * otherwise. The caller should not make any assumptions about whether DFS channels are allowed.
+     * This API will indicate whether DFS channels are allowed for the specified operation mode(s)
+     * per device policy.
      *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
