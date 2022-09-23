@@ -17,6 +17,7 @@
 package com.android.server.wifi.hal;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.net.MacAddress;
 import android.util.Log;
 
@@ -29,7 +30,7 @@ import java.util.function.Supplier;
  * Wrapper around a WifiApIface.
  * May be initialized using a HIDL or AIDL WifiApIface.
  */
-public class WifiApIface {
+public class WifiApIface implements WifiHal.WifiInterface {
     private static final String TAG = "WifiApIface";
     private final IWifiApIface mWifiApIface;
 
@@ -54,6 +55,8 @@ public class WifiApIface {
     /**
      * See comments for {@link IWifiApIface#getName()}
      */
+    @Override
+    @Nullable
     public String getName() {
         return validateAndCall("getName", null,
                 () -> mWifiApIface.getName());
@@ -100,6 +103,14 @@ public class WifiApIface {
     public boolean resetToFactoryMacAddress() {
         return validateAndCall("resetToFactoryMacAddress", false,
                 () -> mWifiApIface.resetToFactoryMacAddress());
+    }
+
+    /**
+     * See comments for {@link IWifiApIface#isSetMacAddressSupported()}
+     */
+    public boolean isSetMacAddressSupported() {
+        return validateAndCall("isSetMacAddressSupported", false,
+                () -> mWifiApIface.isSetMacAddressSupported());
     }
 
     /**

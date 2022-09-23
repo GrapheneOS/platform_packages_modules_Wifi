@@ -17,13 +17,14 @@
 package com.android.server.wifi.hal;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.util.Log;
 
 /**
  * Wrapper around a WifiP2pIface.
  * May be initialized using a HIDL or AIDL WifiP2pIface.
  */
-public class WifiP2pIface {
+public class WifiP2pIface implements WifiHal.WifiInterface {
     private static final String TAG = "WifiP2pIface";
     private final IWifiP2pIface mWifiP2pIface;
 
@@ -44,6 +45,8 @@ public class WifiP2pIface {
     /**
      * See comments for {@link IWifiP2pIface#getName()}
      */
+    @Override
+    @Nullable
     public String getName() {
         final String methodStr = "getName";
         if (mWifiP2pIface == null) {
