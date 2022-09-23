@@ -3194,6 +3194,35 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Check that the device does not trigger any periodic scans when it doesn't have any
+     * saved, passpoint, or suggestion network and open network notifier is disabled
+     */
+    @Test
+    public void checkNoScanWhenNoPotentialNetwork() {
+        // Disable open network notifier
+        when(mOpenNetworkNotifier.isSettingEnabled()).thenReturn(false);
+        // Return no saved networks
+        when(mWifiConfigManager.getSavedNetworks(anyInt()))
+                .thenReturn(new ArrayList<WifiConfiguration>());
+        // Return no suggestion networks
+        when(mWifiNetworkSuggestionsManager.getAllApprovedNetworkSuggestions())
+                .thenReturn(new HashSet<>());
+        // Return no passpoint networks
+        when(mPasspointManager.getProviderConfigs(anyInt(), anyBoolean()))
+                .thenReturn(new ArrayList<>());
+
+        // Set screen to ON
+        setScreenState(true);
+
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+
+        verify(mWifiScanner, never()).startScan(anyObject(), anyObject(), anyObject(),
+                anyObject());
+    }
+
+    /**
      *  When screen on trigger a connected state change event then a disconnected state
      *  change event back to back to verify that a scan is fired immediately for the
      *  disconnected state change event.
