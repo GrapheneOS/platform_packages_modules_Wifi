@@ -69,6 +69,7 @@ import java.util.function.Supplier;
 public class WifiStaIfaceHidlImpl implements IWifiStaIface {
     private static final String TAG = "WifiStaIfaceHidlImpl";
     private android.hardware.wifi.V1_0.IWifiStaIface mWifiStaIface;
+    private String mIfaceName;
     private IWifiStaIfaceEventCallback mHalCallback;
     private WifiStaIface.Callback mFrameworkCallback;
     private Context mContext;
@@ -345,11 +346,13 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
     }
 
     private String getNameInternal(String methodStr) {
+        if (mIfaceName != null) return mIfaceName;
         GeneralUtil.Mutable<String> nameResp = new GeneralUtil.Mutable<>();
         try {
             mWifiStaIface.getName((WifiStatus status, String name) -> {
                 if (isOk(status, methodStr)) {
                     nameResp.value = name;
+                    mIfaceName = name;
                 }
             });
         } catch (RemoteException e) {

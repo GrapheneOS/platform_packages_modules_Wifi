@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 public class WifiApIfaceHidlImpl implements IWifiApIface {
     private static final String TAG = "WifiApIfaceHidlImpl";
     private android.hardware.wifi.V1_0.IWifiApIface mWifiApIface;
+    private String mIfaceName;
 
     public WifiApIfaceHidlImpl(@NonNull android.hardware.wifi.V1_0.IWifiApIface apIface) {
         mWifiApIface = apIface;
@@ -88,6 +89,14 @@ public class WifiApIfaceHidlImpl implements IWifiApIface {
     }
 
     /**
+     * See comments for {@link IWifiApIface#isSetMacAddressSupported()}
+     */
+    public boolean isSetMacAddressSupported() {
+        if (mWifiApIface == null) return false;
+        return getWifiApIfaceV1_4Mockable() != null;
+    }
+
+    /**
      * See comments for {@link IWifiApIface#setMacAddress(MacAddress)}
      */
     public boolean setMacAddress(MacAddress mac) {
@@ -100,11 +109,13 @@ public class WifiApIfaceHidlImpl implements IWifiApIface {
     // Internal Implementations
 
     private String getNameInternal(String methodStr) {
+        if (mIfaceName != null) return mIfaceName;
         GeneralUtil.Mutable<String> nameResp = new GeneralUtil.Mutable<>();
         try {
             mWifiApIface.getName((WifiStatus status, String name) -> {
                 if (isOk(status, methodStr)) {
                     nameResp.value = name;
+                    mIfaceName = name;
                 }
             });
         } catch (RemoteException e) {
