@@ -609,7 +609,7 @@ public class SoftApManager implements ActiveModeManager {
     private void onL2Connected(@NonNull ConcreteClientModeManager clientModeManager) {
         Log.d(getTag(), "onL2Connected called");
         mStateMachine.sendMessage(SoftApStateMachine.CMD_HANDLE_WIFI_CONNECTED,
-                clientModeManager.syncRequestConnectionInfo());
+                clientModeManager.getConnectionInfo());
     }
 
 
@@ -1049,8 +1049,7 @@ public class SoftApManager implements ActiveModeManager {
                                 if (ApConfigUtil.isStaWithBridgedModeSupported(mContext)) {
                                     for (ClientModeManager cmm
                                             : mActiveModeWarden.getClientModeManagers()) {
-                                        WifiInfo wifiConnectedInfo =
-                                                cmm.syncRequestConnectionInfo();
+                                        WifiInfo wifiConnectedInfo = cmm.getConnectionInfo();
                                         int wifiFrequency = wifiConnectedInfo.getFrequency();
                                         if (wifiFrequency > 0
                                                 && !mSafeChannelFrequencyList.contains(

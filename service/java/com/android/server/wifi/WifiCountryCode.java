@@ -461,7 +461,7 @@ public class WifiCountryCode {
             if (!cmm.isConnected()) {
                 continue;
             }
-            WifiInfo wifiInfo = cmm.syncRequestConnectionInfo();
+            WifiInfo wifiInfo = cmm.getConnectionInfo();
             if (wifiInfo.getSuccessfulTxPacketsPerSecond() < PKT_COUNT_HIGH_PKT_PER_SEC
                     && wifiInfo.getSuccessfulRxPacketsPerSecond() < PKT_COUNT_HIGH_PKT_PER_SEC) {
                 return true;

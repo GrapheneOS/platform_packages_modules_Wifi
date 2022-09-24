@@ -1340,8 +1340,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
-    public WifiInfo syncRequestConnectionInfo() {
-        return getClientMode().syncRequestConnectionInfo();
+    public WifiInfo getConnectionInfo() {
+        return getClientMode().getConnectionInfo();
     }
 
     @Override

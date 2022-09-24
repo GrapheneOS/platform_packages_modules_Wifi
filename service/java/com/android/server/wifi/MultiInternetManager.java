@@ -213,7 +213,7 @@ public class MultiInternetManager {
                     || !isStaConcurrencyForMultiInternetEnabled()) {
                 return;
             }
-            final WifiInfo info = clientModeManager.syncRequestConnectionInfo();
+            final WifiInfo info = clientModeManager.getConnectionInfo();
             if (info != null) {
                 final int band = ScanResult.toBand(info.getFrequency());
                 if (mNetworkConnectionStates.contains(band)) {
@@ -419,14 +419,14 @@ public class MultiInternetManager {
         }
         // If primary CMM has associated to a new BSSID, need to check if it is in a different band
         // of secondary CMM.
-        final WifiInfo info = clientModeManager.syncRequestConnectionInfo();
+        final WifiInfo info = clientModeManager.getConnectionInfo();
         final ConcreteClientModeManager secondaryCcmm =
                 mActiveModeWarden.getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED);
         // If no secondary client mode manager then it's ok
         if (secondaryCcmm == null) return;
         // If secondary client mode manager is not connected or not for secondary internet
         if (!secondaryCcmm.isConnected() || !secondaryCcmm.isSecondaryInternet()) return;
-        final WifiInfo info2 = secondaryCcmm.syncRequestConnectionInfo();
+        final WifiInfo info2 = secondaryCcmm.getConnectionInfo();
         // If secondary network is in same band as primary now
         if (ScanResult.toBand(info.getFrequency()) == ScanResult.toBand(info2.getFrequency())) {
             // Need to disconnect secondary network
@@ -482,7 +482,7 @@ public class MultiInternetManager {
                         && !ccmm.isSecondaryInternet()) {
                     continue;
                 }
-                WifiInfo info = clientModeManager.syncRequestConnectionInfo();
+                WifiInfo info = clientModeManager.getConnectionInfo();
                 // Exclude the network that is not connected or restricted.
                 if (info == null || !clientModeManager.isConnected()
                         ||  info.isRestricted()) continue;
@@ -562,7 +562,7 @@ public class MultiInternetManager {
         if (secondaryCcmm == null) {
             return ScanResult.UNSPECIFIED;
         }
-        final WifiInfo info = secondaryCcmm.syncRequestConnectionInfo();
+        final WifiInfo info = secondaryCcmm.getConnectionInfo();
         // Make sure secondary network is connected.
         if (info == null || !secondaryCcmm.isConnected() || !secondaryCcmm.isSecondaryInternet()) {
             return ScanResult.UNSPECIFIED;
