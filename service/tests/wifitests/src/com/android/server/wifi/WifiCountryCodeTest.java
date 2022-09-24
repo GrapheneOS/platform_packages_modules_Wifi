@@ -115,7 +115,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(mClientModeManager.setCountryCode(anyString())).thenReturn(true);
         when(mClientModeManager.isConnected()).thenReturn(true);
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(mWifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(mWifiInfo);
         when(mWifiInfo.getSuccessfulTxPacketsPerSecond()).thenReturn(10.0);
         when(mWifiInfo.getSuccessfulRxPacketsPerSecond()).thenReturn(5.0);
         when(mContext.getSystemService(Context.TELEPHONY_SERVICE))

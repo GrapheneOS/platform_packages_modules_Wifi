@@ -2341,7 +2341,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             // privileged, dump out all the client mode manager manager statuses
             for (ClientModeManager cm : mActiveModeWarden.getClientModeManagers()) {
                 pw.println("==== ClientModeManager instance: " + cm + " ====");
-                WifiInfo info = cm.syncRequestConnectionInfo();
+                WifiInfo info = cm.getConnectionInfo();
                 printWifiInfo(pw, info);
                 if (info.getSupplicantState() != SupplicantState.COMPLETED) {
                     continue;

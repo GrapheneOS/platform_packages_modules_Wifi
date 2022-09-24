@@ -92,7 +92,11 @@ public interface ClientMode {
      */
     void onBluetoothConnectionStateChanged();
 
-    WifiInfo syncRequestConnectionInfo();
+    /**
+     * Get current Wifi connection information
+     * @return Wifi info
+     */
+    WifiInfo getConnectionInfo();
 
     boolean syncQueryPasspointIcon(long bssid, String fileName);
 

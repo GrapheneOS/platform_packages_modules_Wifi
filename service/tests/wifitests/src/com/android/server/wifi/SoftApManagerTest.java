@@ -347,9 +347,9 @@ public class SoftApManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.getClientModeManagers())
                 .thenReturn(mTestClientModeManagers);
         mTestClientModeManagers.add(mPrimaryConcreteClientModeManager);
-        when(mPrimaryConcreteClientModeManager.syncRequestConnectionInfo())
+        when(mPrimaryConcreteClientModeManager.getConnectionInfo())
                 .thenReturn(mPrimaryWifiInfo);
-        when(mConcreteClientModeManager.syncRequestConnectionInfo())
+        when(mConcreteClientModeManager.getConnectionInfo())
                 .thenReturn(mPrimaryWifiInfo);
         when(mWifiNative.forceClientDisconnect(any(), any(), anyInt())).thenReturn(true);
         when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
@@ -3142,7 +3142,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         // Prepare second ClientModeManager
         List<ClientModeManager> testClientModeManagers = new ArrayList<>(mTestClientModeManagers);
         testClientModeManagers.add(mSecondConcreteClientModeManager);
-        when(mSecondConcreteClientModeManager.syncRequestConnectionInfo())
+        when(mSecondConcreteClientModeManager.getConnectionInfo())
                 .thenReturn(mSecondWifiInfo);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(testClientModeManagers);
         // TEST_SUPPORTED_5G_CHANNELS = 36, 149, mark to unsafe. Let Wifi connect to 5200 (CH40)

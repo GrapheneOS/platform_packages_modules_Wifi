@@ -880,7 +880,7 @@ public class WifiNetworkSelector {
             ifaceName = clientModeManager.getInterfaceName();
             connected = clientModeManager.isConnected();
             disconnected = clientModeManager.isDisconnected();
-            wifiInfo = clientModeManager.syncRequestConnectionInfo();
+            wifiInfo = clientModeManager.getConnectionInfo();
         }
 
         ClientModeManagerState() {

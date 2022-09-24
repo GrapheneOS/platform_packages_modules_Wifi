@@ -179,7 +179,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mContext.getSystemService(PowerManager.class)).thenReturn(powerManager);
         when(powerManager.isInteractive()).thenReturn(false);
         when(mPrimaryClientModeManager.getRole()).thenReturn(ActiveModeManager.ROLE_CLIENT_PRIMARY);
-        when(mPrimaryClientModeManager.syncRequestConnectionInfo()).thenReturn(mWifiInfo);
+        when(mPrimaryClientModeManager.getConnectionInfo()).thenReturn(mWifiInfo);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mPrimaryClientModeManager);
         doAnswer(new AnswerWithArguments() {
             public void answer(ExternalClientModeManagerRequestListener listener,
@@ -1405,7 +1405,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         wifiInfo.setCurrentSecurityType(WifiConfiguration.SECURITY_TYPE_PSK);
         when(clientManager.isConnected()).thenReturn(true);
         when(clientManager.isDisconnected()).thenReturn(false);
-        when(clientManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(clientManager.getConnectionInfo()).thenReturn(wifiInfo);
     }
 
     private void testMultiInternetSecondaryConnectionRequest(boolean isDbsOnly, boolean isDhcp,
@@ -5166,7 +5166,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(primaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(primaryCmm.isConnected()).thenReturn(false);
         when(primaryCmm.isDisconnected()).thenReturn(true);
-        when(primaryCmm.syncRequestConnectionInfo()).thenReturn(wifiInfo1);
+        when(primaryCmm.getConnectionInfo()).thenReturn(wifiInfo1);
 
         ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
         WifiInfo wifiInfo2 = mock(WifiInfo.class);
@@ -5174,7 +5174,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(secondaryCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
         when(secondaryCmm.isConnected()).thenReturn(false);
         when(secondaryCmm.isDisconnected()).thenReturn(true);
-        when(secondaryCmm.syncRequestConnectionInfo()).thenReturn(wifiInfo2);
+        when(secondaryCmm.getConnectionInfo()).thenReturn(wifiInfo2);
 
         when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
                 .thenReturn(Arrays.asList(primaryCmm, secondaryCmm));
@@ -5208,7 +5208,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(primaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(primaryCmm.isConnected()).thenReturn(false);
         when(primaryCmm.isDisconnected()).thenReturn(true);
-        when(primaryCmm.syncRequestConnectionInfo()).thenReturn(wifiInfo1);
+        when(primaryCmm.getConnectionInfo()).thenReturn(wifiInfo1);
 
         when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
                 .thenReturn(Arrays.asList(primaryCmm));

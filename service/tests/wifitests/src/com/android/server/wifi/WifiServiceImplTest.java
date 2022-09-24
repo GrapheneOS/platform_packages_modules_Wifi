@@ -2728,7 +2728,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreHiddenFromAppWithoutPermission() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         doThrow(new SecurityException()).when(mWifiPermissionsUtil).enforceCanAccessScanResults(
                 anyString(), nullable(String.class), anyInt(), nullable(String.class));
@@ -2758,7 +2758,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreHiddenOnSecurityException() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         doThrow(new SecurityException()).when(mWifiPermissionsUtil).enforceCanAccessScanResults(
                 anyString(), nullable(String.class), anyInt(), nullable(String.class));
@@ -2782,7 +2782,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreVisibleFromPermittedApp() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mLooper.startAutoDispatch();
         WifiInfo connectionInfo = parcelingRoundTrip(
@@ -2807,7 +2807,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
         when(secondaryCmm.getRequestorWs())
                 .thenReturn(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE));
-        when(secondaryCmm.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(secondaryCmm.getConnectionInfo()).thenReturn(wifiInfo);
         when(mActiveModeWarden.getClientModeManagersInRoles(
                 ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
                 .thenReturn(Arrays.asList(secondaryCmm));
@@ -2837,7 +2837,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WorkSource ws = new WorkSource(Binder.getCallingUid(), TEST_PACKAGE);
         ws.add(SETTINGS_WORKSOURCE);
         when(secondaryCmm.getRequestorWs()).thenReturn(ws);
-        when(secondaryCmm.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(secondaryCmm.getConnectionInfo()).thenReturn(wifiInfo);
         when(mActiveModeWarden.getClientModeManagersInRoles(
                 ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
                 .thenReturn(Arrays.asList(secondaryCmm));
@@ -2862,7 +2862,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testConnectedIdsFromPrimaryCmmAreVisibleFromAppNotRequestingSecondaryCmm()
             throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
         ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
         when(secondaryCmm.getRequestorWs())
                 .thenReturn(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME_OTHER));
@@ -9432,7 +9432,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testGetPrivilegedConnectedNetworkNotConnected() {
         trySetTargetSdkToT();
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(new WifiInfo());
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(new WifiInfo());
 
         mLooper.startAutoDispatch();
         assertNull(mWifiServiceImpl.getPrivilegedConnectedNetwork(
@@ -9455,7 +9455,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         testConfig.setRandomizedMacAddress(TEST_FACTORY_MAC_ADDR);
         WifiInfo wifiInfo = new WifiInfo();
         wifiInfo.setNetworkId(testConfig.networkId);
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
         when(mWifiConfigManager.getConfiguredNetworkWithPassword(testConfig.networkId)).thenReturn(
                 testConfig);
 
@@ -10308,7 +10308,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
                 Arrays.asList(WifiSsid.fromUtf8Text("SSID")));
@@ -10336,7 +10336,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
                 Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID)));
@@ -10361,7 +10361,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST,
                 Arrays.asList(WifiSsid.fromUtf8Text("SSID")));
@@ -10390,7 +10390,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiServiceImpl.notifyWifiSsidPolicyChanged(WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST,
                 Arrays.asList(WifiSsid.fromUtf8Text(TEST_SSID)));
@@ -10415,7 +10415,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mActiveModeWarden.getClientModeManagers()).thenReturn(
                 Collections.singletonList(mClientModeManager));
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(wifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
 
         mWifiServiceImpl.notifyMinimumRequiredWifiSecurityLevelChanged(
                 DevicePolicyManager.WIFI_SECURITY_ENTERPRISE_EAP);

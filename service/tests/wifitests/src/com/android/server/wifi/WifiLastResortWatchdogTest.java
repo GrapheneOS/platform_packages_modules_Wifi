@@ -88,7 +88,7 @@ public class WifiLastResortWatchdogTest extends WifiBaseTest {
         when(mWifiInjector.getSelfRecovery()).thenReturn(mSelfRecovery);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager);
-        when(mClientModeManager.syncRequestConnectionInfo()).thenReturn(mWifiInfo);
+        when(mClientModeManager.getConnectionInfo()).thenReturn(mWifiInfo);
         when(mDeviceConfigFacade.isAbnormalConnectionBugreportEnabled()).thenReturn(true);
         when(mDeviceConfigFacade.getAbnormalConnectionDurationMs()).thenReturn(
                         DEFAULT_ABNORMAL_CONNECTION_DURATION_MS);
