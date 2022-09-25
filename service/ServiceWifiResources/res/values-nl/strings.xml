@@ -55,6 +55,8 @@
     <string name="ok" msgid="847575529546290102">"OK"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Uitnodiging verzonden"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Uitnodiging om te koppelen"</string>
+    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
+    <skip />
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"Van:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Naar:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Voer de gewenste pincode in:"</string>
@@ -160,7 +162,7 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Toestaan"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Niet toestaan"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifi aan in vliegtuigmodus"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Als je wifi laat aanstaan, blijft het aanstaan als je de vliegtuigmodus weer aanzet"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Als je wifi laat aanstaan, blijft deze aanstaan als je de vliegtuigmodus weer aanzet"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifi blijft aan"</string>
     <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"De wifi op je telefoon blijft aan in de vliegtuigmodus. Zet wifi uit om dit te wijzigen."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Niet-beschikbaar netwerk"</string>
