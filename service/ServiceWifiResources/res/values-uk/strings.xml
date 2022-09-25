@@ -55,6 +55,8 @@
     <string name="ok" msgid="847575529546290102">"OK"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Запрошення надіслано"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Запрошення під’єднатися"</string>
+    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
+    <skip />
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"Від:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Кому:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Введіть потрібний PIN-код:"</string>
@@ -159,7 +161,7 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Wi-Fi можна вимкнути у швидких налаштуваннях"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Дозволити"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Не дозволяти"</string>
-    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"У режимі польоту Wi‑Fi увімкнено"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Ви ввімкнули Wi‑Fi у режимі польоту"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Якщо не вимикати Wi‑Fi, ця функція залишатиметься ввімкненою під час наступного використання режиму польоту"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi не буде вимкнено"</string>
     <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"У режимі польоту функція Wi‑Fi на телефоні залишатиметься ввімкненою. Щоб змінити це, вимкніть Wi‑Fi."</string>

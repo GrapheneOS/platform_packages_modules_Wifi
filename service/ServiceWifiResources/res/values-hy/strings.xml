@@ -55,6 +55,8 @@
     <string name="ok" msgid="847575529546290102">"Լավ"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Հրավերն ուղարկված է"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Միացման հրավեր"</string>
+    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
+    <skip />
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"Ուղարկող`"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Ում`"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Մուտքագրեք պահանջվող PIN-ը:"</string>
@@ -160,7 +162,7 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Թույլատրել"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Չթույլատրել"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Ավիառեժիմում Wi‑Fi-ը միացված կլինի"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Եթե Wi-Fi-ը միացված թողնեք, հաջորդ անգամ այն ավտոմատ չի անջատվի ավիառեժիմում։"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Եթե Wi-Fi-ը միացված թողնեք, հաջորդ անգամ այն ավտոմատ չի անջատվի ավիառեժիմում"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi-ը մնում է միացված"</string>
     <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"Ավիառեժիմում Wi‑Fi-ը միացված կմնա։ Wi-Fi-ը կարող եք ցանկացած պահի անջատել։"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Անհասանելի ցանց"</string>
