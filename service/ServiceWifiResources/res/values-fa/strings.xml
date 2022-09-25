@@ -55,6 +55,8 @@
     <string name="ok" msgid="847575529546290102">"تأیید"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"دعوت‌نامه ارسال شد"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"دعوت‌نامه برای اتصال"</string>
+    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
+    <skip />
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"از:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"به:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"پین لازم را تایپ کنید:"</string>
@@ -159,10 +161,10 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"‏می‌توانید Wi‑Fi را در «تنظیمات فوری» خاموش کنید"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"اجازه دادن"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"اجازه ندادن"</string>
-    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"‏Wi‑Fi در حالت هواپیما"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"‏اگر Wi‑Fi را روشن نگه دارید، دفعه بعد که در حالت هواپیما هستید روشن می‌ماند"</string>
-    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"‏Wi-Fi روشن می‌ماند"</string>
-    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"‏تلفنتان به‌یاد می‌آورد که Wi-Fi را در حالت هواپیما روشن نگه دارد. برای تغییر این مورد، Wi‑Fi را خاموش کنید."</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"‏‫Wi‑Fi در «حالت هواپیما» روشن باشد"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"‏اگر Wi‑Fi را روشن نگه دارید، دفعه بعد که در «حالت هواپیما» باشید روشن می‌ماند"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"‏‫Wi-Fi روشن بماند"</string>
+    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"‏تلفنتان به‌یاد می‌آورد که Wi-Fi را در «حالت هواپیما» روشن نگه دارد. برای تغییر دادن آن، Wi‑Fi را خاموش کنید."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"شبکه غیرقابل‌دسترس"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"سرپرست شما <xliff:g id="SSID">%1$s</xliff:g> را غیرفعال کرده است."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"بستن"</string>
