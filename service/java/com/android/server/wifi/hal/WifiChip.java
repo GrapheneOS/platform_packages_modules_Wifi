@@ -29,6 +29,7 @@ import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
+import com.android.server.wifi.util.GeneralUtil.Mutable;
 import com.android.server.wifi.util.NativeUtil;
 
 import java.lang.annotation.Retention;
@@ -100,43 +101,35 @@ public class WifiChip {
     public @interface WifiAntennaMode {}
 
     /**
-     * Chip capabilities.
+     * Response containing a value and a status code.
+     *
+     * @param <T> Type of value that should be returned.
      */
-    public static final int CHIP_CAPABILITY_DEBUG_MEMORY_FIRMWARE_DUMP = 1 << 0;
-    public static final int CHIP_CAPABILITY_DEBUG_MEMORY_DRIVER_DUMP = 1 << 1;
-    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_CONNECT_EVENT = 1 << 2;
-    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_POWER_EVENT = 1 << 3;
-    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_WAKELOCK_EVENT = 1 << 4;
-    public static final int CHIP_CAPABILITY_DEBUG_RING_BUFFER_VENDOR_DATA = 1 << 5;
-    public static final int CHIP_CAPABILITY_DEBUG_HOST_WAKE_REASON_STATS = 1 << 6;
-    public static final int CHIP_CAPABILITY_DEBUG_ERROR_ALERTS = 1 << 7;
-    public static final int CHIP_CAPABILITY_SET_TX_POWER_LIMIT = 1 << 8;
-    public static final int CHIP_CAPABILITY_D2D_RTT = 1 << 9;
-    public static final int CHIP_CAPABILITY_D2AP_RTT = 1 << 10;
-    public static final int CHIP_CAPABILITY_USE_BODY_HEAD_SAR = 1 << 11;
-    public static final int CHIP_CAPABILITY_SET_LATENCY_MODE = 1 << 12;
-    public static final int CHIP_CAPABILITY_P2P_RAND_MAC = 1 << 13;
-    public static final int CHIP_CAPABILITY_WIGIG = 1 << 14;
+    public static class Response<T> {
+        private Mutable<T> mMutable;
+        private int mStatusCode;
 
-    @IntDef(prefix = { "CHIP_CAPABILITY_" }, value = {
-            CHIP_CAPABILITY_DEBUG_MEMORY_FIRMWARE_DUMP,
-            CHIP_CAPABILITY_DEBUG_MEMORY_DRIVER_DUMP,
-            CHIP_CAPABILITY_DEBUG_RING_BUFFER_CONNECT_EVENT,
-            CHIP_CAPABILITY_DEBUG_RING_BUFFER_POWER_EVENT,
-            CHIP_CAPABILITY_DEBUG_RING_BUFFER_WAKELOCK_EVENT,
-            CHIP_CAPABILITY_DEBUG_RING_BUFFER_VENDOR_DATA,
-            CHIP_CAPABILITY_DEBUG_HOST_WAKE_REASON_STATS,
-            CHIP_CAPABILITY_DEBUG_ERROR_ALERTS,
-            CHIP_CAPABILITY_SET_TX_POWER_LIMIT,
-            CHIP_CAPABILITY_D2D_RTT,
-            CHIP_CAPABILITY_D2AP_RTT,
-            CHIP_CAPABILITY_USE_BODY_HEAD_SAR,
-            CHIP_CAPABILITY_SET_LATENCY_MODE,
-            CHIP_CAPABILITY_P2P_RAND_MAC,
-            CHIP_CAPABILITY_WIGIG,
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface ChipCapability {}
+        public Response(T initialValue) {
+            mMutable.value = initialValue;
+            mStatusCode = WifiHal.WIFI_STATUS_ERROR_UNKNOWN;
+        }
+
+        public void setValue(T value) {
+            mMutable.value = value;
+        }
+
+        public T getValue() {
+            return mMutable.value;
+        }
+
+        public void setStatusCode(@WifiHal.WifiStatusCode int statusCode) {
+            mStatusCode = statusCode;
+        }
+
+        public @WifiHal.WifiStatusCode int getStatusCode() {
+            return mStatusCode;
+        }
+    }
 
     /**
      * Set of interface concurrency types, along with the maximum number of interfaces that can have
@@ -259,6 +252,11 @@ public class WifiChip {
             bandInfo = inBandInfo;
             antennaMode = inAntennaMode;
         }
+
+        @Override
+        public String toString() {
+            return "{bandInfo=" + bandInfo + ", antennaMode=" + antennaMode + "}";
+        }
     }
 
     /**
@@ -270,6 +268,11 @@ public class WifiChip {
         public WifiRadioCombination(List<WifiRadioConfiguration> inRadioConfigurations) {
             radioConfigurations = inRadioConfigurations;
         }
+
+        @Override
+        public String toString() {
+            return "{radioConfigurations=" + radioConfigurations + "}";
+        }
     }
 
     /**
@@ -280,6 +283,11 @@ public class WifiChip {
 
         public WifiRadioCombinationMatrix(List<WifiRadioCombination> inRadioCombinations) {
             radioCombinations = inRadioCombinations;
+        }
+
+        @Override
+        public String toString() {
+            return "{radioCombinations=" + radioCombinations + "}";
         }
     }
 
@@ -552,11 +560,19 @@ public class WifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#getCapabilities()}
+     * See comments for {@link IWifiChip#getCapabilitiesBeforeIfacesExist()}
      */
-    public long getCapabilities() {
-        return validateAndCall("getCapabilities", 0L,
-                () -> mWifiChip.getCapabilities());
+    public Response<Long> getCapabilitiesBeforeIfacesExist() {
+        return validateAndCall("getCapabilitiesBeforeIfacesExist", new Response<>(0L),
+                () -> mWifiChip.getCapabilitiesBeforeIfacesExist());
+    }
+
+    /**
+     * See comments for {@link IWifiChip#getCapabilitiesAfterIfacesExist()}
+     */
+    public Response<Long> getCapabilitiesAfterIfacesExist() {
+        return validateAndCall("getCapabilitiesAfterIfacesExist", new Response<>(0L),
+                () -> mWifiChip.getCapabilitiesAfterIfacesExist());
     }
 
     /**
@@ -587,8 +603,8 @@ public class WifiChip {
     /**
      * See comments for {@link IWifiChip#getMode()}
      */
-    public int getMode() {
-        return validateAndCall("getMode", -1, () -> mWifiChip.getMode());
+    public Response<Integer> getMode() {
+        return validateAndCall("getMode", new Response<>(0), () -> mWifiChip.getMode());
     }
 
     /**

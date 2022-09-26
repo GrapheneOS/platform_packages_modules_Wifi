@@ -226,13 +226,23 @@ public class WifiChipHidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#getCapabilities()}
+     * See comments for {@link IWifiChip#getCapabilitiesBeforeIfacesExist()}
      */
     @Override
-    public long getCapabilities() {
-        String methodStr = "getCapabilities";
-        return validateAndCall(methodStr, 0L,
-                () -> getCapabilitiesInternal(methodStr));
+    public WifiChip.Response<Long> getCapabilitiesBeforeIfacesExist() {
+        String methodStr = "getCapabilitiesBeforeIfacesExist";
+        return validateAndCall(methodStr, new WifiChip.Response<>(0L),
+                () -> getCapabilitiesBeforeIfacesExistInternal(methodStr));
+    }
+
+    /**
+     * See comments for {@link IWifiChip#getCapabilitiesAfterIfacesExist()}
+     */
+    @Override
+    public WifiChip.Response<Long> getCapabilitiesAfterIfacesExist() {
+        String methodStr = "getCapabilitiesAfterIfacesExist";
+        return validateAndCall(methodStr, new WifiChip.Response<>(0L),
+                () -> getCapabilitiesAfterIfacesExistInternal(methodStr));
     }
 
     /**
@@ -270,9 +280,10 @@ public class WifiChipHidlImpl implements IWifiChip {
      * See comments for {@link IWifiChip#getMode()}
      */
     @Override
-    public int getMode() {
+    public WifiChip.Response<Integer> getMode() {
         String methodStr = "getMode";
-        return validateAndCall(methodStr, -1, () -> getModeInternal(methodStr));
+        return validateAndCall(methodStr, new WifiChip.Response<>(0),
+                () -> getModeInternal(methodStr));
     }
 
     /**
@@ -759,34 +770,70 @@ public class WifiChipHidlImpl implements IWifiChip {
         return modeResp.value;
     }
 
-    private long getCapabilitiesInternal(String methodStr) {
-        Mutable<Long> capsResp = new Mutable<>(0L);
+    private WifiChip.Response<Long> getCapabilitiesBeforeIfacesExistInternal(String methodStr) {
+        WifiChip.Response<Long> capsResp = new WifiChip.Response<>(0L);
+        try {
+            // HAL newer than v1.5 supports getting capabilities before creating an interface.
+            android.hardware.wifi.V1_5.IWifiChip chip15 = getWifiChipV1_5Mockable();
+            if (chip15 != null) {
+                chip15.getCapabilities_1_5((status, caps) -> {
+                    if (isOk(status, methodStr)) {
+                        capsResp.setValue(wifiFeatureMaskFromChipCapabilities_1_5(caps));
+                        capsResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                    } else {
+                        capsResp.setStatusCode(
+                                WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
+                    }
+                });
+            }
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+            capsResp.setStatusCode(WifiHal.WIFI_STATUS_ERROR_REMOTE_EXCEPTION);
+        }
+        return capsResp;
+    }
+
+    private WifiChip.Response<Long> getCapabilitiesAfterIfacesExistInternal(String methodStr) {
+        WifiChip.Response<Long> capsResp = new WifiChip.Response<>(0L);
         try {
             android.hardware.wifi.V1_5.IWifiChip chip15 = getWifiChipV1_5Mockable();
             android.hardware.wifi.V1_3.IWifiChip chip13 = getWifiChipV1_3Mockable();
             if (chip15 != null) {
                 chip15.getCapabilities_1_5((status, caps) -> {
                     if (isOk(status, methodStr)) {
-                        capsResp.value = wifiFeatureMaskFromChipCapabilities_1_5(caps);
+                        capsResp.setValue(wifiFeatureMaskFromChipCapabilities_1_5(caps));
+                        capsResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                    } else {
+                        capsResp.setStatusCode(
+                                WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
                     }
                 });
             } else if (chip13 != null) {
                 chip13.getCapabilities_1_3((status, caps) -> {
                     if (isOk(status, methodStr)) {
-                        capsResp.value = wifiFeatureMaskFromChipCapabilities_1_3(caps);
+                        capsResp.setValue(wifiFeatureMaskFromChipCapabilities_1_3(caps));
+                        capsResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                    } else {
+                        capsResp.setStatusCode(
+                                WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
                     }
                 });
             } else {
                 mWifiChip.getCapabilities((status, caps) -> {
                     if (isOk(status, methodStr)) {
-                        capsResp.value = (long) wifiFeatureMaskFromChipCapabilities(caps);
+                        capsResp.setValue((long) wifiFeatureMaskFromChipCapabilities(caps));
+                        capsResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                    } else {
+                        capsResp.setStatusCode(
+                                WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
                     }
                 });
             }
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
+            capsResp.setStatusCode(WifiHal.WIFI_STATUS_ERROR_REMOTE_EXCEPTION);
         }
-        return capsResp.value;
+        return capsResp;
     }
 
     private WlanWakeReasonAndCounts getDebugHostWakeReasonStatsInternal(String methodStr) {
@@ -833,20 +880,23 @@ public class WifiChipHidlImpl implements IWifiChip {
         return idResp.value;
     }
 
-    private int getModeInternal(String methodStr) {
-        Mutable<Integer> modeResp = new Mutable<>(-1);
+    private WifiChip.Response<Integer> getModeInternal(String methodStr) {
+        WifiChip.Response<Integer> modeResp = new WifiChip.Response<>(0);
         try {
             mWifiChip.getMode((status, mode) -> {
                 if (isOk(status, methodStr)) {
-                    modeResp.value = mode;
-                } else if (status.code == WifiStatusCode.ERROR_NOT_AVAILABLE) {
-                    modeResp.value = 0; // valid response
+                    modeResp.setValue(mode);
+                    modeResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                } else {
+                    modeResp.setStatusCode(
+                            WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
                 }
             });
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
+            modeResp.setStatusCode(WifiHal.WIFI_STATUS_ERROR_REMOTE_EXCEPTION);
         }
-        return modeResp.value;
+        return modeResp;
     }
 
     private WifiNanIface getNanIfaceInternal(String methodStr, String ifaceName) {
@@ -1196,7 +1246,7 @@ public class WifiChipHidlImpl implements IWifiChip {
                 int halScenario = frameworkToHalTxPowerScenario_1_2(sarInfo);
                 if (sarInfo.setSarScenarioNeeded(halScenario)) {
                     Log.d(TAG, "Attempting to set SAR scenario to " + halScenario);
-                    status = chip12.selectTxPowerScenario(halScenario);
+                    status = chip12.selectTxPowerScenario_1_2(halScenario);
                     return isOk(status, methodStr);
                 }
                 // Reaching here means setting SAR scenario would be redundant,
@@ -1338,11 +1388,11 @@ public class WifiChipHidlImpl implements IWifiChip {
             mFrameworkCallback.onChipReconfigured(modeId);
         }
 
-        // TODO: Convert WifiStatus to framework equivalent once the IWifi interface exists
         @Override
         public void onChipReconfigureFailure(WifiStatus status) {
             if (mFrameworkCallback == null) return;
-            mFrameworkCallback.onChipReconfigureFailure(status.code);
+            mFrameworkCallback.onChipReconfigureFailure(
+                    WifiHalHidlImpl.halToFrameworkWifiStatusCode(status.code));
         }
 
         @Override
