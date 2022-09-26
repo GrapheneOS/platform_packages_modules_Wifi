@@ -45,6 +45,7 @@ import static org.mockito.Mockito.when;
 import android.net.MacAddress;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
@@ -286,6 +287,8 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.startVendorHal()).thenReturn(true);
         when(mWifiVendorHal.startVendorHalSta()).thenReturn(true);
         when(mWifiVendorHal.createStaIface(any(), any())).thenReturn(WIFI_IFACE_NAME);
+        when(mWifiVendorHal.createApIface(any(), any(), anyInt(), anyBoolean(), any()))
+                .thenReturn(WIFI_IFACE_NAME);
 
         when(mBuildProperties.isEngBuild()).thenReturn(false);
         when(mBuildProperties.isUserdebugBuild()).thenReturn(false);
@@ -293,12 +296,18 @@ public class WifiNativeTest extends WifiBaseTest {
 
         when(mWificondControl.setupInterfaceForClientMode(any(), any(), any(), any())).thenReturn(
                 true);
+        when(mWificondControl.setupInterfaceForSoftApMode(any())).thenReturn(true);
 
         when(mStaIfaceHal.registerDeathHandler(any())).thenReturn(true);
         when(mStaIfaceHal.isInitializationComplete()).thenReturn(true);
         when(mStaIfaceHal.initialize()).thenReturn(true);
         when(mStaIfaceHal.startDaemon()).thenReturn(true);
         when(mStaIfaceHal.setupIface(any())).thenReturn(true);
+
+        when(mHostapdHal.isInitializationStarted()).thenReturn(true);
+        when(mHostapdHal.startDaemon()).thenReturn(true);
+        when(mHostapdHal.isInitializationComplete()).thenReturn(true);
+        when(mHostapdHal.registerDeathHandler(any())).thenReturn(true);
 
         when(mWifiInjector.makeNetdWrapper()).thenReturn(mNetdWrapper);
         when(mWifiInjector.getCoexManager()).thenReturn(mCoexManager);
@@ -741,6 +750,29 @@ public class WifiNativeTest extends WifiBaseTest {
 
         mScanCallbackCaptor.getValue().onScanResultReady();
         verify(mWifiMonitor).broadcastScanResultEvent(WIFI_IFACE_NAME);
+    }
+
+    /**
+     * Verifies scan mode + scan success.
+     */
+    @Test
+    public void testBridgedApModeWifiCondSetupTeardown() {
+        String instance1 = "instance1";
+        String instance2 = "instance2";
+        when(mWifiVendorHal.getBridgedApInstances(WIFI_IFACE_NAME))
+                .thenReturn(Arrays.asList(instance1, instance2));
+        mWifiNative.setupInterfaceForSoftApMode(null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ
+                | SoftApConfiguration.BAND_5GHZ, true, mSoftApManager);
+        ArgumentCaptor<HalDeviceManager.InterfaceDestroyedListener> ifaceDestroyedListenerCaptor =
+                ArgumentCaptor.forClass(HalDeviceManager.InterfaceDestroyedListener.class);
+        verify(mWifiVendorHal).createApIface(ifaceDestroyedListenerCaptor.capture(), any(),
+                anyInt(), anyBoolean(), any());
+        verify(mWificondControl).setupInterfaceForSoftApMode(instance1);
+
+        when(mWifiVendorHal.getBridgedApInstances(WIFI_IFACE_NAME)).thenReturn(null);
+        ifaceDestroyedListenerCaptor.getValue().onDestroyed(WIFI_IFACE_NAME);
+
+        verify(mWificondControl).tearDownSoftApInterface(instance1);
     }
 
     /**
