@@ -2280,7 +2280,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
-                                        createRequestorWs(message.sendingUid, packageName));
+                                        createRequestorWs(message.sendingUid, packageName),
+                                        false /* bypassDialog */);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                         } else if (proceedWithOperation
@@ -2352,7 +2353,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
-                                        createRequestorWs(message.sendingUid, packageName));
+                                        createRequestorWs(message.sendingUid, packageName),
+                                        false /* bypassDialog */);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                             return NOT_HANDLED;
