@@ -1753,7 +1753,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     for (int opMode : OP_MODE_LIST) {
                         String allowedChannel = "";
                         try {
-                            allowedChannels = wifiManager.getAllowedChannels(0, opMode);
+                            allowedChannels = wifiManager.getAllowedChannels(
+                                    WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ, opMode);
                             for (WifiAvailableChannel channel : allowedChannels) {
                                 allowedChannel += channel.getFrequencyMhz() + " ";
                             }
@@ -1761,9 +1762,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     + allowedChannel);
                         } catch (UnsupportedOperationException e) {
                             availableChannels = wifiScanner.getAvailableChannels(
-                                    WifiScanner.WIFI_BAND_24_GHZ);
-                            availableChannels.addAll(
-                                    wifiScanner.getAvailableChannels(WifiScanner.WIFI_BAND_5_GHZ));
+                                    WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ);
                             for (Integer channel : availableChannels) {
                                 allowedChannel += channel + " ";
                             }
