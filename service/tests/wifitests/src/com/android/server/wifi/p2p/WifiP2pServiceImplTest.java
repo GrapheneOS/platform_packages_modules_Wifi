@@ -134,6 +134,7 @@ import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
+import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WaitingState;
@@ -250,6 +251,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock AlertDialog.Builder mAlertDialogBuilder;
     @Mock AlertDialog mAlertDialog;
     @Mock AsyncChannel mAsyncChannel;
+    @Mock LastCallerInfoManager mLastCallerInfoManager;
     CoexManager.CoexListener mCoexListener;
 
     private void generatorTestData() {
@@ -1214,6 +1216,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiInjector.makeBroadcastOptions()).thenReturn(mBroadcastOptions);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
         when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
                 anyInt(), any(), any())).thenReturn(mDialogHandle);
         when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))
@@ -1958,6 +1961,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     eq("testFeature"), anyInt(), eq(true));
         }
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.DISCOVER_PEERS_SUCCEEDED));
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_DISCOVER_PEERS), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -2522,6 +2527,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             verify(mWifiPermissionsUtil).checkCanAccessWifiDirect(eq(TEST_PACKAGE_NAME),
                     eq("testFeature"), anyInt(), eq(true));
         }
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_START_LISTENING), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -2548,6 +2555,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mWifiNative).p2pStopFind();
         verify(mWifiNative).p2pExtListen(eq(false), anyInt(), anyInt());
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.STOP_LISTEN_SUCCEEDED));
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_STOP_LISTENING), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /** Verify the p2p randomized MAC feature is enabled if OEM supports it. */
@@ -2793,6 +2802,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 configCaptor.capture(),
                 eq(WifiMetricsProto.GroupEvent.GROUP_UNKNOWN));
         assertEquals(mTestWifiP2pPeerConfig.toString(), configCaptor.getValue().toString());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CONNECT), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -2857,6 +2868,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 eq(P2pConnectionEvent.CONNECTION_REINVOKE),
                 eq(null),
                 eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CREATE_GROUP), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -2973,6 +2986,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 eq(WifiMetricsProto.GroupEvent.GROUP_OWNER));
         assertEquals(mTestWifiP2pFastConnectionConfig.toString(),
                 configCaptor.getValue().toString());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CREATE_GROUP_P2P_CONFIG),
+                anyInt(), anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -3070,6 +3085,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         reset(mAsyncChannel);
         sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
         verify(mAsyncChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CANCEL_CONNECT), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -3639,6 +3656,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.STOP_DISCOVERY_SUCCEEDED, message.what);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_STOP_PEER_DISCOVERY), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -3762,6 +3781,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.REMOVE_GROUP_SUCCEEDED, message.what);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_REMOVE_GROUP), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -3854,6 +3875,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.SET_CHANNEL_SUCCEEDED, message.what);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_SET_CHANNELS), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**

@@ -120,6 +120,7 @@ import com.android.server.wifi.p2p.ExternalApproverManager.ApproverEntry;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.GroupEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.P2pConnectionEvent;
+import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WaitingState;
@@ -217,6 +218,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private UserManager mUserManager;
     private InterfaceConflictManager mInterfaceConflictManager;
     private WifiP2pNative mWifiNative;
+    private LastCallerInfoManager mLastCallerInfoManager;
 
     private static final Boolean JOIN_GROUP = true;
     private static final Boolean FORM_GROUP = false;
@@ -633,6 +635,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         HandlerThread wifiP2pThread = mWifiInjector.getWifiP2pServiceHandlerThread();
         mClientHandler = new ClientHandler(TAG, wifiP2pThread.getLooper());
         mWifiNative = mWifiInjector.getWifiP2pNative();
+        mLastCallerInfoManager = mWifiInjector.getLastCallerInfoManager();
         mP2pStateMachine = new P2pStateMachine(TAG, wifiP2pThread.getLooper(), mP2pSupported);
         mP2pStateMachine.setDbg(false); // can enable for very verbose logs
         mP2pStateMachine.start();
@@ -2512,6 +2515,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                     WifiP2pManager.BUSY);
                             break;
                         }
+                        int apiType = WifiManager.API_P2P_DISCOVER_PEERS;
+                        if (scanType == WifiP2pManager.WIFI_P2P_SCAN_SOCIAL) {
+                            apiType = WifiManager.API_P2P_DISCOVER_PEERS_ON_SOCIAL_CHANNELS;
+                        } else if (scanType == WifiP2pManager.WIFI_P2P_SCAN_SINGLE_FREQ) {
+                            apiType = WifiManager.API_P2P_DISCOVER_PEERS_ON_SPECIFIC_FREQUENCY;
+                        }
+                        mLastCallerInfoManager.put(apiType, Process.myTid(), uid, 0, packageName,
+                                true);
                         // do not send service discovery request while normal find operation.
                         clearSupplicantServiceRequest();
                         Log.e(TAG, "-------discover_peers before p2pFind");
@@ -2530,6 +2541,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         sendP2pDiscoveryChangedBroadcast(false);
                         break;
                     case WifiP2pManager.STOP_DISCOVERY:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_STOP_PEER_DISCOVERY,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         if (mWifiNative.p2pStopFind()) {
                             replyToMessage(message, WifiP2pManager.STOP_DISCOVERY_SUCCEEDED);
                         } else {
@@ -2725,6 +2739,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message, WifiP2pManager.START_LISTEN_FAILED);
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_START_LISTENING,
+                                Process.myTid(), uid, 0, packageName, true);
                         if (mVerboseLoggingEnabled) logd(getName() + " start listen mode");
                         mWifiNative.p2pStopFind();
                         if (mWifiNative.p2pExtListen(true, 500, 500)) {
@@ -2734,6 +2750,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         break;
                     case WifiP2pManager.STOP_LISTEN:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_STOP_LISTENING,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         if (mVerboseLoggingEnabled) logd(getName() + " stop listen mode");
                         if (mWifiNative.p2pExtListen(false, 0, 0)) {
                             replyToMessage(message, WifiP2pManager.STOP_LISTEN_SUCCEEDED);
@@ -2756,6 +2775,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             Log.e(TAG, "Illegal arguments(s)");
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_SET_CHANNELS,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         Bundle p2pChannels = (Bundle) message.obj;
                         mUserListenChannel = p2pChannels.getInt("lc", 0);
                         mUserOperatingChannel = p2pChannels.getInt("oc", 0);
@@ -2849,6 +2871,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             // remain at this state.
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_CONNECT,
+                                Process.myTid(), uid, 0, packageName, true);
                         if (mVerboseLoggingEnabled) logd(getName() + " sending connect");
                         WifiP2pConfig config = (WifiP2pConfig)
                                 extras.getParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG);
@@ -2899,6 +2923,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pManager.STOP_DISCOVERY:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_STOP_PEER_DISCOVERY,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         if (mWifiNative.p2pStopFind()) {
                             // When discovery stops in inactive state, flush to clear
                             // state peer data
@@ -3035,6 +3062,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         int netId = message.arg1;
                         config = (WifiP2pConfig)
                                 extras.getParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG);
+                        mLastCallerInfoManager.put(config == null
+                                        ? WifiManager.API_P2P_CREATE_GROUP
+                                        : WifiManager.API_P2P_CREATE_GROUP_P2P_CONFIG,
+                                Process.myTid(), uid, 0, packageName, true);
                         boolean ret = false;
                         if (config != null) {
                             if (isConfigValidAsGroup(config)) {
@@ -3120,6 +3151,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message, WifiP2pManager.START_LISTEN_FAILED);
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_START_LISTENING,
+                                Process.myTid(), uid, 0, packageName, true);
                         if (mVerboseLoggingEnabled) logd(getName() + " start listen mode");
                         mWifiNative.p2pStopFind();
                         if (mWifiNative.p2pExtListen(true, 500, 500)) {
@@ -3129,6 +3162,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         break;
                     case WifiP2pManager.STOP_LISTEN:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_STOP_LISTENING,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         if (mVerboseLoggingEnabled) logd(getName() + " stop listen mode");
                         if (mWifiNative.p2pExtListen(false, 0, 0)) {
                             replyToMessage(message, WifiP2pManager.STOP_LISTEN_SUCCEEDED);
@@ -3151,6 +3187,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             Log.e(TAG, "Illegal arguments(s)");
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_SET_CHANNELS,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         Bundle p2pChannels = (Bundle) message.obj;
                         mUserListenChannel = p2pChannels.getInt("lc", 0);
                         mUserOperatingChannel = p2pChannels.getInt("oc", 0);
@@ -3260,6 +3299,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         // discovery or for a pending user action, but at the framework
                         // level, we always treat cancel as succeeded and enter
                         // an inactive state
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_CANCEL_CONNECT,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         mWifiNative.p2pCancelConnect();
                         mWifiP2pMetrics.endConnectionEvent(
                                 P2pConnectionEvent.CLF_CANCEL);
@@ -4016,6 +4058,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         mWifiNative.p2pGroupRemove(mGroup.getInterface());
                         break;
                     case WifiP2pManager.REMOVE_GROUP:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_REMOVE_GROUP,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         if (mVerboseLoggingEnabled) logd(getName() + " remove group");
                         if (mWifiNative.p2pGroupRemove(mGroup.getInterface())) {
                             transitionTo(mOngoingGroupRemovalState);
@@ -4113,6 +4158,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             // remain at this state.
                             break;
                         }
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_CONNECT,
+                                Process.myTid(), uid, 0, packageName, true);
                         WifiP2pConfig config = (WifiP2pConfig)
                                 extras.getParcelable(WifiP2pManager.EXTRA_PARAM_KEY_CONFIG);
                         if (isConfigInvalid(config)) {
@@ -4198,6 +4245,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         loge("Duplicate group creation event notice, ignore");
                         break;
                     case WifiP2pManager.CANCEL_CONNECT:
+                        mLastCallerInfoManager.put(WifiManager.API_P2P_CANCEL_CONNECT,
+                                Process.myTid(), message.sendingUid, 0,
+                                getCallingPkgName(message.sendingUid, message.replyTo), true);
                         mWifiNative.p2pCancelConnect();
                         mWifiP2pMetrics.endConnectionEvent(
                                 P2pConnectionEvent.CLF_CANCEL);
