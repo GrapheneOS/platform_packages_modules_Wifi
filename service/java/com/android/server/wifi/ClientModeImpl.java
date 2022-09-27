@@ -1229,7 +1229,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return;
             }
             WifiConfiguration configuration = mWifiConfigManager.getConfiguredNetwork(networkId);
-            if (configuration.subscriptionId == subscriptionId
+            if (configuration != null && configuration.subscriptionId == subscriptionId
                     && configuration.carrierMerged == merged) {
                 Log.i(getTag(), "Carrier network offload disabled, triggering disconnect");
                 sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_CARRIER_OFFLOAD_DISABLED);
