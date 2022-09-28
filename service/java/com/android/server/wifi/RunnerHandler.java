@@ -93,20 +93,25 @@ public class RunnerHandler extends Handler {
             }
         }
         Bundle bundle = msg.getData();
-        bundle.putString(KEY_SIGNATURE, sb.toString());
+        bundle.putString(KEY_SIGNATURE, sb.length() == 0 ? "<UNKNOWN>" : sb.toString());
         return super.sendMessageAtTime(msg, uptimeMillis);
     }
 
     @Override
     public void dispatchMessage(@NonNull Message msg) {
         final Bundle bundle = msg.getData();
-        String signature = bundle.getString(KEY_SIGNATURE);
-        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, signature);
+        final String signature = bundle.getString(KEY_SIGNATURE);
+        if (signature != null) {
+            Trace.traceBegin(Trace.TRACE_TAG_NETWORK, signature);
+        }
         super.dispatchMessage(msg);
-        Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
+        if (signature != null) {
+            Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
+        }
         final long runTime = SystemClock.uptimeMillis() - msg.getWhen();
         if (runTime > mRunningTimeThresholdInMilliseconds) {
-            mLocalLog.log(signature + " was running for " + runTime + " ms");
+            mLocalLog.log(signature != null ? signature
+                    : "<EMPTY>" + " was running for " + runTime + " ms");
         }
     }
 }
