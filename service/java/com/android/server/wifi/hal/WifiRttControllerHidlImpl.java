@@ -296,7 +296,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         @Override
         public void onResults(int cmdId, ArrayList<RttResult> halResults) {
             if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "onResults: cmdId=" + cmdId + ", # of results=" + halResults.size());
+                int numResults = halResults != null ? halResults.size() : -1;
+                Log.v(TAG, "onResults: cmdId=" + cmdId + ", # of results=" + numResults);
             }
             if (halResults == null) {
                 halResults = new ArrayList<>();
@@ -322,8 +323,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         public void onResults_1_4(int cmdId,
                 ArrayList<android.hardware.wifi.V1_4.RttResult> halResults) {
             if (mVerboseLoggingEnabled) {
-                Log.v(TAG,
-                        "onResults_1_4: cmdId=" + cmdId + ", # of results=" + halResults.size());
+                int numResults = halResults != null ? halResults.size() : -1;
+                Log.v(TAG, "onResults_1_4: cmdId=" + cmdId + ", # of results=" + numResults);
             }
             if (halResults == null) {
                 halResults = new ArrayList<>();
@@ -356,8 +357,8 @@ public class WifiRttControllerHidlImpl implements IWifiRttController {
         public void onResults_1_6(int cmdId,
                 ArrayList<android.hardware.wifi.V1_6.RttResult> halResults) {
             if (mVerboseLoggingEnabled) {
-                Log.v(TAG,
-                        "onResults_1_6: cmdId=" + cmdId + ", # of results=" + halResults.size());
+                int numResults = halResults != null ? halResults.size() : -1;
+                Log.v(TAG, "onResults_1_6: cmdId=" + cmdId + ", # of results=" + numResults);
             }
             if (halResults == null) {
                 halResults = new ArrayList<>();

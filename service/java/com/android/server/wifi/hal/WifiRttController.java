@@ -141,6 +141,17 @@ public class WifiRttController {
             bwSupported = rttHalCapabilities.bwSupport;
             rttFtmSupported = rttHalCapabilities.rttFtmSupported;
         }
+
+        public Capabilities(android.hardware.wifi.RttCapabilities rttHalCapabilities) {
+            oneSidedRttSupported = rttHalCapabilities.rttOneSidedSupported;
+            lciSupported = rttHalCapabilities.lciSupported;
+            lcrSupported = rttHalCapabilities.lcrSupported;
+            responderSupported = rttHalCapabilities.responderSupported;
+            preambleSupported = rttHalCapabilities.preambleSupport;
+            mcVersion = rttHalCapabilities.mcVersion;
+            bwSupported = rttHalCapabilities.bwSupport;
+            rttFtmSupported = rttHalCapabilities.rttFtmSupported;
+        }
     }
 
     /**
@@ -160,9 +171,18 @@ public class WifiRttController {
         mWifiRttController = createWifiRttControllerHidlImplMockable(rttController);
     }
 
+    public WifiRttController(@NonNull android.hardware.wifi.IWifiRttController rttController) {
+        mWifiRttController = createWifiRttControllerAidlImplMockable(rttController);
+    }
+
     protected WifiRttControllerHidlImpl createWifiRttControllerHidlImplMockable(
             @NonNull android.hardware.wifi.V1_0.IWifiRttController rttController) {
         return new WifiRttControllerHidlImpl(rttController);
+    }
+
+    protected WifiRttControllerAidlImpl createWifiRttControllerAidlImplMockable(
+            @NonNull android.hardware.wifi.IWifiRttController rttController) {
+        return new WifiRttControllerAidlImpl(rttController);
     }
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
