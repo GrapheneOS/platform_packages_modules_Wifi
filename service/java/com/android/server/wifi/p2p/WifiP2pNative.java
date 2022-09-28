@@ -34,6 +34,7 @@ import android.util.Log;
 
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.PropertyService;
+import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiVendorHal;
 
@@ -50,6 +51,7 @@ public class WifiP2pNative {
     private boolean mVerboseLoggingEnabled = false;
     private final SupplicantP2pIfaceHal mSupplicantP2pIfaceHal;
     private final WifiNative mWifiNative;
+    private final WifiMetrics mWifiMetrics;
     private final WifiNl80211Manager mWifiNl80211Manager;
     private final HalDeviceManager mHalDeviceManager;
     private final PropertyService mPropertyService;
@@ -95,11 +97,13 @@ public class WifiP2pNative {
     public WifiP2pNative(
             WifiNl80211Manager wifiNl80211Manager,
             WifiNative wifiNative,
+            WifiMetrics wifiMetrics,
             WifiVendorHal wifiVendorHal,
             SupplicantP2pIfaceHal p2pIfaceHal,
             HalDeviceManager halDeviceManager,
             PropertyService propertyService) {
         mWifiNative = wifiNative;
+        mWifiMetrics = wifiMetrics;
         mWifiNl80211Manager = wifiNl80211Manager;
         mWifiVendorHal = wifiVendorHal;
         mSupplicantP2pIfaceHal = p2pIfaceHal;
@@ -197,16 +201,19 @@ public class WifiP2pNative {
             String ifaceName = createP2pIface(handler, requestorWs);
             if (ifaceName == null) {
                 Log.e(TAG, "Failed to create P2p iface");
+                mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToHal();
                 return null;
             }
             if (!waitForSupplicantConnection()) {
                 Log.e(TAG, "Failed to connect to supplicant");
                 teardownInterface();
+                mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToSupplicant();
                 return null;
             }
             if (!mSupplicantP2pIfaceHal.setupIface(ifaceName)) {
                 Log.e(TAG, "Failed to setup P2p iface in supplicant");
                 teardownInterface();
+                mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToSupplicant();
                 return null;
             }
             mSupportedFeatures = mSupplicantP2pIfaceHal.getSupportedFeatures();

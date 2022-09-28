@@ -3312,6 +3312,22 @@ public class WifiMetrics {
     }
 
     /**
+     * Increment number of times the P2p on failed due to an error in HAL.
+     */
+    public synchronized void incrementNumSetupP2pInterfaceFailureDueToHal() {
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__P2P_FAILURE_HAL);
+    }
+
+    /**
+     * Increment number of times the P2p on failed due to an error in supplicant.
+     */
+    public synchronized void incrementNumSetupP2pInterfaceFailureDueToSupplicant() {
+        WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__P2P_FAILURE_SUPPLICANT);
+    }
+
+    /**
      * Increment number of times we got client interface down.
      */
     public void incrementNumClientInterfaceDown() {
