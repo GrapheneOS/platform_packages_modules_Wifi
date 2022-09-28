@@ -2688,6 +2688,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertFalse(mWifiServiceImpl.startScan(SCAN_PACKAGE_NAME, TEST_FEATURE_ID));
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mScanRequestProxy, never()).startScan(anyInt(), eq(SCAN_PACKAGE_NAME));
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_START_SCAN), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -4415,6 +4417,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mLohsCallback, never()).onHotspotStarted(any());
+        verify(mLastCallerInfoManager, atLeastOnce()).put(
+                eq(WifiManager.API_START_LOCAL_ONLY_HOTSPOT), anyInt(), anyInt(), anyInt(),
+                anyString(), eq(true));
     }
 
     /**
@@ -5109,6 +5114,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 any(ActionListenerWrapper.class), anyInt(), any());
         verify(mWifiMetrics).logUserActionEvent(eq(UserActionEvent.EVENT_ADD_OR_UPDATE_NETWORK),
                 anyInt());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_CONNECT_CONFIG), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -5243,6 +5250,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 eq(new NetworkUpdateResult(TEST_NETWORK_ID)), any(), anyInt(), any());
         verify(mContextAsUser, never()).sendBroadcastWithMultiplePermissions(any(), any());
         verify(mWifiMetrics).logUserActionEvent(eq(UserActionEvent.EVENT_MANUAL_CONNECT), anyInt());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_CONNECT_NETWORK_ID), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     @Test
@@ -5362,6 +5371,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 any());
         verify(mWifiMetrics).logUserActionEvent(eq(UserActionEvent.EVENT_ADD_OR_UPDATE_NETWORK),
                 anyInt());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_SAVE), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     @Test
@@ -5432,6 +5443,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         mLooper.dispatchAll();
         inOrder.verify(mWifiConfigManager).removeNetwork(anyInt(), anyInt(), any());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_FORGET), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     @Test
@@ -6618,6 +6631,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mConnectHelper).connectToNetwork(
                 eq(new NetworkUpdateResult(TEST_NETWORK_ID)), any(), anyInt(), any());
         verify(mWifiMetrics).incrementNumEnableNetworkCalls();
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_ENABLE_NETWORK), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
@@ -7890,6 +7905,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).allowAutojoin(anyInt(), anyBoolean());
         verify(mWifiMetrics).logUserActionEvent(eq(UserActionEvent.EVENT_CONFIGURE_AUTO_CONNECT_ON),
                 anyInt());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_ALLOW_AUTOJOIN), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     @Test
@@ -10149,13 +10166,15 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(attributionSource.getUid()).thenReturn(Process.SYSTEM_UID);
         when(attributionSource.getPackageName()).thenReturn(TEST_PACKAGE_NAME);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork(TEST_SSID);
-
+        config.networkId = 1;
         mWifiThreadRunner.prepareForAutoDispatch();
         mLooper.startAutoDispatch();
         mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution);
         mLooper.stopAutoDispatch();
         verify(mWifiConfigManager).addOrUpdateNetwork(config, Process.SYSTEM_UID,
                 TEST_PACKAGE_NAME, false);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_UPDATE_NETWORK), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**

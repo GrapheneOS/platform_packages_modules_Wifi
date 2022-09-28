@@ -848,6 +848,8 @@ public class WifiServiceImpl extends BaseWifiService {
         try {
             mWifiPermissionsUtil.enforceCanAccessScanResults(packageName, featureId, callingUid,
                     null);
+            mLastCallerInfoManager.put(WifiManager.API_START_SCAN, Process.myTid(),
+                    callingUid, Binder.getCallingPid(), packageName, true);
             Boolean scanSuccess = mWifiThreadRunner.call(() ->
                     mScanRequestProxy.startScan(callingUid, packageName), null);
             if (scanSuccess == null) {
@@ -2511,6 +2513,8 @@ public class WifiServiceImpl extends BaseWifiService {
             return LocalOnlyHotspotCallback.ERROR_TETHERING_DISALLOWED;
         }
 
+        mLastCallerInfoManager.put(WifiManager.API_START_LOCAL_ONLY_HOTSPOT, Process.myTid(),
+                uid, Binder.getCallingPid(), packageName, true);
 
         // the app should be in the foreground
         long ident = Binder.clearCallingIdentity();
@@ -3635,7 +3639,10 @@ public class WifiServiceImpl extends BaseWifiService {
             Log.w(TAG, "Insecure Enterprise network " + config.SSID
                     + " configured by Settings/SUW");
         }
-
+        mLastCallerInfoManager.put(config.networkId < 0
+                        ? WifiManager.API_ADD_NETWORK : WifiManager.API_UPDATE_NETWORK,
+                Process.myTid(), Binder.getCallingUid(),
+                Binder.getCallingPid(), packageName, true);
         Log.i("addOrUpdateNetworkInternal", " uid = " + Binder.getCallingUid()
                 + " SSID " + config.SSID
                 + " nid=" + config.networkId);
@@ -3772,6 +3779,8 @@ public class WifiServiceImpl extends BaseWifiService {
             return false;
         }
 
+        mLastCallerInfoManager.put(WifiManager.API_ENABLE_NETWORK, Process.myTid(),
+                callingUid, Binder.getCallingPid(), packageName, disableOthers);
         // TODO b/33807876 Log netId
         mLog.info("enableNetwork uid=% disableOthers=%")
                 .c(callingUid)
@@ -3805,6 +3814,8 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("disableNetwork not allowed for uid=%").c(callingUid).flush();
             return false;
         }
+        mLastCallerInfoManager.put(WifiManager.API_DISABLE_NETWORK, Process.myTid(),
+                callingUid, Binder.getCallingPid(), packageName, true);
         mLog.info("disableNetwork uid=%").c(callingUid).flush();
         return mWifiThreadRunner.call(
                 () -> mWifiConfigManager.disableNetwork(netId, callingUid, packageName), false);
@@ -3948,6 +3959,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
         int callingUid = Binder.getCallingUid();
         mLog.info("allowAutojoin=% uid=%").c(choice).c(callingUid).flush();
+        mLastCallerInfoManager.put(WifiManager.API_ALLOW_AUTOJOIN, Process.myTid(),
+                callingUid, Binder.getCallingPid(), "<unknown>", choice);
         mWifiThreadRunner.post(() -> {
             WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
             if (config == null) {
@@ -5970,6 +5983,9 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new IllegalArgumentException("packageName must not be null");
         }
         mLog.info("connect uid=%").c(uid).flush();
+        mLastCallerInfoManager.put(config != null
+                        ? WifiManager.API_CONNECT_CONFIG : WifiManager.API_CONNECT_NETWORK_ID,
+                Process.myTid(), uid, Binder.getCallingPid(), packageName, true);
         mWifiThreadRunner.post(() -> {
             ActionListenerWrapper wrapper = new ActionListenerWrapper(callback);
             final NetworkUpdateResult result;
@@ -6069,6 +6085,8 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new IllegalArgumentException("packageName must not be null");
         }
         mLog.info("save uid=%").c(uid).flush();
+        mLastCallerInfoManager.put(WifiManager.API_SAVE, Process.myTid(),
+                uid, Binder.getCallingPid(), packageName, true);
         mWifiThreadRunner.post(() -> {
             ActionListenerWrapper wrapper = new ActionListenerWrapper(callback);
             NetworkUpdateResult result =
@@ -6103,6 +6121,8 @@ public class WifiServiceImpl extends BaseWifiService {
             // the netId becomes invalid after the forget operation.
             mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_FORGET_WIFI, netId);
         }
+        mLastCallerInfoManager.put(WifiManager.API_FORGET, Process.myTid(),
+                uid, Binder.getCallingPid(), "<unknown>", true);
         mWifiThreadRunner.post(() -> {
             WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
             boolean success = mWifiConfigManager.removeNetwork(netId, uid, null);
