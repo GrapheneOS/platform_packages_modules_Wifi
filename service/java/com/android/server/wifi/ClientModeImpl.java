@@ -5192,7 +5192,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 WifiLastResortWatchdog.FAILURE_CODE_AUTHENTICATION,
                                 isConnected());
                     }
-                    WifiConfiguration config = getConnectingWifiConfigurationInternal();
+                    WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                    if (config == null) {
+                        config = getConnectingWifiConfigurationInternal();
+                    }
                     clearNetworkCachedDataIfNeeded(config, eventInfo.reasonCode);
                     try {
                         logEventIfManagedNetwork(config,
