@@ -1114,14 +1114,16 @@ public class SoftApManager implements ActiveModeManager {
                         mCurrentSoftApConfiguration =
                                 ApConfigUtil.remove6gBandForUnsupportedSecurity(
                                     mCurrentSoftApConfiguration);
-
-                        int icmResult =
-                                mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
+                        // Don't show the ICM dialog if this is for tethering.
+                        boolean bypassDialog = mOriginalModeConfiguration.getTargetMode()
+                                == WifiManager.IFACE_IP_MODE_TETHERED;
+                        int icmResult = mInterfaceConflictManager
+                                .manageInterfaceConflictForStateMachine(
                                         TAG, message, mStateMachine, mWaitingState,
                                         mIdleState, isBridgeRequired()
                                                 ? HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDGE
                                                 : HalDeviceManager.HDM_CREATE_IFACE_AP,
-                                        mRequestorWs);
+                                        mRequestorWs, bypassDialog);
                         if (icmResult == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(getTag(), "User refused to set up interface");
                             updateApState(WifiManager.WIFI_AP_STATE_FAILED,
