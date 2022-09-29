@@ -2257,8 +2257,8 @@ public class HalDeviceManager {
     private class IfaceCreationData {
         public WifiChipInfo chipInfo;
         public int chipModeId;
-        public List<WifiIfaceInfo> interfacesToBeRemovedFirst;
-        public List<WifiIfaceInfo> interfacesToBeDowngraded;
+        public @NonNull List<WifiIfaceInfo> interfacesToBeRemovedFirst = new ArrayList<>();
+        public @NonNull List<WifiIfaceInfo> interfacesToBeDowngraded = new ArrayList<>();
 
         @Override
         public String toString() {
@@ -2303,6 +2303,10 @@ public class HalDeviceManager {
             return null;
         }
 
+        IfaceCreationData ifaceCreationData = new IfaceCreationData();
+        ifaceCreationData.chipInfo = chipInfo;
+        ifaceCreationData.chipModeId = chipModeId;
+
         boolean isChipModeChangeProposed =
                 chipInfo.currentModeIdValid && chipInfo.currentModeId != chipModeId;
 
@@ -2322,16 +2326,10 @@ public class HalDeviceManager {
             }
 
             // but if priority allows the mode change then we're good to go
-            IfaceCreationData ifaceCreationData = new IfaceCreationData();
-            ifaceCreationData.chipInfo = chipInfo;
-            ifaceCreationData.chipModeId = chipModeId;
-
             return ifaceCreationData;
         }
 
         // possibly supported
-        List<WifiIfaceInfo> interfacesToBeRemovedFirst = new ArrayList<>();
-        List<WifiIfaceInfo> interfacesToBeDowngraded = new ArrayList<>();
         for (int existingCreateType : CREATE_TYPES_BY_PRIORITY) {
             WifiIfaceInfo[] createTypeIfaces = chipInfo.ifaces[existingCreateType];
             int numExcessIfaces = createTypeIfaces.length - chipCreateTypeCombo[existingCreateType];
@@ -2348,9 +2346,12 @@ public class HalDeviceManager {
                         availableSingleApCapacity -= 1;
                     }
                     if (availableSingleApCapacity >= numExcessIfaces) {
-                        interfacesToBeDowngraded = selectBridgedApInterfacesToDowngrade(
+                        List<WifiIfaceInfo> interfacesToBeDowngraded =
+                                selectBridgedApInterfacesToDowngrade(
                                         numExcessIfaces, createTypeIfaces);
                         if (interfacesToBeDowngraded != null) {
+                            ifaceCreationData.interfacesToBeDowngraded.addAll(
+                                    interfacesToBeDowngraded);
                             continue;
                         }
                         // Can't downgrade enough bridged APs, fall through to delete them.
@@ -2368,16 +2369,9 @@ public class HalDeviceManager {
                     }
                     return null;
                 }
-                interfacesToBeRemovedFirst.addAll(selectedIfacesToDelete);
+                ifaceCreationData.interfacesToBeRemovedFirst.addAll(selectedIfacesToDelete);
             }
         }
-
-        IfaceCreationData ifaceCreationData = new IfaceCreationData();
-        ifaceCreationData.chipInfo = chipInfo;
-        ifaceCreationData.chipModeId = chipModeId;
-        ifaceCreationData.interfacesToBeRemovedFirst = interfacesToBeRemovedFirst;
-        ifaceCreationData.interfacesToBeDowngraded = interfacesToBeDowngraded;
-
         return ifaceCreationData;
     }
 
@@ -2436,10 +2430,8 @@ public class HalDeviceManager {
             }
         }
 
-        int val1NumIFacesToBeDowngraded = val1.interfacesToBeDowngraded != null
-                ? val1.interfacesToBeDowngraded.size() : 0;
-        int val2NumIFacesToBeDowngraded = val2.interfacesToBeDowngraded != null
-                ? val2.interfacesToBeDowngraded.size() : 0;
+        int val1NumIFacesToBeDowngraded = val1.interfacesToBeDowngraded.size();
+        int val2NumIFacesToBeDowngraded = val2.interfacesToBeDowngraded.size();
         if (val1NumIFacesToBeDowngraded != val2NumIFacesToBeDowngraded) {
             return val1NumIFacesToBeDowngraded < val2NumIFacesToBeDowngraded;
         }
