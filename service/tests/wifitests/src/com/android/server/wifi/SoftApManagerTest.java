@@ -335,7 +335,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         when(mWifiApConfigStore.randomizeBssidIfUnset(any(), any())).thenAnswer(
                 (invocation) -> invocation.getArgument(1));
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), anyInt(), any())).thenReturn(
+                any(), any(), anyInt(), any(), anyBoolean())).thenReturn(
                 InterfaceConflictManager.ICM_EXECUTE_COMMAND);
         // Default init STA enabled
         when(mResources.getBoolean(R.bool.config_wifiStaWithBridgedSoftApConcurrencySupported))
@@ -449,7 +449,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         configBuilder.setBand(SoftApConfiguration.BAND_2GHZ);
         configBuilder.setSsid(TEST_SSID);
         SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
-                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                IFACE_IP_MODE_LOCAL_ONLY, configBuilder.build(),
                 mTestSoftApCapability, TEST_COUNTRY_CODE);
         startSoftApAndVerifyEnabledWithUserApproval(apConfig);
     }
@@ -461,17 +461,31 @@ public class SoftApManagerTest extends WifiBaseTest {
         configBuilder.setBand(SoftApConfiguration.BAND_2GHZ);
         configBuilder.setSsid(TEST_SSID);
         SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
-                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                IFACE_IP_MODE_LOCAL_ONLY, configBuilder.build(),
                 mTestSoftApCapability, TEST_COUNTRY_CODE);
 
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(),
-                any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), anyInt(), any(), anyBoolean()))
                 .thenReturn(InterfaceConflictManager.ICM_ABORT_COMMAND);
         mSoftApManager = createSoftApManager(apConfig, ROLE_SOFTAP_TETHERED);
 
         verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_FAILED,
                 WifiManager.SAP_START_FAILURE_USER_REJECTED);
         verify(mListener).onStartFailure(mSoftApManager);
+    }
+
+    /** Verifies startSoftAp will skip checking for user approval for the Tethering case. */
+    @Test
+    public void startSoftApWithUserApprovalSkippedForTethering() throws Exception {
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ);
+        configBuilder.setSsid(TEST_SSID);
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                mTestSoftApCapability, TEST_COUNTRY_CODE);
+        startSoftApAndVerifyEnabled(apConfig);
+        verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
+                any(), any(), any(), any(), anyInt(), any(), eq(true));
     }
 
     /**
@@ -2302,7 +2316,7 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         if (userApprovalNeeded) {
             when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(),
-                    any(), any(), any(), anyInt(), any()))
+                    any(), any(), any(), anyInt(), any(), eq(false)))
                     .thenReturn(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER);
         }
 
@@ -2325,9 +2339,9 @@ public class SoftApManagerTest extends WifiBaseTest {
             ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
             verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
                     messageCaptor.capture(), stateMachineCaptor.capture(), any(), any(), anyInt(),
-                    any());
+                    any(), eq(false));
             when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(),
-                    any(), any(), any(), anyInt(), any())).thenReturn(
+                    any(), any(), any(), anyInt(), any(), eq(false))).thenReturn(
                     InterfaceConflictManager.ICM_EXECUTE_COMMAND);
             stateMachineCaptor.getValue().sendMessage(Message.obtain(messageCaptor.getValue()));
             mLooper.dispatchAll();

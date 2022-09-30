@@ -236,6 +236,7 @@ public class InterfaceConflictManager {
      * @param createIfaceType The interface which needs to be created
      * @param requestorWs The requestor WorkSource
      *
+     * @param bypassDialog
      * @return ICM_EXECUTE_COMMAND caller should execute the command,
      * ICM_SKIP_COMMAND_WAIT_FOR_USER caller should skip the command (for now),
      * ICM_ABORT_COMMAND caller should abort this command and execute whatever failure code is
@@ -243,7 +244,8 @@ public class InterfaceConflictManager {
      */
     public @IcmResult int manageInterfaceConflictForStateMachine(String tag, Message msg,
             StateMachine stateMachine, WaitingState waitingState, State targetState,
-            @HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType, WorkSource requestorWs) {
+            @HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType, WorkSource requestorWs,
+            boolean bypassDialog) {
         synchronized (mLock) {
             if (mUserApprovalPending && !TextUtils.equals(tag, mUserApprovalPendingTag)) {
                 Log.w(TAG, tag + ": rejected since there's a pending user approval for "
@@ -276,7 +278,7 @@ public class InterfaceConflictManager {
                 return ICM_SKIP_COMMAND_WAIT_FOR_USER; // same effect
             }
 
-            if (!isUserApprovalNeeded(requestorWs)) return ICM_EXECUTE_COMMAND;
+            if (bypassDialog || !isUserApprovalNeeded(requestorWs)) return ICM_EXECUTE_COMMAND;
 
             List<Pair<Integer, WorkSource>> impact = mHdm.reportImpactToCreateIface(createIfaceType,
                     false, requestorWs);
