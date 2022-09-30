@@ -1228,8 +1228,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkCanAccessWifiDirect(anyString(), anyString(), anyInt(),
                 anyBoolean())).thenReturn(true);
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenReturn(
-                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenReturn(InterfaceConflictManager.ICM_EXECUTE_COMMAND);
         // Mock target SDK to less than T by default to keep existing tests working.
         if (SdkLevel.isAtLeastT()) {
             when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
@@ -6517,27 +6517,28 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // simulate user approval needed
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenAnswer(
-                new MockAnswerUtil.AnswerWithArguments() {
-                        public int answer(String tag, Message msg, StateMachine stateMachine,
-                                WaitingState waitingState, State targetState, int createIfaceType,
-                                WorkSource requestorWs) {
-                            stateMachine.deferMessage(msg);
-                            stateMachine.transitionTo(waitingState);
-                            return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
-                        }
-                    });
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenAnswer(new MockAnswerUtil.AnswerWithArguments() {
+                    public int answer(String tag, Message msg, StateMachine stateMachine,
+                            WaitingState waitingState, State targetState, int createIfaceType,
+                            WorkSource requestorWs,
+                            boolean bypassDialog) {
+                        stateMachine.deferMessage(msg);
+                        stateMachine.transitionTo(waitingState);
+                        return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
+                    }
+                });
 
         sendSimpleMsg(mClientMessenger, WifiP2pManager.DISCOVER_PEERS);
         mLooper.dispatchAll();
         inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
                 any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
-                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any());
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean());
 
         // simulate user approval triggered and granted
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenReturn(
-                userAcceptsRequest ? InterfaceConflictManager.ICM_EXECUTE_COMMAND
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenReturn(userAcceptsRequest ? InterfaceConflictManager.ICM_EXECUTE_COMMAND
                         : InterfaceConflictManager.ICM_ABORT_COMMAND);
         mWaitingStateCaptor.getValue().sendTransitionStateCommand(mTargetStateCaptor.getValue());
         mLooper.dispatchAll();
@@ -6577,31 +6578,32 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         // simulate user approval needed
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenAnswer(
-                        new MockAnswerUtil.AnswerWithArguments() {
-                            public int answer(String tag, Message msg, StateMachine stateMachine,
-                                    WaitingState waitingState, State targetState,
-                                    int createIfaceType,
-                                    WorkSource requestorWs) {
-                                stateMachine.deferMessage(msg);
-                                stateMachine.transitionTo(waitingState);
-                                return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
-                            }
-                        });
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenAnswer(new MockAnswerUtil.AnswerWithArguments() {
+                    public int answer(String tag, Message msg, StateMachine stateMachine,
+                            WaitingState waitingState, State targetState,
+                            int createIfaceType,
+                            WorkSource requestorWs,
+                            boolean bypassDialog) {
+                        stateMachine.deferMessage(msg);
+                        stateMachine.transitionTo(waitingState);
+                        return InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER;
+                    }
+                });
 
         sendSimpleMsg(mClientMessenger, WifiP2pManager.DISCOVER_PEERS);
         mLooper.dispatchAll();
         inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
                 any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
-                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any());
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean());
 
         // Turn off Wi-Fi
         simulateWifiStateChange(false);
 
         // simulate user approval triggered and granted
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any())).thenReturn(
-                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenReturn(InterfaceConflictManager.ICM_EXECUTE_COMMAND);
         mWaitingStateCaptor.getValue().sendTransitionStateCommand(mTargetStateCaptor.getValue());
         mLooper.dispatchAll();
 
