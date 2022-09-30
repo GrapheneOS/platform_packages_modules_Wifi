@@ -75,6 +75,9 @@ java_library {
     ],
 
     static_libs: [
+        // AIDL vendor hal implementation
+        "android.hardware.wifi-V1-java",
+        // HIDL vendor hal implementation
         "android.hardware.wifi-V1.0-java",
         "android.hardware.wifi-V1.1-java",
         "android.hardware.wifi-V1.2-java",
