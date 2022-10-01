@@ -185,8 +185,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         when(mMockContext.getSystemService(PowerManager.class)).thenReturn(mMockPowerManager);
 
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
-                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any())).thenReturn(
-                InterfaceConflictManager.ICM_EXECUTE_COMMAND);
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(), anyBoolean()))
+                .thenReturn(InterfaceConflictManager.ICM_EXECUTE_COMMAND);
 
         // by default pretend to be an old API: i.e. allow Responders configured as *ANY*. This
         // allows older (more extrensive) tests to run.
