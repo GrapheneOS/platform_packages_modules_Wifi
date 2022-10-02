@@ -80,7 +80,6 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.net.wifi.hotspot2.pps.HomeSp;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.ParcelUuid;
 import android.os.RemoteException;
@@ -89,6 +88,7 @@ import android.os.test.TestLooper;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.test.suitebuilder.annotation.SmallTest;
+import android.util.LocalLog;
 import android.view.LayoutInflater;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
@@ -300,7 +300,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         when(mWifiKeyStore.updateNetworkKeys(any(), any())).thenReturn(true);
 
         mWifiNetworkSuggestionsManager =
-                new WifiNetworkSuggestionsManager(mContext, new Handler(mLooper.getLooper()),
+                new WifiNetworkSuggestionsManager(mContext,
+                        new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128)),
                         mWifiInjector, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore,
                         mWifiMetrics, mWifiCarrierInfoManager, mWifiKeyStore,
                         mLruConnectionTracker, mClock);

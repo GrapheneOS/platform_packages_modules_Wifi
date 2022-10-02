@@ -48,7 +48,6 @@ import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
-import android.os.Handler;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -158,7 +157,7 @@ public class WifiNetworkSuggestionsManager {
 
     private final WifiContext mContext;
     private final Resources mResources;
-    private final Handler mHandler;
+    private final RunnerHandler mHandler;
     private final AppOpsManager mAppOps;
     private final ActivityManager mActivityManager;
     private final WifiNotificationManager mNotificationManager;
@@ -659,7 +658,7 @@ public class WifiNetworkSuggestionsManager {
         }
     }
 
-    public WifiNetworkSuggestionsManager(WifiContext context, Handler handler,
+    public WifiNetworkSuggestionsManager(WifiContext context, RunnerHandler handler,
             WifiInjector wifiInjector, WifiPermissionsUtil wifiPermissionsUtil,
             WifiConfigManager wifiConfigManager, WifiConfigStore wifiConfigStore,
             WifiMetrics wifiMetrics, WifiCarrierInfoManager wifiCarrierInfoManager,
@@ -695,7 +694,7 @@ public class WifiNetworkSuggestionsManager {
 
         mContext.registerReceiver(mBroadcastReceiver, mIntentFilter, null, handler);
         mLruConnectionTracker = lruConnectionTracker;
-        mHandler.postAtFrontOfQueue(() -> mWifiConfigManager.addOnNetworkUpdateListener(
+        mHandler.postToFront(() -> mWifiConfigManager.addOnNetworkUpdateListener(
                 new WifiNetworkSuggestionsManager.OnNetworkUpdateListener()));
     }
 

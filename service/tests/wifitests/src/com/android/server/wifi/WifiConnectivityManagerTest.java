@@ -391,12 +391,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     * scheduled at a time. The scheduled delayed message intervals are recorded and returned by
     * {@link #getIntervals}. The intervals are cleared by calling {@link #reset}.
     */
-    private class TestHandler extends Handler {
+    private class TestHandler extends RunnerHandler {
         private ArrayList<Long> mIntervals = new ArrayList<>();
         private Message mMessage;
 
         TestHandler(Looper looper) {
-            super(looper);
+            super(looper, 100, new LocalLog(128));
         }
 
         public List<Long> getIntervals() {

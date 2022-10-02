@@ -33,7 +33,6 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.WifiScanner;
 import android.os.Build;
-import android.os.Handler;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -106,7 +105,7 @@ public class WifiHealthMonitor {
     private final WifiScoreCard mWifiScoreCard;
     private final Clock mClock;
     private final AlarmManager mAlarmManager;
-    private final Handler mHandler;
+    private final RunnerHandler mHandler;
     private final WifiNative mWifiNative;
     private final WifiInjector mWifiInjector;
     private final DeviceConfigFacade mDeviceConfigFacade;
@@ -149,7 +148,7 @@ public class WifiHealthMonitor {
     }
 
     WifiHealthMonitor(Context context, WifiInjector wifiInjector, Clock clock,
-            WifiConfigManager wifiConfigManager, WifiScoreCard wifiScoreCard, Handler handler,
+            WifiConfigManager wifiConfigManager, WifiScoreCard wifiScoreCard, RunnerHandler handler,
             WifiNative wifiNative, String l2KeySeed, DeviceConfigFacade deviceConfigFacade,
             ActiveModeWarden activeModeWarden) {
         mContext = context;
@@ -164,7 +163,7 @@ public class WifiHealthMonitor {
         mActiveModeWarden = activeModeWarden;
         mWifiSystemInfoStats = new WifiSystemInfoStats(l2KeySeed);
         mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallback());
-        mHandler.postAtFrontOfQueue(() -> mWifiConfigManager
+        mHandler.postToFront(() -> mWifiConfigManager
                 .addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
     }
 

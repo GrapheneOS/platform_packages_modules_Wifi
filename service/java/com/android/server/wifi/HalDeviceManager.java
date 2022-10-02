@@ -3181,9 +3181,12 @@ public class HalDeviceManager {
             } else {
                 // Current thread is not the thread the listener should be invoked on.
                 // Post action to the intended thread.
-                mHandler.postAtFrontOfQueue(() -> {
-                    action();
-                });
+                if (mHandler instanceof RunnerHandler) {
+                    RunnerHandler rh = (RunnerHandler) mHandler;
+                    rh.postToFront(() -> action());
+                } else {
+                    mHandler.postAtFrontOfQueue(() -> action());
+                }
             }
         }
 

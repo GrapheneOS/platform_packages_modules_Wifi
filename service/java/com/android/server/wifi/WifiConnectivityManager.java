@@ -49,7 +49,6 @@ import android.net.wifi.WifiScanner.ScanSettings;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.util.ScanResultUtil;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.Process;
@@ -157,7 +156,7 @@ public class WifiConnectivityManager {
     private final OpenNetworkNotifier mOpenNetworkNotifier;
     private final WifiMetrics mWifiMetrics;
     private final AlarmManager mAlarmManager;
-    private final Handler mEventHandler;
+    private final RunnerHandler mEventHandler;
     private final ExternalPnoScanRequestManager mExternalPnoScanRequestManager;
     private final @NonNull SsidTranslator mSsidTranslator;
     private final Clock mClock;
@@ -1227,7 +1226,7 @@ public class WifiConnectivityManager {
             WifiLastResortWatchdog wifiLastResortWatchdog,
             OpenNetworkNotifier openNetworkNotifier,
             WifiMetrics wifiMetrics,
-            Handler handler,
+            RunnerHandler handler,
             Clock clock,
             LocalLog localLog,
             WifiScoreCard scoreCard,
@@ -1292,7 +1291,7 @@ public class WifiConnectivityManager {
         handleScreenStateChanged(mPowerManager.isInteractive());
 
         // Listen to WifiConfigManager network update events
-        mEventHandler.postAtFrontOfQueue(() ->
+        mEventHandler.postToFront(() ->
                 mConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
         // Listen to WifiNetworkSuggestionsManager suggestion update events
         mWifiNetworkSuggestionsManager.addOnSuggestionUpdateListener(

@@ -268,7 +268,7 @@ public class WifiInjector {
         mWifiHandlerThread.start();
         Looper wifiLooper = mWifiHandlerThread.getLooper();
         mWifiHandlerLocalLog = new LocalLog(128);
-        Handler wifiHandler = new RunnerHandler(wifiLooper, context.getResources().getInteger(
+        RunnerHandler wifiHandler = new RunnerHandler(wifiLooper, context.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs),
                 mWifiHandlerLocalLog);
         mWifiDiagnosticsHandlerThread = new HandlerThread("WifiDiagnostics");

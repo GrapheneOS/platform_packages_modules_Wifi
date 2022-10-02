@@ -41,8 +41,8 @@ import android.net.wifi.WifiScanner.ScanListener;
 import android.net.wifi.WifiScanner.ScanSettings;
 import android.net.wifi.WifiSsid;
 import android.os.Build;
-import android.os.Handler;
 import android.os.test.TestLooper;
+import android.util.LocalLog;
 
 import androidx.test.filters.SmallTest;
 
@@ -236,7 +236,8 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
         when(mResources.getIntArray(R.array.config_wifiRssiLevelThresholds))
                 .thenReturn(new int[]{-88, -77, -66, -55});
         mWifiHealthMonitor = new WifiHealthMonitor(mContext, mWifiInjector, mClock,
-                mWifiConfigManager, mWifiScoreCard, new Handler(mLooper.getLooper()), mWifiNative,
+                mWifiConfigManager, mWifiScoreCard,
+                new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128)), mWifiNative,
                 "some seed", mDeviceConfigFacade, mActiveModeWarden);
         mLooper.dispatchAll();
         ArgumentCaptor<ModeChangeCallback> modeChangeCallbackArgumentCaptor =
