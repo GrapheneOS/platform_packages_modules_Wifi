@@ -216,6 +216,14 @@ public class WifiThreadRunner {
         return mHandler.hasCallbacks(r);
     }
 
+    /**
+     * Package private
+     * @return Scissors timeout threshold
+     */
+    static long getScissorsTimeoutThreshold() {
+        return RUN_WITH_SCISSORS_TIMEOUT_MILLIS;
+    }
+
     // Note: @hide methods copied from android.os.Handler
     /**
      * Runs the specified task synchronously.

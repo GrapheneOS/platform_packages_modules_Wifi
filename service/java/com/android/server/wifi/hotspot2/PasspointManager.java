@@ -35,7 +35,6 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.hotspot2.PasspointConfiguration;
-import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
 import android.text.TextUtils;
@@ -47,6 +46,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.MacAddressUtil;
 import com.android.server.wifi.NetworkUpdateResult;
+import com.android.server.wifi.RunnerHandler;
 import com.android.server.wifi.WifiCarrierInfoManager;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiConfigStore;
@@ -119,7 +119,7 @@ public class PasspointManager {
 
     private final PasspointEventHandler mPasspointEventHandler;
     private final WifiInjector mWifiInjector;
-    private final Handler mHandler;
+    private final RunnerHandler mHandler;
     private final WifiKeyStore mKeyStore;
     private final PasspointObjectFactory mObjectFactory;
 
@@ -355,7 +355,7 @@ public class PasspointManager {
         mAppOps.stopWatchingMode(appOpsChangedListener);
     }
 
-    public PasspointManager(Context context, WifiInjector wifiInjector, Handler handler,
+    public PasspointManager(Context context, WifiInjector wifiInjector, RunnerHandler handler,
             WifiNative wifiNative, WifiKeyStore keyStore, Clock clock,
             PasspointObjectFactory objectFactory, WifiConfigManager wifiConfigManager,
             WifiConfigStore wifiConfigStore,
@@ -387,7 +387,7 @@ public class PasspointManager {
         sPasspointManager = this;
         mMacAddressUtil = macAddressUtil;
         mClock = clock;
-        mHandler.postAtFrontOfQueue(() ->
+        mHandler.postToFront(() ->
                 mWifiConfigManager.addOnNetworkUpdateListener(
                         new PasspointManager.OnNetworkUpdateListener()));
         mWifiPermissionsUtil = wifiPermissionsUtil;
