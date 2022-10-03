@@ -40,8 +40,8 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.scanner.WifiScannerInternal;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
@@ -97,7 +97,7 @@ public class ScanRequestProxy {
     private final WifiMetrics mWifiMetrics;
     private final Clock mClock;
     private final WifiSettingsConfigStore mSettingsConfigStore;
-    private WifiScanner mWifiScanner;
+    private WifiScannerInternal mWifiScanner;
 
     // Verbose logging flag.
     private boolean mVerboseLoggingEnabled = false;
@@ -119,7 +119,6 @@ public class ScanRequestProxy {
     private final Map<String, ScanResult> mLastScanResultsMap = new HashMap<>();
     // external ScanResultCallback tracker
     private final RemoteCallbackList<IScanResultsCallback> mRegisteredScanResultsCallbacks;
-    // Global scan listener for listening to all scan requests.
     private class GlobalScanListener implements WifiScanner.ScanListener {
         @Override
         public void onSuccess() {
@@ -230,7 +229,7 @@ public class ScanRequestProxy {
      */
     private boolean retrieveWifiScannerIfNecessary() {
         if (mWifiScanner == null) {
-            mWifiScanner = mWifiInjector.getWifiScanner();
+            mWifiScanner = WifiLocalServices.getService(WifiScannerInternal.class);
             // Start listening for throttle settings change after we retrieve scanner instance.
             mThrottleEnabled = mSettingsConfigStore.get(WIFI_SCAN_THROTTLE_ENABLED);
             if (mVerboseLoggingEnabled) {
@@ -239,7 +238,7 @@ public class ScanRequestProxy {
             // Register the global scan listener.
             if (mWifiScanner != null) {
                 mWifiScanner.registerScanListener(
-                        new HandlerExecutor(mHandler), new GlobalScanListener());
+                        new WifiScannerInternal.ScanListener(new GlobalScanListener(), mHandler));
             }
         }
         return mWifiScanner != null;
@@ -495,8 +494,9 @@ public class ScanRequestProxy {
                     mWifiInjector.getWifiNetworkSuggestionsManager()
                     .retrieveHiddenNetworkList(false));
         }
-        mWifiScanner.startScan(settings, new HandlerExecutor(mHandler),
-                new ScanRequestProxyScanListener(), workSource);
+        mWifiScanner.startScan(settings,
+                new WifiScannerInternal.ScanListener(new ScanRequestProxyScanListener(), mHandler),
+                workSource);
         return true;
     }
 

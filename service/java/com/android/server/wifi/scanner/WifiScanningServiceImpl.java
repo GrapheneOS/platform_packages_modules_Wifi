@@ -59,6 +59,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ClientModeImpl;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiLocalServices;
 import com.android.server.wifi.WifiLog;
 import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
@@ -602,6 +603,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
     public void startService() {
         mWifiThreadRunner.post(() -> {
+            WifiLocalServices.addService(WifiScannerInternal.class, new LocalService());
             mBackgroundScanStateMachine = new WifiBackgroundScanStateMachine(mLooper);
             mSingleScanStateMachine = new WifiSingleScanStateMachine(mLooper);
             mPnoScanStateMachine = new WifiPnoScanStateMachine(mLooper);
@@ -2763,6 +2765,54 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
         @Override
         public void onPnoNetworkFound(ScanResult[] results) {
+        }
+    }
+
+    private class LocalService extends WifiScannerInternal {
+        @Override
+        public void setScanningEnabled(boolean enable) {
+            WifiScanningServiceImpl.this.setScanningEnabled(enable, Process.myTid(),
+                    mContext.getOpPackageName());
+        }
+
+        @Override
+        public void registerScanListener(@NonNull WifiScannerInternal.ScanListener listener) {
+            WifiScanningServiceImpl.this.registerScanListener(listener,
+                    mContext.getOpPackageName(), mContext.getAttributionTag());
+        }
+
+        @Override
+        public void startScan(WifiScanner.ScanSettings settings,
+                WifiScannerInternal.ScanListener listener,
+                @Nullable WorkSource workSource) {
+            WifiScanningServiceImpl.this.startScan(listener, settings, workSource,
+                    workSource.getPackageName(0), mContext.getAttributionTag());
+        }
+
+        @Override
+        public void stopScan(WifiScannerInternal.ScanListener listener) {
+            WifiScanningServiceImpl.this.stopScan(listener,
+                    mContext.getOpPackageName(), mContext.getAttributionTag());
+        }
+
+        @Override
+        public void startPnoScan(WifiScanner.ScanSettings scanSettings,
+                WifiScanner.PnoSettings pnoSettings,
+                WifiScannerInternal.ScanListener listener) {
+            WifiScanningServiceImpl.this.startPnoScan(listener,
+                    scanSettings, pnoSettings, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        }
+
+        @Override
+        public void stopPnoScan(WifiScannerInternal.ScanListener listener) {
+            WifiScanningServiceImpl.this.stopPnoScan(listener, mContext.getOpPackageName(),
+                    mContext.getAttributionTag());
+        }
+
+        @Override
+        public List<ScanResult> getSingleScanResults() {
+            return mSingleScanStateMachine.filterCachedScanResultsByAge();
         }
     }
 

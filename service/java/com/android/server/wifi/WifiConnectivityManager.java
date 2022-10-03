@@ -60,9 +60,9 @@ import android.util.LocalLog;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.hotspot2.PasspointManager;
+import com.android.server.wifi.scanner.WifiScannerInternal;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
@@ -178,7 +178,7 @@ public class WifiConnectivityManager {
     private final FrameworkFacade mFrameworkFacade;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
 
-    private WifiScanner mScanner;
+    private WifiScannerInternal mScanner;
     private final MultiInternetManager mMultiInternetManager;
     private boolean mDbg = false;
     private boolean mVerboseLoggingEnabled = false;
@@ -322,8 +322,9 @@ public class WifiConnectivityManager {
                         settings.channels[index++] = new WifiScanner.ChannelSpec(freq);
                     }
                     SingleScanListener singleScanListener = new SingleScanListener(false);
-                    mScanner.startScan(settings, new HandlerExecutor(mEventHandler),
-                            singleScanListener, WIFI_WORK_SOURCE);
+                    mScanner.startScan(settings,
+                            new WifiScannerInternal.ScanListener(singleScanListener,
+                                    mEventHandler));
                     mWifiMetrics.incrementConnectivityOneshotScanCount();
                 }
             };
@@ -850,7 +851,7 @@ public class WifiConnectivityManager {
         @Override
         public void onFailure(int reason, String description) {
             localLog("registerScanListener onFailure:"
-                      + " reason: " + reason + " description: " + description);
+                    + " reason: " + reason + " description: " + description);
         }
 
         @Override
@@ -965,7 +966,8 @@ public class WifiConnectivityManager {
         }
     }
 
-    private final AllSingleScanListener mAllSingleScanListener = new AllSingleScanListener();
+    private final AllSingleScanListener mAllSingleScanListener;
+    private final WifiScannerInternal.ScanListener mInternalAllSingleScanListener;
 
     // Single scan results listener. A single scan is initiated when
     // DisconnectedPNO scan found a valid network and woke up
@@ -1119,7 +1121,8 @@ public class WifiConnectivityManager {
         }
     }
 
-    private final PnoScanListener mPnoScanListener = new PnoScanListener();
+    private final PnoScanListener mPnoScanListener;
+    private final WifiScannerInternal.ScanListener mInternalPnoScanListener;
 
     private class OnNetworkUpdateListener implements
             WifiConfigManager.OnNetworkUpdateListener {
@@ -1299,6 +1302,12 @@ public class WifiConnectivityManager {
         mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallback());
         mMultiInternetManager.setConnectionStatusListener(
                 new InternalMultiInternetConnectionStatusListener());
+        mAllSingleScanListener = new AllSingleScanListener();
+        mInternalAllSingleScanListener = new WifiScannerInternal.ScanListener(
+                mAllSingleScanListener, mEventHandler);
+        mPnoScanListener = new PnoScanListener();
+        mInternalPnoScanListener = new WifiScannerInternal.ScanListener(mPnoScanListener,
+                mEventHandler);
     }
 
     @NonNull
@@ -2055,8 +2064,8 @@ public class WifiConnectivityManager {
 
         SingleScanListener singleScanListener =
                 new SingleScanListener(isFullBandScan);
-        mScanner.startScan(
-                settings, new HandlerExecutor(mEventHandler), singleScanListener, workSource);
+        mScanner.startScan(settings,
+                new WifiScannerInternal.ScanListener(singleScanListener, mEventHandler));
         mWifiMetrics.incrementConnectivityOneshotScanCount();
     }
 
@@ -2196,8 +2205,8 @@ public class WifiConnectivityManager {
         scanSettings.numBssidsPerScan = 0;
         scanSettings.periodInMs = deviceMobilityStateToPnoScanIntervalMs(mDeviceMobilityState);
 
-        mScanner.startDisconnectedPnoScan(
-                scanSettings, pnoSettings, new HandlerExecutor(mEventHandler), mPnoScanListener);
+        pnoSettings.isConnected = false;
+        mScanner.startPnoScan(scanSettings, pnoSettings, mInternalPnoScanListener);
         mPnoScanStarted = true;
         mWifiMetrics.logPnoScanStart();
     }
@@ -2318,7 +2327,7 @@ public class WifiConnectivityManager {
     private void stopPnoScan() {
         if (!mPnoScanStarted) return;
 
-        mScanner.stopPnoScan(mPnoScanListener);
+        mScanner.stopPnoScan(mInternalPnoScanListener);
         mPnoScanStarted = false;
         mWifiMetrics.logPnoScanStop();
     }
@@ -2997,10 +3006,10 @@ public class WifiConnectivityManager {
      */
     private void retrieveWifiScanner() {
         if (mScanner != null) return;
-        mScanner = Objects.requireNonNull(mContext.getSystemService(WifiScanner.class),
+        mScanner = Objects.requireNonNull(WifiLocalServices.getService(WifiScannerInternal.class),
                 "Got a null instance of WifiScanner!");
         // Register for all single scan results
-        mScanner.registerScanListener(new HandlerExecutor(mEventHandler), mAllSingleScanListener);
+        mScanner.registerScanListener(mInternalAllSingleScanListener);
     }
 
     /**
