@@ -432,10 +432,21 @@ public class WifiChip {
         mWifiChip = createWifiChipHidlImplMockable(chip, context, ssidTranslator);
     }
 
-    private WifiChipHidlImpl createWifiChipHidlImplMockable(
+    public WifiChip(@NonNull android.hardware.wifi.IWifiChip chip,
+            @NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
+        mWifiChip = createWifiChipAidlImplMockable(chip, context, ssidTranslator);
+    }
+
+    protected WifiChipHidlImpl createWifiChipHidlImplMockable(
             @NonNull android.hardware.wifi.V1_0.IWifiChip chip,
             @NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
         return new WifiChipHidlImpl(chip, context, ssidTranslator);
+    }
+
+    protected WifiChipAidlImpl createWifiChipAidlImplMockable(
+            @NonNull android.hardware.wifi.IWifiChip chip,
+            @NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
+        return new WifiChipAidlImpl(chip, context, ssidTranslator);
     }
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
