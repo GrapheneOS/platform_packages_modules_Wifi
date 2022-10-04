@@ -659,6 +659,18 @@ package android.net.wifi {
     field public static final int API_DISABLE_NETWORK = 15; // 0xf
     field public static final int API_ENABLE_NETWORK = 16; // 0x10
     field public static final int API_FORGET = 17; // 0x11
+    field public static final int API_P2P_CANCEL_CONNECT = 26; // 0x1a
+    field public static final int API_P2P_CONNECT = 25; // 0x19
+    field public static final int API_P2P_CREATE_GROUP = 27; // 0x1b
+    field public static final int API_P2P_CREATE_GROUP_P2P_CONFIG = 28; // 0x1c
+    field public static final int API_P2P_DISCOVER_PEERS = 21; // 0x15
+    field public static final int API_P2P_DISCOVER_PEERS_ON_SOCIAL_CHANNELS = 22; // 0x16
+    field public static final int API_P2P_DISCOVER_PEERS_ON_SPECIFIC_FREQUENCY = 23; // 0x17
+    field public static final int API_P2P_REMOVE_GROUP = 29; // 0x1d
+    field public static final int API_P2P_SET_CHANNELS = 32; // 0x20
+    field public static final int API_P2P_START_LISTENING = 30; // 0x1e
+    field public static final int API_P2P_STOP_LISTENING = 31; // 0x1f
+    field public static final int API_P2P_STOP_PEER_DISCOVERY = 24; // 0x18
     field public static final int API_SAVE = 18; // 0x12
     field public static final int API_SCANNING_ENABLED = 1; // 0x1
     field public static final int API_SET_NETWORK_SELECTION_CONFIG = 8; // 0x8
@@ -671,6 +683,7 @@ package android.net.wifi {
     field public static final int API_TETHERED_HOTSPOT = 4; // 0x4
     field public static final int API_UPDATE_NETWORK = 11; // 0xb
     field public static final int API_WIFI_ENABLED = 2; // 0x2
+    field public static final int API_WIFI_SCANNER_START_SCAN = 33; // 0x21
     field public static final int CHANGE_REASON_ADDED = 0; // 0x0
     field public static final int CHANGE_REASON_CONFIG_CHANGE = 2; // 0x2
     field public static final int CHANGE_REASON_REMOVED = 1; // 0x1

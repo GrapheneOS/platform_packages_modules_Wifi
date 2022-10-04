@@ -593,6 +593,8 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
         doSuccessfulSingleScan(requestSettings, computeSingleScanNativeSettings(requestSettings),
                 ScanResults.create(0, WifiScanner.WIFI_BAND_BOTH, new int[0]));
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_SCANNER_START_SCAN), anyInt(),
+                anyInt(), anyInt(), anyString(), eq(true));
     }
 
     /**
