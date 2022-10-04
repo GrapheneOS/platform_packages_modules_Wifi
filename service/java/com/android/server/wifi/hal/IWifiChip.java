@@ -139,10 +139,25 @@ public interface IWifiChip {
 
     /**
      * Get the capabilities supported by this chip.
+     * Call if no interfaces have been created on this chip.
      *
-     * @return Bitset of WifiManager.WIFI_FEATURE_* values.
+     * Note: This method can still be called safely after ifaces have been created,
+     * but it is recommended to use {@link #getCapabilitiesAfterIfacesExist()} once
+     * any ifaces are up.
+     *
+     * @return {@link WifiChip.Response} where the value is a bitset of
+     *         WifiManager.WIFI_FEATURE_* values.
      */
-    long getCapabilities();
+    WifiChip.Response<Long> getCapabilitiesBeforeIfacesExist();
+
+    /**
+     * Get the capabilities supported by this chip.
+     * Call if interfaces have been created on this chip.
+     *
+     * @return {@link WifiChip.Response} where the value is a bitset of
+     *         WifiManager.WIFI_FEATURE_* values.
+     */
+    WifiChip.Response<Long> getCapabilitiesAfterIfacesExist();
 
     /**
      * Retrieve the Wi-Fi wakeup reason stats for debugging.
@@ -171,10 +186,10 @@ public interface IWifiChip {
     /**
      * Get the current mode that the chip is in.
      *
-     * @return Mode that the chip is currently configured to, corresponding to the ID property
-     *         of the target ChipMode, 0 if the mode is not available, or -1 if an error occurred.
+     * @return {@link WifiChip.Response} where the value is the mode that the chip
+     *         is currently configured to.
      */
-    int getMode();
+    WifiChip.Response<Integer> getMode();
 
     /**
      * Get the NAN interface corresponding to the provided ifaceName.
