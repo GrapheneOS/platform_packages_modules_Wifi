@@ -1611,6 +1611,20 @@ public class WifiConfigManager {
     }
 
     /**
+     * Adds a network configuration to our database if a matching configuration cannot be found.
+     * @param config provided WifiConfiguration object.
+     * @param uid    UID of the app requesting the network addition.
+     * @return
+     */
+    public NetworkUpdateResult addNetwork(WifiConfiguration config, int uid) {
+        config.convertLegacyFieldsToSecurityParamsIfNeeded();
+        if (getInternalConfiguredNetwork(config) == null) {
+            return addOrUpdateNetwork(config, uid);
+        }
+        return new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID);
+    }
+
+    /**
      * Add a network or update a network configuration to our database.
      * If the supplied networkId is INVALID_NETWORK_ID, we create a new empty
      * network configuration. Otherwise, the networkId should refer to an existing configuration.

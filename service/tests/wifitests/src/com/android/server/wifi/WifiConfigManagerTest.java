@@ -856,6 +856,21 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertEquals(WifiConfiguration.INVALID_NETWORK_ID, networkUpdateResult.getNetworkId());
     }
 
+    @Test
+    public void testAddNetworkDoNotOverrideExistingNetwork() {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+
+        triggerStoreReadIfNeeded();
+        // Verify add network success for the first time
+        assertNotEquals(WifiConfiguration.INVALID_NETWORK_ID, mWifiConfigManager.addNetwork(
+                config, TEST_CREATOR_UID).getNetworkId());
+        // add the network again and verify it fails due to the same network already existing
+        assertEquals(WifiConfiguration.INVALID_NETWORK_ID, mWifiConfigManager.addNetwork(
+                config, TEST_CREATOR_UID).getNetworkId());
+    }
+
     /**
      * Verifies that the admin could set and modify the macRandomizationSetting field
      * for networks they own.
