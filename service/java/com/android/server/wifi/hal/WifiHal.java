@@ -50,6 +50,7 @@ public class WifiHal {
     public static final int WIFI_STATUS_ERROR_INVALID_ARGS = 7;
     public static final int WIFI_STATUS_ERROR_BUSY = 8;
     public static final int WIFI_STATUS_ERROR_UNKNOWN = 9;
+    public static final int WIFI_STATUS_ERROR_REMOTE_EXCEPTION = 10;
 
     @IntDef(prefix = { "WIFI_STATUS_" }, value = {
             WIFI_STATUS_SUCCESS,
@@ -62,6 +63,7 @@ public class WifiHal {
             WIFI_STATUS_ERROR_INVALID_ARGS,
             WIFI_STATUS_ERROR_BUSY,
             WIFI_STATUS_ERROR_UNKNOWN,
+            WIFI_STATUS_ERROR_REMOTE_EXCEPTION,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface WifiStatusCode {}

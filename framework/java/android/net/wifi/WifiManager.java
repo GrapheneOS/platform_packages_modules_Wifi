@@ -54,6 +54,8 @@ import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.ProvisioningCallback;
+import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
@@ -428,7 +430,20 @@ public class WifiManager {
             API_FORGET,
             API_SAVE,
             API_START_SCAN,
-            API_START_LOCAL_ONLY_HOTSPOT
+            API_START_LOCAL_ONLY_HOTSPOT,
+            API_P2P_DISCOVER_PEERS,
+            API_P2P_DISCOVER_PEERS_ON_SOCIAL_CHANNELS,
+            API_P2P_DISCOVER_PEERS_ON_SPECIFIC_FREQUENCY,
+            API_P2P_STOP_PEER_DISCOVERY,
+            API_P2P_CONNECT,
+            API_P2P_CANCEL_CONNECT,
+            API_P2P_CREATE_GROUP,
+            API_P2P_CREATE_GROUP_P2P_CONFIG,
+            API_P2P_REMOVE_GROUP,
+            API_P2P_START_LISTENING,
+            API_P2P_STOP_LISTENING,
+            API_P2P_SET_CHANNELS,
+            API_WIFI_SCANNER_START_SCAN
     })
     public @interface ApiType {}
 
@@ -622,10 +637,146 @@ public class WifiManager {
     public static final int API_START_LOCAL_ONLY_HOTSPOT = 20;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#discoverPeers(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_DISCOVER_PEERS = 21;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#discoverPeersOnSocialChannels(WifiP2pManager.Channel,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_DISCOVER_PEERS_ON_SOCIAL_CHANNELS = 22;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#discoverPeersOnSpecificFrequency(WifiP2pManager.Channel, int,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_DISCOVER_PEERS_ON_SPECIFIC_FREQUENCY = 23;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#stopPeerDiscovery(WifiP2pManager.Channel,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_STOP_PEER_DISCOVERY = 24;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#connect(WifiP2pManager.Channel, WifiP2pConfig,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_CONNECT = 25;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#cancelConnect(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_CANCEL_CONNECT = 26;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#createGroup(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_CREATE_GROUP = 27;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#createGroup(WifiP2pManager.Channel, WifiP2pConfig,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_CREATE_GROUP_P2P_CONFIG = 28;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#removeGroup(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_REMOVE_GROUP = 29;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#startListening(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_START_LISTENING = 30;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#stopListening(WifiP2pManager.Channel, WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_STOP_LISTENING = 31;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiP2pManager#setWifiP2pChannels(WifiP2pManager.Channel, int, int,
+     * WifiP2pManager.ActionListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_P2P_SET_CHANNELS = 32;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiScanner#startScan(WifiScanner.ScanSettings, WifiScanner.ScanListener)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_WIFI_SCANNER_START_SCAN = 33;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 21;
+    public static final int API_MAX = 34;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
