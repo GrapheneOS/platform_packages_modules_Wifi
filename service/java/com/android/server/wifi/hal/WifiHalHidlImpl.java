@@ -498,7 +498,7 @@ public class WifiHalHidlImpl implements IWifiHal {
         }
     }
 
-    private static @WifiHal.WifiStatusCode int halToFrameworkWifiStatusCode(int code) {
+    protected static @WifiHal.WifiStatusCode int halToFrameworkWifiStatusCode(int code) {
         switch (code) {
             case WifiStatusCode.SUCCESS:
                 return WifiHal.WIFI_STATUS_SUCCESS;

@@ -42,6 +42,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.WorkSource;
 import android.util.ArrayMap;
@@ -359,6 +360,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
+        mLastCallerInfoManager.put(WifiManager.API_WIFI_SCANNER_START_SCAN, Process.myTid(),
+                uid, Binder.getCallingPid(), packageName, true);
         mWifiThreadRunner.post(() -> {
             ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
             if (client == null) {
