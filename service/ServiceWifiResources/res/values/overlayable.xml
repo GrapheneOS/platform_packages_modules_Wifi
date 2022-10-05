@@ -220,6 +220,8 @@
           <item type="bool" name="config_wifiLinkLayerAllRadiosStatsAggregationEnabled" />
           <item type="string" name="config_wifiP2pDeviceNamePrefix"/>
           <item type="integer" name="config_wifiP2pDeviceNamePostfixNumDigits" />
+          <item type="integer" name="config_wifiP2pExtListenPeriodMs" />
+          <item type="integer" name="config_wifiP2pExtListenIntervalMs" />
           <item type="integer" name="config_wifiMaxNumWifiConfigurations" />
           <item type="bool" name="config_wifiAllowInsecureEnterpriseConfigurationsForSettingsAndSUW" />
           <item type="integer" name="config_wifiConnectivityLocalLogMaxLinesLowRam" />
