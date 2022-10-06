@@ -134,6 +134,11 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -5456,15 +5461,34 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         private String generateP2pSsidPostfix(String devName) {
             if (TextUtils.isEmpty(devName)) return "-";
+
             StringBuilder sb = new StringBuilder("-");
-            sb.append(devName.length() > GROUP_NAME_POSTFIX_LENGTH_MAX
-                    ? devName.substring(0, GROUP_NAME_POSTFIX_LENGTH_MAX) : devName);
+            Charset charset = Charset.forName("UTF-8");
+            byte[] rawBytes = devName.getBytes(charset);
+            if (rawBytes.length <= GROUP_NAME_POSTFIX_LENGTH_MAX) {
+                sb.append(devName);
+            } else {
+                CharsetDecoder decoder = charset.newDecoder();
+                ByteBuffer bb = ByteBuffer.wrap(rawBytes, 0, GROUP_NAME_POSTFIX_LENGTH_MAX);
+                CharBuffer cb = CharBuffer.allocate(GROUP_NAME_POSTFIX_LENGTH_MAX);
+
+                // Ignore an incomplete character
+                decoder.onMalformedInput(CodingErrorAction.IGNORE);
+                decoder.decode(bb, cb, true);
+                decoder.flush(cb);
+                sb.append(new String(cb.array(), 0, cb.position()));
+            }
+            Log.i(TAG, "P2P SSID postfix: " + sb.toString()
+                    + " len=" + sb.toString().length()
+                    + " bytes=" + sb.toString().getBytes(charset).length);
             return sb.toString();
         }
 
         private boolean setAndPersistDeviceName(String devName) {
             if (TextUtils.isEmpty(devName)) return false;
-            if (devName.length() > DEVICE_NAME_LENGTH_MAX) return false;
+            if (devName.getBytes(Charset.forName("UTF-8")).length > DEVICE_NAME_LENGTH_MAX) {
+                return false;
+            }
 
             if (mInterfaceName != null) {
                 String postfix = generateP2pSsidPostfix(devName);
