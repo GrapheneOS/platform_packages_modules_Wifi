@@ -110,7 +110,7 @@ public class WifiChip {
         private int mStatusCode;
 
         public Response(T initialValue) {
-            mMutable.value = initialValue;
+            mMutable = new Mutable<>(initialValue);
             mStatusCode = WifiHal.WIFI_STATUS_ERROR_UNKNOWN;
         }
 
