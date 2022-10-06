@@ -1920,9 +1920,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration originalNetwork = new WifiConfiguration(network);
 
         // Now set all the public fields to null and try updating the network.
+        // except for allowedKeyManagement which is not allowed to be empty.
         network.allowedAuthAlgorithms.clear();
         network.allowedProtocols.clear();
-        network.allowedKeyManagement.clear();
         network.allowedPairwiseCiphers.clear();
         network.allowedGroupCiphers.clear();
 
