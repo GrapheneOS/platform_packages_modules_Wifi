@@ -491,7 +491,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         TEST_UID_1, TEST_PACKAGE_1,
                         WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT));
         // Make sure remove the keyStore with the internal config
-        verify(mWifiKeyStore).removeKeys(networkSuggestion1.wifiConfiguration.enterpriseConfig);
+        verify(mWifiKeyStore).removeKeys(eq(networkSuggestion1.wifiConfiguration.enterpriseConfig),
+                eq(false));
         verify(mLruConnectionTracker).removeNetwork(any());
     }
 
