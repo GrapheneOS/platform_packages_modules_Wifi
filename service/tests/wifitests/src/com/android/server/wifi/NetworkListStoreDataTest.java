@@ -267,6 +267,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     ? "<null name=\"DecoratedIdentityPrefix\" />\n" : "")
                     + "<boolean name=\"TrustOnFirstUse\" value=\"false\" />\n"
                     + "<boolean name=\"UserApproveNoCaCert\" value=\"false\" />\n"
+                    + "<int name=\"MinimumTlsVersion\" value=\"3\" />\n"
                     + "</WifiEnterpriseConfiguration>\n"
                     + "</Network>\n";;
 
@@ -457,6 +458,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     ? "<null name=\"DecoratedIdentityPrefix\" />\n" : "")
                     + "<boolean name=\"TrustOnFirstUse\" value=\"false\" />\n"
                     + "<boolean name=\"UserApproveNoCaCert\" value=\"false\" />\n"
+                    + "<int name=\"MinimumTlsVersion\" value=\"0\" />\n"
                     + "</WifiEnterpriseConfiguration>\n"
                     + "</Network>\n";;
 
@@ -594,6 +596,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         eapNetwork.setIpConfiguration(
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         eapNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
+        eapNetwork.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
         WifiConfiguration saeNetwork = WifiConfigurationTestUtil.createSaeNetwork();
         saeNetwork.shared = shared;
         saeNetwork.creatorName = TEST_CREATOR_NAME;

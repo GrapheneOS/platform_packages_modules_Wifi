@@ -576,6 +576,7 @@ public class PasspointProvider {
         WifiEnterpriseConfig enterpriseConfig = new WifiEnterpriseConfig();
         enterpriseConfig.setRealm(mConfig.getCredential().getRealm());
         enterpriseConfig.setDomainSuffixMatch(mConfig.getHomeSp().getFqdn());
+        enterpriseConfig.setMinimumTlsVersion(mConfig.getCredential().getMinimumTlsVersion());
         if (mConfig.getCredential().getUserCredential() != null) {
             buildEnterpriseConfigForUserCredential(enterpriseConfig,
                     mConfig.getCredential().getUserCredential());

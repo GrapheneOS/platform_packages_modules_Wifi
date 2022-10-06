@@ -3626,6 +3626,18 @@ public class WifiManager {
      */
     public static final long WIFI_FEATURE_DPP_AKM = 1L << 54;
 
+    /**
+     * Support for setting TLS minimum version.
+     * @hide
+     */
+    public static final long WIFI_FEATURE_SET_TLS_MINIMUM_VERSION = 1L << 55;
+
+    /**
+     * Support for TLS v.13.
+     * @hide
+     */
+    public static final long WIFI_FEATURE_TLS_V1_3 = 1L << 56;
+
     private long getSupportedFeatures() {
         try {
             return mService.getSupportedFeatures();
@@ -7785,6 +7797,28 @@ public class WifiManager {
      */
     public boolean isEasyConnectDppAkmSupported() {
         return isFeatureSupported(WIFI_FEATURE_DPP_AKM);
+    }
+
+    /**
+     * Indicate that whether or not settings required TLS minimum version is supported.
+     *
+     * If the device doesn't support this capability, the minimum accepted TLS version is 1.0.
+     *
+     * @return true if this device supports setting TLS minimum version.
+     */
+    public boolean isTlsMinimumVersionSupported() {
+        return isFeatureSupported(WIFI_FEATURE_SET_TLS_MINIMUM_VERSION);
+    }
+
+    /**
+     * Indicate that whether or not TLS v1.3 is supported.
+     *
+     * If requested minimum is not supported, it will default to the maximum supported version.
+     *
+     * @return true if this device supports TLS v1.3.
+     */
+    public boolean isTlsV13Supported() {
+        return isFeatureSupported(WIFI_FEATURE_TLS_V1_3);
     }
 
     /**
