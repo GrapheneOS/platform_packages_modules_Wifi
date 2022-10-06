@@ -4165,6 +4165,84 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with a multilingual
+     * string whose length exceeds 22.
+     */
+    @Test
+    public void testSetDeviceNameFailureWithANameLongerThanMaxPostfixLengthForMultiByteCharacter()
+            throws Exception {
+        // Move to enabled state
+        forceP2pEnabled(mClient1);
+        mTestThisDevice.status = mTestThisDevice.AVAILABLE;
+
+        // 3-byte for each character, it occupies 24 bytes.
+        mTestThisDevice.deviceName = "한국어키보드보드";
+        when(mWifiNative.setDeviceName(anyString())).thenReturn(true);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
+        sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
+        verify(mWifiNative).setDeviceName(eq(mTestThisDevice.deviceName));
+        // As the last character is a multi-byte character, the last
+        // character should be truncated completely.
+        verify(mWifiNative).setP2pSsidPostfix(eq("-한국어키보드보"));
+        verify(mWifiSettingsConfigStore).put(
+                eq(WIFI_P2P_DEVICE_NAME), eq(mTestThisDevice.deviceName));
+        checkSendThisDeviceChangedBroadcast();
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.SET_DEVICE_NAME_SUCCEEDED, message.what);
+    }
+
+    /**
+     * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with a string
+     * longer than the maximum length.
+     */
+    @Test
+    public void testSetDeviceNameFailureWithNameExceedMaximumLength() throws Exception {
+        // Move to enabled state
+        forceP2pEnabled(mClient1);
+        mTestThisDevice.status = mTestThisDevice.AVAILABLE;
+
+        // clear the one called on entering P2pEnabledState.
+        reset(mWifiNative);
+        mTestThisDevice.deviceName = "123456789012345678901234567890123";
+        when(mWifiNative.setDeviceName(anyString())).thenReturn(true);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
+        sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
+        verify(mWifiNative, never()).setDeviceName(any());
+        verify(mWifiNative, never()).setP2pSsidPostfix(any());
+        verify(mWifiSettingsConfigStore, never()).put(any(), any());
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.SET_DEVICE_NAME_FAILED, message.what);
+    }
+
+    /**
+     * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with a multilingual string
+     * longer than the maximum length.
+     */
+    @Test
+    public void testSetDeviceNameFailureWithMultilingualNameExceedMaximumLength()
+            throws Exception {
+        // Move to enabled state
+        forceP2pEnabled(mClient1);
+        mTestThisDevice.status = mTestThisDevice.AVAILABLE;
+
+        // clear the one called on entering P2pEnabledState.
+        reset(mWifiNative);
+        // 3-byte for each character, it occupies 33 bytes.
+        mTestThisDevice.deviceName = "한국어키보드보드한국어";
+        when(mWifiNative.setDeviceName(anyString())).thenReturn(true);
+        when(mWifiNative.setP2pSsidPostfix(anyString())).thenReturn(true);
+        sendSetDeviceNameMsg(mClientMessenger, mTestThisDevice);
+        verify(mWifiNative, never()).setDeviceName(any());
+        verify(mWifiNative, never()).setP2pSsidPostfix(any());
+        verify(mWifiSettingsConfigStore, never()).put(any(), any());
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.SET_DEVICE_NAME_FAILED, message.what);
+    }
+
+    /**
      * Verify the caller sends WifiP2pManager.SET_DEVICE_NAME with an empty name.
      */
     @Test
