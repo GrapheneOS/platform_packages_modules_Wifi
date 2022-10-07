@@ -1502,8 +1502,12 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        // No decorated pseudonum, only update the cached data.
-        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        if (SdkLevel.isAtLeastT()) {
+            // No decorated pseudonum, only update the cached data.
+            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
+        }
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1560,7 +1564,12 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym + "@" + realm), eq(true));
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym + "@" + realm),
+                    eq(true));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
+        }
         assertEquals(pseudonym + "@" + realm,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1614,8 +1623,12 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        // No decorated pseudonum, only update the cached data.
-        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        if (SdkLevel.isAtLeastT()) {
+            // No decorated pseudonum, only update the cached data.
+            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
+        }
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1674,8 +1687,12 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        // No decorated pseudonum, only update the cached data.
-        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        if (SdkLevel.isAtLeastT()) {
+            // No decorated pseudonum, only update the cached data.
+            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
+        }
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
