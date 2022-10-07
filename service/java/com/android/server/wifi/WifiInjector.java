@@ -300,7 +300,7 @@ public class WifiInjector {
         mPasspointProvisionerHandlerThread.start();
         WifiAwareMetrics awareMetrics = new WifiAwareMetrics(mClock);
         RttMetrics rttMetrics = new RttMetrics(mClock);
-        mWifiP2pMetrics = new WifiP2pMetrics(mClock);
+        mWifiP2pMetrics = new WifiP2pMetrics(mClock, mContext);
         mDppMetrics = new DppMetrics();
         mWifiMonitor = new WifiMonitor();
         mWifiMetrics = new WifiMetrics(mContext, mFrameworkFacade, mClock, wifiLooper,

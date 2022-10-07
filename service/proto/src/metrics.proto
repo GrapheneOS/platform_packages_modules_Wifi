@@ -3004,6 +3004,21 @@ message P2pConnectionEvent {
     WPS_LABEL = 3;
   }
 
+  enum GroupBand {
+    // Unknown band/frequency
+    BAND_UNKNOWN = 0;
+    // With any band
+    BAND_AUTO = 1;
+    // With 2G band
+    BAND_2G = 2;
+    // With 5G band
+    BAND_5G = 3;
+    // With 6G band
+    BAND_6G = 4;
+    // With a specific frequency
+    BAND_FREQUENCY = 5;
+  }
+
   // Start time of the connection.
   optional int64 start_time_millis = 1;
 
@@ -3022,6 +3037,15 @@ message P2pConnectionEvent {
   // Group role. This could be unknown with connect() call when the WifiConfig doesn't have the
   // credential.
   optional GroupEvent.GroupRole group_role = 6;
+
+  // Group band preference
+  optional GroupBand band = 7;
+
+  // Group frequency in MHz if positive. Otherwise, no frequency preference.
+  optional int32 frequency_mhz = 8;
+
+  // STA mode channel frequency. 0 means unknown.
+  optional int32 sta_frequency_mhz = 9;
 }
 
 // GroupEvent tracking group information from GroupStarted to GroupRemoved.

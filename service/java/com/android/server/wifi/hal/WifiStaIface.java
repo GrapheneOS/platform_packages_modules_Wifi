@@ -117,10 +117,21 @@ public class WifiStaIface implements WifiHal.WifiInterface {
         mWifiStaIface = createWifiStaIfaceHidlImplMockable(staIface, context, ssidTranslator);
     }
 
+    public WifiStaIface(@NonNull android.hardware.wifi.IWifiStaIface staIface,
+            @NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
+        mWifiStaIface = createWifiStaIfaceAidlImplMockable(staIface, context, ssidTranslator);
+    }
+
     protected WifiStaIfaceHidlImpl createWifiStaIfaceHidlImplMockable(
             android.hardware.wifi.V1_0.IWifiStaIface staIface, @NonNull Context context,
             @NonNull SsidTranslator ssidTranslator) {
         return new WifiStaIfaceHidlImpl(staIface, context, ssidTranslator);
+    }
+
+    protected WifiStaIfaceAidlImpl createWifiStaIfaceAidlImplMockable(
+            android.hardware.wifi.IWifiStaIface staIface, @NonNull Context context,
+            @NonNull SsidTranslator ssidTranslator) {
+        return new WifiStaIfaceAidlImpl(staIface, context, ssidTranslator);
     }
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
