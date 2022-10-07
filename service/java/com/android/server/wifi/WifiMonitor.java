@@ -41,6 +41,7 @@ import com.android.server.wifi.hotspot2.WnmData;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.security.cert.X509Certificate;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -558,8 +559,22 @@ public class WifiMonitor {
      */
     public void broadcastNetworkConnectionEvent(String iface, int networkId, boolean filsHlpSent,
             WifiSsid ssid, String bssid) {
+        broadcastNetworkConnectionEvent(iface, networkId, filsHlpSent, ssid, bssid, null);
+    }
+
+    /**
+     * Broadcast the network connection event to all the handlers registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param networkId ID of the network in wpa_supplicant.
+     * @param filsHlpSent Whether the connection used FILS.
+     * @param bssid BSSID of the access point.
+     * @param keyMgmtMask Current used key management mask.
+     */
+    public void broadcastNetworkConnectionEvent(String iface, int networkId, boolean filsHlpSent,
+            WifiSsid ssid, String bssid, BitSet keyMgmtMask) {
         sendMessage(iface, NETWORK_CONNECTION_EVENT,
-                new NetworkConnectionEventInfo(networkId, ssid, bssid, filsHlpSent));
+                new NetworkConnectionEventInfo(networkId, ssid, bssid, filsHlpSent, keyMgmtMask));
     }
 
     /**
