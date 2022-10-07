@@ -18,6 +18,9 @@ package com.android.server.wifi.p2p;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
@@ -47,6 +50,9 @@ import org.mockito.quality.Strictness;
 @SmallTest
 public class WifiP2pMetricsTest extends WifiBaseTest {
     @Mock Clock mClock;
+    @Mock Context mContext;
+    @Mock WifiManager mWifiManager;
+    @Mock WifiInfo mWifiInfo;
     WifiP2pMetrics mWifiP2pMetrics;
     private MockitoSession mSession;
 
@@ -54,7 +60,10 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
-        mWifiP2pMetrics = new WifiP2pMetrics(mClock);
+        when(mContext.getSystemService(WifiManager.class)).thenReturn(mWifiManager);
+        when(mWifiManager.getConnectionInfo()).thenReturn(mWifiInfo);
+        when(mWifiInfo.getFrequency()).thenReturn(0);
+        mWifiP2pMetrics = new WifiP2pMetrics(mClock, mContext);
         mSession = ExtendedMockito.mockitoSession()
                 .strictness(Strictness.LENIENT)
                 .mockStatic(WifiStatsLog.class)
@@ -88,15 +97,27 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__FRESH,
                 1000, 1000 / 200,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE,
-                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER
-                ));
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_UNKNOWN,
+                0, 0));
 
         // Start and end Connection event.
+        config.groupOwnerBand = 5210;
+        when(mWifiInfo.getFrequency()).thenReturn(2412);
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, config,
                 GroupEvent.GROUP_OWNER);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(3000L);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(2, stats.connectionEvent.length);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__TYPE__FRESH,
+                2000, 2000 / 200,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER,
+                WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_FREQUENCY,
+                5210, 2412));
 
         // End Connection event without starting one.
         // this would create a new connection event immediately.

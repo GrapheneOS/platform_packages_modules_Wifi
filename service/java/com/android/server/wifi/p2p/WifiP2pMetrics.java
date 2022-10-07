@@ -16,6 +16,9 @@
 
 package com.android.server.wifi.p2p;
 
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
@@ -46,8 +49,10 @@ public class WifiP2pMetrics {
 
     private static final int MAX_CONNECTION_EVENTS = 256;
     private static final int MAX_GROUP_EVENTS = 256;
+    private static final int MIN_2G_FREQUENCY_MHZ = 2412;
 
     private Clock mClock;
+    private final Context mContext;
     private final Object mLock = new Object();
 
     /**
@@ -103,9 +108,9 @@ public class WifiP2pMetrics {
      */
     private int mNumPersistentGroup;
 
-    public WifiP2pMetrics(Clock clock) {
+    public WifiP2pMetrics(Clock clock, Context context) {
         mClock = clock;
-
+        mContext = context;
         mNumPersistentGroup = 0;
     }
 
@@ -353,9 +358,14 @@ public class WifiP2pMetrics {
             mCurrentConnectionEvent.startTimeMillis = mClock.getWallClockMillis();
             mCurrentConnectionEvent.connectionType = connectionType;
             mCurrentConnectionEvent.groupRole = groupRole;
+
             if (config != null) {
                 mCurrentConnectionEvent.wpsMethod = config.wps.setup;
+                mCurrentConnectionEvent.band = convertGroupOwnerBand(config.groupOwnerBand);
+                mCurrentConnectionEvent.frequencyMhz =
+                        (config.groupOwnerBand < MIN_2G_FREQUENCY_MHZ) ? 0 : config.groupOwnerBand;
             }
+            mCurrentConnectionEvent.staFrequencyMhz = getWifiStaFrequency();
 
             mConnectionEventList.add(mCurrentConnectionEvent);
         }
@@ -382,13 +392,15 @@ public class WifiP2pMetrics {
                     (mClock.getElapsedSinceBootMillis()
                     - mCurrentConnectionEventStartTime);
             mCurrentConnectionEvent.connectivityLevelFailureCode = failure;
-
             WifiStatsLog.write(WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,
                     convertConnectionType(mCurrentConnectionEvent.connectionType),
                     mCurrentConnectionEvent.durationTakenToConnectMillis,
                     mCurrentConnectionEvent.durationTakenToConnectMillis / 200,
                     convertFailureCode(failure),
-                    convertGroupRole(mCurrentConnectionEvent.groupRole));
+                    convertGroupRole(mCurrentConnectionEvent.groupRole),
+                    convertBandStatsLog(mCurrentConnectionEvent.band),
+                    mCurrentConnectionEvent.frequencyMhz,
+                    mCurrentConnectionEvent.staFrequencyMhz);
             mCurrentConnectionEvent = null;
         }
     }
@@ -439,6 +451,50 @@ public class WifiP2pMetrics {
                 return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_CLIENT;
             default:
                 return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_UNKNOWN;
+        }
+    }
+
+    private int convertGroupOwnerBand(int bandOrFrequency) {
+        if (bandOrFrequency >= MIN_2G_FREQUENCY_MHZ) {
+            return P2pConnectionEvent.BAND_FREQUENCY;
+        } else {
+            switch (bandOrFrequency) {
+                case WifiP2pConfig.GROUP_OWNER_BAND_AUTO:
+                    return P2pConnectionEvent.BAND_AUTO;
+                case WifiP2pConfig.GROUP_OWNER_BAND_2GHZ:
+                    return P2pConnectionEvent.BAND_2G;
+                case WifiP2pConfig.GROUP_OWNER_BAND_5GHZ:
+                    return P2pConnectionEvent.BAND_5G;
+                default:
+                    return P2pConnectionEvent.BAND_UNKNOWN;
+            }
+        }
+    }
+
+    private int convertBandStatsLog(int band) {
+        switch (band) {
+            case P2pConnectionEvent.BAND_AUTO:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_AUTO;
+            case P2pConnectionEvent.BAND_2G:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_2G;
+            case P2pConnectionEvent.BAND_5G:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_5G;
+            case P2pConnectionEvent.BAND_6G:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_6G;
+            case P2pConnectionEvent.BAND_FREQUENCY:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_FREQUENCY;
+            default:
+                return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_UNKNOWN;
+        }
+    }
+
+    private int getWifiStaFrequency() {
+        WifiManager wifiManager = mContext.getSystemService(WifiManager.class);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (wifiInfo.getFrequency() > 0) {
+            return wifiInfo.getFrequency();
+        } else {
+            return 0;
         }
     }
 
