@@ -2121,7 +2121,6 @@ public class WifiConfiguration implements Parcelable {
         /**
          * This code is used to disable a network when a security params is disabled
          * by the transition disable indication.
-         * @hide
          */
         public static final int DISABLED_TRANSITION_DISABLE_INDICATION = 13;
         /**
