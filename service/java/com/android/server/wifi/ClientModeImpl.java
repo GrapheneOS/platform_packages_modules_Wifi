@@ -5161,8 +5161,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 }
                                 updateToNativeService = true;
                             }
-                            mWifiNative.setEapAnonymousIdentity(mInterfaceName,
-                                    anonymousIdentity, updateToNativeService);
+                            // This needs native change to avoid disconnecting from the current
+                            // network. Consider that older releases might not be able to have
+                            // the vendor partition updated, only update to native service on T
+                            // or newer.
+                            if (SdkLevel.isAtLeastT()) {
+                                mWifiNative.setEapAnonymousIdentity(mInterfaceName,
+                                        anonymousIdentity, updateToNativeService);
+                            }
                             if (mVerboseLoggingEnabled) {
                                 log("EAP Pseudonym: " + anonymousIdentity);
                             }
