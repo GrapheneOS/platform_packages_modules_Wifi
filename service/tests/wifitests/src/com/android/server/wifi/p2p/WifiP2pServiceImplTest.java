@@ -186,6 +186,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             };
     private static final int TEST_GROUP_FREQUENCY = 5180;
     private static final int P2P_INVITATION_RECEIVED_TIMEOUT_MS = 5180;
+    private static final int P2P_PEER_AUTH_TIMEOUT_MS = 1000;
+    private static final int P2P_EXT_LISTEN_PERIOD_MS = 250;
+    private static final int P2P_EXT_LISTEN_INTERVAL_MS = 450;
 
     private ArgumentCaptor<BroadcastReceiver> mBcastRxCaptor = ArgumentCaptor.forClass(
             BroadcastReceiver.class);
@@ -1203,6 +1206,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 .thenReturn("10-0050F204-5");
         when(mResources.getInteger(R.integer.config_p2pInvitationReceivedDialogTimeoutMs))
                 .thenReturn(P2P_INVITATION_RECEIVED_TIMEOUT_MS);
+        when(mResources.getInteger(R.integer.config_wifiP2pJoinRequestAuthorizingTimeoutMs))
+                .thenReturn(P2P_PEER_AUTH_TIMEOUT_MS);
+        when(mResources.getInteger(R.integer.config_wifiP2pExtListenPeriodMs))
+                .thenReturn(P2P_EXT_LISTEN_PERIOD_MS);
+        when(mResources.getInteger(R.integer.config_wifiP2pExtListenIntervalMs))
+                .thenReturn(P2P_EXT_LISTEN_INTERVAL_MS);
         when(mResources.getConfiguration()).thenReturn(mConfiguration);
         when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
         when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
@@ -2491,7 +2500,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         // p2pFlush should be invoked once in forceP2pEnabled.
         verify(mWifiNative).p2pFlush();
         verify(mWifiNative).p2pStopFind();
-        verify(mWifiNative).p2pExtListen(eq(true), anyInt(), anyInt());
+        verify(mWifiNative).p2pExtListen(eq(true), eq(P2P_EXT_LISTEN_PERIOD_MS),
+                eq(P2P_EXT_LISTEN_INTERVAL_MS));
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.START_LISTEN_FAILED));
         if (SdkLevel.isAtLeastT()) {
             verify(mWifiPermissionsUtil, atLeastOnce()).checkNearbyDevicesPermission(
@@ -6951,8 +6961,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 anyInt(), any(), any())).thenReturn(mDialogHandle);
         when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))
                 .thenReturn(mDialogHandle);
-        when(mClock.getElapsedSinceBootMillis()).thenReturn(
-                WifiP2pServiceImpl.P2P_PEER_AUTH_TIMEOUT_MS + 1);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(P2P_PEER_AUTH_TIMEOUT_MS + 1L);
 
         // Send another provision discvoery request again after the timeout
         sendSimpleMsg(null, WifiP2pMonitor.P2P_PROV_DISC_PBC_REQ_EVENT,
