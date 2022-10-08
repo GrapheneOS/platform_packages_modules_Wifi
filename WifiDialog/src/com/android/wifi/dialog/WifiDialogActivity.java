@@ -50,6 +50,7 @@ import android.text.style.URLSpan;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -633,8 +634,8 @@ public class WifiDialogActivity extends Activity  {
             addRowToP2pDialog(group, getStringId("wifi_p2p_show_pin_message"), displayPin);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this,
-                getStyleId("wifi_p2p_invitation_received_dialog"))
+        AlertDialog dialog = new AlertDialog.Builder(
+                new ContextThemeWrapper(this, getStyleId("wifi_p2p_invitation_received_dialog")))
                 .setTitle(getString(getStringId("wifi_p2p_invitation_to_connect_title")))
                 // Set the message to "" to allow us to modify it after building (b/36913966).
                 .setMessage("")
