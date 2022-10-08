@@ -195,11 +195,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     // Otherwise it will cause interface down before function timeout.
     static final long P2P_INTERFACE_IDLE_SHUTDOWN_TIMEOUT_MS = 150_000;
 
-    // Provision discovery requests which are sent in 1 second should be
-    // retransmission packets.
-    @VisibleForTesting
-    static final long P2P_PEER_AUTH_TIMEOUT_MS = 1_000;
-
     private Context mContext;
 
     NetdWrapper mNetdWrapper;
@@ -6437,7 +6432,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             Long timestamp = mPeerAuthorizingTimestamp.get(deviceAddress);
             if (null == timestamp) return false;
 
-            if (mClock.getElapsedSinceBootMillis() > timestamp + P2P_PEER_AUTH_TIMEOUT_MS) {
+            int timeoutMs = mContext.getResources().getInteger(
+                    R.integer.config_wifiP2pJoinRequestAuthorizingTimeoutMs);
+            if (mClock.getElapsedSinceBootMillis() > timestamp + timeoutMs) {
                 return false;
             }
 
