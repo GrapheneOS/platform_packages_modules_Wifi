@@ -238,6 +238,7 @@
           <item type="bool" name="config_showConfirmationDialogForThirdPartyAppsEnablingWifi" />
           <item type="integer" name="config_p2pInvitationReceivedDialogTimeoutMs"/>
           <item type="bool" name="config_p2pInvitationReceivedDialogNotificationSound"/>
+          <item type="integer" name="config_wifiP2pJoinRequestAuthorizingTimeoutMs" />
           <item type="bool" name="config_wifiForcedSoftApRestartWhenCountryCodeChanged" />
           <item type="bool" name="config_wifiDppAkmSupported" />
           <item type="array" name="config_wifiInterfacePriorityTreatAsForegroundList"/>
