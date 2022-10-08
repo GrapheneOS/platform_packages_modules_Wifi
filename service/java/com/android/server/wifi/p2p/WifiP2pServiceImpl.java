@@ -3157,7 +3157,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 Process.myTid(), uid, 0, packageName, true);
                         if (mVerboseLoggingEnabled) logd(getName() + " start listen mode");
                         mWifiNative.p2pStopFind();
-                        if (mWifiNative.p2pExtListen(true, 500, 500)) {
+                        if (mWifiNative.p2pExtListen(true,
+                                mContext.getResources().getInteger(
+                                        R.integer.config_wifiP2pExtListenPeriodMs),
+                                mContext.getResources().getInteger(
+                                        R.integer.config_wifiP2pExtListenIntervalMs))) {
                             replyToMessage(message, WifiP2pManager.START_LISTEN_SUCCEEDED);
                         } else {
                             replyToMessage(message, WifiP2pManager.START_LISTEN_FAILED);
