@@ -105,19 +105,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ప్రామాణీకరణ ఎర్రర్ 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fi Accessకు మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది. తర్వాత మళ్లీ ట్రై చేయండి లేదా వేరే లొకేషన్ నుండి ట్రై చేయండి."</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fi Accessకు మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది. తర్వాత మళ్లీ ట్రై చేయండి లేదా వేరే లొకేషన్ నుండి ట్రై చేయండి. (ఎర్రర్ = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ప్రామాణీకరణ ఎర్రర్ 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 16384 ఎర్రర్ కారణంగా మిమ్మల్ని Verizon Wi-Fi Accessకు కనెక్ట్ చేయడంలో సమస్య ఏర్పడింది."</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fiకి మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది. (ఎర్రర్ = 16384)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ప్రామాణీకరణ ఎర్రర్ 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 16385 ఎర్రర్ కారణంగా మిమ్మల్ని Verizon Wi-Fi Accessకు కనెక్ట్ చేయడంలో సమస్య ఏర్పడింది."</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fiకి మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది. (ఎర్రర్ = 16385)"</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ప్రామాణీకరణ ఎర్రర్, తెలియని ఎర్రర్ కోడ్"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fi Accessకు మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది."</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fiకి మిమ్మల్ని కనెక్ట్ చేయడంలో సమస్య ఉంది. (ఎర్రర్ = తెలియనిది)"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"హాట్‌స్పాట్ ఆఫ్ చేయబడింది"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"పరికరాలు ఏవీ కనెక్ట్ కాలేదు. మార్చడానికి నొక్కండి."</string>
