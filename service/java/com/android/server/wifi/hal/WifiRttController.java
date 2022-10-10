@@ -109,6 +109,9 @@ public class WifiRttController {
         // Whether ftm rtt data collection is supported.
         public boolean rttFtmSupported;
 
+        public Capabilities() {
+        }
+
         public Capabilities(android.hardware.wifi.V1_0.RttCapabilities rttHalCapabilities) {
             oneSidedRttSupported = rttHalCapabilities.rttOneSidedSupported;
             lciSupported = rttHalCapabilities.lciSupported;
