@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.util;
 
+import android.annotation.Nullable;
+import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.util.HexEncoding;
 import android.text.TextUtils;
@@ -128,6 +130,23 @@ public class NativeUtil {
             throw new IllegalArgumentException("invalid mac string length: " + cleanMac);
         }
         return HexEncoding.decode(cleanMac.toCharArray(), false);
+    }
+
+    /**
+     * Converts a MAC address from the given string representation to android.net.MacAddress. A
+     * valid String representation for a MacAddress is a series of 6 values in the range [0,ff]
+     * printed in hexadecimal and joined by ':' characters.
+     *
+     * @param macAddress a String representation of a MAC address.
+     * @return the MacAddress corresponding to the given string representation or null.
+     */
+    public static MacAddress getMacAddressOrNull(@Nullable String macAddress) {
+        if (macAddress == null) return null;
+        try {
+            return MacAddress.fromString(macAddress);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
