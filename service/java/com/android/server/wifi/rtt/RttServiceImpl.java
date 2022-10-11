@@ -17,6 +17,9 @@
 package com.android.server.wifi.rtt;
 
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCI;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCR;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT;
 
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
@@ -107,6 +110,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private long mLastRequestTimestamp;
     private final BuildProperties mBuildProperties;
     private FrameworkFacade mFrameworkFacade;
+    private WifiRttController.Capabilities mCapabilities;
 
     private RttServiceSynchronized mRttServiceSynchronized;
 
@@ -217,19 +221,18 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         return -1;
                     }
                 } else if ("get_capabilities".equals(cmd)) {
-                    WifiRttController.Capabilities cap = null;
-                    if (mWifiRttController != null) {
-                        cap = mWifiRttController.getRttCapabilities();
+                    if (mCapabilities == null && mWifiRttController != null) {
+                        mCapabilities = mWifiRttController.getRttCapabilities();
                     }
                     JSONObject j = new JSONObject();
-                    if (cap != null) {
+                    if (mCapabilities != null) {
                         try {
-                            j.put("rttOneSidedSupported", cap.oneSidedRttSupported);
-                            j.put("rttFtmSupported", cap.rttFtmSupported);
-                            j.put("lciSupported", cap.lciSupported);
-                            j.put("lcrSupported", cap.lcrSupported);
-                            j.put("responderSupported", cap.responderSupported);
-                            j.put("mcVersion", cap.mcVersion);
+                            j.put("rttOneSidedSupported", mCapabilities.oneSidedRttSupported);
+                            j.put("rttFtmSupported", mCapabilities.rttFtmSupported);
+                            j.put("lciSupported", mCapabilities.lciSupported);
+                            j.put("lcrSupported", mCapabilities.lcrSupported);
+                            j.put("responderSupported", mCapabilities.responderSupported);
+                            j.put("mcVersion", mCapabilities.mcVersion);
                         } catch (JSONException e) {
                             Log.e(TAG, "onCommand: get_capabilities e=" + e);
                         }
@@ -452,6 +455,27 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         } finally {
             Binder.restoreCallingIdentity(ident);
         }
+    }
+
+    @Override
+    public Bundle getRttCharacteristics() {
+        enforceAccessPermission();
+        if (mCapabilities == null && mWifiRttController != null) {
+            mCapabilities = mWifiRttController.getRttCapabilities();
+        }
+        return covertCapabilitiesToBundle(mCapabilities);
+    }
+
+    private Bundle covertCapabilitiesToBundle(WifiRttController.Capabilities capabilities) {
+        Bundle characteristics = new Bundle();
+        if (capabilities == null) {
+            return characteristics;
+        }
+        characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT,
+                capabilities.oneSidedRttSupported);
+        characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCI, capabilities.lciSupported);
+        characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCR, capabilities.lcrSupported);
+        return characteristics;
     }
 
     /**
