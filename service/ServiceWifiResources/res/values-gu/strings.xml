@@ -105,19 +105,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : EAP પ્રમાણીકરણમાં ભૂલ 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ ઍક્સેસ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે. થોડા સમય પછી અથવા કોઈ અલગ સ્થાનેથી પ્રયાસ કરો."</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ ઍક્સેસ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે. થોડા સમય પછી અથવા કોઈ અલગ સ્થાનેથી પ્રયાસ કરો. (ભૂલ = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP પ્રમાણીકરણમાં ભૂલ 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ભૂલ 16384ને લીધે તમને Verizon વાઇ-ફાઇ ઍક્સેસ સાથે કનેક્ટ કરવામાં ભૂલ આવી."</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે. (ભૂલ = 16384)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> : EAP પ્રમાણીકરણમાં ભૂલ 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ભૂલ 16385ને લીધે તમને Verizon વાઇ-ફાઇ ઍક્સેસ સાથે કનેક્ટ કરવામાં ભૂલ આવી."</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે. (ભૂલ = 16385)"</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : EAP પ્રમાણીકરણમાં ભૂલ, ભૂલનો અજાણ્યો કોડ"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ ઍક્સેસ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે."</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : તમને Verizon વાઇ-ફાઇ સાથે કનેક્ટ કરવામાં કોઈ સમસ્યા આવે છે. (ભૂલ = અજાણી)"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"હૉટસ્પૉટ બંધ કર્યું"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"કોઈ ડિવાઇસ કનેક્ટ કરેલું નથી. ફેરફાર કરવા માટે ટૅપ કરો."</string>
