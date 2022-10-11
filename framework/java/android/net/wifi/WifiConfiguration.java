@@ -1439,14 +1439,12 @@ public class WifiConfiguration implements Parcelable {
     public int numNoInternetAccessReports;
 
     /**
-     * The WiFi configuration is considered to have no internet access for purpose of autojoining
-     * if there has been a report of it having no internet access, and, it never have had
-     * internet access in the past.
+     * The WiFi configuration had no internet access the last time we connected to it.
      * @hide
      */
     @SystemApi
     public boolean hasNoInternetAccess() {
-        return numNoInternetAccessReports > 0 && !validatedInternetAccess;
+        return getNetworkSelectionStatus().hasEverConnected() && !validatedInternetAccess;
     }
 
     /**
