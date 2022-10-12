@@ -540,11 +540,8 @@ public class WifiNetworkSuggestionsManager {
                 String packageName = entry.getKey();
                 Collection<ExtendedWifiNetworkSuggestion> extNetworkSuggestions =
                         entry.getValue().extNetworkSuggestions.values();
-                if (!extNetworkSuggestions.isEmpty()) {
-                    // Start tracking app-op changes from the app if they have active suggestions.
-                    startTrackingAppOpsChange(packageName,
-                            extNetworkSuggestions.iterator().next().perAppInfo.uid);
-                }
+                // Start tracking app-op changes from for all the app in the database
+                startTrackingAppOpsChange(packageName, entry.getValue().uid);
                 for (ExtendedWifiNetworkSuggestion ewns : extNetworkSuggestions) {
                     if (ewns.wns.passpointConfiguration != null) {
                         addToPasspointInfoMap(ewns);
@@ -960,6 +957,7 @@ public class WifiNetworkSuggestionsManager {
                         APP_TYPE_NON_PRIVILEGED);
             }
             onSuggestionUserApprovalStatusChanged(uid, packageName);
+            startTrackingAppOpsChange(packageName, uid);
         }
         // If PerAppInfo is upgrade from pre-R, uid may not be set.
         perAppInfo.setUid(uid);
@@ -986,10 +984,6 @@ public class WifiNetworkSuggestionsManager {
                         + extNetworkSuggestions.size());
                 return WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_ADD_EXCEEDS_MAX_PER_APP;
             }
-        }
-        if (perAppInfo.extNetworkSuggestions.isEmpty()) {
-            // Start tracking app-op changes from the app if they have active suggestions.
-            startTrackingAppOpsChange(packageName, uid);
         }
 
         for (ExtendedWifiNetworkSuggestion ewns: extNetworkSuggestions) {
