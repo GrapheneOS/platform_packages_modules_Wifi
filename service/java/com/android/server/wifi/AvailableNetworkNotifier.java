@@ -275,6 +275,10 @@ public class AvailableNetworkNotifier {
         }
     }
 
+    public boolean isSettingEnabled() {
+        return mSettingEnabled;
+    }
+
     private boolean isControllerEnabled() {
         UserManager userManager = mContext.getSystemService(UserManager.class);
         UserHandle currentUser = UserHandle.of(mWifiPermissionsUtil.getCurrentUser());

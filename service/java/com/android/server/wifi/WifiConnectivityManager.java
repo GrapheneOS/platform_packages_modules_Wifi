@@ -2413,6 +2413,7 @@ public class WifiConnectivityManager {
     // Start a connectivity scan. The scan method is chosen according to
     // the current screen state and WiFi state.
     private void startConnectivityScan(boolean scanImmediately) {
+        boolean noPotentialNetworkAvailable = hasNoPotentialNetworkAvailable();
         localLog("startConnectivityScan: screenOn=" + mScreenOn
                 + " wifiState=" + stateToString(mWifiState)
                 + " scanImmediately=" + scanImmediately
@@ -2425,9 +2426,10 @@ public class WifiConnectivityManager {
                 + " mTrustedConnectionAllowed=" + mTrustedConnectionAllowed
                 + " isSufficiencyCheckEnabled=" + mNetworkSelector.isSufficiencyCheckEnabled()
                 + " isAssociatedNetworkSelectionEnabled="
-                + mNetworkSelector.isAssociatedNetworkSelectionEnabled());
+                + mNetworkSelector.isAssociatedNetworkSelectionEnabled()
+                + " noPotentialNetworkAvailable=" + noPotentialNetworkAvailable);
 
-        if (!mWifiEnabled || !mAutoJoinEnabled) {
+        if (!mWifiEnabled || !mAutoJoinEnabled || noPotentialNetworkAvailable) {
             return;
         }
 
@@ -2563,6 +2565,41 @@ public class WifiConnectivityManager {
         String suggestionKey = network.getWifiConfiguration().getProfileKey();
         WifiConfiguration config = mConfigManager.getConfiguredNetwork(suggestionKey);
         return (config != null && config.networkId == currentNetworkId);
+    }
+
+    /**
+     * Check if there are no potential networks available for connection
+     * This is true if both of the following is satisfied:
+     * 1. Device has no network whether saved, passpoint, or suggestion.
+     * 2. Open network notifier is disabled.
+     */
+    private boolean hasNoPotentialNetworkAvailable() {
+        List<WifiConfiguration> savedNetworks =
+                mConfigManager.getSavedNetworks(Process.WIFI_UID);
+        // If we have any saved networks, then no need to proceed
+        if (savedNetworks.size() > 0) {
+            return false;
+        }
+
+        List<PasspointConfiguration> passpointNetworks =
+                mPasspointManager.getProviderConfigs(Process.WIFI_UID, true);
+        // If we have any passpoint networks, then no need to proceed
+        if (passpointNetworks.size() > 0) {
+            return false;
+        }
+
+        Set<WifiNetworkSuggestion> suggestionsNetworks =
+                mWifiNetworkSuggestionsManager.getAllApprovedNetworkSuggestions();
+        // If we have any suggestion networks, then no need to proceed
+        if (suggestionsNetworks.size() > 0) {
+            return false;
+        }
+
+        // Next verify that open network notifier is disabled
+        if (mOpenNetworkNotifier.isSettingEnabled()) {
+            return false;
+        }
+        return true;
     }
 
     /**
