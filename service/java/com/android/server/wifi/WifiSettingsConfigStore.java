@@ -121,6 +121,12 @@ public class WifiSettingsConfigStore {
             new Key<>("wifi_native_supported_features", 0L);
 
     /**
+     * Store the supported features retrieved from WiFi HAL and Supplicant HAL
+     */
+    public static final Key<Integer> WIFI_NATIVE_SUPPORTED_STA_BANDS =
+            new Key<>("wifi_native_supported_sta_bands", 0);
+
+    /**
      * Store the static chip info retrieved from WiFi HAL
      */
     public static final Key<String> WIFI_STATIC_CHIP_INFO = new Key<>("wifi_static_chip_info", "");

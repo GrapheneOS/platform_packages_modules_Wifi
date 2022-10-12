@@ -46,6 +46,7 @@ import android.net.MacAddress;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
+import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
@@ -1503,6 +1504,45 @@ public class WifiNativeTest extends WifiBaseTest {
     public void testGetSupportedFeatureSetWhenInterfaceDoesntExist() throws Exception {
         long featureSet = mWifiNative.getSupportedFeatureSet(null);
         assertEquals(featureSet, WIFI_TEST_FEATURE);
+    }
+
+    /**
+     * Verifies that getSupportedBandsForSta() calls underlying vendor HAL.
+     */
+    @Test
+    public void testGetSupportedBandsFromHal() throws Exception {
+        List<WifiAvailableChannel> usableChannelList = new ArrayList<>();
+        usableChannelList.add(new WifiAvailableChannel(2412, WifiAvailableChannel.OP_MODE_STA));
+        usableChannelList.add(new WifiAvailableChannel(5160, WifiAvailableChannel.OP_MODE_STA));
+        when(mWifiVendorHal.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ,
+                WifiAvailableChannel.OP_MODE_STA,
+                WifiAvailableChannel.FILTER_REGULATORY)).thenReturn(usableChannelList);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.switchClientInterfaceToConnectivityMode(WIFI_IFACE_NAME, TEST_WORKSOURCE);
+        assertEquals(3, mWifiNative.getSupportedBandsForSta(WIFI_IFACE_NAME));
+    }
+
+    /**
+     * Verifies that getSupportedBandsForStaFromWifiCond() calls underlying wificond.
+     */
+    @Test
+    public void testGetSupportedBands() throws Exception {
+        when(mWificondControl.getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ)).thenReturn(
+                new int[]{2412});
+        when(mWificondControl.getChannelsMhzForBand(WifiScanner.WIFI_BAND_5_GHZ)).thenReturn(
+                new int[]{5160});
+        when(mWificondControl.getChannelsMhzForBand(WifiScanner.WIFI_BAND_6_GHZ)).thenReturn(
+                new int[0]);
+        when(mWificondControl.getChannelsMhzForBand(WifiScanner.WIFI_BAND_60_GHZ)).thenReturn(
+                new int[0]);
+        when(mWifiVendorHal.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ,
+                WifiAvailableChannel.OP_MODE_STA,
+                WifiAvailableChannel.FILTER_REGULATORY)).thenReturn(null);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.switchClientInterfaceToConnectivityMode(WIFI_IFACE_NAME, TEST_WORKSOURCE);
+        verify(mWificondControl).getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
+        verify(mWificondControl).getChannelsMhzForBand(WifiScanner.WIFI_BAND_5_GHZ);
+        assertEquals(3, mWifiNative.getSupportedBandsForSta(WIFI_IFACE_NAME));
     }
 
     /**

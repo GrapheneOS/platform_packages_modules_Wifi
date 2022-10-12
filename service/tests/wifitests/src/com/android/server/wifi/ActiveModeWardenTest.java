@@ -26,6 +26,7 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TR
 import static com.android.server.wifi.ActiveModeManager.ROLE_SOFTAP_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_SOFTAP_TETHERED;
 import static com.android.server.wifi.ActiveModeWarden.INTERNAL_REQUESTOR_WS;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_STA_BANDS;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -74,6 +75,7 @@ import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
 import android.os.BatteryStatsManager;
 import android.os.Build;
 import android.os.IBinder;
@@ -144,6 +146,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     private static final WorkSource TEST_WORKSOURCE = new WorkSource(TEST_UID, TEST_PACKAGE);
     private static final WorkSource SETTINGS_WORKSOURCE =
             new WorkSource(Process.SYSTEM_UID, "system-service");
+    private static final int TEST_SUPPORTED_BANDS = 15;
 
     TestLooper mLooper;
     @Mock WifiInjector mWifiInjector;
@@ -174,6 +177,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Mock PackageManager mPackageManager;
     @Mock Network mNetwork;
     @Mock LocalLog mLocalLog;
+    @Mock WifiSettingsConfigStore mSettingsConfigStore;
 
     Listener<ConcreteClientModeManager> mClientListener;
     Listener<SoftApManager> mSoftApListener;
@@ -227,6 +231,10 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mFacade.getSettingsWorkSource(mContext)).thenReturn(SETTINGS_WORKSOURCE);
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)).thenReturn(true);
+        when(mWifiInjector.getSettingsConfigStore()).thenReturn(mSettingsConfigStore);
+        when(mSettingsConfigStore.get(
+                eq(WIFI_NATIVE_SUPPORTED_STA_BANDS))).thenReturn(
+                TEST_SUPPORTED_BANDS);
         doAnswer(new Answer<ClientModeManager>() {
             public ClientModeManager answer(InvocationOnMock invocation) {
                 Object[] args = invocation.getArguments();
@@ -4822,5 +4830,18 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         assertTrue(mActiveModeWarden.isClientModeManagerConnectedOrConnectingToBssid(
                 mClientModeManager, TEST_SSID_1, TEST_BSSID_2));
+    }
+
+    @Test
+    public void syncGetSupportedBands() throws Exception {
+        enterClientModeActiveState();
+        when(mWifiNative.getSupportedBandsForSta(anyString())).thenReturn(11);
+        mClientListener.onStarted(mClientModeManager);
+        mLooper.dispatchAll();
+        verify(mSettingsConfigStore).put(WIFI_NATIVE_SUPPORTED_STA_BANDS, 11);
+        assertTrue(mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_24_GHZ));
+        assertTrue(mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_5_GHZ));
+        assertFalse(mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY));
+        assertTrue(mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_6_GHZ));
     }
 }
