@@ -1013,6 +1013,7 @@ public class WifiChipHidlImpl implements IWifiChip {
                         frameworkToHalUsableFilter_1_6(filter),
                         (status, channels) -> {
                             if (isOk(status, methodStr)) {
+                                channelResp.value = new ArrayList<>();
                                 for (android.hardware.wifi.V1_6.WifiUsableChannel ch : channels) {
                                     channelResp.value.add(new WifiAvailableChannel(ch.channel,
                                             halToFrameworkIfaceMode(ch.ifaceModeMask)));
@@ -1026,6 +1027,7 @@ public class WifiChipHidlImpl implements IWifiChip {
                         frameworkToHalUsableFilter(filter),
                         (status, channels) -> {
                             if (isOk(status, methodStr)) {
+                                channelResp.value = new ArrayList<>();
                                 for (android.hardware.wifi.V1_5.WifiUsableChannel ch : channels) {
                                     channelResp.value.add(new WifiAvailableChannel(ch.channel,
                                             halToFrameworkIfaceMode(ch.ifaceModeMask)));
