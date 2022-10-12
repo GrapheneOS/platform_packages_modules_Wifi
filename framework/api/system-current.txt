@@ -430,12 +430,14 @@ package android.net.wifi {
     field @Deprecated public boolean fromWifiNetworkSpecifier;
     field @Deprecated public boolean fromWifiNetworkSuggestion;
     field @Deprecated public int lastConnectUid;
+    field @Deprecated public long lastConnected;
     field @Deprecated public String lastUpdateName;
     field @Deprecated public int lastUpdateUid;
     field @Deprecated public int macRandomizationSetting;
     field @Deprecated public boolean meteredHint;
     field @Deprecated public int meteredOverride;
     field @Deprecated public int numAssociation;
+    field @Deprecated public int numRebootsSinceLastUse;
     field @Deprecated public int numScorerOverride;
     field @Deprecated public int numScorerOverrideAndSwitchedNetwork;
     field @Deprecated public boolean requirePmf;
