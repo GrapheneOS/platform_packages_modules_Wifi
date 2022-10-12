@@ -104,21 +104,13 @@
     <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> - သင့်တည်နေရာတွင် Verizon Wi-Fi Access မရနိုင်ပါ။ နောက်မှထပ်စမ်းကြည့်ပါ (သို့) အခြားနေရာမှ စမ်းကြည့်ပါ။ (အမှားကုဒ် = ၃၂၇၆၆)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> - EAP အထောက်အထားစိစစ်ခြင်း အမှားကုဒ် 32767"</string>
-  <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> - သင့်ကို Verizon Wi-Fi Access နှင့် ချိတ်ဆက်ပေးရာတွင် ပြဿနာရှိနေသည်။ နောက်မှထပ်စမ်းကြည့်ပါ (သို့) အခြားနေရာမှ စမ်းကြည့်ပါ။"</item>
-  </string-array>
+    <!-- no translation found for wifi_eap_error_message_code_32767_carrier_overrides:0 (3756793972687282940) -->
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> - EAP အထောက်အထားစိစစ်ခြင်း အမှားကုဒ် 16384"</string>
-  <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> - သင့်ကို Verizon Wi-Fi Access နှင့် ချိတ်ဆက်ပေးရာတွင် အမှားကုဒ် ၁၆၃၈၄ ကြောင့် ပြဿနာရှိနေသည်။"</item>
-  </string-array>
+    <!-- no translation found for wifi_eap_error_message_code_16384_carrier_overrides:0 (270219697600808218) -->
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> - EAP အထောက်အထားစိစစ်ခြင်း အမှားကုဒ် 16385"</string>
-  <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> - သင့်ကို Verizon Wi-Fi Access နှင့် ချိတ်ဆက်ပေးရာတွင် အမှားကုဒ် ၁၆၃၈၅ ကြောင့် ပြဿနာရှိနေသည်။"</item>
-  </string-array>
+    <!-- no translation found for wifi_eap_error_message_code_16385_carrier_overrides:0 (50575315771146940) -->
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> - EAP အထောက်အထားစိစစ်ခြင်း အမှား၊ အမှားကုဒ် မသိပါ"</string>
-  <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> - သင့်ကို Verizon Wi-Fi Access နှင့် ချိတ်ဆက်ပေးရာတွင် ပြဿနာရှိနေသည်။"</item>
-  </string-array>
+    <!-- no translation found for wifi_eap_error_message_unknown_error_code_carrier_overrides:0 (2705387186478280792) -->
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"ဟော့စပေါ့ ပိတ်ထားသည်"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ချိတ်ဆက်ထားသောစက် မရှိပါ။ ပြင်ဆင်ရန် တို့ပါ။"</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi ချိတ်ဆက်မှု မရှိပါ"</string>
