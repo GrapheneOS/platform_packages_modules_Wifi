@@ -2271,6 +2271,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 if (mIsBootComplete) {
                     updateThisDevice(WifiP2pDevice.UNAVAILABLE);
                 }
+                resetWifiP2pInfo();
+                mGroup = null;
             }
 
             @Override
