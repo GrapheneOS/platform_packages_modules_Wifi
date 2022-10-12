@@ -30,6 +30,7 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ActiveModeManager.ROLE_SOFTAP_TETHERED;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_STA_BANDS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -46,6 +47,7 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
 import android.os.BatteryStatsManager;
 import android.os.Build;
 import android.os.Handler;
@@ -151,6 +153,7 @@ public class ActiveModeWarden {
     @Nullable
     private WorkSource mLastScanOnlyClientModeManagerRequestorWs = null;
     private AtomicLong mSupportedFeatureSet = new AtomicLong(0);
+    private AtomicInteger mBandsSupported = new AtomicInteger(0);
     // Mutex lock between service Api binder thread and Wifi main thread
     private final Object mServiceApiLock = new Object();
     @GuardedBy("mServiceApiLock")
@@ -1488,6 +1491,12 @@ public class ActiveModeWarden {
                             getPrimaryClientModeManager().getInterfaceName()),
                     mWifiNative.isStaApConcurrencySupported(),
                     mWifiNative.isStaStaConcurrencySupported());
+            if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                int band = mWifiNative.getSupportedBandsForSta(
+                        clientModeManager.getInterfaceName());
+                if (band == WifiScanner.WIFI_BAND_UNSPECIFIED) band = getStaBandsFromConfigStore();
+                setBandSupported(band);
+            }
         }
 
         @Override
@@ -1518,6 +1527,7 @@ public class ActiveModeWarden {
                 setSupportedFeatureSet(mWifiNative.getSupportedFeatureSet(null),
                         mWifiNative.isStaApConcurrencySupported(),
                         mWifiNative.isStaStaConcurrencySupported());
+                setBandSupported(getStaBandsFromConfigStore());
             }
             // invoke "removed" callbacks after primary changed
             invokeOnRemovedCallbacks(clientModeManager);
@@ -2493,6 +2503,23 @@ public class ActiveModeWarden {
     }
 
     /**
+     * Check if a band is supported as STA
+     * @param band Wifi band
+     * @return true if supported
+     */
+    public boolean isBandSupportedForSta(@WifiScanner.WifiBand int band) {
+        return (mBandsSupported.get() & band) != 0;
+    }
+
+    private void setBandSupported(@WifiScanner.WifiBand int bands) {
+        mBandsSupported.set(bands);
+        saveStaBandsToConfigStoreIfNecessary(bands);
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, "setBandSupported 0x" + Long.toHexString(mBandsSupported.get()));
+        }
+    }
+
+    /**
      * Get the current default Wifi network.
      * @return the default Wifi network
      */
@@ -2510,5 +2537,24 @@ public class ActiveModeWarden {
         synchronized (mServiceApiLock) {
             mCurrentNetwork = network;
         }
+    }
+
+    /**
+     * Save the supported bands for STA from WiFi HAL to config store.
+     * @param bands bands supported
+     */
+    private void saveStaBandsToConfigStoreIfNecessary(int bands) {
+        if (bands != getStaBandsFromConfigStore()) {
+            mWifiInjector.getSettingsConfigStore().put(WIFI_NATIVE_SUPPORTED_STA_BANDS, bands);
+            Log.i(TAG, "Supported STA bands is updated in config store: " + bands);
+        }
+    }
+
+    /**
+     * Get the supported STA bands from cache/config store
+     * @return bands supported
+     */
+    private int getStaBandsFromConfigStore() {
+        return mWifiInjector.getSettingsConfigStore().get(WIFI_NATIVE_SUPPORTED_STA_BANDS);
     }
 }

@@ -278,6 +278,7 @@ public class WifiNative {
         public NetworkObserverInternal networkObserver;
         /** Interface feature set / capabilities */
         public long featureSet;
+        public int bandsSupported;
         public DeviceWiphyCapabilities phyCapabilities;
 
         Iface(int id, @Iface.IfaceType int type) {
@@ -1317,6 +1318,7 @@ public class WifiNative {
             Log.i(TAG, "Successfully setup " + iface);
 
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
+            updateSupportedBandForStaInternal(iface);
             return iface.name;
         }
     }
@@ -1404,6 +1406,7 @@ public class WifiNative {
             Log.i(TAG, "Successfully setup " + iface);
 
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
+            updateSupportedBandForStaInternal(iface);
             return iface.name;
         }
     }
@@ -1444,6 +1447,7 @@ public class WifiNative {
             iface.type = Iface.IFACE_TYPE_STA_FOR_SCAN;
             stopSupplicantIfNecessary();
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
+            updateSupportedBandForStaInternal(iface);
             iface.phyCapabilities = null;
             Log.i(TAG, "Successfully switched to scan mode on iface=" + iface);
             return true;
@@ -1502,6 +1506,7 @@ public class WifiNative {
             iface.type = Iface.IFACE_TYPE_STA_FOR_CONNECTIVITY;
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
             saveCompleteFeatureSetInConfigStoreIfNecessary(iface.featureSet);
+            updateSupportedBandForStaInternal(iface);
             mIsEnhancedOpenSupported = (iface.featureSet & WIFI_FEATURE_OWE) != 0;
             Log.i(TAG, "Successfully switched to connectivity mode on iface=" + iface);
             return true;
@@ -3524,6 +3529,22 @@ public class WifiNative {
     }
 
     /**
+     * Get the supported bands for STA mode.
+     * @return supported bands
+     */
+    public @WifiScanner.WifiBand int getSupportedBandsForSta(String ifaceName) {
+        synchronized (mLock) {
+            if (ifaceName != null) {
+                Iface iface = mIfaceMgr.getIface(ifaceName);
+                if (iface != null) {
+                    return iface.bandsSupported;
+                }
+            }
+            return WifiScanner.WIFI_BAND_UNSPECIFIED;
+        }
+    }
+
+    /**
      * Get the supported features
      *
      * @param ifaceName Name of the interface.
@@ -3542,6 +3563,47 @@ public class WifiNative {
             }
         }
         return featureSet;
+    }
+
+    private void updateSupportedBandForStaInternal(Iface iface) {
+        List<WifiAvailableChannel> usableChannelList =
+                mWifiVendorHal.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ,
+                        WifiAvailableChannel.OP_MODE_STA,
+                        WifiAvailableChannel.FILTER_REGULATORY);
+        int bands = 0;
+        if (usableChannelList == null) {
+            // If HAL doesn't support getUsableChannels then check wificond
+            if (getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ).length > 0) {
+                bands |= WifiScanner.WIFI_BAND_24_GHZ;
+            }
+            if (getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ).length > 0) {
+                bands |= WifiScanner.WIFI_BAND_5_GHZ;
+            }
+            if (getChannelsForBand(WifiScanner.WIFI_BAND_6_GHZ).length > 0) {
+                bands |= WifiScanner.WIFI_BAND_6_GHZ;
+            }
+            if (getChannelsForBand(WifiScanner.WIFI_BAND_60_GHZ).length > 0) {
+                bands |= WifiScanner.WIFI_BAND_60_GHZ;
+            }
+        } else {
+            for (int i = 0; i < usableChannelList.size(); i++) {
+                int frequency = usableChannelList.get(i).getFrequencyMhz();
+                if (ScanResult.is24GHz(frequency)) {
+                    bands |= WifiScanner.WIFI_BAND_24_GHZ;
+                } else if (ScanResult.is5GHz(frequency)) {
+                    bands |= WifiScanner.WIFI_BAND_5_GHZ;
+                } else if (ScanResult.is6GHz(frequency)) {
+                    bands |= WifiScanner.WIFI_BAND_6_GHZ;
+                } else if (ScanResult.is60GHz(frequency)) {
+                    bands |= WifiScanner.WIFI_BAND_60_GHZ;
+                }
+            }
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "updateSupportedBandForStaInternal " + iface.name + " : 0x"
+                    + Integer.toHexString(bands));
+        }
+        iface.bandsSupported = bands;
     }
 
     /**
