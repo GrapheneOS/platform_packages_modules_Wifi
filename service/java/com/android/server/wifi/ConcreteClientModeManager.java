@@ -439,6 +439,28 @@ public class ConcreteClientModeManager implements ClientModeManager {
         }
     }
 
+    private boolean isAnyImsServiceOverWlanAvailable(int subId) {
+        ImsMmTelManager imsMmTelManager = ImsMmTelManager.createForSubscriptionId(subId);
+        try {
+            int[] possibleServiceOverWlan = new int[] {
+                MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE,
+                MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO,
+                MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT,
+                MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_SMS,
+                MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_CALL_COMPOSER,
+            };
+            for (int i: possibleServiceOverWlan) {
+                if (imsMmTelManager.isAvailable(i,
+                        ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
+                    return true;
+                }
+            }
+        } catch (RuntimeException ex) {
+            Log.e(TAG, "IMS Manager is not available.", ex);
+        }
+        return false;
+    }
+
     /**
      * Get deferring time before turning off WiFi.
      */
@@ -475,21 +497,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
             return 0;
         }
 
-        ImsMmTelManager imsMmTelManager = ImsMmTelManager.createForSubscriptionId(subId);
         // If no IMS service over WLAN, no delay
-        try {
-            if (!imsMmTelManager.isAvailable(
-                    MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE
-                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO
-                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT
-                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_SMS
-                    | MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_CALL_COMPOSER,
-                    ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
-                Log.d(getTag(), "IMS not registered over IWLAN for subId: " + subId);
-                return 0;
-            }
-        } catch (RuntimeException ex) {
-            Log.e(TAG, "IMS Manager is not available.", ex);
+        if (!isAnyImsServiceOverWlanAvailable(subId)) {
+            Log.d(getTag(), "IMS not registered over IWLAN for subId: " + subId);
             return 0;
         }
 
