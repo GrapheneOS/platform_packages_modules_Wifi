@@ -2602,12 +2602,26 @@ public class HalDeviceManager {
             return allowedToDeleteForR(requestedCreateType, existingCreateType);
         }
         if (mWifiUserApprovalRequiredForD2dInterfacePriority
-                && newRequestorWsPriority > PRIORITY_BG
-                && (requestedCreateType == HDM_CREATE_IFACE_AP
-                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE
-                || requestedCreateType == HDM_CREATE_IFACE_P2P
-                || requestedCreateType == HDM_CREATE_IFACE_NAN)) {
-            return true;
+                && newRequestorWsPriority > PRIORITY_BG) {
+            if (requestedCreateType == HDM_CREATE_IFACE_AP
+                    || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
+                if (existingCreateType == HDM_CREATE_IFACE_P2P
+                        || existingCreateType == HDM_CREATE_IFACE_NAN) {
+                    return true;
+                }
+            } else if (requestedCreateType == HDM_CREATE_IFACE_P2P) {
+                if (existingCreateType == HDM_CREATE_IFACE_AP
+                        || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                        || existingCreateType == HDM_CREATE_IFACE_NAN) {
+                    return true;
+                }
+            } else if (requestedCreateType == HDM_CREATE_IFACE_NAN) {
+                if (existingCreateType == HDM_CREATE_IFACE_AP
+                        || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                        || existingCreateType == HDM_CREATE_IFACE_P2P) {
+                    return true;
+                }
+            }
         }
         // If the new request is higher priority than existing priority, then the new requestor
         // wins. This is because at all other priority levels (except privileged), existing caller
