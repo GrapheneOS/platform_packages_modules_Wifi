@@ -63,6 +63,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.LocationManager;
+import android.net.MacAddress;
 import android.net.Network;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
@@ -4803,5 +4804,23 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Test public void testGetCurrentNetworkClientMode() throws Exception {
         mActiveModeWarden.setCurrentNetwork(mNetwork);
         assertEquals(mNetwork, mActiveModeWarden.getCurrentNetwork());
+    }
+
+    /**
+     *  Verifies that isClientModeManagerConnectedOrConnectingToBssid() checks for Affiliated link
+     *  BSSID, if exists.
+     */
+    @Test
+    public void testClientModeManagerConnectedOrConnectingToBssid() {
+
+        WifiConfiguration config1 = new WifiConfiguration();
+        config1.SSID = TEST_SSID_1;
+        MacAddress bssid2 = MacAddress.fromString(TEST_BSSID_2);
+        when(mClientModeManager.getConnectedWifiConfiguration()).thenReturn(config1);
+        when(mClientModeManager.getConnectedBssid()).thenReturn(TEST_BSSID_1);
+        when(mClientModeManager.isAffiliatedLinkBssid(eq(bssid2))).thenReturn(true);
+
+        assertTrue(mActiveModeWarden.isClientModeManagerConnectedOrConnectingToBssid(
+                mClientModeManager, TEST_SSID_1, TEST_BSSID_2));
     }
 }
