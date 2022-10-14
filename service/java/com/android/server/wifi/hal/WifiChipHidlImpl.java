@@ -1561,8 +1561,7 @@ public class WifiChipHidlImpl implements IWifiChip {
                 put(IfaceType.NAN, android.hardware.wifi.V1_6.IfaceConcurrencyType.NAN);
             }};
 
-    private List<android.hardware.wifi.V1_6.IWifiChip.ChipMode>
-            upgradeV1_0ChipModesToV1_6(
+    private List<android.hardware.wifi.V1_6.IWifiChip.ChipMode> upgradeV1_0ChipModesToV1_6(
             List<android.hardware.wifi.V1_0.IWifiChip.ChipMode> oldChipModes) {
         ArrayList<android.hardware.wifi.V1_6.IWifiChip.ChipMode> newChipModes = new ArrayList<>();
         for (android.hardware.wifi.V1_0.IWifiChip.ChipMode oldChipMode : oldChipModes) {
@@ -1570,39 +1569,64 @@ public class WifiChipHidlImpl implements IWifiChip {
                     new android.hardware.wifi.V1_6.IWifiChip.ChipMode();
             newChipMode.id = oldChipMode.id;
             newChipMode.availableCombinations = new ArrayList<>();
-            for (android.hardware.wifi.V1_0.IWifiChip.ChipIfaceCombination oldCombo :
-                    oldChipMode.availableCombinations) {
-                android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination newCombo =
-                        new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+            for (android.hardware.wifi.V1_0.IWifiChip.ChipIfaceCombination oldCombo
+                    : oldChipMode.availableCombinations) {
+                android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination
+                        newCombo = new android.hardware.wifi.V1_6.IWifiChip
+                                .ChipConcurrencyCombination();
                 newCombo.limits = new ArrayList<>();
-                boolean isStaInCombination = false;
-                for (android.hardware.wifi.V1_0.IWifiChip.ChipIfaceCombinationLimit oldLimit :
-                        oldCombo.limits) {
-                    if (oldLimit.types.contains(IfaceType.STA)) {
-                        isStaInCombination = true;
-                        break;
-                    }
-                }
-                // Add Bridged AP based on the overlays
-                boolean canAddBridgedAp = isBridgedSoftApSupportedMockable() && !(isStaInCombination
-                        && !isStaWithBridgedSoftApConcurrencySupportedMockable());
-                for (android.hardware.wifi.V1_0.IWifiChip.ChipIfaceCombinationLimit oldLimit :
-                        oldCombo.limits) {
+                // Define a duplicate combination list with AP converted to AP_BRIDGED
+                android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination
+                        newComboWithBridgedAp =
+                        new android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombination();
+                newComboWithBridgedAp.limits = new ArrayList<>();
+                android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit
+                        bridgedApLimit = new android.hardware.wifi.V1_6.IWifiChip
+                                .ChipConcurrencyCombinationLimit();
+                bridgedApLimit.maxIfaces = 1;
+                bridgedApLimit.types = new ArrayList<>();
+                bridgedApLimit.types.add(IfaceConcurrencyType.AP_BRIDGED);
+                newComboWithBridgedAp.limits.add(bridgedApLimit);
+
+                boolean apInCombo = false;
+                // Populate both the combo with AP_BRIDGED and the combo without AP_BRIDGED
+                for (android.hardware.wifi.V1_0.IWifiChip.ChipIfaceCombinationLimit oldLimit
+                        : oldCombo.limits) {
                     android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit newLimit =
-                            new android.hardware.wifi.V1_6.IWifiChip
-                                    .ChipConcurrencyCombinationLimit();
+                            new android.hardware.wifi.V1_6
+                                    .IWifiChip.ChipConcurrencyCombinationLimit();
                     newLimit.types = new ArrayList<>();
-                    for (int oldType : oldLimit.types) {
-                        int newType = IFACE_TYPE_TO_CONCURRENCY_TYPE_MAP.get(oldType);
-                        newLimit.types.add(newType);
-                        if (oldType == IfaceType.AP && canAddBridgedAp) {
-                            newLimit.types.add(IfaceConcurrencyType.AP_BRIDGED);
-                        }
-                    }
                     newLimit.maxIfaces = oldLimit.maxIfaces;
+                    for (int oldType : oldLimit.types) {
+                        newLimit.types.add(IFACE_TYPE_TO_CONCURRENCY_TYPE_MAP.get(oldType));
+                    }
                     newCombo.limits.add(newLimit);
+
+                    android.hardware.wifi.V1_6.IWifiChip.ChipConcurrencyCombinationLimit
+                            newLimitForBridgedApCombo = new android.hardware.wifi.V1_6.IWifiChip
+                                    .ChipConcurrencyCombinationLimit();
+                    newLimitForBridgedApCombo.types = new ArrayList<>(newLimit.types);
+                    newLimitForBridgedApCombo.maxIfaces = newLimit.maxIfaces;
+                    if (newLimitForBridgedApCombo.types.contains(IfaceConcurrencyType.AP)) {
+                        // Skip the limit if it contains AP, since this corresponds to the
+                        // AP_BRIDGED in the duplicate AP_BRIDGED combo.
+                        apInCombo = true;
+                    } else if (!isStaWithBridgedSoftApConcurrencySupportedMockable()
+                            && newLimitForBridgedApCombo.types.contains(IfaceConcurrencyType.STA)) {
+                        // Don't include STA in the AP_BRIDGED combo if STA + AP_BRIDGED is not
+                        // supported.
+                        newLimitForBridgedApCombo.types.remove((Integer) IfaceConcurrencyType.STA);
+                        if (!newLimitForBridgedApCombo.types.isEmpty()) {
+                            newComboWithBridgedAp.limits.add(newLimitForBridgedApCombo);
+                        }
+                    } else {
+                        newComboWithBridgedAp.limits.add(newLimitForBridgedApCombo);
+                    }
                 }
                 newChipMode.availableCombinations.add(newCombo);
+                if (isBridgedSoftApSupportedMockable() && apInCombo) {
+                    newChipMode.availableCombinations.add(newComboWithBridgedAp);
+                }
             }
             newChipModes.add(newChipMode);
         }
