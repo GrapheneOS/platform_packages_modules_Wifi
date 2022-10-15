@@ -4527,22 +4527,24 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testLayer2InformationUpdate() throws Exception {
+        InOrder inOrder = inOrder(mIpClient);
         when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(
                 Pair.create("Wad", "Gab"));
         // Simulate connection
         connect();
 
+        inOrder.verify(mIpClient).updateLayer2Information(any());
+        inOrder.verify(mIpClient).startProvisioning(any());
+
         // Simulate Roaming
         when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(
                 Pair.create("aaa", "bbb"));
-        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR1,
-                        SupplicantState.ASSOCIATED));
-        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR1,
-                        SupplicantState.COMPLETED));
+        // Now send a network connection (indicating a roam) event
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR1, false));
         mLooper.dispatchAll();
 
+        inOrder.verify(mIpClient).updateLayer2Information(any());
 
         // Simulate disconnection
         when(mWifiScoreCard.getL2KeyAndGroupHint(any())).thenReturn(new Pair<>(null, null));
@@ -4553,6 +4555,9 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mWifiScoreCard, times(3)).getL2KeyAndGroupHint(any());
         verify(mIpClient, times(3)).updateLayer2Information(any());
+
+
+
     }
 
     /**
