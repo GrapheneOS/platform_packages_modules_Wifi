@@ -240,6 +240,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 R.integer.config_wifiAllNonCarrierMergedWifiMaxDisableDurationMinutes,
                 ALL_NON_CARRIER_MERGED_WIFI_MAX_DISABLE_DURATION_MINUTES);
         mResources.setInteger(R.integer.config_wifiMaxNumWifiConfigurations, -1);
+        mResources.setInteger(
+                R.integer.config_wifiMaxNumWifiConfigurationsAddedByAllApps, 200);
         when(mContext.getResources()).thenReturn(mResources);
 
         // Setup UserManager profiles for the default user.
@@ -299,6 +301,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(anyInt()))
                 .thenReturn(true);
         when(mWifiPermissionsUtil.isDeviceInDemoMode(any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(any(), anyInt())).thenReturn(true);
         when(mWifiLastResortWatchdog.shouldIgnoreSsidUpdate()).thenReturn(false);
         when(mMacAddressUtil.calculatePersistentMacForSta(any(), anyInt()))
                 .thenReturn(TEST_RANDOMIZED_MAC);
@@ -5938,7 +5941,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     private NetworkUpdateResult verifyAddNetworkToWifiConfigManager(
             WifiConfiguration configuration) {
-        NetworkUpdateResult result = addNetworkToWifiConfigManager(configuration);
+        NetworkUpdateResult result = addNetworkToWifiConfigManager(configuration,
+                configuration.creatorUid);
         assertTrue(result.getNetworkId() != WifiConfiguration.INVALID_NETWORK_ID);
         assertTrue(result.isNewNetwork());
         assertTrue(result.hasIpChanged());
@@ -7353,6 +7357,97 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 if (savedConfig.networkId == configToDelete.networkId) {
                     fail("Config was not deleted: " + configToDelete);
                 }
+            }
+        }
+    }
+
+    /**
+     * Verifies that the limit on app-added networks is enforced when an app attempts to add
+     * a new network. Configs added by a system app should not be removed, even if they have a
+     * higher overall deletion priority.
+     */
+    @Test
+    public void testRemoveExcessAppAddedNetworksOnAdd() {
+        final int maxTotalConfigs = 6;
+        final int maxAppAddedConfigs = 4;
+        mResources.setInteger(R.integer.config_wifiMaxNumWifiConfigurations, maxTotalConfigs);
+        mResources.setInteger(R.integer.config_wifiMaxNumWifiConfigurationsAddedByAllApps,
+                maxAppAddedConfigs);
+
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isProfileOwner(anyInt(), any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(any(), eq(TEST_CREATOR_UID)))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isSystem(any(), eq(TEST_OTHER_USER_UID)))
+                .thenReturn(false);
+
+        WifiConfiguration currentConfig = WifiConfigurationTestUtil.createPskNetwork();
+        currentConfig.status = WifiConfiguration.Status.CURRENT;
+        currentConfig.isCurrentlyConnected = true;
+        WifiConfiguration lessDeletionPriorityConfig = WifiConfigurationTestUtil.createPskNetwork();
+        lessDeletionPriorityConfig.setDeletionPriority(1);
+        WifiConfiguration newlyAddedConfig = WifiConfigurationTestUtil.createPskNetwork();
+        newlyAddedConfig.lastUpdated = 1;
+        WifiConfiguration recentConfig = WifiConfigurationTestUtil.createPskNetwork();
+        recentConfig.lastConnected = 2;
+        WifiConfiguration notRecentConfig = WifiConfigurationTestUtil.createPskNetwork();
+        notRecentConfig.lastConnected = 1;
+        WifiConfiguration oneRebootSaeConfig = WifiConfigurationTestUtil.createSaeNetwork();
+        oneRebootSaeConfig.numRebootsSinceLastUse = 1;
+        WifiConfiguration oneRebootOpenConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        oneRebootOpenConfig.numRebootsSinceLastUse = 1;
+        oneRebootOpenConfig.numAssociation = 1;
+        WifiConfiguration noAssociationConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        noAssociationConfig.numRebootsSinceLastUse = 1;
+        noAssociationConfig.numAssociation = 0;
+
+        // System-added configs. Have high overall deletion priority.
+        verifyAddNetworkToWifiConfigManager(oneRebootOpenConfig);
+        verifyAddNetworkToWifiConfigManager(noAssociationConfig);
+
+        // App-added configs. Have low overall deletion priority.
+        List<WifiConfiguration> appAddedConfigsInDeletionOrder = new ArrayList<>();
+        appAddedConfigsInDeletionOrder.add(recentConfig);
+        appAddedConfigsInDeletionOrder.add(newlyAddedConfig);
+        appAddedConfigsInDeletionOrder.add(lessDeletionPriorityConfig);
+        appAddedConfigsInDeletionOrder.add(currentConfig);
+        for (int i = 0; i < appAddedConfigsInDeletionOrder.size(); i++) {
+            WifiConfiguration config = appAddedConfigsInDeletionOrder.get(i);
+            config.creatorUid = TEST_OTHER_USER_UID;
+        }
+
+        for (WifiConfiguration config : appAddedConfigsInDeletionOrder) {
+            verifyAddNetworkToWifiConfigManager(config);
+        }
+        assertEquals(mWifiConfigManager.getConfiguredNetworks().size(), maxTotalConfigs);
+
+        // Adding new app-added configs should only overwrite the existing app-added configs.
+        for (WifiConfiguration configToDelete : appAddedConfigsInDeletionOrder) {
+            WifiConfiguration carrierConfig = WifiConfigurationTestUtil.createPskNetwork();
+            carrierConfig.carrierId = 1;
+            carrierConfig.creatorUid = TEST_OTHER_USER_UID;
+            verifyAddNetworkToWifiConfigManager(carrierConfig);
+
+            assertEquals(mWifiConfigManager.getConfiguredNetworks().size(), maxTotalConfigs);
+            for (WifiConfiguration savedConfig : mWifiConfigManager.getConfiguredNetworks()) {
+                if (savedConfig.networkId == configToDelete.networkId) {
+                    fail("Config was not deleted: " + configToDelete);
+                }
+            }
+        }
+
+        // Check that the system-added configs are still stored.
+        for (WifiConfiguration systemAddedConfig :
+                Arrays.asList(oneRebootOpenConfig, noAssociationConfig)) {
+            boolean found = false;
+            for (WifiConfiguration storedConfig : mWifiConfigManager.getConfiguredNetworks()) {
+                if (systemAddedConfig.networkId == storedConfig.networkId) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                fail("System-added config was deleted: " + systemAddedConfig);
             }
         }
     }
