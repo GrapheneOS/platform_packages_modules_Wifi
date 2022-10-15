@@ -104,13 +104,21 @@
     <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈ ആക്‌സസ് നിങ്ങളുടെ ലൊക്കേഷനിൽ ലഭ്യമല്ല. പിന്നീട് വീണ്ടും ശ്രമിക്കുക അല്ലെങ്കിൽ മറ്റൊരു ലൊക്കേഷനിൽ നിന്ന് ശ്രമിക്കുക. (പിശക് = 32766)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 32767"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32767_carrier_overrides:0 (3756793972687282940) -->
+  <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈ ആക്‌സസിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്. പിന്നീട് വീണ്ടും ശ്രമിക്കുക അല്ലെങ്കിൽ മറ്റൊരു ലൊക്കേഷനിൽ നിന്ന് ശ്രമിക്കുക. (പിശക് = 32767)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 16384"</string>
-    <!-- no translation found for wifi_eap_error_message_code_16384_carrier_overrides:0 (270219697600808218) -->
+  <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈയിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്. (പിശക് = 16384)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം 16385"</string>
-    <!-- no translation found for wifi_eap_error_message_code_16385_carrier_overrides:0 (50575315771146940) -->
+  <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈയിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്. (പിശക് = 16385)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : EAP പരിശോധിച്ചുറപ്പിക്കുന്നതിലെ പ്രശ്നം, അജ്ഞാത പിശക് കോഡ്"</string>
-    <!-- no translation found for wifi_eap_error_message_unknown_error_code_carrier_overrides:0 (2705387186478280792) -->
+  <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon വൈഫൈയിലേക്ക് നിങ്ങളെ കണക്‌റ്റ് ചെയ്യുന്നതിൽ ഒരു പ്രശ്‌നമുണ്ട്. (പിശക് = അജ്ഞാതം)"</item>
+  </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"ഹോട്ട്‌സ്‌പോട്ട് ഓഫാക്കി"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"ഉപകരണങ്ങളൊന്നും കണക്‌റ്റ് ചെയ്തിട്ടില്ല. പരിഷ്‌കരിക്കാൻ ടാപ്പ് ചെയ്യുക."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"വൈഫൈ വിച്ഛേദിച്ചു"</string>
