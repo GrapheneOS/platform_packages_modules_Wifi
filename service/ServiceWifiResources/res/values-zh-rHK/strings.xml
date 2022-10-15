@@ -105,19 +105,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題，請稍後再試。你也可以換個地點，然後再試一次 (錯誤 = 32767)"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。請稍後再試。您亦可換個地點，然後再試一次 (錯誤 = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 16384)"</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。(錯誤 = 16384)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 16385)"</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。(錯誤 = 16385)"</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 (錯誤代碼不明)"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 不明)"</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。(錯誤 = 不明)"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"熱點已關閉"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"未連接到任何裝置，輕按即可修改。"</string>
