@@ -20,6 +20,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import android.net.MacAddress;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 
@@ -58,6 +59,19 @@ public class NativeUtilTest extends WifiBaseTest {
                 NativeUtil.macAddressToByteArray(""));
         assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0},
                 NativeUtil.macAddressToByteArray(null));
+    }
+
+    /**
+     * Test that converting a colon delimited MAC address to android.net.MacAddress works. Also test
+     * invalid input exception is handled by NativeUtil#getMacAddressOrNull() and returns 'null'.
+     */
+    @Test
+    public void testGetMacAddressOrNull() throws Exception {
+        String macAddressStr = "11:22:33:44:55:66";
+        assertEquals(MacAddress.fromString(macAddressStr),
+                NativeUtil.getMacAddressOrNull(macAddressStr));
+        assertNull(NativeUtil.getMacAddressOrNull(":44:55:66"));
+        assertNull(NativeUtil.getMacAddressOrNull(null));
     }
 
     /**
