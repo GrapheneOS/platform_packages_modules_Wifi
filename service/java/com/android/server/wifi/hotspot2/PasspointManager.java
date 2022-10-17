@@ -877,6 +877,10 @@ public class PasspointManager {
      */
     private @NonNull List<Pair<PasspointProvider, PasspointMatch>> getAllMatchedProviders(
             ScanResult scanResult, boolean anqpRequestAllowed) {
+        if (!mEnabled) {
+            return Collections.emptyList();
+        }
+
         List<Pair<PasspointProvider, PasspointMatch>> allMatches = new ArrayList<>();
 
         // Retrieve the relevant information elements, mainly Roaming Consortium IE and Hotspot 2.0
