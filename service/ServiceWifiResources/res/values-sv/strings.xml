@@ -104,13 +104,21 @@
     <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Verizon Wi-Fi Access är inte tillgängligt där du befinner dig. Försök igen senare eller anslut från en annan plats. (Fel = 32766)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-autentiseringsfel 32767"</string>
-    <!-- no translation found for wifi_eap_error_message_code_32767_carrier_overrides:0 (3756793972687282940) -->
+  <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Det gick inte att ansluta till Verizon Wi-Fi Access. Försök igen senare eller anslut från en annan plats. (Fel = 32767)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-autentiseringsfel 16384"</string>
-    <!-- no translation found for wifi_eap_error_message_code_16384_carrier_overrides:0 (270219697600808218) -->
+  <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Det gick inte att ansluta till Verizon Wi-Fi. (Fel = 16384)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-autentiseringsfel 16385"</string>
-    <!-- no translation found for wifi_eap_error_message_code_16385_carrier_overrides:0 (50575315771146940) -->
+  <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Det gick inte att ansluta till Verizon Wi-Fi. (Fel = 16385)"</item>
+  </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-autentiseringsfel. Okänd felkod"</string>
-    <!-- no translation found for wifi_eap_error_message_unknown_error_code_carrier_overrides:0 (2705387186478280792) -->
+  <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Det gick inte att ansluta till Verizon Wi-Fi. (Fel = Okänt)"</item>
+  </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"Surfzonen har inaktiverats"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Inga enheter har anslutits. Tryck för att ändra."</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Ingen wifi-anslutning"</string>
