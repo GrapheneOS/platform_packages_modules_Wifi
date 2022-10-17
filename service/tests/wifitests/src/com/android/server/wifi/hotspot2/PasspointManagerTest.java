@@ -282,7 +282,11 @@ public class PasspointManagerTest extends WifiBaseTest {
                 mWifiConfigStore, mWifiSettingsStore, mWifiMetrics, mWifiCarrierInfoManager,
                 mMacAddressUtil, mWifiPermissionsUtil);
         mManager.setPasspointNetworkNominateHelper(mPasspointNetworkNominateHelper);
-        // Verify Passpoint is enabled on creation.
+        // Verify Passpoint is disabled on creation.
+        assertFalse(mManager.isWifiPasspointEnabled());
+        // send boot completed event to update enablement state.
+        mManager.handleBootCompleted();
+        // Verify Passpoint is enabled after getting boot completed event.
         assertTrue(mManager.isWifiPasspointEnabled());
         mManager.setUseInjectedPKIX(true);
         mManager.injectPKIXParameters(TEST_PKIX_PARAMETERS);
