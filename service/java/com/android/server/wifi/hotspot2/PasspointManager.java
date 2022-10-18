@@ -145,7 +145,8 @@ public class PasspointManager {
     // Counter used for assigning unique identifier to each provider.
     private long mProviderIndex;
     private boolean mVerboseLoggingEnabled = false;
-    private boolean mEnabled;
+    // Set default value to false before receiving boot completed event.
+    private boolean mEnabled = false;;
 
     private class CallbackHandler implements PasspointEventHandler.Callbacks {
         private final Context mContext;
@@ -392,7 +393,6 @@ public class PasspointManager {
                         new PasspointManager.OnNetworkUpdateListener()));
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mSettingsStore = wifiSettingsStore;
-        mEnabled = mSettingsStore.isWifiPasspointEnabled();
     }
 
     /**
@@ -1643,5 +1643,13 @@ public class PasspointManager {
         PasspointProvider provider = mProviders.get(uniqueId);
         if (provider == null) return 0;
         return provider.getAndRemoveMatchedRcoi(ssid);
+    }
+
+    /**
+     * Handle boot completed, read config flags.
+     */
+    public void handleBootCompleted() {
+        // Settings Store should be accessed after boot completed event.
+        mEnabled = mSettingsStore.isWifiPasspointEnabled();
     }
 }
