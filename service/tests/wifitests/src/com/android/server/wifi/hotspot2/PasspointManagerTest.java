@@ -3102,16 +3102,23 @@ public class PasspointManagerTest extends WifiBaseTest {
                 addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME, TEST_PACKAGE, false, null);
         ANQPData entry = new ANQPData(mClock, null);
 
-        when(mAnqpCache.getEntry(TEST_ANQP_KEY)).thenReturn(entry);
         when(provider.match(anyMap(), any(RoamingConsortium.class), any(ScanResult.class)))
                 .thenReturn(PasspointMatch.HomeProvider);
 
         // Disable the Wifi Passpoint and expect the matchProvider to return empty list.
+        when(mAnqpCache.getEntry(TEST_ANQP_KEY)).thenReturn(entry);
         mManager.setWifiPasspointEnabled(false);
         assertFalse(mManager.isWifiPasspointEnabled());
         assertTrue(mManager.matchProvider(createTestScanResult()).isEmpty());
 
+        // Verify that a request for ANQP elements is not initiated when ANQP cache misses.
+        when(mAnqpCache.getEntry(TEST_ANQP_KEY)).thenReturn(null);
+        assertTrue(mManager.getAllMatchedProviders(createTestScanResult()).isEmpty());
+        verify(mAnqpRequestManager, never()).requestANQPElements(any(long.class),
+                any(ANQPNetworkKey.class), any(boolean.class), any(NetworkDetail.HSRelease.class));
+
         // Enable the Wifi Passpoint and expect the matchProvider to return matched result.
+        when(mAnqpCache.getEntry(TEST_ANQP_KEY)).thenReturn(entry);
         mManager.setWifiPasspointEnabled(true);
         assertTrue(mManager.isWifiPasspointEnabled());
         List<Pair<PasspointProvider, PasspointMatch>> results =
@@ -3119,6 +3126,13 @@ public class PasspointManagerTest extends WifiBaseTest {
         Pair<PasspointProvider, PasspointMatch> result = results.get(0);
         assertEquals(PasspointMatch.HomeProvider, result.second);
         assertEquals(TEST_FQDN, result.first.getConfig().getHomeSp().getFqdn());
+
+        // Verify that a request for ANQP elements is initiated when ANQP cache misses.
+        when(mAnqpCache.getEntry(TEST_ANQP_KEY)).thenReturn(null);
+        // ANQP cache misses, still no result.
+        assertTrue(mManager.getAllMatchedProviders(createTestScanResult()).isEmpty());
+        verify(mAnqpRequestManager).requestANQPElements(eq(TEST_BSSID),
+                any(ANQPNetworkKey.class), anyBoolean(), any());
     }
 }
 
