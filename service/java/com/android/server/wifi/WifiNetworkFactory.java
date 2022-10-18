@@ -16,6 +16,9 @@
 
 package com.android.server.wifi;
 
+import static android.net.wifi.WifiScanner.WIFI_BAND_ALL;
+import static android.net.wifi.WifiScanner.WIFI_BAND_UNSPECIFIED;
+
 import static com.android.internal.util.Preconditions.checkNotNull;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -843,7 +846,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             WifiNetworkSpecifier wns = (WifiNetworkSpecifier) ns;
             mActiveSpecificNetworkRequestSpecifier = new WifiNetworkSpecifier(
                     wns.ssidPatternMatcher, wns.bssidPatternMatcher, wns.getBand(),
-                    wns.wifiConfiguration);
+                    wns.wifiConfiguration, wns.getPreferredChannelFrequencyInMhz());
             mSkipUserDialogue = false;
             mWifiMetrics.incrementNetworkRequestApiNumRequest();
 
@@ -1493,8 +1496,20 @@ public class WifiNetworkFactory extends NetworkFactory {
             mScanSettings.hiddenNetworks.add(new WifiScanner.ScanSettings.HiddenNetwork(
                     addEnclosingQuotes(wns.ssidPatternMatcher.getPath())));
         }
+        int[] channelFreqs = wns.getPreferredChannelFrequencyInMhz();
+        if (channelFreqs.length > 0) {
+            int index = 0;
+            mScanSettings.channels = new WifiScanner.ChannelSpec[channelFreqs.length];
+            for (int freq : channelFreqs) {
+                mScanSettings.channels[index++] = new WifiScanner.ChannelSpec(freq);
+            }
+            mScanSettings.band = WIFI_BAND_UNSPECIFIED;
+        }
         mIsPeriodicScanEnabled = true;
         startScan();
+        // Clear the channel settings to perform a full band scan.
+        mScanSettings.channels = new WifiScanner.ChannelSpec[0];
+        mScanSettings.band = WIFI_BAND_ALL;
     }
 
     private void cancelPeriodicScans() {
