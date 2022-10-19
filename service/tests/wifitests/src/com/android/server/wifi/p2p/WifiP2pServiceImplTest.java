@@ -2527,7 +2527,34 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         // p2pFlush should be invoked once in forceP2pEnabled.
         verify(mWifiNative).p2pFlush();
         verify(mWifiNative).p2pStopFind();
-        verify(mWifiNative).p2pExtListen(eq(true), anyInt(), anyInt());
+        verify(mWifiNative).p2pExtListen(eq(true), eq(P2P_EXT_LISTEN_PERIOD_MS),
+                eq(P2P_EXT_LISTEN_INTERVAL_MS));
+        assertTrue(mClientHandler.hasMessages(WifiP2pManager.START_LISTEN_SUCCEEDED));
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiPermissionsUtil, atLeastOnce()).checkNearbyDevicesPermission(
+                    any(), eq(true), any());
+            verify(mWifiPermissionsUtil, never()).checkCanAccessWifiDirect(
+                    any(), any(), anyInt(), anyBoolean());
+        } else {
+            verify(mWifiPermissionsUtil).checkCanAccessWifiDirect(eq(TEST_PACKAGE_NAME),
+                    eq("testFeature"), anyInt(), eq(true));
+        }
+    }
+
+    /**
+     * Verify the caller with proper permission sends WifiP2pManager.START_LISTEN.
+     */
+    @Test
+    public void testStartListenSuccessWithGroup() throws Exception {
+        setTargetSdkGreaterThanT();
+        when(mWifiNative.p2pExtListen(eq(true), anyInt(), anyInt())).thenReturn(true);
+        mockEnterGroupCreatedState();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.START_LISTEN);
+        // p2pFlush should be invoked once in forceP2pEnabled.
+        verify(mWifiNative).p2pFlush();
+        verify(mWifiNative).p2pStopFind();
+        verify(mWifiNative).p2pExtListen(eq(true), eq(P2P_EXT_LISTEN_PERIOD_MS),
+                eq(P2P_EXT_LISTEN_INTERVAL_MS));
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.START_LISTEN_SUCCEEDED));
         if (SdkLevel.isAtLeastT()) {
             verify(mWifiPermissionsUtil, atLeastOnce()).checkNearbyDevicesPermission(
