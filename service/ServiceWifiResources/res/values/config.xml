@@ -778,6 +778,10 @@
          A value of -1 indicates no limit. If a max number is specified, then under-used configs will
          be deleted to make room for new configs.-->
     <integer translatable="false" name="config_wifiMaxNumWifiConfigurations">-1</integer>
+    <!-- Integer threshold for max number of WifiConfigurations that can be added by all apps (excluding
+         DO, PO, and system apps). A value of -1 indicates no limit. If a max number is specified,
+         then existing app-added configs will be deleted to make room for new app-added configs.-->
+    <integer translatable="false" name="config_wifiMaxNumWifiConfigurationsAddedByAllApps">200</integer>
 
     <!-- Whether to allow Settings or SUW to create insecure Enterprise networks where server
          certificate is not validated, by not specifying a Root CA certificate and/or server domain

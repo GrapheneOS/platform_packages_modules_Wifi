@@ -1502,7 +1502,7 @@ public class WifiConfigManager {
                     new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
                     existingInternalConfig);
         }
-        if (removeExcessNetworks()) {
+        if (removeExcessNetworks(uid, packageName)) {
             if (mConfiguredNetworks.getForAllUsers(newInternalConfig.networkId) == null) {
                 Log.e(TAG, "Cannot add network because number of configured networks is maxed.");
                 return new Pair<>(
@@ -1629,9 +1629,19 @@ public class WifiConfigManager {
         saveToStore(false);
     }
 
+    private boolean isDeviceOwnerProfileOwnerOrSystem(int uid, String packageName) {
+        return mWifiPermissionsUtil.isDeviceOwner(uid, packageName)
+                || mWifiPermissionsUtil.isProfileOwner(uid, packageName)
+                || mWifiPermissionsUtil.isSystem(packageName, uid);
+    }
+
     /**
      * Removes excess networks in case the number of saved networks exceeds the max limit
      * specified in config_wifiMaxNumWifiConfigurations.
+     *
+     * If called by a non DO/PO/system app, and a limit on app-added networks is specified in
+     * config_wifiMaxNumWifiConfigurationsForAppAddedNetworks, only removes excess
+     * app-added networks.
      *
      * Configs are removed in ascending order of
      *     1. Non-carrier networks before carrier networks
@@ -1641,26 +1651,50 @@ public class WifiConfigManager {
      *     5. Open and OWE networks before networks with other security types.
      *     6. Number of associations
      *
+     * @param uid    UID of the app requesting the network addition/modification.
+     * @param packageName Package name of the app requesting the network addition/modification.
      * @return {@code true} if networks were removed, {@code false} otherwise.
      */
-    private boolean removeExcessNetworks() {
-        final int maxNumConfigs = mContext.getResources().getInteger(
+    private boolean removeExcessNetworks(int uid, String packageName) {
+        final int maxNumTotalConfigs = mContext.getResources().getInteger(
                 R.integer.config_wifiMaxNumWifiConfigurations);
-        if (maxNumConfigs < 0) {
-            // Max number of saved networks not specified.
+        final int maxNumAppAddedConfigs = mContext.getResources().getInteger(
+                R.integer.config_wifiMaxNumWifiConfigurationsAddedByAllApps);
+
+        boolean callerIsApp = !isDeviceOwnerProfileOwnerOrSystem(uid, packageName);
+        if (maxNumTotalConfigs < 0 && (!callerIsApp || maxNumAppAddedConfigs < 0)) {
+            // Max number of saved networks not specified or does not need to be checked.
             return false;
         }
 
-        List<WifiConfiguration> savedNetworks = getSavedNetworks(Process.WIFI_UID);
-        final int numExcessNetworks = savedNetworks.size() - maxNumConfigs;
+        int numExcessNetworks = -1;
+        List<WifiConfiguration> networkList = getSavedNetworks(Process.WIFI_UID);
+        if (maxNumTotalConfigs >= 0) {
+            numExcessNetworks = networkList.size() - maxNumTotalConfigs;
+        }
+
+        if (callerIsApp && maxNumAppAddedConfigs >= 0) {
+            List<WifiConfiguration> appAddedNetworks = networkList
+                    .stream()
+                    .filter(n -> !isDeviceOwnerProfileOwnerOrSystem(n.creatorUid, n.creatorName))
+                    .collect(Collectors.toList());
+            int numExcessAppAddedNetworks = appAddedNetworks.size() - maxNumAppAddedConfigs;
+            if (numExcessAppAddedNetworks > 0) {
+                // Only enforce the limit on app-added networks if it has been exceeded.
+                // Otherwise, default to checking the limit on the total number of networks.
+                numExcessNetworks = numExcessAppAddedNetworks;
+                networkList = appAddedNetworks;
+            }
+        }
+
         if (numExcessNetworks <= 0) {
             return false;
         }
 
-        List<WifiConfiguration> configsToDelete = savedNetworks
+        List<WifiConfiguration> configsToDelete = networkList
                 .stream()
                 .sorted(Comparator.comparing((WifiConfiguration config) -> config.carrierId
-                        == TelephonyManager.UNKNOWN_CARRIER_ID)
+                        != TelephonyManager.UNKNOWN_CARRIER_ID)
                         .thenComparing((WifiConfiguration config) -> config.status
                                 == WifiConfiguration.Status.CURRENT)
                         .thenComparing((WifiConfiguration config) -> config.getDeletionPriority())
