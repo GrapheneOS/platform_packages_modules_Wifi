@@ -1112,9 +1112,8 @@ public class WifiConfigManager {
                 internalConfig.SSID = externalConfig.SSID;
             }
         }
-        if (externalConfig.BSSID != null) {
-            internalConfig.BSSID = externalConfig.BSSID.toLowerCase();
-        }
+        internalConfig.BSSID = externalConfig.BSSID == null ? null
+                : externalConfig.BSSID.toLowerCase();
         internalConfig.hiddenSSID = externalConfig.hiddenSSID;
 
         if (externalConfig.preSharedKey != null
