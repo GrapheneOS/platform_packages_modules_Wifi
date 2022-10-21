@@ -167,5 +167,5 @@
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifi aan in vliegtuigmodus"</string>
     <string name="wifi_enabled_apm_first_time_message" msgid="3804474326110512024">"Als je wifi laat aanstaan, blijft deze aanstaan als je de vliegtuigmodus weer aanzet"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifi blijft aan"</string>
-    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"De wifi op je telefoon blijft aan in de vliegtuigmodus. Zet wifi uit om dit te wijzigen."</string>
+    <string name="apm_enabled_first_time_message" msgid="8381594447227021365">"Wifi op je telefoon blijft aan in de vliegtuigmodus. Zet wifi uit om dit te wijzigen."</string>
 </resources>
