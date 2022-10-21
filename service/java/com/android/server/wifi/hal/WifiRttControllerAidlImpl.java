@@ -27,6 +27,7 @@ import android.hardware.wifi.RttPreamble;
 import android.hardware.wifi.RttResult;
 import android.hardware.wifi.RttStatus;
 import android.hardware.wifi.RttType;
+import android.hardware.wifi.WifiChannelInfo;
 import android.hardware.wifi.WifiChannelWidthInMhz;
 import android.net.MacAddress;
 import android.net.wifi.rtt.RangingRequest;
@@ -39,7 +40,6 @@ import android.util.Log;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -247,7 +247,7 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
     // Utilities
 
     private ArrayList<RangingResult> halToFrameworkRangingResults(RttResult[] halResults) {
-        ArrayList<RangingResult> rangingResults = new ArrayList(Arrays.asList(halResults));
+        ArrayList<RangingResult> rangingResults = new ArrayList();
         for (RttResult rttResult : halResults) {
             if (rttResult == null) continue;
             byte[] lci = rttResult.lci.data;
@@ -350,8 +350,7 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
         // The caller will only get results for valid configurations.
         for (ResponderConfig responder: request.mRttPeers) {
             RttConfig config = new RttConfig();
-            System.arraycopy(responder.macAddress.toByteArray(), 0, config.addr, 0,
-                    config.addr.length);
+            config.addr = responder.macAddress.toByteArray();
 
             try {
                 config.type = responder.supports80211mc ? RttType.TWO_SIDED : RttType.ONE_SIDED;
@@ -361,6 +360,7 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                 }
 
                 config.peer = frameworkToHalRttPeerType(responder.responderType);
+                config.channel = new WifiChannelInfo();
                 config.channel.width = frameworkToHalChannelWidth(
                         responder.channelWidth);
                 config.channel.centerFreq = responder.frequency;
