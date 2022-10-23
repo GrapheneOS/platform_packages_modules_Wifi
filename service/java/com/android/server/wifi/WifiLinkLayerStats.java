@@ -35,6 +35,126 @@ public class WifiLinkLayerStats {
     /** The version of hal StaLinkLayerStats **/
     public String version;
 
+    /**
+     * Link specific statistics.
+     */
+    public static class LinkSpecificStats {
+
+        /** Link identifier of the link */
+        public int link_id;
+
+        /** Number of beacons received from our own AP */
+        public int beacon_rx;
+
+        /** RSSI of management frames */
+        public int rssi_mgmt;
+
+        /* Packet counters and contention time stats */
+
+        /** WME Best Effort Access Category received mpdu */
+        public long rxmpdu_be;
+        /** WME Best Effort Access Category transmitted mpdu */
+        public long txmpdu_be;
+        /** WME Best Effort Access Category lost mpdu */
+        public long lostmpdu_be;
+        /** WME Best Effort Access Category number of transmission retries */
+        public long retries_be;
+        /** WME Best Effort Access Category data packet min contention time in microseconds */
+        public long contentionTimeMinBeInUsec;
+        /** WME Best Effort Access Category data packet max contention time in microseconds */
+        public long contentionTimeMaxBeInUsec;
+        /** WME Best Effort Access Category data packet average contention time in microseconds */
+        public long contentionTimeAvgBeInUsec;
+        /**
+         * WME Best Effort Access Category number of data packets used for deriving the min, the
+         * max,
+         * and the average contention time
+         */
+        public long contentionNumSamplesBe;
+
+        /** WME Background Access Category received mpdu */
+        public long rxmpdu_bk;
+        /** WME Background Access Category transmitted mpdu */
+        public long txmpdu_bk;
+        /** WME Background Access Category lost mpdu */
+        public long lostmpdu_bk;
+        /** WME Background Access Category number of transmission retries */
+        public long retries_bk;
+        /** WME Background Access Category data packet min contention time in microseconds */
+        public long contentionTimeMinBkInUsec;
+        /** WME Background Access Category data packet max contention time in microseconds */
+        public long contentionTimeMaxBkInUsec;
+        /** WME Background Access Category data packet average contention time in microseconds */
+        public long contentionTimeAvgBkInUsec;
+        /**
+         * WME Background Access Category number of data packets used for deriving the min, the max,
+         * and the average contention time
+         */
+        public long contentionNumSamplesBk;
+
+        /** WME Video Access Category received mpdu */
+        public long rxmpdu_vi;
+        /** WME Video Access Category transmitted mpdu */
+        public long txmpdu_vi;
+        /** WME Video Access Category lost mpdu */
+        public long lostmpdu_vi;
+        /** WME Video Access Category number of transmission retries */
+        public long retries_vi;
+        /** WME Video Access Category data packet min contention time in microseconds */
+        public long contentionTimeMinViInUsec;
+        /** WME Video Access Category data packet max contention time in microseconds */
+        public long contentionTimeMaxViInUsec;
+        /** WME Video Access Category data packet average contention time in microseconds */
+        public long contentionTimeAvgViInUsec;
+        /**
+         * WME Video Access Category number of data packets used for deriving the min, the max, and
+         * the average contention time
+         */
+        public long contentionNumSamplesVi;
+
+        /** WME Voice Access Category received mpdu */
+        public long rxmpdu_vo;
+        /** WME Voice Access Category transmitted mpdu */
+        public long txmpdu_vo;
+        /** WME Voice Access Category lost mpdu */
+        public long lostmpdu_vo;
+        /** WME Voice Access Category number of transmission retries */
+        public long retries_vo;
+        /** WME Voice Access Category data packet min contention time in microseconds */
+        public long contentionTimeMinVoInUsec;
+        /** WME Voice Access Category data packet max contention time in microseconds */
+        public long contentionTimeMaxVoInUsec;
+        /** WME Voice Access Category data packet average contention time in microseconds */
+        public long contentionTimeAvgVoInUsec;
+        /**
+         * WME Voice Access Category number of data packets used for deriving the min, the max, and
+         * the average contention time
+         */
+        public long contentionNumSamplesVo;
+
+        /**
+         * Duty cycle of the link.
+         * if this link is being served using time slicing on a radio with one or more ifaces
+         * (i.e MCC), then the duty cycle assigned to this iface in %.
+         * If not using time slicing (i.e SCC or DBS), set to 100.
+         */
+        public short timeSliceDutyCycleInPercent = -1;
+
+        /**
+         * Peer statistics.
+         */
+        public PeerInfo[] peerInfo;
+
+    }
+
+    public LinkSpecificStats[] links;
+
+    /**
+     * The stats below which is already captured in WifiLinkLayerStats#LinkSpecificStats will be
+     * having an aggregated value. The aggregation logic is defined at
+     * wifiNative#setAggregatedLinkLayerStats().
+     */
+
     /** Number of beacons received from our own AP */
     public int beacon_rx;
 
@@ -385,6 +505,89 @@ public class WifiLinkLayerStats {
                 .append(Long.toString(this.contentionTimeAvgVoInUsec))
                 .append(" contention_num_samples")
                 .append(Long.toString(this.contentionNumSamplesVo)).append('\n');
+        if (this.links != null) {
+            sbuf.append("Per link stats: Number of links = ").append(this.links.length).append(
+                    "\n");
+            for (WifiLinkLayerStats.LinkSpecificStats link : this.links) {
+                sbuf.append(" link id: ").append(link.link_id).append("\n");
+                sbuf.append(" bss beacon rx: ").append(Integer.toString(link.beacon_rx)).append(
+                        '\n');
+                sbuf.append(" RSSI mgmt: ").append(Integer.toString(link.rssi_mgmt)).append('\n');
+                sbuf.append(" BE : ").append(" rx=").append(Long.toString(link.rxmpdu_be))
+                        .append(" tx=").append(Long.toString(link.txmpdu_be))
+                        .append(" lost=").append(Long.toString(link.lostmpdu_be))
+                        .append(" retries=").append(Long.toString(link.retries_be)).append('\n')
+                        .append(" contention_time_min")
+                        .append(Long.toString(link.contentionTimeMinBeInUsec))
+                        .append(" contention_time_max")
+                        .append(Long.toString(link.contentionTimeMaxBeInUsec)).append('\n')
+                        .append(" contention_time_avg")
+                        .append(Long.toString(link.contentionTimeAvgBeInUsec))
+                        .append(" contention_num_samples")
+                        .append(Long.toString(link.contentionNumSamplesBe)).append('\n');
+                sbuf.append(" BK : ").append(" rx=").append(Long.toString(link.rxmpdu_bk))
+                        .append(" tx=").append(Long.toString(link.txmpdu_bk))
+                        .append(" lost=").append(Long.toString(link.lostmpdu_bk))
+                        .append(" retries=").append(Long.toString(link.retries_bk)).append('\n')
+                        .append(" contention_time_min")
+                        .append(Long.toString(link.contentionTimeMinBkInUsec))
+                        .append(" contention_time_max")
+                        .append(Long.toString(link.contentionTimeMaxBkInUsec)).append('\n')
+                        .append(" contention_time_avg")
+                        .append(Long.toString(link.contentionTimeAvgBkInUsec))
+                        .append(" contention_num_samples")
+                        .append(Long.toString(link.contentionNumSamplesBk)).append('\n');
+                sbuf.append(" VI : ").append(" rx=").append(Long.toString(link.rxmpdu_vi))
+                        .append(" tx=").append(Long.toString(link.txmpdu_vi))
+                        .append(" lost=").append(Long.toString(link.lostmpdu_vi))
+                        .append(" retries=").append(Long.toString(link.retries_vi)).append('\n')
+                        .append(" contention_time_min")
+                        .append(Long.toString(link.contentionTimeMinViInUsec))
+                        .append(" contention_time_max")
+                        .append(Long.toString(link.contentionTimeMaxViInUsec)).append('\n')
+                        .append(" contention_time_avg")
+                        .append(Long.toString(link.contentionTimeAvgViInUsec))
+                        .append(" contention_num_samples")
+                        .append(Long.toString(link.contentionNumSamplesVi)).append('\n');
+                sbuf.append(" VO : ").append(" rx=").append(Long.toString(link.rxmpdu_vo))
+                        .append(" tx=").append(Long.toString(link.txmpdu_vo))
+                        .append(" lost=").append(Long.toString(link.lostmpdu_vo))
+                        .append(" retries=").append(Long.toString(link.retries_vo)).append('\n')
+                        .append(" contention_time_min")
+                        .append(Long.toString(link.contentionTimeMinVoInUsec))
+                        .append(" contention_time_max")
+                        .append(Long.toString(link.contentionTimeMaxVoInUsec)).append('\n')
+                        .append(" contention_time_avg")
+                        .append(Long.toString(link.contentionTimeAvgVoInUsec))
+                        .append(" contention_num_samples")
+                        .append(Long.toString(link.contentionNumSamplesVo)).append('\n');
+                sbuf.append(" Duty cycle of the link=").append(
+                        Short.toString(timeSliceDutyCycleInPercent)).append("\n");
+                if (link.peerInfo != null) {
+                    sbuf.append(" Number of peers=").append(link.peerInfo.length).append('\n');
+                    for (PeerInfo peer : link.peerInfo) {
+                        sbuf.append(" staCount=").append(peer.staCount)
+                                .append(" chanUtil=").append(peer.chanUtil).append('\n');
+                        if (peer.rateStats != null) {
+                            for (RateStat rateStat : peer.rateStats) {
+                                sbuf.append(" preamble=").append(rateStat.preamble)
+                                        .append(" nss=").append(rateStat.nss)
+                                        .append(" bw=").append(rateStat.bw)
+                                        .append(" rateMcsIdx=").append(rateStat.rateMcsIdx)
+                                        .append(" bitRateInKbps=").append(
+                                                rateStat.bitRateInKbps).append(
+                                                '\n')
+                                        .append(" txMpdu=").append(rateStat.txMpdu)
+                                        .append(" rxMpdu=").append(rateStat.rxMpdu)
+                                        .append(" mpduLost=").append(rateStat.mpduLost)
+                                        .append(" retries=").append(rateStat.retries).append('\n');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         sbuf.append(" numRadios=" + numRadios)
                 .append(" on_time= ").append(Integer.toString(this.on_time))
                 .append(" tx_time=").append(Integer.toString(this.tx_time))
