@@ -462,4 +462,137 @@ public class WifiLinkLayerStats {
         return sbuf.toString();
     }
 
+    /**
+     * Returns the link which has the best (=max) RSSI.
+     *
+     * @return link index.
+     */
+    private int getBestLinkIndex() {
+        int best = 0;
+        for (int i = 1; i < links.length; ++i) {
+            if (links[i].rssi_mgmt > links[best].rssi_mgmt) {
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    private void clearAggregatedPacketStats() {
+        rxmpdu_be = 0;
+        txmpdu_be = 0;
+        lostmpdu_be = 0;
+        retries_be = 0;
+
+        rxmpdu_bk = 0;
+        txmpdu_bk = 0;
+        lostmpdu_bk = 0;
+        retries_bk = 0;
+
+        rxmpdu_vi = 0;
+        txmpdu_vi = 0;
+        lostmpdu_vi = 0;
+        retries_vi = 0;
+
+        rxmpdu_vo = 0;
+        txmpdu_vo = 0;
+        lostmpdu_vo = 0;
+        retries_vo = 0;
+    }
+
+    /**
+     * Add packet stats for all links.
+     */
+    private void aggregatePacketStats() {
+        clearAggregatedPacketStats();
+        for (LinkSpecificStats link : links) {
+            rxmpdu_be += link.rxmpdu_be;
+            txmpdu_be += link.txmpdu_be;
+            lostmpdu_be += link.lostmpdu_be;
+            retries_be += link.retries_be;
+
+            rxmpdu_bk += link.rxmpdu_bk;
+            txmpdu_bk += link.txmpdu_bk;
+            lostmpdu_bk += link.lostmpdu_bk;
+            retries_bk += link.retries_bk;
+
+            rxmpdu_vi += link.rxmpdu_vi;
+            txmpdu_vi += link.txmpdu_vi;
+            lostmpdu_vi += link.lostmpdu_vi;
+            retries_vi += link.retries_vi;
+
+            rxmpdu_vo += link.rxmpdu_vo;
+            txmpdu_vo += link.txmpdu_vo;
+            lostmpdu_vo += link.lostmpdu_vo;
+            retries_vo += link.retries_vo;
+        }
+    }
+
+    /**
+     * Squash all link peer stats to a single list.
+     */
+    private void aggregatePeerStats() {
+        int numOfPeers = 0;
+        int i = 0, j;
+        for (LinkSpecificStats link : links) {
+            numOfPeers += link.peerInfo.length;
+        }
+        peerInfo = new PeerInfo[numOfPeers];
+        for (LinkSpecificStats link : links) {
+            for (PeerInfo peer : link.peerInfo) {
+                peerInfo[i] = new PeerInfo();
+                peerInfo[i].staCount = peer.staCount;
+                peerInfo[i].chanUtil = peer.chanUtil;
+                peerInfo[i].rateStats = new RateStat[peer.rateStats.length];
+                j = 0;
+                for (RateStat rateStat : peer.rateStats) {
+                    peerInfo[i].rateStats[j] = new RateStat();
+                    peerInfo[i].rateStats[j].preamble = rateStat.preamble;
+                    peerInfo[i].rateStats[j].nss = rateStat.nss;
+                    peerInfo[i].rateStats[j].bw = rateStat.bw;
+                    peerInfo[i].rateStats[j].rateMcsIdx = rateStat.rateMcsIdx;
+                    peerInfo[i].rateStats[j].bitRateInKbps = rateStat.bitRateInKbps;
+                    peerInfo[i].rateStats[j].txMpdu = rateStat.txMpdu;
+                    peerInfo[i].rateStats[j].rxMpdu = rateStat.rxMpdu;
+                    peerInfo[i].rateStats[j].mpduLost = rateStat.mpduLost;
+                    peerInfo[i].rateStats[j].retries = rateStat.retries;
+                    j++;
+                }
+                i++;
+            }
+        }
+    }
+
+    /**
+     * Aggregate link layer stats per link. The logic for aggregation is different for each of the
+     * stats.
+     * - Best link is selected based on rssi.
+     * - Use best link for rssi, beacon_rx and dutyCycle and Contention stats.
+     * - Packet related stats are added.
+     * - Squash all peer stat lists to a single list of peers.
+     */
+    public void aggregateLinkLayerStats() {
+        if (links == null) return;
+        int i = getBestLinkIndex();
+        rssi_mgmt = links[i].rssi_mgmt;
+        beacon_rx = links[i].beacon_rx;
+        timeSliceDutyCycleInPercent = links[i].timeSliceDutyCycleInPercent;
+        contentionTimeMinBeInUsec = links[i].contentionTimeMinBeInUsec;
+        contentionTimeMaxBeInUsec = links[i].contentionTimeMaxBeInUsec;
+        contentionTimeAvgBeInUsec = links[i].contentionTimeAvgBeInUsec;
+        contentionNumSamplesBe = links[i].contentionNumSamplesBe;
+        contentionTimeMinBkInUsec = links[i].contentionTimeMinBkInUsec;
+        contentionTimeMaxBkInUsec = links[i].contentionTimeMaxBkInUsec;
+        contentionTimeAvgBkInUsec = links[i].contentionTimeAvgBkInUsec;
+        contentionNumSamplesBk = links[i].contentionNumSamplesBk;
+        contentionTimeMinViInUsec = links[i].contentionTimeMinViInUsec;
+        contentionTimeMaxViInUsec = links[i].contentionTimeMaxViInUsec;
+        contentionTimeAvgViInUsec = links[i].contentionTimeAvgViInUsec;
+        contentionNumSamplesVi = links[i].contentionNumSamplesVi;
+        contentionTimeMinVoInUsec = links[i].contentionTimeMinVoInUsec;
+        contentionTimeMaxVoInUsec = links[i].contentionTimeMaxVoInUsec;
+        contentionTimeAvgVoInUsec = links[i].contentionTimeAvgVoInUsec;
+        contentionNumSamplesVo = links[i].contentionNumSamplesVo;
+        aggregatePacketStats();
+        aggregatePeerStats();
+    }
 }
