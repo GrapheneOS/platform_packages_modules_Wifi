@@ -1192,12 +1192,21 @@ public class WifiNetworkFactory extends NetworkFactory {
      */
     private void handleNetworkConnectionFailure(@NonNull WifiConfiguration failedNetwork,
             @NonNull String failedBssid) {
-        if (mUserSelectedNetwork == null || failedNetwork == null || !mPendingConnectionSuccess) {
+        if (mUserSelectedNetwork == null || failedNetwork == null) {
             return;
         }
         if (!isUserSelectedNetwork(failedNetwork, failedBssid)) {
             Log.w(TAG, "Connection failed to unknown network " + failedNetwork + ":" + failedBssid
                     + ". Ignoring...");
+            return;
+        }
+
+        if (!mPendingConnectionSuccess) {
+            if (mConnectedSpecificNetworkRequest != null) {
+                Log.w(TAG, "Connection is terminated, cancelling "
+                        + mConnectedSpecificNetworkRequest);
+                teardownForConnectedNetwork();
+            }
             return;
         }
         Log.w(TAG, "Failed to connect to network " + mUserSelectedNetwork);
