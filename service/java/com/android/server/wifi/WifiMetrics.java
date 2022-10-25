@@ -18,6 +18,8 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.MeteredOverride;
 
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+
 import static java.lang.StrictMath.toIntExact;
 
 import android.annotation.IntDef;
@@ -5560,7 +5562,13 @@ public class WifiMetrics {
     private void addStaEvent(String ifaceName, StaEvent staEvent) {
         // Nano proto runtime will throw a NPE during serialization if interfaceName is null
         if (ifaceName == null) {
-            Log.wtf(TAG, "Null StaEvent.ifaceName: " + staEventToString(staEvent));
+            // Check if any ConcreteClientModeManager's role is switching to ROLE_CLIENT_PRIMARY
+            ConcreteClientModeManager targetConcreteClientModeManager =
+                    mActiveModeWarden.getClientModeManagerTransitioningIntoRole(
+                            ROLE_CLIENT_PRIMARY);
+            if (targetConcreteClientModeManager == null) {
+                Log.wtf(TAG, "Null StaEvent.ifaceName: " + staEventToString(staEvent));
+            }
             return;
         }
         staEvent.interfaceName = ifaceName;
