@@ -43,12 +43,14 @@ public class MemoryStoreImplTest extends WifiBaseTest {
     @Mock WifiScoreCard.BlobListener mBlobListener;
     @Mock WifiInjector mWifiInjector;
     @Mock IpMemoryStore mIpMemoryStore;
+    @Mock ActiveModeWarden mActiveModeWarden;
     private MemoryStoreImpl mMemoryStoreImpl;
     private static final String DATA_NAME = "test";
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         mMemoryStoreImpl = new MemoryStoreImpl(mContext, mWifiInjector, mWifiScoreCard,
                 mWifiHealthMonitor);
     }
@@ -166,6 +168,7 @@ public class MemoryStoreImplTest extends WifiBaseTest {
         final byte[] myBlob = new byte[]{0x0, 0x3, 0x1};
         final String myL2Key = "L2Key:" + Arrays.toString(myBlob);
         when(mWifiInjector.getIpMemoryStore()).thenReturn(mIpMemoryStore);
+        when(mActiveModeWarden.isShuttingDown()).thenReturn(false);
         doThrow(new RuntimeException("Just a test"))
                 .when(mIpMemoryStore).storeBlob(any(), any(), any(), any(), any());
         mMemoryStoreImpl.start();
