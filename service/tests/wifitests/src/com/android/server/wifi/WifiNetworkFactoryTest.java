@@ -1946,6 +1946,45 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     }
 
     /**
+     * Verify handling of connection success and disconnection
+     */
+    @Test
+    public void testNetworkSpecifierHandleConnectionSuccessOnSecondaryCmmAndDisconnectFromAp()
+            throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY);
+        sendNetworkRequestAndSetupForConnectionStatus();
+
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1);
+
+        // Verify that we sent the connection success callback.
+        verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
+                argThat(new WifiConfigMatcher(mSelectedNetwork)));
+        // verify we canceled the timeout alarm.
+        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
+        // Verify we disabled fw roaming.
+        verify(mClientModeManager).enableRoaming(false);
+        verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnSecondaryIface();
+
+        // Disconnect from AP
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NETWORK_DISCONNECTION, mSelectedNetwork,
+                TEST_BSSID_1);
+
+
+        // Verify framework will clean up for the connected network.
+        verify(mCmiMonitor).unregisterListener(any());
+        verify(mActiveModeWarden).removeClientModeManager(mClientModeManager);
+        // Ensure that we toggle auto-join state even for the secondary CMM.
+        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
+        verify(mClientModeManager).enableRoaming(true);
+        assertEquals(0, mWifiNetworkFactory
+                .getSpecificNetworkRequestUids(mSelectedNetwork, TEST_BSSID_1).size());
+    }
+
+    /**
      * Verify that we ignore connection success events after the first one (may be triggered by a
      * roam event)
      */
@@ -1971,40 +2010,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1);
 
-        verifyNoMoreInteractions(mNetworkRequestMatchCallback);
-    }
-
-    /**
-     * Verify that we ignore any connection failure events after the first connection success (may
-     * be triggered by a disconnect).
-     * Note: The disconnect handling will be done via the NetworkAgent.
-     */
-    @Test
-    public void testNetworkSpecifierHandleConnectionFailureAfterSuccess() throws Exception {
-        sendNetworkRequestAndSetupForConnectionStatus();
-
-        // Send network connection success indication.
-        assertNotNull(mSelectedNetwork);
-        mWifiNetworkFactory.handleConnectionAttemptEnded(
-                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1);
-
-        // Verify that we sent the connection success callback.
-        verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
-                argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
-
-        verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
-        verify(mNetworkRequestMatchCallback, atLeastOnce()).asBinder();
-
-        // Send a network connection failure indication which should be ignored (beyond the retry
-        // limit to trigger the failure handling).
-        for (int i = 0; i <= WifiNetworkFactory.USER_SELECTED_NETWORK_CONNECT_RETRY_MAX; i++) {
-            mWifiNetworkFactory.handleConnectionAttemptEnded(
-                    WifiMetrics.ConnectionEvent.FAILURE_DHCP, mSelectedNetwork, TEST_BSSID_1);
-            mLooper.dispatchAll();
-        }
-        // Verify that we ignore the second connection failure callback.
         verifyNoMoreInteractions(mNetworkRequestMatchCallback);
     }
 
