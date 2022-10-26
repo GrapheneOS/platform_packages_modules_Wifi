@@ -6712,4 +6712,13 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE,
                 WifiMetricsProto.ConnectionEvent.TYPE_EAP);
     }
+
+    @Test
+    public void testReportAirplaneModeSession() throws Exception {
+        mWifiMetrics.reportAirplaneModeSession(true, true, false, true, false, false);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.AIRPLANE_MODE_SESSION_REPORTED,
+                WifiStatsLog.AIRPLANE_MODE_SESSION_REPORTED__PACKAGE_NAME__WIFI,
+                true, true, false, true, false, false, false));
+    }
 }

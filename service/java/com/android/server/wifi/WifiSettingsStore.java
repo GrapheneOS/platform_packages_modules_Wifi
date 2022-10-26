@@ -117,6 +117,21 @@ public class WifiSettingsStore {
     /* Tracks current airplane mode state */
     private boolean mAirplaneModeOn = false;
 
+    /* Tracks the wifi state before entering airplane mode*/
+    private boolean mIsWifiOnBeforeEnteringApm = false;
+
+    /* Tracks the wifi state after entering airplane mode*/
+    private boolean mIsWifiOnAfterEnteringApm = false;
+
+    /* Tracks whether user toggled wifi in airplane mode */
+    private boolean mUserToggledWifiDuringApm = false;
+
+    /* Tracks whether user toggled wifi within one minute of entering airplane mode */
+    private boolean mUserToggledWifiAfterEnteringApmWithinMinute = false;
+
+    /* Tracks when airplane mode has been enabled in milliseconds since boot */
+    private long mApmEnabledTimeSinceBootMillis = 0;
+
     private final String mApmEnhancementHelpLink;
     private final WifiContext mContext;
     private final WifiSettingsConfigStore mSettingsConfigStore;
@@ -124,16 +139,21 @@ public class WifiSettingsStore {
     private final FrameworkFacade mFrameworkFacade;
     private final WifiNotificationManager mNotificationManager;
     private final DeviceConfigFacade mDeviceConfigFacade;
+    private final WifiMetrics mWifiMetrics;
+    private final Clock mClock;
 
     WifiSettingsStore(WifiContext context, WifiSettingsConfigStore sharedPreferences,
             WifiThreadRunner wifiThread, FrameworkFacade frameworkFacade,
-            WifiNotificationManager notificationManager, DeviceConfigFacade deviceConfigFacade) {
+            WifiNotificationManager notificationManager, DeviceConfigFacade deviceConfigFacade,
+            WifiMetrics wifiMetrics, Clock clock) {
         mContext = context;
         mSettingsConfigStore = sharedPreferences;
         mWifiThreadRunner = wifiThread;
         mFrameworkFacade = frameworkFacade;
         mNotificationManager = notificationManager;
         mDeviceConfigFacade = deviceConfigFacade;
+        mWifiMetrics = wifiMetrics;
+        mClock = clock;
         mAirplaneModeOn = getPersistedAirplaneModeOn();
         mPersistWifiState = getPersistedWifiState();
         mApmEnhancementHelpLink = mContext.getString(R.string.config_wifiApmEnhancementHelpLink);
@@ -244,6 +264,14 @@ public class WifiSettingsStore {
                 setUserSecureIntegerSetting(WIFI_APM_STATE, WIFI_TURNS_OFF_IN_APM);
             }
         }
+        if (mAirplaneModeOn) {
+            if (!mUserToggledWifiDuringApm) {
+                mUserToggledWifiAfterEnteringApmWithinMinute =
+                        mClock.getElapsedSinceBootMillis() - mApmEnabledTimeSinceBootMillis
+                                < 60_000;
+            }
+            mUserToggledWifiDuringApm = true;
+        }
         return true;
     }
 
@@ -259,6 +287,8 @@ public class WifiSettingsStore {
 
     synchronized void handleAirplaneModeToggled() {
         if (mAirplaneModeOn) {
+            mApmEnabledTimeSinceBootMillis = mClock.getElapsedSinceBootMillis();
+            mIsWifiOnBeforeEnteringApm = mPersistWifiState == WIFI_ENABLED;
             if (mPersistWifiState == WIFI_ENABLED) {
                 if (mDeviceConfigFacade.isApmEnhancementEnabled()
                         && getUserSecureIntegerSetting(WIFI_APM_STATE, WIFI_TURNS_OFF_IN_APM)
@@ -277,7 +307,17 @@ public class WifiSettingsStore {
                     persistWifiState(WIFI_DISABLED_APM_ON);
                 }
             }
+            mIsWifiOnAfterEnteringApm = mPersistWifiState == WIFI_ENABLED_APM_OVERRIDE;
         } else {
+            mWifiMetrics.reportAirplaneModeSession(mIsWifiOnBeforeEnteringApm,
+                    mIsWifiOnAfterEnteringApm,
+                    mPersistWifiState == WIFI_ENABLED_APM_OVERRIDE,
+                    getUserSecureIntegerSetting(APM_WIFI_ENABLED_NOTIFICATION,
+                            NOTIFICATION_NOT_SHOWN) == NOTIFICATION_SHOWN,
+                    mUserToggledWifiDuringApm, mUserToggledWifiAfterEnteringApmWithinMinute);
+            mUserToggledWifiDuringApm = false;
+            mUserToggledWifiAfterEnteringApmWithinMinute = false;
+
             /* On airplane mode disable, restore wifi state if necessary */
             if (mPersistWifiState == WIFI_ENABLED_APM_OVERRIDE
                     || mPersistWifiState == WIFI_DISABLED_APM_ON) {
@@ -339,6 +379,13 @@ public class WifiSettingsStore {
         pw.println("WifiStateUser " + ActivityManager.getCurrentUser());
         pw.println("AirplaneModeEnhancementEnabled "
                 + mDeviceConfigFacade.isApmEnhancementEnabled());
+        if (mAirplaneModeOn) {
+            pw.println("WifiOnBeforeEnteringApm" + mIsWifiOnBeforeEnteringApm);
+            pw.println("WifiOnAfterEnteringApm" + mIsWifiOnAfterEnteringApm);
+            pw.println("UserToggledWifiDuringApm " + mUserToggledWifiDuringApm);
+            pw.println("UserToggledWifiAfterEnteringApmWithinMinute "
+                    + mUserToggledWifiAfterEnteringApmWithinMinute);
+        }
     }
 
     private void persistWifiState(int state) {
