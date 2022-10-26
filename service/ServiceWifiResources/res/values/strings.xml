@@ -102,9 +102,9 @@
 
     <!-- The message of the P2P Invitation Received dialog indicating the seconds left to accept before auto rejection [CHAR_LIMIT=NONE] [ICU SYNTAX] -->
     <string name="wifi_p2p_invitation_seconds_remaining">
-        {0,plural,
-            one{Accept in # second.}
-            other{Accept in # seconds.}
+        {0, plural,
+            =1 {Accept in # second.}
+            other {Accept in # seconds.}
         }
     </string>
     <string name="wifi_p2p_from_message">From: </string>
