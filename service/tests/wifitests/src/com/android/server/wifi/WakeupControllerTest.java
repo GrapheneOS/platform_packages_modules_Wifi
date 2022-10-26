@@ -135,6 +135,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         // Saved network needed to start wake.
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
         openNetwork.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetwork.validatedInternetAccess = true;
         when(mWifiConfigManager.getSavedNetworks(anyInt())).thenReturn(Arrays.asList(openNetwork));
 
         mLooper = new TestLooper();
@@ -396,8 +397,10 @@ public class WakeupControllerTest extends WifiBaseTest {
         // saved configs
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork(quotedSsid);
         openNetwork.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetwork.validatedInternetAccess = true;
         WifiConfiguration wepNetwork = WifiConfigurationTestUtil.createWepNetwork();
         wepNetwork.getNetworkSelectionStatus().setHasEverConnected(true);
+        wepNetwork.validatedInternetAccess = true;
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(openNetwork, wepNetwork));
 
@@ -473,6 +476,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         // saved config + suggestion
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork(quotedSsid1);
         openNetwork.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetwork.validatedInternetAccess = true;
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(openNetwork));
 
@@ -558,9 +562,11 @@ public class WakeupControllerTest extends WifiBaseTest {
         WifiConfiguration openNetworkDfs = WifiConfigurationTestUtil
                 .createOpenNetwork(ScanResultUtil.createQuotedSsid(ssidDfs));
         openNetworkDfs.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetworkDfs.validatedInternetAccess = true;
         WifiConfiguration openNetwork24 = WifiConfigurationTestUtil
                 .createOpenNetwork(ScanResultUtil.createQuotedSsid(ssid24));
         openNetwork24.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetwork24.validatedInternetAccess = true;
 
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(openNetworkDfs, openNetwork24));
@@ -591,6 +597,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         WifiConfiguration openNetwork = WifiConfigurationTestUtil
                 .createOpenNetwork(ScanResultUtil.createQuotedSsid(SAVED_SSID));
         openNetwork.getNetworkSelectionStatus().setHasEverConnected(true);
+        openNetwork.validatedInternetAccess = true;
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Collections.singletonList(openNetwork));
 
