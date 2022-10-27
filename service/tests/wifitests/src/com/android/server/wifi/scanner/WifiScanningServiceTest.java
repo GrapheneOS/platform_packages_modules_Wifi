@@ -86,6 +86,7 @@ import com.android.server.wifi.MockResources;
 import com.android.server.wifi.ScanResults;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiLocalServices;
 import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -195,6 +196,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 anyInt(), eq(Binder.getCallingUid())))
                 .thenReturn(PERMISSION_GRANTED);
         when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
+        WifiLocalServices.removeServiceForTest(WifiScannerInternal.class);
         mWifiScanningServiceImpl = new WifiScanningServiceImpl(mContext, mLooper.getLooper(),
                 mWifiScannerImplFactory, mBatteryStats, mWifiInjector);
     }

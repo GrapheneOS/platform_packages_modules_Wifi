@@ -516,6 +516,11 @@ public class ActiveModeWarden {
         mIsShuttingdown = true;
     }
 
+    /** @return Returns whether device is shutting down */
+    public boolean isShuttingDown() {
+        return mIsShuttingdown;
+    }
+
     /**
      * @return Returns whether we can create more client mode managers or not.
      */
