@@ -394,7 +394,8 @@ public class WifiInjector {
         mSettingsConfigStore = new WifiSettingsConfigStore(context, wifiHandler,
                 mSettingsMigrationDataHolder, mWifiConfigManager, mWifiConfigStore);
         mSettingsStore = new WifiSettingsStore(mContext, mSettingsConfigStore, mWifiThreadRunner,
-                mFrameworkFacade, mWifiNotificationManager, mDeviceConfigFacade);
+                mFrameworkFacade, mWifiNotificationManager, mDeviceConfigFacade,
+                mWifiMetrics, mClock);
         mWifiMetrics.setWifiConfigManager(mWifiConfigManager);
         mWifiMetrics.setWifiSettingsStore(mSettingsStore);
 
