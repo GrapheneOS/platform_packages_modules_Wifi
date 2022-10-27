@@ -36,6 +36,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -968,6 +969,115 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
         nanDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
         assertNull("Should not create this NAN", nanDetails);
+    }
+
+    /**
+     * Tests that
+     * {@link HalDeviceManager#needsUserApprovalToDelete(int, WorkSource, int, WorkSource)} returns
+     * true on the following conditions:
+     * 1) Requested interface is AP, AP_BRIDGED, P2P, or NAN.
+     * 2) Existing interface is AP, AP_BRIDGED, P2P, or NAN (but not the same as the requested).
+     * 3) Requestor worksource has higher priority than PRIORITY_BG.
+     * 4) Existing worksource is not PRIORITY_INTERNAL.
+     */
+    @Test
+    public void testShouldShowDialogToDelete() throws Exception {
+        WorkSource newWorkSource = mock(WorkSource.class);
+        WorkSource oldWorkSource = mock(WorkSource.class);
+        WorkSourceHelper newWsHelper = mock(WorkSourceHelper.class);
+        WorkSourceHelper oldWsHelper = mock(WorkSourceHelper.class);
+        when(mWifiInjector.makeWsHelper(newWorkSource)).thenReturn(newWsHelper);
+        when(mWifiInjector.makeWsHelper(oldWorkSource)).thenReturn(oldWsHelper);
+
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
+                .thenReturn(false);
+        mDut = new HalDeviceManagerSpy();
+
+        // No dialog if dialogs aren't enabled
+        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_P2P, newWorkSource,
+                HDM_CREATE_IFACE_AP, oldWorkSource));
+
+        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
+                .thenReturn(true);
+        mDut = new HalDeviceManagerSpy();
+
+        // Should show dialog for appropriate types.
+        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+
+        // Requesting AP
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP, newWorkSource,
+                HDM_CREATE_IFACE_AP, oldWorkSource));
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP, newWorkSource,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP, newWorkSource,
+                HDM_CREATE_IFACE_NAN, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
+
+        // Requesting AP_BRIDGE
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
+                HDM_CREATE_IFACE_AP, oldWorkSource));
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
+                HDM_CREATE_IFACE_NAN, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
+
+        // Requesting P2P
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_P2P, newWorkSource,
+                HDM_CREATE_IFACE_AP, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_P2P, newWorkSource,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_P2P, newWorkSource,
+                HDM_CREATE_IFACE_NAN, oldWorkSource));
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_P2P, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
+
+        // Requesting NAN
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_AP, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_NAN, oldWorkSource));
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
+
+        // Foreground should show dialog over Privileged
+        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        when(oldWsHelper.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        assertTrue(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
+
+        // Foreground should delete Internal without showing dialog
+        when(oldWsHelper.hasAnyPrivilegedAppRequest()).thenReturn(false);
+        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(false);
+        when(oldWsHelper.hasAnyInternalRequest()).thenReturn(true);
+        assertFalse(mDut.needsUserApprovalToDelete(
+                HDM_CREATE_IFACE_NAN, newWorkSource,
+                HDM_CREATE_IFACE_P2P, oldWorkSource));
     }
 
 
