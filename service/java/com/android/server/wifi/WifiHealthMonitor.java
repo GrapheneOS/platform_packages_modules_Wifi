@@ -44,6 +44,7 @@ import com.android.server.wifi.proto.WifiScoreCardProto.SystemInfoStats;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.HealthMonitorFailureStats;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.HealthMonitorMetrics;
+import com.android.server.wifi.scanner.WifiScannerInternal;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -110,7 +111,7 @@ public class WifiHealthMonitor {
     private final WifiInjector mWifiInjector;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final ActiveModeWarden mActiveModeWarden;
-    private WifiScanner mScanner;
+    private WifiScannerInternal mScanner;
     private MemoryStore mMemoryStore;
     private boolean mWifiEnabled;
     private WifiSystemInfoStats mWifiSystemInfoStats;
@@ -266,10 +267,11 @@ public class WifiHealthMonitor {
      */
     private void retrieveWifiScanner() {
         if (mScanner != null) return;
-        mScanner = mWifiInjector.getWifiScanner();
+        mScanner = WifiLocalServices.getService(WifiScannerInternal.class);
         if (mScanner == null) return;
         // Register for all single scan results
-        mScanner.registerScanListener(new ScanListener());
+        mScanner.registerScanListener(
+                new WifiScannerInternal.ScanListener(new ScanListener(), mHandler));
     }
 
     /**
