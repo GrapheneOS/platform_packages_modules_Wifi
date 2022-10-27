@@ -109,6 +109,7 @@ import android.os.UserManager;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -1083,7 +1084,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION, intent.getAction());
         assertEquals(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT, intent.getFlags());
         assertEquals(mTestThisDevice.deviceName, device.deviceName);
-        assertEquals(ANONYMIZED_DEVICE_ADDRESS, device.deviceAddress);
+        if (!TextUtils.isEmpty(mTestThisDevice.deviceAddress)) {
+            assertEquals(ANONYMIZED_DEVICE_ADDRESS, device.deviceAddress);
+        } else {
+            assertEquals(mTestThisDevice.deviceAddress, device.deviceAddress);
+        }
         assertEquals(mTestThisDevice.primaryDeviceType, device.primaryDeviceType);
         assertEquals(mTestThisDevice.secondaryDeviceType, device.secondaryDeviceType);
         assertEquals(mTestThisDevice.wpsConfigMethodsSupported, device.wpsConfigMethodsSupported);
@@ -1109,9 +1114,17 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      */
     private void checkSendThisDeviceChangedBroadcast() {
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        String[] permission_gold = new String[] {
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_WIFI_STATE};
+        String[] permission_gold;
+        if (mWifiPermissionsUtil.isLocationModeEnabled()) {
+            permission_gold = new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_WIFI_STATE};
+        } else {
+            permission_gold = new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_WIFI_STATE,
+                    android.Manifest.permission.NETWORK_SETTINGS};
+        }
         ArgumentCaptor<String []> permissionCaptor = ArgumentCaptor.forClass(String[].class);
         verify(mContext, atLeastOnce()).sendBroadcastWithMultiplePermissions(
                 intentCaptor.capture(), permissionCaptor.capture());
@@ -1127,8 +1140,10 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     intentCaptor.capture(), any(), any());
             verify(mBroadcastOptions, atLeastOnce())
                     .setRequireAllOfPermissions(TEST_REQUIRED_PERMISSIONS_T);
-            verify(mBroadcastOptions, atLeastOnce())
-                    .setRequireNoneOfPermissions(TEST_EXCLUDED_PERMISSIONS_T);
+            if (mWifiPermissionsUtil.isLocationModeEnabled()) {
+                verify(mBroadcastOptions, atLeastOnce())
+                        .setRequireNoneOfPermissions(TEST_EXCLUDED_PERMISSIONS_T);
+            }
             verifyDeviceChangedBroadcastIntent(intentCaptor.getValue());
         }
     }
@@ -6684,6 +6699,25 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative, userAcceptsRequest ? times(1) : never()).setupInterface(any(), any(),
                 eq(new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME)));
+        if (userAcceptsRequest) {
+            // Device status is AVAILABLE
+            mTestThisDevice.status = WifiP2pDevice.AVAILABLE;
+            checkSendThisDeviceChangedBroadcast();
+            sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+            verify(mClientHandler, times(2)).sendMessage(mMessageCaptor.capture());
+            assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+            assertEquals(WifiP2pDevice.AVAILABLE,
+                    ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+        } else {
+            // Device status is UNAVAILABLE
+            mTestThisDevice = new WifiP2pDevice();
+            checkSendThisDeviceChangedBroadcast();
+            sendSimpleMsg(mClientMessenger, WifiP2pManager.REQUEST_DEVICE_INFO);
+            verify(mClientHandler, times(2)).sendMessage(mMessageCaptor.capture());
+            assertEquals(WifiP2pManager.RESPONSE_DEVICE_INFO, mMessageCaptor.getValue().what);
+            assertEquals(WifiP2pDevice.UNAVAILABLE,
+                    ((WifiP2pDevice) mMessageCaptor.getValue().obj).status);
+        }
     }
 
     /**
