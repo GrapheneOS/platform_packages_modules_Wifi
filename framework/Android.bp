@@ -19,7 +19,6 @@ package {
 java_defaults {
     name: "wifi-module-sdk-version-defaults",
     min_sdk_version: "30",
-    target_sdk_version: "33",
 }
 
 filegroup {
