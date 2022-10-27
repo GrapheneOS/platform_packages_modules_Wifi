@@ -2219,6 +2219,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mInterfaceName = null; // reset iface name on disable.
                 mActiveClients.clear();
                 clearP2pInternalDataIfNecessary();
+                if (mIsBootComplete) {
+                    updateThisDevice(WifiP2pDevice.UNAVAILABLE);
+                }
+                resetWifiP2pInfo();
+                mGroup = null;
             }
         }
 
@@ -2267,15 +2272,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
 
             @Override
-            public void enter() {
-                if (mIsBootComplete) {
-                    updateThisDevice(WifiP2pDevice.UNAVAILABLE);
-                }
-                resetWifiP2pInfo();
-                mGroup = null;
-            }
-
-            @Override
             public boolean processMessage(Message message) {
                 if (mVerboseLoggingEnabled) logd(getName() + message.toString());
                 boolean wasInWaitingState = WaitingState.wasMessageInWaitingState(message);
@@ -2304,6 +2300,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                         false /* bypassDialog */);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
+                            updateThisDevice(WifiP2pDevice.UNAVAILABLE);
                         } else if (proceedWithOperation
                                 == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
                             if (setupInterface()) {
@@ -2377,6 +2374,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                         false /* bypassDialog */);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
+                            updateThisDevice(WifiP2pDevice.UNAVAILABLE);
                             return NOT_HANDLED;
                         } else if (proceedWithOperation
                                 == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
