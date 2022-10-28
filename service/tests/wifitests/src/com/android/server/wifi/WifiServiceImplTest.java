@@ -3261,9 +3261,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.startAutoDispatch();
         registerLOHSRequestFull();
         stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
-        // Use settings worksouce.
-        verify(mActiveModeWarden).startSoftAp(mSoftApModeConfigCaptor.capture(),
-                eq(TEST_SETTINGS_WORKSOURCE));
+        verify(mActiveModeWarden).startSoftAp(mSoftApModeConfigCaptor.capture(), any());
     }
 
     /**
@@ -3523,8 +3521,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     private void verifyLohsBand(int expectedBand) {
-        verify(mActiveModeWarden).startSoftAp(mSoftApModeConfigCaptor.capture(),
-                eq(TEST_SETTINGS_WORKSOURCE));
+        verify(mActiveModeWarden).startSoftAp(mSoftApModeConfigCaptor.capture(), any());
         final SoftApConfiguration configuration =
                 mSoftApModeConfigCaptor.getValue().getSoftApConfiguration();
         assertNotNull(configuration);

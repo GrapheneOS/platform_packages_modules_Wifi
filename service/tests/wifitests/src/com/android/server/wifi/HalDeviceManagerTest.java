@@ -812,15 +812,15 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
     /**
      * Validate a flow sequence for test chip 1:
-     * - create STA (privileged app)
-     * - create AP (system app): will get refused
-     * - replace STA requestorWs with fg app
-     * - create AP (system app)
+     * - create P2P (privileged app)
+     * - create NAN (system app): will get refused
+     * - replace P2P requestorWs with fg app
+     * - create NAN (system app)
      */
     @Test
     public void testReplaceRequestorWs() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
-        // initialize a test chip & create a STA (which will configure the chip).
+        // initialize a test chip & create a P2P (which will configure the chip).
         ChipMockBase chipMock = new TestChipV1();
         chipMock.initialize();
         mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, chipMock.chip,
@@ -828,54 +828,53 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateInitializationSequence();
         executeAndValidateStartupSequence();
 
-        InterfaceDestroyedListener staDestroyedListener = mock(
+        InterfaceDestroyedListener p2pDestroyedListener = mock(
                 InterfaceDestroyedListener.class);
 
-        // create STA interface from privileged app: should succeed.
-        IWifiIface staIface = validateInterfaceSequence(chipMock,
+        // create P2P interface from privileged app: should succeed.
+        IWifiIface p2pIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
-                HDM_CREATE_IFACE_STA,
+                HDM_CREATE_IFACE_P2P,
                 "wlan0",
                 TestChipV1.STA_CHIP_MODE_ID,
                 null, // tearDownList
-                staDestroyedListener, // destroyedListener
+                p2pDestroyedListener, // destroyedListener
                 TEST_WORKSOURCE_0 // requestorWs
         );
-        collector.checkThat("STA created", staIface, IsNull.notNullValue());
+        collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
 
-        // get AP interface from a system app: should fail
+        // get NAN interface from a system app: should fail
         when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
         when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
-        List<Pair<Integer, WorkSource>> apDetails = mDut.reportImpactToCreateIface(
-                HDM_CREATE_IFACE_AP, false, TEST_WORKSOURCE_1);
-        assertNull("Should not create this AP", apDetails);
-        apDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_AP, true, TEST_WORKSOURCE_1);
-        assertNull("Should not create this AP", apDetails);
-        IWifiApIface apIface = mDut.createApIface(
-                CHIP_CAPABILITY_ANY, null, null, TEST_WORKSOURCE_1, false, mSoftApManager);
-        collector.checkThat("not allocated interface", apIface, IsNull.nullValue());
+        List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_NAN, false, TEST_WORKSOURCE_1);
+        assertNull("Should not create this NAN", nanDetails);
+        nanDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
+        assertNull("Should not create this NAN", nanDetails);
+        IWifiNanIface nanIface = (IWifiNanIface) mDut.createNanIface(null, null, TEST_WORKSOURCE_1);
+        collector.checkThat("not allocated interface", nanIface, IsNull.nullValue());
 
-        // Now replace the requestorWs (fg app now) for the STA iface.
+        // Now replace the requestorWs (fg app now) for the P2P iface.
         when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(false);
         when(mWorkSourceHelper2.hasAnyForegroundAppRequest(true)).thenReturn(true);
-        assertTrue(mDut.replaceRequestorWs(staIface, TEST_WORKSOURCE_2));
+        assertTrue(mDut.replaceRequestorWs(p2pIface, TEST_WORKSOURCE_2));
 
         // get AP interface again from a system app: should succeed now
         when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
         when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
-        apIface = (IWifiApIface) validateInterfaceSequence(chipMock,
+        nanIface = (IWifiNanIface) validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV1.STA_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
-                HDM_CREATE_IFACE_AP,
+                HDM_CREATE_IFACE_NAN,
                 "wlan0",
-                TestChipV1.AP_CHIP_MODE_ID,
-                new IWifiIface[]{staIface}, // tearDownList
+                TestChipV1.STA_CHIP_MODE_ID,
+                new IWifiIface[]{p2pIface}, // tearDownList
                 null, // destroyedListener
                 TEST_WORKSOURCE_1, // requestorWs
-                new InterfaceDestroyedListenerWithIfaceName(getName(staIface), staDestroyedListener)
+                new InterfaceDestroyedListenerWithIfaceName(getName(p2pIface), p2pDestroyedListener)
         );
-        collector.checkThat("not allocated interface", apIface, IsNull.notNullValue());
+        collector.checkThat("not allocated interface", nanIface, IsNull.notNullValue());
     }
 
     /**
@@ -1452,6 +1451,88 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 apDetails.get(0));
         assertEquals(apIface, mDut.createApIface(
                 CHIP_CAPABILITY_ANY, apIdl, mHandler, TEST_WORKSOURCE_0, false, mSoftApManager));
+        mInOrder.verify(chipMock.chip).removeStaIface(getName(staIface));
+        mInOrder.verify(staIdl).onDestroyed(getName(staIface));
+        mInOrder.verify(chipMock.chip).configureChip(TestChipV1.AP_CHIP_MODE_ID);
+
+        // Stop Wi-Fi
+        mDut.stop();
+
+        mInOrder.verify(mWifiMock).stop();
+        mInOrder.verify(mManagerStatusListenerMock).onStatusChanged();
+        mInOrder.verify(apIdl).onDestroyed(getName(apIface));
+
+        verifyNoMoreInteractions(mManagerStatusListenerMock, staIdl, apIdl);
+    }
+
+    /**
+     * Validate creation of a lower priority AP interface (i.e. LOHS) when in STA mode with a single
+     * STA iface created. Expect a change in chip mode.
+     */
+    @Test
+    public void testCreateLowerPriorityApWithStaIfaceUpTestChipV1UsingHandlerListeners()
+            throws Exception {
+        // Make the creation and InterfaceDestroyListener running on the same thread to verify the
+        // order in the real scenario.
+        when(mWifiInjector.getCurrentThreadId())
+                .thenReturn(mTestLooper.getLooper().getThread().getId());
+
+        TestChipV1 chipMock = new TestChipV1();
+        chipMock.initialize();
+
+        InterfaceDestroyedListener staIdl = mock(
+                InterfaceDestroyedListener.class);
+        InterfaceDestroyedListener apIdl = mock(
+                InterfaceDestroyedListener.class);
+
+        mInOrder = inOrder(mServiceManagerMock, mWifiMock, mWifiMockV15, chipMock.chip,
+                mManagerStatusListenerMock, staIdl, apIdl);
+        executeAndValidateInitializationSequence();
+
+        // Register listener & start Wi-Fi
+        mDut.registerStatusListener(mManagerStatusListenerMock, null);
+        assertTrue(mDut.start());
+        mInOrder.verify(mManagerStatusListenerMock).onStatusChanged();
+
+        // Create STA Iface first.
+        IWifiStaIface staIface = mock(IWifiStaIface.class);
+        doAnswer(new GetNameAnswer("wlan0")).when(staIface).getName(
+                any(IWifiIface.getNameCallback.class));
+        doAnswer(new GetTypeAnswer(IfaceType.STA)).when(staIface).getType(
+                any(IWifiIface.getTypeCallback.class));
+        doAnswer(new CreateXxxIfaceAnswer(chipMock, mStatusOk, staIface)).when(
+                chipMock.chip).createStaIface(any(IWifiChip.createStaIfaceCallback.class));
+        List<Pair<Integer, WorkSource>> staDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_STA, false, TEST_WORKSOURCE_0);
+        assertTrue("Expecting nothing to destroy on creating STA", staDetails.isEmpty());
+        staDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_STA, true, TEST_WORKSOURCE_0);
+        assertTrue("Expecting nothing to destroy on creating STA", staDetails.isEmpty());
+        assertEquals(staIface, mDut.createStaIface(staIdl, mHandler, TEST_WORKSOURCE_0));
+
+        mInOrder.verify(chipMock.chip).configureChip(TestChipV1.STA_CHIP_MODE_ID);
+
+        // Now Create AP Iface.
+        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
+        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        IWifiApIface apIface = mock(IWifiApIface.class);
+        doAnswer(new GetNameAnswer("wlan0")).when(apIface).getName(
+                any(IWifiIface.getNameCallback.class));
+        doAnswer(new GetTypeAnswer(IfaceType.AP)).when(apIface).getType(
+                any(IWifiIface.getTypeCallback.class));
+        doAnswer(new CreateXxxIfaceAnswer(chipMock, mStatusOk, apIface)).when(
+                chipMock.chip).createApIface(
+                any(IWifiChip.createApIfaceCallback.class));
+        List<Pair<Integer, WorkSource>> apDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_AP, false, TEST_WORKSOURCE_1);
+        assertEquals("Should get STA destroy details", 1, apDetails.size());
+        assertEquals("Need to destroy the STA", Pair.create(IfaceType.STA, TEST_WORKSOURCE_0),
+                apDetails.get(0));
+        apDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_AP, true, TEST_WORKSOURCE_1);
+        assertEquals("Should get STA destroy details", 1, apDetails.size());
+        assertEquals("Need to destroy the STA", Pair.create(IfaceType.STA, TEST_WORKSOURCE_0),
+                apDetails.get(0));
+        assertEquals(apIface, mDut.createApIface(
+                CHIP_CAPABILITY_ANY, apIdl, mHandler, TEST_WORKSOURCE_1, false, mSoftApManager));
         mInOrder.verify(chipMock.chip).removeStaIface(getName(staIface));
         mInOrder.verify(staIdl).onDestroyed(getName(staIface));
         mInOrder.verify(chipMock.chip).configureChip(TestChipV1.AP_CHIP_MODE_ID);
