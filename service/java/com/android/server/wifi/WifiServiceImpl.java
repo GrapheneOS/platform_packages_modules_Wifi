@@ -793,6 +793,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mWifiInjector.getSarManager().handleBootCompleted();
             mWifiInjector.getSsidTranslator().handleBootCompleted();
             mWifiInjector.getPasspointManager().handleBootCompleted();
+            mWifiInjector.getInterfaceConflictManager().handleBootCompleted();
             updateVerboseLoggingEnabled();
         });
     }

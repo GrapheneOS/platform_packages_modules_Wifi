@@ -2468,7 +2468,9 @@ public class WifiConfigManager {
             return false;
         }
         config.validatedInternetAccess = validated;
-        config.numNoInternetAccessReports = 0;
+        if (validated) {
+            config.numNoInternetAccessReports = 0;
+        }
         saveToStore(false);
         return true;
     }

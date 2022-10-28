@@ -708,8 +708,9 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         when(mClock.getElapsedSinceBootMillis()).thenReturn(SystemClock.elapsedRealtime()
                 + WifiNetworkSelector.MINIMUM_NETWORK_SELECTION_INTERVAL_MS + 2000);
 
-        // Increment the network's no internet access reports.
-        savedConfigs[0].numNoInternetAccessReports = 5;
+        // Simulate no internet validation.
+        savedConfigs[0].getNetworkSelectionStatus().setHasEverConnected(true);
+        savedConfigs[0].validatedInternetAccess = false;
 
         // Do another network selection.
         candidates = mWifiNetworkSelector.getCandidatesFromScan(
@@ -1291,7 +1292,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         WifiConfigurationTestUtil.assertConfigurationEqual(userChoice, candidate);
 
         // Now label the user connect choice network as unexpected no internet
-        userChoice.numNoInternetAccessReports = 1;
+        userChoice.getNetworkSelectionStatus().setHasEverConnected(true);
+        userChoice.validatedInternetAccess = false;
         when(mClock.getElapsedSinceBootMillis()).thenReturn(SystemClock.elapsedRealtime()
                 + WifiNetworkSelector.MINIMUM_NETWORK_SELECTION_INTERVAL_MS + 2000);
         candidates = mWifiNetworkSelector.getCandidatesFromScan(
