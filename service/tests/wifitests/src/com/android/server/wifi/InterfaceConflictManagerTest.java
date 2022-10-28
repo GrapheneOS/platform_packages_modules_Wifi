@@ -105,6 +105,7 @@ public class InterfaceConflictManagerTest {
     private void initInterfaceConflictManager() {
         mDut = new InterfaceConflictManager(mWifiContext, mFrameworkFacade, mHdm,
                 new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager);
+        mDut.handleBootCompleted();
     }
 
     /**
