@@ -32,6 +32,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.ARP_TABLE_PATH;
@@ -2092,6 +2093,34 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // Verify that we triggered a second connection.
         verify(mWifiNative, times(2)).connectToNetwork(eq(WIFI_IFACE_NAME), any());
+    }
+
+    /**
+     * If the interface has been switched to scan, the network disconnection event should clear the
+     * current network.
+     * @throws Exception
+     */
+    @Test
+    public void testNetworkDisconnectAfterInterfaceSwitchedToScan() throws Exception {
+        triggerConnect();
+        IActionListener connectActionListener = mock(IActionListener.class);
+        mCmi.connectNetwork(
+                new NetworkUpdateResult(FRAMEWORK_NETWORK_ID),
+                new ActionListenerWrapper(connectActionListener),
+                Binder.getCallingUid(), OP_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(connectActionListener).onSuccess();
+
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SCAN_ONLY);
+        // Disconnection from previous network.
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR,
+                        SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden).setCurrentNetwork(null);
     }
 
     /**
