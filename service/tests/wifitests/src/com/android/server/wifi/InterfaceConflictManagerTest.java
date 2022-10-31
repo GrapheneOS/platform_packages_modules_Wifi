@@ -97,6 +97,8 @@ public class InterfaceConflictManagerTest {
         when(mResources.getBoolean(
                 R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)).thenReturn(true);
 
+        when(mHdm.needsUserApprovalToDelete(anyInt(), any(), anyInt(), any())).thenReturn(true);
+
         when(mFrameworkFacade.getAppName(any(), anyString(), anyInt())).thenReturn(TEST_APP_NAME);
         when(mWifiDialogManager.createSimpleDialog(
                 any(), any(), any(), any(), any(), any(), any())).thenReturn(mDialogHandle);
@@ -207,6 +209,30 @@ public class InterfaceConflictManagerTest {
         verify(mWifiDialogManager, never()).createSimpleDialog(
                 any(), any(), any(), any(), any(), any(), any());
         verify(mDialogHandle, never()).launchDialog();
+    }
+
+    /**
+     * Verify that if interface cannot be created or if interface can be created w/o side effects
+     * then command simply proceeds.
+     */
+    @Test
+    public void testUserApprovalNotNeeded() {
+        initInterfaceConflictManager();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
+        Message msg = Message.obtain();
+
+        // can delete iface without user approval
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                        new WorkSource(10, "something else"))));
+        when(mHdm.needsUserApprovalToDelete(anyInt(), any(), anyInt(), any())).thenReturn(false);
+
+        // request should pass through without the dialog
+        assertEquals(InterfaceConflictManager.ICM_EXECUTE_COMMAND,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS, false));
     }
 
     /**
