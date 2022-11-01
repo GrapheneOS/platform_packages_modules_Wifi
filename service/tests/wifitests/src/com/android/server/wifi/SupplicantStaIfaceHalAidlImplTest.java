@@ -1636,18 +1636,12 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testTerminate() throws Exception {
         executeAndValidateInitializationSequence();
 
-        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
-            public void answer(IBinder.DeathRecipient cb, int flags) throws RemoteException {
-                mHandler.post(() -> cb.binderDied());
-                mHandler.post(() -> mSupplicantDeathCaptor.getValue().binderDied());
-            }
-        }).when(mServiceBinderMock).linkToDeath(any(IBinder.DeathRecipient.class), anyInt());
-
         mDut.terminate();
-        mLooper.dispatchAll();
         verify(mISupplicantMock).terminate();
 
-        // Check that terminate cleared all internal state.
+        // Check that all internal state is cleared once the death notification is received.
+        assertTrue(mDut.isInitializationComplete());
+        mSupplicantDeathCaptor.getValue().binderDied();
         assertFalse(mDut.isInitializationComplete());
     }
 
