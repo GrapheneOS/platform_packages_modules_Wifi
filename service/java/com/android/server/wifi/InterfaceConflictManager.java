@@ -286,6 +286,19 @@ public class InterfaceConflictManager {
                 return ICM_EXECUTE_COMMAND;
             }
 
+            boolean shouldShowDialogToDelete = false;
+            for (Pair<Integer, WorkSource> ifaceToDelete : impact) {
+                if (mHdm.needsUserApprovalToDelete(createIfaceType, requestorWs,
+                        ifaceToDelete.first, ifaceToDelete.second)) {
+                    shouldShowDialogToDelete = true;
+                    break;
+                }
+            }
+            // None of the interfaces to delete require us to show a dialog.
+            if (!shouldShowDialogToDelete) {
+                return ICM_EXECUTE_COMMAND;
+            }
+
             // defer message to have it executed again automatically when switching
             // states - want to do it now so that it will be at the top of the queue
             // when we switch back. Will need to skip it if the user rejected it!

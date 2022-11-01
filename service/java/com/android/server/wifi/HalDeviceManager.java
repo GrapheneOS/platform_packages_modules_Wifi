@@ -2581,6 +2581,50 @@ public class HalDeviceManager {
     }
 
     /**
+     * Returns true if the requested iface can delete an existing iface only after user approval.
+     */
+    public boolean needsUserApprovalToDelete(
+            int requestedCreateType, WorkSource newWorksource,
+            int existingCreateType, WorkSource existingWorksource) {
+        return needsUserApprovalToDelete(
+                requestedCreateType,
+                getRequestorWsPriority(mWifiInjector.makeWsHelper(newWorksource)),
+                existingCreateType,
+                getRequestorWsPriority(mWifiInjector.makeWsHelper(existingWorksource)));
+    }
+
+    private boolean needsUserApprovalToDelete(
+            int requestedCreateType, int newRequestorWsPriority,
+            int existingCreateType, int existingRequestorWsPriority) {
+        if (!mWifiUserApprovalRequiredForD2dInterfacePriority
+                || newRequestorWsPriority <= PRIORITY_BG
+                || existingRequestorWsPriority == PRIORITY_INTERNAL) {
+            return false;
+        }
+
+        if (requestedCreateType == HDM_CREATE_IFACE_AP
+                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
+            if (existingCreateType == HDM_CREATE_IFACE_P2P
+                    || existingCreateType == HDM_CREATE_IFACE_NAN) {
+                return true;
+            }
+        } else if (requestedCreateType == HDM_CREATE_IFACE_P2P) {
+            if (existingCreateType == HDM_CREATE_IFACE_AP
+                    || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                    || existingCreateType == HDM_CREATE_IFACE_NAN) {
+                return true;
+            }
+        } else if (requestedCreateType == HDM_CREATE_IFACE_NAN) {
+            if (existingCreateType == HDM_CREATE_IFACE_AP
+                    || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                    || existingCreateType == HDM_CREATE_IFACE_P2P) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns whether interface request from |newRequestorWsPriority| is allowed to delete an
      * interface request from |existingRequestorWsPriority|.
      *
@@ -2601,28 +2645,13 @@ public class HalDeviceManager {
         if (!SdkLevel.isAtLeastS()) {
             return allowedToDeleteForR(requestedCreateType, existingCreateType);
         }
-        if (mWifiUserApprovalRequiredForD2dInterfacePriority
-                && newRequestorWsPriority > PRIORITY_BG) {
-            if (requestedCreateType == HDM_CREATE_IFACE_AP
-                    || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
-                if (existingCreateType == HDM_CREATE_IFACE_P2P
-                        || existingCreateType == HDM_CREATE_IFACE_NAN) {
-                    return true;
-                }
-            } else if (requestedCreateType == HDM_CREATE_IFACE_P2P) {
-                if (existingCreateType == HDM_CREATE_IFACE_AP
-                        || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
-                        || existingCreateType == HDM_CREATE_IFACE_NAN) {
-                    return true;
-                }
-            } else if (requestedCreateType == HDM_CREATE_IFACE_NAN) {
-                if (existingCreateType == HDM_CREATE_IFACE_AP
-                        || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
-                        || existingCreateType == HDM_CREATE_IFACE_P2P) {
-                    return true;
-                }
-            }
+
+        // Defer deletion decision to the InterfaceConflictManager dialog.
+        if (needsUserApprovalToDelete(requestedCreateType, newRequestorWsPriority,
+                existingCreateType, existingRequestorWsPriority)) {
+            return true;
         }
+
         // If the new request is higher priority than existing priority, then the new requestor
         // wins. This is because at all other priority levels (except privileged), existing caller
         // wins if both the requests are at the same priority level.

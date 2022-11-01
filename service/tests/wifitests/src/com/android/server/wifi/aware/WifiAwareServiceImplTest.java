@@ -196,6 +196,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     @Test
     public void testGetAwareResources() {
         mDut.getAvailableAwareResources();
+        verify(mAwareStateManagerMock, never()).getAvailableAwareResources();
+        mMockLooper.dispatchAll();
         verify(mAwareStateManagerMock).getAvailableAwareResources();
     }
 
