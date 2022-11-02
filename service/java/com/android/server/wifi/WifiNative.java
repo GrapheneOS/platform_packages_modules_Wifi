@@ -2124,15 +2124,6 @@ public class WifiNative {
      *
      * @param interfaceName Name of the interface
      */
-    public boolean isStaSetMacAddressSupported(@NonNull String interfaceName) {
-        return mWifiVendorHal.isStaSetMacAddressSupported(interfaceName);
-    }
-
-    /**
-     * Returns true if Hal version supports setMacAddress, otherwise false.
-     *
-     * @param interfaceName Name of the interface
-     */
     public boolean isApSetMacAddressSupported(@NonNull String interfaceName) {
         return mWifiVendorHal.isApSetMacAddressSupported(interfaceName);
     }
@@ -3817,18 +3808,18 @@ public class WifiNative {
     /* Packet fate API */
 
     @Immutable
-    abstract static class FateReport {
+    public abstract static class FateReport {
         final static int USEC_PER_MSEC = 1000;
         // The driver timestamp is a 32-bit counter, in microseconds. This field holds the
         // maximal value of a driver timestamp in milliseconds.
         final static int MAX_DRIVER_TIMESTAMP_MSEC = (int) (0xffffffffL / 1000);
         final static SimpleDateFormat dateFormatter = new SimpleDateFormat("HH:mm:ss.SSS");
 
-        final byte mFate;
-        final long mDriverTimestampUSec;
-        final byte mFrameType;
-        final byte[] mFrameBytes;
-        final long mEstimatedWallclockMSec;
+        public final byte mFate;
+        public final long mDriverTimestampUSec;
+        public final byte mFrameType;
+        public final byte[] mFrameBytes;
+        public final long mEstimatedWallclockMSec;
 
         FateReport(byte fate, long driverTimestampUSec, byte frameType, byte[] frameBytes) {
             mFate = fate;
