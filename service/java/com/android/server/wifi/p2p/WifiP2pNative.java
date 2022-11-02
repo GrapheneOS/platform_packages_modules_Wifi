@@ -943,13 +943,6 @@ public class WifiP2pNative {
                 new HashSet<ScanResult.InformationElement>());
     }
 
-    /** Indicate whether or not 2.4GHz/5GHz DBS is supported. */
-    public boolean is24g5gDbsSupported() {
-        if (null == mIWifiP2pIface) return false;
-        if (!mHalDeviceManager.isSupported()) return false;
-        return mHalDeviceManager.is24g5gDbsSupported(mIWifiP2pIface);
-    }
-
     /** Indicate whether or not 5GHz/6GHz DBS is supported. */
     public boolean is5g6gDbsSupported() {
         if (null == mIWifiP2pIface) return false;
