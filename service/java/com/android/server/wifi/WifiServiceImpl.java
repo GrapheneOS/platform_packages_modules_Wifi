@@ -2690,10 +2690,9 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getWifiApConfiguration uid=%").c(uid).flush();
         }
 
-        // hand off work to the ClientModeImpl handler thread to sync work between calls
-        // and SoftApManager starting up softap
-        return (mWifiThreadRunner.call(mWifiApConfigStore::getApConfiguration,
-                new SoftApConfiguration.Builder().build())).toWifiConfiguration();
+        final SoftApConfiguration config = mWifiApConfigStore.getApConfiguration();
+        return config == null ? new SoftApConfiguration.Builder().build().toWifiConfiguration()
+                : config.toWifiConfiguration();
     }
 
     /**
@@ -2716,10 +2715,8 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getSoftApConfiguration uid=%").c(uid).flush();
         }
 
-        // hand off work to the ClientModeImpl handler thread to sync work between calls
-        // and SoftApManager starting up softap
-        return mWifiThreadRunner.call(mWifiApConfigStore::getApConfiguration,
-                new SoftApConfiguration.Builder().build());
+        final SoftApConfiguration config = mWifiApConfigStore.getApConfiguration();
+        return config == null ? new SoftApConfiguration.Builder().build() : config;
     }
 
     /**
@@ -2746,14 +2743,13 @@ public class WifiServiceImpl extends BaseWifiService {
             return false;
         SoftApConfiguration softApConfig = ApConfigUtil.fromWifiConfiguration(wifiConfig);
         if (softApConfig == null) return false;
-        if (WifiApConfigStore.validateApWifiConfiguration(
+        if (!WifiApConfigStore.validateApWifiConfiguration(
                 softApConfig, false, mContext)) {
-            mWifiThreadRunner.post(() -> mWifiApConfigStore.setApConfiguration(softApConfig));
-            return true;
-        } else {
             Log.e(TAG, "Invalid WifiConfiguration");
             return false;
         }
+        mWifiApConfigStore.setApConfiguration(softApConfig);
+        return true;
     }
 
     /**
@@ -2777,8 +2773,9 @@ public class WifiServiceImpl extends BaseWifiService {
         mLog.info("setSoftApConfiguration uid=%").c(uid).flush();
         if (softApConfig == null) return false;
         if (WifiApConfigStore.validateApWifiConfiguration(softApConfig, privileged, mContext)) {
+            mWifiApConfigStore.setApConfiguration(softApConfig);
+            // Send the message for AP config update after the save is done.
             mActiveModeWarden.updateSoftApConfiguration(softApConfig);
-            mWifiThreadRunner.post(() -> mWifiApConfigStore.setApConfiguration(softApConfig));
             return true;
         } else {
             Log.e(TAG, "Invalid SoftAp Configuration");

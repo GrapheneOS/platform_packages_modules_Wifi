@@ -1639,7 +1639,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         SoftApConfiguration apConfig = createValidSoftApConfiguration();
 
         assertTrue(mWifiServiceImpl.setSoftApConfiguration(apConfig, TEST_PACKAGE_NAME));
-        mLooper.dispatchAll();
         verify(mWifiApConfigStore).setApConfiguration(eq(apConfig));
         verify(mActiveModeWarden).updateSoftApConfiguration(apConfig);
         verify(mWifiPermissionsUtil).checkNetworkSettingsPermission(anyInt());
@@ -1654,7 +1653,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         SoftApConfiguration apConfig = createValidSoftApConfiguration();
 
         assertTrue(mWifiServiceImpl.setSoftApConfiguration(apConfig, TEST_PACKAGE_NAME));
-        mLooper.dispatchAll();
         verify(mWifiApConfigStore).setApConfiguration(eq(apConfig));
         verify(mActiveModeWarden).updateSoftApConfiguration(apConfig);
         verify(mWifiPermissionsUtil).checkConfigOverridePermission(anyInt());
