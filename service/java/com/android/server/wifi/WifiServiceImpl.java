@@ -1108,7 +1108,8 @@ public class WifiServiceImpl extends BaseWifiService {
                 || mWifiPermissionsUtil.isAdmin(uid, packageName)
                 || mWifiPermissionsUtil.isSystem(packageName, uid)
                 // TODO(b/140540984): Remove this bypass.
-                || mWifiPermissionsUtil.checkSystemAlertWindowPermission(uid, packageName);
+                || (mWifiPermissionsUtil.checkSystemAlertWindowPermission(uid, packageName)
+                && !isGuestUser());
     }
 
     private boolean isGuestUser() {
