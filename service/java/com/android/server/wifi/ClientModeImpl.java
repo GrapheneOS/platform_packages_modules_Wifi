@@ -2580,6 +2580,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         int newTxLinkSpeed = pollResult.txBitrateMbps;
         int newFrequency = pollResult.associationFrequencyMHz;
         int newRxLinkSpeed = pollResult.rxBitrateMbps;
+        boolean updateNetworkCapabilities = false;
 
         if (mVerboseLoggingEnabled) {
             logd("updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=" + newRssi
@@ -2601,6 +2602,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.setRxLinkSpeedMbps(newRxLinkSpeed);
         }
         if (newFrequency > 0) {
+            if (mWifiInfo.getFrequency() != newFrequency) {
+                updateNetworkCapabilities = true;
+            }
             mWifiInfo.setFrequency(newFrequency);
         }
         // updateLinkBandwidth() requires the latest frequency information
@@ -2617,7 +2621,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
             mWifiInfo.setRssi(newRssi);
             /*
-             * Rather then sending the raw RSSI out every time it
+             * Rather than sending the raw RSSI out every time it
              * changes, we precalculate the signal level that would
              * be displayed in the status bar, and only send the
              * broadcast if that much more coarse-grained number
@@ -2628,10 +2632,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
              */
             int newSignalLevel = RssiUtil.calculateSignalLevel(mContext, newRssi);
             if (newSignalLevel != mLastSignalLevel) {
-                // TODO (b/162602799): Do we need to change the update frequency?
                 sendRssiChangeBroadcast(newRssi);
+                updateNetworkCapabilities = true;
             }
-            updateLinkBandwidthAndCapabilities(stats, newSignalLevel != mLastSignalLevel, txBytes,
+            updateLinkBandwidthAndCapabilities(stats, updateNetworkCapabilities, txBytes,
                     rxBytes);
             mLastSignalLevel = newSignalLevel;
         } else {
@@ -2648,10 +2652,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return stats;
     }
 
-    // Update the link bandwidth. If the link bandwidth changes by a large amount or signal level
-    // changes, also update network capabilities.
+    // Update the link bandwidth. Also update network capabilities if the link bandwidth changes
+    // by a large amount or there is a change in signal level or frequency.
     private void updateLinkBandwidthAndCapabilities(WifiLinkLayerStats stats,
-            boolean hasSignalLevelChanged, long txBytes, long rxBytes) {
+            boolean updateNetworkCapabilities, long txBytes, long rxBytes) {
         WifiScoreCard.PerNetwork network = mWifiScoreCard.lookupNetwork(mWifiInfo.getSSID());
         network.updateLinkBandwidth(mLastLinkLayerStats, stats, mWifiInfo, txBytes, rxBytes);
         int newTxKbps = network.getTxLinkBandwidthKbps();
@@ -2662,7 +2666,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 R.integer.config_wifiLinkBandwidthUpdateThresholdPercent);
         if ((txDeltaKbps * 100  >  bwUpdateThresholdPercent * mLastTxKbps)
                 || (rxDeltaKbps * 100  >  bwUpdateThresholdPercent * mLastRxKbps)
-                || hasSignalLevelChanged) {
+                || updateNetworkCapabilities) {
             mLastTxKbps = newTxKbps;
             mLastRxKbps = newRxKbps;
             updateCapabilities();

@@ -164,7 +164,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
         // 3. release (interface released)
         mDut.releaseAware();
-        mInOrder.verify(mHalDeviceManager).removeNanIface(mWifiNanIfaceMock);
+        mInOrder.verify(mHalDeviceManager).removeIface(mWifiNanIfaceMock);
         assertNull("Interface non-null!", mDut.getWifiNanIface());
 
         mDestroyedListenerCaptor.getValue().onDestroyed("nan0");
@@ -187,7 +187,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
         // 7. release (interface released)
         mDut.releaseAware();
-        mInOrder.verify(mHalDeviceManager).removeNanIface(mWifiNanIfaceMock);
+        mInOrder.verify(mHalDeviceManager).removeIface(mWifiNanIfaceMock);
         assertNull("Interface non-null!", mDut.getWifiNanIface());
 
         mDestroyedListenerCaptor.getValue().onDestroyed("nan0");
