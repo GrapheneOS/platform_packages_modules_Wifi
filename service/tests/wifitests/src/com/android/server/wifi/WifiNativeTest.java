@@ -1075,15 +1075,6 @@ public class WifiNativeTest extends WifiBaseTest {
      * Verifies that isSetMacAddressSupported() calls underlying WifiVendorHal.
      */
     @Test
-    public void testIsStaSetMacAddressSupported() throws Exception {
-        mWifiNative.isStaSetMacAddressSupported(WIFI_IFACE_NAME);
-        verify(mWifiVendorHal).isStaSetMacAddressSupported(WIFI_IFACE_NAME);
-    }
-
-    /**
-     * Verifies that isSetMacAddressSupported() calls underlying WifiVendorHal.
-     */
-    @Test
     public void testIsApSetMacAddressSupported() throws Exception {
         mWifiNative.isApSetMacAddressSupported(WIFI_IFACE_NAME);
         verify(mWifiVendorHal).isApSetMacAddressSupported(WIFI_IFACE_NAME);

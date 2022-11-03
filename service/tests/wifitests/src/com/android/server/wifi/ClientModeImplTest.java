@@ -3448,6 +3448,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 .thenReturn(Collections.emptySet());
         when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
                 .thenReturn(Pair.create(Process.INVALID_UID, ""));
+        mCmi.enableRssiPolling(true);
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
 
@@ -3474,7 +3475,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(82_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(92_000);
-        mCmi.enableRssiPolling(true);
+        mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
         mLooper.dispatchAll();
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 3333);
         mLooper.dispatchAll();
@@ -3486,12 +3487,24 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(82_000, networkCapabilities.getLinkUpstreamBandwidthKbps());
         assertEquals(92_000, networkCapabilities.getLinkDownstreamBandwidthKbps());
 
+        // NetworkCapabilities should be updated when the connected channel frequency is changed
+        // For example due to AP channel switch announcement(CSA).
+        WifiNl80211Manager.SignalPollResult signalPollResult1 =
+                new WifiNl80211Manager.SignalPollResult(-42, 65, 54, sFreq1);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult1);
+        mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
+        mLooper.dispatchAll();
+
+        verify(mCmi.mNetworkAgent, times(4))
+                .sendNetworkCapabilitiesAndCache(networkCapabilitiesCaptor.capture());
+        assertEquals(sFreq1, mWifiInfo.getFrequency());
+
         // No update after a small change of bandwidth
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(72_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(82_000);
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 3333);
         mLooper.dispatchAll();
-        verify(mCmi.mNetworkAgent, times(3))
+        verify(mCmi.mNetworkAgent, times(4))
                 .sendNetworkCapabilitiesAndCache(networkCapabilitiesCaptor.capture());
         networkCapabilities = networkCapabilitiesCaptor.getValue();
         assertEquals(82_000, networkCapabilities.getLinkUpstreamBandwidthKbps());

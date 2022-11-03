@@ -832,6 +832,12 @@ public class WifiConfigurationUtil {
         if (!WifiNetworkSpecifier.validateBand(getBand(specifier))) {
             return false;
         }
+        if (specifier.getPreferredChannelFrequencyInMhz().length
+                > WifiNetworkSpecifier.getMaxNumberOfChannelsPerRequest()
+                || !WifiNetworkSpecifier.validateChannelFrequencyInMhz(specifier
+                .getPreferredChannelFrequencyInMhz())) {
+            return false;
+        }
         WifiConfiguration config = specifier.wifiConfiguration;
         if (specifier.ssidPatternMatcher.getType() == PatternMatcher.PATTERN_LITERAL) {
             // For literal SSID matches, the value should satisfy SSID requirements.

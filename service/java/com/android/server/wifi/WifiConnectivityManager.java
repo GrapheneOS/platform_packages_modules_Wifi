@@ -730,6 +730,16 @@ public class WifiConnectivityManager {
         WifiConfiguration candidate = mNetworkSelector.selectNetwork(candidates);
         if (candidate != null) {
             localLog(listenerName + ":  WNS candidate-" + candidate.SSID);
+            if (hasMultiInternetConnection()) {
+                // Disconnect secondary cmm first before connecting the primary.
+                final ConcreteClientModeManager secondaryCcm = mActiveModeWarden
+                        .getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+                if (secondaryCcm != null && isClientModeManagerConnectedOrConnectingToCandidate(
+                        secondaryCcm, candidate)) {
+                    localLog("Disconnect secondary first.");
+                    secondaryCcm.disconnect();
+                }
+            }
             connectToNetworkForPrimaryCmmUsingMbbIfAvailable(candidate);
             handleScanResultsWithCandidate(handleScanResultsListener);
         } else {

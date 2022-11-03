@@ -132,7 +132,7 @@ public class WifiAwareNativeManager {
                 if (mVerboseHalLoggingEnabled) Log.v(TAG, "Obtained a WifiNanIface");
                 if (!iface.registerFrameworkCallback(mWifiAwareNativeCallback)) {
                     Log.e(TAG, "Unable to register callback with WifiNanIface");
-                    mHalDeviceManager.removeNanIface(iface);
+                    mHalDeviceManager.removeIface(iface);
                     awareIsDown(false);
                     return;
                 }
@@ -167,7 +167,7 @@ public class WifiAwareNativeManager {
             }
             mInterfaceDestroyedListener.active = false;
             mInterfaceDestroyedListener = null;
-            mHalDeviceManager.removeNanIface(mWifiNanIface);
+            mHalDeviceManager.removeIface(mWifiNanIface);
             mWifiNanIface = null;
             mWifiAwareNativeCallback.resetChannelInfo();
         }

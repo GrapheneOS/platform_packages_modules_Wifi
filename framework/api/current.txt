@@ -636,6 +636,8 @@ package android.net.wifi {
   public final class WifiNetworkSpecifier extends android.net.NetworkSpecifier implements android.os.Parcelable {
     method public int describeContents();
     method public int getBand();
+    method public static int getMaxNumberOfChannelsPerRequest();
+    method @NonNull public int[] getPreferredChannelFrequencyInMhz();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiNetworkSpecifier> CREATOR;
   }
@@ -648,6 +650,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setBssidPattern(@NonNull android.net.MacAddress, @NonNull android.net.MacAddress);
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setIsEnhancedOpen(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setIsHiddenSsid(boolean);
+    method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setPreferredChannelsFrequencyInMhz(@NonNull int[]);
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setSsid(@NonNull String);
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setSsidPattern(@NonNull android.os.PatternMatcher);
     method @NonNull public android.net.wifi.WifiNetworkSpecifier.Builder setWpa2EnterpriseConfig(@NonNull android.net.wifi.WifiEnterpriseConfig);

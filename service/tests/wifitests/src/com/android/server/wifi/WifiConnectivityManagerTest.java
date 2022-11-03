@@ -1482,6 +1482,22 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         testMultiInternetSecondaryConnectionRequest(false, true, true);
     }
 
+    @Test
+    public void multiInternetSecondaryConnectionDisconnectedBeforeNetworkSelection() {
+        setupMocksForMultiInternetTests(false);
+        testMultiInternetSecondaryConnectionRequest(false, true, true);
+        setupMockPrimaryNetworkSelect(CANDIDATE_NETWORK_ID_2, CANDIDATE_BSSID_2, -50,
+                TEST_FREQUENCY);
+        when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(false);
+        when(mSecondaryClientModeManager.isConnected()).thenReturn(true);
+        when(mSecondaryClientModeManager.getConnectedWifiConfiguration()).thenReturn(
+                mCandidateWifiConfig2);
+        when(mActiveModeWarden.getClientModeManagerInRole(
+                ROLE_CLIENT_SECONDARY_LONG_LIVED)).thenReturn(mSecondaryClientModeManager);
+        mMultiInternetConnectionStatusListenerCaptor.getValue().onStartScan(new WorkSource());
+        verify(mSecondaryClientModeManager).disconnect();
+    }
+
     /**
      *  Wifi enters disconnected state while screen is on.
      *

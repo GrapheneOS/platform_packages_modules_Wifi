@@ -42,6 +42,7 @@ import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiVendorHal;
+import com.android.server.wifi.hal.WifiHal;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -153,7 +154,7 @@ public class WifiP2pNativeInterfaceManagementTest extends WifiBaseTest {
 
         mWifiP2pNative.teardownInterface();
 
-        verify(mHalDeviceManager, never()).removeIface(any(IWifiIface.class));
+        verify(mHalDeviceManager, never()).removeIface(any(WifiHal.WifiInterface.class));
         verify(mSupplicantP2pIfaceHal).teardownIface(eq(P2P_IFACE_NAME));
     }
 }
