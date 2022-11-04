@@ -1391,6 +1391,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
         }
 
+        private void takeBugReportP2pFailureIfNeeded(String bugTitle, String bugDetail) {
+            if (mWifiInjector.getDeviceConfigFacade().isP2pFailureBugreportEnabled()) {
+                mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugDetail);
+            }
+        }
+
         // Clear internal data when P2P is shut down due to wifi off or no client.
         // For idle shutdown case, there are clients and data should be restored when
         // P2P goes back P2pEnabledState.
@@ -3228,7 +3234,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 switch (message.what) {
                     case GROUP_CREATING_TIMED_OUT:
                         if (sGroupCreatingTimeoutIndex == message.arg1) {
-                            if (mVerboseLoggingEnabled) logd("Group negotiation timed out");
+                            String errorMsg = "P2P group negotiation timed out";
+                            if (mVerboseLoggingEnabled) logd(getName() + errorMsg);
+                            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
+                                takeBugReportP2pFailureIfNeeded("Wi-Fi BugReport (P2P "
+                                        + mWifiP2pMetrics.getP2pGroupRoleString()
+                                        + " creation failure)", errorMsg);
+                            }
                             mWifiP2pMetrics.endConnectionEvent(
                                     P2pConnectionEvent.CLF_TIMEOUT);
                             handleGroupCreationFailure();
@@ -3661,7 +3673,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         // continue with group removal handling
                     case WifiP2pMonitor.P2P_GROUP_REMOVED_EVENT:
-                        if (mVerboseLoggingEnabled) logd(getName() + " go failure");
+                        String errorMsg = "P2P group is removed";
+                        if (mVerboseLoggingEnabled) logd(getName() + errorMsg);
+                        if (mWifiP2pMetrics.isP2pFastConnectionType()) {
+                            takeBugReportP2pFailureIfNeeded("Wi-Fi BugReport (P2P "
+                                    + mWifiP2pMetrics.getP2pGroupRoleString()
+                                    + " negotiation failure)", errorMsg);
+                        }
                         mWifiP2pMetrics.endConnectionEvent(
                                 P2pConnectionEvent.CLF_UNKNOWN);
                         handleGroupCreationFailure();

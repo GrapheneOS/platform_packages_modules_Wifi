@@ -124,6 +124,7 @@ import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.FakeWifiLog;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
@@ -256,6 +257,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock AlertDialog mAlertDialog;
     @Mock AsyncChannel mAsyncChannel;
     CoexManager.CoexListener mCoexListener;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
 
     private void generatorTestData() {
         mTestWifiP2pGroup = new WifiP2pGroup();
@@ -1303,6 +1305,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         }).when(mCoexManager).registerCoexListener(any(CoexManager.CoexListener.class));
         when(mCoexManager.getCoexRestrictions()).thenReturn(0);
         when(mCoexManager.getCoexUnsafeChannels()).thenReturn(Collections.emptyList());
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.isP2pFailureBugreportEnabled()).thenReturn(false);
 
         mWifiP2pServiceImpl = new WifiP2pServiceImpl(mContext, mWifiInjector);
         if (supported) {
