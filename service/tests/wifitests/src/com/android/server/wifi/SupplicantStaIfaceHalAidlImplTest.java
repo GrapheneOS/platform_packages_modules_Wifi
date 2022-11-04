@@ -74,6 +74,8 @@ import android.hardware.wifi.supplicant.IfaceInfo;
 import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.LegacyMode;
+import android.hardware.wifi.supplicant.MloLink;
+import android.hardware.wifi.supplicant.MloLinksInfo;
 import android.hardware.wifi.supplicant.OceRssiBasedAssocRejectAttr;
 import android.hardware.wifi.supplicant.OsuMethod;
 import android.hardware.wifi.supplicant.PortRange;
@@ -2808,5 +2810,51 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
             }
         }
         return true;
+    }
+
+    /**
+     * Test getConnectionMloLinkInfo returns WifiNative.ConnectionMloLinksInfo from interface name.
+     */
+    @Test
+    public void testGetConnectionMloLinksInfo() throws Exception {
+        // initialize MLO Links
+        MloLinksInfo info = new MloLinksInfo();
+        MloLink[] links = new MloLink[3];
+        links[0] = new android.hardware.wifi.supplicant.MloLink();
+        links[0].linkId = 1;
+        links[0].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x01};
+        links[1] = new android.hardware.wifi.supplicant.MloLink();
+        links[1].linkId = 2;
+        links[1].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x02};
+        links[2] = new android.hardware.wifi.supplicant.MloLink();
+        links[2].linkId = 3;
+        links[2].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x03};
+        info.links = links;
+        executeAndValidateInitializationSequence();
+        // Mock MloLinksInfo as null.
+        when(mISupplicantStaIfaceMock.getConnectionMloLinksInfo()).thenReturn(null);
+        // Pass wrong interface.
+        assertNull(mDut.getConnectionMloLinksInfo(WLAN1_IFACE_NAME));
+        // Pass correct interface.
+        assertNull(mDut.getConnectionMloLinksInfo(WLAN0_IFACE_NAME));
+        // Mock MloLinksInfo.
+        when(mISupplicantStaIfaceMock.getConnectionMloLinksInfo()).thenReturn(info);
+        // Pass wrong interface with mock MloLinksInfo.
+        assertNull(mDut.getConnectionMloLinksInfo(WLAN1_IFACE_NAME));
+        // Pass correct interface with mock MloLinksInfo.
+        WifiNative.ConnectionMloLinksInfo nativeInfo = mDut.getConnectionMloLinksInfo(
+                WLAN0_IFACE_NAME);
+        // Check all return values.
+        assertNotNull(nativeInfo);
+        assertEquals(nativeInfo.links.length, info.links.length);
+        assertEquals(nativeInfo.links[0].linkId, info.links[0].linkId);
+        assertEquals(nativeInfo.links[0].staMacAddress,
+                MacAddress.fromBytes(info.links[0].staLinkMacAddress));
+        assertEquals(nativeInfo.links[1].linkId, info.links[1].linkId);
+        assertEquals(nativeInfo.links[1].staMacAddress,
+                MacAddress.fromBytes(info.links[1].staLinkMacAddress));
+        assertEquals(nativeInfo.links[2].linkId, info.links[2].linkId);
+        assertEquals(nativeInfo.links[2].staMacAddress,
+                MacAddress.fromBytes(info.links[2].staLinkMacAddress));
     }
 }
