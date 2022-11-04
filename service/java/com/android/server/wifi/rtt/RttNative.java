@@ -128,6 +128,7 @@ public class RttNative {
                         Log.d(TAG,
                                 "onNewRttController: controller=" + controller);
                     }
+                    boolean changed = mIWifiRttController == null;
                     synchronized (mLock) {
                         mIWifiRttController = controller;
                         mIWifiRttController14 = getWifiRttControllerV1_4();
@@ -153,7 +154,9 @@ public class RttNative {
                             }
                             return;
                         }
-                        mRttService.enableIfPossible();
+                        if (changed) {
+                            mRttService.enableIfPossible();
+                        }
                         updateRttCapabilities();
                     }
                 }
