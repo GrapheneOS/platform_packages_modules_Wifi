@@ -333,6 +333,22 @@ public class WifiP2pMetrics {
         }
     }
 
+    /** Returns if current connection event type is FAST connection */
+    public boolean isP2pFastConnectionType() {
+        if (mCurrentConnectionEvent == null) {
+            return false;
+        }
+        return P2pConnectionEvent.CONNECTION_FAST == mCurrentConnectionEvent.connectionType;
+    }
+
+    /** Gets current connection event group role string */
+    public String getP2pGroupRoleString() {
+        if (mCurrentConnectionEvent == null) {
+            return "UNKNOWN";
+        }
+        return (GroupEvent.GROUP_OWNER == mCurrentConnectionEvent.groupRole) ? "GO" : "GC";
+    }
+
     /**
      * Create a new connection event. Call when p2p attempts to make a new connection to
      * another peer. If there is a current 'un-ended' connection event, it will be ended with
