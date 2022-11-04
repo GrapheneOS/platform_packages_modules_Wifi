@@ -501,7 +501,8 @@ public class WifiDialogActivity extends Activity  {
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(
+                new ContextThemeWrapper(this, getStyleId("wifi_dialog")))
                 .setTitle(title)
                 .setMessage(spannableMessage)
                 .setPositiveButton(positiveButtonText, (dialogPositive, which) -> {
@@ -578,7 +579,8 @@ public class WifiDialogActivity extends Activity  {
             addRowToP2pDialog(group, getStringId("wifi_p2p_show_pin_message"), displayPin);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(
+                new ContextThemeWrapper(this, getStyleId("wifi_dialog")))
                 .setTitle(getString(getStringId("wifi_p2p_invitation_sent_title")))
                 .setView(textEntryView)
                 .setPositiveButton(getStringId("ok"), (dialogPositive, which) -> {

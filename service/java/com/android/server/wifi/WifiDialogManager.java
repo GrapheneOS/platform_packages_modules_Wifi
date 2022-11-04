@@ -35,6 +35,7 @@ import android.text.style.URLSpan;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.ContextThemeWrapper;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
@@ -507,7 +508,8 @@ public class WifiDialogManager {
                 mTimeoutRunnable = null;
             }
             mTimeoutMs = timeoutMs;
-            mAlertDialog = mFrameworkFacade.makeAlertDialogBuilder(mContext)
+            mAlertDialog = mFrameworkFacade.makeAlertDialogBuilder(
+                    new ContextThemeWrapper(mContext, R.style.wifi_dialog))
                     .setTitle(mTitle)
                     .setMessage(mMessage)
                     .setPositiveButton(mPositiveButtonText, (dialogPositive, which) -> {
