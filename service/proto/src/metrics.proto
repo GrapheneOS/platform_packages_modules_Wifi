@@ -2984,6 +2984,12 @@ message P2pConnectionEvent {
 
     // New connection request is issued before ending previous connecting request.
     CLF_NEW_CONNECTION_ATTEMPT = 7;
+
+    // Group has been removed
+    CLF_GROUP_REMOVED = 8;
+
+    // Creating group failed
+    CLF_CREATE_GROUP_FAILED = 9;
   }
 
   // WPS method.

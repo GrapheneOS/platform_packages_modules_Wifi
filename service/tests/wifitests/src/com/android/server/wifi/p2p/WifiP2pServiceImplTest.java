@@ -1886,6 +1886,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     eq("testFeature"), anyInt(), eq(false));
         }
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.CREATE_GROUP_FAILED));
+        verify(mWifiP2pMetrics).endConnectionEvent(eq(P2pConnectionEvent.CLF_CREATE_GROUP_FAILED));
     }
 
     /**
@@ -3319,7 +3320,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                     .setRequireNoneOfPermissions(TEST_EXCLUDED_PERMISSIONS_T);
         }
 
-        verify(mWifiP2pMetrics).endConnectionEvent(eq(P2pConnectionEvent.CLF_UNKNOWN));
+        verify(mWifiP2pMetrics).endConnectionEvent(eq(P2pConnectionEvent.CLF_GROUP_REMOVED));
     }
 
     @Test
