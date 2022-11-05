@@ -551,9 +551,23 @@
     <integer translatable="false" name="config_wifiDisableReasonDhcpFailureThreshold"> 2 </integer>
     <integer translatable="false" name="config_wifiDisableReasonNetworkNotFoundThreshold"> 2 </integer>
     <integer translatable="false" name="config_wifiDisableReasonNoInternetTemporaryThreshold"> 1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonAuthenticationNoCredentialsThreshold"> 3 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonNoInternetPermanentThreshold"> 1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonByWrongPasswordThreshold"> 1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonAuthenticationNoSubscriptionThreshold"> 1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonConsecutiveFailuresThreshold"> 1 </integer>
 
     <!-- Base duration to set a network disabled after validation failure happen-->
+    <integer translatable="false" name="config_wifiDisableReasonAssociationRejectionDurationMs"> 300000 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonAuthenticationFailureDurationMs"> 300000 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonDhcpFailureDurationMs"> 300000 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonNetworkNotFoundDurationMs"> 300000 </integer>
     <integer translatable="false" name="config_wifiDisableReasonNoInternetTemporaryDurationMs"> 600000 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonAuthenticationNoCredentialsDurationMs"> -1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonNoInternetPermanentDurationMs"> -1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonByWrongPasswordDurationMs"> -1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonAuthenticationNoSubscriptionDurationMs"> -1 </integer>
+    <integer translatable="false" name="config_wifiDisableReasonConsecutiveFailuresDurationMs"> 300000 </integer>
 
     <!-- List of constants that indicate the number of consecutive failures per type needed to block a BSSID.
     A blocked BSSID will not be considered in network selection and firmware roaming.-->
