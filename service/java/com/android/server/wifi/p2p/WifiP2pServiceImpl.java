@@ -6183,27 +6183,19 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             /*
              * GO intent table
              * STA Freq         2.4GHz/5GHz DBS 5GHz/6GHz DBS   GO intent
-             * 2.4 GHz          No              X               5
              * N/A              X               X               6 (default)
-             * 2.4 GHz          Yes             X               7
-             * 5 GHz            Yes             No              8
-             * 5 GHz            Yes             Yes             9
-             * 5 GHz            No              X               10
+             * 2.4 GHz          X               X               7
+             * 5 GHz            X               No              8
+             * 5 GHz            X               Yes             9
              * 6 GHz            X               No              11
              * 6 Ghz            X               Yes             12
              */
             if (wifiInfo.getNetworkId() == WifiConfiguration.INVALID_NETWORK_ID) {
                 intent = DEFAULT_GROUP_OWNER_INTENT;
             } else if (ScanResult.is24GHz(freq)) {
-                if (mWifiNative.is24g5gDbsSupported()) {
-                    intent = 7;
-                } else {
-                    intent = 5;
-                }
+                intent = 7;
             } else if (ScanResult.is5GHz(freq)) {
-                if (!mWifiNative.is24g5gDbsSupported()) {
-                    intent = 10;
-                } else if (mWifiNative.is5g6gDbsSupported()) {
+                if (mWifiNative.is5g6gDbsSupported()) {
                     intent = 9;
                 } else {
                     intent = 8;
