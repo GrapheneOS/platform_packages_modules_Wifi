@@ -206,6 +206,7 @@ public class DeviceConfigFacade {
     private int mTrafficStatsThresholdMaxKbyte;
     private int mBandwidthEstimatorLargeTimeConstantSec;
     private boolean mInterfaceFailureBugreportEnabled;
+    private boolean mP2pFailureBugreportEnabled;
     private boolean mApmEnhancementEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
@@ -380,6 +381,8 @@ public class DeviceConfigFacade {
                 DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC);
         mInterfaceFailureBugreportEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "interface_failure_bugreport_enabled", false);
+        mP2pFailureBugreportEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "p2p_failure_bugreport_enabled", false);
         mApmEnhancementEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "apm_enhancement_enabled", false);
 
@@ -803,6 +806,13 @@ public class DeviceConfigFacade {
      */
     public boolean isInterfaceFailureBugreportEnabled() {
         return mInterfaceFailureBugreportEnabled;
+    }
+
+    /**
+     * Gets the feature flag for reporting p2p setup failure
+     */
+    public boolean isP2pFailureBugreportEnabled() {
+        return mP2pFailureBugreportEnabled;
     }
 
     /**
