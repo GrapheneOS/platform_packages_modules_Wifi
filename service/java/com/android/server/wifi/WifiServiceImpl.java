@@ -4911,6 +4911,8 @@ public class WifiServiceImpl extends BaseWifiService {
                 mActiveModeWarden.dump(fd, pw, args);
                 mMakeBeforeBreakManager.dump(fd, pw, args);
                 pw.println();
+                mWifiInjector.getInterfaceConflictManager().dump(fd, pw, args);
+                pw.println();
                 mWifiTrafficPoller.dump(fd, pw, args);
                 pw.println();
                 pw.println("Locks held:");
