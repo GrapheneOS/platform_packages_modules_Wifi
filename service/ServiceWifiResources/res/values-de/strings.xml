@@ -55,8 +55,7 @@
     <string name="ok" msgid="847575529546290102">"Ok"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Einladung gesendet"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Einladung zum Aufbau einer Verbindung"</string>
-    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
-    <skip />
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{In # Sekunde akzeptieren.}other{In # Sekunden akzeptieren.}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"Von:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"An:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Gib die PIN ein:"</string>
