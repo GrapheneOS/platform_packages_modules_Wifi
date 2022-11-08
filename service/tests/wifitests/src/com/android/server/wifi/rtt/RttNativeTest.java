@@ -319,6 +319,15 @@ public class RttNativeTest extends WifiBaseTest {
         verify(mockRttController, times(4)).asBinder();
         assertTrue(mDut.isReady());
 
+        // RTT controller switch - previous is invalid and new one is created. Should not try to
+        // enable
+        mRttLifecycleCbCaptor.getValue().onNewRttController(mockRttController);
+        verify(mockRttController, times(3)).registerEventCallback(any());
+        // This is for the castFrom() calls
+        verify(mockRttController, times(6)).asBinder();
+      	verify(mockRttController, times(3)).getCapabilities(mGetCapCbCatpr.capture());
+        assertTrue(mDut.isReady());
+
         verifyNoMoreInteractions(mockRttServiceImpl, mockRttController);
     }
 
