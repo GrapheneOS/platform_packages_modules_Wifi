@@ -221,7 +221,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(DeviceConfigFacade.DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC,
                 mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
-        assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
     }
 
     /**
@@ -348,9 +347,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         when(DeviceConfig.getBoolean(anyString(),
                 eq("interface_failure_bugreport_enabled"),
                 anyBoolean())).thenReturn(true);
-        when(DeviceConfig.getBoolean(anyString(),
-                eq("p2p_failure_bugreport_enabled"),
-                anyBoolean())).thenReturn(true);
         when(DeviceConfig.getBoolean(anyString(), eq("apm_enhancement_enabled"),
                 anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
@@ -419,6 +415,5 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(5000, mDeviceConfigFacade.getTrafficStatsThresholdMaxKbyte());
         assertEquals(30, mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
-        assertEquals(true, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
     }
 }

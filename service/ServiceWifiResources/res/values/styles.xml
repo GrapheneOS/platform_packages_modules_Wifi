@@ -43,7 +43,6 @@
         <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="wifi_dialog" />
     <style name="wifi_p2p_invitation_received_dialog" />
 
     <style name="wifi_p2p_dialog_row_label" parent="@style/wifi_item_label" />

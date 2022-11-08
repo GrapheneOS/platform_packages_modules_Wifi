@@ -1079,33 +1079,28 @@ public class WifiBlocklistMonitor {
                         "NETWORK_SELECTION_DISABLED_ASSOCIATION_REJECTION ",
                         mContext.getResources().getInteger(R.integer
                                 .config_wifiDisableReasonAssociationRejectionThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAssociationRejectionDurationMs)));
+                        5 * 60 * 1000));
 
         mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_AUTHENTICATION_FAILURE,
                 new DisableReasonInfo(
                         "NETWORK_SELECTION_DISABLED_AUTHENTICATION_FAILURE",
                         mContext.getResources().getInteger(R.integer
                                 .config_wifiDisableReasonAuthenticationFailureThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAuthenticationFailureDurationMs)));
+                        5 * 60 * 1000));
 
         mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_DHCP_FAILURE,
                 new DisableReasonInfo(
                         "NETWORK_SELECTION_DISABLED_DHCP_FAILURE",
                         mContext.getResources().getInteger(R.integer
                                 .config_wifiDisableReasonDhcpFailureThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonDhcpFailureDurationMs)));
+                        5 * 60 * 1000));
 
         mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_NETWORK_NOT_FOUND,
                 new DisableReasonInfo(
                         "NETWORK_SELECTION_DISABLED_NETWORK_NOT_FOUND",
                         mContext.getResources().getInteger(R.integer
                                 .config_wifiDisableReasonNetworkNotFoundThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonNetworkNotFoundDurationMs)));
-
+                        5 * 60 * 1000));
         mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY,
                 new DisableReasonInfo(
                 "NETWORK_SELECTION_DISABLED_NO_INTERNET_TEMPORARY",
@@ -1113,46 +1108,6 @@ public class WifiBlocklistMonitor {
                     .config_wifiDisableReasonNoInternetTemporaryThreshold),
                 mContext.getResources().getInteger(R.integer
                     .config_wifiDisableReasonNoInternetTemporaryDurationMs)));
-
-        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_CREDENTIALS,
-                new DisableReasonInfo(
-                        "NETWORK_SELECTION_DISABLED_AUTHENTICATION_NO_CREDENTIALS",
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAuthenticationNoCredentialsThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAuthenticationNoCredentialsDurationMs)));
-
-        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT,
-                new DisableReasonInfo(
-                        "NETWORK_SELECTION_DISABLED_NO_INTERNET_PERMANENT",
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonNoInternetPermanentThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonNoInternetPermanentDurationMs)));
-
-        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD,
-                new DisableReasonInfo(
-                        "NETWORK_SELECTION_DISABLED_BY_WRONG_PASSWORD",
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonByWrongPasswordThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonByWrongPasswordDurationMs)));
-
-        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_SUBSCRIPTION,
-                new DisableReasonInfo(
-                        "NETWORK_SELECTION_DISABLED_AUTHENTICATION_NO_SUBSCRIPTION",
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAuthenticationNoSubscriptionThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonAuthenticationNoSubscriptionDurationMs)));
-
-        mDisableReasonInfo.put(NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES,
-                new DisableReasonInfo(
-                        "NETWORK_SELECTION_DISABLED_CONSECUTIVE_FAILURES",
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonConsecutiveFailuresThreshold),
-                        mContext.getResources().getInteger(R.integer
-                                .config_wifiDisableReasonConsecutiveFailuresDurationMs)));
     }
 
     /**

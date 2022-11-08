@@ -262,7 +262,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockRttControllerHal).registerRangingResultsCallback(
                 mRangingResultsCbCaptor.capture());
 
-        validateCorrectRttStatusChangeBroadcast();
         assertTrue(mDut.isAvailable());
     }
 
@@ -284,7 +283,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         // RTT controller disappears
         mRttLifecycleCbCaptor.getValue().onRttControllerDestroyed();
         assertFalse(mDut.isAvailable());
-        validateCorrectRttStatusChangeBroadcast();
 
         // RTT controller re-appears
         mRttLifecycleCbCaptor.getValue().onNewRttController(mockRttControllerHal);
@@ -292,15 +290,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         assertTrue(mDut.isAvailable());
         verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal);
-        validateCorrectRttStatusChangeBroadcast();
-
-
-        // RTT controller switch - previous is invalid and new one is created. Should not send the
-        // broadcast
-        mRttLifecycleCbCaptor.getValue().onNewRttController(mockRttControllerHal);
-        verify(mockRttControllerHal, times(3)).registerRangingResultsCallback(any());
-        mInOrder.verify(mockContext, never())
-                .sendBroadcastAsUser(any(Intent.class), eq(UserHandle.ALL));
     }
 
     /**
@@ -1509,7 +1498,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         assertFalse(mDut.isAvailable());
-        validateCorrectRttStatusChangeBroadcast();
+        validateCorrectRttStatusChangeBroadcast(false);
         if (failureMode != FAILURE_MODE_DISABLE_WIFI) {
             verify(mockRttControllerHal).rangeCancel(eq(mIntCaptor.getValue()), any());
         }
@@ -1540,7 +1529,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         assertTrue(mDut.isAvailable());
-        validateCorrectRttStatusChangeBroadcast();
+        validateCorrectRttStatusChangeBroadcast(true);
 
         // verify metrics
         verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request1));
@@ -1594,8 +1583,10 @@ public class RttServiceImplTest extends WifiBaseTest {
     /**
      * Validates that the broadcast sent on RTT status change is correct.
      *
+     * @param expectedEnabled The expected change status - i.e. are we expected to announce that
+     *                        RTT is enabled (true) or disabled (false).
      */
-    private void validateCorrectRttStatusChangeBroadcast() {
+    private void validateCorrectRttStatusChangeBroadcast(boolean expectedEnabled) {
         ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
 
         mInOrder.verify(mockContext).sendBroadcastAsUser(intent.capture(), eq(UserHandle.ALL));

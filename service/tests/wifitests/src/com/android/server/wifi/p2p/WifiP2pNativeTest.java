@@ -1017,6 +1017,11 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     public void testDbsSupport() throws Exception {
         prepareDbsMock(true);
 
+        when(mHalDeviceManagerMock.is24g5gDbsSupportedOnP2pIface(any())).thenReturn(true);
+        assertTrue(mWifiP2pNative.is24g5gDbsSupported());
+        when(mHalDeviceManagerMock.is24g5gDbsSupportedOnP2pIface(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
+
         when(mHalDeviceManagerMock.is5g6gDbsSupportedOnP2pIface(any())).thenReturn(true);
         assertTrue(mWifiP2pNative.is5g6gDbsSupported());
         when(mHalDeviceManagerMock.is5g6gDbsSupportedOnP2pIface(any())).thenReturn(false);
@@ -1029,6 +1034,11 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     @Test
     public void testDbsSupportWhenHalDeviceManagerNotSupported() throws Exception {
         prepareDbsMock(false);
+
+        when(mHalDeviceManagerMock.is24g5gDbsSupportedOnP2pIface(any())).thenReturn(true);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
+        when(mHalDeviceManagerMock.is24g5gDbsSupportedOnP2pIface(any())).thenReturn(false);
+        assertFalse(mWifiP2pNative.is24g5gDbsSupported());
 
         when(mHalDeviceManagerMock.is5g6gDbsSupportedOnP2pIface(any())).thenReturn(true);
         assertFalse(mWifiP2pNative.is5g6gDbsSupported());
