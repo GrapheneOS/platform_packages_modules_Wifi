@@ -28,6 +28,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.WorkSource;
+import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -38,6 +40,7 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Map;
 
 /**
  * Manages STA + STA for multi internet networks.
@@ -84,6 +87,7 @@ public class MultiInternetManager {
         public long connectionStartTimeMillis;
         // The WorkSource of the connection requestor.
         public WorkSource requestorWorkSource;
+        public String bssid;
 
         NetworkConnectionState(WorkSource workSource) {
             this(workSource, -1L);
@@ -95,6 +99,7 @@ public class MultiInternetManager {
 
             mConnected = false;
             mValidated = false;
+            bssid = null;
         }
 
         public NetworkConnectionState setConnected(boolean connected) {
@@ -463,6 +468,22 @@ public class MultiInternetManager {
     }
 
     /**
+     * Return the mapping from band (one of ScanResult.WIFI_BAND_*) to the specified BSSID for that
+     * band.
+     */
+    public Map<Integer, String> getSpecifiedBssids() {
+        Map<Integer, String> result = new ArrayMap<>();
+        for (int i = 0; i < mNetworkConnectionStates.size(); i++) {
+            int band = mNetworkConnectionStates.keyAt(i);
+            String bssid = mNetworkConnectionStates.valueAt(i).bssid;
+            if (bssid != null) {
+                result.put(band, bssid);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Traverse the client mode managers and update the internal connection states.
      */
     private void updateNetworkConnectionStates() {
@@ -524,14 +545,15 @@ public class MultiInternetManager {
      * @param requestorWs The requestor's WorkSource. Null to clear a network request for a
      * a band.
      */
-    public void setMultiInternetConnectionWorksource(int band, WorkSource requestorWs) {
+    public void setMultiInternetConnectionWorksource(int band, String targetBssid,
+            WorkSource requestorWs) {
         if (!isStaConcurrencyForMultiInternetEnabled()) {
             Log.w(TAG, "MultInternet is not enabled.");
             return;
         }
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "setMultiInternetConnectionWorksource: band=" + band + ", requestorWs="
-                    + requestorWs);
+            Log.v(TAG, "setMultiInternetConnectionWorksource: band=" + band + ", bssid="
+                    + targetBssid + ", requestorWs=" + requestorWs);
         }
         if (requestorWs == null) {
             // Disconnect secondary network if the request is removed.
@@ -549,9 +571,15 @@ public class MultiInternetManager {
         }
         if (mNetworkConnectionStates.contains(band)) {
             Log.w(TAG, "band " + band + " already requested.");
+            if (TextUtils.equals(mNetworkConnectionStates.get(band).bssid, targetBssid)) {
+                // No change in BSSID field, so early return to avoid unnecessary scanning.
+                return;
+            }
         }
-        mNetworkConnectionStates.put(band, new NetworkConnectionState(requestorWs,
-                    mClock.getElapsedSinceBootMillis()));
+        NetworkConnectionState connectionState = new NetworkConnectionState(requestorWs,
+                mClock.getElapsedSinceBootMillis());
+        connectionState.bssid = targetBssid;
+        mNetworkConnectionStates.put(band, connectionState);
         startConnectivityScan();
     }
 
@@ -614,7 +642,8 @@ public class MultiInternetManager {
         pw.println(TAG + ": mStaConcurrencyMultiInternetMode "
                 + mStaConcurrencyMultiInternetMode);
         for (int i = 0; i < mNetworkConnectionStates.size(); i++) {
-            pw.println("band " + mNetworkConnectionStates.keyAt(i) + " connected "
+            pw.println("band " + mNetworkConnectionStates.keyAt(i) + " bssid "
+                    + mNetworkConnectionStates.valueAt(i).bssid + " connected "
                     + mNetworkConnectionStates.valueAt(i).isConnected()
                     + " validated " + mNetworkConnectionStates.valueAt(i).isValidated());
         }
