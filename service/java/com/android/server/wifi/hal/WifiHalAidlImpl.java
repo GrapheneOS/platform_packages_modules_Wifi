@@ -154,8 +154,8 @@ public class WifiHalAidlImpl implements IWifiHal {
      */
     @Override
     public boolean isSupported() {
-        // Service Manager API ServiceManager#isDeclared is supported after T.
-        return SdkLevel.isAtLeastT() ? ServiceManager.isDeclared(HAL_INSTANCE_NAME) : false;
+        // Service Manager API ServiceManager#isDeclared is supported after U.
+        return SdkLevel.isAtLeastU() ? ServiceManager.isDeclared(HAL_INSTANCE_NAME) : false;
     }
 
     /**
