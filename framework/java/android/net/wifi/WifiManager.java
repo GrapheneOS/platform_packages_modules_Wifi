@@ -4493,8 +4493,8 @@ public class WifiManager {
      * <li>Device Owner (DO), Profile Owner (PO) and system apps.
      * </ul>
      *
-     * Starting with Build.VERSION_CODES#T, DO/COPE may set a user restriction
-     * (DISALLOW_CHANGE_WIFI_STATE) to only allow DO/PO to use this API.
+     * Starting with {@link android.os.Build.VERSION_CODES#TIRAMISU}, DO/COPE may set
+     * a user restriction (DISALLOW_CHANGE_WIFI_STATE) to only allow DO/PO to use this API.
      */
     @Deprecated
     public boolean setWifiEnabled(boolean enabled) {
