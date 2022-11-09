@@ -2843,6 +2843,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mActiveModeWarden.getClientModeManagersInRoles(
                 ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
                 .thenReturn(Arrays.asList(secondaryCmm));
+        ConcreteClientModeManager primaryCmm = mock(ConcreteClientModeManager.class);
+        when(primaryCmm.getConnectionInfo()).thenReturn(new WifiInfo());
+        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(primaryCmm);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(SETTINGS_WORKSOURCE.getUid(0)))
+                .thenReturn(true);
 
         mLooper.startAutoDispatch();
         WifiInfo connectionInfo = parcelingRoundTrip(
@@ -2854,6 +2859,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertEquals(TEST_NETWORK_ID, connectionInfo.getNetworkId());
         assertEquals(TEST_FQDN, connectionInfo.getPasspointFqdn());
         assertEquals(TEST_FRIENDLY_NAME, connectionInfo.getPasspointProviderFriendlyName());
+        verify(mActiveModeWarden, never()).getPrimaryClientModeManager();
+
+        mLooper.startAutoDispatch();
+        connectionInfo = parcelingRoundTrip(mWifiServiceImpl
+                .getConnectionInfo(SETTINGS_WORKSOURCE.getPackageName(0), TEST_FEATURE_ID));
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        assertEquals(WifiManager.UNKNOWN_SSID, connectionInfo.getSSID());
+        verify(mActiveModeWarden).getPrimaryClientModeManager();
+        verify(primaryCmm).getConnectionInfo();
     }
 
     /**
@@ -6441,17 +6456,24 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiConfigManager.addOrUpdateNetwork(any(),  anyInt(), any(), eq(false))).thenReturn(
                 new NetworkUpdateResult(0));
 
+        // Verify caller fails to add network as Guest user.
         when(mWifiPermissionsUtil.checkSystemAlertWindowPermission(
                 Process.myUid(), TEST_PACKAGE_NAME)).thenReturn(true);
-
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         mLooper.startAutoDispatch();
+        assertEquals(-1,
+                mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
+
+        // Verify caller successfully add network when not a Guest user.
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(false);
         assertEquals(0,
                 mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
-        verify(mWifiPermissionsUtil).checkSystemAlertWindowPermission(anyInt(), anyString());
+        verify(mWifiPermissionsUtil, times(2))
+                .checkSystemAlertWindowPermission(anyInt(), anyString());
         verify(mWifiConfigManager).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
         verify(mWifiMetrics).incrementNumAddOrUpdateNetworkCalls();
     }
