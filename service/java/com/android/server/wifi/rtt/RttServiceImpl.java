@@ -142,9 +142,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     if (mVerboseLoggingEnabled) {
                         Log.d(TAG, "onNewRttController: controller=" + controller);
                     }
+                    boolean changed = mWifiRttController == null;
                     mWifiRttController = controller;
                     mWifiRttController.registerRangingResultsCallback(mRangingResultsCallback);
-                    enableIfPossible();
+                    if (changed) {
+                        enableIfPossible();
+                    }
                 }
 
                 @Override

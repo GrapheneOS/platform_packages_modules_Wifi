@@ -144,11 +144,29 @@
           <item type="integer" name="config_wifiPnoScanLowRssiNetworkRetryStartDelaySec" />
           <item type="integer" name="config_wifiPnoScanLowRssiNetworkRetryMaxDelaySec" />
           <item type="integer" name="config_wifiConnectedHighRssiScanMinimumWindowSizeSec" />
+
           <item type="integer" name="config_wifiDisableReasonAssociationRejectionThreshold" />
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureThreshold" />
           <item type="integer" name="config_wifiDisableReasonDhcpFailureThreshold" />
           <item type="integer" name="config_wifiDisableReasonNetworkNotFoundThreshold" />
           <item type="integer" name="config_wifiDisableReasonNoInternetTemporaryThreshold" />
+          <item type="integer" name="config_wifiDisableReasonAuthenticationNoCredentialsThreshold" />
+          <item type="integer" name="config_wifiDisableReasonNoInternetPermanentThreshold" />
+          <item type="integer" name="config_wifiDisableReasonByWrongPasswordThreshold" />
+          <item type="integer" name="config_wifiDisableReasonAuthenticationNoSubscriptionThreshold" />
+          <item type="integer" name="config_wifiDisableReasonConsecutiveFailuresThreshold" />
+
+          <item type="integer" name="config_wifiDisableReasonAssociationRejectionDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonAuthenticationFailureDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonDhcpFailureDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonNetworkNotFoundDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonNoInternetTemporaryDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonAuthenticationNoCredentialsDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonNoInternetPermanentDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonByWrongPasswordDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonAuthenticationNoSubscriptionDurationMs" />
+          <item type="integer" name="config_wifiDisableReasonConsecutiveFailuresDurationMs" />
+
           <item type="integer" name="config_wifiBssidBlocklistMonitorApUnableToHandleNewStaThreshold" />
           <item type="integer" name="config_wifiBssidBlocklistMonitorNetworkValidationFailureThreshold" />
           <item type="integer" name="config_wifiBssidBlocklistMonitorWrongPasswordThreshold" />
@@ -165,7 +183,6 @@
           <item type="integer" name="config_wifiBssidBlocklistAbnormalDisconnectTimeWindowMs" />
           <item type="integer" name="config_wifiBssidBlocklistMonitorNoResponseThreshold" />
           <item type="integer" name="config_wifiBssidBlocklistMonitorValidationFailureBaseBlockDurationMs" />
-          <item type="integer" name="config_wifiDisableReasonNoInternetTemporaryDurationMs" />
           <item type="bool" name="config_wifiScanHiddenNetworksScanOnlyMode" />
           <item type="integer" name="config_wifiHardwareSoftapMaxClientCount" />
           <item type="bool" name="config_wifiIsUnusableEventMetricsEnabled" />
@@ -399,6 +416,7 @@
           <item type="style" name="wifi_item_label" />
           <item type="style" name="wifi_item_content" />
           <item type="style" name="wifi_section" />
+          <item type="style" name="wifi_dialog" />
           <item type="style" name="wifi_p2p_invitation_received_dialog" />
           <item type="style" name="wifi_p2p_dialog_row_label" />
           <item type="style" name="wifi_p2p_dialog_row_content" />

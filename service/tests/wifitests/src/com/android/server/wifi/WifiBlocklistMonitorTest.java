@@ -114,7 +114,17 @@ public class WifiBlocklistMonitorTest {
                     Map.entry(NetworkSelectionStatus.DISABLED_NETWORK_NOT_FOUND,
                             R.integer.config_wifiDisableReasonNetworkNotFoundThreshold),
                     Map.entry(NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY,
-                            R.integer.config_wifiDisableReasonNoInternetTemporaryThreshold)
+                            R.integer.config_wifiDisableReasonNoInternetTemporaryThreshold),
+                    Map.entry(NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_CREDENTIALS,
+                            R.integer.config_wifiDisableReasonAuthenticationNoCredentialsThreshold),
+                    Map.entry(NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT,
+                            R.integer.config_wifiDisableReasonNoInternetPermanentThreshold),
+                    Map.entry(NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD,
+                            R.integer.config_wifiDisableReasonByWrongPasswordThreshold),
+                    Map.entry(NetworkSelectionStatus.DISABLED_CONSECUTIVE_FAILURES,
+                            R.integer.config_wifiDisableReasonConsecutiveFailuresThreshold),
+                    Map.entry(NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_SUBSCRIPTION,
+                            R.integer.config_wifiDisableReasonAuthenticationNoSubscriptionThreshold)
             );
     private static final int NUM_FAILURES_TO_BLOCKLIST =
             BLOCK_REASON_TO_DISABLE_THRESHOLD_MAP.get(TEST_L2_FAILURE);
@@ -210,7 +220,24 @@ public class WifiBlocklistMonitorTest {
 
         mResources.setInteger(
                 R.integer.config_wifiDisableReasonNoInternetTemporaryDurationMs, 600000);
-
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonAssociationRejectionDurationMs, 300000);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonAuthenticationFailureDurationMs, 300000);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonDhcpFailureDurationMs, 300000);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonNetworkNotFoundDurationMs, 300000);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonConsecutiveFailuresDurationMs, 300000);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonAuthenticationNoCredentialsDurationMs, -1);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonNoInternetPermanentDurationMs, -1);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonByWrongPasswordDurationMs, -1);
+        mResources.setInteger(
+                R.integer.config_wifiDisableReasonAuthenticationNoSubscriptionDurationMs, -1);
 
         when(mContext.getResources()).thenReturn(mResources);
         when(mPerNetwork.getRecentStats()).thenReturn(mRecentStats);
@@ -1626,6 +1653,13 @@ public class WifiBlocklistMonitorTest {
         switch (disableReason) {
             case NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY:
                 return 10 * 60 * 1000; // 10 minutes - should match value configured via overlay
+            case NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_CREDENTIALS:
+            case NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT:
+            case NetworkSelectionStatus.DISABLED_BY_WIFI_MANAGER:
+            case NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD:
+            case NetworkSelectionStatus.DISABLED_AUTHENTICATION_NO_SUBSCRIPTION:
+            case NetworkSelectionStatus.DISABLED_TRANSITION_DISABLE_INDICATION:
+                return -1;
             default:
                 return 5 * 60 * 1000; // 5 minutes
         }

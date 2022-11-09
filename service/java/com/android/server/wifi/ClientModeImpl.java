@@ -1179,6 +1179,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (config.networkId == mTargetNetworkId || config.networkId == mLastNetworkId) {
                 // Disconnect and let autojoin reselect a new network
                 sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_REMOVED);
+                // Log disconnection here, since the network config won't exist when the
+                // disconnection event is received.
+                String bssid = getConnectedBssidInternal();
+                logEventIfManagedNetwork(config,
+                        SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED,
+                        bssid != null ? MacAddress.fromString(bssid) : null,
+                        "Network was removed");
             } else {
                 WifiConfiguration currentConfig = getConnectedWifiConfiguration();
                 if (currentConfig != null && currentConfig.isLinked(config)) {

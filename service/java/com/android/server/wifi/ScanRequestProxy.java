@@ -39,6 +39,7 @@ import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.scanner.WifiScannerInternal;
@@ -101,6 +102,8 @@ public class ScanRequestProxy {
 
     // Verbose logging flag.
     private boolean mVerboseLoggingEnabled = false;
+    private final Object mThrottleEnabledLock = new Object();
+    @GuardedBy("mThrottleEnabledLock")
     private boolean mThrottleEnabled = true;
     // Flag to decide if we need to scan or not.
     private boolean mScanningEnabled = false;
@@ -223,6 +226,16 @@ public class ScanRequestProxy {
         mVerboseLoggingEnabled = verboseEnabled;
     }
 
+    private void updateThrottleEnabled() {
+        synchronized (mThrottleEnabledLock) {
+            // Start listening for throttle settings change after we retrieve scanner instance.
+            mThrottleEnabled = mSettingsConfigStore.get(WIFI_SCAN_THROTTLE_ENABLED);
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Scan throttle enabled " + mThrottleEnabled);
+            }
+        }
+    }
+
     /**
      * Helper method to populate WifiScanner handle. This is done lazily because
      * WifiScanningService is started after WifiService.
@@ -230,11 +243,7 @@ public class ScanRequestProxy {
     private boolean retrieveWifiScannerIfNecessary() {
         if (mWifiScanner == null) {
             mWifiScanner = WifiLocalServices.getService(WifiScannerInternal.class);
-            // Start listening for throttle settings change after we retrieve scanner instance.
-            mThrottleEnabled = mSettingsConfigStore.get(WIFI_SCAN_THROTTLE_ENABLED);
-            if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "Scan throttle enabled " + mThrottleEnabled);
-            }
+            updateThrottleEnabled();
             // Register the global scan listener.
             if (mWifiScanner != null) {
                 mWifiScanner.registerScanListener(
@@ -328,13 +337,15 @@ public class ScanRequestProxy {
     private LinkedList<Long> getOrCreateScanRequestTimestampsForForegroundApp(
             int callingUid, String packageName) {
         Pair<Integer, String> uidAndPackageNamePair = Pair.create(callingUid, packageName);
-        LinkedList<Long> scanRequestTimestamps =
-                mLastScanTimestampsForFgApps.get(uidAndPackageNamePair);
-        if (scanRequestTimestamps == null) {
-            scanRequestTimestamps = new LinkedList<>();
-            mLastScanTimestampsForFgApps.put(uidAndPackageNamePair, scanRequestTimestamps);
+        synchronized (mThrottleEnabledLock) {
+            LinkedList<Long> scanRequestTimestamps =
+                    mLastScanTimestampsForFgApps.get(uidAndPackageNamePair);
+            if (scanRequestTimestamps == null) {
+                scanRequestTimestamps = new LinkedList<>();
+                mLastScanTimestampsForFgApps.put(uidAndPackageNamePair, scanRequestTimestamps);
+            }
+            return scanRequestTimestamps;
         }
-        return scanRequestTimestamps;
     }
 
     /**
@@ -386,15 +397,17 @@ public class ScanRequestProxy {
         if (isPackageNameInExceptionList(packageName, false)) {
             return false;
         }
-        long lastScanMs = mLastScanTimestampForBgApps;
-        long elapsedRealtime = mClock.getElapsedSinceBootMillis();
-        if (lastScanMs != 0
-                && (elapsedRealtime - lastScanMs) < SCAN_REQUEST_THROTTLE_INTERVAL_BG_APPS_MS) {
-            return true;
+        synchronized (mThrottleEnabledLock) {
+            long lastScanMs = mLastScanTimestampForBgApps;
+            long elapsedRealtime = mClock.getElapsedSinceBootMillis();
+            if (lastScanMs != 0
+                    && (elapsedRealtime - lastScanMs) < SCAN_REQUEST_THROTTLE_INTERVAL_BG_APPS_MS) {
+                return true;
+            }
+            // Proceed with the scan request and record the time.
+            mLastScanTimestampForBgApps = elapsedRealtime;
+            return false;
         }
-        // Proceed with the scan request and record the time.
-        mLastScanTimestampForBgApps = elapsedRealtime;
-        return false;
     }
 
     /**
@@ -460,8 +473,9 @@ public class ScanRequestProxy {
         // a) App has either NETWORK_SETTINGS or NETWORK_SETUP_WIZARD permission.
         // b) Throttling has been disabled by user.
         int packageImportance = getPackageImportance(callingUid, packageName);
-        if (!fromSettingsOrSetupWizard && mThrottleEnabled
-                && shouldScanRequestBeThrottledForApp(callingUid, packageName, packageImportance)) {
+        if (!fromSettingsOrSetupWizard && isScanThrottleEnabled()
+                && shouldScanRequestBeThrottledForApp(callingUid, packageName,
+                packageImportance)) {
             Log.i(TAG, "Scan request from " + packageName + " throttled");
             sendScanResultFailureBroadcastToPackage(packageName);
             return false;
@@ -487,11 +501,10 @@ public class ScanRequestProxy {
                 | WifiScanner.REPORT_EVENT_FULL_SCAN_RESULT;
         if (mScanningForHiddenNetworksEnabled) {
             settings.hiddenNetworks.clear();
-            // retrieve the list of hidden network SSIDs from saved network to scan for, if enabled.
+            // retrieve the list of hidden network SSIDs from saved network to scan if enabled.
             settings.hiddenNetworks.addAll(mWifiConfigManager.retrieveHiddenNetworkList(false));
             // retrieve the list of hidden network SSIDs from Network suggestion to scan for.
-            settings.hiddenNetworks.addAll(
-                    mWifiInjector.getWifiNetworkSuggestionsManager()
+            settings.hiddenNetworks.addAll(mWifiInjector.getWifiNetworkSuggestionsManager()
                     .retrieveHiddenNetworkList(false));
         }
         mWifiScanner.startScan(settings,
@@ -528,9 +541,11 @@ public class ScanRequestProxy {
      * Clear the stored scan results.
      */
     private void clearScanResults() {
-        mLastScanResultsMap.clear();
-        mLastScanTimestampForBgApps = 0;
-        mLastScanTimestampsForFgApps.clear();
+        synchronized (mThrottleEnabledLock) {
+            mLastScanResultsMap.clear();
+            mLastScanTimestampForBgApps = 0;
+            mLastScanTimestampsForFgApps.clear();
+        }
     }
 
     /**
@@ -540,11 +555,13 @@ public class ScanRequestProxy {
      * @param packageName Name of the package.
      */
     public void clearScanRequestTimestampsForApp(@NonNull String packageName, int uid) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "Clearing scan request timestamps for uid=" + uid + ", packageName="
-                    + packageName);
+        synchronized (mThrottleEnabledLock) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Clearing scan request timestamps for uid=" + uid + ", packageName="
+                        + packageName);
+            }
+            mLastScanTimestampsForFgApps.remove(Pair.create(uid, packageName));
         }
-        mLastScanTimestampsForFgApps.remove(Pair.create(uid, packageName));
     }
 
     private void sendScanResultsAvailableToCallbacks() {
@@ -580,13 +597,16 @@ public class ScanRequestProxy {
      * Enable/disable wifi scan throttling from 3rd party apps.
      */
     public void setScanThrottleEnabled(boolean enable) {
-        mThrottleEnabled = enable;
-        mSettingsConfigStore.put(WIFI_SCAN_THROTTLE_ENABLED, enable);
-
-        // reset internal counters when enabling/disabling throttling
-        mLastScanTimestampsForFgApps.clear();
-        mLastScanTimestampForBgApps = 0;
-        Log.i(TAG, "Scan throttle enabled " + mThrottleEnabled);
+        synchronized (mThrottleEnabledLock) {
+            mThrottleEnabled = enable;
+            mSettingsConfigStore.put(WIFI_SCAN_THROTTLE_ENABLED, enable);
+            if (mVerboseLoggingEnabled) {
+                Log.i(TAG, "Scan throttle enabled " + mThrottleEnabled);
+            }
+            // reset internal counters when enabling/disabling throttling
+            mLastScanTimestampsForFgApps.clear();
+            mLastScanTimestampForBgApps = 0;
+        }
     }
 
     /**
@@ -594,55 +614,57 @@ public class ScanRequestProxy {
      * {@link #setScanThrottleEnabled(boolean)}.
      */
     public boolean isScanThrottleEnabled() {
-        return mThrottleEnabled;
+        synchronized (mThrottleEnabledLock) {
+            return mThrottleEnabled;
+        }
     }
 
     /** Indicate whether there are WPA2 personal only networks. */
     public boolean isWpa2PersonalOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForPskOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForPskOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 only networks. */
     public boolean isWpa3PersonalOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForSaeOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForSaeOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2/WPA3 transition mode networks. */
     public boolean isWpa2Wpa3PersonalTransitionNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, ScanResultUtil.createQuotedSsid(r.SSID))
-                && ScanResultUtil.isScanResultForPskSaeTransitionNetwork(r));
+                        && ScanResultUtil.isScanResultForPskSaeTransitionNetwork(r));
     }
 
     /** Indicate whether there are OPEN only networks. */
     public boolean isOpenOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForOpenOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForOpenOnlyNetwork(r));
     }
 
     /** Indicate whether there are OWE only networks. */
     public boolean isOweOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForOweOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForOweOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2 Enterprise only networks. */
     public boolean isWpa2EnterpriseOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 Enterprise only networks. */
     public boolean isWpa3EnterpriseOnlyNetworkInRange(String ssid) {
         return mLastScanResultsMap.values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
-                && ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r));
+                        && ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r));
     }
 }
