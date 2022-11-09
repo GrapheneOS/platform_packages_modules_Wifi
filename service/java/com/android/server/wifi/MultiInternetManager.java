@@ -178,7 +178,9 @@ public class MultiInternetManager {
             }
             final ConcreteClientModeManager ccm = (ConcreteClientModeManager) activeModeManager;
             // TODO: b/197670907 : Add client role ROLE_CLIENT_SECONDARY_INTERNET
-            if (ccm.getRole() != ROLE_CLIENT_SECONDARY_LONG_LIVED || !ccm.isSecondaryInternet()) {
+            // Needs to call getPreviousRole here since the role is set to null after a CMM stops
+            if (ccm.getPreviousRole() != ROLE_CLIENT_SECONDARY_LONG_LIVED
+                    || !ccm.isSecondaryInternet()) {
                 return;
             }
             if (mVerboseLoggingEnabled) {
@@ -575,12 +577,42 @@ public class MultiInternetManager {
                 // No change in BSSID field, so early return to avoid unnecessary scanning.
                 return;
             }
+            disconnectSecondaryIfNeeded(band, targetBssid);
         }
         NetworkConnectionState connectionState = new NetworkConnectionState(requestorWs,
                 mClock.getElapsedSinceBootMillis());
         connectionState.bssid = targetBssid;
         mNetworkConnectionStates.put(band, connectionState);
         startConnectivityScan();
+    }
+
+    /**
+     * Disconnect the secondary that's connected to the same band but different bssid.
+     */
+    private void disconnectSecondaryIfNeeded(int band, String targetBssid) {
+        if (targetBssid == null) {
+            return;
+        }
+        for (ConcreteClientModeManager cmm : mActiveModeWarden.getClientModeManagersInRoles(
+                ROLE_CLIENT_SECONDARY_LONG_LIVED)) {
+            if (cmm.isSecondaryInternet()) {
+                WifiInfo wifiInfo = cmm.getConnectionInfo();
+                if (band != ScanResult.toBand(wifiInfo.getFrequency())) {
+                    continue;
+                }
+                String connectingBssid = cmm.getConnectingBssid();
+                String connectedBssid = cmm.getConnectedBssid();
+                if ((connectingBssid != null && !connectingBssid.equals(targetBssid))
+                        || (connectedBssid != null && !connectedBssid.equals(targetBssid))) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.v(TAG, "Disconnect secondary client mode manager due to specified"
+                                + " BSSID in the same band");
+                    }
+                    cmm.disconnect();
+                    break;
+                }
+            }
+        }
     }
 
     /** Returns the band of the secondary network connected. */
