@@ -55,8 +55,7 @@
     <string name="ok" msgid="847575529546290102">"හරි"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"ආරාධනාව යවන ලදි"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"සම්බන්ධතාවයට ඇරයුමකි"</string>
-    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
-    <skip />
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# තත්පරයක් තුළ පිළිගන්න.}one{තත්පර # ක් තුළ පිළිගන්න.}other{තත්පර # ක් තුළ පිළිගන්න.}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"වෙතින්:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"වෙත:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"අවශ්‍ය PIN එක ටයිප් කරන්න:"</string>

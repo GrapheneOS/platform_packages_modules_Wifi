@@ -55,8 +55,7 @@
     <string name="ok" msgid="847575529546290102">"確定"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"已發出邀請"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"連線邀請"</string>
-    <!-- no translation found for wifi_p2p_invitation_seconds_remaining (8939173828247053616) -->
-    <skip />
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{請於 # 秒內接受。}other{請於 # 秒內接受。}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"寄件者："</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"收件者："</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"請輸入必要的 PIN 碼："</string>
