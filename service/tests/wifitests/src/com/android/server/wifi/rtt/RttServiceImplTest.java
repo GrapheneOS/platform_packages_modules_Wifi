@@ -881,12 +881,14 @@ public class RttServiceImplTest extends WifiBaseTest {
         RangingResult removed = results.second.remove(1);
         results.second.add(
                 new RangingResult(RangingResult.STATUS_FAIL, removed.getMacAddress(), 0, 0, 0, 0, 0,
-                        null, null, null, 0, false));
+                        null, null, null, 0, false, RangingResult.UNSPECIFIED,
+                        RangingResult.UNSPECIFIED));
         results.first.remove(0); // remove an AP request
         removed = results.second.remove(0);
         results.second.add(
                 new RangingResult(RangingResult.STATUS_FAIL, removed.getMacAddress(), 0, 0, 0, 0, 0,
-                        null, null, null, 0, false));
+                        null, null, null, 0, false, RangingResult.UNSPECIFIED,
+                        RangingResult.UNSPECIFIED));
 
         // (1) request ranging operation
         mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request,
@@ -929,7 +931,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         for (RangingResult result : results.second) {
             allFailResults.add(
                     new RangingResult(RangingResult.STATUS_FAIL, result.getMacAddress(), 0, 0, 0, 0,
-                            0, null, null, null, 0, false));
+                            0, null, null, null, 0, false, RangingResult.UNSPECIFIED,
+                            RangingResult.UNSPECIFIED));
         }
 
         // (1) request ranging operation
