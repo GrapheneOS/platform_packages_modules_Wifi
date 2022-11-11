@@ -62,6 +62,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
 
     private boolean mSufficiencyCheckEnabledWhenScreenOff = true;
     private boolean mSufficiencyCheckEnabledWhenScreenOn = true;
+    private boolean mUserConnectChoiceOverrideEnabled = true;
     private int mAssociatedNetworkSelectionOverride = ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
 
     // empty constructor
@@ -74,6 +75,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         mSufficiencyCheckEnabledWhenScreenOff = that.mSufficiencyCheckEnabledWhenScreenOff;
         mSufficiencyCheckEnabledWhenScreenOn = that.mSufficiencyCheckEnabledWhenScreenOn;
         mAssociatedNetworkSelectionOverride = that.mAssociatedNetworkSelectionOverride;
+        mUserConnectChoiceOverrideEnabled = that.mUserConnectChoiceOverrideEnabled;
     }
 
     /**
@@ -88,6 +90,13 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
      */
     public boolean isSufficiencyCheckEnabledWhenScreenOn() {
         return mSufficiencyCheckEnabledWhenScreenOn;
+    }
+
+    /**
+     * See {@link Builder#setUserConnectChoiceOverrideEnabled(boolean)}.
+     */
+    public boolean isUserConnectChoiceOverrideEnabled() {
+        return mUserConnectChoiceOverrideEnabled;
     }
 
     /**
@@ -120,6 +129,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         public Builder() {
             mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOff = true;
             mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOn = true;
+            mWifiNetworkSelectionConfig.mUserConnectChoiceOverrideEnabled = true;
             mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride =
                     ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
         }
@@ -196,6 +206,25 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 throw new IllegalArgumentException("Invalid override=" + override);
             }
             mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride = override;
+            return this;
+        }
+
+        /**
+         * Enable or disable candidate override with the user connect choice.
+         * <p>
+         * If the override is enabled, the network selector overrides any selected candidate
+         * with a network previously chosen by the user over the candidate (i.e. when the
+         * candidate was connected the user explicitly selected another network), if one exists.
+         * <p>
+         * If the override is disabled, network selector uses the network nominator candidate
+         * and does not override it with the user chosen configuration.
+         * <p>
+         * By default, user connect choice override is enabled.
+         * @param enabled Set to true to enable candidate override with the user connect choice,
+         *                and false to disable the override.
+         */
+        public @NonNull Builder setUserConnectChoiceOverrideEnabled(boolean enabled) {
+            mWifiNetworkSelectionConfig.mUserConnectChoiceOverrideEnabled = enabled;
             return this;
         }
 

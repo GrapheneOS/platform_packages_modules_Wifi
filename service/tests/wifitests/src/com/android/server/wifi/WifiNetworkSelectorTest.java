@@ -1307,6 +1307,55 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that WifiNetworkSelector does not override NetworkSelector's choice with
+     * the user connect choice when override is disabled
+     */
+    @Test
+    public void userConnectChoiceDoesNotOverrideWhenOverrideDisabled() {
+        String[] ssids = {"\"test1\"", "\"test2\""};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3", "6c:f3:7f:ae:8c:f4"};
+        int[] freqs = {2437, 5180};
+        String[] caps = {"[WPA2-PSK][ESS]", "[WPA2-PSK][ESS]"};
+        int[] levels = {mThresholdMinimumRssi2G + RSSI_BUMP, mThresholdMinimumRssi5G + RSSI_BUMP};
+        int[] securities = {SECURITY_PSK, SECURITY_PSK};
+        ScanDetailsAndWifiConfigs scanDetailsAndConfigs =
+                WifiNetworkSelectorTestUtil.setupScanDetailsAndConfigStore(ssids, bssids,
+                        freqs, caps, levels, securities, mWifiConfigManager, mClock);
+        List<ScanDetail> scanDetails = scanDetailsAndConfigs.getScanDetails();
+        WifiConfiguration[] wifiConfigs = scanDetailsAndConfigs.getWifiConfigs();
+        HashSet<String> blocklist = new HashSet<>();
+
+        // PlaceholderNominator always selects the first network in the list.
+        WifiConfiguration networkSelectorChoice = wifiConfigs[0];
+        networkSelectorChoice.getNetworkSelectionStatus()
+                .setSeenInLastQualifiedNetworkSelection(true);
+
+        // set user connect choice
+        WifiConfiguration userChoice = wifiConfigs[1];
+        userChoice.getNetworkSelectionStatus().setConnectChoice(null);
+        networkSelectorChoice.getNetworkSelectionStatus()
+                .setConnectChoice(userChoice.getProfileKey());
+
+        // Verify that the userChoice network is chosen when override is enabled by default
+        List<WifiCandidates.Candidate> candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+        WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
+        WifiConfigurationTestUtil.assertConfigurationEqual(userChoice, candidate);
+
+
+        // Verify that the networkSelectorChoice is chosen when override is disabled
+        mWifiNetworkSelector.setUserConnectChoiceOverrideEnabled(false);
+        candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+        candidate = mWifiNetworkSelector.selectNetwork(candidates);
+        WifiConfigurationTestUtil.assertConfigurationEqual(networkSelectorChoice, candidate);
+    }
+
+    /**
      * Tests when multiple Nominators nominate the same candidate, any one of the nominator IDs is
      * acceptable.
      */
