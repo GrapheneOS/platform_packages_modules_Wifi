@@ -6378,17 +6378,24 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiConfigManager.addOrUpdateNetwork(any(),  anyInt(), any(), eq(false))).thenReturn(
                 new NetworkUpdateResult(0));
 
+        // Verify caller fails to add network as Guest user.
         when(mWifiPermissionsUtil.checkSystemAlertWindowPermission(
                 Process.myUid(), TEST_PACKAGE_NAME)).thenReturn(true);
-
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         mLooper.startAutoDispatch();
+        assertEquals(-1,
+                mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
+
+        // Verify caller successfully add network when not a Guest user.
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(false);
         assertEquals(0,
                 mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
-        verify(mWifiPermissionsUtil).checkSystemAlertWindowPermission(anyInt(), anyString());
+        verify(mWifiPermissionsUtil, times(2))
+                .checkSystemAlertWindowPermission(anyInt(), anyString());
         verify(mWifiConfigManager).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
         verify(mWifiMetrics).incrementNumAddOrUpdateNetworkCalls();
     }
