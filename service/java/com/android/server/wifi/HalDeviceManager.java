@@ -2524,6 +2524,13 @@ public class HalDeviceManager {
             return false;
         }
 
+        // Allow LOHS to beat Settings STA if there's no STA+AP concurrency (legacy behavior)
+        if (allowedToDeleteForNoStaApConcurrencyLohs(
+                requestedCreateType, newRequestorWsPriority,
+                existingCreateType, existingRequestorWsPriority)) {
+            return false;
+        }
+
         if (requestedCreateType == HDM_CREATE_IFACE_AP
                 || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
             if (existingCreateType == HDM_CREATE_IFACE_P2P
@@ -2598,7 +2605,37 @@ public class HalDeviceManager {
                 return true;
             }
         }
+
+        // Allow LOHS to beat Settings STA if there's no STA+AP concurrency (legacy behavior)
+        if (allowedToDeleteForNoStaApConcurrencyLohs(
+                requestedCreateType, newRequestorWsPriority,
+                existingCreateType, existingRequestorWsPriority)) {
+            return true;
+        }
+
         return false;
+    }
+
+    /**
+     * Returns true if the requested iface is a LOHS trying to delete a Settings STA on a device
+     * that doesn't support STA + AP concurrency, false otherwise.
+     */
+    private boolean allowedToDeleteForNoStaApConcurrencyLohs(
+            @HdmIfaceTypeForCreation int requestedCreateType,
+            @RequestorWsPriority int newRequestorWsPriority,
+            @HdmIfaceTypeForCreation int existingCreateType,
+            @RequestorWsPriority int existingRequestorWsPriority) {
+        return !canDeviceSupportCreateTypeCombo(
+                new SparseArray<Integer>() {{
+                    put(IfaceConcurrencyType.STA, 1);
+                    put(IfaceConcurrencyType.AP, 1);
+                }})
+                && (requestedCreateType == HDM_CREATE_IFACE_AP
+                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE)
+                && newRequestorWsPriority != PRIORITY_INTERNAL
+                && newRequestorWsPriority != PRIORITY_PRIVILEGED
+                && existingCreateType == HDM_CREATE_IFACE_STA
+                && existingRequestorWsPriority == PRIORITY_PRIVILEGED;
     }
 
     /**

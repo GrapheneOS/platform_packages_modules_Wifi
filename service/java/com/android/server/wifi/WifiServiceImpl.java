@@ -2453,7 +2453,6 @@ public class WifiServiceImpl extends BaseWifiService {
 
         mLog.info("start lohs uid=% pid=%").c(uid).c(pid).flush();
 
-        final WorkSource requestorWs;
         // Permission requirements are different with/without custom config.
         if (customConfig == null) {
             if (enforceChangePermission(packageName) != MODE_ALLOWED) {
@@ -2476,25 +2475,6 @@ public class WifiServiceImpl extends BaseWifiService {
                         extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE),
                         false, TAG + " startLocalOnlyHotspot");
             }
-            // TODO(b/162344695): Exception added for LOHS. This exception is need to avoid
-            // breaking existing LOHS behavior: LOHS AP iface is allowed to delete STA iface
-            // (even if LOHS app has lower priority than user toggled on STA iface). This does
-            // not fit in with the new context based concurrency priority in HalDeviceManager,
-            // but we cannot break existing API's. So, we artificially boost the priority of
-            // the request by "faking" the requestor context as settings app.
-            // We probably need some UI dialog to allow the user to grant the app's LOHS
-            // request. Once that UI dialog is added, we can get rid of this hack and use the UI
-            // to elevate the priority of LOHS request only if user approves the request to
-            // toggle wifi off for LOHS.
-            if (mContext.getResources().getBoolean(
-                    R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)) {
-                // If the interface conflict dialogs are enabled, then we shouldn't fake the
-                // worksource since we need the correct worksource to display the right app label,
-                // and HDM will allow the iface creation as long as the user accepts the dialog.
-                requestorWs = new WorkSource(uid, packageName);
-            } else {
-                requestorWs = mFrameworkFacade.getSettingsWorkSource(mContext);
-            }
         } else {
             if (isPlatformOrTargetSdkLessThanT(packageName, uid)) {
                 if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
@@ -2505,8 +2485,6 @@ public class WifiServiceImpl extends BaseWifiService {
                         extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE),
                         false, TAG + " startLocalOnlyHotspot");
             }
-            // Already privileged, no need to fake.
-            requestorWs = new WorkSource(uid, packageName);
         }
 
         // verify that tethering is not disabled
@@ -2529,6 +2507,7 @@ public class WifiServiceImpl extends BaseWifiService {
             Binder.restoreCallingIdentity(ident);
         }
         // check if we are currently tethering
+        final WorkSource requestorWs = new WorkSource(uid, packageName);
         if (!mActiveModeWarden.canRequestMoreSoftApManagers(requestorWs)
                 && mTetheredSoftApTracker.getState() == WIFI_AP_STATE_ENABLED) {
             // Tethering is enabled, cannot start LocalOnlyHotspot
