@@ -220,7 +220,7 @@ public class CandidateScorerTest extends WifiBaseTest {
      * Prefer current network when current network has low throughput and no internet (but expected)
      */
     @Test
-    public void testSwitchifCurrentNetworkHasNoInternetExceptedAndLowThroughput() throws Exception {
+    public void testSwitchifCurrentNetworkHasNoInternetExpectedAndLowThroughput() throws Exception {
         if (mExpectedExpId != ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) return;
         assertThat(evaluate(mCandidate1.setScanRssi(-57)
                         .setCurrentNetwork(true)
@@ -228,6 +228,36 @@ public class CandidateScorerTest extends WifiBaseTest {
                         .setNoInternetAccess(true)
                         .setNoInternetAccessExpected(true)),
                 greaterThan(evaluate(mCandidate2.setScanRssi(-57)
+                        .setPredictedThroughputMbps(560))));
+    }
+
+    /**
+     * Prefer to switch when current network has higher throughput but no internet access
+     */
+    @Test
+    public void testSwitchifCurrentNetworkNoInternetAndHighThroughput() throws Exception {
+        if (mExpectedExpId != ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) return;
+        assertThat(evaluate(mCandidate1.setScanRssi(-57)
+                        .setCurrentNetwork(true)
+                        .setPredictedThroughputMbps(560)
+                        .setNoInternetAccess(true)
+                        .setNoInternetAccessExpected(false)),
+                lessThan(evaluate(mCandidate2.setScanRssi(-57)
+                        .setPredictedThroughputMbps(433))));
+    }
+
+    /**
+     * Prefer to switch when current network has lower RSSI but no internet access
+     */
+    @Test
+    public void testSwitchifCurrentNetworkNoInternetAndLowRssi() throws Exception {
+        if (mExpectedExpId != ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) return;
+        assertThat(evaluate(mCandidate1.setScanRssi(-57)
+                        .setCurrentNetwork(true)
+                        .setPredictedThroughputMbps(560)
+                        .setNoInternetAccess(true)
+                        .setNoInternetAccessExpected(false)),
+                lessThan(evaluate(mCandidate2.setScanRssi(-70)
                         .setPredictedThroughputMbps(560))));
     }
 
