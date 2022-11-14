@@ -641,9 +641,8 @@ public class WifiBackupRestore {
                 }
                 if (mParsedKeyMgmtLine == null) {
                     // no key_mgmt line specified; this is defined as equivalent to
-                    // "WPA-PSK WPA-EAP".
+                    // "WPA-PSK".
                     configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-                    configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_EAP);
                 } else {
                     // Need to parse the mParsedKeyMgmtLine line
                     final String bareKeyMgmt =
