@@ -301,6 +301,7 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
     @Test
     public void testValidatePositiveCases_OnlyUpdateIgnoresNullSsid() {
         WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
         assertFalse(WifiConfigurationUtil.validate(config, SUPPORTED_FEATURES_ALL,
                 WifiConfigurationUtil.VALIDATE_FOR_ADD));
         assertTrue(WifiConfigurationUtil.validate(

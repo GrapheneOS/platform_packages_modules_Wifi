@@ -3638,6 +3638,7 @@ public class WifiConfiguration implements Parcelable {
     /**
      * Get the authentication type of the network.
      * @return One of the {@link KeyMgmt} constants. e.g. {@link KeyMgmt#WPA2_PSK}.
+     * @throws IllegalStateException if config is invalid for authentication type.
      * @hide
      */
     @SystemApi
