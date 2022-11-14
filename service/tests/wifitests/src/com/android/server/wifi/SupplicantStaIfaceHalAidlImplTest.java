@@ -233,6 +233,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         mIfaceInfoList[2] = createIfaceInfo(IfaceType.P2P, P2P_IFACE_NAME);
         doReturn(CONNECTED_MAC_ADDRESS_BYTES).when(mISupplicantStaIfaceMock).getMacAddress();
         mHandler = spy(new Handler(mLooper.getLooper()));
+        when(mISupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
         when(mSsidTranslator.getTranslatedSsid(any())).thenReturn(TRANSLATED_SUPPLICANT_SSID);
         when(mSsidTranslator.getOriginalSsid(any())).thenAnswer((Answer<WifiSsid>) invocation ->
                 WifiSsid.fromString(((WifiConfiguration) invocation.getArgument(0)).SSID));
@@ -1448,7 +1449,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.registerDeathHandler(mSupplicantHalDeathHandler));
 
-        mSupplicantDeathCaptor.getValue().binderDied();
+        mSupplicantDeathCaptor.getValue().binderDied(mServiceBinderMock);
         mLooper.dispatchAll();
 
         assertFalse(mDut.isInitializationComplete());
@@ -1480,7 +1481,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         // Now trigger a death notification and ensure it's handled.
         assertNotNull(mSupplicantDeathCaptor.getValue());
-        mSupplicantDeathCaptor.getValue().binderDied();
+        mSupplicantDeathCaptor.getValue().binderDied(mServiceBinderMock);
         mLooper.dispatchAll();
 
         // External death notification fires only once!
@@ -1638,18 +1639,12 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testTerminate() throws Exception {
         executeAndValidateInitializationSequence();
 
-        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
-            public void answer(IBinder.DeathRecipient cb, int flags) throws RemoteException {
-                mHandler.post(() -> cb.binderDied());
-                mHandler.post(() -> mSupplicantDeathCaptor.getValue().binderDied());
-            }
-        }).when(mServiceBinderMock).linkToDeath(any(IBinder.DeathRecipient.class), anyInt());
-
         mDut.terminate();
-        mLooper.dispatchAll();
         verify(mISupplicantMock).terminate();
 
-        // Check that terminate cleared all internal state.
+        // Check that all internal state is cleared once the death notification is received.
+        assertTrue(mDut.isInitializationComplete());
+        mSupplicantDeathCaptor.getValue().binderDied(mServiceBinderMock);
         assertFalse(mDut.isInitializationComplete());
     }
 
