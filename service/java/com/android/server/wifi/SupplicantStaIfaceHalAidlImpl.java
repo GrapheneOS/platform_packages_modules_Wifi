@@ -120,6 +120,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private boolean mVerboseLoggingEnabled = false;
     private boolean mVerboseHalLoggingEnabled = false;
     private boolean mServiceDeclared = false;
+    private int mServiceVersion;
 
     // Supplicant HAL interface objects
     private ISupplicant mISupplicant = null;
@@ -380,6 +381,15 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         return ServiceManager.isDeclared(HAL_INSTANCE_NAME);
     }
 
+    /**
+     * Check that the service is running at least the expected version.
+     * Use to avoid the case where the framework is using a newer
+     * interface version than the service.
+     */
+    private boolean isServiceVersionIsAtLeast(int expectedVersion) {
+        return expectedVersion <= mServiceVersion;
+    }
+
     private void clearState() {
         synchronized (mLock) {
             Log.i(TAG, "Clearing internal state");
@@ -427,7 +437,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             Log.i(TAG, "Local Version: " + ISupplicant.VERSION);
 
             try {
-                Log.i(TAG, "Remote Version: " + mISupplicant.getInterfaceVersion());
+                mServiceVersion = mISupplicant.getInterfaceVersion();
+                Log.i(TAG, "Remote Version: " + mServiceVersion);
                 IBinder serviceBinder = getServiceBinderMockable();
                 if (serviceBinder == null) {
                     return false;
