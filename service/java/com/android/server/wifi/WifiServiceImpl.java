@@ -4058,11 +4058,7 @@ public class WifiServiceImpl extends BaseWifiService {
      * WifiNetworkSpecifier request or oem paid/private suggestion).
      */
     private ClientModeManager getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
-            int callingUid, @NonNull String callingPackageName, boolean settingOrSuw) {
-        // For settings or setup wizard we should always return the primary.
-        if (settingOrSuw) {
-            return mActiveModeWarden.getPrimaryClientModeManager();
-        }
+            int callingUid, @NonNull String callingPackageName) {
         List<ConcreteClientModeManager> secondaryCmms = null;
         ActiveModeManager.ClientConnectivityRole roleSecondaryLocalOnly =
                 ROLE_CLIENT_LOCAL_ONLY;
@@ -4107,12 +4103,10 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         long ident = Binder.clearCallingIdentity();
-        boolean isSettingsOrSuw = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
-                || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
         try {
             WifiInfo wifiInfo = mWifiThreadRunner.call(
                     () -> getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
-                            uid, callingPackage, isSettingsOrSuw)
+                            uid, callingPackage)
                             .syncRequestConnectionInfo(), new WifiInfo());
             long redactions = wifiInfo.getApplicableRedactions();
             if (mWifiPermissionsUtil.checkLocalMacAddressPermission(uid)) {
@@ -4122,7 +4116,8 @@ public class WifiServiceImpl extends BaseWifiService {
                 }
                 redactions &= ~NetworkCapabilities.REDACT_FOR_LOCAL_MAC_ADDRESS;
             }
-            if (isSettingsOrSuw) {
+            if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                    || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
                 if (mVerboseLoggingEnabled) {
                     Log.v(TAG, "Clearing REDACT_FOR_NETWORK_SETTINGS for " + callingPackage
                             + "(uid=" + uid + ")");
@@ -4609,11 +4604,9 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mVerboseLoggingEnabled) {
             mLog.info("getDhcpInfo uid=%").c(callingUid).flush();
         }
-        boolean isSettingsOrSuw = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
-                || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(callingUid);
         DhcpResultsParcelable dhcpResults = mWifiThreadRunner.call(
                 () -> getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
-                        callingUid, packageName, isSettingsOrSuw)
+                        callingUid, packageName)
                         .syncGetDhcpResultsParcelable(), new DhcpResultsParcelable());
 
         DhcpInfo info = new DhcpInfo();
