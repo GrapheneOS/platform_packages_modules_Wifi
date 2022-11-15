@@ -4055,7 +4055,11 @@ public class WifiServiceImpl extends BaseWifiService {
         }
 
         for (ConcreteClientModeManager cmm : secondaryCmms) {
-            WorkSource reqWs = cmm.getRequestorWs();
+            WorkSource reqWs = new WorkSource(cmm.getRequestorWs());
+            if (reqWs.size() > 1 && cmm.getRole() == roleSecondaryLocalOnly) {
+                // Remove promoted settings WorkSource if present
+                reqWs.remove(mFrameworkFacade.getSettingsWorkSource(mContext));
+            }
             WorkSource withCaller = new WorkSource(reqWs);
             withCaller.add(new WorkSource(callingUid, callingPackageName));
             // If there are more than 1 secondary CMM for same app, return any one (should not
