@@ -91,6 +91,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,6 +106,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private static final String TAG = "SupplicantStaIfaceHalAidlImpl";
     @VisibleForTesting
     private static final String HAL_INSTANCE_NAME = ISupplicant.DESCRIPTOR + "/default";
+    @VisibleForTesting
+    public static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
 
     /**
      * Regex pattern for extracting the wps device type bytes.
@@ -140,31 +144,26 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private final WifiMetrics mWifiMetrics;
     private final WifiGlobals mWifiGlobals;
     private final SsidTranslator mSsidTranslator;
+    private CountDownLatch mWaitForDeathLatch;
 
     private class SupplicantDeathRecipient implements DeathRecipient {
         @Override
         public void binderDied() {
-            mEventHandler.post(() -> {
-                synchronized (mLock) {
-                    Log.w(TAG, "ISupplicant binder died.");
-                    supplicantServiceDiedHandler();
-                }
-            });
         }
-    }
 
-    /**
-     * Linked to supplicant service death on call to terminate()
-     */
-    private class TerminateDeathRecipient implements DeathRecipient {
         @Override
-        public void binderDied() {
-            mEventHandler.post(() -> {
-                synchronized (mLock) {
-                    Log.w(TAG, "ISupplicant was killed by terminate()");
-                    // nothing more to be done here
+        public void binderDied(@NonNull IBinder who) {
+            synchronized (mLock) {
+                Log.w(TAG, "ISupplicant binder died. who=" + who + ", service="
+                        + getServiceBinderMockable());
+                if (who == getServiceBinderMockable()) {
+                    if (mWaitForDeathLatch != null) {
+                        mWaitForDeathLatch.countDown();
+                    }
+                    Log.w(TAG, "Handle supplicant death");
+                    supplicantServiceDiedHandler(who);
                 }
-            });
+            }
         }
     }
 
@@ -383,6 +382,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
 
     private void clearState() {
         synchronized (mLock) {
+            Log.i(TAG, "Clearing internal state");
             mISupplicant = null;
             mISupplicantStaIfaces.clear();
             mCurrentNetworkLocalConfigs.clear();
@@ -391,8 +391,12 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    private void supplicantServiceDiedHandler() {
+    private void supplicantServiceDiedHandler(IBinder who) {
         synchronized (mLock) {
+            if (who != getServiceBinderMockable()) {
+                Log.w(TAG, "Ignoring stale death recipient notification");
+                return;
+            }
             clearState();
             if (mDeathEventHandler != null) {
                 mDeathEventHandler.onDeath();
@@ -406,32 +410,36 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      * @return true on success, false otherwise.
      */
     public boolean startDaemon() {
-        final String methodStr = "startDaemon";
-        if (mISupplicant != null) {
-            Log.i(TAG, "Service is already initialized, skipping " + methodStr);
-            return true;
-        }
+        synchronized (mLock) {
+            final String methodStr = "startDaemon";
+            if (mISupplicant != null) {
+                Log.i(TAG, "Service is already initialized, skipping " + methodStr);
+                return true;
+            }
 
-        mISupplicant = getSupplicantMockable();
-        if (mISupplicant == null) {
-            Log.e(TAG, "Unable to obtain ISupplicant binder.");
-            return false;
-        }
-        Log.i(TAG, "Obtained ISupplicant binder.");
-        Log.i(TAG, "Local Version: " + ISupplicant.VERSION);
-
-        try {
-            Log.i(TAG, "Remote Version: " + mISupplicant.getInterfaceVersion());
-            IBinder serviceBinder = getServiceBinderMockable();
-            if (serviceBinder == null) {
+            clearState();
+            mISupplicant = getSupplicantMockable();
+            if (mISupplicant == null) {
+                Log.e(TAG, "Unable to obtain ISupplicant binder.");
                 return false;
             }
-            serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
-            setLogLevel(mVerboseHalLoggingEnabled);
-            return true;
-        } catch (RemoteException e) {
-            handleRemoteException(e, methodStr);
-            return false;
+            Log.i(TAG, "Obtained ISupplicant binder.");
+            Log.i(TAG, "Local Version: " + ISupplicant.VERSION);
+
+            try {
+                Log.i(TAG, "Remote Version: " + mISupplicant.getInterfaceVersion());
+                IBinder serviceBinder = getServiceBinderMockable();
+                if (serviceBinder == null) {
+                    return false;
+                }
+                mWaitForDeathLatch = null;
+                serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
+                setLogLevel(mVerboseHalLoggingEnabled);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+                return false;
+            }
         }
     }
 
@@ -444,24 +452,24 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             if (!checkSupplicantAndLogFailure(methodStr)) {
                 return;
             }
+            Log.i(TAG, "Terminate supplicant service");
             try {
-                // Register a new death listener to confirm that terminate() killed supplicant
-                IBinder serviceBinder = getServiceBinderMockable();
-                if (serviceBinder == null) {
-                    return;
-                }
-                serviceBinder.linkToDeath(new TerminateDeathRecipient(), /* flags= */ 0);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Unable to register death recipient.");
-                handleRemoteException(e, methodStr);
-                return;
-            }
-
-            try {
+                mWaitForDeathLatch = new CountDownLatch(1);
                 mISupplicant.terminate();
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             }
+        }
+
+        // Wait for death recipient to confirm the service death.
+        try {
+            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
+            } else {
+                Log.d(TAG, "Got service death confirmation");
+            }
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Failed to wait for supplicant death");
         }
     }
 
