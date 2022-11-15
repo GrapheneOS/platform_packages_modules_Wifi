@@ -982,8 +982,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verifies that launching a simple dialog and dismissing it will send a dismiss intent and
-     * prevent future replies to the original dialog id from notifying the callback.
+     * Verifies that launching a P2P invitation sent dialog and dismissing it will send a dismiss
+     * intent and prevent future replies to the original dialog id from notifying the callback.
      */
     @Test
     public void testP2pInvitationReceivedDialog_launchAndDismiss_dismissesDialog() {
@@ -1071,5 +1071,57 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dispatchMockWifiThreadRunner(callbackThreadRunner);
         verify(callback1, times(1)).onAccepted(null);
         verify(callback2, times(1)).onAccepted(null);
+    }
+
+    /**
+     * Helper method to verify the contents of a launch Intent for a P2P Invitation Received dialog.
+     * @return dialog id of the Intent.
+     */
+    private int verifyP2pInvitationSentDialogLaunchIntent(
+            @NonNull Intent launchIntent,
+            String expectedDeviceName,
+            @Nullable String expectedDisplayPin) {
+        assertThat(launchIntent.getAction()).isEqualTo(WifiManager.ACTION_LAUNCH_DIALOG);
+        ComponentName component = launchIntent.getComponent();
+        assertThat(component.getPackageName()).isEqualTo(WIFI_DIALOG_APK_PKG_NAME);
+        assertThat(component.getClassName())
+                .isEqualTo(WifiDialogManager.WIFI_DIALOG_ACTIVITY_CLASSNAME);
+        assertThat(launchIntent.hasExtra(WifiManager.EXTRA_DIALOG_ID)).isTrue();
+        int dialogId = launchIntent.getIntExtra(WifiManager.EXTRA_DIALOG_ID, -1);
+        assertThat(dialogId).isNotEqualTo(-1);
+        assertThat(launchIntent.hasExtra(WifiManager.EXTRA_DIALOG_TYPE)).isTrue();
+        assertThat(launchIntent.getIntExtra(WifiManager.EXTRA_DIALOG_TYPE,
+                WifiManager.DIALOG_TYPE_UNKNOWN))
+                .isEqualTo(WifiManager.DIALOG_TYPE_P2P_INVITATION_SENT);
+        assertThat(launchIntent.hasExtra(WifiManager.EXTRA_P2P_DEVICE_NAME)).isTrue();
+        assertThat(launchIntent.getStringExtra(WifiManager.EXTRA_P2P_DEVICE_NAME))
+                .isEqualTo(expectedDeviceName);
+        assertThat(launchIntent.hasExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN)).isTrue();
+        assertThat(launchIntent.getStringExtra(WifiManager.EXTRA_P2P_DISPLAY_PIN))
+                .isEqualTo(expectedDisplayPin);
+        return dialogId;
+    }
+
+    /**
+     * Verifies that launching a P2P invitation sent dialog and dismissing it will send a dismiss
+     * intent.
+     */
+    @Test
+    public void testP2pInvitationSentDialog_launchAndDismiss_dismissesDialog() {
+        WifiDialogManager wifiDialogManager =
+                new WifiDialogManager(mWifiContext, mWifiThreadRunner, mFrameworkFacade);
+
+        // Launch and dismiss dialog.
+        DialogHandle dialogHandle = wifiDialogManager.createP2pInvitationSentDialog(
+                TEST_DEVICE_NAME, null, Display.DEFAULT_DISPLAY);
+        launchDialogSynchronous(dialogHandle, 0, mWifiThreadRunner);
+        verifyP2pInvitationSentDialogLaunchIntent(verifyStartActivityAsUser(1, mWifiContext),
+                TEST_DEVICE_NAME, null);
+        dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
+        verifyDismissIntent(verifyStartActivityAsUser(2, mWifiContext));
+
+        // Another call to dismiss should not send another dismiss intent.
+        dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
+        verifyStartActivityAsUser(2, mWifiContext);
     }
 }
