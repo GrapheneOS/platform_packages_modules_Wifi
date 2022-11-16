@@ -128,6 +128,7 @@ public class WifiNetworkSelector {
     private boolean mIsEnhancedOpenSupported;
     private boolean mSufficiencyCheckEnabledWhenScreenOff  = true;
     private boolean mSufficiencyCheckEnabledWhenScreenOn  = true;
+    private boolean mUserConnectChoiceOverrideEnabled = true;
     private @AssociatedNetworkSelectionOverride int mAssociatedNetworkSelectionOverride =
             ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
     private boolean mScreenOn = false;
@@ -968,6 +969,13 @@ public class WifiNetworkSelector {
     }
 
     /**
+     * Enable or disable candidate override with user connect choice.
+     */
+    public void setUserConnectChoiceOverrideEnabled(boolean enabled) {
+        mUserConnectChoiceOverrideEnabled = enabled;
+    }
+
+    /**
      * Returns the list of Candidates from networks in range.
      *
      * @param scanDetails              List of ScanDetail for all the APs in range
@@ -1360,7 +1368,8 @@ public class WifiNetworkSelector {
         // Get a fresh copy of WifiConfiguration reflecting any scan result updates
         WifiConfiguration selectedNetwork =
                 mWifiConfigManager.getConfiguredNetwork(selectedNetworkId);
-        if (selectedNetwork != null && legacyOverrideWanted && overrideEnabled) {
+        if (selectedNetwork != null && legacyOverrideWanted && overrideEnabled
+                && mUserConnectChoiceOverrideEnabled) {
             selectedNetwork = overrideCandidateWithUserConnectChoice(selectedNetwork);
         }
         if (selectedNetwork != null) {
