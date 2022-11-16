@@ -3759,7 +3759,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mWifiAwareNativeApi.dump(fd, pw, args);
         pw.println("mAwareMetrics:");
         mAwareMetrics.dump(fd, pw, args);
-        mInterfaceConflictMgr.dump(fd, pw, args);
         pw.println("AwareStateManager - Log Begin ----");
         mLocalLog.dump(fd, pw, args);
         pw.println("AwareStateManager - Log End ----");
