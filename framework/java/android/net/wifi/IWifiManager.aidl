@@ -380,7 +380,7 @@ interface IWifiManager
 
     void flushPasspointAnqpCache(String packageName);
 
-    List<WifiAvailableChannel> getUsableChannels(int band, int mode, int filter);
+    List<WifiAvailableChannel> getUsableChannels(int band, int mode, int filter, String packageName, in Bundle extras);
 
     boolean isWifiPasspointEnabled();
 

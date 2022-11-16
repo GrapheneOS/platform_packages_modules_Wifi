@@ -9595,12 +9595,10 @@ public class WifiManager {
      * @throws UnsupportedOperationException - if this API is not supported on this device
      *         or IllegalArgumentException - if the band specified is not one among the list
      *         of bands mentioned above.
-     * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
-    @SystemApi
     @NonNull
-    @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
+    @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getAllowedChannels(
             @WifiScanner.WifiBand int band,
             @WifiAvailableChannel.OpMode int mode) {
@@ -9608,8 +9606,13 @@ public class WifiManager {
             throw new UnsupportedOperationException();
         }
         try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
             return mService.getUsableChannels(band, mode,
-                    WifiAvailableChannel.FILTER_REGULATORY);
+                    WifiAvailableChannel.FILTER_REGULATORY, mContext.getOpPackageName(), extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -9639,12 +9642,10 @@ public class WifiManager {
      * @throws UnsupportedOperationException - if this API is not supported on this device
      *         or IllegalArgumentException - if the band specified is not one among the list
      *         of bands mentioned above.
-     * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
-    @SystemApi
     @NonNull
-    @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
+    @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getUsableChannels(
             @WifiScanner.WifiBand int band,
             @WifiAvailableChannel.OpMode int mode) {
@@ -9652,8 +9653,13 @@ public class WifiManager {
             throw new UnsupportedOperationException();
         }
         try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
             return mService.getUsableChannels(band, mode,
-                    WifiAvailableChannel.getUsableFilter());
+                    WifiAvailableChannel.getUsableFilter(), mContext.getOpPackageName(), extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

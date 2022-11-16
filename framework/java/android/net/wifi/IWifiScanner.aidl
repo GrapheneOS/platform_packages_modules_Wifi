@@ -28,7 +28,7 @@ import android.net.wifi.IWifiScannerListener;
  */
 interface IWifiScanner
 {
-    Bundle getAvailableChannels(int band, String packageName, String featureId);
+    Bundle getAvailableChannels(int band, String packageName, String featureId, in Bundle extras);
 
     boolean isScanning();
 

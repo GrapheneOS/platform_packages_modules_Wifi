@@ -1144,6 +1144,14 @@ public class WifiServiceImpl extends BaseWifiService {
                 uid);
     }
 
+    private boolean isPlatformOrTargetSdkLessThanU(String packageName, int uid) {
+        if (!SdkLevel.isAtLeastU()) {
+            return true;
+        }
+        return mWifiPermissionsUtil.isTargetSdkLessThan(packageName,
+                Build.VERSION_CODES.UPSIDE_DOWN_CAKE, uid);
+    }
+
     /**
      * Get the current primary ClientModeManager in a thread safe manner, but blocks on the main
      * Wifi thread.
@@ -6565,22 +6573,30 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     public List<WifiAvailableChannel> getUsableChannels(@WifiScanner.WifiBand int band,
-            @WifiAvailableChannel.OpMode int mode, @WifiAvailableChannel.Filter int filter) {
-        // Location mode must be enabled
-        long ident = Binder.clearCallingIdentity();
-        try {
-            if (!mWifiPermissionsUtil.isLocationModeEnabled()) {
-                throw new SecurityException("Location mode is disabled for the device");
-            }
-        } finally {
-            Binder.restoreCallingIdentity(ident);
-        }
+            @WifiAvailableChannel.OpMode int mode, @WifiAvailableChannel.Filter int filter,
+            String packageName, Bundle extras) {
         final int uid = Binder.getCallingUid();
+        if (isPlatformOrTargetSdkLessThanU(packageName, uid)) {
+            // Location mode must be enabled
+            long ident = Binder.clearCallingIdentity();
+            try {
+                if (!mWifiPermissionsUtil.isLocationModeEnabled()) {
+                    throw new SecurityException("Location mode is disabled for the device");
+                }
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+            if (!mWifiPermissionsUtil.checkCallersHardwareLocationPermission(uid)) {
+                throw new SecurityException(
+                        "UID " + uid + " does not have location h/w permission");
+            }
+        } else {
+            mWifiPermissionsUtil.enforceNearbyDevicesPermission(
+                    extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE),
+                    true, TAG + " getUsableChannels");
+        }
         if (mVerboseLoggingEnabled) {
             mLog.info("getUsableChannels uid=%").c(Binder.getCallingUid()).flush();
-        }
-        if (!mWifiPermissionsUtil.checkCallersHardwareLocationPermission(uid)) {
-            throw new SecurityException("UID " + uid + " does not have location h/w permission");
         }
         if (!isValidBandForGetUsableChannels(band)) {
             throw new IllegalArgumentException("Unsupported band: " + band);
