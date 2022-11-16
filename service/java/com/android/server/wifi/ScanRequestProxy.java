@@ -153,7 +153,16 @@ public class ScanRequestProxy {
             if (WifiScanner.isFullBandScan(scanData.getScannedBandsInternal(), false)) {
                 // Store the last scan results & send out the scan completion broadcast.
                 mLastScanResultsMap.clear();
-                Arrays.stream(scanResults).forEach(s -> mLastScanResultsMap.put(s.BSSID, s));
+                Arrays.stream(scanResults).forEach(s -> {
+                    ScanResult scanResult = mLastScanResultsMap.get(s.BSSID);
+                    // If a hidden network is configured, wificond may report two scan results for
+                    // the same BSS, ie. One with the SSID and another one without SSID. So avoid
+                    // overwriting the scan result of the same BSS with Hidden SSID scan result
+                    if (scanResult == null
+                            || TextUtils.isEmpty(scanResult.SSID) || !TextUtils.isEmpty(s.SSID)) {
+                        mLastScanResultsMap.put(s.BSSID, s);
+                    }
+                });
                 sendScanResultBroadcast(true);
                 sendScanResultsAvailableToCallbacks();
             }
