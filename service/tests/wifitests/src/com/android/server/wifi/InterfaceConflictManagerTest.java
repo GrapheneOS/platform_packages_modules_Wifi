@@ -38,6 +38,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
+import android.util.LocalLog;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
@@ -75,6 +76,7 @@ public class InterfaceConflictManagerTest {
     @Mock WaitingState mWaitingState;
     @Mock WifiDialogManager mWifiDialogManager;
     @Mock WifiDialogManager.DialogHandle mDialogHandle;
+    @Mock LocalLog mLocalLog;
 
     private static final int TEST_UID = 1234;
     private static final String TEST_PACKAGE_NAME = "some.package.name";
@@ -106,7 +108,8 @@ public class InterfaceConflictManagerTest {
 
     private void initInterfaceConflictManager() {
         mDut = new InterfaceConflictManager(mWifiContext, mFrameworkFacade, mHdm,
-                new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager);
+                new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager,
+                mLocalLog);
         mDut.handleBootCompleted();
     }
 

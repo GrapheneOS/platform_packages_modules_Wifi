@@ -59,6 +59,13 @@ public class WifiP2pGroup implements Parcelable {
      */
     public static final int NETWORK_ID_PERSISTENT = -2;
 
+    /**
+     * Group owner P2P interface MAC address.
+     * @hide
+     */
+    @UnsupportedAppUsage
+    public byte[] interfaceAddress;
+
     /** The network name */
     private String mNetworkName;
 
