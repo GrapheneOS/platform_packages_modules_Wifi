@@ -39,6 +39,8 @@ import android.util.LocalLog;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
+
 import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
 import com.android.server.wifi.util.WaitingState;
@@ -61,6 +63,7 @@ public class InterfaceConflictManager {
     private static final String TAG = "InterfaceConflictManager";
     private boolean mVerboseLoggingEnabled = false;
 
+    private final WifiInjector mWifiInjector;
     private final WifiContext mContext;
     private final FrameworkFacade mFrameworkFacade;
     private final HalDeviceManager mHdm;
@@ -86,9 +89,10 @@ public class InterfaceConflictManager {
 
     private static final String MESSAGE_BUNDLE_KEY_PENDING_USER = "pending_user_decision";
 
-    public InterfaceConflictManager(WifiContext wifiContext, FrameworkFacade frameworkFacade,
-            HalDeviceManager hdm, WifiThreadRunner threadRunner,
+    public InterfaceConflictManager(@NonNull WifiInjector wifiInjector, WifiContext wifiContext,
+            FrameworkFacade frameworkFacade, HalDeviceManager hdm, WifiThreadRunner threadRunner,
             WifiDialogManager wifiDialogManager, LocalLog localLog) {
+        mWifiInjector = wifiInjector;
         mContext = wifiContext;
         mFrameworkFacade = frameworkFacade;
         mHdm = hdm;
@@ -285,8 +289,9 @@ public class InterfaceConflictManager {
 
             boolean shouldShowDialogToDelete = false;
             for (Pair<Integer, WorkSource> ifaceToDelete : impact) {
-                if (mHdm.needsUserApprovalToDelete(createIfaceType, requestorWs,
-                        ifaceToDelete.first, ifaceToDelete.second)) {
+                if (mHdm.needsUserApprovalToDelete(
+                        createIfaceType, mWifiInjector.makeWsHelper(requestorWs),
+                        ifaceToDelete.first, mWifiInjector.makeWsHelper(ifaceToDelete.second))) {
                     shouldShowDialogToDelete = true;
                     break;
                 }
