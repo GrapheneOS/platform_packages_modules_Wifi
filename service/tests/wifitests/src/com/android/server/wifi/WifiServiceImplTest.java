@@ -38,6 +38,7 @@ import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_INCOMP
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_NO_CHANNEL;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_TETHERING_DISALLOWED;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.REQUEST_REGISTERED;
+import static android.net.wifi.WifiManager.NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE;
 import static android.net.wifi.WifiManager.SAP_START_FAILURE_GENERAL;
 import static android.net.wifi.WifiManager.SAP_START_FAILURE_NO_CHANNEL;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLED;
@@ -110,6 +111,7 @@ import android.app.admin.DevicePolicyManager;
 import android.app.admin.WifiSsidPolicy;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.bluetooth.BluetoothAdapter;
+import android.compat.testing.PlatformCompatChangeRule;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -215,9 +217,14 @@ import com.android.wifi.resources.R;
 
 import com.google.common.base.Strings;
 
+import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
+import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
+
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Captor;
@@ -425,6 +432,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock WifiKeyStore mWifiKeyStore;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
+
+    @Rule
+    // For frameworks
+    public TestRule compatChangeRule = new PlatformCompatChangeRule();
 
     private MockitoSession mSession;
 
@@ -4780,7 +4791,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiBackupRestore, never()).retrieveConfigurationsFromBackupData(any(byte[].class));
     }
 
-    private void testRestoreNetworkConfiguration(int configNum, int batchNum) {
+    private void testRestoreNetworkConfiguration(int configNum, int batchNum,
+            boolean allowOverride) {
         List<WifiConfiguration> configurations = new ArrayList<>();
         when(mResources.getInteger(
                 eq(R.integer.config_wifiConfigurationRestoreNetworksBatchNum)))
@@ -4791,11 +4803,19 @@ public class WifiServiceImplTest extends WifiBaseTest {
             configurations.add(config);
         }
         reset(mWifiConfigManager);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         when(mWifiConfigManager.addNetwork(any(), anyInt()))
                 .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         mWifiServiceImpl.restoreNetworks(configurations);
         mLooper.dispatchAll();
-        verify(mWifiConfigManager, times(configNum)).addNetwork(eq(config), anyInt());
+        if (allowOverride) {
+            verify(mWifiConfigManager, times(configNum)).addOrUpdateNetwork(eq(config), anyInt());
+            verify(mWifiConfigManager, never()).addNetwork(eq(config), anyInt());
+        } else {
+            verify(mWifiConfigManager, never()).addOrUpdateNetwork(eq(config), anyInt());
+            verify(mWifiConfigManager, times(configNum)).addNetwork(eq(config), anyInt());
+        }
         verify(mWifiConfigManager, times(configNum)).enableNetwork(
                 eq(TEST_NETWORK_ID), eq(false), anyInt(), eq(null));
         verify(mWifiConfigManager, times(configNum)).allowAutojoin(eq(TEST_NETWORK_ID),
@@ -4804,16 +4824,32 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     /**
      * Verify that a call to
-     * {@link WifiServiceImpl#restoreNetworks(List<WifiConfiguration> configurations)}
+     * {@link WifiServiceImpl#restoreNetworks(List)}
      * trigeering the process of the network restoration in batches.
      */
     @Test
-    public void testRestoreNetworksWithBatch() {
-        testRestoreNetworkConfiguration(0 /* configNum */, 50 /* batchNum*/);
-        testRestoreNetworkConfiguration(1 /* configNum */, 50 /* batchNum*/);
-        testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/);
-        testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/);
-        testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/);
+    @EnableCompatChanges({NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE})
+    public void testRestoreNetworksWithBatchOverrideDisallowed() {
+        testRestoreNetworkConfiguration(0 /* configNum */, 50 /* batchNum*/, false);
+        testRestoreNetworkConfiguration(1 /* configNum */, 50 /* batchNum*/, false);
+        testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/, false);
+        testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/, false);
+        testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, false);
+    }
+
+    /**
+     * Verify that a call to
+     * {@link WifiServiceImpl#restoreNetworks(List)}
+     * trigeering the process of the network restoration in batches.
+     */
+    @Test
+    @DisableCompatChanges({NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE})
+    public void testRestoreNetworksWithBatchOverrideAllowed() {
+        testRestoreNetworkConfiguration(0 /* configNum */, 50 /* batchNum*/, true);
+        testRestoreNetworkConfiguration(1 /* configNum */, 50 /* batchNum*/, true);
+        testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/, true);
+        testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/, true);
+        testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, true);
     }
 
     /**
