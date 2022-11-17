@@ -123,6 +123,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     @Mock private WifiInjector mWifiInjector;
     @Mock private SoftApManager mSoftApManager;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock private InterfaceConflictManager mInterfaceConflictManager;
     @Mock private WorkSourceHelper mWorkSourceHelper0;
     @Mock private WorkSourceHelper mWorkSourceHelper1;
     @Mock private WorkSourceHelper mWorkSourceHelper2;
@@ -160,6 +161,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         mTestLooper = new TestLooper();
         mHandler = new Handler(mTestLooper.getLooper());
 
+        when(mWifiInjector.getInterfaceConflictManager()).thenReturn(mInterfaceConflictManager);
+        when(mInterfaceConflictManager.needsUserApprovalToDelete(anyInt(), any(), anyInt(), any()))
+                .thenReturn(false);
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_0)).thenReturn(mWorkSourceHelper0);
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_1)).thenReturn(mWorkSourceHelper1);
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_2)).thenReturn(mWorkSourceHelper2);
@@ -709,24 +713,17 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Validate a flow sequence for test chip 2 if the
-     * |config_wifiUserApprovalRequiredForD2dInterfacePriority| overlay value is true. If enabled,
-     * interface requests for AP/P2P/NAN should be approved over other AP/P2P/NAN interfaces as
-     * long as the new requestor's worksource priority is > PRIORITY_BG and they aren't the same
-     * type.
+     * Validate a flow sequence for test chip 2 if a new interface is able to delete an existing
+     * interface with user approval.
      *
      * Flow sequence:
      * - create P2P (privileged app)
-     * - create NAN (foreground app)
-     * - tear down NAN
-     * - create P2P (privileged app)
-     * - create NAN (background app): should fail.
+     * - create NAN (foreground app) but cannot delete P2P with user approval: should fail
+     * - create NAN (foreground app) but can delete P2P with user approval: should succeed
      */
     @Test
-    public void testInterfaceCreationFlowIfD2dInterfacePriorityOverlayEnabled() throws Exception {
+    public void testInterfaceCreationFlowIfCanDeleteWithUserApproval() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
-        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
-                .thenReturn(true);
         mDut = new HalDeviceManagerSpy();
         ChipMockBase chipMock = new TestChipV2();
         chipMock.initialize();
@@ -749,18 +746,24 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         );
         collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
 
-        // Check if we can create a new P2P interface from foreground app: should fail.
+        // Create NAN interface from foreground app: should fail.
         when(mWorkSourceHelper1.getRequestorWsPriority())
                 .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
-        List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
-                HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_1);
-        assertNull("Should not create this P2P", p2pDetails);
-
-        // Create NAN interface from foreground app: should succeed.
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
+        assertNull("Should not create this NAN", nanDetails);
+        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1);
+        collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
+
+        // Can now delete P2P with user approval
+        when(mInterfaceConflictManager.needsUserApprovalToDelete(anyInt(), any(), anyInt(), any()))
+                .thenReturn(true);
+
+        // Can create NAN now.
+        nanDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
         assertNotNull("Should create this NAN", nanDetails);
-        WifiInterface nanIface = validateInterfaceSequence(chipMock,
+        nanIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV2.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
                 HDM_CREATE_IFACE_NAN,
@@ -772,130 +775,6 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 new InterfaceDestroyedListenerWithIfaceName(getName(p2pIface), nanDestroyedListener)
         );
         collector.checkThat("NAN was not created", nanIface, IsNull.notNullValue());
-
-        // Tear down the NAN interface.
-        mDut.removeIface(nanIface);
-        mTestLooper.dispatchAll();
-
-        // Create a new P2P interface from privileged app: should succeed.
-        p2pIface = validateInterfaceSequence(chipMock,
-                true, // chipModeValid
-                TestChipV2.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
-                HDM_CREATE_IFACE_P2P,
-                "wlan0",
-                TestChipV2.CHIP_MODE_ID,
-                null, // tearDownList
-                nanDestroyedListener, // destroyedListener
-                TEST_WORKSOURCE_0 // requestorWs
-        );
-        collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
-
-        // Check if we can create a new NAN interface from background app: should fail.
-        when(mWorkSourceHelper1.getRequestorWsPriority())
-                .thenReturn(WorkSourceHelper.PRIORITY_BG);
-        nanDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
-        assertNull("Should not create this NAN", nanDetails);
-    }
-
-    /**
-     * Tests that
-     * {@link HalDeviceManager#needsUserApprovalToDelete(int, WorkSource, int, WorkSource)} returns
-     * true on the following conditions:
-     * 1) Requested interface is AP, AP_BRIDGED, P2P, or NAN.
-     * 2) Existing interface is AP, AP_BRIDGED, P2P, or NAN (but not the same as the requested).
-     * 3) Requestor worksource has higher priority than PRIORITY_BG.
-     * 4) Existing worksource is not PRIORITY_INTERNAL.
-     */
-    @Test
-    public void testShouldShowDialogToDelete() throws Exception {
-        WorkSourceHelper newWsHelper = mock(WorkSourceHelper.class);
-        WorkSourceHelper oldWsHelper = mock(WorkSourceHelper.class);
-
-        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
-                .thenReturn(false);
-        mDut = new HalDeviceManagerSpy();
-
-        // No dialog if dialogs aren't enabled
-        when(newWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
-        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWsHelper,
-                HDM_CREATE_IFACE_AP, oldWsHelper));
-
-        when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
-                .thenReturn(true);
-        mDut = new HalDeviceManagerSpy();
-
-        // Should show dialog for appropriate types.
-
-        // Requesting AP
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWsHelper,
-                HDM_CREATE_IFACE_AP, oldWsHelper));
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWsHelper,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWsHelper,
-                HDM_CREATE_IFACE_NAN, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
-
-        // Requesting AP_BRIDGE
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
-                HDM_CREATE_IFACE_AP, oldWsHelper));
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
-                HDM_CREATE_IFACE_NAN, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
-
-        // Requesting P2P
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWsHelper,
-                HDM_CREATE_IFACE_AP, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWsHelper,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWsHelper,
-                HDM_CREATE_IFACE_NAN, oldWsHelper));
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
-
-        // Requesting NAN
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_AP, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_NAN, oldWsHelper));
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
-
-        // Foreground should show dialog over Privileged
-        when(newWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
-        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
-        assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
-
-        // Foreground should delete Internal without showing dialog
-        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_INTERNAL);
-        assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWsHelper,
-                HDM_CREATE_IFACE_P2P, oldWsHelper));
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
