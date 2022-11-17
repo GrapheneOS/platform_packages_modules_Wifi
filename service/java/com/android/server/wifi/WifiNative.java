@@ -79,6 +79,7 @@ import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -3471,12 +3472,73 @@ public class WifiNative {
      * Class to represent a connection MLO Link
      */
     public static class ConnectionMloLink {
-        public int linkId;
-        public MacAddress staMacAddress;
+        private int mLinkId;
+        private MacAddress mStaMacAddress;
+        private BitSet mTidsUplinkMap;
+        private BitSet mTidsDownlinkMap;
 
-        ConnectionMloLink() {
-            // Nothing for now
+        ConnectionMloLink(int id, MacAddress mac, byte tidsUplink, byte tidsDownlink) {
+            mLinkId = id;
+            mStaMacAddress = mac;
+            mTidsDownlinkMap = BitSet.valueOf(new byte[] { tidsDownlink });
+            mTidsUplinkMap = BitSet.valueOf(new byte[] { tidsUplink });
         };
+
+        /**
+         * Check if there is any TID mapped to this link in uplink of downlink direction.
+         *
+         * @return true if there is any TID mapped to this link, otherwise false.
+         */
+        public boolean isAnyTidMapped() {
+            if (mTidsDownlinkMap.isEmpty() && mTidsUplinkMap.isEmpty()) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * Check if a TID is mapped to this link in uplink direction.
+         *
+         * @param tid TID value.
+         * @return true if the TID is mapped in uplink direction. Otherwise, false.
+         */
+        public boolean isTidMappedToUplink(byte tid) {
+            if (tid < mTidsUplinkMap.length()) {
+                return mTidsUplinkMap.get(tid);
+            }
+            return false;
+        }
+
+        /**
+         * Check if a TID is mapped to this link in downlink direction. Otherwise, false.
+         *
+         * @param tid TID value
+         * @return true if the TID is mapped in downlink direction. Otherwise, false.
+         */
+        public boolean isTidMappedtoDownlink(byte tid) {
+            if (tid < mTidsDownlinkMap.length()) {
+                return mTidsDownlinkMap.get(tid);
+            }
+            return false;
+        }
+
+        /**
+         * Get link id for the link.
+         *
+         * @return link id.
+         */
+        public int getLinkId() {
+            return mLinkId;
+        }
+
+        /**
+         * Get link address.
+         *
+         * @return link mac address.
+         */
+        public MacAddress getMacAddress() {
+            return mStaMacAddress;
+        }
     }
 
     /**

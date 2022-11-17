@@ -1221,4 +1221,38 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     public int getInterfaceVersion() {
         return ISupplicantStaIfaceCallback.VERSION;
     }
+
+    private String getMloLinksInfoChangedReasonStr(int reason) {
+        switch (reason) {
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.TID_TO_LINK_MAP:
+                return "TID_TO_LINK_MAP";
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL:
+                return "MULTI_LINK_RECONFIG_AP_REMOVAL";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    private WifiMonitor.MloLinkInfoChangeReason convertMloLinkInfoChangedReason(int reason) {
+        switch (reason) {
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.TID_TO_LINK_MAP:
+                return WifiMonitor.MloLinkInfoChangeReason.TID_TO_LINK_MAP;
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL:
+                return WifiMonitor.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL;
+            default:
+                return WifiMonitor.MloLinkInfoChangeReason.UNKNOWN;
+        }
+    }
+
+    @Override
+    public void onMloLinksInfoChanged(int reason)
+            throws android.os.RemoteException {
+        synchronized (mLock) {
+            mStaIfaceHal.logCallback(
+                    "onMloLinksInfoChanged: reason " + Integer.toString(reason) + " ("
+                            + getMloLinksInfoChangedReasonStr(reason) + ")");
+            mWifiMonitor.broadcastMloLinksInfoChanged(mIfaceName,
+                    convertMloLinkInfoChangedReason(reason));
+        }
+    }
 }
