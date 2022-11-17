@@ -6426,8 +6426,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mVerboseLoggingEnabled) {
             mLog.info("setCarrierNetworkOffloadEnabled uid=%").c(Binder.getCallingUid()).flush();
         }
-        mWifiThreadRunner.post(() ->
-                mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(subscriptionId, merged, enabled));
+        mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(subscriptionId, merged, enabled);
     }
 
     /**
@@ -6440,8 +6439,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("isCarrierNetworkOffload uid=%").c(Binder.getCallingUid()).flush();
         }
 
-        return mWifiThreadRunner.call(()->
-                mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId, merged), true);
+        return mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId, merged);
     }
 
     /**

@@ -17,11 +17,13 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import android.util.SparseBooleanArray;
 import android.util.Xml;
 
 import com.android.internal.util.FastXmlSerializer;
@@ -49,8 +51,8 @@ public class WifiCarrierInfoStoreManagerDataTest {
     private WifiCarrierInfoStoreManagerData mWifiCarrierInfoStoreManagerData;
 
     private final Map<Integer, Boolean> mImsiPrivacyProtectionExemptionMap = new HashMap<>();
-    private final Map<Integer, Boolean> mMergedCarrierOffloadMap = new HashMap<>();
-    private final Map<Integer, Boolean> mUnmergedCarrierOffloadMap = new HashMap<>();
+    private final SparseBooleanArray mMergedCarrierOffloadMap = new SparseBooleanArray();
+    private final SparseBooleanArray mUnmergedCarrierOffloadMap = new SparseBooleanArray();
 
     @Before
     public void setUp() throws Exception {
@@ -126,25 +128,24 @@ public class WifiCarrierInfoStoreManagerDataTest {
     private void assertSerializeDeserialize() throws Exception {
         InOrder inOrder = inOrder(mDataSource);
         // Setup the data to serialize.
-        when(mDataSource.toSerializeMergedCarrierNetworkOffloadMap()).thenReturn(
+        when(mDataSource.getCarrierNetworkOffloadMap(true)).thenReturn(
                 mMergedCarrierOffloadMap);
-        when(mDataSource.toSerializeUnmergedCarrierNetworkOffloadMap())
+        when(mDataSource.getCarrierNetworkOffloadMap(false))
                 .thenReturn(mUnmergedCarrierOffloadMap);
 
         // Serialize/deserialize data.
         deserializeData(serializeData());
         inOrder.verify(mDataSource).serializeComplete();
         // Verify the deserialized data.
-        ArgumentCaptor<HashMap> deserializedMap =
-                ArgumentCaptor.forClass(HashMap.class);
+        ArgumentCaptor<SparseBooleanArray> deserializedMap =
+                ArgumentCaptor.forClass(SparseBooleanArray.class);
 
-        verify(mDataSource)
-                .fromMergedCarrierNetworkOffloadMapDeserialized(deserializedMap.capture());
+        verify(mDataSource).setCarrierNetworkOffloadMap(deserializedMap.capture(), eq(true));
         assertEquals(mMergedCarrierOffloadMap,
                 deserializedMap.getValue());
 
         verify(mDataSource)
-                .fromUnmergedCarrierNetworkOffloadMapDeserialized(deserializedMap.capture());
+                .setCarrierNetworkOffloadMap(deserializedMap.capture(), eq(false));
         assertEquals(mUnmergedCarrierOffloadMap,
                 deserializedMap.getValue());
     }
