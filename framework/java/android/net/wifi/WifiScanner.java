@@ -16,6 +16,8 @@
 
 package android.net.wifi;
 
+import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
+
 import android.Manifest;
 import android.annotation.CallbackExecutor;
 import android.annotation.IntDef;
@@ -244,16 +246,18 @@ public class WifiScanner {
      * @param band one of the WifiScanner#WIFI_BAND_* constants, e.g. {@link #WIFI_BAND_24_GHZ}
      * @return a list of all the frequencies, in MHz, for the given band(s) e.g. channel 1 is
      * 2412, or null if an error occurred.
-     *
-     * @hide
      */
-    @SystemApi
     @NonNull
-    @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
+    @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<Integer> getAvailableChannels(int band) {
         try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
             Bundle bundle = mService.getAvailableChannels(band, mContext.getOpPackageName(),
-                    mContext.getAttributionTag());
+                    mContext.getAttributionTag(), extras);
             List<Integer> channels = bundle.getIntegerArrayList(GET_AVAILABLE_CHANNELS_EXTRA);
             return channels == null ? new ArrayList<>() : channels;
         } catch (RemoteException e) {

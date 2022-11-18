@@ -137,6 +137,21 @@ package android.net.wifi {
     enum_constant public static final android.net.wifi.SupplicantState UNINITIALIZED;
   }
 
+  public final class WifiAvailableChannel implements android.os.Parcelable {
+    ctor public WifiAvailableChannel(int, int);
+    method public int describeContents();
+    method public int getFrequencyMhz();
+    method public int getOperationalModes();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiAvailableChannel> CREATOR;
+    field public static final int OP_MODE_SAP = 2; // 0x2
+    field public static final int OP_MODE_STA = 1; // 0x1
+    field public static final int OP_MODE_TDLS = 32; // 0x20
+    field public static final int OP_MODE_WIFI_AWARE = 16; // 0x10
+    field public static final int OP_MODE_WIFI_DIRECT_CLI = 4; // 0x4
+    field public static final int OP_MODE_WIFI_DIRECT_GO = 8; // 0x8
+  }
+
   @Deprecated public class WifiConfiguration implements android.os.Parcelable {
     ctor @Deprecated public WifiConfiguration();
     ctor @Deprecated public WifiConfiguration(@NonNull android.net.wifi.WifiConfiguration);
@@ -411,6 +426,7 @@ package android.net.wifi {
     method @Deprecated public boolean disconnect();
     method @Deprecated public boolean enableNetwork(int, boolean);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_MANAGED_PROVISIONING, android.Manifest.permission.NETWORK_CARRIER_PROVISIONING}, conditional=true) public void flushPasspointAnqpCache();
+    method @NonNull @RequiresPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES) public java.util.List<android.net.wifi.WifiAvailableChannel> getAllowedChannels(int, int);
     method @NonNull @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public java.util.List<android.net.wifi.WifiConfiguration> getCallerConfiguredNetworks();
     method @Deprecated @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_WIFI_STATE}) public java.util.List<android.net.wifi.WifiConfiguration> getConfiguredNetworks();
     method @Deprecated @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION}, conditional=true) public android.net.wifi.WifiInfo getConnectionInfo();
@@ -421,6 +437,7 @@ package android.net.wifi {
     method @Deprecated public java.util.List<android.net.wifi.hotspot2.PasspointConfiguration> getPasspointConfigurations();
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION}) public java.util.List<android.net.wifi.ScanResult> getScanResults();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public int getStaConcurrencyForMultiInternetMode();
+    method @NonNull @RequiresPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES) public java.util.List<android.net.wifi.WifiAvailableChannel> getUsableChannels(int, int);
     method public int getWifiState();
     method public boolean is24GHzBandSupported();
     method public boolean is5GHzBandSupported();
