@@ -206,7 +206,6 @@ public class WifiHalAidlImpl implements IWifiHal {
         synchronized (mLock) {
             if (!checkWifiAndLogFailure("stop")) return false;
             boolean result = stopInternal();
-            mWifi = null;
             return result;
         }
     }
