@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
 import com.android.server.wifi.util.XmlUtil;
@@ -51,14 +52,10 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
         /**
          * Retrieve the merged carrier network offload map from the data source to serialize to
          * disk.
+         *
+         * @param isMerged true for merged map, false for unmerged map.
          */
-        Map<Integer, Boolean> toSerializeMergedCarrierNetworkOffloadMap();
-
-        /**
-         * Retrieve the unmerged carrier network offload map from the data source to serialize to
-         * disk.
-         */
-        Map<Integer, Boolean> toSerializeUnmergedCarrierNetworkOffloadMap();
+        SparseBooleanArray getCarrierNetworkOffloadMap(boolean isMerged);
 
         /**
          * Should be called when serialize is completed.
@@ -69,16 +66,9 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
         /**
          * Set the merged carrier network offload map in the data source after deserialize them
          * from disk.
+         * @param isMerged true for merged map, false for unmerged map.
          */
-        void fromMergedCarrierNetworkOffloadMapDeserialized(
-                Map<Integer, Boolean> carrierOffloadMap);
-
-        /**
-         * Set the unmerged carrier network offload map in the data source after serializing them
-         * from disk.
-         */
-        void fromUnmergedCarrierNetworkOffloadMapDeserialized(
-                Map<Integer, Boolean> subscriptionOffloadMap);
+        void setCarrierNetworkOffloadMap(SparseBooleanArray carrierOffloadMap, boolean isMerged);
 
         /**
          * Clear internal data structure in preparation for user switch or initial store read.
@@ -104,9 +94,9 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
     public void serializeData(XmlSerializer out, WifiConfigStoreEncryptionUtil encryptionUtil)
             throws XmlPullParserException, IOException {
         XmlUtil.writeNextValue(out, XML_TAG_MERGED_CARRIER_NETWORK_OFFLOAD_MAP,
-                integerMapToStringMap(mDataSource.toSerializeMergedCarrierNetworkOffloadMap()));
+                sparseArrayToStringMap(mDataSource.getCarrierNetworkOffloadMap(true)));
         XmlUtil.writeNextValue(out, XML_TAG_UNMERGED_CARRIER_NETWORK_OFFLOAD_MAP,
-                integerMapToStringMap(mDataSource.toSerializeUnmergedCarrierNetworkOffloadMap()));
+                sparseArrayToStringMap(mDataSource.getCarrierNetworkOffloadMap(false)));
         mDataSource.serializeComplete();
     }
 
@@ -132,14 +122,14 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
             switch (valueName[0]) {
                 case XML_TAG_MERGED_CARRIER_NETWORK_OFFLOAD_MAP:
                     if (value instanceof Map) {
-                        mDataSource.fromMergedCarrierNetworkOffloadMapDeserialized(
-                                stringMapToIntegerMap((Map<String, Boolean>) value));
+                        mDataSource.setCarrierNetworkOffloadMap(
+                                stringMapToSparseArray((Map<String, Boolean>) value), true);
                     }
                     break;
                 case XML_TAG_UNMERGED_CARRIER_NETWORK_OFFLOAD_MAP:
                     if (value instanceof Map) {
-                        mDataSource.fromUnmergedCarrierNetworkOffloadMapDeserialized(
-                                stringMapToIntegerMap((Map<String, Boolean>) value));
+                        mDataSource.setCarrierNetworkOffloadMap(
+                                stringMapToSparseArray((Map<String, Boolean>) value), false);
                     }
                     break;
                 default:
@@ -151,19 +141,19 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
         }
     }
 
-    private Map<String, Boolean> integerMapToStringMap(Map<Integer, Boolean> input) {
+    private Map<String, Boolean> sparseArrayToStringMap(SparseBooleanArray input) {
         Map<String, Boolean> output = new HashMap<>();
         if (input == null) {
             return output;
         }
-        for (Map.Entry<Integer, Boolean> entry : input.entrySet()) {
-            output.put(Integer.toString(entry.getKey()), entry.getValue());
+        for (int i = 0; i < input.size(); i++) {
+            output.put(Integer.toString(input.keyAt(i)), input.valueAt(i));
         }
         return output;
     }
 
-    private Map<Integer, Boolean> stringMapToIntegerMap(Map<String, Boolean> input) {
-        Map<Integer, Boolean> output = new HashMap<>();
+    private SparseBooleanArray stringMapToSparseArray(Map<String, Boolean> input) {
+        SparseBooleanArray output = new SparseBooleanArray();
         if (input == null) {
             return output;
         }
