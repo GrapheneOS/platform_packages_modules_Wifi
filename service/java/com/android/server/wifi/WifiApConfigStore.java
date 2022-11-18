@@ -517,6 +517,7 @@ public class WifiApConfigStore {
      * Verify provided preSharedKey in ap config for WPA2_PSK/WPA3_SAE (Transition) network
      * meets requirements.
      */
+    @SuppressWarnings("ReturnValueIgnored")
     private static boolean validateApConfigAsciiPreSharedKey(
             @SoftApConfiguration.SecurityType int securityType, String preSharedKey) {
         final int sharedKeyLen = preSharedKey.length();

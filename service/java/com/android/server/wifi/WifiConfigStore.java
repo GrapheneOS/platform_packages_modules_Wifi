@@ -1026,9 +1026,8 @@ public class WifiConfigStore {
          * sections (for migration purposes), then override this method.
          * @return a set of section headers
          */
-        default HashSet<String> getSectionsToParse() {
-            //
-            return new HashSet<String>() {{ add(getName()); }};
+        default Set<String> getSectionsToParse() {
+            return Set.of(getName());
         }
 
         /**

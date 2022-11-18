@@ -63,7 +63,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -141,7 +141,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mWifiVendorHal.createApIface(any(), any(), anyInt(),
                 anyBoolean(), any())).thenReturn(IFACE_NAME_0);
         when(mWifiVendorHal.getBridgedApInstances(any())).thenReturn(
-                new ArrayList<String>() {{ add((IFACE_NAME_0)); }});
+                List.of(IFACE_NAME_0));
         when(mWifiVendorHal.removeStaIface(any())).thenReturn(true);
         when(mWifiVendorHal.removeApIface(any())).thenReturn(true);
         when(mWifiVendorHal.replaceStaIfaceRequestorWs(any(), any())).thenReturn(true);

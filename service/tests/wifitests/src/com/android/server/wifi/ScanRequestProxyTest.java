@@ -68,17 +68,13 @@ public class ScanRequestProxyTest extends WifiBaseTest {
     private static final int TEST_UID = 5;
     private static final String TEST_PACKAGE_NAME_1 = "com.test.1";
     private static final String TEST_PACKAGE_NAME_2 = "com.test.2";
-    private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST =
-            new ArrayList<HiddenNetwork>() {{
-                add(new HiddenNetwork("test_ssid_1"));
-                add(new HiddenNetwork("test_ssid_2"));
+    private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST = List.of(
+            new HiddenNetwork("test_ssid_1"),
+            new HiddenNetwork("test_ssid_2"));
 
-            }};
-    private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST_NS =
-            new ArrayList<HiddenNetwork>() {{
-                add(new HiddenNetwork("test_ssid_3"));
-                add(new HiddenNetwork("test_ssid_4"));
-            }};
+    private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST_NS = List.of(
+            new HiddenNetwork("test_ssid_3"),
+            new HiddenNetwork("test_ssid_4"));
 
     @Mock private Context mContext;
     @Mock private AppOpsManager mAppOps;

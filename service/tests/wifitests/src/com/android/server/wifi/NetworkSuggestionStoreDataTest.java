@@ -447,7 +447,7 @@ public class NetworkSuggestionStoreDataTest extends WifiBaseTest {
 
         // Old format with empty suggestion
         String preRFormatXml = String.format(
-                TEST_PRE_R_APP_WITH_EMPTY_SUGGESTION, TEST_PACKAGE_NAME_1, TEST_UID_1);
+                TEST_PRE_R_APP_WITH_EMPTY_SUGGESTION, TEST_PACKAGE_NAME_1);
         deserializeData(preRFormatXml.getBytes());
 
         // New format with empty suggestion
