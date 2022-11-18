@@ -209,6 +209,7 @@ public class DeviceConfigFacade {
     private boolean mP2pFailureBugreportEnabled;
     private boolean mApmEnhancementEnabled;
     private boolean mOobPseudonymEnabled;
+    private boolean mSoftwarePnoEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -388,6 +389,8 @@ public class DeviceConfigFacade {
                 "apm_enhancement_enabled", false);
         mOobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "oob_pseudonym_enabled", false);
+        mSoftwarePnoEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "software_pno_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -831,5 +834,12 @@ public class DeviceConfigFacade {
      */
     public boolean isOobPseudonymEnabled() {
         return mOobPseudonymEnabled;
+    }
+
+    /**
+     * Gets the feature flag for Software PNO
+     */
+    public boolean isSoftwarePnoEnabled() {
+        return mSoftwarePnoEnabled;
     }
 }
