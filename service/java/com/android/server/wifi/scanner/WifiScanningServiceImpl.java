@@ -377,16 +377,6 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     @Override
     public void stopScan(IWifiScannerListener listener, String packageName, String featureId) {
         int uid = Binder.getCallingUid();
-        try {
-            enforcePermission(uid, packageName, featureId,
-                    isPrivilegedMessage(WifiScanner.CMD_STOP_SINGLE_SCAN),
-                    false, false);
-        } catch (SecurityException e) {
-            localLog("stopScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
-            notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
-            return;
-        }
         mWifiThreadRunner.post(() -> {
             ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
             if (client == null) {
