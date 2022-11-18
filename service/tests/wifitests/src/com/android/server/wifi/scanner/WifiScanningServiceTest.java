@@ -107,7 +107,6 @@ import org.mockito.Spy;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -1851,10 +1850,9 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         scanResults.getRawScanResults()[1].timestamp = (currentTimeInMillis - 2) * 1000;
         scanResults.getRawScanResults()[2].timestamp =
                 (currentTimeInMillis - CACHED_SCAN_RESULTS_MAX_AGE_IN_MILLIS) * 1000;
-        List<ScanResult> expectedResults = new ArrayList<ScanResult>() {{
-                add(scanResults.getRawScanResults()[0]);
-                add(scanResults.getRawScanResults()[1]);
-            }};
+        List<ScanResult> expectedResults = List.of(
+                scanResults.getRawScanResults()[0],
+                scanResults.getRawScanResults()[1]);
 
         doSuccessfulSingleScan(requestSettings,
                 computeSingleScanNativeSettings(requestSettings), scanResults);

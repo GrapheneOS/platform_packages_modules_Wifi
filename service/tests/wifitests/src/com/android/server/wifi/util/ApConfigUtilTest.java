@@ -941,9 +941,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
                 mockSoftApCapability));
         // Reset client control
         testConfigBuilder.setClientControlByUserEnabled(false);
-        //
-        testConfigBuilder.setBlockedClientList(new ArrayList<>() {{
-                add(MacAddress.fromString("aa:bb:cc:dd:ee:ff")); }});
+        testConfigBuilder.setBlockedClientList(List.of(
+                MacAddress.fromString("aa:bb:cc:dd:ee:ff")));
         assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
                 mockSoftApCapability));
 

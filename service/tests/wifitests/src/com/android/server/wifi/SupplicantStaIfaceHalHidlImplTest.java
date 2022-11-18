@@ -118,11 +118,10 @@ import java.util.Random;
  */
 @SmallTest
 public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
-    private static final Map<Integer, String> NETWORK_ID_TO_SSID = new HashMap<Integer, String>() {{
-            put(1, "\"ssid1\"");
-            put(2, "\"ssid2\"");
-            put(3, "\"ssid3\"");
-        }};
+    private static final Map<Integer, String> NETWORK_ID_TO_SSID = Map.of(
+            1, "\"ssid1\"",
+            2, "\"ssid2\"",
+            3, "\"ssid3\"");
     private static final int SUPPLICANT_NETWORK_ID = 2;
     private static final String SUPPLICANT_SSID = NETWORK_ID_TO_SSID.get(SUPPLICANT_NETWORK_ID);
     private static final WifiSsid TRANSLATED_SUPPLICANT_SSID =

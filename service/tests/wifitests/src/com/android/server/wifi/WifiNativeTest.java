@@ -79,7 +79,6 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -155,27 +154,23 @@ public class WifiNativeTest extends WifiBaseTest {
     private static final WifiNl80211Manager.SignalPollResult SIGNAL_POLL_RESULT =
             new WifiNl80211Manager.SignalPollResult(-60, 12, 6, 5240);
 
-    private static final Set<Integer> SCAN_FREQ_SET =
-            new HashSet<Integer>() {{
-                add(2410);
-                add(2450);
-                add(5050);
-                add(5200);
-            }};
+    private static final Set<Integer> SCAN_FREQ_SET = Set.of(
+            2410,
+            2450,
+            5050,
+            5200);
+
     private static final String TEST_QUOTED_SSID_1 = "\"testSsid1\"";
     private static final String TEST_QUOTED_SSID_2 = "\"testSsid2\"";
     private static final int[] TEST_FREQUENCIES_1 = {};
     private static final int[] TEST_FREQUENCIES_2 = {2500, 5124};
-    private static final List<String> SCAN_HIDDEN_NETWORK_SSID_SET =
-            new ArrayList<String>() {{
-                add(TEST_QUOTED_SSID_1);
-                add(TEST_QUOTED_SSID_2);
-            }};
-    private static final List<byte[]> SCAN_HIDDEN_NETWORK_BYTE_SSID_SET =
-            new ArrayList<byte[]>() {{
-                add(NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(TEST_QUOTED_SSID_1)));
-                add(NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(TEST_QUOTED_SSID_2)));
-            }};
+    private static final List<String> SCAN_HIDDEN_NETWORK_SSID_SET = List.of(
+            TEST_QUOTED_SSID_1,
+            TEST_QUOTED_SSID_2);
+
+    private static final List<byte[]> SCAN_HIDDEN_NETWORK_BYTE_SSID_SET = List.of(
+            NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(TEST_QUOTED_SSID_1)),
+            NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(TEST_QUOTED_SSID_2)));
 
     private static final WifiNative.PnoSettings TEST_PNO_SETTINGS =
             new WifiNative.PnoSettings() {{

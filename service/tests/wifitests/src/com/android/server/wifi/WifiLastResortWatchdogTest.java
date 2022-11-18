@@ -293,7 +293,6 @@ public class WifiLastResortWatchdogTest extends WifiBaseTest {
                 Arrays.copyOfRange(isEphemeral, 0, 2));
         for (int i = 0; i < WifiLastResortWatchdog.MAX_BSSID_AGE - 1; i++) {
             mLastResortWatchdog.updateAvailableNetworks(candidates);
-            mLastResortWatchdog.toString();
             assertEquals(mLastResortWatchdog.getRecentAvailableNetworks().get(mBssids[0]).age, 0);
             assertEquals(mLastResortWatchdog.getRecentAvailableNetworks().get(mBssids[1]).age, 0);
             assertEquals(mLastResortWatchdog.getRecentAvailableNetworks().get(mBssids[2]).age,
@@ -306,7 +305,6 @@ public class WifiLastResortWatchdogTest extends WifiBaseTest {
         // One more buffering should age and cull candidates 2 & 3
         mLastResortWatchdog.updateAvailableNetworks(candidates);
         assertEquals(mLastResortWatchdog.getRecentAvailableNetworks().size(), 2);
-        mLastResortWatchdog.toString();
     };
 
     /**
