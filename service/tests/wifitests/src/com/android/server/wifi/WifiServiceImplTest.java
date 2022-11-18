@@ -3090,12 +3090,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ArrayList<>(Arrays.asList(scanResults));
         when(mScanRequestProxy.getScanResults()).thenReturn(scanResultList);
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 
@@ -3123,12 +3120,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
         List<ScanResult> scanResultList =
                 new ArrayList<>(Arrays.asList(scanResults));
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
+
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 
@@ -3159,12 +3154,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ArrayList<>(Arrays.asList(scanResults));
         when(mScanRequestProxy.getScanResults()).thenReturn(scanResultList);
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
+
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 

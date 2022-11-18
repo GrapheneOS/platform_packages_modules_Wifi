@@ -2357,10 +2357,9 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
 
         // Convert these to long to help with comparisons.
         MacAddress[] clients = capturedClients.getValue();
-        ArrayList<Long> expectedClients = new ArrayList<Long>() {{
-                add(NativeUtil.macAddressToLong(mGroupOwnerMacAddressBytes));
-                add(NativeUtil.macAddressToLong(mPeerMacAddressBytes));
-            }};
+        List<Long> expectedClients = List.of(
+                NativeUtil.macAddressToLong(mGroupOwnerMacAddressBytes),
+                NativeUtil.macAddressToLong(mPeerMacAddressBytes));
         ArrayList<Long> receivedClients = new ArrayList<Long>();
         for (MacAddress client : clients) {
             receivedClients.add(NativeUtil.macAddressToLong(client.data));
