@@ -41,6 +41,7 @@ android_test {
         // Then, the jarjar_rules here will perform the rename for the entire APK
         // i.e. service-wifi + test code
         "wifi-service-pre-jarjar",
+        "platform-compat-test-rules",
     ],
 
     jarjar_rules: ":wifi-jarjar-rules",

@@ -20,6 +20,7 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_GENERIC;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_NO_CHANNEL;
+import static android.net.wifi.WifiManager.NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE;
 import static android.net.wifi.WifiManager.PnoScanResultsCallback.REGISTER_PNO_CALLBACK_PNO_NOT_SUPPORTED;
 import static android.net.wifi.WifiManager.SAP_START_FAILURE_NO_CHANNEL;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLED;
@@ -58,6 +59,7 @@ import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.admin.DevicePolicyManager;
 import android.app.admin.WifiSsidPolicy;
+import android.app.compat.CompatChanges;
 import android.bluetooth.BluetoothAdapter;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
@@ -5268,9 +5270,15 @@ public class WifiServiceImpl extends BaseWifiService {
             final int nextStartIdx = Math.min(mStartIdx + mBatchNum, mConfigurations.size());
             for (int i = mStartIdx; i < nextStartIdx; i++) {
                 WifiConfiguration configuration = mConfigurations.get(i);
-                int networkId =
-                        mWifiConfigManager.addNetwork(configuration, mCallingUid)
-                                .getNetworkId();
+                int networkId;
+                if (CompatChanges.isChangeEnabled(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE,
+                        mCallingUid)) {
+                    networkId = mWifiConfigManager.addNetwork(configuration, mCallingUid)
+                            .getNetworkId();
+                } else {
+                    networkId = mWifiConfigManager.addOrUpdateNetwork(configuration, mCallingUid)
+                            .getNetworkId();
+                }
                 if (networkId == WifiConfiguration.INVALID_NETWORK_ID) {
                     Log.e(TAG, "Restore network failed: "
                             + configuration.getProfileKey() + ", network might already exist in the"
@@ -6426,8 +6434,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mVerboseLoggingEnabled) {
             mLog.info("setCarrierNetworkOffloadEnabled uid=%").c(Binder.getCallingUid()).flush();
         }
-        mWifiThreadRunner.post(() ->
-                mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(subscriptionId, merged, enabled));
+        mWifiCarrierInfoManager.setCarrierNetworkOffloadEnabled(subscriptionId, merged, enabled);
     }
 
     /**
@@ -6440,8 +6447,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("isCarrierNetworkOffload uid=%").c(Binder.getCallingUid()).flush();
         }
 
-        return mWifiThreadRunner.call(()->
-                mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId, merged), true);
+        return mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId, merged);
     }
 
     /**
