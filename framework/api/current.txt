@@ -288,6 +288,7 @@ package android.net.wifi {
     method public String getDomainSuffixMatch();
     method public int getEapMethod();
     method public String getIdentity();
+    method public int getMinimumTlsVersion();
     method public String getPassword();
     method public int getPhase2Method();
     method public String getPlmn();
@@ -309,6 +310,7 @@ package android.net.wifi {
     method public void setDomainSuffixMatch(String);
     method public void setEapMethod(int);
     method public void setIdentity(String);
+    method public void setMinimumTlsVersion(int) throws java.lang.IllegalArgumentException;
     method public void setPassword(String);
     method public void setPhase2Method(int);
     method public void setPlmn(String);
@@ -320,6 +322,10 @@ package android.net.wifi {
     field public static final String EXTRA_WAPI_AS_CERTIFICATE_NAME = "android.net.wifi.extra.WAPI_AS_CERTIFICATE_NAME";
     field public static final String EXTRA_WAPI_USER_CERTIFICATE_DATA = "android.net.wifi.extra.WAPI_USER_CERTIFICATE_DATA";
     field public static final String EXTRA_WAPI_USER_CERTIFICATE_NAME = "android.net.wifi.extra.WAPI_USER_CERTIFICATE_NAME";
+    field public static final int TLS_V1_0 = 0; // 0x0
+    field public static final int TLS_V1_1 = 1; // 0x1
+    field public static final int TLS_V1_2 = 2; // 0x2
+    field public static final int TLS_V1_3 = 3; // 0x3
     field public static final String WAPI_AS_CERTIFICATE = "WAPIAS_";
     field public static final String WAPI_USER_CERTIFICATE = "WAPIUSR_";
   }
@@ -464,6 +470,8 @@ package android.net.wifi {
     method public boolean isStaConcurrencyForLocalOnlyConnectionsSupported();
     method public boolean isStaConcurrencyForMultiInternetSupported();
     method public boolean isTdlsSupported();
+    method public boolean isTlsMinimumVersionSupported();
+    method public boolean isTlsV13Supported();
     method public boolean isTrustOnFirstUseSupported();
     method public boolean isWapiSupported();
     method public boolean isWifiDisplayR2Supported();
@@ -1039,6 +1047,7 @@ package android.net.wifi.hotspot2.pps {
     method public android.net.wifi.hotspot2.pps.Credential.CertificateCredential getCertCredential();
     method public java.security.cert.X509Certificate[] getClientCertificateChain();
     method public java.security.PrivateKey getClientPrivateKey();
+    method public int getMinimumTlsVersion();
     method public String getRealm();
     method public android.net.wifi.hotspot2.pps.Credential.SimCredential getSimCredential();
     method public android.net.wifi.hotspot2.pps.Credential.UserCredential getUserCredential();
@@ -1046,6 +1055,7 @@ package android.net.wifi.hotspot2.pps {
     method public void setCertCredential(android.net.wifi.hotspot2.pps.Credential.CertificateCredential);
     method public void setClientCertificateChain(java.security.cert.X509Certificate[]);
     method public void setClientPrivateKey(java.security.PrivateKey);
+    method public void setMinimumTlsVersion(int) throws java.lang.IllegalArgumentException;
     method public void setRealm(String);
     method public void setSimCredential(android.net.wifi.hotspot2.pps.Credential.SimCredential);
     method public void setUserCredential(android.net.wifi.hotspot2.pps.Credential.UserCredential);
