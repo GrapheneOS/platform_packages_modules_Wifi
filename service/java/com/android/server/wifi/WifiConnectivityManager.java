@@ -2131,6 +2131,8 @@ public class WifiConnectivityManager {
                 nsConfig.isSufficiencyCheckEnabledWhenScreenOn());
         mNetworkSelector.setUserConnectChoiceOverrideEnabled(
                 nsConfig.isUserConnectChoiceOverrideEnabled());
+        mNetworkSelector.setLastSelectionWeightEnabled(
+                nsConfig.isLastSelectionWeightEnabled());
     }
 
     /**

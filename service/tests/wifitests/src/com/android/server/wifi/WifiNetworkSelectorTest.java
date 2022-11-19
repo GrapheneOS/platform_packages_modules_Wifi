@@ -1361,6 +1361,61 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     }
 
     /**
+     * Tests last selection weight calculation returns 0.0 for the latest selected network
+     * when last selection weight is disabled
+     */
+    @Test
+    public void testLastSelectionWeightForLatestSelectedNetwork() {
+        String[] ssids = {"\"test1\"", "\"test2\""};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3", "6c:f3:7f:ae:8c:f4"};
+        int[] freqs = {2437, 5180};
+        String[] caps = {"[WPA2-PSK][ESS]", "[WPA2-PSK][ESS]"};
+        int[] levels = {mThresholdMinimumRssi2G + RSSI_BUMP, mThresholdMinimumRssi5G + RSSI_BUMP};
+        int[] securities = {SECURITY_PSK, SECURITY_PSK};
+        ScanDetailsAndWifiConfigs scanDetailsAndConfigs =
+                WifiNetworkSelectorTestUtil.setupScanDetailsAndConfigStore(ssids, bssids,
+                        freqs, caps, levels, securities, mWifiConfigManager, mClock);
+        List<ScanDetail> scanDetails = scanDetailsAndConfigs.getScanDetails();
+        WifiConfiguration[] wifiConfigs = scanDetailsAndConfigs.getWifiConfigs();
+        HashSet<String> blocklist = new HashSet<>();
+
+        // Set the latest selected network
+        WifiConfiguration latestSelection = wifiConfigs[0];
+        setupWifiConfigManager(latestSelection.networkId);
+        when(mWifiConfigManager.getLastSelectedTimeStamp())
+                .thenReturn(SystemClock.elapsedRealtime());
+
+        // Verify that the last selection weight for the latest selected network is greater than 0
+        List<WifiCandidates.Candidate> candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+
+        assertFalse(candidates.isEmpty());
+        for (WifiCandidates.Candidate candidate: candidates) {
+            if (candidate.getNetworkConfigId() == latestSelection.networkId) {
+                assertTrue(candidate.getLastSelectionWeight() > 0.0);
+            }
+        }
+
+        // Disable last selection weight
+        mWifiNetworkSelector.setLastSelectionWeightEnabled(false);
+
+        // Verify that the last selection weight for the latest selected network is 0
+        candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+
+        assertFalse(candidates.isEmpty());
+        for (WifiCandidates.Candidate candidate: candidates) {
+            if (candidate.getNetworkConfigId() == latestSelection.networkId) {
+                assertTrue(candidate.getLastSelectionWeight() == 0.0);
+            }
+        }
+    }
+
+    /**
      * Tests when multiple Nominators nominate the same candidate, any one of the nominator IDs is
      * acceptable.
      */

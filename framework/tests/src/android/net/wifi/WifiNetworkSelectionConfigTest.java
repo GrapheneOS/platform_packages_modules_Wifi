@@ -42,6 +42,8 @@ public class WifiNetworkSelectionConfigTest {
                 .setAssociatedNetworkSelectionOverride(
                         WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED)
                 .setSufficiencyCheckEnabledWhenScreenOff(false)
+                .setUserConnectChoiceOverrideEnabled(false)
+                .setLastSelectionWeightEnabled(false)
                 .build();
 
         Parcel parcelW = Parcel.obtain();
@@ -59,6 +61,8 @@ public class WifiNetworkSelectionConfigTest {
                 parcelConfig.getAssociatedNetworkSelectionOverride());
         assertFalse(parcelConfig.isSufficiencyCheckEnabledWhenScreenOff());
         assertTrue(parcelConfig.isSufficiencyCheckEnabledWhenScreenOn());
+        assertFalse(parcelConfig.isUserConnectChoiceOverrideEnabled());
+        assertFalse(parcelConfig.isLastSelectionWeightEnabled());
         assertEquals(config, parcelConfig);
         assertEquals(config.hashCode(), parcelConfig.hashCode());
     }
@@ -81,5 +85,7 @@ public class WifiNetworkSelectionConfigTest {
                 config.getAssociatedNetworkSelectionOverride());
         assertTrue(config.isSufficiencyCheckEnabledWhenScreenOff());
         assertTrue(config.isSufficiencyCheckEnabledWhenScreenOn());
+        assertTrue(config.isUserConnectChoiceOverrideEnabled());
+        assertTrue(config.isLastSelectionWeightEnabled());
     }
 }

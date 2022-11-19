@@ -840,6 +840,7 @@ package android.net.wifi {
   public final class WifiNetworkSelectionConfig implements android.os.Parcelable {
     method public int describeContents();
     method public int getAssociatedNetworkSelectionOverride();
+    method public boolean isLastSelectionWeightEnabled();
     method public boolean isSufficiencyCheckEnabledWhenScreenOff();
     method public boolean isSufficiencyCheckEnabledWhenScreenOn();
     method public boolean isUserConnectChoiceOverrideEnabled();
@@ -854,6 +855,7 @@ package android.net.wifi {
     ctor public WifiNetworkSelectionConfig.Builder();
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig build();
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setAssociatedNetworkSelectionOverride(int) throws java.lang.IllegalArgumentException;
+    method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setLastSelectionWeightEnabled(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setSufficiencyCheckEnabledWhenScreenOff(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setSufficiencyCheckEnabledWhenScreenOn(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setUserConnectChoiceOverrideEnabled(boolean);
