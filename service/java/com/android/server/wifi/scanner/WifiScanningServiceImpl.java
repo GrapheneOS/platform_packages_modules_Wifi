@@ -38,6 +38,7 @@ import android.net.wifi.WifiScanner.WifiBand;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -116,17 +117,30 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         }
     }
 
+    private boolean isPlatformOrTargetSdkLessThanU(String packageName, int uid) {
+        if (!SdkLevel.isAtLeastU()) {
+            return true;
+        }
+        return mWifiPermissionsUtil.isTargetSdkLessThan(packageName,
+                Build.VERSION_CODES.UPSIDE_DOWN_CAKE, uid);
+    }
+
     @Override
     public Bundle getAvailableChannels(@WifiBand int band, String packageName,
-            @Nullable String attributionTag) {
+            @Nullable String attributionTag, Bundle extras) {
         int uid = Binder.getCallingUid();
-        long ident = Binder.clearCallingIdentity();
-        try {
-            enforcePermission(uid, packageName, attributionTag, false, false, false);
-        } finally {
-            Binder.restoreCallingIdentity(ident);
+        if (isPlatformOrTargetSdkLessThanU(packageName, uid)) {
+            long ident = Binder.clearCallingIdentity();
+            try {
+                enforcePermission(uid, packageName, attributionTag, false, false, false);
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+        } else {
+            mWifiPermissionsUtil.enforceNearbyDevicesPermission(
+                    extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE),
+                    true, TAG + " getAvailableChannels");
         }
-
         ChannelSpec[][] channelSpecs = mWifiThreadRunner.call(() -> {
             if (mChannelHelper == null) return new ChannelSpec[0][0];
             mChannelHelper.updateChannels();
@@ -381,16 +395,6 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     @Override
     public void stopScan(IWifiScannerListener listener, String packageName, String featureId) {
         int uid = Binder.getCallingUid();
-        try {
-            enforcePermission(uid, packageName, featureId,
-                    isPrivilegedMessage(WifiScanner.CMD_STOP_SINGLE_SCAN),
-                    false, false);
-        } catch (SecurityException e) {
-            localLog("stopScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
-            notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
-            return;
-        }
         mWifiThreadRunner.post(() -> {
             ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
             if (client == null) {

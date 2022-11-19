@@ -24,6 +24,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
+import android.os.Process;
 
 import androidx.test.filters.SmallTest;
 
@@ -87,7 +88,7 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
 
         // Start and end Connection event.
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, null,
-                GroupEvent.GROUP_OWNER);
+                GroupEvent.GROUP_OWNER, 2000);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(1000L);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
@@ -99,13 +100,13 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_UNKNOWN,
-                0, 0));
+                0, 0, 2000));
 
         // Start and end Connection event.
         config.groupOwnerBand = 5210;
         when(mWifiInfo.getFrequency()).thenReturn(2412);
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, config,
-                GroupEvent.GROUP_OWNER);
+                GroupEvent.GROUP_OWNER, 2014);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(3000L);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
@@ -117,7 +118,7 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NONE,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__GROUP_ROLE__GROUP_OWNER,
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__BAND__BAND_FREQUENCY,
-                5210, 2412));
+                5210, 2412, 2014));
 
         // End Connection event without starting one.
         // this would create a new connection event immediately.
@@ -128,14 +129,14 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
         // Start two ConnectionEvents in a row.
         // The current active un-ended connection event is excluded.
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config,
-                GroupEvent.GROUP_OWNER);
+                GroupEvent.GROUP_OWNER, Process.SYSTEM_UID);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(3, stats.connectionEvent.length);
 
         // The last un-ended connection is ended.
         // The current active un-ended connection event is excluded.
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_REINVOKE, config,
-                GroupEvent.GROUP_OWNER);
+                GroupEvent.GROUP_OWNER, Process.SYSTEM_UID);
         stats = mWifiP2pMetrics.consolidateProto();
         assertEquals(4, stats.connectionEvent.length);
     }

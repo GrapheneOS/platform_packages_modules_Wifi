@@ -167,10 +167,10 @@ public class SoftApManagerTest extends WifiBaseTest {
     private SoftApInfo mTestSoftApInfoOnSecondInstance; // Use for briged Ap mode test case
     private Map<String, SoftApInfo> mTestSoftApInfoMap = new HashMap<>();
     private Map<String, List<WifiClient>> mTestWifiClientsMap = new HashMap<>();
-    private Map<String, List<WifiClient>> mTempConnectedClientListMap = new HashMap<>() {{
-            put(TEST_INTERFACE_NAME, new ArrayList());
-            put(TEST_FIRST_INSTANCE_NAME, new ArrayList());
-            put(TEST_SECOND_INSTANCE_NAME, new ArrayList()); }};
+    private Map<String, List<WifiClient>> mTempConnectedClientListMap = Map.of(
+            TEST_INTERFACE_NAME, new ArrayList(),
+            TEST_FIRST_INSTANCE_NAME, new ArrayList(),
+            TEST_SECOND_INSTANCE_NAME, new ArrayList());
     private SoftApCapability mTestSoftApCapability;
     private List<ClientModeManager> mTestClientModeManagers = new ArrayList<>();
 

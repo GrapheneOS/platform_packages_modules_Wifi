@@ -1067,9 +1067,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         expectedConfiguration.preSharedKey = WifiConfigurationTestUtil.TEST_PSK;
         expectedConfiguration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
 
-        ArrayList<WifiConfiguration> expectedConfigurations = new ArrayList<WifiConfiguration>() {{
-                add(expectedConfiguration);
-            }};
+        List<WifiConfiguration> expectedConfigurations = List.of(expectedConfiguration);
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
                 expectedConfigurations, retrievedConfigurations);
     }

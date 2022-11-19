@@ -237,6 +237,7 @@ public class HalDeviceManager {
      */
     public void stop() {
         stopWifi();
+        mWifiHal.invalidate();
     }
 
     /**

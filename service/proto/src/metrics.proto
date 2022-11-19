@@ -3046,6 +3046,9 @@ message P2pConnectionEvent {
 
   // STA mode channel frequency. 0 means unknown.
   optional int32 sta_frequency_mhz = 9;
+
+  // The uid of the app that initiates the connection.
+  optional int32 uid = 10;
 }
 
 // GroupEvent tracking group information from GroupStarted to GroupRemoved.

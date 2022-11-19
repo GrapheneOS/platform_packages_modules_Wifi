@@ -154,7 +154,6 @@ public class WifiHalHidlImpl implements IWifiHal {
             final String methodStr = "stop";
             boolean result = validateAndCall(methodStr, false,
                     () -> stopInternal(methodStr));
-            mWifi = null;
             return result;
         }
     }

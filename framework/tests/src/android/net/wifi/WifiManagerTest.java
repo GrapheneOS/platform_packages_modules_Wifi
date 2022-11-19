@@ -3573,7 +3573,7 @@ public class WifiManagerTest {
                 | WifiAvailableChannel.OP_MODE_WIFI_DIRECT_CLI;
         mWifiManager.getAllowedChannels(band, mode);
         verify(mWifiService).getUsableChannels(eq(band), eq(mode),
-                eq(WifiAvailableChannel.FILTER_REGULATORY));
+                eq(WifiAvailableChannel.FILTER_REGULATORY), eq(TEST_PACKAGE_NAME), any());
     }
 
     /**
@@ -3588,7 +3588,8 @@ public class WifiManagerTest {
         mWifiManager.getUsableChannels(band, mode);
         verify(mWifiService).getUsableChannels(eq(band), eq(mode),
                 eq(WifiAvailableChannel.FILTER_CONCURRENCY
-                    | WifiAvailableChannel.FILTER_CELLULAR_COEXISTENCE));
+                    | WifiAvailableChannel.FILTER_CELLULAR_COEXISTENCE),
+                eq(TEST_PACKAGE_NAME), any());
     }
 
     /**

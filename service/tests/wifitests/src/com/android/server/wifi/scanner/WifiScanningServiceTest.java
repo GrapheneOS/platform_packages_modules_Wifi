@@ -36,6 +36,7 @@ import static com.android.server.wifi.scanner.WifiScanningServiceImpl.WifiSingle
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
@@ -69,6 +70,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.WorkSource;
@@ -105,7 +107,6 @@ import org.mockito.Spy;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -148,6 +149,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
     PresetKnownBandsChannelHelper mChannelHelper1;
     TestLooper mLooper;
     WifiScanningServiceImpl mWifiScanningServiceImpl;
+    private Bundle mExtras = new Bundle();
 
     @Before
     public void setUp() throws Exception {
@@ -196,6 +198,11 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 anyInt(), eq(Binder.getCallingUid())))
                 .thenReturn(PERMISSION_GRANTED);
         when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
+        // Defaulting apps to target SDK level that's prior to U. This is needed to test for
+        // backward compatibility of API changes.
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(true);
         WifiLocalServices.removeServiceForTest(WifiScannerInternal.class);
         mWifiScanningServiceImpl = new WifiScanningServiceImpl(mContext, mLooper.getLooper(),
                 mWifiScannerImplFactory, mBatteryStats, mWifiInjector);
@@ -1843,10 +1850,9 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         scanResults.getRawScanResults()[1].timestamp = (currentTimeInMillis - 2) * 1000;
         scanResults.getRawScanResults()[2].timestamp =
                 (currentTimeInMillis - CACHED_SCAN_RESULTS_MAX_AGE_IN_MILLIS) * 1000;
-        List<ScanResult> expectedResults = new ArrayList<ScanResult>() {{
-                add(scanResults.getRawScanResults()[0]);
-                add(scanResults.getRawScanResults()[1]);
-            }};
+        List<ScanResult> expectedResults = List.of(
+                scanResults.getRawScanResults()[0],
+                scanResults.getRawScanResults()[1]);
 
         doSuccessfulSingleScan(requestSettings,
                 computeSingleScanNativeSettings(requestSettings), scanResults);
@@ -3357,6 +3363,44 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 mWifiScanningServiceImpl.isScanning());
     }
 
+    @Test
+    public void getAvailableChannels_noPermission_throwsException_After_U() {
+        assumeTrue(SdkLevel.isAtLeastU());
+        startServiceAndLoadDriver();
+
+        // verify app targeting prior to Android U can call API with location permission
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(true);
+        mWifiScanningServiceImpl.getAvailableChannels(WifiScanner.WIFI_BAND_24_GHZ,
+                TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras);
+
+        // Verify app targeting prior to Android U fails to call API without location permission
+        doThrow(new SecurityException()).when(mContext).enforcePermission(
+                eq(Manifest.permission.NETWORK_STACK), anyInt(), eq(Binder.getCallingUid()), any());
+        doThrow(new SecurityException())
+                .when(mWifiPermissionsUtil).enforceCanAccessScanResultsForWifiScanner(
+                        TEST_PACKAGE_NAME, TEST_FEATURE_ID, Binder.getCallingUid(), false, false);
+        assertThrows(SecurityException.class,
+                () -> mWifiScanningServiceImpl.getAvailableChannels(WifiScanner.WIFI_BAND_24_GHZ,
+                        TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras));
+
+        // Verify app targeting Android U no longer need location.
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(false);
+        mWifiScanningServiceImpl.getAvailableChannels(WifiScanner.WIFI_BAND_24_GHZ,
+                TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras);
+
+        // Verify app targeting Android U will fail without nearby permission
+        doThrow(new SecurityException())
+                .when(mWifiPermissionsUtil).enforceNearbyDevicesPermission(
+                        any(), anyBoolean(), any());
+        assertThrows(SecurityException.class,
+                () -> mWifiScanningServiceImpl.getAvailableChannels(WifiScanner.WIFI_BAND_24_GHZ,
+                        TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras));
+    }
+
     /**
      * Tests that {@link WifiScanningServiceImpl#getAvailableChannels(int, String)} throws a
      * {@link SecurityException} if the caller doesn't hold the required permissions.
@@ -3375,7 +3419,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 TEST_PACKAGE_NAME, TEST_FEATURE_ID, Binder.getCallingUid(), false, false);
 
         mWifiScanningServiceImpl.getAvailableChannels(WifiScanner.WIFI_BAND_24_GHZ,
-                TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+                TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras);
     }
 
     /**
@@ -3396,7 +3440,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
 
         mLooper.startAutoDispatch();
         Bundle bundle = mWifiScanningServiceImpl.getAvailableChannels(
-                WifiScanner.WIFI_BAND_24_GHZ, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+                WifiScanner.WIFI_BAND_24_GHZ, TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         List<Integer> actual = bundle.getIntegerArrayList(GET_AVAILABLE_CHANNELS_EXTRA);
 
@@ -3422,7 +3466,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
 
         mLooper.startAutoDispatch();
         Bundle bundle = mWifiScanningServiceImpl.getAvailableChannels(
-                WifiScanner.WIFI_BAND_24_GHZ, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+                WifiScanner.WIFI_BAND_24_GHZ, TEST_PACKAGE_NAME, TEST_FEATURE_ID, mExtras);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         List<Integer> actual = bundle.getIntegerArrayList(GET_AVAILABLE_CHANNELS_EXTRA);
 

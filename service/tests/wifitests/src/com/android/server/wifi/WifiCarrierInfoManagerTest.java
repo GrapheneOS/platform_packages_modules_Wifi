@@ -2025,9 +2025,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mContext.getPackageManager()).thenReturn(mockPackageManager);
         PackageInfo pi = new PackageInfo();
         pi.packageName = "com.example.app";
-        List<PackageInfo> pis = new ArrayList<>() {{
-                add(pi);
-            }};
+        List<PackageInfo> pis = List.of(pi);
         when(mockPackageManager.getPackagesHoldingPermissions(
                 eq(new String[] {android.Manifest.permission.NETWORK_CARRIER_PROVISIONING}),
                 anyInt())).thenReturn(pis);

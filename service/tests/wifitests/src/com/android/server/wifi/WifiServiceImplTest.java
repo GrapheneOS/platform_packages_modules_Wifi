@@ -570,10 +570,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .thenReturn(Collections.emptyList());
         when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(anyInt()))
                 .thenReturn(true);
-        // Defaulting apps to target SDK level that's prior to T. This is need for to test for
+        // Defaulting apps to target SDK level that's prior to T. This is needed to test for
         // backward compatibility of API changes.
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
                 eq(Build.VERSION_CODES.TIRAMISU), anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(true);
         when(mWifiInjector.getWifiCarrierInfoManager()).thenReturn(mWifiCarrierInfoManager);
         when(mWifiInjector.getOpenNetworkNotifier()).thenReturn(mOpenNetworkNotifier);
         when(mClientSoftApCallback.asBinder()).thenReturn(mAppBinder);
@@ -3176,12 +3179,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ArrayList<>(Arrays.asList(scanResults));
         when(mScanRequestProxy.getScanResults()).thenReturn(scanResultList);
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 
@@ -3209,12 +3209,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
         List<ScanResult> scanResultList =
                 new ArrayList<>(Arrays.asList(scanResults));
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
+
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 
@@ -3245,12 +3243,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ArrayList<>(Arrays.asList(scanResults));
         when(mScanRequestProxy.getScanResults()).thenReturn(scanResultList);
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
-        List<WifiNetworkSuggestion> matchingSuggestions = new ArrayList<>() {{
-                add(mockSuggestion);
-            }};
-        Map<WifiNetworkSuggestion, List<ScanResult>> result = new HashMap<>() {{
-                put(mockSuggestion, scanResultList);
-            }};
+        List<WifiNetworkSuggestion> matchingSuggestions = List.of(mockSuggestion);
+        Map<WifiNetworkSuggestion, List<ScanResult>> result = Map.of(
+                mockSuggestion, scanResultList);
+
         when(mWifiNetworkSuggestionsManager.getMatchingScanResults(eq(matchingSuggestions),
                 eq(scanResultList))).thenReturn(result);
 
@@ -9186,9 +9182,49 @@ public class WifiServiceImplTest extends WifiBaseTest {
         doThrow(new SecurityException()).when(mWifiPermissionsUtil)
                 .checkCallersHardwareLocationPermission(anyInt());
         try {
-            mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY);
+            mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY,
+                    TEST_PACKAGE_NAME, mExtras);
             fail("expected SecurityException");
         } catch (SecurityException expected) { }
+    }
+
+    @Test
+    public void testGetUsableChannelsThrowsSecurityExceptionOnMissingPermissionsAfterU() {
+        assumeTrue(SdkLevel.isAtLeastU());
+
+        // verify app targeting prior to Android U can call API with location permission
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
+                .thenReturn(true);
+
+        mLooper.startAutoDispatch();
+        mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY,
+                TEST_PACKAGE_NAME, mExtras);
+
+        // Verify app targeting prior to Android U fails to call API without location permission
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA,
+                        FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras));
+
+        // Verify app targeting Android U no longer need location.
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(any(),
+                eq(Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+                anyInt())).thenReturn(false);
+        mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY,
+                TEST_PACKAGE_NAME, mExtras);
+
+        // Verify app targeting Android U will fail without nearby permission
+        doThrow(new SecurityException())
+                .when(mWifiPermissionsUtil).enforceNearbyDevicesPermission(
+                        any(), anyBoolean(), any());
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA,
+                        FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras));
+        mLooper.stopAutoDispatch();
     }
 
     /**
@@ -9238,7 +9274,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
                 .thenReturn(true);
         try {
-            mWifiServiceImpl.getUsableChannels(WIFI_BAND_5_GHZ, OP_MODE_STA, FILTER_REGULATORY);
+            mWifiServiceImpl.getUsableChannels(WIFI_BAND_5_GHZ, OP_MODE_STA, FILTER_REGULATORY,
+                    TEST_PACKAGE_NAME, mExtras);
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException expected) {
         }
@@ -9254,7 +9291,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
                 .thenReturn(true);
         mLooper.startAutoDispatch();
-        mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY);
+        mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_STA, FILTER_REGULATORY,
+                TEST_PACKAGE_NAME, mExtras);
         mLooper.stopAutoDispatch();
         verify(mWifiNative).getUsableChannels(anyInt(), anyInt(), anyInt());
     }

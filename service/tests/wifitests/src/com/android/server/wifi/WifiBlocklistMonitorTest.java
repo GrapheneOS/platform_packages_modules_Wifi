@@ -1309,6 +1309,7 @@ public class WifiBlocklistMonitorTest {
     /**
      * Verify the failure reasons for all blocked BSSIDs are retrieved.
      */
+    @SuppressWarnings("ReturnValueIgnored")
     @Test
     public void testGetFailureReasonsForSsid() {
         WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
