@@ -94,6 +94,16 @@ public class WifiP2pConfig implements Parcelable {
     public @interface GroupOperatingBandType {}
 
     /**
+     * IP provisioning via IPv4 DHCP, when joining a group as a group client.
+     */
+    public static final int GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP = 0;
+
+    /**
+     * IP provisioning via IPv6 link-local, when joining a group as a group client.
+     */
+    public static final int GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL = 1;
+
+    /**
      * Allow the system to pick the operating frequency from all supported bands.
      */
     public static final int GROUP_OWNER_BAND_AUTO = 0;
@@ -137,6 +147,17 @@ public class WifiP2pConfig implements Parcelable {
      */
     @IntRange(from = 0, to = 15)
     public int groupOwnerIntent = GROUP_OWNER_INTENT_AUTO;
+
+    /** @hide */
+    @IntDef(prefix = { "GROUP_CLIENT_IP_PROVISIONING_MODE_" }, value = {
+            GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP,
+            GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface GroupClientIpProvisioningMode {}
+
+    @GroupClientIpProvisioningMode
+    private int mGroupClientIpProvisioningMode = GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP;
 
     /** @hide */
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
@@ -203,6 +224,17 @@ public class WifiP2pConfig implements Parcelable {
         }
     }
 
+    /**
+     * Get the IP provisioning mode when joining a group as a group client.
+     * The result will be one of the following:
+     * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP},
+     * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}
+     */
+    @GroupClientIpProvisioningMode
+    public int getGroupClientIpProvisioningMode() {
+        return mGroupClientIpProvisioningMode;
+    }
+
     public String toString() {
         StringBuffer sbuf = new StringBuffer();
         sbuf.append("\n address: ").append(deviceAddress);
@@ -213,6 +245,7 @@ public class WifiP2pConfig implements Parcelable {
         sbuf.append("\n passphrase: ").append(
                 TextUtils.isEmpty(passphrase) ? "<empty>" : "<non-empty>");
         sbuf.append("\n groupOwnerBand: ").append(groupOwnerBand);
+        sbuf.append("\n groupClientIpProvisioningMode: ").append(mGroupClientIpProvisioningMode);
         return sbuf.toString();
     }
 
@@ -231,6 +264,7 @@ public class WifiP2pConfig implements Parcelable {
             networkName = source.networkName;
             passphrase = source.passphrase;
             groupOwnerBand = source.groupOwnerBand;
+            mGroupClientIpProvisioningMode = source.mGroupClientIpProvisioningMode;
         }
     }
 
@@ -243,10 +277,12 @@ public class WifiP2pConfig implements Parcelable {
         dest.writeString(networkName);
         dest.writeString(passphrase);
         dest.writeInt(groupOwnerBand);
+        dest.writeInt(mGroupClientIpProvisioningMode);
     }
 
     /** Implement the Parcelable interface */
-    public static final @android.annotation.NonNull Creator<WifiP2pConfig> CREATOR =
+    @NonNull
+    public static final Creator<WifiP2pConfig> CREATOR =
         new Creator<WifiP2pConfig>() {
             public WifiP2pConfig createFromParcel(Parcel in) {
                 WifiP2pConfig config = new WifiP2pConfig();
@@ -257,6 +293,7 @@ public class WifiP2pConfig implements Parcelable {
                 config.networkName = in.readString();
                 config.passphrase = in.readString();
                 config.groupOwnerBand = in.readInt();
+                config.mGroupClientIpProvisioningMode = in.readInt();
                 return config;
             }
 
@@ -292,6 +329,7 @@ public class WifiP2pConfig implements Parcelable {
         private int mGroupOperatingBand = GROUP_OWNER_BAND_AUTO;
         private int mGroupOperatingFrequency = GROUP_OWNER_BAND_AUTO;
         private int mNetId = WifiP2pGroup.NETWORK_ID_TEMPORARY;
+        private int mGroupClientIpProvisioningMode = GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP;
 
         /**
          * Specify the peer's MAC address. If not set, the device will
@@ -307,7 +345,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder setDeviceAddress(@Nullable MacAddress deviceAddress) {
+        @NonNull
+        public Builder setDeviceAddress(@Nullable MacAddress deviceAddress) {
             if (deviceAddress == null) {
                 mDeviceAddress = MAC_ANY_ADDRESS;
             } else {
@@ -333,7 +372,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder setNetworkName(@NonNull String networkName) {
+        @NonNull
+        public Builder setNetworkName(@NonNull String networkName) {
             if (TextUtils.isEmpty(networkName)) {
                 throw new IllegalArgumentException(
                         "network name must be non-empty.");
@@ -366,7 +406,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder setPassphrase(@NonNull String passphrase) {
+        @NonNull
+        public Builder setPassphrase(@NonNull String passphrase) {
             if (TextUtils.isEmpty(passphrase)) {
                 throw new IllegalArgumentException(
                         "passphrase must be non-empty.");
@@ -411,7 +452,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder setGroupOperatingBand(@GroupOperatingBandType int band) {
+        @NonNull
+        public Builder setGroupOperatingBand(@GroupOperatingBandType int band) {
             switch (band) {
                 case GROUP_OWNER_BAND_AUTO:
                 case GROUP_OWNER_BAND_2GHZ:
@@ -452,7 +494,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder setGroupOperatingFrequency(int frequency) {
+        @NonNull
+        public Builder setGroupOperatingFrequency(int frequency) {
             if (frequency < 0) {
                 throw new IllegalArgumentException(
                     "Invalid group operating frequency!");
@@ -471,7 +514,8 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
-        public @NonNull Builder enablePersistentMode(boolean persistent) {
+        @NonNull
+        public Builder enablePersistentMode(boolean persistent) {
             if (persistent) {
                 mNetId = WifiP2pGroup.NETWORK_ID_PERSISTENT;
             } else {
@@ -481,10 +525,47 @@ public class WifiP2pConfig implements Parcelable {
         }
 
         /**
+         * Specify the IP provisioning mode when joining a group as a group client. The IP
+         * provisioning mode should be {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} or
+         * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
+         * <p>
+         * When joining a group as Group Client using {@link
+         * WifiP2pManager#connect(WifiP2pManager.Channel, WifiP2pConfig,
+         * WifiP2pManager.ActionListener)},
+         * specifying {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} directs the system to
+         * assign a IPv4 to the group client using DHCP. Specifying
+         * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL} directs the system to assign
+         * a link-local IPv6 to the group client.
+         * <p>
+         *     Optional. {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} by default.
+         *
+         * @param groupClientIpProvisioningMode the IP provisioning mode of the group client.
+         *             This should be one of {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP},
+         *             {@link #GROUP_OWNER_BAND_2GHZ}, {@link #GROUP_OWNER_BAND_5GHZ}.
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @NonNull
+        public Builder setGroupClientIpProvisioningMode(
+                @GroupClientIpProvisioningMode int groupClientIpProvisioningMode) {
+            switch (groupClientIpProvisioningMode) {
+                case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP:
+                case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL:
+                    mGroupClientIpProvisioningMode = groupClientIpProvisioningMode;
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            "Invalid constant for the group client IP provisioning mode!");
+            }
+            return this;
+        }
+
+        /**
          * Build {@link WifiP2pConfig} given the current requests made on the builder.
          * @return {@link WifiP2pConfig} constructed based on builder method calls.
          */
-        public @NonNull WifiP2pConfig build() {
+        @NonNull
+        public WifiP2pConfig build() {
             if ((TextUtils.isEmpty(mNetworkName) && !TextUtils.isEmpty(mPassphrase))
                     || (!TextUtils.isEmpty(mNetworkName) && TextUtils.isEmpty(mPassphrase))) {
                 throw new IllegalStateException(
@@ -512,6 +593,7 @@ public class WifiP2pConfig implements Parcelable {
                 config.groupOwnerBand = mGroupOperatingBand;
             }
             config.netId = mNetId;
+            config.mGroupClientIpProvisioningMode = mGroupClientIpProvisioningMode;
             return config;
         }
     }
