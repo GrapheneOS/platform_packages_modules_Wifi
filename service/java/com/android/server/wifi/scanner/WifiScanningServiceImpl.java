@@ -227,7 +227,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         try {
             enforcePermission(uid, packageName, featureId,
                     isPrivilegedMessage(WifiScanner.CMD_DEREGISTER_SCAN_LISTENER),
-                    false, false);
+                    true, false);
         } catch (SecurityException e) {
             localLog("unregisterScanListener: failed to authorize app: " + packageName + " uid "
                     + uid);
@@ -283,7 +283,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         try {
             enforcePermission(uid, packageName, featureId,
                     isPrivilegedMessage(WifiScanner.CMD_STOP_BACKGROUND_SCAN),
-                    false, false);
+                    true, false);
         } catch (SecurityException e) {
             localLog("stopBackgroundScan: failed to authorize app: " + packageName + " uid "
                     + uid);
@@ -377,6 +377,16 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     @Override
     public void stopScan(IWifiScannerListener listener, String packageName, String featureId) {
         int uid = Binder.getCallingUid();
+        try {
+            enforcePermission(uid, packageName, featureId,
+                    isPrivilegedMessage(WifiScanner.CMD_STOP_SINGLE_SCAN),
+                    true, false);
+        } catch (SecurityException e) {
+            localLog("stopScan: failed to authorize app: " + packageName + " uid "
+                    + uid);
+            notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
+            return;
+        }
         mWifiThreadRunner.post(() -> {
             ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
             if (client == null) {
@@ -443,7 +453,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         try {
             enforcePermission(uid, packageName, featureId,
                     isPrivilegedMessage(WifiScanner.CMD_STOP_PNO_SCAN),
-                    false, false);
+                    true, false);
         } catch (SecurityException e) {
             localLog("stopPnoScan: failed to authorize app: " + packageName + " uid "
                     + uid);
