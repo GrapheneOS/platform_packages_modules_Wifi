@@ -125,7 +125,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -3147,11 +3146,9 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertTrue(approvedAccessPointsMapToWrite.keySet().contains(TEST_PACKAGE_NAME_1));
         Set<AccessPoint> approvedAccessPointsToWrite =
                 approvedAccessPointsMapToWrite.get(TEST_PACKAGE_NAME_1);
-        Set<AccessPoint> expectedApprovedAccessPoints =
-                new HashSet<AccessPoint>() {{
-                    add(new AccessPoint(TEST_SSID_1, MacAddress.fromString(TEST_BSSID_1),
+        Set<AccessPoint> expectedApprovedAccessPoints = Set.of(
+                new AccessPoint(TEST_SSID_1, MacAddress.fromString(TEST_BSSID_1),
                             WifiConfiguration.SECURITY_TYPE_PSK));
-                }};
         assertEquals(expectedApprovedAccessPoints, approvedAccessPointsToWrite);
         // Ensure that the new data flag has been reset after read.
         assertFalse(mDataSource.hasNewDataToSerialize());
@@ -3164,11 +3161,9 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     public void testNetworkSpecifierUserApprovalConfigStoreLoad()
             throws Exception {
         Map<String, Set<AccessPoint>> approvedAccessPointsMapToRead = new HashMap<>();
-        Set<AccessPoint> approvedAccessPoints =
-                new HashSet<AccessPoint>() {{
-                    add(new AccessPoint(TEST_SSID_1, MacAddress.fromString(TEST_BSSID_1),
+        Set<AccessPoint> approvedAccessPoints = Set.of(
+                new AccessPoint(TEST_SSID_1, MacAddress.fromString(TEST_BSSID_1),
                             WifiConfiguration.SECURITY_TYPE_PSK));
-                }};
         approvedAccessPointsMapToRead.put(TEST_PACKAGE_NAME_1, approvedAccessPoints);
         mDataSource.fromDeserialized(approvedAccessPointsMapToRead);
 

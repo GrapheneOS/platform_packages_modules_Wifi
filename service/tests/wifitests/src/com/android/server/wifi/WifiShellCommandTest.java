@@ -167,16 +167,12 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"get-ipreach-disconnect"});
         verify(mWifiGlobals).getIpReachabilityDisconnectEnabled();
-        mWifiShellCommand.getOutPrintWriter().toString().contains(
-                "IPREACH_DISCONNECT state is true");
 
         when(mWifiGlobals.getIpReachabilityDisconnectEnabled()).thenReturn(false);
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"get-ipreach-disconnect"});
         verify(mWifiGlobals, times(2)).getIpReachabilityDisconnectEnabled();
-        mWifiShellCommand.getOutPrintWriter().toString().contains(
-                "IPREACH_DISCONNECT state is false");
     }
 
     @Test
@@ -219,8 +215,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"get-poll-rssi-interval-msecs"});
         verify(mWifiGlobals).getPollRssiIntervalMillis();
-        mWifiShellCommand.getOutPrintWriter().toString().contains(
-                "WifiGlobals.getPollRssiIntervalMillis() = 5");
     }
 
     @Test
@@ -348,7 +342,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"network-suggestions-has-user-approved", TEST_PACKAGE});
         verify(mWifiNetworkSuggestionsManager).hasUserApprovedForApp(TEST_PACKAGE);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("yes");
 
         when(mWifiNetworkSuggestionsManager.hasUserApprovedForApp(TEST_PACKAGE))
                 .thenReturn(false);
@@ -356,7 +349,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"network-suggestions-has-user-approved", TEST_PACKAGE});
         verify(mWifiNetworkSuggestionsManager, times(2)).hasUserApprovedForApp(TEST_PACKAGE);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("no");
     }
 
     @Test
@@ -405,7 +397,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"imsi-protection-exemption-has-user-approved-for-carrier", "5"});
         verify(mWifiCarrierInfoManager).hasUserApprovedImsiPrivacyExemptionForCarrier(5);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("yes");
 
         when(mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(5))
                 .thenReturn(false);
@@ -413,7 +404,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"imsi-protection-exemption-has-user-approved-for-carrier", "5"});
         verify(mWifiCarrierInfoManager, times(2)).hasUserApprovedImsiPrivacyExemptionForCarrier(5);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("no");
     }
 
     @Test
@@ -456,7 +446,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"network-requests-has-user-approved", TEST_PACKAGE});
         verify(mWifiNetworkFactory).hasUserApprovedApp(TEST_PACKAGE);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("yes");
 
         when(mWifiNetworkFactory.hasUserApprovedApp(TEST_PACKAGE))
                 .thenReturn(false);
@@ -464,7 +453,6 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"network-requests-has-user-approved", TEST_PACKAGE});
         verify(mWifiNetworkFactory, times(2)).hasUserApprovedApp(TEST_PACKAGE);
-        mWifiShellCommand.getOutPrintWriter().toString().contains("no");
     }
 
     @Test

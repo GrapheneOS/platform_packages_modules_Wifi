@@ -1142,7 +1142,7 @@ public class WifiMetricsTest extends WifiBaseTest {
 
 
         // Channel switch info should be added to the last Soft AP UP event in the list
-        mWifiMetrics.addSoftApChannelSwitchedEvent(new ArrayList<>() {{ add(testSoftApInfo_2G); }},
+        mWifiMetrics.addSoftApChannelSwitchedEvent(List.of(testSoftApInfo_2G),
                 WifiManager.IFACE_IP_MODE_TETHERED, false);
         SoftApConfiguration testSoftApConfig = new SoftApConfiguration.Builder()
                 .setSsid("Test_Metric_SSID")
@@ -1172,10 +1172,8 @@ public class WifiMetricsTest extends WifiBaseTest {
         // Bridged mode test, total NUM_SOFT_AP_EVENT_ENTRIES_FOR_BRIDGED_AP events for bridged mode
         mWifiMetrics.addSoftApUpChangedEvent(true, WifiManager.IFACE_IP_MODE_TETHERED,
                 SOFT_AP_SHUTDOWN_TIMEOUT_DEFAULT_SETTING, true);
-        mWifiMetrics.addSoftApChannelSwitchedEvent(new ArrayList<>() {{
-                    add(testSoftApInfo_2G);
-                    add(testSoftApInfo_5G);
-                }},
+        mWifiMetrics.addSoftApChannelSwitchedEvent(
+                List.of(testSoftApInfo_2G, testSoftApInfo_5G),
                 WifiManager.IFACE_IP_MODE_TETHERED, true);
 
         mWifiMetrics.updateSoftApConfiguration(testSoftApConfig,
@@ -5046,19 +5044,17 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiNetworkSuggestionsManager.APP_TYPE_NETWORK_PROVISIONING);
 
 
-        mWifiMetrics.noteNetworkSuggestionApiListSizeHistogram(new ArrayList<Integer>() {{
-                add(5);
-                add(100);
-                add(50);
-                add(120);
-            }});
+        mWifiMetrics.noteNetworkSuggestionApiListSizeHistogram(List.of(
+                5,
+                100,
+                50,
+                120));
         // Second update should overwrite the prevous write.
-        mWifiMetrics.noteNetworkSuggestionApiListSizeHistogram(new ArrayList<Integer>() {{
-                add(7);
-                add(110);
-                add(40);
-                add(60);
-            }});
+        mWifiMetrics.noteNetworkSuggestionApiListSizeHistogram(List.of(
+                7,
+                110,
+                40,
+                60));
 
         mWifiMetrics.incrementNetworkSuggestionUserRevokePermission();
         mWifiMetrics.incrementNetworkSuggestionUserRevokePermission();

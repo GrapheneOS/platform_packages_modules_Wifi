@@ -497,10 +497,9 @@ public class WakeupControllerTest extends WifiBaseTest {
                         unknownScanResult));
 
         // intersection of most recent scan + saved configs/suggestions
-        Set<ScanResultMatchInfo> expectedMatchInfos = new HashSet<ScanResultMatchInfo>() {{
-                    add(ScanResultMatchInfo.fromScanResult(savedScanResult));
-                    add(ScanResultMatchInfo.fromScanResult(suggestionScanResult));
-                }};
+        Set<ScanResultMatchInfo> expectedMatchInfos = Set.of(
+                ScanResultMatchInfo.fromScanResult(savedScanResult),
+                ScanResultMatchInfo.fromScanResult(suggestionScanResult));
 
         initializeWakeupController(true /* enabled */);
         mWakeupController.start();

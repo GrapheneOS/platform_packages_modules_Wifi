@@ -943,20 +943,6 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 saeNetwork.shared, saeNetwork.creatorUid,
                 saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress());
 
-        saeNetworkWithOpenAuthXml.replaceAll("name=\"AllowedAuthAlgos\" num=\"0\"></byte-array>",
-                "<name=\"AllowedAuthAlgos\" num=\"1\">01</byte-array>");
-
-        saeNetworkWithOpenAuthXml.replaceAll("name=\"AllowedProtocols\" num=\"1\">02</byte-array>",
-                "name=\"AllowedProtocols\" num=\"1\">03</byte-array>");
-
-        saeNetworkWithOpenAuthXml.replaceAll(
-                "name=\"AllowedGroupCiphers\" num=\"1\">28</byte-array>",
-                "name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>");
-
-        saeNetworkWithOpenAuthXml.replaceAll(
-                "name=\"AllowedPairwiseCiphers\" num=\"1\">0c</byte-array>",
-                "name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>");
-
         List<WifiConfiguration> retrievedNetworkList =
                 deserializeData(saeNetworkWithOpenAuthXml.getBytes(StandardCharsets.UTF_8));
 
@@ -1006,7 +992,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         pskNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         pskNetwork.creatorName = TEST_CREATOR_NAME;
         String invalidConfigKey = pskNetwork.getKey();
-        invalidConfigKey.replace("WPA_PSK", "NONE");
+        invalidConfigKey = invalidConfigKey.replace("WPA_PSK", "NONE");
         // XML data has 2 things that needs to be corrected:
         // - ConfigKey is set to "SSID"NONE instead of "SSID"WPA_PSK
         // - KeyMgmt has KeyMgmt.OSEN bit set instead of KeyMgmt.WPA_PSK

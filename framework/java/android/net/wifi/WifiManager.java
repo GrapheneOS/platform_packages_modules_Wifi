@@ -9589,6 +9589,13 @@ public class WifiManager {
      * mode(s), that is allowed for the current regulatory domain. An empty list implies that there
      * are no available channels for use.
      *
+     * Note: the {@code band} parameter which is specified as a {@code WifiScanner#WIFI_BAND_*}
+     * constant is limited to one of the band values specified below. Specifically, if the 5GHz
+     * band is included then it must include the DFS channels - an exception will be thrown
+     * otherwise. The caller should not make any assumptions about whether DFS channels are allowed.
+     * This API will indicate whether DFS channels are allowed for the specified operation mode(s)
+     * per device policy.
+     *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
      *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED} - no band specified; Looks for the
@@ -9607,12 +9614,10 @@ public class WifiManager {
      * @throws UnsupportedOperationException - if this API is not supported on this device
      *         or IllegalArgumentException - if the band specified is not one among the list
      *         of bands mentioned above.
-     * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
-    @SystemApi
     @NonNull
-    @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
+    @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getAllowedChannels(
             @WifiScanner.WifiBand int band,
             @WifiAvailableChannel.OpMode int mode) {
@@ -9620,8 +9625,13 @@ public class WifiManager {
             throw new UnsupportedOperationException();
         }
         try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
             return mService.getUsableChannels(band, mode,
-                    WifiAvailableChannel.FILTER_REGULATORY);
+                    WifiAvailableChannel.FILTER_REGULATORY, mContext.getOpPackageName(), extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -9633,6 +9643,13 @@ public class WifiManager {
      * state and interference due to other radios. An empty list implies that there are no available
      * channels for use.
      *
+     * Note: the {@code band} parameter which is specified as a {@code WifiScanner#WIFI_BAND_*}
+     * constant is limited to one of the band values specified below. Specifically, if the 5GHz
+     * band is included then it must include the DFS channels - an exception will be thrown
+     * otherwise. The caller should not make any assumptions about whether DFS channels are allowed.
+     * This API will indicate whether DFS channels are allowed for the specified operation mode(s)
+     * per device policy.
+     *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
      *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED} - no band specified; Looks for the
@@ -9651,12 +9668,10 @@ public class WifiManager {
      * @throws UnsupportedOperationException - if this API is not supported on this device
      *         or IllegalArgumentException - if the band specified is not one among the list
      *         of bands mentioned above.
-     * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
-    @SystemApi
     @NonNull
-    @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
+    @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getUsableChannels(
             @WifiScanner.WifiBand int band,
             @WifiAvailableChannel.OpMode int mode) {
@@ -9664,8 +9679,13 @@ public class WifiManager {
             throw new UnsupportedOperationException();
         }
         try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
             return mService.getUsableChannels(band, mode,
-                    WifiAvailableChannel.getUsableFilter());
+                    WifiAvailableChannel.getUsableFilter(), mContext.getOpPackageName(), extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
