@@ -32,6 +32,7 @@ import android.hardware.wifi.supplicant.OcspType;
 import android.hardware.wifi.supplicant.PairwiseCipherMask;
 import android.hardware.wifi.supplicant.ProtoMask;
 import android.hardware.wifi.supplicant.SaeH2eMode;
+import android.hardware.wifi.supplicant.TlsVersion;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
@@ -107,6 +108,7 @@ public class SupplicantStaNetworkHalAidlImpl {
     private final WifiGlobals mWifiGlobals;
     private ISupplicantStaNetwork mISupplicantStaNetwork;
     private ISupplicantStaNetworkCallback mISupplicantStaNetworkCallback;
+    private int mServiceVersion;
 
     private boolean mVerboseLoggingEnabled = false;
     // Network variables read from wpa_supplicant.
@@ -145,16 +147,29 @@ public class SupplicantStaNetworkHalAidlImpl {
     private @WifiEnterpriseConfig.Ocsp int mOcsp;
     private String mWapiCertSuite;
     private long mAdvanceKeyMgmtFeatures;
+    private long mWpaDriverFeatures;
 
-    SupplicantStaNetworkHalAidlImpl(ISupplicantStaNetwork staNetwork, String ifaceName,
+    SupplicantStaNetworkHalAidlImpl(int serviceVersion,
+            ISupplicantStaNetwork staNetwork, String ifaceName,
             Context context, WifiMonitor monitor, WifiGlobals wifiGlobals,
-            long advanceKeyMgmtFeature) {
+            long advanceKeyMgmtFeature, long wpaDriverFeatures) {
+        mServiceVersion = serviceVersion;
         mISupplicantStaNetwork = staNetwork;
         mContext = context;
         mIfaceName = ifaceName;
         mWifiMonitor = monitor;
         mWifiGlobals = wifiGlobals;
         mAdvanceKeyMgmtFeatures = advanceKeyMgmtFeature;
+        mWpaDriverFeatures = wpaDriverFeatures;
+    }
+
+    /**
+     * Check that the service is running at least the expected version.
+     * Use to avoid the case where the framework is using a newer
+     * interface version than the service.
+     */
+    private boolean isServiceVersionIsAtLeast(int expectedVersion) {
+        return expectedVersion <= mServiceVersion;
     }
 
     /**
@@ -827,8 +842,30 @@ public class SupplicantStaNetworkHalAidlImpl {
                     return false;
                 }
             }
+            if (isServiceVersionIsAtLeast(2)) {
+                if (!setMinimumTlsVersionEapPhase1Param(getOptimalMinimumTlsVersion(eapConfig))) {
+                    Log.e(TAG, "Failed to set the minimum TLS version");
+                    return false;
+                }
+            }
             return true;
         }
+    }
+
+    private int getOptimalMinimumTlsVersion(WifiEnterpriseConfig enterpriseConfig) {
+        int maxTlsVersionSupported = WifiEnterpriseConfig.TLS_V1_2;
+        if ((mWpaDriverFeatures & WifiManager.WIFI_FEATURE_TLS_V1_3) != 0) {
+            maxTlsVersionSupported = WifiEnterpriseConfig.TLS_V1_3;
+        }
+
+        int requiredMinimumTlsVersion = enterpriseConfig.getMinimumTlsVersion();
+        if (requiredMinimumTlsVersion > maxTlsVersionSupported) {
+            Log.w(TAG, "The required minimum TLS version " + requiredMinimumTlsVersion
+                    + " exceeds the maximum supported TLS version " + maxTlsVersionSupported
+                    + ", fallback to the maximum supported TLS version.");
+            return maxTlsVersionSupported;
+        }
+        return requiredMinimumTlsVersion;
     }
 
     /**
@@ -3682,6 +3719,51 @@ public class SupplicantStaNetworkHalAidlImpl {
             try {
                 mISupplicantStaNetwork
                         .setRoamingConsortiumSelection(rcoiToByteArray(selectedRcoi));
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    private int frameworkToAidlTlsVersion(@WifiEnterpriseConfig.TlsVersion int tlsVersion) {
+        switch (tlsVersion) {
+            case WifiEnterpriseConfig.TLS_V1_3:
+                return TlsVersion.TLS_V1_3;
+            case WifiEnterpriseConfig.TLS_V1_2:
+                return TlsVersion.TLS_V1_2;
+            case WifiEnterpriseConfig.TLS_V1_1:
+                return TlsVersion.TLS_V1_1;
+            case WifiEnterpriseConfig.TLS_V1_0:
+                return TlsVersion.TLS_V1_0;
+            default:
+                Log.e(TAG, "Invalid TLS version: " + tlsVersion);
+                return -1;
+        }
+    }
+
+    /**
+     * Enable TLS V1.3 in EAP Phase1
+     *
+     * @param tlsVersion the TLS version
+     * @return true if successful, false otherwise
+     */
+    private boolean setMinimumTlsVersionEapPhase1Param(
+            @WifiEnterpriseConfig.TlsVersion int tlsVersion) {
+        synchronized (mLock) {
+            final String methodStr = "setMinimumTlsVersionEapPhase1Param";
+            if (!checkStaNetworkAndLogFailure(methodStr)) {
+                return false;
+            }
+            int aidlTlsVersion = frameworkToAidlTlsVersion(tlsVersion);
+            if (aidlTlsVersion < 0) {
+                return false;
+            }
+            try {
+                mISupplicantStaNetwork.setMinimumTlsVersionEapPhase1Param(aidlTlsVersion);
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);

@@ -1431,6 +1431,7 @@ public class XmlUtil {
         public static final String XML_TAG_DECORATED_IDENTITY_PREFIX = "DecoratedIdentityPrefix";
         public static final String XML_TAG_TRUST_ON_FIRST_USE = "TrustOnFirstUse";
         public static final String XML_TAG_USER_APPROVE_NO_CA_CERT = "UserApproveNoCaCert";
+        public static final String XML_TAG_MINIMUM_TLS_VERSION = "MinimumTlsVersion";
 
         /**
          * Write password key to the XML stream.
@@ -1518,6 +1519,8 @@ public class XmlUtil {
                     enterpriseConfig.isTrustOnFirstUseEnabled());
             XmlUtil.writeNextValue(out, XML_TAG_USER_APPROVE_NO_CA_CERT,
                     enterpriseConfig.isUserApproveNoCaCert());
+            XmlUtil.writeNextValue(out, XML_TAG_MINIMUM_TLS_VERSION,
+                    enterpriseConfig.getMinimumTlsVersion());
         }
 
         /**
@@ -1639,6 +1642,9 @@ public class XmlUtil {
                             break;
                         case XML_TAG_USER_APPROVE_NO_CA_CERT:
                             enterpriseConfig.setUserApproveNoCaCert((boolean) value);
+                            break;
+                        case XML_TAG_MINIMUM_TLS_VERSION:
+                            enterpriseConfig.setMinimumTlsVersion((int) value);
                             break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);

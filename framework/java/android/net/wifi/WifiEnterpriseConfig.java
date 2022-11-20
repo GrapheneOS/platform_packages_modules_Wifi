@@ -246,6 +246,39 @@ public class WifiEnterpriseConfig implements Parcelable {
      */
     private static final List<String> UNQUOTED_KEYS = Arrays.asList(ENGINE_KEY, OPP_KEY_CACHING,
                                                                     EAP_ERP);
+    /** Constant definition for TLS v1.0 which is used in {@link #setMinimumTlsVersion(int)} */
+    public static final int TLS_V1_0 = 0;
+
+    /** Constant definition for TLS v1.1 which is used in {@link #setMinimumTlsVersion(int)} */
+    public static final int TLS_V1_1 = 1;
+
+    /** Constant definition for TLS v1.2 which is used in {@link #setMinimumTlsVersion(int)} */
+    public static final int TLS_V1_2 = 2;
+
+    /** Constant definition for TLS v1.3 which is used in {@link #setMinimumTlsVersion(int)} */
+    public static final int TLS_V1_3 = 3;
+
+    /**
+     * The minimum valid value for a TLS version.
+     * @hide
+     */
+    public static final int TLS_VERSION_MIN = TLS_V1_0;
+
+    /**
+     * The maximum valid value for a TLS version.
+     * @hide
+     */
+    public static final int TLS_VERSION_MAX = TLS_V1_3;
+
+    /** @hide */
+    @IntDef(prefix = {"TLS_"}, value = {
+            TLS_V1_0,
+            TLS_V1_1,
+            TLS_V1_2,
+            TLS_V1_3
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface TlsVersion {}
 
     @UnsupportedAppUsage
     private HashMap<String, String> mFields = new HashMap<String, String>();
@@ -259,6 +292,8 @@ public class WifiEnterpriseConfig implements Parcelable {
     private String mKeyChainAlias;
     private boolean mIsTrustOnFirstUseEnabled = false;
     private boolean mUserApproveNoCaCert = false;
+    // Default is 1.0, i.e. accept any TLS version.
+    private int mMinimumTlsVersion = TLS_V1_0;
 
     // Not included in parceling, hashing, or equality because it is an internal, temporary value
     // which is valid only during an actual connection to a Passpoint network with an RCOI-based
@@ -313,6 +348,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         mIsTrustOnFirstUseEnabled = source.mIsTrustOnFirstUseEnabled;
         mUserApproveNoCaCert = source.mUserApproveNoCaCert;
         mSelectedRcoi = source.mSelectedRcoi;
+        mMinimumTlsVersion = source.mMinimumTlsVersion;
     }
 
     /**
@@ -362,6 +398,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         dest.writeInt(mOcsp);
         dest.writeBoolean(mIsTrustOnFirstUseEnabled);
         dest.writeBoolean(mUserApproveNoCaCert);
+        dest.writeInt(mMinimumTlsVersion);
     }
 
     public static final @android.annotation.NonNull Creator<WifiEnterpriseConfig> CREATOR =
@@ -387,6 +424,7 @@ public class WifiEnterpriseConfig implements Parcelable {
                     enterpriseConfig.mOcsp = in.readInt();
                     enterpriseConfig.mIsTrustOnFirstUseEnabled = in.readBoolean();
                     enterpriseConfig.mUserApproveNoCaCert = in.readBoolean();
+                    enterpriseConfig.mMinimumTlsVersion = in.readInt();
                     return enterpriseConfig;
                 }
 
@@ -1409,6 +1447,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         sb.append(" trust_on_first_use: ").append(mIsTrustOnFirstUseEnabled).append("\n");
         sb.append(" user_approve_no_ca_cert: ").append(mUserApproveNoCaCert).append("\n");
         sb.append(" selected_rcoi: ").append(mSelectedRcoi).append("\n");
+        sb.append(" minimum_tls_version: ").append(mMinimumTlsVersion).append("\n");
         return sb.toString();
     }
 
@@ -1736,4 +1775,32 @@ public class WifiEnterpriseConfig implements Parcelable {
         return mUserApproveNoCaCert;
     }
 
+    /**
+     * Set the minimum TLS version for TLS-based EAP methods.
+     *
+     * {@link WifiManager#isTlsMinimumVersionSupported()} indicates whether or not a minimum
+     * TLS version can be set. If not supported, the minimum TLS version is always TLS v1.0.
+     * <p>
+     * {@link WifiManager#isTlsV13Supported()} indicates whether or not TLS v1.3 is supported.
+     * If requested minimum is not supported, it will default to the maximum supported version.
+     *
+     * @param tlsVersion the TLS version
+     * @throws IllegalArgumentException if the TLS version is invalid.
+     */
+    public void setMinimumTlsVersion(@TlsVersion int tlsVersion) throws IllegalArgumentException {
+        if (tlsVersion < TLS_VERSION_MIN || tlsVersion > TLS_VERSION_MAX) {
+            throw new IllegalArgumentException(
+                    "Invalid TLS version: " + tlsVersion);
+        }
+        mMinimumTlsVersion = tlsVersion;
+    }
+
+    /**
+     * Get the minimum TLS version for TLS-based EAP methods.
+     *
+     * @return the TLS version
+     */
+    public @TlsVersion int getMinimumTlsVersion() {
+        return mMinimumTlsVersion;
+    }
 }

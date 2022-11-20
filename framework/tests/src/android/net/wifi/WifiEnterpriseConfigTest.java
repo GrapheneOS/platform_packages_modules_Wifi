@@ -754,4 +754,38 @@ public class WifiEnterpriseConfigTest {
 
         mEnterpriseConfig.setCaCertificateForTrustOnFirstUse(mockCert);
     }
+
+    /**
+     * Verify setMinimumTlsVersion sunny cases.
+     */
+    @Test
+    public void testSetMinimumTlsVersionWithValidValues() throws Exception {
+        for (int i = WifiEnterpriseConfig.TLS_VERSION_MIN;
+                i <= WifiEnterpriseConfig.TLS_VERSION_MAX; i++) {
+            mEnterpriseConfig.setMinimumTlsVersion(i);
+            assertEquals(i, mEnterpriseConfig.getMinimumTlsVersion());
+        }
+    }
+
+    /**
+     * Verify that setMinimumTlsVersion() raises IllegalArgumentException when
+     * an invalid TLS version is set.
+     *
+     * @throws IllegalArgumentException
+     */
+    @Test (expected = IllegalArgumentException.class)
+    public void testSetMinimumTlsVersionWithVersionLargerThanMaxVersion() throws Exception {
+        mEnterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_VERSION_MAX + 1);
+    }
+
+    /**
+     * Verify that setMinimumTlsVersion() raises IllegalArgumentException when
+     * an invalid TLS version is set.
+     *
+     * @throws IllegalArgumentException
+     */
+    @Test (expected = IllegalArgumentException.class)
+    public void testSetMinimumTlsVersionWithVersionSmallerThanMinVersion() throws Exception {
+        mEnterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_VERSION_MIN - 1);
+    }
 }
