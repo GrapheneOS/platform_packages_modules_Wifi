@@ -24,6 +24,7 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -46,6 +47,7 @@ import android.hardware.wifi.supplicant.NetworkResponseEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.PairwiseCipherMask;
 import android.hardware.wifi.supplicant.SaeH2eMode;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
+import android.hardware.wifi.supplicant.TlsVersion;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
@@ -99,6 +101,7 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
     @Mock private WifiMonitor mWifiMonitor;
     @Mock private WifiGlobals mWifiGlobals;
     private long mAdvanceKeyMgmtFeatures = 0;
+    private long mWpaDriverFeatures = 0;
 
     private SupplicantNetworkVariables mSupplicantVariables;
     private MockResources mResources;
@@ -115,9 +118,9 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
 
         mAdvanceKeyMgmtFeatures |= WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
-        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(
+        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(1,
                 mISupplicantStaNetworkMock, IFACE_NAME, mContext, mWifiMonitor,
-                mWifiGlobals, mAdvanceKeyMgmtFeatures);
+                mWifiGlobals, mAdvanceKeyMgmtFeatures, mWpaDriverFeatures);
     }
 
     /**
@@ -1167,9 +1170,9 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
     public void testSupportedCiphersNoGcmp256() throws Exception {
         // Reinitialize mSupplicantNetwork without support for WPA3 SUITE-B
         mAdvanceKeyMgmtFeatures = 0;
-        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(
+        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(1,
                 mISupplicantStaNetworkMock, IFACE_NAME, mContext, mWifiMonitor,
-                mWifiGlobals, mAdvanceKeyMgmtFeatures);
+                mWifiGlobals, mAdvanceKeyMgmtFeatures, mWpaDriverFeatures);
         WifiConfiguration config = WifiConfigurationTestUtil.createSaeNetwork();
         int expectedHalPairwiseCiphers = getExpectedPairwiseCiphers(config);
         expectedHalPairwiseCiphers &= ~PairwiseCipherMask.GCMP_256;
@@ -1224,6 +1227,62 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
                 config.getDefaultSecurityParams());
         assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
         assertTrue(Arrays.equals(TEST_SELECTED_RCOI_BYTE_ARRAY, mSupplicantVariables.selectedRcoi));
+    }
+
+    /**
+     * Tests setting TLS minimum version API with AIDL v1
+     */
+    @Test
+    public void testEapMinimumTlsVersionWifiConfigurationSaveLoadWithAidlV1() throws Exception {
+        // Default is AIDL v1
+        WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
+        config.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        verify(mISupplicantStaNetworkMock, never()).setMinimumTlsVersionEapPhase1Param(anyInt());
+    }
+
+    /**
+     * Tests setting TLS minimum version API with AIDL v2, but TLS v1.3 is not supported.
+     */
+    @Test
+    public void testEapMinimumTlsVersionWifiConfigurationSaveLoadWithAidlV2TlsV13NotSupported()
+            throws Exception {
+        // Re-init mock to AIDL v2 without TLS v1.3 support.
+        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(2,
+                mISupplicantStaNetworkMock, IFACE_NAME, mContext, mWifiMonitor,
+                mWifiGlobals, mAdvanceKeyMgmtFeatures, 0);
+        WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
+        config.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        // Should fallback to TLS v1.2
+        verify(mISupplicantStaNetworkMock).setMinimumTlsVersionEapPhase1Param(TlsVersion.TLS_V1_2);
+    }
+
+    /**
+     * Tests setting TLS minimum version API with AIDL v2, and TLS v1.3 is supported.
+     */
+    @Test
+    public void testEapMinimumTlsVersionWifiConfigurationSaveLoadWithAidlV2TlsV13Supported()
+            throws Exception {
+        // Re-init mock to AIDL v2 with TLS v1.3 support.
+        mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(2,
+                mISupplicantStaNetworkMock, IFACE_NAME, mContext, mWifiMonitor,
+                mWifiGlobals, mAdvanceKeyMgmtFeatures,
+                WifiManager.WIFI_FEATURE_TLS_V1_3);
+        WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
+        config.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        // Should fallback to TLS v1.2
+        verify(mISupplicantStaNetworkMock).setMinimumTlsVersionEapPhase1Param(TlsVersion.TLS_V1_3);
     }
 
     /**

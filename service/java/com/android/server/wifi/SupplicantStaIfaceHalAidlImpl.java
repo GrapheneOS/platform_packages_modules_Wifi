@@ -26,6 +26,8 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_OCE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT_TERMS_AND_CONDITIONS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_SAE_PK;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_SET_TLS_MINIMUM_VERSION;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_TLS_V1_3;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WAPI;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WFD_R2;
@@ -1067,9 +1069,11 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             @NonNull String ifaceName, ISupplicantStaNetwork network) {
         synchronized (mLock) {
             SupplicantStaNetworkHalAidlImpl networkWrapper =
-                    new SupplicantStaNetworkHalAidlImpl(network, ifaceName, mContext,
+                    new SupplicantStaNetworkHalAidlImpl(mServiceVersion,
+                            network, ifaceName, mContext,
                             mWifiMonitor, mWifiGlobals,
-                            getAdvancedCapabilities(ifaceName));
+                            getAdvancedCapabilities(ifaceName),
+                            getWpaDriverCapabilities(ifaceName));
             if (networkWrapper != null) {
                 networkWrapper.enableVerboseLogging(
                         mVerboseLoggingEnabled, mVerboseHalLoggingEnabled);
@@ -2583,6 +2587,28 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
+    private long aidlWpaDrvFeatureSetToFrameworkV2(int drvCapabilitiesMask) {
+        if (!isServiceVersionIsAtLeast(2)) return 0;
+
+        final String methodStr = "getWpaDriverFeatureSetV2";
+        long featureSet = 0;
+
+        if ((drvCapabilitiesMask & WpaDriverCapabilitiesMask.SET_TLS_MINIMUM_VERSION) != 0) {
+            featureSet |= WIFI_FEATURE_SET_TLS_MINIMUM_VERSION;
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, methodStr + ": EAP-TLS minimum version supported");
+            }
+        }
+
+        if ((drvCapabilitiesMask & WpaDriverCapabilitiesMask.TLS_V1_3) != 0) {
+            featureSet |= WIFI_FEATURE_TLS_V1_3;
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, methodStr + ": EAP-TLS v1.3 supported");
+            }
+        }
+        return featureSet;
+    }
+
     /**
      * Get the driver supported features through supplicant.
      *
@@ -2629,6 +2655,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                     Log.v(TAG, methodStr + ": Trust-On-First-Use supported");
                 }
             }
+
+            featureSet |= aidlWpaDrvFeatureSetToFrameworkV2(drvCapabilitiesMask);
 
             return featureSet;
         }

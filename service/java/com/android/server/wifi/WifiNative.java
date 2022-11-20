@@ -56,6 +56,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.Immutable;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.HexDump;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
@@ -1158,109 +1159,9 @@ public class WifiNative {
         void onDown(String ifaceName);
     }
 
-    private void initializeNwParamsForClientInterface(@NonNull String ifaceName) {
-        try {
-            // A runtime crash or shutting down AP mode can leave
-            // IP addresses configured, and this affects
-            // connectivity when supplicant starts up.
-            // Ensure we have no IP addresses before a supplicant start.
-            mNetdWrapper.clearInterfaceAddresses(ifaceName);
-
-            // Set privacy extensions
-            mNetdWrapper.setInterfaceIpv6PrivacyExtensions(ifaceName, true);
-
-            // IPv6 is enabled only as long as access point is connected since:
-            // - IPv6 addresses and routes stick around after disconnection
-            // - kernel is unaware when connected and fails to start IPv6 negotiation
-            // - kernel can start autoconfiguration when 802.1x is not complete
-            mNetdWrapper.disableIpv6(ifaceName);
-        } catch (IllegalStateException e) {
-            Log.e(TAG, "Unable to change interface settings", e);
-        }
-    }
-
     private void takeBugReportInterfaceFailureIfNeeded(String bugTitle, String bugDetail) {
         if (mWifiInjector.getDeviceConfigFacade().isInterfaceFailureBugreportEnabled()) {
             mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugDetail);
-        }
-    }
-
-    /**
-     * Setup an interface for client mode (for connectivity) operations.
-     *
-     * This method configures an interface in STA mode in all the native daemons
-     * (wificond, wpa_supplicant & vendor HAL).
-     *
-     * @param interfaceCallback Associated callback for notifying status changes for the iface.
-     * @param requestorWs Requestor worksource.
-     * @return Returns the name of the allocated interface, will be null on failure.
-     */
-    public String setupInterfaceForClientInConnectivityMode(
-            @NonNull InterfaceCallback interfaceCallback, @NonNull WorkSource requestorWs) {
-        synchronized (mLock) {
-            if (!startHal()) {
-                Log.e(TAG, "Failed to start Hal");
-                mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToHal();
-                return null;
-            }
-            if (!startSupplicant()) {
-                Log.e(TAG, "Failed to start supplicant");
-                mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToSupplicant();
-                return null;
-            }
-            Iface iface = mIfaceMgr.allocateIface(Iface.IFACE_TYPE_STA_FOR_CONNECTIVITY);
-            if (iface == null) {
-                Log.e(TAG, "Failed to allocate new STA iface");
-                return null;
-            }
-            iface.externalListener = interfaceCallback;
-            iface.name = createStaIface(iface, requestorWs);
-            if (TextUtils.isEmpty(iface.name)) {
-                Log.e(TAG, "Failed to create STA iface in vendor HAL");
-                mIfaceMgr.removeIface(iface.id);
-                mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToHal();
-                return null;
-            }
-            if (!mWifiCondManager.setupInterfaceForClientMode(iface.name, Runnable::run,
-                    new NormalScanEventCallback(iface.name),
-                    new PnoScanEventCallback(iface.name))) {
-                Log.e(TAG, "Failed to setup iface in wificond on " + iface);
-                teardownInterface(iface.name);
-                mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToWificond();
-                return null;
-            }
-            if (!mSupplicantStaIfaceHal.setupIface(iface.name)) {
-                Log.e(TAG, "Failed to setup iface in supplicant on " + iface);
-                teardownInterface(iface.name);
-                mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToSupplicant();
-                return null;
-            }
-            if (mContext.getResources().getBoolean(
-                    R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled)) {
-                mQosPolicyFeatureEnabled = mSupplicantStaIfaceHal
-                        .setNetworkCentricQosPolicyFeatureEnabled(iface.name, true);
-                if (!mQosPolicyFeatureEnabled) {
-                    Log.e(TAG, "Failed to enable QoS policy feature for iface " + iface.name);
-                }
-            }
-            iface.networkObserver = new NetworkObserverInternal(iface.id);
-            if (!registerNetworkObserver(iface.networkObserver)) {
-                Log.e(TAG, "Failed to register network observer on " + iface);
-                teardownInterface(iface.name);
-                return null;
-            }
-            mWifiMonitor.startMonitoring(iface.name);
-            // Just to avoid any race conditions with interface state change callbacks,
-            // update the interface state before we exit.
-            onInterfaceStateChanged(iface, isInterfaceUp(iface.name));
-            mWifiVendorHal.enableLinkLayerStats(iface.name);
-            initializeNwParamsForClientInterface(iface.name);
-            Log.i(TAG, "Successfully setup " + iface);
-
-            iface.featureSet = getSupportedFeatureSetInternal(iface.name);
-            saveCompleteFeatureSetInConfigStoreIfNecessary(iface.featureSet);
-            mIsEnhancedOpenSupported = (iface.featureSet & WIFI_FEATURE_OWE) != 0;
-            return iface.name;
         }
     }
 
@@ -4471,5 +4372,29 @@ public class WifiNative {
      */
     public boolean isSoftApInstanceDiedHandlerSupported() {
         return mHostapdHal.isSoftApInstanceDiedHandlerSupported();
+    }
+
+    @VisibleForTesting
+    /** Checks if there are any STA (for connectivity) iface active. */
+    boolean hasAnyStaIfaceForConnectivity() {
+        return mIfaceMgr.hasAnyStaIfaceForConnectivity();
+    }
+
+    @VisibleForTesting
+    /** Checks if there are any STA (for scan) iface active. */
+    boolean hasAnyStaIfaceForScan() {
+        return mIfaceMgr.hasAnyStaIfaceForScan();
+    }
+
+    @VisibleForTesting
+    /** Checks if there are any AP iface active. */
+    boolean hasAnyApIface() {
+        return mIfaceMgr.hasAnyApIface();
+    }
+
+    @VisibleForTesting
+    /** Checks if there are any iface active. */
+    boolean hasAnyIface() {
+        return mIfaceMgr.hasAnyIface();
     }
 }
