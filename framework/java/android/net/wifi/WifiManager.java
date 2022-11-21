@@ -5052,9 +5052,13 @@ public class WifiManager {
      * Start Soft AP (hotspot) mode for tethering purposes with the specified configuration.
      * Note that starting Soft AP mode may disable station mode operation if the device does not
      * support concurrency.
-     * @param softApConfig A valid SoftApConfiguration specifying the configuration of the SAP,
-     *                     or null to use the persisted Soft AP configuration that was previously
-     *                     set using {@link #setSoftApConfiguration(softApConfiguration)}.
+     *
+     * Note: Call {@link WifiManager#validateSoftApConfiguration(SoftApConfiguration)} to avoid
+     * unexpected error due to invalid configuration.
+     *
+     * @param softApConfig A valid SoftApConfiguration specifying the configuration of the SAP, or
+     *                     null to use the persisted Soft AP configuration that was previously set
+     *                     using {@link WifiManager#setSoftApConfiguration(SoftApConfiguration)}.
      * @return {@code true} if the operation succeeded, {@code false} otherwise
      *
      * @hide
@@ -5088,6 +5092,23 @@ public class WifiManager {
     public boolean stopSoftAp() {
         try {
             return mService.stopSoftAp();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Check if input configuration is valid.
+     *
+     * @param config a configuration would like to be checked.
+     * @return true if config is valid, otherwise false.
+     */
+    public boolean validateSoftApConfiguration(@NonNull SoftApConfiguration config) {
+        if (config == null) {
+            throw new IllegalArgumentException(TAG + ": config can not be null");
+        }
+        try {
+            return mService.validateSoftApConfiguration(config);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -5536,6 +5557,9 @@ public class WifiManager {
      *
      * Otherwise, the configuration changes will be applied when the Soft AP is next started
      * (the framework will not stop/start the AP).
+     *
+     * Note: Call {@link WifiManager#validateSoftApConfiguration(SoftApConfiguration)} to avoid
+     * unexpected error due to invalid configuration.
      *
      * @param softApConfig  A valid SoftApConfiguration specifying the configuration of the SAP.
      * @return {@code true} if the operation succeeded, {@code false} otherwise
