@@ -271,6 +271,9 @@ public class WifiScoreReport {
                                 .setLegacyInt(mLegacyIntScore)
                                 .setExiting(!mIsUsable)
                                 .build());
+                if (mVerboseLoggingEnabled && !mIsUsable) {
+                    Log.d(TAG, "Wifi is set to exiting by the external scorer");
+                }
             } else  {
                 mNetworkAgent.sendNetworkScore(mIsUsable ? ConnectedScore.WIFI_TRANSITION_SCORE + 1
                         : ConnectedScore.WIFI_TRANSITION_SCORE - 1);
