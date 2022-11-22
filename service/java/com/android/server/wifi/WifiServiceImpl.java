@@ -1495,6 +1495,24 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
+     * Check if input configuration is valid.
+     *
+     * Call this before calling {@link startTetheredHotspot(SoftApConfiguration)} or
+     * {@link #setSoftApConfiguration(softApConfiguration)} to avoid unexpected error duo to
+     * configuration is invalid.
+     *
+     * @param config a configuration would like to be checked.
+     * @return true if config is valid, otherwise false.
+     */
+    @Override
+    public boolean validateSoftApConfiguration(SoftApConfiguration config) {
+        int uid = Binder.getCallingUid();
+        boolean privileged = isSettingsOrSuw(Binder.getCallingPid(), uid);
+        return WifiApConfigStore.validateApWifiConfiguration(
+                config, privileged, mContext);
+    }
+
+    /**
      * See {@link WifiManager#unregisterCoexCallback(WifiManager.CoexCallback)}
      */
     @RequiresApi(Build.VERSION_CODES.S)
