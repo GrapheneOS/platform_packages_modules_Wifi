@@ -40,6 +40,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
+import android.text.TextUtils;
 
 import androidx.test.filters.SmallTest;
 
@@ -68,10 +69,11 @@ public class ScanRequestProxyTest extends WifiBaseTest {
     private static final int TEST_UID = 5;
     private static final String TEST_PACKAGE_NAME_1 = "com.test.1";
     private static final String TEST_PACKAGE_NAME_2 = "com.test.2";
+    private static final String TEST_HIDDEN_NETWORK_MAC = "10:22:34:56:78:92";
+    private static final String TEST_HIDDEN_NETWORK_SSID = "HideMe";
     private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST = List.of(
             new HiddenNetwork("test_ssid_1"),
             new HiddenNetwork("test_ssid_2"));
-
     private static final List<HiddenNetwork> TEST_HIDDEN_NETWORKS_LIST_NS = List.of(
             new HiddenNetwork("test_ssid_3"),
             new HiddenNetwork("test_ssid_4"));
@@ -101,6 +103,7 @@ public class ScanRequestProxyTest extends WifiBaseTest {
             ArgumentCaptor.forClass(WifiScannerInternal.ScanListener.class);
     private WifiScanner.ScanData[] mTestScanDatas1;
     private WifiScanner.ScanData[] mTestScanDatas2;
+    private WifiScanner.ScanData[] mTestHiddenNetworkScanDatas;
     private InOrder mInOrder;
     private TestLooper mLooper;
     private ScanRequestProxy mScanRequestProxy;
@@ -1082,6 +1085,30 @@ public class ScanRequestProxyTest extends WifiBaseTest {
     }
 
     /**
+     * Create a test scan data for a hidden network with two scan results(BSS), one with SSID and
+     * another one without SSID (Native layer may give two scan results for the same BSS
+     * when a hidden network is configured)
+     * @param isHiddenFirst if true, place the scan result with empty SSID first in the list
+     */
+    private void setupScanDataWithHiddenNetwork(boolean isHiddenFirst) {
+        mTestHiddenNetworkScanDatas = ScanTestUtil.createScanDatas(new int[][]{{2412, 2412}},
+                new int[]{0},
+                new int[]{WifiScanner.WIFI_BAND_ALL});
+        assertEquals(1, mTestHiddenNetworkScanDatas.length);
+        ScanResult[] scanResults = mTestHiddenNetworkScanDatas[0].getResults();
+        assertEquals(2, scanResults.length);
+        scanResults[0].BSSID = TEST_HIDDEN_NETWORK_MAC;
+        scanResults[1].BSSID = TEST_HIDDEN_NETWORK_MAC;
+        if (isHiddenFirst) {
+            scanResults[0].SSID = "";
+            scanResults[1].SSID = TEST_HIDDEN_NETWORK_SSID;
+        } else {
+            scanResults[0].SSID = TEST_HIDDEN_NETWORK_SSID;
+            scanResults[1].SSID = "";
+        }
+    }
+
+    /**
      * Test register two different scan result Callback, all of them will receive the event.
      */
     @Test
@@ -1158,5 +1185,39 @@ public class ScanRequestProxyTest extends WifiBaseTest {
         scanResults.add(new ScanResult());
 
         assertThat(mScanRequestProxy.getScanResults()).hasSize(scanResultsOriginalSize);
+    }
+
+    /** Test that getScanResults() always returns the hidden network result with SSID */
+    @Test
+    public void testGetScanResults_HiddenNetwork_ReturnsSsidScanresult() {
+        // Make a scan request.
+        testStartScanSuccess();
+
+        // Prepare scan results with empty SSID first in the list
+        setupScanDataWithHiddenNetwork(true);
+
+        // Verify the scan results processing.
+        mGlobalScanListenerArgumentCaptor.getValue().onResults(mTestHiddenNetworkScanDatas);
+        mLooper.dispatchAll();
+        validateScanResultsAvailableBroadcastSent(true);
+
+        // Validate the scan results in the cache.
+        List<ScanResult> scanResultsList = mScanRequestProxy.getScanResults();
+        assertEquals(1, scanResultsList.size());
+        assertTrue(TextUtils.equals(TEST_HIDDEN_NETWORK_SSID, scanResultsList.get(0).SSID));
+
+        // Prepare scan results with SSID first in the list
+        setupScanDataWithHiddenNetwork(false);
+
+        // Verify the scan results processing.
+        mGlobalScanListenerArgumentCaptor.getValue().onResults(mTestHiddenNetworkScanDatas);
+        mLooper.dispatchAll();
+        validateScanResultsAvailableBroadcastSent(true);
+
+        // Validate the scan results in the cache.
+        scanResultsList = mScanRequestProxy.getScanResults();
+        assertEquals(1, scanResultsList.size());
+        assertTrue(TextUtils.equals(TEST_HIDDEN_NETWORK_SSID, scanResultsList.get(0).SSID));
+
     }
 }

@@ -211,6 +211,8 @@ interface IWifiManager
 
     boolean stopSoftAp();
 
+    boolean validateSoftApConfiguration(in SoftApConfiguration config);
+
     int startLocalOnlyHotspot(in ILocalOnlyHotspotCallback callback, String packageName,
                               String featureId, in SoftApConfiguration customConfig, in Bundle extras);
 

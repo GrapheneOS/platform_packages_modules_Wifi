@@ -438,6 +438,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public boolean validateSoftApConfiguration(SoftApConfiguration config) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public int startLocalOnlyHotspot(ILocalOnlyHotspotCallback callback, String packageName,
             String featureId, SoftApConfiguration customConfig, Bundle extras) {
         throw new UnsupportedOperationException();
