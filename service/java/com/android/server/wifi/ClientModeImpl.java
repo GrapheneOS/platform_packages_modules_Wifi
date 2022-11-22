@@ -7844,9 +7844,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         linkedConfig.networkId, params));
 
         List<String> allowlistSsids = new ArrayList<>(linkedNetworks.values().stream()
+                .filter(linkedConfig -> linkedConfig.allowAutojoin)
                 .map(linkedConfig -> linkedConfig.SSID)
                 .collect(Collectors.toList()));
-        if (linkedNetworks.size() > 0) {
+        if (allowlistSsids.size() > 0) {
             allowlistSsids.add(config.SSID);
         }
         mWifiBlocklistMonitor.setAllowlistSsids(config.SSID, allowlistSsids);
