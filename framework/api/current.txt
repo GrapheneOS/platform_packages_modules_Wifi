@@ -1132,12 +1132,15 @@ package android.net.wifi.p2p {
     ctor public WifiP2pConfig();
     ctor public WifiP2pConfig(android.net.wifi.p2p.WifiP2pConfig);
     method public int describeContents();
+    method public int getGroupClientIpProvisioningMode();
     method public int getGroupOwnerBand();
     method public int getNetworkId();
     method @Nullable public String getNetworkName();
     method @Nullable public String getPassphrase();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pConfig> CREATOR;
+    field public static final int GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP = 0; // 0x0
+    field public static final int GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL = 1; // 0x1
     field public static final int GROUP_OWNER_BAND_2GHZ = 1; // 0x1
     field public static final int GROUP_OWNER_BAND_5GHZ = 2; // 0x2
     field public static final int GROUP_OWNER_BAND_AUTO = 0; // 0x0
@@ -1154,6 +1157,7 @@ package android.net.wifi.p2p {
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig build();
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder enablePersistentMode(boolean);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setDeviceAddress(@Nullable android.net.MacAddress);
+    method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setGroupClientIpProvisioningMode(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setGroupOperatingBand(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setGroupOperatingFrequency(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setNetworkName(@NonNull String);
