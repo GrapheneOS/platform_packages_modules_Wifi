@@ -70,6 +70,7 @@ import com.android.server.wifi.hotspot2.WnmData;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
 import com.android.server.wifi.hotspot2.anqp.ANQPParser;
 import com.android.server.wifi.hotspot2.anqp.Constants;
+import com.android.server.wifi.util.HalAidlUtil;
 import com.android.server.wifi.util.NativeUtil;
 
 import java.io.IOException;
@@ -77,6 +78,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,12 +158,33 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public void onStateChanged(int newState, byte[/* 6 */] bssid, int id,
             byte[] ssid, boolean filsHlpSent) {
+        onStateChangedWithAkm(newState, bssid, id, ssid, filsHlpSent, 0);
+    }
+
+    @Override
+    public void onStateChangedWithAkm(int newState, byte[/* 6 */] bssid, int id,
+            byte[] ssid, boolean filsHlpSent, int supplicantKeyMgmtMask) {
         synchronized (mLock) {
-            mStaIfaceHal.logCallback("onStateChanged");
             SupplicantState newSupplicantState =
                     supplicantAidlStateToFrameworkState(newState);
             WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid));
             String bssidStr = NativeUtil.macAddressFromByteArray(bssid);
+            BitSet keyMgmtMask = null;
+            if (supplicantKeyMgmtMask != 0) {
+                try {
+                    keyMgmtMask = HalAidlUtil.supplicantToWifiConfigurationKeyMgmtMask(
+                            supplicantKeyMgmtMask);
+                } catch (IllegalArgumentException ex) {
+                    Log.w(TAG, "Failed convert supplicant key management mask to"
+                            + " the framework value: " + ex.toString());
+                    keyMgmtMask = null;
+                }
+            }
+            mStaIfaceHal.logCallback("onStateChanged: newState=" + newSupplicantState
+                    + ", bssid=" + bssidStr + ", ssid=" + wifiSsid.toString()
+                    + ", filsHlpSent=" + filsHlpSent + ", supplicantKeyMgmtMask="
+                    + String.format("0x%08X", supplicantKeyMgmtMask)
+                    + ", frameworkKeyMgmtMask=" + keyMgmtMask);
             if (newState != StaIfaceCallbackState.DISCONNECTED) {
                 // onStateChanged(DISCONNECTED) may come before onDisconnected(), so add this
                 // cache to track the state before the disconnect.
@@ -177,7 +200,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             if (newState == StaIfaceCallbackState.COMPLETED) {
                 mWifiMonitor.broadcastNetworkConnectionEvent(
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
-                        wifiSsid, bssidStr);
+                        wifiSsid, bssidStr, keyMgmtMask);
             } else if (newState == StaIfaceCallbackState.ASSOCIATING) {
                 mCurrentSsid = wifiSsid.toString();
             }

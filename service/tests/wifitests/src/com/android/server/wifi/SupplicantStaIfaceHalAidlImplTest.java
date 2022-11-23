@@ -131,6 +131,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -993,7 +994,38 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastNetworkConnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId), eq(false),
-                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID));
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(null));
+        wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
+                eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));
+    }
+
+    /**
+     * Tests the handling of state change notification with key management
+     * to completed after configuring a network.
+     */
+    @Test
+    public void testStateChangeToCompletedCallbackWithAkm() throws Exception {
+        InOrder wifiMonitorInOrder = inOrder(mWifiMonitor);
+        executeAndValidateInitializationSequence();
+        int frameworkNetworkId = 6;
+        executeAndValidateConnectSequence(frameworkNetworkId, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
+        assertNotNull(mISupplicantStaIfaceCallback);
+
+        int supplicantAkmMask = android.hardware.wifi.supplicant.KeyMgmtMask.WPA_PSK;
+        BitSet expectedAkmMask = new BitSet();
+        expectedAkmMask.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+
+        mISupplicantStaIfaceCallback.onStateChangedWithAkm(
+                StaIfaceCallbackState.COMPLETED,
+                NativeUtil.macAddressToByteArray(BSSID), SUPPLICANT_NETWORK_ID,
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false,
+                supplicantAkmMask);
+
+        wifiMonitorInOrder.verify(mWifiMonitor).broadcastNetworkConnectionEvent(
+                eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId), eq(false),
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(expectedAkmMask));
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
                 eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));
@@ -2125,7 +2157,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastNetworkConnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId), eq(true),
-                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID));
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(null));
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
                 eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));

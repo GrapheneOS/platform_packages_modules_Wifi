@@ -16,6 +16,9 @@
 
 package android.net.wifi.p2p;
 
+import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP;
+import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -151,6 +154,51 @@ public class WifiP2pConfigTest {
         assertEquals(WifiP2pGroup.NETWORK_ID_TEMPORARY, c.netId);
     }
 
+    /** Verify that a config by default has group client IP provisioning with DHCP IPv4. */
+    @Test
+    public void testBuildConfigWithGroupClientIpProvisioningModeDefault() throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .build();
+        assertEquals(c.deviceAddress, DEVICE_ADDRESS);
+        assertEquals(c.getGroupClientIpProvisioningMode(),
+                GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP);
+    }
+
+    /** Verify that a config with group client IP provisioning with IPv4 DHCP can be built. */
+    @Test
+    public void testBuildConfigWithGroupClientIpProvisioningModeIpv4Dhcp() throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setGroupClientIpProvisioningMode(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP)
+                .build();
+        assertEquals(c.deviceAddress, DEVICE_ADDRESS);
+        assertEquals(c.getGroupClientIpProvisioningMode(),
+                GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP);
+    }
+
+    /** Verify that a config with group client IP provisioning with IPv6 link-local can be built. */
+    @Test
+    public void testBuildConfigWithGroupClientIpProvisioningModeIpv6LinkLocal() throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setGroupClientIpProvisioningMode(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL)
+                .build();
+        assertEquals(c.deviceAddress, DEVICE_ADDRESS);
+        assertEquals(c.getGroupClientIpProvisioningMode(),
+                GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL);
+    }
+
+    /**
+     * Verify that the builder throws IllegalArgumentException if invalid group client IP
+     * provisioning mode is set.
+     */
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuilderWithInvalidGroupClientIpProvisioningMode()
+            throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder().setGroupClientIpProvisioningMode(5).build();
+    }
+
     /**
      * Verify that the builder throws IllegalStateException if none of
      * network name, passphrase, and device address is set.
@@ -203,7 +251,6 @@ public class WifiP2pConfigTest {
 
         // no equals operator, use toString for comparison.
         assertEquals(config.toString(), configFromParcel.toString());
-
     }
 
     @Test
@@ -216,5 +263,4 @@ public class WifiP2pConfigTest {
         config.invalidate();
         assertEquals("", config.deviceAddress);
     }
-
 }
