@@ -50,6 +50,7 @@
           <item type="integer" name="config_wifiBand6GhzBonus" />
           <item type="integer" name="config_wifiScoringBucketStepSize" />
           <item type="integer" name="config_wifiFrameworkLastSelectionMinutes" />
+          <item type="integer" name="config_wifiFrameworkLastMeteredSelectionMinutes" />
           <item type="integer" name="config_wifiFrameworkMinPacketPerSecondActiveTraffic" />
           <item type="integer" name="config_wifiFrameworkMinPacketPerSecondHighTraffic" />
           <item type="integer" name="config_wifi_framework_wifi_score_bad_rssi_threshold_5GHz" />
