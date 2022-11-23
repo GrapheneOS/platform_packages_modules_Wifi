@@ -53,6 +53,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.WorkSource;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
@@ -149,6 +150,7 @@ public class WifiConnectivityManager {
 
     private final WifiContext mContext;
     private final WifiConfigManager mConfigManager;
+    private final WifiCarrierInfoManager mWifiCarrierInfoManager;
     private final WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     private final WifiConnectivityHelper mConnectivityHelper;
     private final WifiNetworkSelector mNetworkSelector;
@@ -1253,7 +1255,8 @@ public class WifiConnectivityManager {
             WifiGlobals wifiGlobals,
             ExternalPnoScanRequestManager externalPnoScanRequestManager,
             @NonNull SsidTranslator ssidTranslator,
-            WifiPermissionsUtil wifiPermissionsUtil) {
+            WifiPermissionsUtil wifiPermissionsUtil,
+            WifiCarrierInfoManager wifiCarrierInfoManager) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1281,6 +1284,7 @@ public class WifiConnectivityManager {
         mExternalPnoScanRequestManager = externalPnoScanRequestManager;
         mSsidTranslator = ssidTranslator;
         mWifiPermissionsUtil = wifiPermissionsUtil;
+        mWifiCarrierInfoManager = wifiCarrierInfoManager;
 
         // Listen for screen state change events.
         // TODO: We should probably add a shared broadcast receiver in the wifi stack which
@@ -2230,7 +2234,12 @@ public class WifiConnectivityManager {
                 || (!config.ephemeral && !config.getNetworkSelectionStatus().hasEverConnected())
                 || !config.getNetworkSelectionStatus().isNetworkEnabled()
                 || mConfigManager.isNetworkTemporarilyDisabledByUser(
-                        config.isPasspoint() ? config.FQDN : config.SSID));
+                        config.isPasspoint() ? config.FQDN : config.SSID)
+                || (config.enterpriseConfig != null
+                && config.enterpriseConfig.isAuthenticationSimBased()
+                && config.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID)
+                && !mWifiCarrierInfoManager.isSimReady(
+                        mWifiCarrierInfoManager.getBestMatchSubscriptionId(config)));
         return networks;
     }
 
