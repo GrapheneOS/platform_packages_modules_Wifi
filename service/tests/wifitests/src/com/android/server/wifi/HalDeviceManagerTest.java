@@ -176,6 +176,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWifiMock.start()).thenReturn(WifiHal.WIFI_STATUS_SUCCESS);
         when(mWifiMock.stop()).thenReturn(true);
         when(mWifiMock.isStarted()).thenReturn(true);
+        when(mWifiMock.isInitializationComplete()).thenReturn(true);
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getBoolean(R.bool.config_wifiBridgedSoftApSupported))
                 .thenReturn(mIsBridgedSoftApSupported);
