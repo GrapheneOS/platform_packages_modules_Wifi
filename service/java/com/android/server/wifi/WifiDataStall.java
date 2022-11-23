@@ -574,8 +574,8 @@ public class WifiDataStall {
             tputSufficientLowThrKbps = mDeviceConfigFacade.getRxTputSufficientLowThrKbps();
             tputSufficientHighThrKbps = mDeviceConfigFacade.getRxTputSufficientHighThrKbps();
         }
-        boolean isL3TputLow = (l3TputKbps * mDeviceConfigFacade.getTputSufficientRatioThrDen())
-                < (tputSufficientLowThrKbps * mDeviceConfigFacade.getTputSufficientRatioThrNum());
+        boolean isL3TputLow = (l3TputKbps * mDeviceConfigFacade.getTputSufficientRatioThrNum())
+                < (tputSufficientLowThrKbps * mDeviceConfigFacade.getTputSufficientRatioThrDen());
         boolean isL2TputAboveLowThr = l2TputKbps >= tputSufficientLowThrKbps;
         if (isL3TputLow) return isL2TputAboveLowThr;
 
