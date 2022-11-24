@@ -70,6 +70,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Unit tests for {@link com.android.server.wifi.WifiNetworkSelector}.
@@ -302,6 +303,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     private int mThresholdQualifiedRssi2G;
     private int mThresholdQualifiedRssi5G;
     private int mMinPacketRateActiveTraffic;
+    private int mLastMeteredSelectionWeightMinutes;
+    private int mLastUnmeteredSelectionWeightMinutes;
     private int mSufficientDurationAfterUserSelection;
     private CompatibilityScorer mCompatibilityScorer;
     private ScoreCardBasedScorer mScoreCardBasedScorer;
@@ -336,6 +339,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         mThresholdQualifiedRssi5G = mScoringParams.getSufficientRssi(
                 ScanResult.BAND_5_GHZ_START_FREQ_MHZ);
         mMinPacketRateActiveTraffic = mScoringParams.getActiveTrafficPacketsPerSecond();
+        mLastMeteredSelectionWeightMinutes = mScoringParams.getLastMeteredSelectionMinutes();
+        mLastUnmeteredSelectionWeightMinutes = mScoringParams.getLastUnmeteredSelectionMinutes();
     }
 
     private void setupWifiInfo() {
@@ -1579,32 +1584,61 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
                 false);
     }
 
-    /**
-     * New network selection is not performed if the currently connected network
-     * was recently selected.
-     */
-    @Test
-    public void networkIsSufficientWhenRecentlyUserSelected() {
-        // Approximate mClock.getElapsedSinceBootMillis value mocked by testStayOrTryToSwitch
-        long millisSinceBoot = SystemClock.elapsedRealtime()
-                + WifiNetworkSelector.MINIMUM_NETWORK_SELECTION_INTERVAL_MS + 2000;
-        when(mWifiConfigManager.getLastSelectedTimeStamp())
-                .thenReturn(millisSinceBoot
-                        - WAIT_JUST_A_MINUTE
-                        + 1000);
-        setupWifiConfigManager(0); // testStayOrTryToSwitch first connects to network 0
-        // Rssi after connected.
-        when(mWifiInfo.getRssi()).thenReturn(mThresholdQualifiedRssi2G + 1);
-        // No streaming traffic.
-        when(mWifiInfo.getSuccessfulTxPacketsPerSecond()).thenReturn(0.0);
-        when(mWifiInfo.getSuccessfulRxPacketsPerSecond()).thenReturn(0.0);
+    private void verifyLastSelectedWeight(boolean isMetered) {
+        String[] ssids = {"\"test1\""};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3"};
+        int[] freqs = {5180};
+        String[] caps = {"[WPA2-PSK][ESS]"};
+        int[] levels = {mThresholdQualifiedRssi5G + 5};
+        int[] securities = {SECURITY_PSK};
 
-        testStayOrTryToSwitch(
-                mThresholdQualifiedRssi2G + 1 /* rssi before connected */,
-                false /* not a 5G network */,
-                false /* not open network */,
-                // Should not try to switch.
-                false);
+        ScanDetailsAndWifiConfigs scanDetailsAndConfigs =
+                WifiNetworkSelectorTestUtil.setupScanDetailsAndConfigStore(ssids, bssids,
+                        freqs, caps, levels, securities, mWifiConfigManager, mClock);
+        List<ScanDetail> scanDetails = scanDetailsAndConfigs.getScanDetails();
+        HashSet<String> blocklist = new HashSet<String>();
+        WifiConfiguration[] savedConfigs = scanDetailsAndConfigs.getWifiConfigs();
+        if (isMetered) {
+            savedConfigs[0].meteredOverride = WifiConfiguration.METERED_OVERRIDE_METERED;
+        }
+        long startTimeMs = mClock.getElapsedSinceBootMillis();
+        long expectedStickyTimeMinutes = isMetered ? mLastMeteredSelectionWeightMinutes
+                : mLastUnmeteredSelectionWeightMinutes;
+        setupWifiConfigManager(savedConfigs[0].networkId); // Set last connected network
+        when(mWifiConfigManager.getLastSelectedTimeStamp())
+                .thenReturn(startTimeMs);
+
+        // lastSelectionWeight should be greater than 0 before expectedStickyTimeMinutes passes
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(startTimeMs
+                + TimeUnit.MINUTES.toMillis(expectedStickyTimeMinutes) - 1);
+        List<WifiCandidates.Candidate> candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+        //WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
+        assertEquals(1, candidates.size());
+        assertTrue(candidates.get(0).getLastSelectionWeight() > 0);
+
+        // lastSelectionWeight should be 0 after expectedStickyTimeMinutes passes
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(startTimeMs
+                + TimeUnit.MINUTES.toMillis(expectedStickyTimeMinutes));
+        candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo)),
+                false, true, true, Collections.emptySet(), false);
+        //WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
+        assertEquals(1, candidates.size());
+        assertEquals(0, candidates.get(0).getLastSelectionWeight(), 0);
+    }
+
+    @Test
+    public void testLastSelectedWeight() {
+        verifyLastSelectedWeight(false);
+    }
+
+    @Test
+    public void testLastSelectedWeightMetered() {
+        verifyLastSelectedWeight(true);
     }
 
     /**

@@ -134,8 +134,10 @@
          config_wifiFrameworkUnmeteredNetworkBonus. -->
     <integer translatable="false" name="config_wifiScoringBucketStepSize">500</integer>
 
-    <!-- The duration in minutes to strongly favor the last-selected network over other options. -->
+    <!-- The duration in minutes to strongly favor the last-selected non-metered network over other options. -->
     <integer translatable="false" name="config_wifiFrameworkLastSelectionMinutes">480</integer>
+    <!-- The duration in minutes to strongly favor the last-selected metered network over other options. -->
+    <integer translatable="false" name="config_wifiFrameworkLastMeteredSelectionMinutes">120</integer>
 
     <!-- Integer specifying the min packet Tx/Rx rates in packets per second to be considered
          active traffic so that network selection and scan could be skipped-->
