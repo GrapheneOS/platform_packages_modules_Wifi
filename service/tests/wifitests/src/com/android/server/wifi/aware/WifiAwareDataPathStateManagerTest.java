@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -2158,10 +2159,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         if (doPublish) {
             inOrder.verify(mMockNative).publish(transactionId.capture(), eq((byte) 0),
-                    eq(publishConfig));
+                    eq(publishConfig), isNull());
         } else {
             inOrder.verify(mMockNative).subscribe(transactionId.capture(), eq((byte) 0),
-                    eq(subscribeConfig));
+                    eq(subscribeConfig), isNull());
         }
         mDut.onSessionConfigSuccessResponse(transactionId.getValue(), doPublish, pubSubId);
         mMockLooper.dispatchAll();

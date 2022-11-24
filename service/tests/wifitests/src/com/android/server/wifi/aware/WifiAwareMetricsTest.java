@@ -333,49 +333,49 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
 
         // uid1: publish session 1
         client1.addSession(new WifiAwareDiscoverySessionState(null, 100, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true);
 
         // uid1: publish session 2
         client1.addSession(new WifiAwareDiscoverySessionState(null, 101, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true);
 
         // uid3: publish session 3 with ranging
         client3.addSession(new WifiAwareDiscoverySessionState(null, 111, (byte) 0, null, true,
-                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySessionWithRanging(uid3, false, -1, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, true);
 
         // uid2: subscribe session 1
         client2.addSession(new WifiAwareDiscoverySessionState(null, 102, (byte) 0, null, false,
-                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false);
 
         // uid2: publish session 2
         client2.addSession(new WifiAwareDiscoverySessionState(null, 103, (byte) 0, null, true,
-                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: min
         client3.addSession(new WifiAwareDiscoverySessionState(null, 112, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 10, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: max
         client3.addSession(new WifiAwareDiscoverySessionState(null, 113, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, -1, 50, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
 
         // uid3: subscribe session 3 with ranging: minmax
         client3.addSession(new WifiAwareDiscoverySessionState(null, 114, (byte) 0, null, false,
-                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                true, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 0, 110, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
 
@@ -394,7 +394,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
         // uid2: subscribe session 3
         mDut.recordDiscoverySession(uid2, clients);
         client2.addSession(new WifiAwareDiscoverySessionState(null, 104, (byte) 0, null, false,
-                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog));
+                false, mClock.getElapsedSinceBootMillis(), false, 0, mLocalLog, null));
 
         // a few failures
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.INTERNAL_FAILURE, true);

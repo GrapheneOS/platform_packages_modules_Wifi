@@ -373,7 +373,7 @@ public class WifiAwareManagerTest {
         // (3) ...
         publishSession.getValue().sendMessage(peerHandle, messageId, string1.getBytes());
         sessionProxyCallback.getValue().onMatch(peerHandle.peerId, string1.getBytes(), matchFilter,
-                0, new byte[0]);
+                0, new byte[0], null, null);
         sessionProxyCallback.getValue().onMessageReceived(peerHandle.peerId, string1.getBytes());
         sessionProxyCallback.getValue().onMessageSendFail(messageId, reason);
         sessionProxyCallback.getValue().onMessageSendSuccess(messageId);
@@ -531,9 +531,9 @@ public class WifiAwareManagerTest {
         // (3) ...
         subscribeSession.getValue().sendMessage(peerHandle, messageId, string1.getBytes());
         sessionProxyCallback.getValue().onMatch(peerHandle.peerId, string1.getBytes(), matchFilter,
-                0, new byte[0]);
+                0, new byte[0], null, null);
         sessionProxyCallback.getValue().onMatchWithDistance(peerHandle.peerId, string1.getBytes(),
-                matchFilter, distanceMm, 0, new byte[0]);
+                matchFilter, distanceMm, 0, new byte[0], null, null);
         sessionProxyCallback.getValue().onMessageReceived(peerHandle.peerId, string1.getBytes());
         sessionProxyCallback.getValue().onMessageSendFail(messageId, reason);
         sessionProxyCallback.getValue().onMessageSendSuccess(messageId);

@@ -143,19 +143,21 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig)}
+     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
      */
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+            byte[] nanIdentityKey) {
         final String methodStr = "publish";
         return validateAndCall(methodStr, false,
                 () -> publishInternal(methodStr, transactionId, publishId, publishConfig));
     }
 
     /**
-     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig)}
+     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig) {
+            SubscribeConfig subscribeConfig,
+            byte[] nanIdentityKey) {
         final String methodStr = "subscribe";
         return validateAndCall(methodStr, false,
                 () -> subscribeInternal(methodStr, transactionId, subscribeId, subscribeConfig));

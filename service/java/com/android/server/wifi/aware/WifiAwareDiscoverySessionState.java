@@ -21,6 +21,7 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_5
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_DISABLED;
 
 import android.net.wifi.WifiScanner;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -60,6 +61,7 @@ public class WifiAwareDiscoverySessionState {
     private boolean mInstantModeEnabled;
     private int mInstantModeBand;
     private final LocalLog mLocalLog;
+    private AwarePairingConfig mPairingConfig;
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac) {
@@ -83,7 +85,8 @@ public class WifiAwareDiscoverySessionState {
     public WifiAwareDiscoverySessionState(WifiAwareNativeApi wifiAwareNativeApi, int sessionId,
             byte pubSubId, IWifiAwareDiscoverySessionCallback callback, boolean isPublishSession,
             boolean isRangingEnabled, long creationTime, boolean instantModeEnabled,
-            int instantModeBand, LocalLog localLog) {
+            int instantModeBand, LocalLog localLog,
+            AwarePairingConfig pairingConfig) {
         mWifiAwareNativeApi = wifiAwareNativeApi;
         mSessionId = sessionId;
         mPubSubId = pubSubId;
@@ -95,6 +98,7 @@ public class WifiAwareDiscoverySessionState {
         mInstantModeEnabled = instantModeEnabled;
         mInstantModeBand = instantModeBand;
         mLocalLog = localLog;
+        mPairingConfig = pairingConfig;
     }
 
     /**
@@ -196,12 +200,12 @@ public class WifiAwareDiscoverySessionState {
 
     /**
      * Modify a publish discovery session.
-     *
-     * @param transactionId Transaction ID for the transaction - used in the
+     *  @param transactionId Transaction ID for the transaction - used in the
      *            async callback to match with the original request.
      * @param config Configuration of the publish session.
+     * @param nik
      */
-    public boolean updatePublish(short transactionId, PublishConfig config) {
+    public boolean updatePublish(short transactionId, PublishConfig config, byte[] nik) {
         if (!mIsPublishSession) {
             Log.e(TAG, "A SUBSCRIBE session is being used to publish");
             try {
@@ -213,13 +217,15 @@ public class WifiAwareDiscoverySessionState {
         }
 
         mUpdateTime = SystemClock.elapsedRealtime();
-        boolean success = mWifiAwareNativeApi.publish(transactionId, mPubSubId, config);
+        boolean success = mWifiAwareNativeApi.publish(transactionId, mPubSubId, config, nik);
         if (!success) {
             try {
                 mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.w(TAG, "updatePublish onSessionConfigFail(): RemoteException (FYI): " + e);
             }
+        } else {
+            mPairingConfig = config.getPairingConfig();
         }
 
         return success;
@@ -227,12 +233,12 @@ public class WifiAwareDiscoverySessionState {
 
     /**
      * Modify a subscribe discovery session.
-     *
-     * @param transactionId Transaction ID for the transaction - used in the
+     *  @param transactionId Transaction ID for the transaction - used in the
      *            async callback to match with the original request.
      * @param config Configuration of the subscribe session.
+     * @param nik
      */
-    public boolean updateSubscribe(short transactionId, SubscribeConfig config) {
+    public boolean updateSubscribe(short transactionId, SubscribeConfig config, byte[] nik) {
         if (mIsPublishSession) {
             Log.e(TAG, "A PUBLISH session is being used to subscribe");
             try {
@@ -244,13 +250,15 @@ public class WifiAwareDiscoverySessionState {
         }
 
         mUpdateTime = SystemClock.elapsedRealtime();
-        boolean success = mWifiAwareNativeApi.subscribe(transactionId, mPubSubId, config);
+        boolean success = mWifiAwareNativeApi.subscribe(transactionId, mPubSubId, config, nik);
         if (!success) {
             try {
                 mCallback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
             } catch (RemoteException e) {
                 Log.w(TAG, "updateSubscribe onSessionConfigFail(): RemoteException (FYI): " + e);
             }
+        } else {
+            mPairingConfig = config.getPairingConfig();
         }
 
         return success;
@@ -298,30 +306,34 @@ public class WifiAwareDiscoverySessionState {
      * Callback from HAL when a discovery occurs - i.e. when a match to an
      * active subscription request or to a solicited publish request occurs.
      * Propagates to client if registered.
-     *  @param requestorInstanceId The ID used to identify the peer in this
+     * @param requestorInstanceId The ID used to identify the peer in this
      *            matched session.
      * @param peerMac The MAC address of the peer. Never propagated to client
      *            due to privacy concerns.
      * @param serviceSpecificInfo Information from the discovery advertisement
- *            (usually not used in the match decisions).
+*            (usually not used in the match decisions).
      * @param matchFilter The filter from the discovery advertisement (which was
 *            used in the match decision).
      * @param rangingIndication Bit mask indicating the type of ranging event triggered.
      * @param rangeMm The range to the peer in mm (valid if rangingIndication specifies ingress
-     * @param peerCiphersuite
+     * @param peerCipherSuite
      * @param scid
+     * @param pairingAlias
+     * @param pairingConfig
      */
     public void onMatch(int requestorInstanceId, byte[] peerMac, byte[] serviceSpecificInfo,
-            byte[] matchFilter, int rangingIndication, int rangeMm, int peerCiphersuite,
-            byte[] scid) {
+            byte[] matchFilter, int rangingIndication, int rangeMm, int peerCipherSuite,
+            byte[] scid, String pairingAlias,
+            AwarePairingConfig pairingConfig) {
         int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac);
 
         try {
             if (rangingIndication == 0) {
-                mCallback.onMatch(peerId, serviceSpecificInfo, matchFilter, peerCiphersuite, scid);
+                mCallback.onMatch(peerId, serviceSpecificInfo, matchFilter, peerCipherSuite, scid,
+                        pairingAlias, pairingConfig);
             } else {
                 mCallback.onMatchWithDistance(peerId, serviceSpecificInfo, matchFilter, rangeMm,
-                        peerCiphersuite, scid);
+                        peerCipherSuite, scid, pairingAlias, pairingConfig);
             }
         } catch (RemoteException e) {
             Log.w(TAG, "onMatch: RemoteException (FYI): " + e);

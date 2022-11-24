@@ -35,6 +35,7 @@ import android.hardware.wifi.NanDiscoveryCommonConfig;
 import android.hardware.wifi.NanEnableRequest;
 import android.hardware.wifi.NanInitiateDataPathRequest;
 import android.hardware.wifi.NanMatchAlg;
+import android.hardware.wifi.NanPairingConfig;
 import android.hardware.wifi.NanPublishRequest;
 import android.hardware.wifi.NanRangingIndication;
 import android.hardware.wifi.NanRespondToDataPathIndicationRequest;
@@ -42,6 +43,7 @@ import android.hardware.wifi.NanSubscribeRequest;
 import android.hardware.wifi.NanTransmitFollowupRequest;
 import android.hardware.wifi.NanTxType;
 import android.net.MacAddress;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -223,15 +225,17 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig)}
+     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
      */
     @Override
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+            byte[] nanIdentityKey) {
         final String methodStr = "publish";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
-                NanPublishRequest req = createNanPublishRequest(publishId, publishConfig);
+                NanPublishRequest req = createNanPublishRequest(publishId, publishConfig,
+                        nanIdentityKey);
                 mWifiNanIface.startPublishRequest((char) transactionId, req);
                 return true;
             } catch (RemoteException e) {
@@ -244,16 +248,18 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig)}
+     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
      */
     @Override
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig) {
+            SubscribeConfig subscribeConfig,
+            byte[] nanIdentityKey) {
         final String methodStr = "subscribe";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
-                NanSubscribeRequest req = createNanSubscribeRequest(subscribeId, subscribeConfig);
+                NanSubscribeRequest req = createNanSubscribeRequest(subscribeId, subscribeConfig,
+                        nanIdentityKey);
                 mWifiNanIface.startSubscribeRequest((char) transactionId, req);
                 return true;
             } catch (RemoteException e) {
@@ -624,7 +630,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     private static NanPublishRequest createNanPublishRequest(
-            byte publishId, PublishConfig publishConfig) {
+            byte publishId, PublishConfig publishConfig, byte[] nik) {
         NanPublishRequest req = new NanPublishRequest();
         req.baseConfigs = new NanDiscoveryCommonConfig();
         req.baseConfigs.sessionId = publishId;
@@ -674,11 +680,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
         req.publishType = publishConfig.mPublishType;
         req.txType = NanTxType.BROADCAST;
+        req.pairingConfig = createAidlPairingConfig(publishConfig.getPairingConfig());
+        req.identityKey = nik;
         return req;
     }
 
     private static NanSubscribeRequest createNanSubscribeRequest(
-            byte subscribeId, SubscribeConfig subscribeConfig) {
+            byte subscribeId, SubscribeConfig subscribeConfig, byte[] nik) {
         NanSubscribeRequest req = new NanSubscribeRequest();
         req.baseConfigs = new NanDiscoveryCommonConfig();
         req.baseConfigs.sessionId = subscribeId;
@@ -720,7 +728,22 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.baseConfigs.securityConfig.securityType = NanDataPathSecurityType.OPEN;
 
         req.subscribeType = subscribeConfig.mSubscribeType;
+        req.pairingConfig = createAidlPairingConfig(subscribeConfig.getPairingConfig());
+        req.identityKey = nik;
         return req;
+    }
+
+    private static NanPairingConfig createAidlPairingConfig(
+            @Nullable AwarePairingConfig pairingConfig) {
+        NanPairingConfig config = new NanPairingConfig();
+        if (pairingConfig == null) {
+            return config;
+        }
+        config.enablePairingCache = pairingConfig.isPairingCacheEnabled();
+        config.enablePairingSetup = pairingConfig.isPairingSetupEnabled();
+        config.enablePairingVerification = pairingConfig.isPairingVerificationEnabled();
+        config.supportedBootstrappingMethods = pairingConfig.getBootstrappingMethods();
+        return config;
     }
 
     private static NanTransmitFollowupRequest createNanTransmitFollowupRequest(

@@ -19,6 +19,7 @@ package com.android.server.wifi.hal;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -379,20 +380,21 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig)}
+     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
      */
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+            byte[] nik) {
         return validateAndCall("publish", false,
-                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig));
+                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig, nik));
     }
 
     /**
-     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig)}
+     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig) {
+            SubscribeConfig subscribeConfig, byte[] nik) {
         return validateAndCall("subscribe", false,
-                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig));
+                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig, nik));
     }
 
     /**
@@ -600,26 +602,29 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          *               or to set up a data-path.
          * @param addr NAN Discovery (management) MAC address of the peer.
          * @param serviceSpecificInfo The arbitrary information contained in the
-         *                            |NanDiscoveryCommonConfig.serviceSpecificInfo| of
-         *                            the peer's discovery session configuration.
+*                            |NanDiscoveryCommonConfig.serviceSpecificInfo| of
+*                            the peer's discovery session configuration.
          * @param matchFilter The match filter from the discovery packet (publish or subscribe)
-         *                    which caused service discovery. Matches the
-         *                    |NanDiscoveryCommonConfig.txMatchFilter| of the peer's unsolicited
-         *                    publish message or of the local device's Active subscribe message.
+*                    which caused service discovery. Matches the
+*                    |NanDiscoveryCommonConfig.txMatchFilter| of the peer's unsolicited
+*                    publish message or of the local device's Active subscribe message.
          * @param rangingIndicationType The ranging event(s) which triggered the ranging. Ex. can
-         *                              indicate that continuous ranging was requested, or else that
-         *                              an ingress event occurred. See {@link NanRangingIndication}.
+*                              indicate that continuous ranging was requested, or else that
+*                              an ingress event occurred. See {@link NanRangingIndication}.
          * @param rangingMeasurementInMm If ranging was required and executed, contains the
-         *                               distance to the peer in mm.
+*                               distance to the peer in mm.
          * @param scid Security Context Identifier identifies the Security Context.
-         *             For NAN Shared Key Cipher Suite, this field contains the 16 octet PMKID
-         *             identifying the PMK used for setting up the Secure Data Path.
+*             For NAN Shared Key Cipher Suite, this field contains the 16 octet PMKID
+*             identifying the PMK used for setting up the Secure Data Path.
          * @param peerCipherType Cipher type for data-paths constructed in the context of this
-         *                       discovery session.
+         * @param nonce
+         * @param tag
+         * @param pairingConfig
          */
         void eventMatch(byte discoverySessionId, int peerId, byte[] addr,
                 byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndicationType,
-                int rangingMeasurementInMm, byte[] scid, int peerCipherType);
+                int rangingMeasurementInMm, byte[] scid, int peerCipherType, byte[] nonce,
+                byte[] tag, AwarePairingConfig pairingConfig);
 
         /**
          * Indicates that a previously discovered match (service) has expired.

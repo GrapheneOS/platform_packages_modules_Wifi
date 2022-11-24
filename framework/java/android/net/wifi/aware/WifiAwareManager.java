@@ -800,6 +800,8 @@ public class WifiAwareManager {
         private static final String MESSAGE_BUNDLE_KEY_MESSAGE2 = "message2";
         private static final String MESSAGE_BUNDLE_KEY_CIPHER_SUITE = "key_cipher_suite";
         private static final String MESSAGE_BUNDLE_KEY_SCID = "key_scid";
+        private static final String MESSAGE_BUNDLE_KEY_PAIRING_ALIAS = "pairing_alias";
+        private static final String MESSAGE_BUNDLE_KEY_PAIRING_CONFIG = "pairing_config";
 
         private final WeakReference<WifiAwareManager> mAwareManager;
         private final boolean mIsPublish;
@@ -874,7 +876,10 @@ public class WifiAwareManager {
                                                 data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
                                                 data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
                                                 matchFilter,
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)));
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID),
+                                                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                                                data.getParcelable(
+                                                        MESSAGE_BUNDLE_KEY_PAIRING_CONFIG)));
 
                             } else {
                                 mOriginalCallback.onServiceDiscoveredWithinRange(
@@ -887,7 +892,10 @@ public class WifiAwareManager {
                                                 data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
                                                 data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
                                                 matchFilter,
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)),
+                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID),
+                                                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                                                data.getParcelable(
+                                                        MESSAGE_BUNDLE_KEY_PAIRING_CONFIG)),
                                         msg.arg2);
                             }
                             break;
@@ -947,12 +955,15 @@ public class WifiAwareManager {
         }
 
         private void onMatchCommon(int messageType, int peerId, byte[] serviceSpecificInfo,
-                byte[] matchFilter, int distanceMm, int peerCipherSuite, byte[] scid) {
+                byte[] matchFilter, int distanceMm, int peerCipherSuite, byte[] scid,
+                String pairingAlias, AwarePairingConfig pairingConfig) {
             Bundle data = new Bundle();
             data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE, serviceSpecificInfo);
             data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2, matchFilter);
             data.putInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE, peerCipherSuite);
             data.putByteArray(MESSAGE_BUNDLE_KEY_SCID, scid);
+            data.putString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS, pairingAlias);
+            data.putParcelable(MESSAGE_BUNDLE_KEY_PAIRING_CONFIG, pairingConfig);
 
             Message msg = mHandler.obtainMessage(messageType);
             msg.arg1 = peerId;
@@ -963,22 +974,26 @@ public class WifiAwareManager {
 
         @Override
         public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
-                int peerCipherSuite, byte[] scid) {
+                int peerCipherSuite, byte[] scid, String pairingAlias,
+                AwarePairingConfig pairingConfig) {
             if (VDBG) Log.v(TAG, "onMatch: peerId=" + peerId);
 
+
+
             onMatchCommon(CALLBACK_MATCH, peerId, serviceSpecificInfo, matchFilter, 0,
-                    peerCipherSuite, scid);
+                    peerCipherSuite, scid, pairingAlias, pairingConfig);
         }
 
         @Override
         public void onMatchWithDistance(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
-                int distanceMm, int peerCipherSuite, byte[] scid) {
+                int distanceMm, int peerCipherSuite, byte[] scid, String pairingAlias,
+                AwarePairingConfig pairingConfig) {
             if (VDBG) {
                 Log.v(TAG, "onMatchWithDistance: peerId=" + peerId + ", distanceMm=" + distanceMm);
             }
 
             onMatchCommon(CALLBACK_MATCH_WITH_DISTANCE, peerId, serviceSpecificInfo, matchFilter,
-                    distanceMm, peerCipherSuite, scid);
+                    distanceMm, peerCipherSuite, scid, pairingAlias, pairingConfig);
         }
         @Override
         public void onMatchExpired(int peerId) {

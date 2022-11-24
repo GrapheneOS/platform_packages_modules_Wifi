@@ -100,11 +100,14 @@ public final class SubscribeConfig implements Parcelable {
 
     private final int mBand;
 
+    private final AwarePairingConfig mPairingConfig;
+
     /** @hide */
     public SubscribeConfig(byte[] serviceName, byte[] serviceSpecificInfo, byte[] matchFilter,
             int subscribeType, int ttlSec, boolean enableTerminateNotification,
             boolean minDistanceMmSet, int minDistanceMm, boolean maxDistanceMmSet,
-            int maxDistanceMm, boolean enableInstantMode, @WifiScanner.WifiBand int band) {
+            int maxDistanceMm, boolean enableInstantMode, @WifiScanner.WifiBand int band,
+            AwarePairingConfig pairingConfig) {
         mServiceName = serviceName;
         mServiceSpecificInfo = serviceSpecificInfo;
         mMatchFilter = matchFilter;
@@ -117,6 +120,7 @@ public final class SubscribeConfig implements Parcelable {
         mMaxDistanceMmSet = maxDistanceMmSet;
         mEnableInstantMode = enableInstantMode;
         mBand = band;
+        mPairingConfig = pairingConfig;
     }
 
     @Override
@@ -137,7 +141,8 @@ public final class SubscribeConfig implements Parcelable {
                 + ", mMaxDistanceMm=" + mMaxDistanceMm
                 + ", mMaxDistanceMmSet=" + mMaxDistanceMmSet + "]"
                 + ", mEnableInstantMode=" + mEnableInstantMode
-                + ", mBand=" + mBand;
+                + ", mBand=" + mBand
+                + ", mPairingConfig" + mPairingConfig;
     }
 
     @Override
@@ -159,6 +164,7 @@ public final class SubscribeConfig implements Parcelable {
         dest.writeInt(mMaxDistanceMmSet ? 1 : 0);
         dest.writeBoolean(mEnableInstantMode);
         dest.writeInt(mBand);
+        dest.writeParcelable(mPairingConfig, flags);
     }
 
     public static final @android.annotation.NonNull Creator<SubscribeConfig> CREATOR = new Creator<SubscribeConfig>() {
@@ -181,10 +187,11 @@ public final class SubscribeConfig implements Parcelable {
             boolean maxDistanceMmSet = in.readInt() != 0;
             boolean enableInstantMode = in.readBoolean();
             int band = in.readInt();
-
+            AwarePairingConfig pairingConfig = in.readParcelable(
+                    AwarePairingConfig.class.getClassLoader());
             return new SubscribeConfig(serviceName, ssi, matchFilter, subscribeType, ttlSec,
                     enableTerminateNotification, minDistanceMmSet, minDistanceMm, maxDistanceMmSet,
-                    maxDistanceMm, enableInstantMode, band);
+                    maxDistanceMm, enableInstantMode, band, pairingConfig);
         }
     };
 
@@ -302,6 +309,9 @@ public final class SubscribeConfig implements Parcelable {
         if (!rttSupported && (mMinDistanceMmSet || mMaxDistanceMmSet)) {
             throw new IllegalArgumentException("Ranging is not supported");
         }
+        if (mPairingConfig != null && !characteristics.isAwarePairingSupported()) {
+            throw new IllegalArgumentException("Aware Pairing is not supported");
+        }
     }
 
     /**
@@ -320,8 +330,19 @@ public final class SubscribeConfig implements Parcelable {
      * or {@link WifiScanner#WIFI_BAND_5_GHZ}. If instant communication mode is not enabled will
      * return {@link WifiScanner#WIFI_BAND_24_GHZ} as default.
      */
-    public @WifiScanner.WifiBand int getInstantCommunicationBand() {
+    @WifiScanner.WifiBand
+    public int getInstantCommunicationBand() {
         return mBand;
+    }
+
+    /**
+     * Get the Aware Pairing config for this subscribe session
+     * @see Builder#setPairingConfig(AwarePairingConfig)
+     * @return A {@link AwarePairingConfig} specified in this config.
+     */
+    @Nullable
+    public AwarePairingConfig getPairingConfig() {
+        return mPairingConfig;
     }
 
     /**
@@ -340,6 +361,7 @@ public final class SubscribeConfig implements Parcelable {
         private int mMaxDistanceMm;
         private boolean mEnableInstantMode;
         private int mBand = WifiScanner.WIFI_BAND_24_GHZ;
+        private AwarePairingConfig mPairingConfig;
 
         /**
          * Specify the service name of the subscribe session. The actual on-air
@@ -566,6 +588,24 @@ public final class SubscribeConfig implements Parcelable {
         }
 
         /**
+         * Set the {@link AwarePairingConfig} for this subscribe session, the peer can use this info
+         * to determine the config of the following bootstrapping, pairing setup/verification
+         * request.
+         * @see AwarePairingConfig
+         * @param config The pairing config set to the peer. Only valid when
+         * {@link Characteristics#isAwarePairingSupported()} is true.
+         * @return the current {@link Builder} builder, enabling chaining of builder methods.
+         */
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        @NonNull public Builder setPairingConfig(@Nullable AwarePairingConfig config) {
+            if (!SdkLevel.isAtLeastU()) {
+                throw new UnsupportedOperationException();
+            }
+            mPairingConfig = config;
+            return this;
+        }
+
+        /**
          * Build {@link SubscribeConfig} given the current requests made on the
          * builder.
          */
@@ -573,7 +613,7 @@ public final class SubscribeConfig implements Parcelable {
             return new SubscribeConfig(mServiceName, mServiceSpecificInfo, mMatchFilter,
                     mSubscribeType, mTtlSec, mEnableTerminateNotification,
                     mMinDistanceMmSet, mMinDistanceMm, mMaxDistanceMmSet, mMaxDistanceMm,
-                    mEnableInstantMode, mBand);
+                    mEnableInstantMode, mBand, mPairingConfig);
         }
     }
 }

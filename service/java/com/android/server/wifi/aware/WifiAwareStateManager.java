@@ -31,6 +31,7 @@ import android.net.MacAddress;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.AwareResources;
 import android.net.wifi.aware.Characteristics;
@@ -228,6 +229,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_APP_INFO = "app_info";
     private static final String MESSAGE_BUNDLE_KEY_ACCEPT_STATE = "accept_state";
     private static final String MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE = "attribution_source";
+    private static final String MESSAGE_BUNDLE_KEY_NONCE = "nonce";
+    private static final String MESSAGE_BUNDLE_KEY_TAG = "tag";
+    private static final String MESSAGE_BUNDLE_KEY_PAIRING_CONFIG = "pairing_config";
+
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -255,6 +260,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private Handler mHandler;
     private final WifiInjector mWifiInjector;
     private final LocalLog mLocalLog;
+    private final WifiAwarePairingConfigManager mWifiAwarePairingConfigManager;
 
     private final SparseArray<WifiAwareClientState> mClients = new SparseArray<>();
     private ConfigRequest mCurrentAwareConfiguration = null;
@@ -274,10 +280,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     // condition.
     private boolean mAwareIsDisabling = false;
 
+
     public WifiAwareStateManager(WifiInjector wifiInjector) {
         mWifiInjector = wifiInjector;
         mLocalLog = wifiInjector.getWifiAwareLocalLog();
         onReset();
+        mWifiAwarePairingConfigManager = new WifiAwarePairingConfigManager();
     }
 
     /**
@@ -1341,7 +1349,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void onMatchNotification(int pubSubId, int requestorInstanceId, byte[] peerMac,
             byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndication, int rangeMm,
-            byte[] scid, int peerCipherSuite) {
+            byte[] scid, int peerCipherSuite, byte[] nonce, byte[] tag,
+            AwarePairingConfig pairingConfig) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_MATCH;
         msg.arg2 = pubSubId;
@@ -1353,7 +1362,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_RANGE_MM, rangeMm);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE, peerCipherSuite);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_SCID, scid);
-
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_NONCE, nonce);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_TAG, tag);
+        msg.getData().putParcelable(MESSAGE_BUNDLE_KEY_PAIRING_CONFIG, pairingConfig);
         mSm.sendMessage(msg);
     }
 
@@ -1681,7 +1692,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 case NOTIFICATION_TYPE_MATCH: {
                     int pubSubId = msg.arg2;
-                    int requestorInstanceId = msg.getData()
+                    int requesterInstanceId = msg.getData()
                             .getInt(MESSAGE_BUNDLE_KEY_REQ_INSTANCE_ID);
                     byte[] peerMac = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
                     byte[] serviceSpecificInfo = msg.getData()
@@ -1691,9 +1702,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     int rangeMm = msg.getData().getInt(MESSAGE_RANGE_MM);
                     int cipherSuite = msg.getData().getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE);
                     byte[] scid = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_SCID);
+                    byte[] nonce = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_NONCE);
+                    byte[] tag = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_TAG);
+                    AwarePairingConfig pairingConfig = msg.getData()
+                            .getParcelable(MESSAGE_BUNDLE_KEY_PAIRING_CONFIG);
 
-                    onMatchLocal(pubSubId, requestorInstanceId, peerMac, serviceSpecificInfo,
-                            matchFilter, rangingIndication, rangeMm, cipherSuite, scid);
+                    onMatchLocal(pubSubId, requesterInstanceId, peerMac, serviceSpecificInfo,
+                            matchFilter, rangingIndication, rangeMm, cipherSuite, scid, nonce, tag,
+                            pairingConfig);
                     break;
                 }
                 case NOTIFICATION_TYPE_MATCH_EXPIRED: {
@@ -2757,8 +2773,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             return false;
         }
-
-        boolean success = mWifiAwareNativeApi.publish(transactionId, (byte) 0, publishConfig);
+        AwarePairingConfig pairingConfig = publishConfig.getPairingConfig();
+        byte[] nik = null;
+        if (pairingConfig != null && pairingConfig.isPairingVerificationEnabled()) {
+            nik = mWifiAwarePairingConfigManager
+                    .getNikForCallingPackage(client.getCallingPackage());
+        }
+        boolean success = mWifiAwareNativeApi.publish(transactionId, (byte) 0, publishConfig, nik);
         if (!success) {
             try {
                 callback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
@@ -2792,7 +2813,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
 
-        boolean status = session.updatePublish(transactionId, publishConfig);
+        AwarePairingConfig pairingConfig = publishConfig.getPairingConfig();
+        byte[] nik = null;
+        if (pairingConfig != null && pairingConfig.isPairingVerificationEnabled()) {
+            nik = mWifiAwarePairingConfigManager.getNikForCallingPackage(
+                    client.getCallingPackage());
+        }
+
+        boolean status = session.updatePublish(transactionId, publishConfig, nik);
         if (!status) {
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
                     true);
@@ -2815,8 +2843,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.e(TAG, "subscribeLocal: no client exists for clientId=" + clientId);
             return false;
         }
+        AwarePairingConfig pairingConfig = subscribeConfig.getPairingConfig();
+        byte[] nik = null;
+        if (pairingConfig != null && pairingConfig.isPairingVerificationEnabled()) {
+            nik = mWifiAwarePairingConfigManager.getNikForCallingPackage(
+                    client.getCallingPackage());
+        }
 
-        boolean success = mWifiAwareNativeApi.subscribe(transactionId, (byte) 0, subscribeConfig);
+        boolean success = mWifiAwareNativeApi.subscribe(transactionId, (byte) 0, subscribeConfig,
+                nik);
         if (!success) {
             try {
                 callback.onSessionConfigFail(NanStatusCode.INTERNAL_FAILURE);
@@ -2851,8 +2886,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", sessionId=" + sessionId);
             return false;
         }
-
-        boolean status = session.updateSubscribe(transactionId, subscribeConfig);
+        AwarePairingConfig pairingConfig = subscribeConfig.getPairingConfig();
+        byte[] nik = null;
+        if (pairingConfig != null && pairingConfig.isPairingVerificationEnabled()) {
+            nik = mWifiAwarePairingConfigManager.getNikForCallingPackage(
+                    client.getCallingPackage());
+        }
+        boolean status = session.updateSubscribe(transactionId, subscribeConfig, nik);
         if (!status) {
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
                     false);
@@ -3095,12 +3135,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         int instantModeBand;
         int minRange = -1;
         int maxRange = -1;
+        AwarePairingConfig pairingConfig;
         if (isPublish) {
             PublishConfig publishConfig = completedCommand.getData().getParcelable(
                     MESSAGE_BUNDLE_KEY_CONFIG);
             isRangingEnabled = publishConfig.mEnableRanging;
             enableInstantMode = publishConfig.isInstantCommunicationModeEnabled();
             instantModeBand = publishConfig.getInstantCommunicationBand();
+            pairingConfig = publishConfig.getPairingConfig();
         } else {
             SubscribeConfig subscribeConfig = completedCommand.getData().getParcelable(
                     MESSAGE_BUNDLE_KEY_CONFIG);
@@ -3114,6 +3156,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             enableInstantMode = subscribeConfig.isInstantCommunicationModeEnabled();
             instantModeBand = subscribeConfig.getInstantCommunicationBand();
+            pairingConfig = subscribeConfig.getPairingConfig();
         }
 
         if (completedCommand.arg1 == COMMAND_TYPE_PUBLISH
@@ -3141,7 +3184,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
             WifiAwareDiscoverySessionState session = new WifiAwareDiscoverySessionState(
                     mWifiAwareNativeApi, sessionId, pubSubId, callback, isPublish, isRangingEnabled,
-                    SystemClock.elapsedRealtime(), enableInstantMode, instantModeBand, mLocalLog);
+                    SystemClock.elapsedRealtime(), enableInstantMode, instantModeBand, mLocalLog,
+                    pairingConfig);
             session.enableVerboseLogging(mVerboseLoggingEnabled);
             client.addSession(session);
 
@@ -3437,11 +3481,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mAwareMetrics.recordEnableAware();
     }
 
-    private void onMatchLocal(int pubSubId, int requestorInstanceId, byte[] peerMac,
+    private void onMatchLocal(int pubSubId, int requestorinstanceid, byte[] peerMac,
             byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndication, int rangeMm,
-            int cipherSuite, byte[] scid) {
+            int cipherSuite, byte[] scid, byte[] nonce, byte[] tag,
+            AwarePairingConfig pairingConfig) {
         mLocalLog.log("onMatch: pubSubId=" + pubSubId
-                + ", requestorInstanceId=" + requestorInstanceId
+                + ", requestorInstanceId=" + requestorinstanceid
                 + ", peerDiscoveryMac=" + String.valueOf(HexEncoding.encode(peerMac))
                 + ", serviceSpecificInfo=" + Arrays.toString(serviceSpecificInfo)
                 + ", matchFilter=" + Arrays.toString(matchFilter)
@@ -3457,8 +3502,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (data.second.isRangingEnabled()) {
             mAwareMetrics.recordMatchIndicationForRangeEnabledSubscribe(rangingIndication != 0);
         }
-        data.second.onMatch(requestorInstanceId, peerMac, serviceSpecificInfo, matchFilter,
-                rangingIndication, rangeMm, cipherSuite, scid);
+        String pairingAlias = mWifiAwarePairingConfigManager.getPairedDeviceAlias(
+                data.first.getCallingPackage(), nonce, tag);
+        data.second.onMatch(requestorinstanceid, peerMac, serviceSpecificInfo, matchFilter,
+                rangingIndication, rangeMm, cipherSuite, scid, pairingAlias, pairingConfig);
     }
 
     private void onMatchExpiredLocal(int pubSubId, int requestorInstanceId) {

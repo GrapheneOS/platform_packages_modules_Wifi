@@ -61,13 +61,14 @@ public class TestUtils {
             return true;
         }
 
-        public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+        public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+                byte[] nik) {
             addTransactionId(transactionId);
             return true;
         }
 
         public boolean subscribe(short transactionId, byte subscribeId,
-                SubscribeConfig subscribeConfig) {
+                SubscribeConfig subscribeConfig, byte[] nik) {
             addTransactionId(transactionId);
             return true;
         }

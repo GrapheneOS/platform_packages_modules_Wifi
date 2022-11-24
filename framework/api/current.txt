@@ -785,6 +785,34 @@ package android.net.wifi.aware {
     method public void onAwareSessionTerminated();
   }
 
+  public final class AwarePairingConfig implements android.os.Parcelable {
+    method public int describeContents();
+    method public int getBootstrappingMethods();
+    method public boolean isPairingCacheEnabled();
+    method public boolean isPairingSetupEnabled();
+    method public boolean isPairingVerificationEnabled();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.AwarePairingConfig> CREATOR;
+    field public static final int PAIRING_BOOTSTRAPPING_NFC_READER = 256; // 0x100
+    field public static final int PAIRING_BOOTSTRAPPING_NFC_TAG = 16; // 0x10
+    field public static final int PAIRING_BOOTSTRAPPING_OPPORTUNISTIC = 1; // 0x1
+    field public static final int PAIRING_BOOTSTRAPPING_PASSPHRASE_DISPLAY = 4; // 0x4
+    field public static final int PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD = 64; // 0x40
+    field public static final int PAIRING_BOOTSTRAPPING_PIN_CODE_DISPLAY = 2; // 0x2
+    field public static final int PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD = 32; // 0x20
+    field public static final int PAIRING_BOOTSTRAPPING_QR_DISPLAY = 8; // 0x8
+    field public static final int PAIRING_BOOTSTRAPPING_QR_SCAN = 128; // 0x80
+  }
+
+  public static final class AwarePairingConfig.Builder {
+    ctor public AwarePairingConfig.Builder();
+    method @NonNull public android.net.wifi.aware.AwarePairingConfig build();
+    method @NonNull public android.net.wifi.aware.AwarePairingConfig.Builder setBootstrappingMethods(int);
+    method @NonNull public android.net.wifi.aware.AwarePairingConfig.Builder setPairingCacheEnabled(boolean);
+    method @NonNull public android.net.wifi.aware.AwarePairingConfig.Builder setPairingSetupEnabled(boolean);
+    method @NonNull public android.net.wifi.aware.AwarePairingConfig.Builder setPairingVerificationEnabled(boolean);
+  }
+
   public final class AwareResources implements android.os.Parcelable {
     ctor public AwareResources(@IntRange(from=0) int, @IntRange(from=0) int, @IntRange(from=0) int);
     method public int describeContents();
@@ -805,6 +833,7 @@ package android.net.wifi.aware {
     method @IntRange(from=1) public int getNumberOfSupportedPublishSessions();
     method @IntRange(from=1) public int getNumberOfSupportedSubscribeSessions();
     method public int getSupportedCipherSuites();
+    method public boolean isAwarePairingSupported();
     method public boolean isInstantCommunicationModeSupported();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.Characteristics> CREATOR;
@@ -857,6 +886,7 @@ package android.net.wifi.aware {
   public final class PublishConfig implements android.os.Parcelable {
     method public int describeContents();
     method public int getInstantCommunicationBand();
+    method @Nullable public android.net.wifi.aware.AwarePairingConfig getPairingConfig();
     method @Nullable public android.net.wifi.aware.WifiAwareDataPathSecurityConfig getSecurityConfig();
     method public boolean isInstantCommunicationModeEnabled();
     method public void writeToParcel(android.os.Parcel, int);
@@ -871,6 +901,7 @@ package android.net.wifi.aware {
     method @NonNull public android.net.wifi.aware.PublishConfig.Builder setDataPathSecurityConfig(@NonNull android.net.wifi.aware.WifiAwareDataPathSecurityConfig);
     method @NonNull public android.net.wifi.aware.PublishConfig.Builder setInstantCommunicationModeEnabled(boolean, int);
     method public android.net.wifi.aware.PublishConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
+    method @NonNull public android.net.wifi.aware.PublishConfig.Builder setPairingConfig(@Nullable android.net.wifi.aware.AwarePairingConfig);
     method public android.net.wifi.aware.PublishConfig.Builder setPublishType(int);
     method public android.net.wifi.aware.PublishConfig.Builder setRangingEnabled(boolean);
     method public android.net.wifi.aware.PublishConfig.Builder setServiceName(@NonNull String);
@@ -885,6 +916,8 @@ package android.net.wifi.aware {
 
   public final class ServiceDiscoveryInfo {
     method @NonNull public java.util.List<byte[]> getMatchFilters();
+    method @Nullable public String getPairedAlias();
+    method @Nullable public android.net.wifi.aware.AwarePairingConfig getPairingConfig();
     method public int getPeerCipherSuite();
     method @NonNull public android.net.wifi.aware.PeerHandle getPeerHandle();
     method @Nullable public byte[] getScid();
@@ -894,6 +927,7 @@ package android.net.wifi.aware {
   public final class SubscribeConfig implements android.os.Parcelable {
     method public int describeContents();
     method public int getInstantCommunicationBand();
+    method @Nullable public android.net.wifi.aware.AwarePairingConfig getPairingConfig();
     method public boolean isInstantCommunicationModeEnabled();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.SubscribeConfig> CREATOR;
@@ -908,6 +942,7 @@ package android.net.wifi.aware {
     method public android.net.wifi.aware.SubscribeConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
+    method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setPairingConfig(@Nullable android.net.wifi.aware.AwarePairingConfig);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceName(@NonNull String);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceSpecificInfo(@Nullable byte[]);
     method public android.net.wifi.aware.SubscribeConfig.Builder setSubscribeType(int);

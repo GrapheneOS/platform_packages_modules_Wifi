@@ -396,14 +396,15 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
 
     /**
      * Start or modify a service publish session.
-     *
-     * @param transactionId transactionId Transaction ID for the transaction -
+     *  @param transactionId transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param publishId ID of the requested session - 0 to request a new publish
      *            session.
      * @param publishConfig Configuration of the discovery session.
+     * @param nik
      */
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+            byte[] nik) {
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "publish: transactionId=" + transactionId + ", publishId=" + publishId
                     + ", config=" + publishConfig);
@@ -415,20 +416,20 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "publish: null interface");
             return false;
         }
-        return iface.publish(transactionId, publishId, publishConfig);
+        return iface.publish(transactionId, publishId, publishConfig, nik);
     }
 
     /**
      * Start or modify a service subscription session.
-     *
-     * @param transactionId transactionId Transaction ID for the transaction -
+     *  @param transactionId transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param subscribeId ID of the requested session - 0 to request a new
      *            subscribe session.
      * @param subscribeConfig Configuration of the discovery session.
+     * @param nik
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig) {
+            SubscribeConfig subscribeConfig, byte[] nik) {
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "subscribe: transactionId=" + transactionId + ", subscribeId=" + subscribeId
                     + ", config=" + subscribeConfig);
@@ -440,7 +441,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "subscribe: null interface");
             return false;
         }
-        return iface.subscribe(transactionId, subscribeId, subscribeConfig);
+        return iface.subscribe(transactionId, subscribeId, subscribeConfig, nik);
     }
 
     /**

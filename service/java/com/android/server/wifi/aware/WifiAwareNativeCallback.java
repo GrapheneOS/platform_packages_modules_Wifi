@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.aware;
 
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.util.Log;
 import android.util.SparseArray;
@@ -278,11 +279,12 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     @Override
     public void eventMatch(byte discoverySessionId, int peerId, byte[] addr,
             byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndicationType,
-            int rangingMeasurementInMm, byte[] scid, int peerCipherType) {
+            int rangingMeasurementInMm, byte[] scid, int peerCipherType, byte[] nonce, byte[] tag,
+            AwarePairingConfig pairingConfig) {
         incrementCbCount(CB_EV_MATCH);
         mWifiAwareStateManager.onMatchNotification(discoverySessionId, peerId,
                 addr, serviceSpecificInfo, matchFilter, rangingIndicationType,
-                rangingMeasurementInMm, scid, peerCipherType);
+                rangingMeasurementInMm, scid, peerCipherType, nonce, tag, pairingConfig);
     }
 
     @Override

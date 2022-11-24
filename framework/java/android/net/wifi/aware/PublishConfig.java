@@ -95,11 +95,14 @@ public final class PublishConfig implements Parcelable {
 
     private final WifiAwareDataPathSecurityConfig mSecurityConfig;
 
+    private final AwarePairingConfig mPairingConfig;
+
     /** @hide */
     public PublishConfig(byte[] serviceName, byte[] serviceSpecificInfo, byte[] matchFilter,
             int publishType, int ttlSec, boolean enableTerminateNotification,
             boolean enableRanging, boolean enableInstantMode, @WifiScanner.WifiBand int
-            band, WifiAwareDataPathSecurityConfig securityConfig) {
+            band, WifiAwareDataPathSecurityConfig securityConfig,
+            AwarePairingConfig pairingConfig) {
         mServiceName = serviceName;
         mServiceSpecificInfo = serviceSpecificInfo;
         mMatchFilter = matchFilter;
@@ -110,6 +113,7 @@ public final class PublishConfig implements Parcelable {
         mEnableInstantMode = enableInstantMode;
         mBand = band;
         mSecurityConfig = securityConfig;
+        mPairingConfig = pairingConfig;
     }
 
     @Override
@@ -128,7 +132,8 @@ public final class PublishConfig implements Parcelable {
                 + ", mEnableRanging=" + mEnableRanging + "]"
                 + ", mEnableInstantMode=" + mEnableInstantMode
                 + ", mBand=" + mBand
-                + ", mSecurityConfig" + mSecurityConfig;
+                + ", mSecurityConfig" + mSecurityConfig
+                + ", mPairingConfig" + mPairingConfig;
     }
 
     @Override
@@ -148,6 +153,7 @@ public final class PublishConfig implements Parcelable {
         dest.writeBoolean(mEnableInstantMode);
         dest.writeInt(mBand);
         dest.writeParcelable(mSecurityConfig, flags);
+        dest.writeParcelable(mPairingConfig, flags);
     }
 
     public static final @android.annotation.NonNull Creator<PublishConfig> CREATOR = new Creator<PublishConfig>() {
@@ -169,10 +175,12 @@ public final class PublishConfig implements Parcelable {
             int band = in.readInt();
             WifiAwareDataPathSecurityConfig securityConfig = in
                     .readParcelable(WifiAwareDataPathSecurityConfig.class.getClassLoader());
+            AwarePairingConfig pairingConfig = in
+                    .readParcelable(AwarePairingConfig.class.getClassLoader());
 
             return new PublishConfig(serviceName, ssi, matchFilter, publishType, ttlSec,
                     enableTerminateNotification, enableRanging, enableInstantMode,
-                    band, securityConfig);
+                    band, securityConfig, pairingConfig);
         }
     };
 
@@ -196,14 +204,15 @@ public final class PublishConfig implements Parcelable {
                 && mEnableRanging == lhs.mEnableRanging
                 && mEnableInstantMode == lhs.mEnableInstantMode
                 && mBand == lhs.mBand
-                && Objects.equals(mSecurityConfig, lhs.mSecurityConfig);
+                && Objects.equals(mSecurityConfig, lhs.mSecurityConfig)
+                && Objects.equals(mPairingConfig, lhs.mPairingConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(Arrays.hashCode(mServiceName), Arrays.hashCode(mServiceSpecificInfo),
                 Arrays.hashCode(mMatchFilter), mPublishType, mTtlSec, mEnableTerminateNotification,
-                mEnableRanging, mEnableInstantMode, mBand, mSecurityConfig);
+                mEnableRanging, mEnableInstantMode, mBand, mSecurityConfig, mPairingConfig);
     }
 
     /**
@@ -265,6 +274,10 @@ public final class PublishConfig implements Parcelable {
         if (!rttSupported && mEnableRanging) {
             throw new IllegalArgumentException("Ranging is not supported");
         }
+
+        if (mPairingConfig != null && !characteristics.isAwarePairingSupported()) {
+            throw new IllegalArgumentException("Aware Pairing is not supported");
+        }
     }
 
     /**
@@ -277,7 +290,7 @@ public final class PublishConfig implements Parcelable {
     }
 
     /**
-     * Get the Wi-FI band for instant communication mode for this publish session
+     * Get the Wi-Fi band for instant communication mode for this publish session
      * @see Builder#setInstantCommunicationModeEnabled(boolean, int)
      * @return The Wi-Fi band, one of the {@link WifiScanner#WIFI_BAND_24_GHZ}
      * or {@link WifiScanner#WIFI_BAND_5_GHZ}. If instant communication mode is not enabled will
@@ -298,6 +311,16 @@ public final class PublishConfig implements Parcelable {
     }
 
     /**
+     * Get the Aware Pairing config for this publish session
+     * @see Builder#setPairingConfig(AwarePairingConfig)
+     * @return A {@link AwarePairingConfig} specified in this config.
+     */
+    @Nullable
+    public AwarePairingConfig getPairingConfig() {
+        return mPairingConfig;
+    }
+
+    /**
      * Builder used to build {@link PublishConfig} objects.
      */
     public static final class Builder {
@@ -311,6 +334,7 @@ public final class PublishConfig implements Parcelable {
         private boolean mEnableInstantMode = false;
         private int mBand = WifiScanner.WIFI_BAND_24_GHZ;
         private WifiAwareDataPathSecurityConfig mSecurityConfig = null;
+        private AwarePairingConfig mPairingConfig = null;
 
         /**
          * Specify the service name of the publish session. The actual on-air
@@ -524,13 +548,31 @@ public final class PublishConfig implements Parcelable {
         }
 
         /**
+         * Set the {@link AwarePairingConfig} for this publish session, the peer can use this info
+         * to determine the config of the following bootstrapping, pairing setup/verification
+         * request.
+         * @see AwarePairingConfig
+         * @param config The pairing config set to the peer. Only valid when
+         * {@link Characteristics#isAwarePairingSupported()} is true.
+         * @return the current {@link Builder} builder, enabling chaining of builder methods.
+         */
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        @NonNull public Builder setPairingConfig(@Nullable AwarePairingConfig config) {
+            if (!SdkLevel.isAtLeastU()) {
+                throw new UnsupportedOperationException();
+            }
+            mPairingConfig = config;
+            return this;
+        }
+
+        /**
          * Build {@link PublishConfig} given the current requests made on the
          * builder.
          */
         public PublishConfig build() {
             return new PublishConfig(mServiceName, mServiceSpecificInfo, mMatchFilter, mPublishType,
                     mTtlSec, mEnableTerminateNotification, mEnableRanging, mEnableInstantMode,
-                    mBand, mSecurityConfig);
+                    mBand, mSecurityConfig, mPairingConfig);
         }
     }
 }

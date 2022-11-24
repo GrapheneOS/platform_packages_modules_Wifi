@@ -95,25 +95,27 @@ public interface IWifiNanIface {
 
     /**
      * Start or modify a service publish session.
-     *
-     * @param transactionId Transaction ID for the transaction -
+     *  @param transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param publishId ID of the requested session - 0 to request a new publish
      *            session.
      * @param publishConfig Configuration of the discovery session.
+     * @param nanIdentityKey
      */
-    boolean publish(short transactionId, byte publishId, PublishConfig publishConfig);
+    boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+            byte[] nanIdentityKey);
 
     /**
      * Start or modify a service subscription session.
-     *
      * @param transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param subscribeId ID of the requested session - 0 to request a new
      *            subscribe session.
      * @param subscribeConfig Configuration of the discovery session.
+     * @param nanIdentityKey
      */
-    boolean subscribe(short transactionId, byte subscribeId, SubscribeConfig subscribeConfig);
+    boolean subscribe(short transactionId, byte subscribeId, SubscribeConfig subscribeConfig,
+            byte[] nanIdentityKey);
 
     /**
      * Send a message through an existing discovery session.

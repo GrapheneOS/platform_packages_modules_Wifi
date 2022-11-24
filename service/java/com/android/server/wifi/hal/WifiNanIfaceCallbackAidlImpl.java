@@ -18,6 +18,7 @@ package com.android.server.wifi.hal;
 
 import android.hardware.wifi.IWifiNanIfaceEventCallback;
 import android.hardware.wifi.NanBootstrappingConfirmInd;
+import android.hardware.wifi.NanBootstrappingMethod;
 import android.hardware.wifi.NanBootstrappingRequestInd;
 import android.hardware.wifi.NanCapabilities;
 import android.hardware.wifi.NanCipherSuiteType;
@@ -28,6 +29,7 @@ import android.hardware.wifi.NanDataPathRequestInd;
 import android.hardware.wifi.NanDataPathScheduleUpdateInd;
 import android.hardware.wifi.NanFollowupReceivedInd;
 import android.hardware.wifi.NanMatchInd;
+import android.hardware.wifi.NanPairingConfig;
 import android.hardware.wifi.NanPairingConfirmInd;
 import android.hardware.wifi.NanPairingRequestInd;
 import android.hardware.wifi.NanStatus;
@@ -36,6 +38,7 @@ import android.hardware.wifi.WifiChannelWidthInMhz;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.net.wifi.util.HexEncoding;
@@ -331,7 +334,50 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 event.addr, event.serviceSpecificInfo, event.matchFilter,
                 NanRangingIndication.fromAidl(event.rangingIndicationType),
                 event.rangingMeasurementInMm, event.scid,
-                toPublicCipherSuites(event.peerCipherType));
+                toPublicCipherSuites(event.peerCipherType),
+                event.peerNira.nonce, event.peerNira.tag,
+                createPublicPairingConfig(event.peerPairingConfig));
+    }
+
+    private AwarePairingConfig createPublicPairingConfig(NanPairingConfig nativePairingConfig) {
+        return new AwarePairingConfig(nativePairingConfig.enablePairingSetup,
+                nativePairingConfig.enablePairingCache,
+                nativePairingConfig.enablePairingVerification,
+                toBootStrappingMethods(nativePairingConfig.supportedBootstrappingMethods));
+    }
+
+    private int toBootStrappingMethods(int nativeMethods) {
+        int publicMethods = 0;
+
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_OPPORTUNISTIC_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_PIN_CODE_DISPLAY_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_DISPLAY;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_PASSPHRASE_DISPLAY_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_DISPLAY;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_QR_DISPLAY_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_NFC_TAG_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_TAG;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_PIN_CODE_KEYPAD_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_PASSPHRASE_KEYPAD_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_QR_SCAN_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_NFC_READER_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_READER;
+        }
+
+        return publicMethods;
     }
 
     @Override
@@ -479,6 +525,8 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 capabilities.supportedCipherSuites);
         frameworkCapabilities.isInstantCommunicationModeSupported =
                 capabilities.instantCommunicationModeSupportFlag;
+        frameworkCapabilities.isNanPairingSupported = capabilities.supportsPairing;
+
         return frameworkCapabilities;
     }
 
