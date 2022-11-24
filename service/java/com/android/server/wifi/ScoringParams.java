@@ -98,7 +98,8 @@ public class ScoringParams {
         public int secureNetworkBonus = 40;
         public int band6GhzBonus = 0;
         public int scoringBucketStepSize = 500;
-        public int lastSelectionMinutes = 480;
+        public int lastUnmeteredSelectionMinutes = 480;
+        public int lastMeteredSelectionMinutes = 120;
         public int estimateRssiErrorMargin = 5;
         public static final int MIN_MINUTES = 1;
         public static final int MAX_MINUTES = Integer.MAX_VALUE / (60 * 1000);
@@ -132,7 +133,8 @@ public class ScoringParams {
             validateRange(horizon, MIN_HORIZON, MAX_HORIZON);
             validateRange(nud, MIN_NUD, MAX_NUD);
             validateRange(expid, MIN_EXPID, MAX_EXPID);
-            validateRange(lastSelectionMinutes, MIN_MINUTES, MAX_MINUTES);
+            validateRange(lastUnmeteredSelectionMinutes, MIN_MINUTES, MAX_MINUTES);
+            validateRange(lastMeteredSelectionMinutes, MIN_MINUTES, MAX_MINUTES);
         }
 
         private void validateRssiArray(int[] rssi) throws IllegalArgumentException {
@@ -295,8 +297,10 @@ public class ScoringParams {
         mVal.band6GhzBonus = context.getResources().getInteger(R.integer.config_wifiBand6GhzBonus);
         mVal.scoringBucketStepSize = context.getResources().getInteger(
                 R.integer.config_wifiScoringBucketStepSize);
-        mVal.lastSelectionMinutes = context.getResources().getInteger(
+        mVal.lastUnmeteredSelectionMinutes = context.getResources().getInteger(
                 R.integer.config_wifiFrameworkLastSelectionMinutes);
+        mVal.lastMeteredSelectionMinutes = context.getResources().getInteger(
+                R.integer.config_wifiFrameworkLastMeteredSelectionMinutes);
         mVal.estimateRssiErrorMargin = context.getResources().getInteger(
                 R.integer.config_wifiEstimateRssiErrorMarginDb);
         mVal.pps[ACTIVE_TRAFFIC] = context.getResources().getInteger(
@@ -532,11 +536,19 @@ public class ScoringParams {
     }
 
     /*
-     * Returns the duration in minutes for a recently selected network
+     * Returns the duration in minutes for a recently selected non-metered network
      * to be strongly favored.
      */
-    public int getLastSelectionMinutes() {
-        return mVal.lastSelectionMinutes;
+    public int getLastUnmeteredSelectionMinutes() {
+        return mVal.lastUnmeteredSelectionMinutes;
+    }
+
+    /*
+     * Returns the duration in minutes for a recently selected metered network
+     * to be strongly favored.
+     */
+    public int getLastMeteredSelectionMinutes() {
+        return mVal.lastMeteredSelectionMinutes;
     }
 
     /**
