@@ -3650,6 +3650,12 @@ public class WifiManager {
      */
     public static final long WIFI_FEATURE_TLS_V1_3 = 1L << 56;
 
+    /**
+     * Support for Dual Band Simultaneous (DBS) operation.
+     * @hide
+     */
+    public static final long WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS = 1L << 57;
+
     private long getSupportedFeatures() {
         try {
             return mService.getSupportedFeatures();
@@ -7855,6 +7861,13 @@ public class WifiManager {
      */
     public boolean isTlsV13Supported() {
         return isFeatureSupported(WIFI_FEATURE_TLS_V1_3);
+    }
+
+    /**
+     * @return true if this device supports Dual Band Simultaneous (DBS) operation.
+     */
+    public boolean isDualBandSimultaneousSupported() {
+        return isFeatureSupported(WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS);
     }
 
     /**

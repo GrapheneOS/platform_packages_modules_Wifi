@@ -788,6 +788,10 @@ public class WifiVendorHal {
             WifiStaIface iface = getStaIface(ifaceName);
             if (iface != null) {
                 featureSet |= iface.getCapabilities();
+                if (mHalDeviceManager.is24g5gDbsSupported(iface)
+                        || mHalDeviceManager.is5g6gDbsSupported(iface)) {
+                    featureSet |= WifiManager.WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS;
+                }
             }
         }
 
