@@ -28,7 +28,10 @@ import android.hardware.wifi.NanBandSpecificConfig;
 import android.hardware.wifi.NanCipherSuiteType;
 import android.hardware.wifi.NanConfigRequest;
 import android.hardware.wifi.NanConfigRequestSupplemental;
+import android.hardware.wifi.NanDataPathSecurityConfig;
 import android.hardware.wifi.NanDataPathSecurityType;
+import android.hardware.wifi.NanDebugConfig;
+import android.hardware.wifi.NanDiscoveryCommonConfig;
 import android.hardware.wifi.NanEnableRequest;
 import android.hardware.wifi.NanInitiateDataPathRequest;
 import android.hardware.wifi.NanMatchAlg;
@@ -512,10 +515,12 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         NanBandSpecificConfig[] nanBandSpecificConfigs =
                 createNanBandSpecificConfigs(configRequest);
 
+        req.operateInBand = new boolean[3];
         req.operateInBand[NanBandIndex.NAN_BAND_24GHZ] = true;
         req.operateInBand[NanBandIndex.NAN_BAND_5GHZ] = configRequest.mSupport5gBand;
         req.operateInBand[NanBandIndex.NAN_BAND_6GHZ] = configRequest.mSupport6gBand;
         req.hopCountMax = 2;
+        req.configParams = new NanConfigRequest();
         req.configParams.masterPref = (byte) configRequest.mMasterPreference;
         req.configParams.disableDiscoveryAddressChangeIndication = !notifyIdentityChange;
         req.configParams.disableStartedClusterIndication = !notifyIdentityChange;
@@ -527,11 +532,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.configParams.rssiWindowSize = 8;
         req.configParams.macAddressRandomizationIntervalSec = macAddressRandomizationIntervalSec;
 
+        req.configParams.bandSpecificConfig = new NanBandSpecificConfig[3];
         req.configParams.bandSpecificConfig[NanBandIndex.NAN_BAND_24GHZ] =
                 nanBandSpecificConfigs[0];
         req.configParams.bandSpecificConfig[NanBandIndex.NAN_BAND_5GHZ] = nanBandSpecificConfigs[1];
         req.configParams.bandSpecificConfig[NanBandIndex.NAN_BAND_6GHZ] = nanBandSpecificConfigs[2];
 
+        req.debugConfigs = new NanDebugConfig();
         req.debugConfigs.validClusterIdVals = true;
         req.debugConfigs.clusterIdTopRangeVal = (char) configRequest.mClusterHigh;
         req.debugConfigs.clusterIdBottomRangeVal = (char) configRequest.mClusterLow;
@@ -543,14 +550,17 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.debugConfigs.validHopCountForceVal = false;
         req.debugConfigs.hopCountForceVal = 0;
         req.debugConfigs.validDiscoveryChannelVal = false;
+        req.debugConfigs.discoveryChannelMhzVal = new int[3];
         req.debugConfigs.discoveryChannelMhzVal[NanBandIndex.NAN_BAND_24GHZ] = 0;
         req.debugConfigs.discoveryChannelMhzVal[NanBandIndex.NAN_BAND_5GHZ] = 0;
         req.debugConfigs.discoveryChannelMhzVal[NanBandIndex.NAN_BAND_6GHZ] = 0;
         req.debugConfigs.validUseBeaconsInBandVal = false;
+        req.debugConfigs.useBeaconsInBandVal = new boolean[3];
         req.debugConfigs.useBeaconsInBandVal[NanBandIndex.NAN_BAND_24GHZ] = true;
         req.debugConfigs.useBeaconsInBandVal[NanBandIndex.NAN_BAND_5GHZ] = true;
         req.debugConfigs.useBeaconsInBandVal[NanBandIndex.NAN_BAND_6GHZ] = true;
         req.debugConfigs.validUseSdfInBandVal = false;
+        req.debugConfigs.useSdfInBandVal = new boolean[3];
         req.debugConfigs.useSdfInBandVal[NanBandIndex.NAN_BAND_24GHZ] = true;
         req.debugConfigs.useSdfInBandVal[NanBandIndex.NAN_BAND_5GHZ] = true;
         req.debugConfigs.useSdfInBandVal[NanBandIndex.NAN_BAND_6GHZ] = true;
@@ -577,6 +587,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.rssiWindowSize = 8;
         req.macAddressRandomizationIntervalSec = macAddressRandomizationIntervalSec;
 
+        req.bandSpecificConfig = new NanBandSpecificConfig[3];
         req.bandSpecificConfig[NanBandIndex.NAN_BAND_24GHZ] = nanBandSpecificConfigs[0];
         req.bandSpecificConfig[NanBandIndex.NAN_BAND_5GHZ] = nanBandSpecificConfigs[1];
         req.bandSpecificConfig[NanBandIndex.NAN_BAND_6GHZ] = nanBandSpecificConfigs[2];
@@ -615,6 +626,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     private static NanPublishRequest createNanPublishRequest(
             byte publishId, PublishConfig publishConfig) {
         NanPublishRequest req = new NanPublishRequest();
+        req.baseConfigs = new NanDiscoveryCommonConfig();
         req.baseConfigs.sessionId = publishId;
         req.baseConfigs.ttlSec = (char) publishConfig.mTtlSec;
         req.baseConfigs.discoveryWindowPeriod = 1;
@@ -639,6 +651,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
         req.baseConfigs.rangingRequired = publishConfig.mEnableRanging;
 
+        req.baseConfigs.securityConfig = new NanDataPathSecurityConfig();
         req.baseConfigs.securityConfig.securityType = NanDataPathSecurityType.OPEN;
         WifiAwareDataPathSecurityConfig securityConfig = publishConfig.getSecurityConfig();
         if (securityConfig != null) {
@@ -667,6 +680,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     private static NanSubscribeRequest createNanSubscribeRequest(
             byte subscribeId, SubscribeConfig subscribeConfig) {
         NanSubscribeRequest req = new NanSubscribeRequest();
+        req.baseConfigs = new NanDiscoveryCommonConfig();
         req.baseConfigs.sessionId = subscribeId;
         req.baseConfigs.ttlSec = (char) subscribeConfig.mTtlSec;
         req.baseConfigs.discoveryWindowPeriod = 1;
@@ -702,6 +716,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         }
 
         // TODO: configure security
+        req.baseConfigs.securityConfig = new NanDataPathSecurityConfig();
         req.baseConfigs.securityConfig.securityType = NanDataPathSecurityType.OPEN;
 
         req.subscribeType = subscribeConfig.mSubscribeType;
@@ -730,6 +745,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.channelRequestType = WifiNanIface.NanDataPathChannelCfg.toAidl(channelRequestType);
         req.channel = channel;
         req.ifaceName = interfaceName;
+        req.securityConfig = new NanDataPathSecurityConfig();
         req.securityConfig.securityType = NanDataPathSecurityType.OPEN;
         if (securityConfig != null) {
             req.securityConfig.cipherType = getHalCipherSuiteType(securityConfig.getCipherSuite());
@@ -763,6 +779,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.acceptRequest = accept;
         req.ndpInstanceId = ndpId;
         req.ifaceName = interfaceName;
+        req.securityConfig = new NanDataPathSecurityConfig();
         req.securityConfig.securityType = NanDataPathSecurityType.OPEN;
         if (securityConfig != null) {
             req.securityConfig.cipherType = getHalCipherSuiteType(securityConfig.getCipherSuite());

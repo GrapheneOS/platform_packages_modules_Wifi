@@ -368,6 +368,7 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                 config.channel.centerFreq1 = responder.centerFreq1;
                 config.bw = frameworkToHalChannelBandwidth(responder.channelWidth);
                 config.preamble = frameworkToHalResponderPreamble(responder.preamble);
+                validateBwAndPreambleCombination(config.bw, config.preamble);
 
                 if (config.peer == RttPeerType.NAN_TYPE) {
                     config.mustRequestLci = false;
@@ -408,6 +409,23 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
             configArray[i] = rttConfigs.get(i);
         }
         return configArray;
+    }
+
+    private static void validateBwAndPreambleCombination(int bw, int preamble) {
+        if (bw <= RttBw.BW_20MHZ) {
+            return;
+        }
+        if (bw == RttBw.BW_40MHZ && preamble >= RttPreamble.HT) {
+            return;
+        }
+        if (bw == RttBw.BW_320MHZ && preamble == RttPreamble.EHT) {
+            return;
+        }
+        if (bw >= RttBw.BW_80MHZ && bw < RttBw.BW_320MHZ && preamble >= RttPreamble.VHT) {
+            return;
+        }
+        throw new IllegalArgumentException(
+                "bw and preamble combination is invalid, bw: " + bw + " preamble: " + preamble);
     }
 
     private static int frameworkToHalRttPeerType(int responderType)
