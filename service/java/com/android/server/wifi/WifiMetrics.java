@@ -5404,7 +5404,6 @@ public class WifiMetrics {
             mNumProvisionSuccess = 0;
             mBssidBlocklistStats = new BssidBlocklistStats();
             mConnectionDurationStats.clear();
-            mWifiLogProto.isExternalWifiScorerOn = false;
             mWifiOffMetrics.clear();
             mSoftApConfigLimitationMetrics.clear();
             //Initial partial scan metrics
