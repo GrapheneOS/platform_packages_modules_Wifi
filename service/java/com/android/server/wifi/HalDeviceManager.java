@@ -801,6 +801,10 @@ public class HalDeviceManager {
 
         IfaceCreationData creationData;
         synchronized (mLock) {
+            if (!mWifiHal.isInitializationComplete()) {
+                Log.e(TAG, "reportImpactToCreateIface: Wifi Hal is not available");
+                return null;
+            }
             WifiChipInfo[] chipInfos = getAllChipInfo();
             if (chipInfos == null) {
                 Log.e(TAG, "createIface: no chip info found");
@@ -1373,6 +1377,10 @@ public class HalDeviceManager {
     private void stopWifi() {
         if (VDBG) Log.d(TAG, "stopWifi");
         synchronized (mLock) {
+            if (!mWifiHal.isInitializationComplete()) {
+                Log.w(TAG, "stopWifi was called, but Wifi Hal is not initialized");
+                return;
+            }
             if (!mWifiHal.stop()) {
                 Log.e(TAG, "Cannot stop IWifi");
             }
