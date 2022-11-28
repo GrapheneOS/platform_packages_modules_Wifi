@@ -22,6 +22,7 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LO
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,6 +53,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /** Unit tests for {@link MultiInternetManager}. */
 @SmallTest
@@ -161,7 +163,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         when(mPrimaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(mPrimaryCmm.getConnectionInfo()).thenReturn(null);
         when(mSecondaryCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
-        when(mSecondaryCmm.getConnectionInfo()).thenReturn(null);
+        when(mSecondaryCmm.getConnectionInfo()).thenReturn(mock(WifiInfo.class));
         when(mSecondaryCmm.isSecondaryInternet()).thenReturn(true);
 
         when(mActiveModeWarden.getPrimaryClientModeManagerNullable()).thenReturn(mPrimaryCmm);
@@ -171,8 +173,6 @@ public class MultiInternetManagerTest extends WifiBaseTest {
                 List.of(mPrimaryCmm, mSecondaryCmm));
         when(mActiveModeWarden.getClientModeManagersInRoles(ROLE_CLIENT_PRIMARY))
                 .thenReturn(List.of(mPrimaryCmm));
-        when(mActiveModeWarden.getClientModeManagersInRoles(ROLE_CLIENT_SECONDARY_LONG_LIVED))
-                .thenReturn(List.of(mSecondaryCmm));
         when(mActiveModeWarden.getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED))
                 .thenReturn(mSecondaryCmm);
 
@@ -196,6 +196,8 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         when(mSecondaryCmm.getConnectionInfo()).thenReturn(
                 isConnected ? mSecondaryInfo : null);
         when(mSecondaryCmm.isConnected()).thenReturn(isConnected);
+        when(mSecondaryCmm.getConnectedBssid()).thenReturn(
+                isConnected ? mSecondaryInfo.getBSSID() : null);
     }
 
     @Test
@@ -263,13 +265,14 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertTrue(mMultiInternetManager.isStaConcurrencyForMultiInternetEnabled());
 
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         assertTrue(mMultiInternetManager.getNetworkConnectionState()
                 .contains(ScanResult.WIFI_BAND_5_GHZ));
         verify(mConnectionStatusListener).onStatusChange(
                 MultiInternetManager.MULTI_INTERNET_STATE_CONNECTION_REQUESTED, TEST_WORKSOURCE);
         verify(mConnectionStatusListener).onStartScan(TEST_WORKSOURCE);
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -286,7 +289,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
 
         // Set for 2.4G
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         assertTrue(mMultiInternetManager.getNetworkConnectionState()
                 .contains(ScanResult.WIFI_BAND_24_GHZ));
@@ -295,7 +298,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         verify(mConnectionStatusListener).onStartScan(TEST_WORKSOURCE);
         // Set for 5G
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.getNetworkConnectionState()
                 .contains(ScanResult.WIFI_BAND_5_GHZ));
         verify(mConnectionStatusListener).onStatusChange(
@@ -303,11 +306,12 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         verify(mConnectionStatusListener, times(2)).onStartScan(TEST_WORKSOURCE);
         // Clear the WorkSource
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                null);
+                null, null);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                null);
+                null, null);
         assertFalse(mMultiInternetManager.hasPendingConnectionRequests());
         assertEquals(0, mMultiInternetManager.getNetworkConnectionState().size());
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -315,7 +319,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertTrue(mMultiInternetManager.setStaConcurrencyForMultiInternetMode(
                 WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP));
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                TEST_BSSID2, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         fakePrimaryCmmConnected(true);
         fakeSecondaryCmmConnected(true);
@@ -325,6 +329,23 @@ public class MultiInternetManagerTest extends WifiBaseTest {
                 .contains(ScanResult.WIFI_BAND_5_GHZ));
         assertTrue(mMultiInternetManager.getNetworkConnectionState()
                 .get(ScanResult.WIFI_BAND_5_GHZ).isValidated());
+        assertEquals(1, mMultiInternetManager.getSpecifiedBssids().size());
+
+        // Add another request with the same band and BSSID specified and verify no disconnect
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
+                TEST_BSSID2, TEST_WORKSOURCE);
+        verify(mSecondaryCmm, never()).disconnect();
+
+        // Add another request with a different band and BSSID specified and verify no disconnect
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
+                TEST_BSSID2, TEST_WORKSOURCE);
+        verify(mSecondaryCmm, never()).disconnect();
+
+        // Add another request with the same band but different BSSID and verify disconnect
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
+                TEST_BSSID3, TEST_WORKSOURCE);
+        verify(mSecondaryCmm).disconnect();
+        assertEquals(2, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -332,9 +353,9 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertTrue(mMultiInternetManager.setStaConcurrencyForMultiInternetMode(
                 WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP));
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         fakePrimaryCmmConnected(true);
         fakeSecondaryCmmConnected(true);
@@ -342,6 +363,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertFalse(mMultiInternetManager.hasPendingConnectionRequests());
         assertTrue(mMultiInternetManager.getNetworkConnectionState()
                 .get(ScanResult.WIFI_BAND_5_GHZ).isConnected());
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -349,9 +371,9 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertTrue(mMultiInternetManager.setStaConcurrencyForMultiInternetMode(
                 WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP));
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         fakePrimaryCmmConnected(true);
         fakeSecondaryCmmConnected(true);
@@ -362,6 +384,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         mCmiListenerCaptor.getValue().onConnectionEnd(mPrimaryCmm);
         verify(mSecondaryCmm).disconnect();
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -373,9 +396,9 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         long currentTimeStamp = 1000;
         when(mClock.getElapsedSinceBootMillis()).thenReturn(currentTimeStamp);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE2);
+                null, TEST_WORKSOURCE2);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         for (int i = 0; i < 5; i++) {
             currentTimeStamp += SCAN_INTERVAL;
@@ -385,6 +408,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         verify(mConnectionStatusListener, times(1)).onStatusChange(
                 MultiInternetManager.MULTI_INTERNET_STATE_CONNECTION_REQUESTED, TEST_WORKSOURCE2);
         verify(mConnectionStatusListener, times(1)).onStartScan(TEST_WORKSOURCE2);
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
     }
 
     @Test
@@ -392,9 +416,9 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         assertTrue(mMultiInternetManager.setStaConcurrencyForMultiInternetMode(
                 WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP));
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
-                TEST_WORKSOURCE);
+                null, TEST_WORKSOURCE);
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
         fakePrimaryCmmConnected(true);
         fakeSecondaryCmmConnected(true);
@@ -407,5 +431,28 @@ public class MultiInternetManagerTest extends WifiBaseTest {
         mMultiInternetManager.notifyBssidAssociatedEvent(mPrimaryCmm);
         verify(mSecondaryCmm).disconnect();
         assertTrue(mMultiInternetManager.hasPendingConnectionRequests());
+        assertEquals(0, mMultiInternetManager.getSpecifiedBssids().size());
+    }
+
+    @Test
+    public void testGetSpecifiedBssids() {
+        assertTrue(mMultiInternetManager.setStaConcurrencyForMultiInternetMode(
+                WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP));
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_24_GHZ,
+                TEST_BSSID1, TEST_WORKSOURCE);
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
+                TEST_BSSID2, TEST_WORKSOURCE);
+        Map<Integer, String> specifiedBssids = mMultiInternetManager.getSpecifiedBssids();
+        assertEquals(2, specifiedBssids.size());
+        assertEquals(TEST_BSSID1, specifiedBssids.get(ScanResult.WIFI_BAND_24_GHZ));
+        assertEquals(TEST_BSSID2, specifiedBssids.get(ScanResult.WIFI_BAND_5_GHZ));
+
+        // verify overriding existing BSSID mapping
+        mMultiInternetManager.setMultiInternetConnectionWorksource(ScanResult.WIFI_BAND_5_GHZ,
+                TEST_BSSID3, TEST_WORKSOURCE);
+        specifiedBssids = mMultiInternetManager.getSpecifiedBssids();
+        assertEquals(2, specifiedBssids.size());
+        assertEquals(TEST_BSSID1, specifiedBssids.get(ScanResult.WIFI_BAND_24_GHZ));
+        assertEquals(TEST_BSSID3, specifiedBssids.get(ScanResult.WIFI_BAND_5_GHZ));
     }
 }
