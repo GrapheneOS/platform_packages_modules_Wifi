@@ -214,6 +214,14 @@ class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback
     }
 
     @Override
+    public void onPermanentIdReqDenied() {
+        mNetworkHal.logCallback("onPermanentIdReqDenied");
+
+        mWifiMonitor.broadcastPermanentIdReqDenied(
+                mIfaceName, mFrameworkNetworkId, mSsid);
+    }
+
+    @Override
     public String getInterfaceHash() {
         return ISupplicantStaNetworkCallback.HASH;
     }
