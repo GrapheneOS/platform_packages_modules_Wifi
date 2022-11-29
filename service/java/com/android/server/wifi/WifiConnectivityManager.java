@@ -397,11 +397,20 @@ public class WifiConnectivityManager {
                         && c.getKey().securityType == primaryInfo.getCurrentSecurityType();
             }).collect(Collectors.toList());
         }
+        // Filter by specified BSSIDs
+        Map<Integer, String> specifiedBssids = mMultiInternetManager.getSpecifiedBssids();
+        List<WifiCandidates.Candidate> preferredSecondaryCandidates =
+                secondaryCmmCandidates.stream().filter(c -> {
+                    final int band = ScanResult.toBand(c.getFrequency());
+                    return specifiedBssids.containsKey(band) && specifiedBssids.get(band).equals(
+                            c.getKey().bssid.toString());
+                }).collect(Collectors.toList());
         // Perform network selection among secondary candidates. Create a new copy. Do not allow
         // user choice override.
         final WifiConfiguration secondaryCmmCandidate =
-                mNetworkSelector.selectNetwork(secondaryCmmCandidates,
-                false /* overrideEnabled */);
+                mNetworkSelector.selectNetwork(preferredSecondaryCandidates.isEmpty()
+                                ? secondaryCmmCandidates : preferredSecondaryCandidates,
+                        false /* overrideEnabled */);
 
         // No secondary cmm for internet selected, fallback to legacy flow.
         if (secondaryCmmCandidate == null
