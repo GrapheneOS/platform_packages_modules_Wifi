@@ -131,6 +131,7 @@ public class WifiBlocklistMonitor {
     private final ScoringParams mScoringParams;
     private final WifiMetrics mWifiMetrics;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
+    private ScanRequestProxy mScanRequestProxy;
     private final Map<Integer, BssidDisableReason> mBssidDisableReasons =
             buildBssidDisableReasons();
     private final SparseArray<DisableReasonInfo> mDisableReasonInfo;
@@ -237,6 +238,11 @@ public class WifiBlocklistMonitor {
     /** Clear affiliated BSSID mapping table. */
     public void clearAffiliatedBssids() {
         mAffiliatedBssidMap.clear();
+    }
+
+    /** Sets the ScanRequestProxy **/
+    public void setScanRequestProxy(ScanRequestProxy scanRequestProxy) {
+        mScanRequestProxy = scanRequestProxy;
     }
 
     /**
@@ -478,6 +484,20 @@ public class WifiBlocklistMonitor {
             if (shouldWaitForWatchdogToTriggerFirst(bssid, reasonCode)) {
                 localLog("Ignoring failure to wait for watchdog to trigger first.");
                 return false;
+            }
+            // rssi may be unavailable for the first ever connection to a newly added network
+            // because it hasn't been cached inside the ScanDetailsCache yet. In this case, try to
+            // read the RSSI from the latest scan results.
+            if (rssi == WifiConfiguration.INVALID_RSSI && bssid != null) {
+                if (mScanRequestProxy != null) {
+                    ScanResult scanResult = mScanRequestProxy.getScanResult(bssid);
+                    if (scanResult != null) {
+                        rssi = scanResult.level;
+                    }
+                } else {
+                    localLog("mScanRequestProxy is null");
+                    Log.w(TAG, "mScanRequestProxy is null");
+                }
             }
             int baseBlockDurationMs = getBaseBlockDurationForReason(reasonCode);
             long expBackoff = getBlocklistDurationWithExponentialBackoff(currentStreak,
