@@ -63,6 +63,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
     private boolean mSufficiencyCheckEnabledWhenScreenOff = true;
     private boolean mSufficiencyCheckEnabledWhenScreenOn = true;
     private boolean mUserConnectChoiceOverrideEnabled = true;
+    private boolean mLastSelectionWeightEnabled = true;
     private int mAssociatedNetworkSelectionOverride = ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
 
     // empty constructor
@@ -76,6 +77,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         mSufficiencyCheckEnabledWhenScreenOn = that.mSufficiencyCheckEnabledWhenScreenOn;
         mAssociatedNetworkSelectionOverride = that.mAssociatedNetworkSelectionOverride;
         mUserConnectChoiceOverrideEnabled = that.mUserConnectChoiceOverrideEnabled;
+        mLastSelectionWeightEnabled = that.mLastSelectionWeightEnabled;
     }
 
     /**
@@ -97,6 +99,13 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
      */
     public boolean isUserConnectChoiceOverrideEnabled() {
         return mUserConnectChoiceOverrideEnabled;
+    }
+
+    /**
+     * See {@link Builder#setLastSelectionWeightEnabled(boolean)}.
+     */
+    public boolean isLastSelectionWeightEnabled() {
+        return mLastSelectionWeightEnabled;
     }
 
     /**
@@ -130,6 +139,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
             mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOff = true;
             mWifiNetworkSelectionConfig.mSufficiencyCheckEnabledWhenScreenOn = true;
             mWifiNetworkSelectionConfig.mUserConnectChoiceOverrideEnabled = true;
+            mWifiNetworkSelectionConfig.mLastSelectionWeightEnabled = true;
             mWifiNetworkSelectionConfig.mAssociatedNetworkSelectionOverride =
                     ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
         }
@@ -229,6 +239,25 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         }
 
         /**
+         * Enable or disable last selection weight.
+         * <p>
+         * If the last selection weight is enabled, network selector prefers the latest
+         * user selected network over all other networks for a limited duration.
+         * This duration is configurable via {@code config_wifiFrameworkLastSelectionMinutes}.
+         * <p>
+         * If the last selection weight is disabled, network selector does not prefer a
+         * recently selected network over other networks.
+         * <p>
+         * By default, last selection weight is enabled.
+         * @param enabled Set to true to enable the last selection weight,
+         *                and false to disable it.
+         */
+        public @NonNull Builder setLastSelectionWeightEnabled(boolean enabled) {
+            mWifiNetworkSelectionConfig.mLastSelectionWeightEnabled = enabled;
+            return this;
+        }
+
+        /**
          * Creates a WifiNetworkSelectionConfig for use in
          * {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig, Consumer)}
          */
@@ -240,7 +269,8 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
     @Override
     public int hashCode() {
         return Objects.hash(mSufficiencyCheckEnabledWhenScreenOff,
-                mSufficiencyCheckEnabledWhenScreenOn, mAssociatedNetworkSelectionOverride);
+                mSufficiencyCheckEnabledWhenScreenOn, mAssociatedNetworkSelectionOverride,
+                mUserConnectChoiceOverrideEnabled, mLastSelectionWeightEnabled);
     }
 
     @Override
@@ -254,7 +284,9 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         WifiNetworkSelectionConfig lhs = (WifiNetworkSelectionConfig) obj;
         return mSufficiencyCheckEnabledWhenScreenOff == lhs.mSufficiencyCheckEnabledWhenScreenOff
                 && mSufficiencyCheckEnabledWhenScreenOn == lhs.mSufficiencyCheckEnabledWhenScreenOn
-                && mAssociatedNetworkSelectionOverride == lhs.mAssociatedNetworkSelectionOverride;
+                && mAssociatedNetworkSelectionOverride == lhs.mAssociatedNetworkSelectionOverride
+                && mUserConnectChoiceOverrideEnabled == lhs.mUserConnectChoiceOverrideEnabled
+                && mLastSelectionWeightEnabled == lhs.mLastSelectionWeightEnabled;
     }
 
     public static final @NonNull Creator<WifiNetworkSelectionConfig> CREATOR =
@@ -265,6 +297,8 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                     config.mSufficiencyCheckEnabledWhenScreenOff = in.readBoolean();
                     config.mSufficiencyCheckEnabledWhenScreenOn = in.readBoolean();
                     config.mAssociatedNetworkSelectionOverride = in.readInt();
+                    config.mUserConnectChoiceOverrideEnabled = in.readBoolean();
+                    config.mLastSelectionWeightEnabled = in.readBoolean();
                     return config;
                 }
 
@@ -284,6 +318,8 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         dest.writeBoolean(mSufficiencyCheckEnabledWhenScreenOff);
         dest.writeBoolean(mSufficiencyCheckEnabledWhenScreenOn);
         dest.writeInt(mAssociatedNetworkSelectionOverride);
+        dest.writeBoolean(mUserConnectChoiceOverrideEnabled);
+        dest.writeBoolean(mLastSelectionWeightEnabled);
     }
 
     @Override
@@ -294,7 +330,11 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 .append(", mSufficiencyCheckEnabledWhenScreenOn=")
                 .append(mSufficiencyCheckEnabledWhenScreenOn)
                 .append(", mAssociatedNetworkSelectionOverride=")
-                .append(mAssociatedNetworkSelectionOverride);
+                .append(mAssociatedNetworkSelectionOverride)
+                .append(", mUserConnectChoiceOverrideEnabled=")
+                .append(mUserConnectChoiceOverrideEnabled)
+                .append(", mLastSelectionWeightEnabled=")
+                .append(mLastSelectionWeightEnabled);
         return sb.toString();
     }
 }
