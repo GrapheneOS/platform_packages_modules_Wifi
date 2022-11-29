@@ -729,6 +729,8 @@ public class WifiNetworkFactory extends NetworkFactory {
     @Override
     public boolean acceptRequest(NetworkRequest networkRequest) {
         NetworkSpecifier ns = networkRequest.getNetworkSpecifier();
+        boolean isFromSetting = mWifiPermissionsUtil.checkNetworkSettingsPermission(
+                networkRequest.getRequestorUid());
         if (ns == null) {
             // Generic wifi request. Always accept.
         } else {
@@ -739,7 +741,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             }
             // MultiInternet Request to be handled by MultiInternetWifiNetworkFactory.
             if (mMultiInternetManager.isStaConcurrencyForMultiInternetEnabled()
-                    && MultiInternetWifiNetworkFactory.isWifiMultiInternetRequest(networkRequest)) {
+                    && MultiInternetWifiNetworkFactory.isWifiMultiInternetRequest(networkRequest,
+                    isFromSetting)) {
                 return false;
             }
             // Invalid request with wifi network specifier.
@@ -803,6 +806,8 @@ public class WifiNetworkFactory extends NetworkFactory {
     @Override
     protected void needNetworkFor(NetworkRequest networkRequest) {
         NetworkSpecifier ns = networkRequest.getNetworkSpecifier();
+        boolean isFromSetting = mWifiPermissionsUtil.checkNetworkSettingsPermission(
+                networkRequest.getRequestorUid());
         if (ns == null) {
             // Generic wifi request. Turn on auto-join if necessary.
             if (++mGenericConnectionReqCount == 1) {
@@ -816,7 +821,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             }
             // MultiInternet Request to be handled by MultiInternetWifiNetworkFactory.
             if (mMultiInternetManager.isStaConcurrencyForMultiInternetEnabled()
-                    && MultiInternetWifiNetworkFactory.isWifiMultiInternetRequest(networkRequest)) {
+                    && MultiInternetWifiNetworkFactory.isWifiMultiInternetRequest(networkRequest,
+                    isFromSetting)) {
                 return;
             }
             // Invalid request with wifi network specifier.

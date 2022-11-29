@@ -8142,6 +8142,77 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
     }
 
+    @Test
+    public void testLinkedNetworksFiltersOutAutojoinDisabledNetworks() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiEnableLinkedNetworkRoaming, true);
+        BufferedReader reader = mock(BufferedReader.class);
+        WifiConfiguration connectedConfig = WifiConfigurationTestUtil.createPskNetwork("\"ssid1\"");
+        connectedConfig.networkId = FRAMEWORK_NETWORK_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(connectedConfig.networkId))
+                .thenReturn(connectedConfig);
+        mConnectedNetwork = connectedConfig;
+        connect();
+        verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
+                mWifiNetworkAgentCallbackCaptor.capture());
+        verify(mWifiBlocklistMonitor).setAllowlistSsids(
+                eq(connectedConfig.SSID), eq(Collections.emptyList()));
+        verify(mWifiBlocklistMonitor).updateFirmwareRoamingConfiguration(
+                eq(Set.of(connectedConfig.SSID)));
+
+        LinkProperties linkProperties = mock(LinkProperties.class);
+        RouteInfo routeInfo = mock(RouteInfo.class);
+        IpPrefix ipPrefix = mock(IpPrefix.class);
+        Inet4Address destinationAddress = mock(Inet4Address.class);
+        InetAddress gatewayAddress = mock(InetAddress.class);
+        String hostAddress = "127.0.0.1";
+        String gatewayMac = "192.168.0.1";
+        when(linkProperties.getRoutes()).thenReturn(Arrays.asList(routeInfo));
+        when(routeInfo.isDefaultRoute()).thenReturn(true);
+        when(routeInfo.getDestination()).thenReturn(ipPrefix);
+        when(ipPrefix.getAddress()).thenReturn(destinationAddress);
+        when(routeInfo.hasGateway()).thenReturn(true);
+        when(routeInfo.getGateway()).thenReturn(gatewayAddress);
+        when(gatewayAddress.getHostAddress()).thenReturn(hostAddress);
+        when(mWifiInjector.createBufferedReader(ARP_TABLE_PATH)).thenReturn(reader);
+        when(reader.readLine()).thenReturn(new StringJoiner(" ")
+                .add(hostAddress)
+                .add("HWType")
+                .add("Flags")
+                .add(gatewayMac)
+                .add("Mask")
+                .add("Device")
+                .toString());
+
+        mIpClientCallback.onLinkPropertiesChange(linkProperties);
+        mLooper.dispatchAll();
+        when(mWifiNative.getCurrentNetworkSecurityParams(any())).thenReturn(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
+        when(mWifiConfigManager.setNetworkDefaultGwMacAddress(anyInt(), any())).thenReturn(true);
+        when(mWifiConfigManager.saveToStore(anyBoolean())).thenReturn(true);
+        WifiConfiguration linkedConfig = WifiConfigurationTestUtil.createPskNetwork("\"ssid2\"");
+        linkedConfig.networkId = connectedConfig.networkId + 1;
+        linkedConfig.allowAutojoin = false;
+        Map<String, WifiConfiguration> linkedNetworks = new HashMap<>();
+        linkedNetworks.put(linkedConfig.getProfileKey(), linkedConfig);
+        when(mWifiConfigManager.getLinkedNetworksWithoutMasking(connectedConfig.networkId))
+                .thenReturn(linkedNetworks);
+        when(mWifiNative.updateLinkedNetworks(any(), anyInt(), any())).thenReturn(true);
+        mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
+                NetworkAgent.VALIDATION_STATUS_VALID, null /* captivePortalUrl */);
+        mLooper.dispatchAll();
+
+        verify(mWifiConfigManager)
+                .setNetworkDefaultGwMacAddress(mConnectedNetwork.networkId, gatewayMac);
+        verify(mWifiConfigManager).updateLinkedNetworks(connectedConfig.networkId);
+        verify(mWifiNative).updateLinkedNetworks(
+                any(), eq(connectedConfig.networkId), eq(linkedNetworks));
+        verify(mWifiBlocklistMonitor, times(2)).setAllowlistSsids(
+                eq(connectedConfig.SSID), eq(Collections.emptyList()));
+        verify(mWifiBlocklistMonitor).updateFirmwareRoamingConfiguration(
+                eq(Collections.emptySet()));
+    }
+
     /**
      * Verify that we disconnect when we mark a previous trusted network untrusted.
      */

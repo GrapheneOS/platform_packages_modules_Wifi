@@ -95,6 +95,7 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
+import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.LocalLog;
 
@@ -317,6 +318,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
+    @Mock WifiCandidates.Candidate mCandidate4;
     private WifiConfiguration mCandidateWifiConfig1;
     private WifiConfiguration mCandidateWifiConfig2;
     private List<WifiCandidates.Candidate> mCandidateList;
@@ -339,6 +341,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     private static final String CANDIDATE_BSSID = "6c:f3:7f:ae:8c:f3";
     private static final String CANDIDATE_BSSID_2 = "6c:f3:7f:ae:8d:f3";
     private static final String CANDIDATE_BSSID_3 = "6c:f3:7f:ae:8c:f4";
+    private static final String CANDIDATE_BSSID_4 = "6c:f3:7f:ae:8c:f5";
     private static final String INVALID_SCAN_RESULT_BSSID = "6c:f3:7f:ae:8c:f4";
     private static final int TEST_FREQUENCY = 2420;
     private static final long CURRENT_SYSTEM_TIME_MS = 1000;
@@ -1311,13 +1314,20 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mCandidate2 = getTestWifiCandidate(CANDIDATE_NETWORK_ID_2, CANDIDATE_SSID_2,
                 CANDIDATE_BSSID_2, -60,
                 TEST_FREQUENCY_2);
+        mCandidate4 = getTestWifiCandidate(CANDIDATE_NETWORK_ID_2,
+                CANDIDATE_SSID_2, CANDIDATE_BSSID_4,
+                -40,
+                TEST_FREQUENCY_3);
+
         // A DBS candidate with same SSID as mCandidate1
         mCandidate3 = getTestWifiCandidate(CANDIDATE_NETWORK_ID, CANDIDATE_SSID, CANDIDATE_BSSID_3,
                 -40,
                 TEST_FREQUENCY_3);
         mCandidateList = new ArrayList<WifiCandidates.Candidate>(
-                Arrays.asList(mCandidate1, mCandidate2));
-        if (isDbs) mCandidateList.add(mCandidate3);
+                Arrays.asList(mCandidate1, mCandidate2, mCandidate4));
+        if (isDbs) {
+            mCandidateList.add(mCandidate3);
+        }
         when(mWifiNS.getCandidatesFromScan(any(), any(), any(), anyBoolean(), anyBoolean(),
                 anyBoolean(), any(), anyBoolean())).thenReturn(mCandidateList);
 
@@ -1360,13 +1370,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     /**
      * Set up the secondary network selection mocks for the multi internet use case unit tests.
      */
-    private void setupMockSecondaryNetworkSelect(int networkId, String bssid, int rssi,
-            int frequency) {
+    private void setupMockSecondaryNetworkSelect(int networkId, int rssi) {
         WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(networkId);
-        config.getNetworkSelectionStatus().setCandidate(
-                new ScanResult(WifiSsid.fromUtf8Text(config.SSID),
-                        config.SSID, bssid, 1245, 0, "some caps", rssi, frequency,
-                        1025, 22, 33, 20, 0, 0, true));
         // Selection for secondary
         when(mWifiNS.selectNetwork(any(), anyBoolean()))
                 .then(new AnswerWithArguments() {
@@ -1374,7 +1379,14 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                             boolean override) {
                         if (candidateList != null) {
                             for (WifiCandidates.Candidate candidate : candidateList) {
+                                // Will return the first candidate matching networkId
                                 if (networkId == candidate.getKey().networkId) {
+                                    config.getNetworkSelectionStatus().setCandidate(
+                                            new ScanResult(WifiSsid.fromUtf8Text(config.SSID),
+                                                    config.SSID, candidate.getKey().bssid
+                                                    .toString(), 1245, 0, "some caps", rssi,
+                                                    candidate.getFrequency(), 1025, 22, 33,
+                                                    20, 0, 0, true));
                                     return config;
                                 }
                             }
@@ -1402,15 +1414,15 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     }
 
     private void testMultiInternetSecondaryConnectionRequest(boolean isDbsOnly, boolean isDhcp,
-            boolean success) {
+            boolean success, String expectedBssidToConnect) {
         when(mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed())
                 .thenReturn(!isDbsOnly);
         setupMockPrimaryNetworkSelect(CANDIDATE_NETWORK_ID, CANDIDATE_BSSID, -50, TEST_FREQUENCY);
         WifiConfiguration targetConfig = isDbsOnly ? mCandidateWifiConfig1 : mCandidateWifiConfig2;
-        String targetBssid = isDbsOnly ? CANDIDATE_BSSID_3 : CANDIDATE_BSSID_2;
+        String targetBssid = expectedBssidToConnect;
         targetConfig.setIpAssignment(
                 isDhcp ? IpConfiguration.IpAssignment.DHCP : IpConfiguration.IpAssignment.STATIC);
-        setupMockSecondaryNetworkSelect(targetConfig.networkId, targetBssid, -50, TEST_FREQUENCY_3);
+        setupMockSecondaryNetworkSelect(targetConfig.networkId, -50);
         // Set screen to on
         setScreenState(true);
 
@@ -1467,25 +1479,25 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnly() {
         setupMocksForMultiInternetTests(true);
-        testMultiInternetSecondaryConnectionRequest(true, true, true);
+        testMultiInternetSecondaryConnectionRequest(true, true, true, CANDIDATE_BSSID_3);
     }
 
     @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnlyFailOnStaticIp() {
         setupMocksForMultiInternetTests(true);
-        testMultiInternetSecondaryConnectionRequest(true, false, false);
+        testMultiInternetSecondaryConnectionRequest(true, false, false, CANDIDATE_BSSID_3);
     }
 
     @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithMultiApAllowed() {
         setupMocksForMultiInternetTests(false);
-        testMultiInternetSecondaryConnectionRequest(false, true, true);
+        testMultiInternetSecondaryConnectionRequest(false, true, true, CANDIDATE_BSSID_2);
     }
 
     @Test
     public void multiInternetSecondaryConnectionDisconnectedBeforeNetworkSelection() {
         setupMocksForMultiInternetTests(false);
-        testMultiInternetSecondaryConnectionRequest(false, true, true);
+        testMultiInternetSecondaryConnectionRequest(false, true, true, CANDIDATE_BSSID_2);
         setupMockPrimaryNetworkSelect(CANDIDATE_NETWORK_ID_2, CANDIDATE_BSSID_2, -50,
                 TEST_FREQUENCY);
         when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(false);
@@ -1496,6 +1508,33 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 ROLE_CLIENT_SECONDARY_LONG_LIVED)).thenReturn(mSecondaryClientModeManager);
         mMultiInternetConnectionStatusListenerCaptor.getValue().onStartScan(new WorkSource());
         verify(mSecondaryClientModeManager).disconnect();
+    }
+
+    @Test
+    public void multiInternetSecondaryConnectionRequest_filteredBssidExists() {
+        setupMocksForMultiInternetTests(false);
+        Map<Integer, String> specifiedBssids = new ArrayMap<>();
+        // Verify connect to the filtered BSSID
+        specifiedBssids.put(ScanResult.toBand(mCandidate4.getFrequency()),
+                mCandidate4.getKey().bssid.toString());
+        when(mMultiInternetManager.getSpecifiedBssids()).thenReturn(specifiedBssids);
+        testMultiInternetSecondaryConnectionRequest(false, true, true,
+                mCandidate4.getKey().bssid.toString());
+    }
+
+    @Test
+    public void multiInternetSecondaryConnectionRequest_filterBssidNotExist() {
+        setupMocksForMultiInternetTests(false);
+        Map<Integer, String> specifiedBssids = new ArrayMap<>();
+        // Verify filtering by a BSSID that does not exist in the candidate list still
+        // results in a connection.
+        specifiedBssids.put(ScanResult.toBand(mCandidate2.getFrequency()),
+                mCandidate3.getKey().bssid.toString());
+        specifiedBssids.put(ScanResult.toBand(mCandidate4.getFrequency()),
+                mCandidate3.getKey().bssid.toString());
+        when(mMultiInternetManager.getSpecifiedBssids()).thenReturn(specifiedBssids);
+        testMultiInternetSecondaryConnectionRequest(false, true, true,
+                mCandidate2.getKey().bssid.toString());
     }
 
     /**
