@@ -136,7 +136,6 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -840,10 +839,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
             int staIfaceHidlCaps, int chipHidlCaps, long expectedFeatureSet) throws Exception {
         assertTrue(mWifiVendorHal.startVendorHalSta());
 
-        Set<Integer> halDeviceManagerSupportedIfaces = new HashSet<Integer>() {{
-                add(IfaceType.STA);
-                add(IfaceType.P2P);
-            }};
+        Set<Integer> halDeviceManagerSupportedIfaces = Set.of(IfaceType.STA, IfaceType.P2P);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(IWifiStaIface.getCapabilitiesCallback cb) throws RemoteException {
@@ -3535,8 +3531,9 @@ public class WifiVendorHalTest extends WifiBaseTest {
             public void answer(
                     android.hardware.wifi.V1_5.IWifiApIface.getBridgedInstancesCallback cb)
                     throws RemoteException {
-                cb.onValues(mWifiStatusSuccess,
-                        new ArrayList<String>() {{ add(TEST_IFACE_NAME_1); }});
+                ArrayList<String> result = new ArrayList<>();
+                result.add(TEST_IFACE_NAME_1);
+                cb.onValues(mWifiStatusSuccess, result);
             }
         }).when(mIWifiApIfaceV15).getBridgedInstances(any(
                 android.hardware.wifi.V1_5.IWifiApIface.getBridgedInstancesCallback.class));

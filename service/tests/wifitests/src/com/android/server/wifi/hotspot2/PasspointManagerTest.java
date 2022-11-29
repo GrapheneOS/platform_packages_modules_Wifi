@@ -832,9 +832,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         when(mTelephonyManager.createForSubscriptionId(eq(TEST_SUBID))).thenReturn(specifiedTm);
         when(specifiedTm.getSubscriberId()).thenReturn(FULL_IMSI);
         when(specifiedTm.getSimApplicationState()).thenReturn(TelephonyManager.SIM_STATE_LOADED);
-        List<SubscriptionInfo> subInfoList = new ArrayList<SubscriptionInfo>() {{
-                add(subInfo);
-            }};
+        List<SubscriptionInfo> subInfoList = List.of(subInfo);
         when(mSubscriptionManager.getActiveSubscriptionInfoList()).thenReturn(subInfoList);
         mSubscriptionsCaptor.getValue().onSubscriptionsChanged();
         when(mWifiKeyStore.putCaCertInKeyStore(any(String.class), any(Certificate.class)))
@@ -2494,9 +2492,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         when(mObjectFactory.makePasspointProvider(config, null,
                 mWifiCarrierInfoManager, 0, 0, null, false, mClock))
                 .thenReturn(mockProvider);
-        List<ScanResult> scanResults = new ArrayList<>() {{
-                add(mock(ScanResult.class));
-            }};
+        List<ScanResult> scanResults = List.of(mock(ScanResult.class));
         when(mockProvider.match(anyMap(), any(RoamingConsortium.class), any(ScanResult.class)))
                 .thenReturn(PasspointMatch.RoamingProvider);
 
@@ -2516,9 +2512,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         when(mObjectFactory.makePasspointProvider(config, null,
                 mWifiCarrierInfoManager, 0, 0, null, false, mClock))
                 .thenReturn(mockProvider);
-        List<ScanResult> scanResults = new ArrayList<>() {{
-                add(mock(ScanResult.class));
-            }};
+        List<ScanResult> scanResults = List.of(mock(ScanResult.class));
         when(mockProvider.match(anyMap(), any(RoamingConsortium.class), any(ScanResult.class)))
                 .thenReturn(PasspointMatch.HomeProvider);
 
@@ -2541,9 +2535,7 @@ public class PasspointManagerTest extends WifiBaseTest {
                 mWifiCarrierInfoManager, 0, 0, null, false, mClock))
                 .thenReturn(mockProvider);
 
-        List<ScanResult> scanResults = new ArrayList<>() {{
-                add(mock(ScanResult.class));
-            }};
+        List<ScanResult> scanResults = List.of(mock(ScanResult.class));
         when(mockProvider.match(anyMap(), any(RoamingConsortium.class), any(ScanResult.class)))
                 .thenReturn(PasspointMatch.None);
 
