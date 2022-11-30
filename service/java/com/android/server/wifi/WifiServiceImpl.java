@@ -210,6 +210,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * WifiService handles remote WiFi operation requests by implementing
@@ -6624,6 +6625,44 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         if (!isValidBandForGetUsableChannels(band)) {
             throw new IllegalArgumentException("Unsupported band: " + band);
+        }
+        // If querying the usable channels for SoftAp mode and regulatory filtered, return from
+        // cached softAp capabilities directly.
+        if (mode == WifiAvailableChannel.OP_MODE_SAP
+                && filter == WifiAvailableChannel.FILTER_REGULATORY) {
+            int[] chans;
+            switch (band) {
+                case WifiScanner.WIFI_BAND_24_GHZ:
+                    chans =
+                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
+                                    SoftApConfiguration.BAND_2GHZ);
+                    break;
+                case WifiScanner.WIFI_BAND_5_GHZ:
+                    chans =
+                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
+                                    SoftApConfiguration.BAND_5GHZ);
+                    break;
+                case WifiScanner.WIFI_BAND_6_GHZ:
+                    chans =
+                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
+                                    SoftApConfiguration.BAND_6GHZ);
+                    break;
+                case WifiScanner.WIFI_BAND_60_GHZ:
+                    chans =
+                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
+                                    SoftApConfiguration.BAND_60GHZ);
+                    break;
+                default:
+                    chans = null;
+                    break;
+            }
+            if (chans != null) {
+                return Arrays.stream(chans).mapToObj(
+                        v -> new WifiAvailableChannel(
+                                ScanResult.convertChannelToFrequencyMhzIfSupported(v, band),
+                                WifiAvailableChannel.OP_MODE_SAP)).collect(
+                        Collectors.toList());
+            }
         }
         List<WifiAvailableChannel> channels = mWifiThreadRunner.call(
                 () -> mWifiNative.getUsableChannels(band, mode, filter), null);
