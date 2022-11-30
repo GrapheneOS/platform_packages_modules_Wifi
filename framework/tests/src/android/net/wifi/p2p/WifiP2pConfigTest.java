@@ -21,11 +21,14 @@ import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MO
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import android.net.MacAddress;
 import android.os.Parcel;
 
 import androidx.test.filters.SmallTest;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Test;
 
@@ -168,6 +171,7 @@ public class WifiP2pConfigTest {
     /** Verify that a config with group client IP provisioning with IPv4 DHCP can be built. */
     @Test
     public void testBuildConfigWithGroupClientIpProvisioningModeIpv4Dhcp() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         WifiP2pConfig c = new WifiP2pConfig.Builder()
                 .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
                 .setGroupClientIpProvisioningMode(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP)
@@ -180,6 +184,7 @@ public class WifiP2pConfigTest {
     /** Verify that a config with group client IP provisioning with IPv6 link-local can be built. */
     @Test
     public void testBuildConfigWithGroupClientIpProvisioningModeIpv6LinkLocal() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         WifiP2pConfig c = new WifiP2pConfig.Builder()
                 .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
                 .setGroupClientIpProvisioningMode(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL)
@@ -196,6 +201,7 @@ public class WifiP2pConfigTest {
     @Test(expected = IllegalArgumentException.class)
     public void testBuilderWithInvalidGroupClientIpProvisioningMode()
             throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
         WifiP2pConfig c = new WifiP2pConfig.Builder().setGroupClientIpProvisioningMode(5).build();
     }
 

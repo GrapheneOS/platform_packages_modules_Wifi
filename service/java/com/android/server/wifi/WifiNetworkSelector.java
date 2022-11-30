@@ -129,6 +129,7 @@ public class WifiNetworkSelector {
     private boolean mSufficiencyCheckEnabledWhenScreenOff  = true;
     private boolean mSufficiencyCheckEnabledWhenScreenOn  = true;
     private boolean mUserConnectChoiceOverrideEnabled = true;
+    private boolean mLastSelectionWeightEnabled = true;
     private @AssociatedNetworkSelectionOverride int mAssociatedNetworkSelectionOverride =
             ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
     private boolean mScreenOn = false;
@@ -976,6 +977,13 @@ public class WifiNetworkSelector {
     }
 
     /**
+     * Enable or disable last selection weight.
+     */
+    public void setLastSelectionWeightEnabled(boolean enabled) {
+        mLastSelectionWeightEnabled = enabled;
+    }
+
+    /**
      * Returns the list of Candidates from networks in range.
      *
      * @param scanDetails              List of ScanDetail for all the APs in range
@@ -1434,7 +1442,10 @@ public class WifiNetworkSelector {
     }
 
     private double calculateLastSelectionWeight(int networkId, boolean isMetered) {
-        if (networkId != mWifiConfigManager.getLastSelectedNetwork()) return 0.0;
+        if (!mLastSelectionWeightEnabled
+                || networkId != mWifiConfigManager.getLastSelectedNetwork()) {
+            return 0.0;
+        }
         double timeDifference = mClock.getElapsedSinceBootMillis()
                 - mWifiConfigManager.getLastSelectedTimeStamp();
         long millis = TimeUnit.MINUTES.toMillis(isMetered
