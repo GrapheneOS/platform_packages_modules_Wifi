@@ -28,6 +28,10 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.TextUtils;
 
+import androidx.annotation.RequiresApi;
+
+import com.android.modules.utils.build.SdkLevel;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.nio.charset.StandardCharsets;
@@ -545,9 +549,15 @@ public class WifiP2pConfig implements Parcelable {
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         @NonNull
         public Builder setGroupClientIpProvisioningMode(
                 @GroupClientIpProvisioningMode int groupClientIpProvisioningMode) {
+            // Since group client IP provisioning modes use NetworkStack functionalities introduced
+            // in T, hence we need at least T sdk for this to be supported.
+            if (!SdkLevel.isAtLeastT()) {
+                throw new UnsupportedOperationException();
+            }
             switch (groupClientIpProvisioningMode) {
                 case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP:
                 case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL:
