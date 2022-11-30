@@ -2468,52 +2468,6 @@ public class HalDeviceManager {
     }
 
     /**
-     * Returns true if the requested iface can delete an existing iface only after user approval.
-     */
-    public boolean needsUserApprovalToDelete(
-            int requestedCreateType, @NonNull WorkSourceHelper newRequestorWsHelper,
-            int existingCreateType, @NonNull WorkSourceHelper existingRequestorWsHelper) {
-        @WorkSourceHelper.RequestorWsPriority int newRequestorWsPriority =
-                newRequestorWsHelper.getRequestorWsPriority();
-        @WorkSourceHelper.RequestorWsPriority int existingRequestorWsPriority =
-                existingRequestorWsHelper.getRequestorWsPriority();
-
-        if (!mWifiUserApprovalRequiredForD2dInterfacePriority
-                || newRequestorWsPriority <= WorkSourceHelper.PRIORITY_BG
-                || existingRequestorWsPriority == WorkSourceHelper.PRIORITY_INTERNAL) {
-            return false;
-        }
-
-        // Allow LOHS to beat Settings STA if there's no STA+AP concurrency (legacy behavior)
-        if (allowedToDeleteForNoStaApConcurrencyLohs(
-                requestedCreateType, newRequestorWsPriority,
-                existingCreateType, existingRequestorWsPriority)) {
-            return false;
-        }
-
-        if (requestedCreateType == HDM_CREATE_IFACE_AP
-                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
-            if (existingCreateType == HDM_CREATE_IFACE_P2P
-                    || existingCreateType == HDM_CREATE_IFACE_NAN) {
-                return true;
-            }
-        } else if (requestedCreateType == HDM_CREATE_IFACE_P2P) {
-            if (existingCreateType == HDM_CREATE_IFACE_AP
-                    || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
-                    || existingCreateType == HDM_CREATE_IFACE_NAN) {
-                return true;
-            }
-        } else if (requestedCreateType == HDM_CREATE_IFACE_NAN) {
-            if (existingCreateType == HDM_CREATE_IFACE_AP
-                    || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
-                    || existingCreateType == HDM_CREATE_IFACE_P2P) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Returns whether interface request from |newRequestorWsPriority| is allowed to delete an
      * interface request from |existingRequestorWsPriority|.
      *
@@ -2536,8 +2490,9 @@ public class HalDeviceManager {
         }
 
         // Defer deletion decision to the InterfaceConflictManager dialog.
-        if (needsUserApprovalToDelete(requestedCreateType, newRequestorWs,
-                existingCreateType, existingRequestorWs)) {
+        if (mWifiInjector.getInterfaceConflictManager().needsUserApprovalToDelete(
+                        requestedCreateType, newRequestorWs,
+                        existingCreateType, existingRequestorWs)) {
             return true;
         }
 
