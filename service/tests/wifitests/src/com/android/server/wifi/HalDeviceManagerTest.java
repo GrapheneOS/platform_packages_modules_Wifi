@@ -36,7 +36,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -237,9 +236,12 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_0)).thenReturn(mWorkSourceHelper0);
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_1)).thenReturn(mWorkSourceHelper1);
         when(mWifiInjector.makeWsHelper(TEST_WORKSOURCE_2)).thenReturn(mWorkSourceHelper2);
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(true);
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
-        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         when(mWorkSourceHelper0.getWorkSource()).thenReturn(TEST_WORKSOURCE_0);
         when(mWorkSourceHelper1.getWorkSource()).thenReturn(TEST_WORKSOURCE_1);
         when(mWorkSourceHelper2.getWorkSource()).thenReturn(TEST_WORKSOURCE_2);
@@ -845,8 +847,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
 
         // get NAN interface from a system app: should fail
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, false, TEST_WORKSOURCE_1);
         assertNull("Should not create this NAN", nanDetails);
@@ -856,13 +858,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("not allocated interface", nanIface, IsNull.nullValue());
 
         // Now replace the requestorWs (fg app now) for the P2P iface.
-        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper2.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertTrue(mDut.replaceRequestorWs(p2pIface, TEST_WORKSOURCE_2));
 
         // get AP interface again from a system app: should succeed now
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         nanIface = (IWifiNanIface) validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV1.STA_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
@@ -921,8 +923,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
 
         // Check if we can create a new P2P interface from foreground app: should fail.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         List<Pair<Integer, WorkSource>> p2pDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_1);
         assertNull("Should not create this P2P", p2pDetails);
@@ -962,7 +964,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
 
         // Check if we can create a new NAN interface from background app: should fail.
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_BG);
         nanDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
         assertNull("Should not create this NAN", nanDetails);
     }
@@ -978,104 +981,95 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      */
     @Test
     public void testShouldShowDialogToDelete() throws Exception {
-        WorkSource newWorkSource = mock(WorkSource.class);
-        WorkSource oldWorkSource = mock(WorkSource.class);
         WorkSourceHelper newWsHelper = mock(WorkSourceHelper.class);
         WorkSourceHelper oldWsHelper = mock(WorkSourceHelper.class);
-        when(mWifiInjector.makeWsHelper(newWorkSource)).thenReturn(newWsHelper);
-        when(mWifiInjector.makeWsHelper(oldWorkSource)).thenReturn(oldWsHelper);
 
         when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
                 .thenReturn(false);
         mDut = new HalDeviceManagerSpy();
 
         // No dialog if dialogs aren't enabled
-        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
-        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        when(newWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
+        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWorkSource,
-                HDM_CREATE_IFACE_AP, oldWorkSource));
+                HDM_CREATE_IFACE_P2P, newWsHelper,
+                HDM_CREATE_IFACE_AP, oldWsHelper));
 
         when(mResources.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority))
                 .thenReturn(true);
         mDut = new HalDeviceManagerSpy();
 
         // Should show dialog for appropriate types.
-        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
-        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
 
         // Requesting AP
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWorkSource,
-                HDM_CREATE_IFACE_AP, oldWorkSource));
+                HDM_CREATE_IFACE_AP, newWsHelper,
+                HDM_CREATE_IFACE_AP, oldWsHelper));
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWorkSource,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+                HDM_CREATE_IFACE_AP, newWsHelper,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWorkSource,
-                HDM_CREATE_IFACE_NAN, oldWorkSource));
+                HDM_CREATE_IFACE_AP, newWsHelper,
+                HDM_CREATE_IFACE_NAN, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_AP, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
 
         // Requesting AP_BRIDGE
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
-                HDM_CREATE_IFACE_AP, oldWorkSource));
+                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
+                HDM_CREATE_IFACE_AP, oldWsHelper));
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
-                HDM_CREATE_IFACE_NAN, oldWorkSource));
+                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
+                HDM_CREATE_IFACE_NAN, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_AP_BRIDGE, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_AP_BRIDGE, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
 
         // Requesting P2P
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWorkSource,
-                HDM_CREATE_IFACE_AP, oldWorkSource));
+                HDM_CREATE_IFACE_P2P, newWsHelper,
+                HDM_CREATE_IFACE_AP, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWorkSource,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+                HDM_CREATE_IFACE_P2P, newWsHelper,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWorkSource,
-                HDM_CREATE_IFACE_NAN, oldWorkSource));
+                HDM_CREATE_IFACE_P2P, newWsHelper,
+                HDM_CREATE_IFACE_NAN, oldWsHelper));
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_P2P, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_P2P, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
 
         // Requesting NAN
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_AP, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_AP, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_AP_BRIDGE, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_AP_BRIDGE, oldWsHelper));
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_NAN, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_NAN, oldWsHelper));
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
 
         // Foreground should show dialog over Privileged
-        when(newWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
-        when(oldWsHelper.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(newWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
+        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
 
         // Foreground should delete Internal without showing dialog
-        when(oldWsHelper.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(oldWsHelper.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(false);
-        when(oldWsHelper.hasAnyInternalRequest()).thenReturn(true);
+        when(oldWsHelper.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_INTERNAL);
         assertFalse(mDut.needsUserApprovalToDelete(
-                HDM_CREATE_IFACE_NAN, newWorkSource,
-                HDM_CREATE_IFACE_P2P, oldWorkSource));
+                HDM_CREATE_IFACE_NAN, newWsHelper,
+                HDM_CREATE_IFACE_P2P, oldWsHelper));
     }
-
 
     //////////////////////////////////////////////////////////////////////////////////////
     // Chip Specific Tests - but should work on all chips!
@@ -1512,8 +1506,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         mInOrder.verify(chipMock.chip).configureChip(TestChipV1.STA_CHIP_MODE_ID);
 
         // Now Create AP Iface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(anyBoolean())).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         IWifiApIface apIface = mock(IWifiApIface.class);
         doAnswer(new GetNameAnswer("wlan0")).when(apIface).getName(
                 any(IWifiIface.getNameCallback.class));
@@ -1712,8 +1706,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface1, IsNull.notNullValue());
 
         // get STA interface again (from a system app)
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         List<Pair<Integer, WorkSource>> staDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_STA, false, TEST_WORKSOURCE_1);
         assertNotNull("Should not have a problem if STA already exists", staDetails);
@@ -1938,8 +1932,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
 
         // get STA interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -1953,27 +1947,27 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface, IsNull.notNullValue());
 
         // FG app not allowed to create AP interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
 
         // New system app not allowed to create AP interface.
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create AP interface.
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
 
         // FG app allowed to create NAN interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_1));
 
         // BG app allowed to create P2P interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
+        when(mWorkSourceHelper1.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_BG);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
     }
 
@@ -2006,12 +2000,12 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
 
         // Allow to create NAN interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_1));
 
         // Allow to create P2P interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
+        when(mWorkSourceHelper1.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_BG);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
     }
 
@@ -2061,8 +2055,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // create STA (system app)
         when(mClock.getUptimeSinceBootMillis()).thenReturn(15L);
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -2076,8 +2070,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA interface wasn't created", staIface, IsNull.notNullValue());
 
         // create P2P (system app)
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface p2pIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV2.CHIP_MODE_ID, // chipModeId
@@ -2386,8 +2380,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
 
         // get STA interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -2401,8 +2395,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface, IsNull.notNullValue());
 
         // get AP interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface apIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV2.CHIP_MODE_ID, // chipModeId
@@ -2416,27 +2410,27 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("AP created", apIface, IsNull.notNullValue());
 
         // FG app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // New system app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // FG app allowed to create NAN interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_1));
 
         // BG app allowed to create P2P interface (since there is no need to delete any interfaces).
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
+        when(mWorkSourceHelper0.getRequestorWsPriority()).thenReturn(WorkSourceHelper.PRIORITY_BG);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
     }
 
@@ -2486,8 +2480,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // create STA (system app)
         when(mClock.getUptimeSinceBootMillis()).thenReturn(15L);
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -2501,8 +2495,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA interface wasn't created", staIface, IsNull.notNullValue());
 
         // create P2P (system app)
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface p2pIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV3.CHIP_MODE_ID, // chipModeId
@@ -2628,8 +2622,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         verify(staDestroyedListener2).onDestroyed(getName(staIface2));
 
         // request STA2 (foreground app): should fail
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         staDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_STA, false, TEST_WORKSOURCE_1);
         assertNotNull("should not fail when asking for same STA", staDetails);
         assertEquals(0, staDetails.size());
@@ -2723,8 +2717,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
 
         // get STA interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -2738,8 +2732,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface, IsNull.notNullValue());
 
         // get AP interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface apIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV3.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
@@ -2753,27 +2747,28 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("AP created", apIface, IsNull.notNullValue());
 
         // FG app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // New system app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // FG app not allowed to create NAN interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create P2P interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
     }
 
@@ -2822,8 +2817,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // create STA (system app)
         when(mClock.getUptimeSinceBootMillis()).thenReturn(15L);
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -2837,8 +2832,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA interface wasn't created", staIface, IsNull.notNullValue());
 
         // create P2P (system app)
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface p2pIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV4.CHIP_MODE_ID, // chipModeId
@@ -2945,8 +2940,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("NAN interface wasn't created", nanIface, IsNull.notNullValue());
 
         // request STA2 (foreground app): should fail
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         staDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_STA, false, TEST_WORKSOURCE_1);
         assertNotNull("should not fail when asking for same STA", staDetails);
         assertEquals(0, staDetails.size());
@@ -3132,8 +3127,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 InterfaceDestroyedListener.class);
 
         // create P2P (internal request)
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnyInternalRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_INTERNAL);
         // create NAN (privileged app): will destroy P2P
         IWifiIface nanIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
@@ -3254,8 +3249,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
 
         // get STA interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface = validateInterfaceSequence(chipMock,
                 false, // chipModeValid
                 -1000, // chipModeId (only used if chipModeValid is true)
@@ -3269,8 +3264,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface, IsNull.notNullValue());
 
         // get AP interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface apIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV4.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
@@ -3284,27 +3279,28 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("AP created", apIface, IsNull.notNullValue());
 
         // FG app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // New system app not allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create STA interface.
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_STA, TEST_WORKSOURCE_1));
 
         // FG app not allowed to create NAN interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_1));
 
         // Privileged app allowed to create P2P interface.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
     }
 
@@ -3376,8 +3372,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
 
         // get STA interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface staIface;
         if (isWigigSupported) {
             staIface = validateInterfaceSequence(chipMock,
@@ -3403,8 +3399,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         }
 
         // get AP interface from system app.
-        when(mWorkSourceHelper0.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper0.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface apIface;
         if (isWigigSupported) {
             apIface = validateInterfaceSequence(chipMock,
@@ -3429,7 +3425,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         }
         if (SdkLevel.isAtLeastS()) {
             // Privileged app allowed to create P2P interface.
-            when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(true);
+            when(mWorkSourceHelper1.getRequestorWsPriority())
+                    .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
             assertThat(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P,
                     android.hardware.wifi.V1_5.IWifiChip.ChipCapabilityMask.WIGIG,
                     TEST_WORKSOURCE_1), is(isWigigSupported));
@@ -3837,9 +3834,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("STA created", staIface, IsNull.notNullValue());
 
         // get STA interface from foreground app.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnyForegroundAppRequest(true)).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
         staIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV7.DUAL_STA_CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
@@ -3854,13 +3850,14 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // New system app not allowed to create AP interface since it would tear down the privileged
         // app STA during the chip mode change.
-        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper2.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_2));
 
         // Privileged app allowed to create AP interface since it is able to tear down the
         // privileged app STA during the chip mode change.
-        when(mWorkSourceHelper2.hasAnyPrivilegedAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_PRIVILEGED);
         assertTrue(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_2));
     }
 
@@ -3898,8 +3895,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("Bridged AP created", apBridgedIface, IsNull.notNullValue());
 
         // get AP interface for a system app.
-        when(mWorkSourceHelper1.hasAnyPrivilegedAppRequest()).thenReturn(false);
-        when(mWorkSourceHelper1.hasAnySystemAppRequest()).thenReturn(true);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_SYSTEM);
         IWifiIface apIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV8.CHIP_MODE_ID, // chipModeId
