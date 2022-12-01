@@ -349,7 +349,7 @@ public class WifiDialogActivity extends Activity  {
      * Creates and shows a dialog for the given dialogId and Intent.
      * Returns {@code true} if the dialog was successfully created, {@code false} otherwise.
      */
-    private @Nullable boolean createAndShowDialogForIntent(int dialogId, @NonNull Intent intent) {
+    private boolean createAndShowDialogForIntent(int dialogId, @NonNull Intent intent) {
         String action = intent.getAction();
         if (!WifiManager.ACTION_LAUNCH_DIALOG.equals(action)) {
             return false;
@@ -388,9 +388,6 @@ public class WifiDialogActivity extends Activity  {
                             + " for unknown type: " + dialogType);
                 }
                 return false;
-        }
-        if (dialog == null) {
-            return false;
         }
         dialog.setOnDismissListener((dialogDismiss) -> {
             if (mIsVerboseLoggingEnabled) {
@@ -480,9 +477,9 @@ public class WifiDialogActivity extends Activity  {
     }
 
     /**
-     * Returns a simple dialog for the given Intent, or {@code null} if no dialog could be created.
+     * Returns a simple dialog for the given Intent.
      */
-    private @Nullable AlertDialog createSimpleDialog(
+    private @NonNull AlertDialog createSimpleDialog(
             int dialogId,
             @Nullable String title,
             @Nullable String message,
@@ -495,10 +492,18 @@ public class WifiDialogActivity extends Activity  {
         SpannableString spannableMessage = null;
         if (message != null) {
             spannableMessage = new SpannableString(message);
-            if (messageUrlStart >= 0 && messageUrlEnd <= message.length()
-                    && messageUrlStart < messageUrlEnd) {
-                spannableMessage.setSpan(new URLSpan(messageUrl), messageUrlStart, messageUrlEnd,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (messageUrl != null) {
+                if (messageUrlStart < 0) {
+                    Log.w(TAG, "Span start cannot be less than 0!");
+                } else if (messageUrlEnd > message.length()) {
+                    Log.w(TAG, "Span end index " + messageUrlEnd
+                            + " cannot be greater than message length " + message.length() + "!");
+                } else if (messageUrlStart > messageUrlEnd) {
+                    Log.w(TAG, "Span start index cannot be greater than end index!");
+                } else {
+                    spannableMessage.setSpan(new URLSpan(messageUrl), messageUrlStart,
+                            messageUrlEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             }
         }
         AlertDialog dialog = new AlertDialog.Builder(
@@ -552,27 +557,21 @@ public class WifiDialogActivity extends Activity  {
     }
 
     /**
-     * Returns a P2P Invitation Sent Dialog for the given Intent, or {@code null} if no Dialog
-     * could be created.
+     * Returns a P2P Invitation Sent Dialog for the given Intent.
      */
-    private @Nullable AlertDialog createP2pInvitationSentDialog(
+    private @NonNull AlertDialog createP2pInvitationSentDialog(
             final int dialogId,
-            final @NonNull String deviceName,
-            @Nullable String displayPin) {
-        if (TextUtils.isEmpty(deviceName)) {
-            if (mIsVerboseLoggingEnabled) {
-                Log.v(TAG, "Could not create P2P Invitation Sent dialog with null or empty"
-                        + " device name."
-                        + " id=" + dialogId
-                        + " deviceName=" + deviceName
-                        + " displayPin=" + displayPin);
-            }
-            return null;
-        }
-
+            @Nullable final String deviceName,
+            @Nullable final String displayPin) {
         final View textEntryView = LayoutInflater.from(this)
                 .inflate(getLayoutId("wifi_p2p_dialog"), null);
         ViewGroup group = textEntryView.findViewById(getViewId("info"));
+        if (TextUtils.isEmpty(deviceName)) {
+            Log.w(TAG, "P2P Invitation Sent dialog device name is null or empty."
+                    + " id=" + dialogId
+                    + " deviceName=" + deviceName
+                    + " displayPin=" + displayPin);
+        }
         addRowToP2pDialog(group, getStringId("wifi_p2p_to_message"), deviceName);
 
         if (displayPin != null) {
@@ -601,29 +600,22 @@ public class WifiDialogActivity extends Activity  {
     }
 
     /**
-     * Returns a P2P Invitation Received Dialog for the given Intent, or {@code null} if no Dialog
-     * could be created.
+     * Returns a P2P Invitation Received Dialog for the given Intent.
      */
-    private @Nullable AlertDialog createP2pInvitationReceivedDialog(
+    private @NonNull AlertDialog createP2pInvitationReceivedDialog(
             final int dialogId,
-            final @NonNull String deviceName,
+            @Nullable final String deviceName,
             final boolean isPinRequested,
-            @Nullable String displayPin) {
-        if (TextUtils.isEmpty(deviceName)) {
-            if (mIsVerboseLoggingEnabled) {
-                Log.v(TAG, "Could not create P2P Invitation Received dialog with null or empty"
-                        + " device name."
-                        + " id=" + dialogId
-                        + " deviceName=" + deviceName
-                        + " isPinRequested=" + isPinRequested
-                        + " displayPin=" + displayPin);
-            }
-            return null;
-        }
-
+            @Nullable final String displayPin) {
         final View textEntryView = LayoutInflater.from(this)
                 .inflate(getLayoutId("wifi_p2p_dialog"), null);
         ViewGroup group = textEntryView.findViewById(getViewId("info"));
+        if (TextUtils.isEmpty(deviceName)) {
+            Log.w(TAG, "P2P Invitation Received dialog device name is null or empty."
+                    + " id=" + dialogId
+                    + " deviceName=" + deviceName
+                    + " displayPin=" + displayPin);
+        }
         addRowToP2pDialog(group, getStringId("wifi_p2p_from_message"), deviceName);
 
         final EditText pinEditText;
