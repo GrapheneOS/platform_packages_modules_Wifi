@@ -74,6 +74,7 @@ import android.net.wifi.ScanResult.InformationElement;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
+import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
@@ -315,6 +316,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private ExternalPnoScanRequestManager mExternalPnoScanRequestManager;
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock private WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -595,7 +597,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 mLocalLog, mWifiScoreCard, mWifiBlocklistMonitor, mWifiChannelUtilization,
                 mPasspointManager, mMultiInternetManager, mDeviceConfigFacade, mActiveModeWarden,
                 mFacade, mWifiGlobals, mExternalPnoScanRequestManager, mSsidTranslator,
-                mWifiPermissionsUtil);
+                mWifiPermissionsUtil, mWifiCarrierInfoManager);
         mLooper.dispatchAll();
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
@@ -4962,14 +4964,21 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
         WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
+        WifiConfiguration network4 = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        network4.carrierId = 123; // Assign a valid carrier ID
         network1.getNetworkSelectionStatus().setHasEverConnected(true);
         network2.getNetworkSelectionStatus().setHasEverConnected(true);
         network3.getNetworkSelectionStatus().setHasEverConnected(true);
+        network4.getNetworkSelectionStatus().setHasEverConnected(true);
+        when(mWifiCarrierInfoManager.isSimReady(anyInt())).thenReturn(true);
 
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(network1);
         networkList.add(network2);
         networkList.add(network3);
+        networkList.add(network4);
+        mLruConnectionTracker.addNetwork(network4);
         mLruConnectionTracker.addNetwork(network3);
         mLruConnectionTracker.addNetwork(network2);
         mLruConnectionTracker.addNetwork(network1);
@@ -4978,15 +4987,18 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         List<WifiScanner.PnoSettings.PnoNetwork> pnoNetworks =
                 mWifiConnectivityManager.retrievePnoNetworkList();
         verify(mWifiNetworkSuggestionsManager).getAllScanOptimizationSuggestionNetworks();
-        assertEquals(4, pnoNetworks.size());
+        assertEquals(5, pnoNetworks.size());
         assertEquals(network1.SSID, pnoNetworks.get(0).ssid);
         assertEquals(UNTRANSLATED_HEX_SSID, pnoNetworks.get(1).ssid); // Possible untranslated SSID
         assertEquals(network2.SSID, pnoNetworks.get(2).ssid);
         assertEquals(network3.SSID, pnoNetworks.get(3).ssid);
+        assertEquals(network4.SSID, pnoNetworks.get(4).ssid);
 
         // Now permanently disable |network3|. This should remove network 3 from the list.
         network3.getNetworkSelectionStatus().setNetworkSelectionStatus(
                 WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_TEMPORARY_DISABLED);
+        // Mock the SIM card to be not ready. This should remove network 4 from the list.
+        when(mWifiCarrierInfoManager.isSimReady(anyInt())).thenReturn(false);
 
         // Retrieve the Pno network list & verify.
         pnoNetworks = mWifiConnectivityManager.retrievePnoNetworkList();
