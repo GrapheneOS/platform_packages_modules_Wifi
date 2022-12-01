@@ -4592,6 +4592,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (mVerboseLoggingEnabled) logd("sending p2p connection changed broadcast");
             Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+            // P2pConnectionEvent.CONNECTION_FAST connection type is only triggered as a result
+            // of user interaction, so mark the broadcast as foreground.
+            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
+                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            }
             intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, new WifiP2pInfo(mWifiP2pInfo));
             intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, makeNetworkInfo());
             intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP, eraseOwnDeviceAddress(mGroup));
@@ -4686,6 +4691,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             };
             Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
             intent.setPackage(tetheringServicePackage);
+            // P2pConnectionEvent.CONNECTION_FAST connection type is only triggered as a result
+            // of user interaction, so mark the broadcast as foreground.
+            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
+                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            }
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
             intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, new WifiP2pInfo(mWifiP2pInfo));
             intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, makeNetworkInfo());
