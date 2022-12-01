@@ -21,6 +21,7 @@ import static android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE;
 import static android.Manifest.permission.WIFI_ACCESS_COEX_UNSAFE_CHANNELS;
 import static android.Manifest.permission.WIFI_UPDATE_COEX_UNSAFE_CHANNELS;
 import static android.net.wifi.WifiAvailableChannel.FILTER_REGULATORY;
+import static android.net.wifi.WifiAvailableChannel.OP_MODE_SAP;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_STA;
 import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
@@ -9295,6 +9296,36 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 TEST_PACKAGE_NAME, mExtras);
         mLooper.stopAutoDispatch();
         verify(mWifiNative).getUsableChannels(anyInt(), anyInt(), anyInt());
+    }
+
+    /**
+     * Verify the call to getUsableChannels() goes to cached SoftAp capabilities
+     */
+    @Test
+    public void testGetUsableChannelsForApRegulation() throws Exception {
+        mWifiServiceImpl.handleBootCompleted();
+        mLooper.dispatchAll();
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
+                .thenReturn(true);
+        // Country code update with HAL started
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        // Channel 9 - 2452Mhz
+        WifiAvailableChannel channels2g = new WifiAvailableChannel(2452,
+                WifiAvailableChannel.OP_MODE_SAP);
+        when(mWifiNative.isHalSupported()).thenReturn(true);
+        when(mWifiNative.isHalStarted()).thenReturn(true);
+        when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(), anyInt()))
+                .thenReturn(new ArrayList<>(Arrays.asList(channels2g)));
+        mWifiServiceImpl.mCountryCodeTracker.onDriverCountryCodeChanged(TEST_COUNTRY_CODE);
+        mLooper.dispatchAll();
+        reset(mWifiNative);
+        List<WifiAvailableChannel> channels = mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ,
+                OP_MODE_SAP, FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras);
+        assertEquals(1, channels.size());
+        assertEquals(channels2g, channels.get(0));
+        verify(mWifiNative, never()).getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(),
+                anyInt());
     }
 
     /**

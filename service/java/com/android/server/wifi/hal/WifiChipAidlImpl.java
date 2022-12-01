@@ -53,6 +53,7 @@ import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
@@ -888,6 +889,9 @@ public class WifiChipAidlImpl implements IWifiChip {
                         Log.d(TAG, "Attempting to set SAR scenario to " + halScenario);
                         mWifiChip.selectTxPowerScenario(halScenario);
                     }
+                    // Reaching here means that setting SAR scenario would be redundant,
+                    // do nothing and return with success.
+                    return true;
                 }
 
                 // We don't need to perform power backoff, so attempt to reset the SAR scenario.
@@ -1471,7 +1475,8 @@ public class WifiChipAidlImpl implements IWifiChip {
         return (bitmap & expectedBit) != 0;
     }
 
-    private static long halToFrameworkChipCapabilityMask(long halCaps) {
+    @VisibleForTesting
+    protected static long halToFrameworkChipCapabilityMask(long halCaps) {
         long frameworkCaps = 0;
         if (bitmapContains(halCaps, ChipCapabilityMask.SET_TX_POWER_LIMIT)) {
             frameworkCaps |= WifiManager.WIFI_FEATURE_TX_POWER_LIMIT;
