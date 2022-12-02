@@ -45,6 +45,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_DECORATED_IDENTITY;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP_AKM;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_DPP_ENROLLEE_RESPONDER;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_P2P;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT;
@@ -3875,6 +3876,19 @@ public class WifiManagerTest {
                 WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP);
         verify(mWifiService).setStaConcurrencyForMultiInternetMode(
                 WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP);
+    }
+
+    /*
+     * Verify call to {@link WifiManager#isDualBandSimultaneousSupported}.
+     */
+    @Test
+    public void testIsDualBandSimultaneousSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS));
+        assertTrue(mWifiManager.isDualBandSimultaneousSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS));
+        assertFalse(mWifiManager.isDualBandSimultaneousSupported());
     }
 
     /**

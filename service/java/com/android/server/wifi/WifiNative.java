@@ -47,6 +47,7 @@ import android.net.wifi.nl80211.RadioChainInfo;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.SystemClock;
 import android.os.WorkSource;
 import android.text.TextUtils;
@@ -61,6 +62,7 @@ import com.android.internal.util.HexDump;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
 import com.android.server.wifi.hotspot2.NetworkDetail;
+import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.util.FrameParser;
 import com.android.server.wifi.util.InformationElementUtil;
 import com.android.server.wifi.util.NativeUtil;
@@ -120,6 +122,7 @@ public class WifiNative {
     private long mCachedFeatureSet;
     private boolean mQosPolicyFeatureEnabled = false;
     private final Map<String, String> mWifiCondIfacesForBridgedAp = new ArrayMap<>();
+    private MockWifiServiceUtil mMockWifiModem = null;
 
     public WifiNative(WifiVendorHal vendorHal,
                       SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
@@ -4396,5 +4399,57 @@ public class WifiNative {
     /** Checks if there are any iface active. */
     boolean hasAnyIface() {
         return mIfaceMgr.hasAnyIface();
+    }
+
+    /**
+     * Sets or clean mock wifi service
+     *
+     * @param serviceName the service name of mock wifi service. When service name is empty, the
+     *                    framework will clean mock wifi service.
+     */
+    public void setMockWifiService(String serviceName) {
+        Log.d(TAG, "set MockWifiModemService to " + serviceName);
+        if (TextUtils.isEmpty(serviceName)) {
+            mMockWifiModem = null;
+            return;
+        }
+        mMockWifiModem = new MockWifiServiceUtil(mContext, serviceName);
+        if (mMockWifiModem == null) {
+            Log.e(TAG, "MockWifiServiceUtil creation failed.");
+            return;
+        }
+
+        // mock wifi modem service is set, try to bind all supported mock HAL services
+        mMockWifiModem.bindAllMockModemService();
+        for (int service = MockWifiServiceUtil.MIN_SERVICE_IDX;
+                service < MockWifiServiceUtil.NUM_SERVICES; service++) {
+            int retryCount = 0;
+            IBinder binder;
+            do {
+                binder = mMockWifiModem.getServiceBinder(service);
+                retryCount++;
+                if (binder == null) {
+                    Log.d(TAG, "Retry(" + retryCount + ") for "
+                            + mMockWifiModem.getModuleName(service));
+                    try {
+                        Thread.sleep(MockWifiServiceUtil.BINDER_RETRY_MILLIS);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            } while ((binder == null) && (retryCount < MockWifiServiceUtil.BINDER_MAX_RETRY));
+
+            if (binder == null) {
+                Log.e(TAG, "Mock " + mMockWifiModem.getModuleName(service) + " bind fail");
+            }
+        }
+    }
+
+    /**
+     *  Returns mock wifi service name.
+     */
+    public String getMockWifiServiceName() {
+        String serviceName = mMockWifiModem != null ? mMockWifiModem.getServiceName() : null;
+        Log.d(TAG, "getMockWifiServiceName - service name is " + serviceName);
+        return serviceName;
     }
 }
