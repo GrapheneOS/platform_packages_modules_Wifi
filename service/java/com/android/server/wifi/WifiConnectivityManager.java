@@ -2146,6 +2146,12 @@ public class WifiConnectivityManager {
                 nsConfig.isUserConnectChoiceOverrideEnabled());
         mNetworkSelector.setLastSelectionWeightEnabled(
                 nsConfig.isLastSelectionWeightEnabled());
+        mScoringParams.setRssi2Thresholds(
+                nsConfig.getRssiThresholds(ScanResult.WIFI_BAND_24_GHZ));
+        mScoringParams.setRssi5Thresholds(
+                nsConfig.getRssiThresholds(ScanResult.WIFI_BAND_5_GHZ));
+        mScoringParams.setRssi6Thresholds(
+                nsConfig.getRssiThresholds(ScanResult.WIFI_BAND_6_GHZ));
     }
 
     /**
