@@ -44,37 +44,26 @@ public class WifiHalTest {
 
     private WifiHal mDut;
 
-    private class WifiHalAidlSpy extends WifiHal {
-        WifiHalAidlSpy() {
+    // TODO: Add AIDL implementation to the constructor once it exists.
+    private class WifiHalSpy extends WifiHal {
+        WifiHalSpy() {
             super(mContextMock, mSsidTranslatorMock);
         }
 
         @Override
-        protected IWifiHal createWifiHalMockable(@NonNull Context context,
-                @NonNull SsidTranslator ssidTranslator) {
-            return mWifiHalAidlImplMock;
-        }
-    }
-
-    private class WifiHalHidlSpy extends WifiHal {
-        WifiHalHidlSpy() {
-            super(mContextMock, mSsidTranslatorMock);
-        }
-
-        @Override
-        protected IWifiHal createWifiHalMockable(@NonNull Context context,
+        protected WifiHalHidlImpl createWifiHalHidlImplMockable(@NonNull Context context,
                 @NonNull SsidTranslator ssidTranslator) {
             return mWifiHalHidlImplMock;
         }
     }
 
-    private class WifiHalNullSpy extends WifiHal {
-        WifiHalNullSpy() {
+    private class NullWifiHalSpy extends WifiHal {
+        NullWifiHalSpy() {
             super(mContextMock, mSsidTranslatorMock);
         }
 
         @Override
-        protected IWifiHal createWifiHalMockable(@NonNull Context context,
+        protected WifiHalHidlImpl createWifiHalHidlImplMockable(@NonNull Context context,
                 @NonNull SsidTranslator ssidTranslator) {
             return null;
         }
@@ -83,6 +72,7 @@ public class WifiHalTest {
     @Before
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mDut = new WifiHalSpy();
     }
 
     /**
@@ -90,7 +80,7 @@ public class WifiHalTest {
      */
     @Test
     public void testInitWithHidlImpl() {
-        mDut = new WifiHalHidlSpy();
+        mDut = new WifiHalSpy();
         mDut.getChip(1);
         verify(mWifiHalHidlImplMock).getChip(eq(1));
         verify(mWifiHalAidlImplMock, never()).getChip(anyInt());
@@ -102,7 +92,7 @@ public class WifiHalTest {
      */
     @Test
     public void testInitFailureCase() {
-        mDut = new WifiHalNullSpy();
+        mDut = new NullWifiHalSpy();
         assertNull(mDut.getChip(1));
         verify(mWifiHalHidlImplMock, never()).getChip(anyInt());
         verify(mWifiHalAidlImplMock, never()).getChip(anyInt());
@@ -110,11 +100,10 @@ public class WifiHalTest {
 
     @Test
     public void testGetChip() {
-        mDut = new WifiHalAidlSpy();
         HalTestUtils.verifyReturnValue(
                 () -> mDut.getChip(1),
-                mWifiHalAidlImplMock.getChip(anyInt()),
+                mWifiHalHidlImplMock.getChip(anyInt()),
                 mock(WifiChip.class));
-        verify(mWifiHalAidlImplMock).getChip(eq(1));
+        verify(mWifiHalHidlImplMock).getChip(eq(1));
     }
 }

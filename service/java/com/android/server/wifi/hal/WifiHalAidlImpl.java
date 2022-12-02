@@ -154,13 +154,6 @@ public class WifiHalAidlImpl implements IWifiHal {
      */
     @Override
     public boolean isSupported() {
-        return serviceDeclared();
-    }
-
-    /**
-     * Indicates whether the AIDL service is declared.
-     */
-    protected static boolean serviceDeclared() {
         // Service Manager API ServiceManager#isDeclared is supported after U.
         return SdkLevel.isAtLeastU() ? ServiceManager.isDeclared(HAL_INSTANCE_NAME) : false;
     }
