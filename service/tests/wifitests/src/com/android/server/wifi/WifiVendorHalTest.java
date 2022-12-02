@@ -553,6 +553,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         when(mHalDeviceManager.getSupportedIfaceTypes())
                 .thenReturn(halDeviceManagerSupportedIfaces);
         when(mWifiGlobals.isWpa3SaeH2eSupported()).thenReturn(true);
+        when(mHalDeviceManager.is24g5gDbsSupported(any())).thenReturn(true);
 
         long expectedFeatureSet = (
                 WifiManager.WIFI_FEATURE_SCANNER
@@ -561,6 +562,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
                         | WifiManager.WIFI_FEATURE_INFRA
                         | WifiManager.WIFI_FEATURE_P2P
                         | WifiManager.WIFI_FEATURE_SAE_H2E
+                        | WifiManager.WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS
         );
         assertTrue(mWifiVendorHal.startVendorHalSta());
         assertEquals(expectedFeatureSet, mWifiVendorHal.getSupportedFeatureSet(TEST_IFACE_NAME));
