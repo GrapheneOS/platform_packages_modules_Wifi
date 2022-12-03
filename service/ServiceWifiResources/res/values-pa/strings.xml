@@ -78,7 +78,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32761" msgid="3962610712123291591">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ਪ੍ਰਮਾਣੀਕਰਨ ਗੜਬੜ 32761"</string>
   <string-array name="wifi_eap_error_message_code_32761_carrier_overrides">
-    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ਤੁਸੀਂ Verizon Wi-Fi Access ਲਈ ਗਾਹਕੀ ਨਹੀਂ ਲਈ ਹੋਈ। ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ 800-922-0204 \'ਤੇ ਕਾਲ ਕਰੋ। (ਗੜਬੜ = 32761)"</item>
+    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ਤੁਸੀਂ Verizon Wi-Fi Access ਲਈ ਸਬਸਕ੍ਰਾਈਬ ਨਹੀਂ ਕੀਤਾ। ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ 800-922-0204 \'ਤੇ ਕਾਲ ਕਰੋ। (ਗੜਬੜ = 32761)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ਪ੍ਰਮਾਣੀਕਰਨ ਗੜਬੜ 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">

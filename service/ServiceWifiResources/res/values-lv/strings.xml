@@ -52,8 +52,8 @@
     <string name="accept" msgid="8346431649376483879">"Piekrist"</string>
     <string name="decline" msgid="4172251727603762084">"Noraidīt"</string>
     <string name="ok" msgid="847575529546290102">"Labi"</string>
-    <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Ielūgums ir nosūtīts."</string>
-    <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Ielūgums izveidot savienojumu"</string>
+    <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Uzaicinājums ir nosūtīts."</string>
+    <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Uzaicinājums izveidot savienojumu"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"No:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Kam:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Ierakstiet pieprasīto PIN:"</string>
