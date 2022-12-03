@@ -179,7 +179,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     private String getTag() {
-        return TAG + "[" + (mClientInterfaceName == null ? "unknown" : mClientInterfaceName) + "]";
+        return TAG + "[" + mId + ":" + (mClientInterfaceName == null ? "unknown"
+                : mClientInterfaceName) + "]";
     }
 
     /**
@@ -744,6 +745,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
                         mClientModeImpl.handleIfaceDestroyed();
                     }
 
+                    // set it to null since the interface had been destroyed
+                    mClientInterfaceName = null;
                     sendMessage(CMD_INTERFACE_DESTROYED);
                 }
             }
@@ -875,11 +878,17 @@ public class ConcreteClientModeManager implements ClientModeManager {
         private void setRoleInternalAndInvokeCallback(@NonNull RoleChangeInfo roleChangeInfo) {
             if (roleChangeInfo.role == mRole) return;
             if (mRole == null) {
-                Log.v(getTag(), "ClientModeManager started in role: " + roleChangeInfo);
+                if (mVerboseLoggingEnabled) {
+                    Log.v(getTag(), "CurState:" + getCurrentStateName()
+                            + ", clientModeManager started in role: " + roleChangeInfo);
+                }
                 setRoleInternal(roleChangeInfo);
                 mModeListener.onStarted(ConcreteClientModeManager.this);
             } else {
-                Log.v(getTag(), "ClientModeManager role changed: " + roleChangeInfo);
+                if (mVerboseLoggingEnabled) {
+                    Log.v(getTag(), "CurState:" + getCurrentStateName()
+                            + ", clientModeManager role changed: " + roleChangeInfo);
+                }
                 setRoleInternal(roleChangeInfo);
                 reset();
                 mModeListener.onRoleChanged(ConcreteClientModeManager.this);
@@ -909,6 +918,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 // started normally this will will not send a duplicate broadcast since mIsStopped
                 // will get set to false the first time the exit happens.
                 cleanupOnQuitIfApplicable();
+                Log.d(getTag(), "IdleState.exit()");
             }
 
             @Override
@@ -920,6 +930,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
             @Override
             public boolean processMessageImpl(Message message) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(getTag(),
+                            getName() + " cmd = " + getWhatToString(message.what) + " "
+                                    + message.toString());
+                }
                 switch (message.what) {
                     case CMD_START:
                         // Always start in scan mode first.
@@ -944,7 +959,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                         }
                         break;
                     default:
-                        Log.d(getTag(), "received an invalid message: " + message);
+                        Log.d(getTag(), getName() + ", received an invalid message: " + message);
                         return NOT_HANDLED;
                 }
                 return HANDLED;
@@ -963,7 +978,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 mIfaceIsUp = isUp;
                 if (!isUp) {
                     // if the interface goes down we should exit and go back to idle state.
-                    Log.d(getTag(), "interface down!");
+                    Log.d(getTag(), getName() + ", interface down!");
                     mStateMachine.sendMessage(CMD_INTERFACE_DOWN);
                 }
                 if (mClientModeImpl != null) {
@@ -988,6 +1003,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
             @Override
             public boolean processMessageImpl(Message message) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(getTag(),
+                            getName() + " cmd = " + getWhatToString(message.what) + " "
+                                    + message.toString());
+                }
                 switch (message.what) {
                     case CMD_START:
                         // Already started, ignore this command.
@@ -1029,8 +1049,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
                         break;
                     }
                     case CMD_INTERFACE_DOWN:
-                        Log.e(getTag(), "Detected an interface down, reporting failure to "
-                                + "SelfRecovery");
+                        Log.e(getTag(),
+                                getName() + ", detected an interface down, reporting failure to "
+                                        + "SelfRecovery");
                         mSelfRecovery.trigger(SelfRecovery.REASON_STA_IFACE_DOWN);
                         // once interface down, nothing else to do...  stop the state machine
                         captureObituaryAndQuitNow();
@@ -1040,7 +1061,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                         onUpChanged(isUp);
                         break;
                     case CMD_INTERFACE_DESTROYED:
-                        Log.e(getTag(), "interface destroyed - client mode stopping");
+                        Log.e(getTag(), getName() + ", interface destroyed - client mode stopping");
                         mClientInterfaceName = null;
                         // once interface destroyed, nothing else to do...  stop the state machine
                         captureObituaryAndQuitNow();
@@ -1062,7 +1083,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                     mIfaceIsUp = false;
                 }
 
-                Log.i(getTag(), "StartedState#exit(), setting mRole = null");
+                Log.i(getTag(), "StartedState.exit(), setting mRole = null");
                 mIsStopped = true;
                 cleanupOnQuitIfApplicable();
             }
@@ -1109,6 +1130,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
             @Override
             public boolean processMessageImpl(Message message) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(getTag(),
+                            getName() + " cmd = " + getWhatToString(message.what) + " "
+                                    + message.toString());
+                }
                 switch (message.what) {
                     case CMD_SWITCH_TO_SCAN_ONLY_MODE:
                         // Already in scan only mode, ignore this command.
@@ -1176,6 +1202,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
             @Override
             public boolean processMessageImpl(Message message) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(getTag(),
+                            getName() + " cmd = " + getWhatToString(message.what) + " "
+                                    + message.toString());
+                }
                 switch (message.what) {
                     case CMD_SWITCH_TO_CONNECT_MODE:
                         RoleChangeInfo roleChangeInfo = (RoleChangeInfo) message.obj;
@@ -1189,7 +1220,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                             // If this call failed, the iface would be torn down.
                             // Thus, simply abort and let the iface down handling take care of the
                             // rest.
-                            Log.e(getTag(), "Failed to switch ClientModeManager="
+                            Log.e(getTag(), getName() + ", Failed to switch ClientModeManager="
                                     + ConcreteClientModeManager.this + "'s requestorWs");
                         }
                         break;
@@ -1239,7 +1270,7 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 if (mClientModeImpl == null) {
                     Log.w(getTag(), "ConnectModeState.exit(): mClientModeImpl is already null?!");
                 } else {
-                    Log.d(getTag(), "Stopping ClientModeImpl");
+                    Log.d(getTag(), "ConnectModeState.exit(): Stopping ClientModeImpl");
                     mClientModeImpl.stop();
                     mGraveyard.inter(mClientModeImpl);
                     mClientModeImpl = null;
