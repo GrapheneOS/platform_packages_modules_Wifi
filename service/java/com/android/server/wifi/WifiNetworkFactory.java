@@ -714,7 +714,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.e(TAG, "Requesting specific frequency bands is not yet supported. Rejecting");
             return false;
         }
-        if (!WifiConfigurationUtil.validateNetworkSpecifier(wns)) {
+        if (!WifiConfigurationUtil.validateNetworkSpecifier(wns, mContext.getResources()
+                .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels))) {
             Log.e(TAG, "Invalid wifi network specifier: " + wns + ". Rejecting ");
             return false;
         }
@@ -852,7 +853,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             WifiNetworkSpecifier wns = (WifiNetworkSpecifier) ns;
             mActiveSpecificNetworkRequestSpecifier = new WifiNetworkSpecifier(
                     wns.ssidPatternMatcher, wns.bssidPatternMatcher, wns.getBand(),
-                    wns.wifiConfiguration, wns.getPreferredChannelFrequencyInMhz());
+                    wns.wifiConfiguration, wns.getPreferredChannelFrequenciesMhz());
             mSkipUserDialogue = false;
             mWifiMetrics.incrementNetworkRequestApiNumRequest();
 
@@ -1502,7 +1503,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             mScanSettings.hiddenNetworks.add(new WifiScanner.ScanSettings.HiddenNetwork(
                     addEnclosingQuotes(wns.ssidPatternMatcher.getPath())));
         }
-        int[] channelFreqs = wns.getPreferredChannelFrequencyInMhz();
+        int[] channelFreqs = wns.getPreferredChannelFrequenciesMhz();
         if (channelFreqs.length > 0) {
             int index = 0;
             mScanSettings.channels = new WifiScanner.ChannelSpec[channelFreqs.length];

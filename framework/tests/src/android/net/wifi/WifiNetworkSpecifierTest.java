@@ -895,14 +895,11 @@ public class WifiNetworkSpecifierTest {
         WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder()
                 .setSsidPattern(new PatternMatcher(TEST_SSID, PATTERN_PREFIX));
         assertThrows(IllegalArgumentException.class, () -> builder
-                .setPreferredChannelsFrequencyInMhz(
-                        new int[WifiNetworkSpecifier.getMaxNumberOfChannelsPerRequest() + 1]));
-        assertThrows(IllegalArgumentException.class, () -> builder
-                .setPreferredChannelsFrequencyInMhz(new int[]{0}));
+                .setPreferredChannelsFrequenciesMhz(new int[]{0}));
         WifiNetworkSpecifier networkSpecifier = builder
-                .setPreferredChannelsFrequencyInMhz(new int[]{5180}).build();
-        assertArrayEquals(new int[]{5180}, networkSpecifier.getPreferredChannelFrequencyInMhz());
+                .setPreferredChannelsFrequenciesMhz(new int[]{5180}).build();
+        assertArrayEquals(new int[]{5180}, networkSpecifier.getPreferredChannelFrequenciesMhz());
         builder.setBand(WIFI_BAND_5_GHZ);
-        assertThrows(IllegalStateException.class, () -> builder.build());
+        assertThrows(IllegalStateException.class, builder::build);
     }
 }

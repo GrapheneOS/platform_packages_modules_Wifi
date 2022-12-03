@@ -818,9 +818,11 @@ public class WifiConfigurationUtil {
      * 12. {@link WifiConfiguration#getIpConfiguration()}
      *
      * @param specifier Instance of {@link WifiNetworkSpecifier}.
+     * @param maxChannelsAllowed The max number allowed to set in a WifiNetworkSpecifier
      * @return true if the parameters are valid, false otherwise.
      */
-    public static boolean validateNetworkSpecifier(WifiNetworkSpecifier specifier) {
+    public static boolean validateNetworkSpecifier(WifiNetworkSpecifier specifier,
+            int maxChannelsAllowed) {
         if (!isValidNetworkSpecifier(specifier)) {
             Log.e(TAG, "validateNetworkSpecifier failed : invalid network specifier");
             return false;
@@ -836,10 +838,7 @@ public class WifiConfigurationUtil {
         if (!WifiNetworkSpecifier.validateBand(getBand(specifier))) {
             return false;
         }
-        if (specifier.getPreferredChannelFrequencyInMhz().length
-                > WifiNetworkSpecifier.getMaxNumberOfChannelsPerRequest()
-                || !WifiNetworkSpecifier.validateChannelFrequencyInMhz(specifier
-                .getPreferredChannelFrequencyInMhz())) {
+        if (specifier.getPreferredChannelFrequenciesMhz().length > maxChannelsAllowed) {
             return false;
         }
         WifiConfiguration config = specifier.wifiConfiguration;

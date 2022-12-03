@@ -7011,4 +7011,9 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         });
     }
+    @Override
+    public int getMaxNumberOfChannelsPerRequest() {
+        return mContext.getResources()
+                .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
+    }
 }
