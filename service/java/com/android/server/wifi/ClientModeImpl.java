@@ -4544,7 +4544,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (!uids.isEmpty()
                 && !mWifiConnectivityManager.hasMultiInternetConnection()) {
             // Remove internet capability.
-            builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            if (!mNetworkFactory.shouldHaveInternetCapabilities()) {
+                builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            }
             if (SdkLevel.isAtLeastS()) {
                 builder.setUids(getUidRangeSet(uids));
             } else {

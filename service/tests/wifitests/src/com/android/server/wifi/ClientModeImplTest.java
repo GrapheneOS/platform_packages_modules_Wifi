@@ -5108,7 +5108,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      * when both Tx and Rx link speed are unavailable.
      */
     @Test
-    public void verifyNetworkCapabilitiesForSpecificRequest() throws Exception {
+    public void verifyNetworkCapabilitiesForSpecificRequestWithInternet() throws Exception {
         mWifiInfo.setFrequency(2437);
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(30_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(40_000);
@@ -5129,6 +5129,58 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // should not have internet capability.
         assertFalse(networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
+
+        NetworkSpecifier networkSpecifier = networkCapabilities.getNetworkSpecifier();
+        assertTrue(networkSpecifier instanceof WifiNetworkAgentSpecifier);
+        WifiNetworkAgentSpecifier wifiNetworkAgentSpecifier =
+                (WifiNetworkAgentSpecifier) networkSpecifier;
+
+        // createNetworkAgentSpecifier does not write the BSSID to the current wifi configuration.
+        WifiConfiguration expectedConfig = new WifiConfiguration(
+                mCmi.getConnectedWifiConfiguration());
+        expectedConfig.BSSID = TEST_BSSID_STR;
+        WifiNetworkAgentSpecifier expectedWifiNetworkAgentSpecifier =
+                new WifiNetworkAgentSpecifier(expectedConfig, ScanResult.WIFI_BAND_24_GHZ,
+                        true /* matchLocalOnlySpecifiers */);
+        assertEquals(expectedWifiNetworkAgentSpecifier, wifiNetworkAgentSpecifier);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(Set.of(new Range<Integer>(TEST_UID, TEST_UID)),
+                    networkCapabilities.getUids());
+        } else {
+            assertEquals(TEST_UID, networkCapabilities.getRequestorUid());
+            assertEquals(OP_PACKAGE_NAME, networkCapabilities.getRequestorPackageName());
+        }
+        assertEquals(30_000, networkCapabilities.getLinkUpstreamBandwidthKbps());
+        assertEquals(40_000, networkCapabilities.getLinkDownstreamBandwidthKbps());
+    }
+
+    /**
+     * Verify that we set the INTERNET capability in the network agent when connected
+     * as a result of the new network which indicate the internet capabilites should be set.
+     */
+    @Test
+    public void verifyNetworkCapabilitiesForSpecificRequest() throws Exception {
+        mWifiInfo.setFrequency(2437);
+        when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(30_000);
+        when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(40_000);
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUids(any(), any()))
+                .thenReturn(Set.of(TEST_UID));
+        when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
+                .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
+        when(mWifiNetworkFactory.shouldHaveInternetCapabilities()).thenReturn(true);
+        // Simulate the first connection.
+        connectWithValidInitRssi(-42);
+        ArgumentCaptor<NetworkCapabilities> networkCapabilitiesCaptor =
+                ArgumentCaptor.forClass(NetworkCapabilities.class);
+
+        verify(mWifiInjector).makeWifiNetworkAgent(
+                networkCapabilitiesCaptor.capture(), any(), any(), any(), any());
+
+        NetworkCapabilities networkCapabilities = networkCapabilitiesCaptor.getValue();
+        assertNotNull(networkCapabilities);
+
+        // should not have internet capability.
+        assertTrue(networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
 
         NetworkSpecifier networkSpecifier = networkCapabilities.getNetworkSpecifier();
         assertTrue(networkSpecifier instanceof WifiNetworkAgentSpecifier);
