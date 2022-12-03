@@ -2794,18 +2794,26 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testSyncGetCurrentNetwork() throws Exception {
-        // syncGetCurrentNetwork() returns null when disconnected
-        mLooper.startAutoDispatch();
-        assertNull(mCmi.syncGetCurrentNetwork());
-        mLooper.stopAutoDispatch();
-
+    public void testGetCurrentNetwork() throws Exception {
+        // getCurrentNetwork() returns null when disconnected
+        assertNull(mCmi.getCurrentNetwork());
         connect();
 
-        // syncGetCurrentNetwork() returns non-null Network when connected
-        mLooper.startAutoDispatch();
-        assertEquals(mNetwork, mCmi.syncGetCurrentNetwork());
-        mLooper.stopAutoDispatch();
+        assertEquals("L3ConnectedState", getCurrentState().getName());
+        // getCurrentNetwork() returns non-null Network when connected
+        assertEquals(mNetwork, mCmi.getCurrentNetwork());
+        // Now trigger disconnect
+        mCmi.disconnect();
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(mConnectedNetwork.SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, WifiSsid.fromUtf8Text(mConnectedNetwork.SSID),
+                        TEST_BSSID_STR, SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+        assertEquals("DisconnectedState", getCurrentState().getName());
+        assertNull(mCmi.getCurrentNetwork());
     }
 
     /**

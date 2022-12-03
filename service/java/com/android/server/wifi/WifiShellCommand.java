@@ -2340,7 +2340,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 if (info.getSupplicantState() != SupplicantState.COMPLETED) {
                     continue;
                 }
-                Network network = cm.syncGetCurrentNetwork();
+                Network network = cm.getCurrentNetwork();
                 NetworkCapabilities capabilities =
                         mConnectivityManager.getNetworkCapabilities(network);
                 pw.println("NetworkCapabilities: " + capabilities);
