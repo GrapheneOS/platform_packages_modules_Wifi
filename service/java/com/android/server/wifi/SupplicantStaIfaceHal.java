@@ -1892,7 +1892,24 @@ public class SupplicantStaIfaceHal {
     }
 
     /**
-     * Returns connection MLO links info
+     * Returns signal poll results for all Wi-Fi links of the interface.
+     *
+     * @param ifaceName Name of the interface.
+     * @return Signal poll results.
+     */
+    public WifiSignalPollResults getSignalPollResults(@NonNull String ifaceName) {
+        synchronized (mLock) {
+            String methodStr = "getSignalPollResults";
+            if (mStaIfaceHal == null) {
+                handleNullHal(methodStr);
+                return null;
+            }
+            return mStaIfaceHal.getSignalPollResults(ifaceName);
+        }
+    }
+
+    /**
+     * Returns connection MLO links info.
      *
      * @param ifaceName Name of the interface.
      * @return connection MLO links info
