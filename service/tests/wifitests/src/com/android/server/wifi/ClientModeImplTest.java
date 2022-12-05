@@ -39,6 +39,7 @@ import static com.android.server.wifi.ClientModeImpl.ARP_TABLE_PATH;
 import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION;
 import static com.android.server.wifi.ClientModeImpl.CMD_UNWANTED_NETWORK;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
+import static com.android.server.wifi.WifiSettingsConfigStore.SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -5486,6 +5487,18 @@ public class ClientModeImplTest extends WifiBaseTest {
         // get it again, should now use the config store MAC address, not native.
         assertEquals(TEST_GLOBAL_MAC_ADDRESS.toString(), mCmi.getFactoryMacAddress());
         verify(mSettingsConfigStore).get(WIFI_STA_FACTORY_MAC_ADDRESS);
+
+        // Verify secondary MAC is not stored
+        verify(mSettingsConfigStore, never()).put(
+                eq(SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS), any());
+        verify(mSettingsConfigStore, never()).get(SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS);
+
+        // Query again as secondary STA, and then verify the result is saved to secondary.
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mCmi.getFactoryMacAddress();
+        verify(mWifiNative).getStaFactoryMacAddress(WIFI_IFACE_NAME);
+        verify(mSettingsConfigStore).put(eq(SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS), any());
+        verify(mSettingsConfigStore).get(SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS);
 
         verifyNoMoreInteractions(mWifiNative, mSettingsConfigStore);
     }

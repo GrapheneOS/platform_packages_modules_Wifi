@@ -28,6 +28,7 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
+import static com.android.server.wifi.WifiSettingsConfigStore.SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__SUPPLICANT_DISCONNECTED;
 
@@ -7092,9 +7093,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * a factory MAC address stored in config store, retrieve it now and store it.
      *
      * Note:
-     * <li> This is needed to ensure that we use the same MAC address for connecting to
-     * networks with MAC randomization disabled regardless of whether the connection is
-     * occurring on "wlan0" or "wlan1" due to STA + STA. </li>
      * <li> Retries added to deal with any transient failures when invoking
      * {@link WifiNative#getStaFactoryMacAddress(String)}.
      */
@@ -7104,20 +7102,26 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mWifiGlobals.isSaveFactoryMacToConfigStoreEnabled();
         if (saveFactoryMacInConfigStore) {
             // Already present, just return.
-            String factoryMacAddressStr = mSettingsConfigStore.get(WIFI_STA_FACTORY_MAC_ADDRESS);
+            String factoryMacAddressStr = mSettingsConfigStore.get(isPrimary()
+                    ? WIFI_STA_FACTORY_MAC_ADDRESS : SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS);
             if (factoryMacAddressStr != null) return MacAddress.fromString(factoryMacAddressStr);
         }
         MacAddress factoryMacAddress = mWifiNative.getStaFactoryMacAddress(mInterfaceName);
         if (factoryMacAddress == null) {
             // the device may be running an older HAL (version < 1.3).
-            Log.w(TAG, "Failed to retrieve factory MAC address");
+            Log.w(TAG, (isPrimary() ? "Primary" : "Secondary")
+                    + " failed to retrieve factory MAC address");
             return null;
         }
         if (saveFactoryMacInConfigStore) {
-            mSettingsConfigStore.put(WIFI_STA_FACTORY_MAC_ADDRESS, factoryMacAddress.toString());
-            Log.i(TAG, "Factory MAC address stored in config store: " + factoryMacAddress);
+            mSettingsConfigStore.put(isPrimary()
+                            ? WIFI_STA_FACTORY_MAC_ADDRESS : SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS,
+                    factoryMacAddress.toString());
+            Log.i(TAG, (isPrimary() ? "Primary" : "Secondary")
+                    + " factory MAC address stored in config store: " + factoryMacAddress);
         }
-        Log.i(TAG, "Factory MAC address retrieved: " + factoryMacAddress);
+        Log.i(TAG, (isPrimary() ? "Primary" : "Secondary")
+                + " factory MAC address retrieved: " + factoryMacAddress);
         return factoryMacAddress;
     }
 
