@@ -2895,7 +2895,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                     return null;
                 }
                 WifiSignalPollResults nativeSignalPollResults =
-                        new WifiSignalPollResults(halSignalPollResults.length);
+                        new WifiSignalPollResults();
                 for (SignalPollResult r : halSignalPollResults) {
                     nativeSignalPollResults.addEntry(r.linkId, r.currentRssiDbm, r.txBitrateMbps,
                             r.rxBitrateMbps, r.frequencyMhz);

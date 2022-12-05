@@ -845,13 +845,14 @@ public class WifiNativeTest extends WifiBaseTest {
     public void testSignalPoll() throws Exception {
         when(mWificondControl.signalPoll(WIFI_IFACE_NAME))
                 .thenReturn(SIGNAL_POLL_RESULT);
+        when(mStaIfaceHal.getSignalPollResults(WIFI_IFACE_NAME)).thenReturn(null);
 
-        WifiNl80211Manager.SignalPollResult pollResult = mWifiNative.signalPoll(WIFI_IFACE_NAME);
-        assertEquals(SIGNAL_POLL_RESULT.currentRssiDbm, pollResult.currentRssiDbm);
-        assertEquals(SIGNAL_POLL_RESULT.txBitrateMbps, pollResult.txBitrateMbps);
+        WifiSignalPollResults pollResults = mWifiNative.signalPoll(WIFI_IFACE_NAME);
+        assertEquals(SIGNAL_POLL_RESULT.currentRssiDbm, pollResults.getRssi());
+        assertEquals(SIGNAL_POLL_RESULT.txBitrateMbps, pollResults.getTxLinkSpeed());
         assertEquals(SIGNAL_POLL_RESULT.associationFrequencyMHz,
-                pollResult.associationFrequencyMHz);
-        assertEquals(SIGNAL_POLL_RESULT.rxBitrateMbps, pollResult.rxBitrateMbps);
+                pollResults.getFrequency());
+        assertEquals(SIGNAL_POLL_RESULT.rxBitrateMbps, pollResults.getRxLinkSpeed());
 
         verify(mWificondControl).signalPoll(WIFI_IFACE_NAME);
     }
