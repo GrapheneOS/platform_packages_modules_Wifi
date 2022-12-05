@@ -63,8 +63,8 @@ import java.util.Objects;
  * </p>
  */
 public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parcelable {
+
     private static final String TAG = "WifiNetworkSpecifier";
-    private static final int NETWORK_REQUEST_MAX_CHANNEL_NUM = 5;
 
     /**
      * Returns the band for a given frequency in MHz.
@@ -81,16 +81,6 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
             return ScanResult.WIFI_BAND_60_GHZ;
         }
         return UNSPECIFIED;
-    }
-
-    /**
-     * Returns the max number of channels that is allowed to be set on a request.
-     * @see Builder#setPreferredChannelsFrequencyInMhz(int[])
-     *
-     * @return The max number of channels can be set on a request.
-     */
-    public static int getMaxNumberOfChannelsPerRequest() {
-        return NETWORK_REQUEST_MAX_CHANNEL_NUM;
     }
 
     /**
@@ -467,16 +457,12 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
          * <li>If not set, defaults to an empty array and device will do a full band scan.</li>
          *
          * @param channelFreqs an Array of the channels in MHz. The length of the array must not
-         *                     exceed {@link WifiNetworkSpecifier#getMaxNumberOfChannelsPerRequest()}
+         *                     exceed {@link WifiManager#getMaxNumberOfChannelsPerNetworkSpecifierRequest()}
          *
          * @return Instance of {@link Builder} to enable chaining of the builder method.
          */
-        @NonNull public Builder setPreferredChannelsFrequencyInMhz(@NonNull int[] channelFreqs) {
+        @NonNull public Builder setPreferredChannelsFrequenciesMhz(@NonNull int[] channelFreqs) {
             Objects.requireNonNull(channelFreqs);
-            if (channelFreqs.length > NETWORK_REQUEST_MAX_CHANNEL_NUM) {
-                throw new IllegalArgumentException("The number of input channels is larger than "
-                        + NETWORK_REQUEST_MAX_CHANNEL_NUM);
-            }
             if (!validateChannelFrequencyInMhz(channelFreqs)) {
                 throw new IllegalArgumentException("Invalid channel frequency in the input array");
             }
@@ -754,9 +740,9 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
 
     /**
      * The preferred channels fot this network specifier.
-     * @see Builder#setPreferredChannelsFrequencyInMhz(int[])
+     * @see Builder#setPreferredChannelsFrequenciesMhz(int[])
      */
-    @NonNull public int[] getPreferredChannelFrequencyInMhz() {
+    @NonNull public int[] getPreferredChannelFrequenciesMhz() {
         return mChannelFreqs.clone();
     }
 
