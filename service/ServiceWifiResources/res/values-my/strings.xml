@@ -149,5 +149,5 @@
     <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"<xliff:g id="APP_NAME">%1$s</xliff:g> ကို Wi‑Fi ဖွင့်ခွင့်ပြုမလား။"</string>
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"‘အမြန် ဆက်တင်များ’ တွင် Wi‑Fi ပိတ်နိုင်သည်"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ခွင့်ပြုရန်"</string>
-    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ခွင့်မပြုရန်"</string>
+    <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ခွင့်မပြုပါ"</string>
 </resources>

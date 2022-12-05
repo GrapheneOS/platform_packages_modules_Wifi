@@ -40,7 +40,7 @@
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"Unganisha"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"Usiunganishe"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi itawashwa kiotomatiki"</string>
-    <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"Unapokuwa karibu na mtandao uliohifadhiwa wenye ubora wa juu"</string>
+    <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"Ukiwa karibu na mtandao uliohifadhiwa wenye ubora wa juu"</string>
     <string name="wifi_wakeup_onboarding_action_disable" msgid="6209706680391785825">"Usiwashe tena"</string>
     <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"Wi‑Fi imewashwa kiotomatiki"</string>
     <string name="wifi_wakeup_enabled_content" msgid="3911262526267025882">"Uko karibu na mtandao uliohifadhiwa: <xliff:g id="NETWORK_SSID">%1$s</xliff:g>"</string>
