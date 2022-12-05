@@ -630,6 +630,10 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
         when(mClientModeImpl.hasQuit()).thenReturn(true);
         mClientModeManager.onClientModeImplQuit();
         verify(mListener).onStopped(mClientModeManager);
+
+        mClientModeManager.stop();
+        mLooper.dispatchAll();
+        verify(mWifiNative, never()).teardownInterface(TEST_INTERFACE_NAME);
     }
 
     /**
@@ -638,11 +642,11 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
     @Test
     public void noCallbackOnInterfaceDestroyedWhenAlreadyStopped() throws Exception {
         startClientInConnectModeAndVerifyEnabled();
-
         reset(mListener);
 
         mClientModeManager.stop();
         mLooper.dispatchAll();
+        verify(mWifiNative).teardownInterface(TEST_INTERFACE_NAME);
 
         // now trigger interface destroyed and make sure callback doesn't get called
         mInterfaceCallbackCaptor.getValue().onDestroyed(TEST_INTERFACE_NAME);
