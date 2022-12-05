@@ -10379,4 +10379,20 @@ public class WifiManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Returns the max number of channels that is allowed to be set on a
+     * {@link WifiNetworkSpecifier}.
+     * @see WifiNetworkSpecifier.Builder#setPreferredChannelsFrequenciesMhz(int[])
+     *
+     * @return The max number of channels can be set on a request.
+     */
+
+    public int getMaxNumberOfChannelsPerNetworkSpecifierRequest() {
+        try {
+            return mService.getMaxNumberOfChannelsPerRequest();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }

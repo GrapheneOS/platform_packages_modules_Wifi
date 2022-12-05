@@ -22,6 +22,7 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.SsidTranslator;
 
 import java.lang.annotation.Retention;
@@ -127,12 +128,20 @@ public class WifiHal {
     }
 
     public WifiHal(@NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
-        mWifiHal = createWifiHalHidlImplMockable(context, ssidTranslator);
+        mWifiHal = createWifiHalMockable(context, ssidTranslator);
     }
 
-    protected WifiHalHidlImpl createWifiHalHidlImplMockable(@NonNull Context context,
+    @VisibleForTesting
+    protected IWifiHal createWifiHalMockable(@NonNull Context context,
             @NonNull SsidTranslator ssidTranslator) {
-        return new WifiHalHidlImpl(context, ssidTranslator);
+        if (WifiHalAidlImpl.serviceDeclared()) {
+            return new WifiHalAidlImpl(context, ssidTranslator);
+        } else if (WifiHalHidlImpl.serviceDeclared()) {
+            return new WifiHalHidlImpl(context, ssidTranslator);
+        } else {
+            Log.e(TAG, "No HIDL or AIDL service available for the Wifi Vendor HAL.");
+            return null;
+        }
     }
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {

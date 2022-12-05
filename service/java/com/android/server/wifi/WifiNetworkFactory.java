@@ -168,6 +168,7 @@ public class WifiNetworkFactory extends NetworkFactory {
     @Nullable private NetworkRequest mConnectedSpecificNetworkRequest;
     @Nullable private WifiNetworkSpecifier mConnectedSpecificNetworkRequestSpecifier;
     @Nullable private WifiConfiguration mUserSelectedNetwork;
+    private boolean mShouldHaveInternetCapabilities = false;
     private Set<Integer> mConnectedUids = new ArraySet<>();
     private int mUserSelectedNetworkConnectRetryCount;
     // Map of bssid to latest scan results for all scan results matching a request. Will be
@@ -379,6 +380,10 @@ public class WifiNetworkFactory extends NetworkFactory {
                             + " requests");
                     mActiveModeWarden.removeClientModeManager(modeManager);
                     return;
+                }
+                if (modeManager != mClientModeManager) {
+                    // If clientModeManager changes, teardown the current connection
+                    removeClientModeManagerIfNecessary();
                 }
                 mClientModeManager = modeManager;
                 mClientModeManagerRole = modeManager.getRole();
@@ -714,7 +719,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.e(TAG, "Requesting specific frequency bands is not yet supported. Rejecting");
             return false;
         }
-        if (!WifiConfigurationUtil.validateNetworkSpecifier(wns)) {
+        if (!WifiConfigurationUtil.validateNetworkSpecifier(wns, mContext.getResources()
+                .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels))) {
             Log.e(TAG, "Invalid wifi network specifier: " + wns + ". Rejecting ");
             return false;
         }
@@ -852,7 +858,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             WifiNetworkSpecifier wns = (WifiNetworkSpecifier) ns;
             mActiveSpecificNetworkRequestSpecifier = new WifiNetworkSpecifier(
                     wns.ssidPatternMatcher, wns.bssidPatternMatcher, wns.getBand(),
-                    wns.wifiConfiguration, wns.getPreferredChannelFrequencyInMhz());
+                    wns.wifiConfiguration, wns.getPreferredChannelFrequenciesMhz());
             mSkipUserDialogue = false;
             mWifiMetrics.incrementNetworkRequestApiNumRequest();
 
@@ -1003,6 +1009,14 @@ public class WifiNetworkFactory extends NetworkFactory {
         return Collections.emptySet();
     }
 
+    /**
+     * Return whether if current network request should have the internet capabilities due to a
+     * same saved/suggestion network is present.
+     */
+    public boolean shouldHaveInternetCapabilities() {
+        return mShouldHaveInternetCapabilities;
+    }
+
     // Helper method to add the provided network configuration to WifiConfigManager, if it does not
     // already exist & return the allocated network ID. This ID will be used in the CONNECT_NETWORK
     // request to ClientModeImpl.
@@ -1123,10 +1137,28 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.v(TAG,
                     "Requesting new ClientModeManager instance - didUserSeeUi = " + didUserSeeUi);
         }
+        mShouldHaveInternetCapabilities = false;
+        ClientModeManagerRequestListener listener = new ClientModeManagerRequestListener();
+        if (mWifiPermissionsUtil.checkEnterCarModePrioritized(mActiveSpecificNetworkRequest
+                .getRequestorUid())) {
+            mShouldHaveInternetCapabilities = hasNetworkForInternet(mUserSelectedNetwork);
+            if (mShouldHaveInternetCapabilities) {
+                listener.onAnswer(mActiveModeWarden.getPrimaryClientModeManager());
+                return;
+            }
+        }
         WorkSource ws = new WorkSource(mActiveSpecificNetworkRequest.getRequestorUid(),
                 mActiveSpecificNetworkRequest.getRequestorPackageName());
         mActiveModeWarden.requestLocalOnlyClientModeManager(new ClientModeManagerRequestListener(),
                 ws, networkToConnect.SSID, networkToConnect.BSSID, didUserSeeUi);
+    }
+
+    private boolean hasNetworkForInternet(WifiConfiguration network) {
+        List<WifiConfiguration> networks = mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        return networks.stream().anyMatch(a -> Objects.equals(a.SSID, network.SSID)
+                && !WifiConfigurationUtil.hasCredentialChanged(a, network)
+                && !a.fromWifiNetworkSpecifier
+                && !a.noInternetAccessExpected);
     }
 
     private void handleConnectToNetworkUserSelection(WifiConfiguration network,
@@ -1287,7 +1319,6 @@ public class WifiNetworkFactory extends NetworkFactory {
         mActiveSpecificNetworkRequest = null;
         mActiveSpecificNetworkRequestSpecifier = null;
         mSkipUserDialogue = false;
-        mUserSelectedNetwork = null;
         mUserSelectedNetworkConnectRetryCount = 0;
         mIsPeriodicScanEnabled = false;
         mIsPeriodicScanPaused = false;
@@ -1502,7 +1533,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             mScanSettings.hiddenNetworks.add(new WifiScanner.ScanSettings.HiddenNetwork(
                     addEnclosingQuotes(wns.ssidPatternMatcher.getPath())));
         }
-        int[] channelFreqs = wns.getPreferredChannelFrequencyInMhz();
+        int[] channelFreqs = wns.getPreferredChannelFrequenciesMhz();
         if (channelFreqs.length > 0) {
             int index = 0;
             mScanSettings.channels = new WifiScanner.ChannelSpec[channelFreqs.length];

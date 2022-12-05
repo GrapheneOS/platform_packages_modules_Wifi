@@ -450,6 +450,29 @@ public class WifiHalHidlImpl implements IWifiHal {
         }
     }
 
+    /**
+     * Indicates whether the HIDL service is declared. Uses the IServiceManager to check
+     * if the device is running a version >= V1_0 of the HAL from the VINTF for the device.
+     */
+    protected static boolean serviceDeclared() {
+        try {
+            IServiceManager serviceManager = getServiceManagerMockable();
+            if (serviceManager == null) {
+                Log.e(TAG, "Unable to get service manager to check for service.");
+                return false;
+            }
+            String interfaceName = android.hardware.wifi.V1_0.IWifi.kInterfaceName;
+            if (serviceManager.getTransport(interfaceName, "default")
+                    != IServiceManager.Transport.EMPTY) {
+                return true;
+            }
+            return false;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Unable to check for existence of HIDL service.");
+            return false;
+        }
+    }
+
     private String getVersion() {
         if (checkHalVersionByInterfaceName(
                 android.hardware.wifi.V1_6.IWifi.kInterfaceName)) {
@@ -529,7 +552,7 @@ public class WifiHalHidlImpl implements IWifiHal {
         return android.hardware.wifi.V1_5.IWifi.castFrom(mWifi);
     }
 
-    protected IServiceManager getServiceManagerMockable() {
+    protected static IServiceManager getServiceManagerMockable() {
         try {
             return IServiceManager.getService();
         } catch (RemoteException e) {
