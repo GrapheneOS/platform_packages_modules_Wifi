@@ -2999,6 +2999,69 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         updateCurrentConnectionInfo();
     }
 
+    /**
+     * Update mapping of affiliated BSSID in blocklist. Called when there is a change in MLO links.
+     */
+    private void updateBlockListAffiliatedBssids() {
+        /**
+         * getAffiliatedMloLinks() returns a list of MloLink objects for all the links
+         * advertised by AP-MLD including the associated link. Update mWifiBlocklistMonitor
+         * with all affiliated AP link MAC addresses, excluding the associated link, indexed
+         * with associated AP link MAC address (BSSID).
+         * For e.g.
+         *  link1_bssid -> affiliated {link2_bssid, link3_bssid}
+         * Above mapping is used to block list all affiliated links when associated link is
+         * block listed.
+         */
+        List<String> affiliatedBssids = new ArrayList<>();
+        for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+            if (!Objects.equals(mWifiInfo.getBSSID(), link.getApMacAddress().toString())) {
+                affiliatedBssids.add(link.getApMacAddress().toString());
+            }
+        }
+        mWifiBlocklistMonitor.setAffiliatedBssids(mWifiInfo.getBSSID(), affiliatedBssids);
+    }
+
+    /**
+     * Clear MLO link states to UNASSOCIATED.
+     */
+    private void clearMloLinkStates() {
+        for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+            link.setState(MloLink.MLO_LINK_STATE_UNASSOCIATED);
+        }
+    }
+
+    /**
+     * Update the MLO link states to ACTIVE or IDLE depending on any traffic stream is mapped to the
+     * link.
+     *
+     * @param info MLO link object from HAL.
+     */
+    private void updateMloLinkStates(@Nullable WifiNative.ConnectionMloLinksInfo info) {
+        if (info == null) return;
+        for (int i = 0; i < info.links.length; i++) {
+            mWifiInfo.updateMloLinkState(info.links[i].getLinkId(),
+                    info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
+                            : MloLink.MLO_LINK_STATE_IDLE);
+        }
+    }
+    /**
+     * Update the MLO link states to ACTIVE or IDLE depending on any traffic stream is mapped to the
+     * link. Also, update the link MAC address.
+     *
+     * @param info MLO link object from HAL.
+     */
+    private void updateMloLinkAddrAndStates(@Nullable WifiNative.ConnectionMloLinksInfo info) {
+        if (info == null) return;
+        for (int i = 0; i < info.links.length; i++) {
+            mWifiInfo.updateMloLinkStaAddress(info.links[i].getLinkId(),
+                    info.links[i].getMacAddress());
+            mWifiInfo.updateMloLinkState(info.links[i].getLinkId(),
+                    info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
+                            : MloLink.MLO_LINK_STATE_IDLE);
+        }
+    }
+
     private void updateWifiInfoLinkParamsAfterAssociation() {
         mLastConnectionCapabilities = mWifiNative.getConnectionCapabilities(mInterfaceName);
         int maxTxLinkSpeedMbps = mThroughputPredictor.predictMaxTxThroughput(
@@ -3011,34 +3074,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiMetrics.setConnectionMaxSupportedLinkSpeedMbps(mInterfaceName,
                 maxTxLinkSpeedMbps, maxRxLinkSpeedMbps);
         if (mLastConnectionCapabilities.wifiStandard == ScanResult.WIFI_STANDARD_11BE) {
-            WifiNative.ConnectionMloLinksInfo info =
-                    mWifiNative.getConnectionMloLinksInfo(mInterfaceName);
-            if (info != null) {
-                for (int i = 0; i < info.links.length; i++) {
-                    mWifiInfo.updateMloLinkStaAddress(info.links[i].linkId,
-                            info.links[i].staMacAddress);
-                    mWifiInfo.updateMloLinkState(
-                            info.links[i].linkId, MloLink.MLO_LINK_STATE_ACTIVE);
-                }
-                /**
-                 * getAffiliatedMloLinks() returns a list of MloLink objects for all the links
-                 * advertised by AP-MLD including the associated link. Update mWifiBlocklistMonitor
-                 * with all affiliated AP link MAC addresses, excluding the associated link, indexed
-                 * with associated AP link MAC address (BSSID).
-                 * For e.g.
-                 *  link1_bssid -> affiliated {link2_bssid, link3_bssid}
-                 * Above mapping is used to block list all affiliated links when associated link is
-                 * block listed.
-                 */
-                List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
-                List<String> affiliatedBssids = new ArrayList<>();
-                for (MloLink link: links) {
-                    if (!Objects.equals(mWifiInfo.getBSSID(), link.getApMacAddress().toString())) {
-                        affiliatedBssids.add(link.getApMacAddress().toString());
-                    }
-                }
-                mWifiBlocklistMonitor.setAffiliatedBssids(mWifiInfo.getBSSID(), affiliatedBssids);
-            }
+            updateMloLinkAddrAndStates(mWifiNative.getConnectionMloLinksInfo(mInterfaceName));
+            updateBlockListAffiliatedBssids();
         }
         if (mVerboseLoggingEnabled) {
             StringBuilder sb = new StringBuilder();
@@ -6128,6 +6165,32 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
+                case WifiMonitor.MLO_LINKS_INFO_CHANGED:
+                    WifiMonitor.MloLinkInfoChangeReason reason =
+                            (WifiMonitor.MloLinkInfoChangeReason) message.obj;
+                    WifiNative.ConnectionMloLinksInfo newInfo =
+                            mWifiNative.getConnectionMloLinksInfo(mInterfaceName);
+                    if (reason == WifiMonitor.MloLinkInfoChangeReason.TID_TO_LINK_MAP) {
+                        // Traffic stream mapping changed. Update link states.
+                        updateMloLinkStates(newInfo);
+                        // There is a change in link capabilities. Will trigger android.net
+                        // .ConnectivityManager.NetworkCallback.onCapabilitiesChanged().
+                        updateCapabilities();
+                    } else if (reason
+                            == WifiMonitor.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL) {
+                        // Link is removed. Set removed link state to MLO_LINK_STATE_UNASSOCIATED.
+                        // Also update block list mapping, as there is a change in affiliated
+                        // BSSIDs.
+                        clearMloLinkStates();
+                        updateMloLinkStates(newInfo);
+                        updateBlockListAffiliatedBssids();
+                        // There is a change in link capabilities. Will trigger android.net
+                        // .ConnectivityManager.NetworkCallback.onCapabilitiesChanged().
+                        updateCapabilities();
+                    } else {
+                        logw("MLO_LINKS_INFO_CHANGED with UNKNOWN reason");
+                    }
+                    break;
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;

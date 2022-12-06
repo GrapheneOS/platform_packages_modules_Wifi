@@ -120,6 +120,9 @@ public class WifiMonitor {
     public static final int QOS_POLICY_RESET_EVENT               = BASE + 75;
     public static final int QOS_POLICY_REQUEST_EVENT             = BASE + 76;
 
+    /* MLO links change event */
+    public static final int MLO_LINKS_INFO_CHANGED              = BASE + 77;
+
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
     private static final int CONFIG_AUTH_FAILURE = 18;
@@ -142,6 +145,13 @@ public class WifiMonitor {
     })
     @Retention(RetentionPolicy.SOURCE)
     @interface TransitionDisableIndication{}
+
+    /* MLO links change event reason codes */
+    public enum MloLinkInfoChangeReason {
+        UNKNOWN,
+        TID_TO_LINK_MAP,
+        MULTI_LINK_RECONFIG_AP_REMOVAL,
+    }
 
     /**
      * Use this key to get the interface name of the message sent by WifiMonitor,
@@ -677,5 +687,16 @@ public class WifiMonitor {
     public void broadcastQosPolicyRequestEvent(String iface, int qosPolicyRequestId,
             List<QosPolicyRequest> qosPolicyData) {
         sendMessage(iface, QOS_POLICY_REQUEST_EVENT, qosPolicyRequestId, 0, qosPolicyData);
+    }
+
+    /**
+     * Broadcast the MLO link changes with reason code to all handlers registered for this event.
+     *
+     * @param iface Name of the iface on which this occurred.
+     * @param reason Reason code for the MLO link info change.
+     */
+    public void broadcastMloLinksInfoChanged(String iface,
+            WifiMonitor.MloLinkInfoChangeReason reason) {
+        sendMessage(iface, MLO_LINKS_INFO_CHANGED, reason);
     }
 }

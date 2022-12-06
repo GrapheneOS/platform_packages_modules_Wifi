@@ -8774,15 +8774,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
-
-        info.links[0] = new WifiNative.ConnectionMloLink();
-        info.links[0].linkId = TEST_MLO_LINK_ID;
-        info.links[0].staMacAddress = TEST_MLO_LINK_ADDR;
-
-        info.links[1] = new WifiNative.ConnectionMloLink();
-        info.links[1].linkId = TEST_MLO_LINK_ID_1;
-        info.links[1].staMacAddress = TEST_MLO_LINK_ADDR_1;
-
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
+                TEST_MLO_LINK_ADDR, Byte.MIN_VALUE, Byte.MAX_VALUE);
+        info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
+                Byte.MAX_VALUE, Byte.MIN_VALUE);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -8882,6 +8877,63 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
         verify(mWifiBlocklistMonitor).removeAffiliatedBssids(eq(TEST_BSSID_STR));
+    }
+
+    private void configureMloLinksInfoWithIdleLinks() {
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
+        info.links = new WifiNative.ConnectionMloLink[2];
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
+                TEST_MLO_LINK_ADDR, (byte) 0xFF, (byte) 0xFF);
+        info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
+                (byte) 0, (byte) 0);
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+    }
+
+    private void reconfigureMloLinksInfoWithOneLink() {
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
+        info.links = new WifiNative.ConnectionMloLink[1];
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
+                TEST_MLO_LINK_ADDR, (byte) 0xFF, (byte) 0xFF);
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+    }
+
+    @Test
+    public void verifyMloLinkChangeTidToLinkMapping() throws Exception {
+        // Initialize
+        connect();
+        setScanResultWithMloInfo();
+        setConnectionMloLinksInfo();
+        mLooper.dispatchAll();
+
+        // Association
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        // Make sure all links are active
+        for (MloLink link: mWifiInfo.getAffiliatedMloLinks()) {
+            assertEquals(link.getState(), MloLink.MLO_LINK_STATE_ACTIVE);
+        }
+
+        // TID to link mapping. Make sure one link is IDLE.
+        configureMloLinksInfoWithIdleLinks();
+        mCmi.sendMessage(WifiMonitor.MLO_LINKS_INFO_CHANGED,
+                WifiMonitor.MloLinkInfoChangeReason.TID_TO_LINK_MAP);
+        mLooper.dispatchAll();
+        List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
+        assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_IDLE);
+
+        // LInk Removal. Make sure removed link is UNASSOCIATED.
+        reconfigureMloLinksInfoWithOneLink();
+        mCmi.sendMessage(WifiMonitor.MLO_LINKS_INFO_CHANGED,
+                WifiMonitor.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL);
+        mLooper.dispatchAll();
+        links = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
+        assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_UNASSOCIATED);
     }
 
     /**
