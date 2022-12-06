@@ -42,6 +42,7 @@
                   android:configChanges="keyboardHidden|screenSize"
                   android:hardwareAccelerated="true"
                   android:launchMode="singleInstance"
+                  android:excludeFromRecents="true"
                   android:theme="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight" />
     </application>
 </manifest>
