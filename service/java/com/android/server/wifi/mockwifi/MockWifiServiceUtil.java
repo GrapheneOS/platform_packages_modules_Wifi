@@ -26,15 +26,20 @@ import android.util.Log;
 /** This class provides wrapper APIs for binding interfaces to mock service. */
 public class MockWifiServiceUtil {
     private static final String TAG = "MockWifiModemUtil";
+    private static final String BIND_NL80211 = "android.wifi.mockwifimodem.nl80211";
+    private static final int MOCK_NL80211_SERVICE = 0;
 
-    public static final int MIN_SERVICE_IDX = 0; // no mocked HAL service now
-    public static final int NUM_SERVICES = 0;
+    public static final int MIN_SERVICE_IDX = MOCK_NL80211_SERVICE;
+    public static final int NUM_SERVICES = 1;
     public static final int BINDER_RETRY_MILLIS = 3 * 100;
     public static final int BINDER_MAX_RETRY = 3;
 
     private Context mContext;
     private String mServiceName;
     private String mPackageName;
+    private MockWifiNl80211Manager mMockWifiNl80211Manager;
+    private IBinder mMockNl80211Binder;
+    private ServiceConnection mMockNl80211ServiceConnection;
 
     public MockWifiServiceUtil(Context context, String serviceName) {
         mContext = context;
@@ -53,12 +58,21 @@ public class MockWifiServiceUtil {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
             Log.d(TAG, "Wifi mock Service " + getModuleName(mService) + "  - onServiceConnected");
+            if (mService == MOCK_NL80211_SERVICE) {
+                mMockNl80211Binder = binder;
+                mMockWifiNl80211Manager = new MockWifiNl80211Manager(mMockNl80211Binder, mContext);
+            }
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             Log.d(TAG, "Wifi mock Service " + getModuleName(mService)
                     + "  - onServiceDisconnected");
+            if (mService == MOCK_NL80211_SERVICE) {
+                mMockNl80211Binder = null;
+                mMockWifiNl80211Manager = null;
+            }
         }
     }
 
@@ -77,6 +91,8 @@ public class MockWifiServiceUtil {
     /** waitForBinder */
     public IBinder getServiceBinder(int service) {
         switch (service) {
+            case MOCK_NL80211_SERVICE:
+                return mMockNl80211Binder;
             default:
                 return null;
         }
@@ -92,6 +108,16 @@ public class MockWifiServiceUtil {
     /** bindToMockModemService */
     public void bindToMockModemService(int service) {
         // Based on {@code service} to get each mocked HAL binder
+        if (service == MOCK_NL80211_SERVICE) {
+            mMockNl80211ServiceConnection = new MockModemConnection(MOCK_NL80211_SERVICE);
+
+            boolean status =
+                    bindModuleToMockModemService(BIND_NL80211, mMockNl80211ServiceConnection);
+            if (!status) {
+                Log.d(TAG, getModuleName(service) + " bind fail");
+                mMockNl80211ServiceConnection = null;
+            }
+        }
     }
 
     public String getServiceName() {
@@ -100,6 +126,8 @@ public class MockWifiServiceUtil {
 
     private ServiceConnection getServiceConnection(int service) {
         switch (service) {
+            case MOCK_NL80211_SERVICE:
+                return mMockNl80211ServiceConnection;
             default:
                 return null;
         }
@@ -110,6 +138,8 @@ public class MockWifiServiceUtil {
      */
     public String getModuleName(int service) {
         switch (service) {
+            case MOCK_NL80211_SERVICE:
+                return "nl80211";
             default:
                 return "none";
         }
