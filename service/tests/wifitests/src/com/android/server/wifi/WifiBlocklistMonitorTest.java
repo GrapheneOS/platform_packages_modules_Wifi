@@ -138,6 +138,7 @@ public class WifiBlocklistMonitorTest {
     @Mock private ScoringParams mScoringParams;
     @Mock private WifiMetrics mWifiMetrics;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock private ScanRequestProxy mScanRequestProxy;
     @Mock private WifiScoreCard.PerNetwork mPerNetwork;
     @Mock private WifiScoreCard.NetworkConnectionStats mRecentStats;
 
@@ -248,6 +249,7 @@ public class WifiBlocklistMonitorTest {
         mWifiBlocklistMonitor = new WifiBlocklistMonitor(mContext, mWifiConnectivityHelper,
                 mWifiLastResortWatchdog, mClock, mLocalLog, mWifiScoreCard, mScoringParams,
                 mWifiMetrics, mWifiPermissionsUtil);
+        mWifiBlocklistMonitor.setScanRequestProxy(mScanRequestProxy);
     }
 
     private void verifyAddTestBssidToBlocklist() {
@@ -1135,6 +1137,42 @@ public class WifiBlocklistMonitorTest {
                 WifiBlocklistMonitor.REASON_DHCP_FAILURE);
     }
 
+    @Test
+    public void testReadRssiFromLatestScanResultsWhenInvalid() {
+        // mock latest scan results with GOOD RSSI for TEST_BSSID_1
+        ScanResult fakeScanResult = mock(ScanResult.class);
+        fakeScanResult.level = TEST_GOOD_RSSI;
+        when(mScanRequestProxy.getScanResult(TEST_BSSID_1)).thenReturn(fakeScanResult);
+
+        // verify TEST_BSSID_1, 2 and 3 are block listed after connection failure using
+        // INVALID RSSI.
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
+        when(mClock.getWallClockMillis()).thenReturn(0L);
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(
+                TEST_BSSID_1, config, WifiBlocklistMonitor.REASON_EAP_FAILURE,
+                WifiConfiguration.INVALID_RSSI);
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(
+                TEST_BSSID_2, config, WifiBlocklistMonitor.REASON_EAP_FAILURE,
+                WifiConfiguration.INVALID_RSSI);
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(
+                TEST_BSSID_3, config, WifiBlocklistMonitor.REASON_EAP_FAILURE,
+                WifiConfiguration.INVALID_RSSI);
+        assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
+        assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_2));
+        assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_3));
+        assertEquals(3, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+
+        // Simulate both TEST_BSSID_1 and TEST_BSSID_2 improving RSSI, but only TEST_BSSID_2 should
+        // be removed from blocklist.
+        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
+        assertEquals(0, enabledDetails.size());
+        assertEquals(3, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+
+        enabledDetails = simulateRssiUpdate(TEST_BSSID_2, TEST_GOOD_RSSI);
+        assertEquals(1, enabledDetails.size());
+        assertEquals(2, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+    }
+
     /**
      * Verify that if the RSSI is low when the BSSID is blocked, a RSSI improvement to sufficient
      * RSSI will remove the BSSID from blocklist along with affiliated BSSIDs.
@@ -1640,6 +1678,7 @@ public class WifiBlocklistMonitorTest {
             mWifiBlocklistMonitor = new WifiBlocklistMonitor(mContext, mWifiConnectivityHelper,
                     mWifiLastResortWatchdog, mClock, mLocalLog, mWifiScoreCard, mScoringParams,
                     mWifiMetrics, mWifiPermissionsUtil);
+            mWifiBlocklistMonitor.setScanRequestProxy(mScanRequestProxy);
 
             // Verify that the threshold is updated in the copied version
             assertEquals(newThreshold, mWifiBlocklistMonitor.getNetworkSelectionDisableThreshold(
