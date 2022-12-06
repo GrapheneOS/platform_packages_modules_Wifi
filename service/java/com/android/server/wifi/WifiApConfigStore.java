@@ -75,6 +75,7 @@ public class WifiApConfigStore {
     static final int PSK_SAE_ASCII_MAX_LEN = 63;
 
     private SoftApConfiguration mPersistentWifiApConfig = null;
+    private String mLastConfiguredPassphrase = null;
 
     private final Context mContext;
     private final Handler mHandler;
@@ -104,6 +105,9 @@ public class WifiApConfigStore {
                 config = updatePersistentRandomizedMacAddress(config);
             }
             mPersistentWifiApConfig = new SoftApConfiguration.Builder(config).build();
+            if (!TextUtils.isEmpty(mPersistentWifiApConfig.getPassphrase())) {
+                mLastConfiguredPassphrase = mPersistentWifiApConfig.getPassphrase();
+            }
         }
 
         public void reset() {
@@ -355,6 +359,9 @@ public class WifiApConfigStore {
 
     private void persistConfigAndTriggerBackupManagerProxy(SoftApConfiguration config) {
         mPersistentWifiApConfig = config;
+        if (!TextUtils.isEmpty(config.getPassphrase())) {
+            mLastConfiguredPassphrase = config.getPassphrase();
+        }
         mHasNewDataToSerialize = true;
         mWifiConfigManager.saveToStore(true);
         mBackupManagerProxy.notifyDataChanged();
@@ -715,5 +722,12 @@ public class WifiApConfigStore {
         randomizedMacAddress = MacAddressUtils.createRandomUnicastAddress();
         return new SoftApConfiguration.Builder(config)
                 .setRandomizedMacAddress(randomizedMacAddress).build();
+    }
+
+    /**
+     * Returns the last configured Wi-Fi tethered AP passphrase.
+     */
+    public synchronized String getLastConfiguredTetheredApPassphraseSinceBoot() {
+        return mLastConfiguredPassphrase;
     }
 }
