@@ -188,7 +188,8 @@ public class WifiApConfigStore {
      * Returns SoftApConfiguration in which some parameters might be upgrade to supported default
      * configuration.
      */
-    public SoftApConfiguration upgradeSoftApConfiguration(@NonNull SoftApConfiguration config) {
+    public synchronized SoftApConfiguration upgradeSoftApConfiguration(
+            @NonNull SoftApConfiguration config) {
         SoftApConfiguration.Builder configBuilder = new SoftApConfiguration.Builder(config);
         if (SdkLevel.isAtLeastS() && ApConfigUtil.isBridgedModeSupported(mContext)
                 && config.getBands().length == 1 && mContext.getResources().getBoolean(
@@ -221,7 +222,7 @@ public class WifiApConfigStore {
      * - If previous bands configuration is bridged mode. Reset to 2.4G when device doesn't support
      *   it.
      */
-    public SoftApConfiguration resetToDefaultForUnsupportedConfig(
+    public synchronized SoftApConfiguration resetToDefaultForUnsupportedConfig(
             @NonNull SoftApConfiguration config) {
         SoftApConfiguration.Builder configBuilder = new SoftApConfiguration.Builder(config);
         if ((!ApConfigUtil.isClientForceDisconnectSupported(mContext)
@@ -443,15 +444,17 @@ public class WifiApConfigStore {
                 configBuilder.setPassphrase(generatePassword(),
                         SECURITY_TYPE_WPA2_PSK);
             }
-            // Update default MAC randomization setting to NONE when feature doesn't support it or
-            // It was disabled in tethered mode.
-            if (!ApConfigUtil.isApMacRandomizationSupported(context)
-                    || (mPersistentWifiApConfig != null
-                    && mPersistentWifiApConfig.getMacRandomizationSettingInternal()
-                           == SoftApConfiguration.RANDOMIZATION_NONE)) {
-                if (SdkLevel.isAtLeastS()) {
-                    configBuilder.setMacRandomizationSetting(
-                            SoftApConfiguration.RANDOMIZATION_NONE);
+            synchronized (this) {
+                // Update default MAC randomization setting to NONE when feature doesn't support
+                // it, or it was disabled in tethered mode.
+                if (!ApConfigUtil.isApMacRandomizationSupported(context)
+                        || (mPersistentWifiApConfig != null
+                        && mPersistentWifiApConfig.getMacRandomizationSettingInternal()
+                        == SoftApConfiguration.RANDOMIZATION_NONE)) {
+                    if (SdkLevel.isAtLeastS()) {
+                        configBuilder.setMacRandomizationSetting(
+                                SoftApConfiguration.RANDOMIZATION_NONE);
+                    }
                 }
             }
         }
@@ -681,7 +684,8 @@ public class WifiApConfigStore {
      * @param forcedApBand The forced band.
      * @param forcedApChannel The forced IEEE channel number or 0 when forced AP band only.
      */
-    public void enableForceSoftApBandOrChannel(@BandType int forcedApBand, int forcedApChannel) {
+    public synchronized void enableForceSoftApBandOrChannel(@BandType int forcedApBand,
+            int forcedApChannel) {
         mForceApChannel = true;
         mForcedApChannel = forcedApChannel;
         mForcedApBand = forcedApBand;
@@ -690,7 +694,7 @@ public class WifiApConfigStore {
     /**
      * Disable force-soft-AP-channel mode which take effect when soft AP starts next time
      */
-    public void disableForceSoftApBandOrChannel() {
+    public synchronized void disableForceSoftApBandOrChannel() {
         mForceApChannel = false;
     }
 
