@@ -3578,7 +3578,7 @@ public class WifiConfigManager {
      * @param forceWrite Whether the write needs to be forced or not.
      * @return Whether the write was successful or not, this is applicable only for force writes.
      */
-    public boolean saveToStore(boolean forceWrite) {
+    public synchronized boolean saveToStore(boolean forceWrite) {
         if (mPendingStoreRead) {
             Log.e(TAG, "Cannot save to store before store is read!");
             return false;

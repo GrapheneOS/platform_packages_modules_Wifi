@@ -250,6 +250,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         when(mResources.getBoolean(
                 eq(R.bool.config_wifiMultiStaLocalOnlyConcurrencyEnabled)))
                 .thenReturn(false);
+        when(mResources.getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels))
+                .thenReturn(5);
         when(mPackageManager.getNameForUid(TEST_UID_1)).thenReturn(TEST_PACKAGE_NAME_1);
         when(mPackageManager.getNameForUid(TEST_UID_2)).thenReturn(TEST_PACKAGE_NAME_2);
         when(mPackageManager.getApplicationInfoAsUser(any(), anyInt(), any()))
@@ -269,6 +271,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         when(mActiveModeWarden.hasPrimaryClientModeManager()).thenReturn(true);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mPrimaryClientModeManager);
+        when(mPrimaryClientModeManager.getRole()).thenReturn(ActiveModeManager.ROLE_CLIENT_PRIMARY);
         doAnswer(invocation -> {
             Object[] args = invocation.getArguments();
             ActiveModeWarden.ExternalClientModeManagerRequestListener requestListener =
@@ -3556,6 +3559,67 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify the network will be only available to car mode app.
         assertEquals(1, mWifiNetworkFactory
                 .getSpecificNetworkRequestUids(mSelectedNetwork, TEST_BSSID_1).size());
+    }
+
+    /**
+     * Validates a new network request with Car Mode Priority for same network which is already
+     * a saved network, the connection will be on primary STA and the should have the internet
+     * capabilities
+     */
+    @Test
+    public void testShareConnectedNetworkWithCarModePriorityAndSavedNetwork() throws Exception {
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(TEST_UID_1)).thenReturn(true);
+
+        // Connect to request 1
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
+
+        sendNetworkRequestAndSetupForUserSelection(TEST_SSID_1, false);
+
+        INetworkRequestUserSelectionCallback networkRequestUserSelectionCallback =
+                mNetworkRequestUserSelectionCallback.getValue();
+        assertNotNull(networkRequestUserSelectionCallback);
+
+        // Now trigger user selection to one of the network.
+        mSelectedNetwork = WifiConfigurationTestUtil.createPskNetwork();
+        mSelectedNetwork.SSID = "\"" + TEST_SSID_1 + "\"";
+        mSelectedNetwork.preSharedKey = TEST_WPA_PRESHARED_KEY;
+        when(mWifiConfigManager.getConfiguredNetworksWithPasswords())
+                .thenReturn(List.of(mSelectedNetwork));
+        sendUserSelectionSelect(networkRequestUserSelectionCallback, mSelectedNetwork);
+        mLooper.dispatchAll();
+
+        verify(mActiveModeWarden, never()).requestLocalOnlyClientModeManager(
+                any(), any(), any(), any(), anyBoolean());
+        verify(mActiveModeWarden, atLeastOnce()).getPrimaryClientModeManager();
+        if (SdkLevel.isAtLeastS()) {
+            verify(mPrimaryClientModeManager, atLeastOnce()).getConnectedWifiConfiguration();
+            verify(mPrimaryClientModeManager, atLeastOnce()).getConnectingWifiConfiguration();
+            verify(mPrimaryClientModeManager, atLeastOnce()).getConnectingBssid();
+            verify(mPrimaryClientModeManager, atLeastOnce()).getConnectedBssid();
+        }
+
+        // Cancel the periodic scan timer.
+        mInOrder.verify(mAlarmManager).cancel(mPeriodicScanListenerArgumentCaptor.getValue());
+        // Disable connectivity manager
+        verify(mWifiConnectivityManager, atLeastOnce()).setSpecificNetworkRequestInProgress(true);
+
+        // Increment the number of unique apps.
+        verify(mWifiMetrics).incrementNetworkRequestApiNumApps();
+
+        verify(mPrimaryClientModeManager, atLeastOnce()).disconnect();
+        verify(mConnectHelper, atLeastOnce()).connectToNetwork(
+                eq(mPrimaryClientModeManager),
+                eq(new NetworkUpdateResult(TEST_NETWORK_ID_1)),
+                mConnectListenerArgumentCaptor.capture(), anyInt(), any());
+        verify(mWifiMetrics, atLeastOnce()).incrementNetworkRequestApiNumConnectOnPrimaryIface();
+
+        // Start the connection timeout alarm.
+        mInOrder.verify(mAlarmManager).set(eq(AlarmManager.ELAPSED_REALTIME_WAKEUP),
+                eq((long) WifiNetworkFactory.NETWORK_CONNECTION_TIMEOUT_MS), any(),
+                mConnectionTimeoutAlarmListenerArgumentCaptor.capture(), any());
+        assertNotNull(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
+        assertTrue(mWifiNetworkFactory.shouldHaveInternetCapabilities());
     }
 
     private void sendNetworkRequestAndSetupForConnectionStatus() throws RemoteException {

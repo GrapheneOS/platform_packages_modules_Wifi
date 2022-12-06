@@ -109,6 +109,13 @@ public class WifiSettingsConfigStore {
             new Key<>("wifi_sta_factory_mac_address", null);
 
     /**
+     * Store the Secondary STA factory MAC address retrieved from the driver on the first bootup.
+     */
+    public static final Key<String> SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS =
+            new Key<>("secondary_wifi_sta_factory_mac_address", null);
+
+
+    /**
      * Store the default country code updated via {@link WifiManager#setDefaultCountryCode(String)}
      */
     public static final Key<String> WIFI_DEFAULT_COUNTRY_CODE =
@@ -119,6 +126,12 @@ public class WifiSettingsConfigStore {
      */
     public static final Key<Long> WIFI_NATIVE_SUPPORTED_FEATURES =
             new Key<>("wifi_native_supported_features", 0L);
+
+    /**
+     * Store the supported features retrieved from WiFi HAL and Supplicant HAL
+     */
+    public static final Key<Integer> WIFI_NATIVE_SUPPORTED_STA_BANDS =
+            new Key<>("wifi_native_supported_sta_bands", 0);
 
     /**
      * Store the static chip info retrieved from WiFi HAL

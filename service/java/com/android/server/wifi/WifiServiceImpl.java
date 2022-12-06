@@ -2690,10 +2690,9 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getWifiApConfiguration uid=%").c(uid).flush();
         }
 
-        // hand off work to the ClientModeImpl handler thread to sync work between calls
-        // and SoftApManager starting up softap
-        return (mWifiThreadRunner.call(mWifiApConfigStore::getApConfiguration,
-                new SoftApConfiguration.Builder().build())).toWifiConfiguration();
+        final SoftApConfiguration config = mWifiApConfigStore.getApConfiguration();
+        return config == null ? new SoftApConfiguration.Builder().build().toWifiConfiguration()
+                : config.toWifiConfiguration();
     }
 
     /**
@@ -2716,10 +2715,8 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getSoftApConfiguration uid=%").c(uid).flush();
         }
 
-        // hand off work to the ClientModeImpl handler thread to sync work between calls
-        // and SoftApManager starting up softap
-        return mWifiThreadRunner.call(mWifiApConfigStore::getApConfiguration,
-                new SoftApConfiguration.Builder().build());
+        final SoftApConfiguration config = mWifiApConfigStore.getApConfiguration();
+        return config == null ? new SoftApConfiguration.Builder().build() : config;
     }
 
     /**
@@ -2746,14 +2743,13 @@ public class WifiServiceImpl extends BaseWifiService {
             return false;
         SoftApConfiguration softApConfig = ApConfigUtil.fromWifiConfiguration(wifiConfig);
         if (softApConfig == null) return false;
-        if (WifiApConfigStore.validateApWifiConfiguration(
+        if (!WifiApConfigStore.validateApWifiConfiguration(
                 softApConfig, false, mContext)) {
-            mWifiThreadRunner.post(() -> mWifiApConfigStore.setApConfiguration(softApConfig));
-            return true;
-        } else {
             Log.e(TAG, "Invalid WifiConfiguration");
             return false;
         }
+        mWifiApConfigStore.setApConfiguration(softApConfig);
+        return true;
     }
 
     /**
@@ -2777,8 +2773,9 @@ public class WifiServiceImpl extends BaseWifiService {
         mLog.info("setSoftApConfiguration uid=%").c(uid).flush();
         if (softApConfig == null) return false;
         if (WifiApConfigStore.validateApWifiConfiguration(softApConfig, privileged, mContext)) {
+            mWifiApConfigStore.setApConfiguration(softApConfig);
+            // Send the message for AP config update after the save is done.
             mActiveModeWarden.updateSoftApConfiguration(softApConfig);
-            mWifiThreadRunner.post(() -> mWifiApConfigStore.setApConfiguration(softApConfig));
             return true;
         } else {
             Log.e(TAG, "Invalid SoftAp Configuration");
@@ -4541,9 +4538,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi24ghzSupport)) {
             return true;
         }
-        return mWifiThreadRunner.call(
-                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ).length > 0,
-                false);
+        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_24_GHZ);
     }
 
 
@@ -4560,9 +4555,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi5ghzSupport)) {
             return true;
         }
-        return mWifiThreadRunner.call(
-                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ).length > 0,
-                false);
+        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_5_GHZ);
     }
 
     @Override
@@ -4578,9 +4571,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi6ghzSupport)) {
             return true;
         }
-        return mWifiThreadRunner.call(
-                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_6_GHZ).length > 0,
-                false);
+        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_6_GHZ);
     }
 
     @Override
@@ -4600,9 +4591,7 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi60ghzSupport)) {
             return true;
         }
-        return mWifiThreadRunner.call(
-                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_60_GHZ).length > 0,
-                false);
+        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_60_GHZ);
     }
 
     @Override
@@ -7010,5 +6999,10 @@ public class WifiServiceImpl extends BaseWifiService {
                         "Failed calling back with results of isItPossibleToCreateInterface - " + e);
             }
         });
+    }
+    @Override
+    public int getMaxNumberOfChannelsPerRequest() {
+        return mContext.getResources()
+                .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
     }
 }
