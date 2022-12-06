@@ -4541,7 +4541,9 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi24ghzSupport)) {
             return true;
         }
-        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_24_GHZ);
+        return mWifiThreadRunner.call(
+                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ).length > 0,
+                false);
     }
 
 
@@ -4558,7 +4560,9 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi5ghzSupport)) {
             return true;
         }
-        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_5_GHZ);
+        return mWifiThreadRunner.call(
+                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ).length > 0,
+                false);
     }
 
     @Override
@@ -4574,7 +4578,9 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi6ghzSupport)) {
             return true;
         }
-        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_6_GHZ);
+        return mWifiThreadRunner.call(
+                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_6_GHZ).length > 0,
+                false);
     }
 
     @Override
@@ -4594,7 +4600,9 @@ public class WifiServiceImpl extends BaseWifiService {
         if (mContext.getResources().getBoolean(R.bool.config_wifi60ghzSupport)) {
             return true;
         }
-        return mActiveModeWarden.isBandSupportedForSta(WifiScanner.WIFI_BAND_60_GHZ);
+        return mWifiThreadRunner.call(
+                () -> mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_60_GHZ).length > 0,
+                false);
     }
 
     @Override
@@ -7002,10 +7010,5 @@ public class WifiServiceImpl extends BaseWifiService {
                         "Failed calling back with results of isItPossibleToCreateInterface - " + e);
             }
         });
-    }
-    @Override
-    public int getMaxNumberOfChannelsPerRequest() {
-        return mContext.getResources()
-                .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
     }
 }

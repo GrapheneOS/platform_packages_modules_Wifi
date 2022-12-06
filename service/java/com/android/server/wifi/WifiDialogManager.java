@@ -354,8 +354,8 @@ public class WifiDialogManager {
     }
 
     private class SimpleDialogHandle extends DialogHandleInternal {
-        @Nullable private final SimpleDialogCallback mCallback;
-        @Nullable private final WifiThreadRunner mCallbackThreadRunner;
+        private @NonNull SimpleDialogCallback mCallback;
+        private @NonNull WifiThreadRunner mCallbackThreadRunner;
 
         SimpleDialogHandle(
                 final String title,
@@ -366,8 +366,8 @@ public class WifiDialogManager {
                 final String positiveButtonText,
                 final String negativeButtonText,
                 final String neutralButtonText,
-                @Nullable final SimpleDialogCallback callback,
-                @Nullable final WifiThreadRunner callbackThreadRunner) {
+                @NonNull SimpleDialogCallback callback,
+                @NonNull WifiThreadRunner callbackThreadRunner) throws IllegalArgumentException {
             Intent intent = getBaseLaunchIntent(WifiManager.DIALOG_TYPE_SIMPLE);
             if (intent != null) {
                 intent.putExtra(WifiManager.EXTRA_DIALOG_TITLE, title)
@@ -381,35 +381,45 @@ public class WifiDialogManager {
                 setIntent(intent);
             }
             setDisplayId(Display.DEFAULT_DISPLAY);
+            if (messageUrl != null) {
+                if (message == null) {
+                    throw new IllegalArgumentException("Cannot set span for null message!");
+                }
+                if (messageUrlStart < 0) {
+                    throw new IllegalArgumentException("Span start cannot be less than 0!");
+                }
+                if (messageUrlEnd > message.length()) {
+                    throw new IllegalArgumentException("Span end index " + messageUrlEnd
+                            + " cannot be greater than message length " + message.length() + "!");
+                }
+            }
+            if (callback == null) {
+                throw new IllegalArgumentException("Callback cannot be null!");
+            }
+            if (callbackThreadRunner == null) {
+                throw new IllegalArgumentException("Callback thread runner cannot be null!");
+            }
             mCallback = callback;
             mCallbackThreadRunner = callbackThreadRunner;
         }
 
         void notifyOnPositiveButtonClicked() {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(mCallback::onPositiveButtonClicked);
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onPositiveButtonClicked());
             unregisterDialog();
         }
 
         void notifyOnNegativeButtonClicked() {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(mCallback::onNegativeButtonClicked);
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onNegativeButtonClicked());
             unregisterDialog();
         }
 
         void notifyOnNeutralButtonClicked() {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(mCallback::onNeutralButtonClicked);
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onNeutralButtonClicked());
             unregisterDialog();
         }
 
         void notifyOnCancelled() {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(mCallback::onCancelled);
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onCancelled());
             unregisterDialog();
         }
     }
@@ -423,8 +433,8 @@ public class WifiDialogManager {
         final String mPositiveButtonText;
         final String mNegativeButtonText;
         final String mNeutralButtonText;
-        @Nullable final SimpleDialogCallback mCallback;
-        @Nullable final WifiThreadRunner mCallbackThreadRunner;
+        @NonNull SimpleDialogCallback mCallback;
+        @NonNull WifiThreadRunner mCallbackThreadRunner;
         private Runnable mTimeoutRunnable;
         private AlertDialog mAlertDialog;
         int mWindowType = WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG;
@@ -439,32 +449,42 @@ public class WifiDialogManager {
                 final String positiveButtonText,
                 final String negativeButtonText,
                 final String neutralButtonText,
-                @Nullable final SimpleDialogCallback callback,
-                @Nullable final WifiThreadRunner callbackThreadRunner) {
+                @NonNull SimpleDialogCallback callback,
+                @NonNull WifiThreadRunner callbackThreadRunner) throws IllegalArgumentException {
+            if (messageUrl != null) {
+                if (message == null) {
+                    throw new IllegalArgumentException("Cannot set span for null message!");
+                }
+                if (messageUrlStart < 0) {
+                    throw new IllegalArgumentException("Span start cannot be less than 0!");
+                }
+                if (messageUrlEnd > message.length()) {
+                    throw new IllegalArgumentException("Span end index " + messageUrlEnd
+                            + " cannot be greater than message length " + message.length() + "!");
+                }
+            }
+            if (callback == null) {
+                throw new IllegalArgumentException("Callback cannot be null!");
+            }
+            if (callbackThreadRunner == null) {
+                throw new IllegalArgumentException("Callback thread runner cannot be null!");
+            }
             mTitle = title;
             if (message != null) {
                 mMessage = new SpannableString(message);
-                if (messageUrl != null) {
-                    if (messageUrlStart < 0) {
-                        Log.w(TAG, "Span start cannot be less than 0!");
-                    } else if (messageUrlEnd > message.length()) {
-                        Log.w(TAG, "Span end index " + messageUrlEnd + " cannot be greater than "
-                                + "message length " + message.length() + "!");
-                    } else if (messageUrlStart > messageUrlEnd) {
-                        Log.w(TAG, "Span start index cannot be greater than end index!");
-                    } else {
-                        mMessage.setSpan(new URLSpan(messageUrl) {
-                            @Override
-                            public void onClick(@NonNull View widget) {
-                                Context c = widget.getContext();
-                                Intent openLinkIntent = new Intent(Intent.ACTION_VIEW)
-                                        .setData(Uri.parse(messageUrl))
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        .putExtra(Browser.EXTRA_APPLICATION_ID, c.getPackageName());
-                                c.startActivity(openLinkIntent);
-                                LegacySimpleDialogHandle.this.dismissDialog();
-                            }}, messageUrlStart, messageUrlEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                if (messageUrlStart >= 0 && messageUrlEnd <= message.length()
+                        && messageUrlStart < messageUrlEnd) {
+                    mMessage.setSpan(new URLSpan(messageUrl) {
+                        @Override
+                        public void onClick(@NonNull View widget) {
+                            Context c = widget.getContext();
+                            Intent openLinkIntent = new Intent(Intent.ACTION_VIEW)
+                                    .setData(Uri.parse(messageUrl))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    .putExtra(Browser.EXTRA_APPLICATION_ID, c.getPackageName());
+                            c.startActivity(openLinkIntent);
+                            LegacySimpleDialogHandle.this.dismissDialog();
+                        }}, messageUrlStart, messageUrlEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
             } else {
                 mMessage = null;
@@ -496,33 +516,25 @@ public class WifiDialogManager {
                         if (mVerboseLoggingEnabled) {
                             Log.v(TAG, "Positive button pressed for legacy simple dialog");
                         }
-                        if (mCallbackThreadRunner != null && mCallback != null) {
-                            mCallbackThreadRunner.post(mCallback::onPositiveButtonClicked);
-                        }
+                        mCallbackThreadRunner.post(mCallback::onPositiveButtonClicked);
                     })
                     .setNegativeButton(mNegativeButtonText, (dialogNegative, which) -> {
                         if (mVerboseLoggingEnabled) {
                             Log.v(TAG, "Negative button pressed for legacy simple dialog");
                         }
-                        if (mCallbackThreadRunner != null && mCallback != null) {
-                            mCallbackThreadRunner.post(mCallback::onNegativeButtonClicked);
-                        }
+                        mCallbackThreadRunner.post(mCallback::onNegativeButtonClicked);
                     })
                     .setNeutralButton(mNeutralButtonText, (dialogNeutral, which) -> {
                         if (mVerboseLoggingEnabled) {
                             Log.v(TAG, "Neutral button pressed for legacy simple dialog");
                         }
-                        if (mCallbackThreadRunner != null && mCallback != null) {
-                            mCallbackThreadRunner.post(mCallback::onNeutralButtonClicked);
-                        }
+                        mCallbackThreadRunner.post(mCallback::onNeutralButtonClicked);
                     })
                     .setOnCancelListener((dialogCancel) -> {
                         if (mVerboseLoggingEnabled) {
                             Log.v(TAG, "Legacy simple dialog cancelled.");
                         }
-                        if (mCallbackThreadRunner != null && mCallback != null) {
-                            mCallbackThreadRunner.post(mCallback::onCancelled);
-                        }
+                        mCallbackThreadRunner.post(mCallback::onCancelled);
                     })
                     .setOnDismissListener((dialogDismiss) -> {
                         mWifiThreadRunner.post(() -> {
@@ -622,7 +634,7 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
+    @Nullable
     public DialogHandle createSimpleDialog(
             @Nullable String title,
             @Nullable String message,
@@ -632,16 +644,16 @@ public class WifiDialogManager {
             @NonNull SimpleDialogCallback callback,
             @NonNull WifiThreadRunner callbackThreadRunner) {
         return createSimpleDialogWithUrl(
-                title,
-                message,
-                null /* messageUrl */,
-                0 /* messageUrlStart */,
-                0 /* messageUrlEnd */,
-                positiveButtonText,
-                negativeButtonText,
-                neutralButtonText,
-                callback,
-                callbackThreadRunner);
+                        title,
+                        message,
+                        null /* messageUrl */,
+                        0 /* messageUrlStart */,
+                        0 /* messageUrlEnd */,
+                        positiveButtonText,
+                        negativeButtonText,
+                        neutralButtonText,
+                        callback,
+                        callbackThreadRunner);
     }
 
     /**
@@ -664,7 +676,7 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
+    @Nullable
     public DialogHandle createSimpleDialogWithUrl(
             @Nullable String title,
             @Nullable String message,
@@ -676,36 +688,41 @@ public class WifiDialogManager {
             @Nullable String neutralButtonText,
             @NonNull SimpleDialogCallback callback,
             @NonNull WifiThreadRunner callbackThreadRunner) {
-        if (SdkLevel.isAtLeastT()) {
-            return new DialogHandle(
-                    new SimpleDialogHandle(
-                            title,
-                            message,
-                            messageUrl,
-                            messageUrlStart,
-                            messageUrlEnd,
-                            positiveButtonText,
-                            negativeButtonText,
-                            neutralButtonText,
-                            callback,
-                            callbackThreadRunner)
-            );
-        } else {
-            // TODO(b/238353074): Remove this fallback to the legacy implementation once the
-            //                    AlertDialog style on pre-T platform is fixed.
-            return new DialogHandle(
-                    new LegacySimpleDialogHandle(
-                            title,
-                            message,
-                            messageUrl,
-                            messageUrlStart,
-                            messageUrlEnd,
-                            positiveButtonText,
-                            negativeButtonText,
-                            neutralButtonText,
-                            callback,
-                            callbackThreadRunner)
-            );
+        try {
+            if (SdkLevel.isAtLeastT()) {
+                return new DialogHandle(
+                        new SimpleDialogHandle(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                callback,
+                                callbackThreadRunner)
+                );
+            } else {
+                // TODO(b/238353074): Remove this fallback to the legacy implementation once the
+                //                    AlertDialog style on pre-T platform is fixed.
+                return new DialogHandle(
+                        new LegacySimpleDialogHandle(
+                                title,
+                                message,
+                                messageUrl,
+                                messageUrlStart,
+                                messageUrlEnd,
+                                positiveButtonText,
+                                negativeButtonText,
+                                neutralButtonText,
+                                callback,
+                                callbackThreadRunner)
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for simple dialog: " + e);
+            return null;
         }
     }
 
@@ -724,7 +741,7 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
+    @Nullable
     public DialogHandle createLegacySimpleDialog(
             @Nullable String title,
             @Nullable String message,
@@ -766,7 +783,7 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
+    @Nullable
     public DialogHandle createLegacySimpleDialogWithUrl(
             @Nullable String title,
             @Nullable String message,
@@ -776,21 +793,26 @@ public class WifiDialogManager {
             @Nullable String positiveButtonText,
             @Nullable String negativeButtonText,
             @Nullable String neutralButtonText,
-            @Nullable SimpleDialogCallback callback,
-            @Nullable WifiThreadRunner callbackThreadRunner) {
-        return new DialogHandle(
-                new LegacySimpleDialogHandle(
-                        title,
-                        message,
-                        messageUrl,
-                        messageUrlStart,
-                        messageUrlEnd,
-                        positiveButtonText,
-                        negativeButtonText,
-                        neutralButtonText,
-                        callback,
-                        callbackThreadRunner)
-        );
+            @NonNull SimpleDialogCallback callback,
+            @NonNull WifiThreadRunner callbackThreadRunner) {
+        try {
+            return new DialogHandle(
+                    new LegacySimpleDialogHandle(
+                            title,
+                            message,
+                            messageUrl,
+                            messageUrlStart,
+                            messageUrlEnd,
+                            positiveButtonText,
+                            negativeButtonText,
+                            neutralButtonText,
+                            callback,
+                            callbackThreadRunner)
+            );
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for simple dialog: " + e);
+            return null;
+        }
     }
 
     /**
@@ -836,16 +858,16 @@ public class WifiDialogManager {
     }
 
     private class P2pInvitationReceivedDialogHandle extends DialogHandleInternal {
-        @Nullable private final P2pInvitationReceivedDialogCallback mCallback;
-        @Nullable private final WifiThreadRunner mCallbackThreadRunner;
+        private @NonNull P2pInvitationReceivedDialogCallback mCallback;
+        private @NonNull WifiThreadRunner mCallbackThreadRunner;
 
         P2pInvitationReceivedDialogHandle(
-                final @Nullable String deviceName,
+                final @NonNull String deviceName,
                 final boolean isPinRequested,
                 @Nullable String displayPin,
                 int displayId,
-                @Nullable P2pInvitationReceivedDialogCallback callback,
-                @Nullable WifiThreadRunner callbackThreadRunner) {
+                @NonNull P2pInvitationReceivedDialogCallback callback,
+                @NonNull WifiThreadRunner callbackThreadRunner) throws IllegalArgumentException {
             Intent intent = getBaseLaunchIntent(WifiManager.DIALOG_TYPE_P2P_INVITATION_RECEIVED);
             if (intent != null) {
                 intent.putExtra(WifiManager.EXTRA_P2P_DEVICE_NAME, deviceName)
@@ -854,21 +876,26 @@ public class WifiDialogManager {
                 setIntent(intent);
             }
             setDisplayId(displayId);
+            if (deviceName == null) {
+                throw new IllegalArgumentException("Device name cannot be null!");
+            }
+            if (callback == null) {
+                throw new IllegalArgumentException("Callback cannot be null!");
+            }
+            if (callbackThreadRunner == null) {
+                throw new IllegalArgumentException("Callback thread runner cannot be null!");
+            }
             mCallback = callback;
             mCallbackThreadRunner = callbackThreadRunner;
         }
 
         void notifyOnAccepted(@Nullable String optionalPin) {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(() -> mCallback.onAccepted(optionalPin));
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onAccepted(optionalPin));
             unregisterDialog();
         }
 
         void notifyOnDeclined() {
-            if (mCallbackThreadRunner != null && mCallback != null) {
-                mCallbackThreadRunner.post(mCallback::onDeclined);
-            }
+            mCallbackThreadRunner.post(() -> mCallback.onDeclined());
             unregisterDialog();
         }
     }
@@ -905,23 +932,27 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
     public DialogHandle createP2pInvitationReceivedDialog(
-            @Nullable String deviceName,
+            @NonNull String deviceName,
             boolean isPinRequested,
             @Nullable String displayPin,
             int displayId,
-            @Nullable P2pInvitationReceivedDialogCallback callback,
-            @Nullable WifiThreadRunner callbackThreadRunner) {
-        return new DialogHandle(
-                new P2pInvitationReceivedDialogHandle(
-                        deviceName,
-                        isPinRequested,
-                        displayPin,
-                        displayId,
-                        callback,
-                        callbackThreadRunner)
-        );
+            @NonNull P2pInvitationReceivedDialogCallback callback,
+            @NonNull WifiThreadRunner callbackThreadRunner) {
+        try {
+            return new DialogHandle(
+                    new P2pInvitationReceivedDialogHandle(
+                            deviceName,
+                            isPinRequested,
+                            displayPin,
+                            displayId,
+                            callback,
+                            callbackThreadRunner)
+            );
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for P2P Invitation Received dialog: " + e);
+            return null;
+        }
     }
 
     /**
@@ -966,9 +997,9 @@ public class WifiDialogManager {
 
     private class P2pInvitationSentDialogHandle extends DialogHandleInternal {
         P2pInvitationSentDialogHandle(
-                @Nullable final String deviceName,
-                @Nullable final String displayPin,
-                int displayId) {
+                final @NonNull String deviceName,
+                final @Nullable String displayPin,
+                int displayId) throws IllegalArgumentException {
             Intent intent = getBaseLaunchIntent(WifiManager.DIALOG_TYPE_P2P_INVITATION_SENT);
             if (intent != null) {
                 intent.putExtra(WifiManager.EXTRA_P2P_DEVICE_NAME, deviceName)
@@ -976,6 +1007,9 @@ public class WifiDialogManager {
                 setIntent(intent);
             }
             setDisplayId(displayId);
+            if (deviceName == null) {
+                throw new IllegalArgumentException("Device name cannot be null!");
+            }
         }
     }
 
@@ -989,12 +1023,16 @@ public class WifiDialogManager {
      *                             be created.
      */
     @AnyThread
-    @NonNull
     public DialogHandle createP2pInvitationSentDialog(
-            @Nullable String deviceName,
+            @NonNull String deviceName,
             @Nullable String displayPin,
             int displayId) {
-        return new DialogHandle(new P2pInvitationSentDialogHandle(deviceName, displayPin,
-                displayId));
+        try {
+            return new DialogHandle(new P2pInvitationSentDialogHandle(deviceName, displayPin,
+                    displayId));
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not create DialogHandle for P2P Invitation Sent dialog: " + e);
+            return null;
+        }
     }
 }

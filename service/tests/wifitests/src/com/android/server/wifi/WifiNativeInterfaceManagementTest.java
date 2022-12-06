@@ -63,7 +63,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -85,7 +84,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     private static final int SOFTAP_FAILURE_CODE_START_DAEMON = 2;
     private static final int SOFTAP_FAILURE_CODE_CREATE_IFACE = 3;
     private static final int SOFTAP_FAILURE_CODE_BRIDGED_AP_INSTANCES = 4;
-    private static final int TEST_SUPPORTED_BANDS = 15;
 
     MockResources mResources;
 
@@ -156,8 +154,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mWifiVendorHal.removeStaIface(any())).thenReturn(true);
         when(mWifiVendorHal.removeApIface(any())).thenReturn(true);
         when(mWifiVendorHal.replaceStaIfaceRequestorWs(any(), any())).thenReturn(true);
-        when(mWifiVendorHal.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(
-                new ArrayList<>());
 
         when(mBuildProperties.isEngBuild()).thenReturn(false);
         when(mBuildProperties.isUserdebugBuild()).thenReturn(false);
@@ -204,9 +200,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mWifiSettingsConfigStore.get(
                 eq(WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_FEATURES)))
                 .thenReturn(TEST_SUPPORTED_FEATURES);
-        when(mWifiSettingsConfigStore.get(
-                eq(WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_STA_BANDS)))
-                .thenReturn(TEST_SUPPORTED_BANDS);
 
         mInOrder = inOrder(mWifiVendorHal, mWificondControl, mSupplicantStaIfaceHal, mHostapdHal,
                 mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1, mWifiMetrics);
@@ -544,7 +537,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-        mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
     }
 
     private void validateHostApdStart() {
@@ -570,7 +562,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-        mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
     }
 
     private void validateSetupInterfaceForSoftAp(String ifaceName,
@@ -581,7 +572,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-        mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
     }
 
     /**
@@ -1302,7 +1292,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
             mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
             mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
             mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-            mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
         }
     }
 
@@ -1495,7 +1484,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-        mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
     }
 
     private void executeAndValidateTeardownClientInterfaceForScan(
@@ -1623,7 +1611,6 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mSupplicantStaIfaceHal).getAdvancedCapabilities(ifaceName);
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
-        mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
     }
 
     private void executeAndValidateTeardownSoftApInterface(

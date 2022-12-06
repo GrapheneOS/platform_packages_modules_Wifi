@@ -14,9 +14,6 @@ android_app {
         "com.android.wifi",
         "test_com.android.wifi",
     ],
-    optimize: {
-        shrink_resources: true,
-    },
 }
 
 android_app_certificate {
