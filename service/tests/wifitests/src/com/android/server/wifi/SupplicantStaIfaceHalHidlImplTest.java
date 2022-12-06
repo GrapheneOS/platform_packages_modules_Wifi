@@ -2034,13 +2034,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     public void testTerminateV1_0() throws Exception {
         executeAndValidateInitializationSequence();
 
-        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
-            public boolean answer(IHwBinder.DeathRecipient cb, long cookie) throws RemoteException {
-                mHandler.post(() -> cb.serviceDied(cookie));
-                return true;
-            }
-        }).when(mISupplicantMock).linkToDeath(any(IHwBinder.DeathRecipient.class), any(long.class));
         mDut.terminate();
+        mSupplicantDeathCaptor.getValue().serviceDied(mDeathRecipientCookieCaptor.getValue());
         mLooper.dispatchAll();
         verify(mFrameworkFacade).stopSupplicant();
 
@@ -2056,16 +2051,8 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         setupMocksForHalV1_1();
 
         executeAndValidateInitializationSequenceV1_1(false, false);
-
-        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
-            public boolean answer(IHwBinder.DeathRecipient cb, long cookie) throws RemoteException {
-                mHandler.post(() -> cb.serviceDied(cookie));
-                return true;
-            }
-        }).when(mISupplicantMockV11).linkToDeath(any(IHwBinder.DeathRecipient.class),
-                any(long.class));
-
         mDut.terminate();
+        mSupplicantDeathCaptor.getValue().serviceDied(mDeathRecipientCookieCaptor.getValue());
         mLooper.dispatchAll();
         verify(mFrameworkFacade, never()).stopSupplicant();
         verify(mISupplicantMockV11).terminate();
@@ -2796,7 +2783,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         assertTrue(mDut.isInitializationComplete());
         assertTrue(mDut.setupIface(WLAN0_IFACE_NAME) == shouldSucceed);
         mInOrder.verify(mISupplicantMockV11).linkToDeath(mSupplicantDeathCaptor.capture(),
-                anyLong());
+                mDeathRecipientCookieCaptor.capture());
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)
                 .addInterface(any(ISupplicant.IfaceInfo.class),
