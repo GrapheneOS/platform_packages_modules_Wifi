@@ -1032,6 +1032,10 @@ public class WifiConfiguration implements Parcelable {
 
     private List<MacAddress> mBssidAllowlist;
 
+    private byte[] mEncryptedPreSharedKey;
+    private byte[] mEncryptedPreSharedKeyIv;
+    private boolean mHasPreSharedKeyChanged;
+
     /**
      * Set a list of BSSIDs to control if this network configuration entry should be used to
      * associate an AP.
@@ -3223,6 +3227,9 @@ public class WifiConfiguration implements Parcelable {
         mDppConnector = new byte[0];
         mDppCSignKey = new byte[0];
         mDppNetAccessKey = new byte[0];
+        mHasPreSharedKeyChanged = false;
+        mEncryptedPreSharedKey = new byte[0];
+        mEncryptedPreSharedKeyIv = new byte[0];
     }
 
     /**
@@ -3541,6 +3548,7 @@ public class WifiConfiguration implements Parcelable {
         }
         sbuf.append("\n");
         sbuf.append("IsDppConfigurator: ").append(this.mIsDppConfigurator).append("\n");
+        sbuf.append("HasEncryptedPreSharedKey: ").append(hasEncryptedPreSharedKey()).append("\n");
         return sbuf.toString();
     }
 
@@ -3980,6 +3988,11 @@ public class WifiConfiguration implements Parcelable {
             mDppCSignKey = source.mDppCSignKey.clone();
             mDppNetAccessKey = source.mDppNetAccessKey.clone();
             isCurrentlyConnected = source.isCurrentlyConnected;
+            mHasPreSharedKeyChanged = source.hasPreSharedKeyChanged();
+            mEncryptedPreSharedKey = source.mEncryptedPreSharedKey != null
+                    ? source.mEncryptedPreSharedKey.clone() : new byte[0];
+            mEncryptedPreSharedKeyIv = source.mEncryptedPreSharedKeyIv != null
+                    ? source.mEncryptedPreSharedKeyIv.clone() : new byte[0];
         }
     }
 
@@ -4073,6 +4086,9 @@ public class WifiConfiguration implements Parcelable {
         dest.writeByteArray(mDppCSignKey);
         dest.writeByteArray(mDppNetAccessKey);
         dest.writeBoolean(isCurrentlyConnected);
+        dest.writeBoolean(mHasPreSharedKeyChanged);
+        dest.writeByteArray(mEncryptedPreSharedKey);
+        dest.writeByteArray(mEncryptedPreSharedKeyIv);
     }
 
     /** Implement the Parcelable interface {@hide} */
@@ -4168,6 +4184,15 @@ public class WifiConfiguration implements Parcelable {
                 config.mDppCSignKey = in.createByteArray();
                 config.mDppNetAccessKey = in.createByteArray();
                 config.isCurrentlyConnected = in.readBoolean();
+                config.mHasPreSharedKeyChanged = in.readBoolean();
+                config.mEncryptedPreSharedKey = in.createByteArray();
+                if (config.mEncryptedPreSharedKey == null) {
+                    config.mEncryptedPreSharedKey = new byte[0];
+                }
+                config.mEncryptedPreSharedKeyIv = in.createByteArray();
+                if (config.mEncryptedPreSharedKeyIv == null) {
+                    config.mEncryptedPreSharedKeyIv = new byte[0];
+                }
                 return config;
             }
 
@@ -4227,6 +4252,73 @@ public class WifiConfiguration implements Parcelable {
                 .anyMatch(params -> params.isSecurityType(SECURITY_TYPE_PSK)
                         || params.isSecurityType(SECURITY_TYPE_SAE)
                         || params.isSecurityType(SECURITY_TYPE_WAPI_PSK));
+    }
+
+    /**
+     * Return if the encrypted data is present
+     * @return true if encrypted data is present
+     * @hide
+     */
+    public boolean hasEncryptedPreSharedKey() {
+        if (mEncryptedPreSharedKey == null || mEncryptedPreSharedKeyIv == null) return false;
+        return !(mEncryptedPreSharedKey.length == 0 && mEncryptedPreSharedKeyIv.length == 0);
+    }
+
+    /**
+     * Set the encrypted data for preSharedKey
+     * @param encryptedPreSharedKey encrypted preSharedKey
+     * @param encryptedPreSharedKeyIv encrypted preSharedKey
+     * @hide
+     */
+    public void setEncryptedPreSharedKey(byte[] encryptedPreSharedKey,
+            byte[] encryptedPreSharedKeyIv) {
+        mEncryptedPreSharedKey = encryptedPreSharedKey;
+        mEncryptedPreSharedKeyIv = encryptedPreSharedKeyIv;
+    }
+
+    /**
+     * Get the encrypted data
+     *
+     * @return encrypted data of the WifiConfiguration
+     * @hide
+     */
+    public byte[] getEncryptedPreSharedKey() {
+        return mEncryptedPreSharedKey;
+    }
+
+    /**
+     * Get the encrypted data IV
+     *
+     * @return encrypted data IV of the WifiConfiguration
+     * @hide
+     */
+    public byte[] getEncryptedPreSharedKeyIv() {
+        return mEncryptedPreSharedKeyIv;
+    }
+
+    /**
+     * Check whether the configuration's password has changed.
+     * If true, the encrypted data is no longer valid.
+     *
+     * @return true if preSharedKey encryption is needed, false otherwise.
+     * @hide
+     */
+    public boolean hasPreSharedKeyChanged() {
+        return mHasPreSharedKeyChanged;
+    }
+
+    /**
+     * Set whether the WifiConfiguration needs a preSharedKey encryption.
+     *
+     * @param changed true if preSharedKey is changed, false otherwise.
+     * @hide
+     */
+    public void setHasPreSharedKeyChanged(boolean changed) {
+        mHasPreSharedKeyChanged = changed;
+        if (mHasPreSharedKeyChanged) {
+            mEncryptedPreSharedKey = new byte[0];
+            mEncryptedPreSharedKeyIv = new byte[0];
+        }
     }
 
     /**

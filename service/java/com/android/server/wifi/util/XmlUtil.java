@@ -423,13 +423,16 @@ public class XmlUtil {
          * key is stored in plaintext, else the encrypted psk is stored.
          */
         private static void writePreSharedKeyToXml(
-                XmlSerializer out, String preSharedKey,
+                XmlSerializer out, WifiConfiguration wifiConfig,
                 @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
             EncryptedData encryptedData = null;
-            if (encryptionUtil != null) {
-                if (preSharedKey != null) {
-                    encryptedData = encryptionUtil.encrypt(preSharedKey.getBytes());
+            if (encryptionUtil != null && wifiConfig.preSharedKey != null) {
+                if (wifiConfig.hasEncryptedPreSharedKey() && !wifiConfig.hasPreSharedKeyChanged()) {
+                    encryptedData = new EncryptedData(wifiConfig.getEncryptedPreSharedKey(),
+                            wifiConfig.getEncryptedPreSharedKeyIv());
+                } else {
+                    encryptedData = encryptionUtil.encrypt(wifiConfig.preSharedKey.getBytes());
                     if (encryptedData == null) {
                         // We silently fail encryption failures!
                         Log.wtf(TAG, "Encryption of preSharedKey failed");
@@ -437,11 +440,14 @@ public class XmlUtil {
                 }
             }
             if (encryptedData != null) {
-                XmlUtil.writeNextSectionStart(out, XML_TAG_PRE_SHARED_KEY);
+                writeNextSectionStart(out, XML_TAG_PRE_SHARED_KEY);
                 EncryptedDataXmlUtil.writeToXml(out, encryptedData);
-                XmlUtil.writeNextSectionEnd(out, XML_TAG_PRE_SHARED_KEY);
+                wifiConfig.setEncryptedPreSharedKey(encryptedData.getEncryptedData(),
+                        encryptedData.getIv());
+                wifiConfig.setHasPreSharedKeyChanged(false);
+                writeNextSectionEnd(out, XML_TAG_PRE_SHARED_KEY);
             } else {
-                XmlUtil.writeNextValue(out, XML_TAG_PRE_SHARED_KEY, preSharedKey);
+                writeNextValue(out, XML_TAG_PRE_SHARED_KEY, wifiConfig.preSharedKey);
             }
         }
 
@@ -528,7 +534,7 @@ public class XmlUtil {
                 throws XmlPullParserException, IOException {
             XmlUtil.writeNextValue(out, XML_TAG_CONFIG_KEY, configuration.getKey());
             XmlUtil.writeNextValue(out, XML_TAG_SSID, configuration.SSID);
-            writePreSharedKeyToXml(out, configuration.preSharedKey, encryptionUtil);
+            writePreSharedKeyToXml(out, configuration, encryptionUtil);
             writeWepKeysToXml(out, configuration.wepKeys);
             XmlUtil.writeNextValue(out, XML_TAG_WEP_TX_KEY_INDEX, configuration.wepTxKeyIndex);
             XmlUtil.writeNextValue(out, XML_TAG_HIDDEN_SSID, configuration.hiddenSSID);
@@ -1002,6 +1008,9 @@ public class XmlUtil {
                                 Log.wtf(TAG, "Decryption of preSharedKey failed");
                             } else {
                                 configuration.preSharedKey = new String(preSharedKeyBytes);
+                                configuration.setEncryptedPreSharedKey(
+                                        encryptedData.getEncryptedData(),
+                                        encryptedData.getIv());
                             }
                             break;
                         case XML_TAG_SECURITY_PARAMS_LIST:
