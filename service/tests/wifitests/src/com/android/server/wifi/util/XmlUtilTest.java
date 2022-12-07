@@ -136,6 +136,41 @@ public class XmlUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a wep WifiConfiguration is serialized & deserialized correctly.
+     */
+    @Test
+    public void testWepWifiConfigurationSerializeDeserializeWithEncryption()
+            throws IOException, XmlPullParserException {
+        mWifiConfigStoreEncryptionUtil = mock(WifiConfigStoreEncryptionUtil.class);
+        WifiConfiguration wepNetwork = WifiConfigurationTestUtil.createWepNetwork();
+        for (int i = 0; i < wepNetwork.wepKeys.length; i++) {
+            EncryptedData encryptedData = new EncryptedData(new byte[]{(byte) i},
+                    new byte[]{(byte) i});
+            when(mWifiConfigStoreEncryptionUtil.encrypt(wepNetwork.wepKeys[i].getBytes()))
+                    .thenReturn(encryptedData);
+            when(mWifiConfigStoreEncryptionUtil.decrypt(encryptedData))
+                    .thenReturn(wepNetwork.wepKeys[i].getBytes());
+        }
+        serializeDeserializeWifiConfiguration(wepNetwork);
+    }
+
+    /**
+     * Verify that a wep WifiConfiguration is serialized & deserialized correctly when encryption
+     * failed.
+     */
+    @Test
+    public void testWepWifiConfigurationSerializeDeserializeWithEncryptionFailed()
+            throws IOException, XmlPullParserException {
+        mWifiConfigStoreEncryptionUtil = mock(WifiConfigStoreEncryptionUtil.class);
+        WifiConfiguration wepNetwork = WifiConfigurationTestUtil.createWepNetwork();
+        for (int i = 0; i < wepNetwork.wepKeys.length; i++) {
+            when(mWifiConfigStoreEncryptionUtil.encrypt(wepNetwork.wepKeys[i].getBytes()))
+                    .thenReturn(null);
+        }
+        serializeDeserializeWifiConfiguration(wepNetwork);
+    }
+
+    /**
      * Verify that a psk hidden WifiConfiguration is serialized & deserialized correctly.
      */
     @Test
