@@ -19,10 +19,7 @@ package com.android.wifi.dialog;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.icu.text.MessageFormat;
@@ -88,26 +85,6 @@ public class WifiDialogActivity extends Activity  {
     private @NonNull SparseArray<Intent> mLaunchIntentsPerId = new SparseArray<>();
     private @NonNull SparseArray<Dialog> mActiveDialogsPerId = new SparseArray<>();
     private @NonNull SparseArray<CountDownTimer> mActiveCountDownTimersPerId = new SparseArray<>();
-
-    // Broadcast receiver for listening to ACTION_CLOSE_SYSTEM_DIALOGS
-    private BroadcastReceiver mCloseSystemDialogsReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getBooleanExtra(
-                    WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
-                return;
-            }
-            if (mIsVerboseLoggingEnabled) {
-                Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received, cancelling all dialogs.");
-            }
-            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                Dialog dialog = mActiveDialogsPerId.valueAt(i);
-                if (dialog.isShowing()) {
-                    dialog.cancel();
-                }
-            }
-        }
-    };
 
     private WifiContext getWifiContext() {
         if (mWifiContext == null) {
@@ -210,8 +187,6 @@ public class WifiDialogActivity extends Activity  {
     @Override
     protected void onStart() {
         super.onStart();
-        registerReceiver(
-                mCloseSystemDialogsReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         ArraySet<Integer> invalidDialogIds = new ArraySet<>();
         for (int i = 0; i < mLaunchIntentsPerId.size(); i++) {
             int dialogId = mLaunchIntentsPerId.keyAt(i);
@@ -253,7 +228,6 @@ public class WifiDialogActivity extends Activity  {
     @Override
     protected void onStop() {
         super.onStop();
-        unregisterReceiver(mCloseSystemDialogsReceiver);
 
         if (isChangingConfigurations()) {
             // If we're stopping due to a configuration change, dismiss all the dialogs without
@@ -272,10 +246,9 @@ public class WifiDialogActivity extends Activity  {
             }
             mActiveCountDownTimersPerId.clear();
         } else if (getSystemService(PowerManager.class).isInteractive()) {
-            // If we're stopping because we're switching to a new Activity, remove and cancel all
-            // the dialogs.
-            while (mActiveDialogsPerId.size() > 0) {
-                removeIntentAndPossiblyFinish(mActiveDialogsPerId.keyAt(0));
+            // If we're stopping because we're switching to a new Activity, cancel all the dialogs.
+            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+                mActiveDialogsPerId.get(i).cancel();
             }
         }
     }
