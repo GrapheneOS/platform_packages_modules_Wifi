@@ -103,7 +103,8 @@ public class SoftApBackupRestore {
                 XmlUtil.writeDocumentStart(xmlOut, XML_TAG_DOCUMENT_HEADER);
 
                 // Start writing the XML stream.
-                XmlUtil.SoftApConfigurationXmlUtil.writeSoftApConfigurationToXml(xmlOut, config);
+                XmlUtil.SoftApConfigurationXmlUtil.writeSoftApConfigurationToXml(xmlOut, config,
+                        null);
 
                 XmlUtil.writeDocumentEnd(xmlOut, XML_TAG_DOCUMENT_HEADER);
 
@@ -179,7 +180,8 @@ public class SoftApBackupRestore {
                 XmlUtil.gotoDocumentStart(xmlIn, XML_TAG_DOCUMENT_HEADER);
                 int rootTagDepth = xmlIn.getDepth();
                 return XmlUtil.SoftApConfigurationXmlUtil
-                        .parseFromXml(xmlIn, rootTagDepth, mSettingsMigrationDataHolder);
+                        .parseFromXml(xmlIn, rootTagDepth, mSettingsMigrationDataHolder, false,
+                                null);
             }
             configBuilder.setSsid(BackupUtils.readString(in));
 
