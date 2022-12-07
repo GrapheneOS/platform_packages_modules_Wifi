@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -331,7 +332,8 @@ public class WifiDialogManager {
             mActiveDialogIds.add(mDialogId);
             mActiveDialogHandles.put(mDialogId, this);
             if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "Registered dialog with id=" + mDialogId);
+                Log.v(TAG, "Registered dialog with id=" + mDialogId
+                        + ". Active dialogs ids: " + mActiveDialogIds);
             }
         }
 
@@ -347,9 +349,22 @@ public class WifiDialogManager {
             mActiveDialogIds.remove(mDialogId);
             mActiveDialogHandles.remove(mDialogId);
             if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "Unregistered dialog with id=" + mDialogId);
+                Log.v(TAG, "Unregistered dialog with id=" + mDialogId
+                        + ". Active dialogs ids: " + mActiveDialogIds);
             }
             mDialogId = WifiManager.INVALID_DIALOG_ID;
+            if (mActiveDialogIds.isEmpty()) {
+                String wifiDialogApkPkgName = mContext.getWifiDialogApkPkgName();
+                if (wifiDialogApkPkgName == null) {
+                    Log.wtf(TAG, "Could not get WifiDialog APK package name to force stop!");
+                    return;
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "Force stopping WifiDialog app");
+                }
+                mContext.getSystemService(ActivityManager.class)
+                        .forceStopPackage(wifiDialogApkPkgName);
+            }
         }
     }
 
