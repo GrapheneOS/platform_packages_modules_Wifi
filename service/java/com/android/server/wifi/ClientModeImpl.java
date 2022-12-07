@@ -290,7 +290,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private boolean mCurrentConnectionDetectedCaptivePortal;
 
     private String getTag() {
-        return TAG + "[" + (mInterfaceName == null ? "unknown" : mInterfaceName) + "]";
+        return TAG + "[" + mId + ":" + (mInterfaceName == null ? "unknown" : mInterfaceName) + "]";
     }
 
     private void processRssiThreshold(byte curRssi, int reason,

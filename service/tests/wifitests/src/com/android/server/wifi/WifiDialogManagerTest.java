@@ -30,6 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -82,12 +83,14 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock Resources mResources;
     @Mock PowerManager mPowerManager;
+    @Mock ActivityManager mActivityManager;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiContext.getWifiDialogApkPkgName()).thenReturn(WIFI_DIALOG_APK_PKG_NAME);
         when(mWifiContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
+        when(mWifiContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mWifiContext.getResources()).thenReturn(mResources);
         when(mPowerManager.isInteractive()).thenReturn(true);
         doThrow(SecurityException.class).when(mWifiContext).startActivityAsUser(any(), any(),
@@ -326,6 +329,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         verifyDismissIntent(intent);
+        verify(mActivityManager).forceStopPackage(WIFI_DIALOG_APK_PKG_NAME);
 
         // A reply to the same dialog id should not trigger callback
         wifiDialogManager.replyToSimpleDialog(dialogId, WifiManager.DIALOG_REPLY_POSITIVE);
@@ -1004,6 +1008,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         verifyDismissIntent(intent);
+        verify(mActivityManager).forceStopPackage(WIFI_DIALOG_APK_PKG_NAME);
 
         // A reply to the same dialog id should not trigger callback
         wifiDialogManager.replyToP2pInvitationReceivedDialog(dialogId, true, null);
@@ -1119,6 +1124,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
                 TEST_DEVICE_NAME, null);
         dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
         verifyDismissIntent(verifyStartActivityAsUser(2, mWifiContext));
+        verify(mActivityManager).forceStopPackage(WIFI_DIALOG_APK_PKG_NAME);
 
         // Another call to dismiss should not send another dismiss intent.
         dismissDialogSynchronous(dialogHandle, mWifiThreadRunner);
