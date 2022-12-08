@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -251,5 +252,19 @@ public class WifiP2pManagerTest {
         when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
                 WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL);
         assertTrue(mDut.isGroupClientRemovalSupported());
+    }
+
+    /**
+     * Test {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} works as
+     * expected.
+     */
+    @Test
+    public void testIsGroupClientIpv6LinkLocalProvisioningSupported() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(0L);
+        assertFalse(mDut.isGroupClientIpv6LinkLocalProvisioningSupported());
+        when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
+                WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING);
+        assertTrue(mDut.isGroupClientIpv6LinkLocalProvisioningSupported());
     }
 }
