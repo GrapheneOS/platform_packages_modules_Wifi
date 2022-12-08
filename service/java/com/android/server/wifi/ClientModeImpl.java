@@ -2586,6 +2586,24 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     + " RxLinkSpeed=" + newRxLinkSpeed);
         }
 
+        /* Set link specific signal poll results */
+        for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+            int linkId = link.getLinkId();
+            link.setRssi(pollResults.getRssi(linkId));
+            link.setTxLinkSpeedMbps(pollResults.getTxLinkSpeed(linkId));
+            link.setRxLinkSpeedMbps(pollResults.getRxLinkSpeed(linkId));
+            link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(
+                    pollResults.getFrequency(linkId)));
+            link.setBand(ScanResult.toBand(pollResults.getFrequency(linkId)));
+            if (mVerboseLoggingEnabled) {
+                logd("linkId=" + linkId + " rssi=" + link.getRssi()
+                        + " channel=" + link.getChannel()
+                        + " band=" + link.getBand()
+                        + " TxLinkspeed=" + link.getTxLinkSpeedMbps()
+                        + " RxLinkSpeed=" + link.getRxLinkSpeedMbps());
+            }
+        }
+
         /*
          * set Tx link speed only if it is valid
          */

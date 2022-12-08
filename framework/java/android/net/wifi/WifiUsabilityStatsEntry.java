@@ -24,6 +24,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.telephony.Annotation.NetworkType;
 import android.util.Log;
+import android.util.SparseArray;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -443,6 +444,11 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
      * Wifi link layer radio stats.
      */
     public static final class RadioStats implements Parcelable {
+        /**
+         * Invalid radio id.
+         * @hide
+         */
+        public static final int INVALID_RADIO_ID = -1;
         private int mRadioId;
         private long mTotalRadioOnTimeMillis;
         private long mTotalRadioTxTimeMillis;
@@ -610,6 +616,136 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     private final int mCellularSignalStrengthDb;
     private final boolean mIsSameRegisteredCell;
 
+    /**
+     * Link specific statistics.
+     *
+     * @hide
+     */
+    public static final class LinkStats implements Parcelable {
+        /** Link identifier (0 to 14) */
+        private final int mLinkId;
+        /** Radio identifier */
+        private final int mRadioId;
+        /** The RSSI (in dBm) at the sample time */
+        private final int mRssi;
+        /** Tx Link speed at the sample time in Mbps */
+        private final int mTxLinkSpeedMbps;
+        /** Rx link speed at the sample time in Mbps */
+        private final int mRxLinkSpeedMbps;
+        /** The total number of tx success counted from the last radio chip reset */
+        private final long mTotalTxSuccess;
+        /** The total number of MPDU data packet retries counted from the last radio chip reset */
+        private final long mTotalTxRetries;
+        /** The total number of tx bad counted from the last radio chip reset */
+        private final long mTotalTxBad;
+        /** The total number of rx success counted from the last radio chip reset */
+        private final long mTotalRxSuccess;
+        /** The total number of beacons received from the last radio chip reset */
+        private final long mTotalBeaconRx;
+        /** @see #WifiUsabilityStatsEntry#getTimeSliceDutyCycleInPercent() */
+        private final int mTimeSliceDutyCycleInPercent;
+        /** Data packet contention time statistics */
+        private final ContentionTimeStats[] mContentionTimeStats;
+        /** Rate information and statistics */
+        private final RateStats[] mRateStats;
+
+        /** @hide */
+        public LinkStats() {
+            mLinkId = MloLink.INVALID_MLO_LINK_ID;
+            mRssi = WifiInfo.INVALID_RSSI;
+            mRadioId = RadioStats.INVALID_RADIO_ID;
+            mTxLinkSpeedMbps = WifiInfo.LINK_SPEED_UNKNOWN;
+            mRxLinkSpeedMbps = WifiInfo.LINK_SPEED_UNKNOWN;
+            mTotalTxSuccess = 0;
+            mTotalTxRetries = 0;
+            mTotalTxBad = 0;
+            mTotalRxSuccess = 0;
+            mTotalBeaconRx = 0;
+            mTimeSliceDutyCycleInPercent = 0;
+            mContentionTimeStats = null;
+            mRateStats = null;
+        }
+
+        /** @hide
+         * Constructor function
+         *
+         * @param linkId                      Identifier of the link.
+         * @param radioId                     Identifier of the radio on which the link is operating
+         *                                    currently.
+         * @param rssi                        Link Rssi (in dBm) at sample time.
+         * @param txLinkSpeedMpbs             Transmit link speed in Mpbs at sample time.
+         * @param rxLinkSpeedMpbs             Receive link speed in Mbps at sample time.
+         * @param totalTxSuccess              Total number of Tx success.
+         * @param totalTxRetries              Total packet retries.
+         * @param totalTxBad                  Total number of bad packets.
+         * @param totalRxSuccess              Total number of good receive packets.
+         * @param totalBeaconRx               Total number of beacon received.
+         * @param timeSliceDutyCycleInPercent Duty cycle of the connection.
+         * @param contentionTimeStats         Data packet contention time statistics.
+         * @param rateStats                   Rate information.
+         */
+        public LinkStats(int linkId, int radioId, int rssi, int txLinkSpeedMpbs,
+                int rxLinkSpeedMpbs, long totalTxSuccess, long totalTxRetries, long totalTxBad,
+                long totalRxSuccess, long totalBeaconRx, int timeSliceDutyCycleInPercent,
+                ContentionTimeStats[] contentionTimeStats, RateStats[] rateStats) {
+            this.mLinkId = linkId;
+            this.mRadioId = radioId;
+            this.mRssi = rssi;
+            this.mTxLinkSpeedMbps = txLinkSpeedMpbs;
+            this.mRxLinkSpeedMbps = rxLinkSpeedMpbs;
+            this.mTotalTxSuccess = totalTxSuccess;
+            this.mTotalTxRetries = totalTxRetries;
+            this.mTotalTxBad = totalTxBad;
+            this.mTotalRxSuccess = totalRxSuccess;
+            this.mTotalBeaconRx = totalBeaconRx;
+            this.mTimeSliceDutyCycleInPercent = timeSliceDutyCycleInPercent;
+            this.mContentionTimeStats = contentionTimeStats;
+            this.mRateStats = rateStats;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(@NonNull Parcel dest, int flags) {
+            dest.writeInt(mLinkId);
+            dest.writeInt(mRadioId);
+            dest.writeInt(mRssi);
+            dest.writeInt(mTxLinkSpeedMbps);
+            dest.writeInt(mRxLinkSpeedMbps);
+            dest.writeLong(mTotalTxSuccess);
+            dest.writeLong(mTotalTxRetries);
+            dest.writeLong(mTotalTxBad);
+            dest.writeLong(mTotalRxSuccess);
+            dest.writeLong(mTotalBeaconRx);
+            dest.writeInt(mTimeSliceDutyCycleInPercent);
+            dest.writeTypedArray(mContentionTimeStats, flags);
+            dest.writeTypedArray(mRateStats, flags);
+        }
+
+        /** Implement the Parcelable interface */
+        @NonNull
+        public static final Creator<LinkStats> CREATOR =
+                new Creator<>() {
+                    public LinkStats createFromParcel(Parcel in) {
+                        return new LinkStats(in.readInt(), in.readInt(), in.readInt(),
+                                in.readInt(), in.readInt(), in.readLong(), in.readLong(),
+                                in.readLong(), in.readLong(), in.readLong(), in.readInt(),
+                                in.createTypedArray(ContentionTimeStats.CREATOR),
+                                in.createTypedArray(RateStats.CREATOR));
+                    }
+
+                    public LinkStats[] newArray(int size) {
+                        return new LinkStats[size];
+                    }
+                };
+    }
+
+    /** Link stats per link */
+    private final SparseArray<LinkStats> mLinkStats;
+
     /** Constructor function {@hide} */
     public WifiUsabilityStatsEntry(long timeStampMillis, int rssi, int linkSpeedMbps,
             long totalTxSuccess, long totalTxRetries, long totalTxBad, long totalRxSuccess,
@@ -626,7 +762,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             boolean isThroughputSufficient, boolean isWifiScoringEnabled,
             boolean isCellularDataAvailable, @NetworkType int cellularDataNetworkType,
             int cellularSignalStrengthDbm, int cellularSignalStrengthDb,
-            boolean isSameRegisteredCell) {
+            boolean isSameRegisteredCell, SparseArray<LinkStats> linkStats) {
         mTimeStampMillis = timeStampMillis;
         mRssi = rssi;
         mLinkSpeedMbps = linkSpeedMbps;
@@ -662,6 +798,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         mCellularSignalStrengthDbm = cellularSignalStrengthDbm;
         mCellularSignalStrengthDb = cellularSignalStrengthDb;
         mIsSameRegisteredCell = isSameRegisteredCell;
+        mLinkStats = linkStats;
     }
 
     /** Implement the Parcelable interface */
@@ -706,6 +843,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         dest.writeInt(mCellularSignalStrengthDbm);
         dest.writeInt(mCellularSignalStrengthDb);
         dest.writeBoolean(mIsSameRegisteredCell);
+        dest.writeTypedSparseArray(mLinkStats, flags);
     }
 
     /** Implement the Parcelable interface */
@@ -726,7 +864,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
                     in.createTypedArray(RadioStats.CREATOR),
                     in.readInt(), in.readBoolean(), in.readBoolean(),
                     in.readBoolean(), in.readInt(), in.readInt(),
-                    in.readInt(), in.readBoolean()
+                    in.readInt(), in.readBoolean(), in.createTypedSparseArray(LinkStats.CREATOR)
             );
         }
 

@@ -3822,6 +3822,53 @@ public class WifiMetricsTest extends WifiBaseTest {
 
     private WifiLinkLayerStats nextRandomStats(WifiLinkLayerStats current) {
         WifiLinkLayerStats out = new WifiLinkLayerStats();
+        final int numLinks = 2;
+        for (int i = 0; i < numLinks; i++) {
+            out.links = new WifiLinkLayerStats.LinkSpecificStats[numLinks];
+            out.links[i] = new WifiLinkLayerStats.LinkSpecificStats();
+            out.links[i].link_id = nextRandInt() % 15;
+            out.links[i].txmpdu_vi = nextRandInt();
+            out.links[i].txmpdu_bk = nextRandInt();
+            out.links[i].radio_id = nextRandInt() % 2;
+            out.links[i].rssi_mgmt = nextRandInt() % 127;
+            out.links[i].beacon_rx = nextRandInt();
+            out.links[i].frequencyMhz = nextRandInt();
+            out.links[i].rxmpdu_be = nextRandInt();
+            out.links[i].txmpdu_be = nextRandInt();
+            out.links[i].lostmpdu_be = nextRandInt();
+            out.links[i].retries_be = nextRandInt();
+            out.links[i].contentionTimeMinBeInUsec = nextRandInt();
+            out.links[i].contentionTimeMaxBeInUsec = nextRandInt();
+            out.links[i].contentionTimeAvgBeInUsec = nextRandInt();
+            out.links[i].contentionNumSamplesBe = nextRandInt();
+            out.links[i].rxmpdu_bk = nextRandInt();
+            out.links[i].txmpdu_bk = nextRandInt();
+            out.links[i].lostmpdu_bk = nextRandInt();
+            out.links[i].retries_bk = nextRandInt();
+            out.links[i].contentionTimeMinBkInUsec = nextRandInt();
+            out.links[i].contentionTimeMaxBkInUsec = nextRandInt();
+            out.links[i].contentionTimeAvgBkInUsec = nextRandInt();
+            out.links[i].contentionNumSamplesBk = nextRandInt();
+            out.links[i].rxmpdu_vi = nextRandInt();
+            out.links[i].txmpdu_vi = nextRandInt();
+            out.links[i].lostmpdu_vi = nextRandInt();
+            out.links[i].retries_vi = nextRandInt();
+            out.links[i].contentionTimeMinViInUsec = nextRandInt();
+            out.links[i].contentionTimeMaxViInUsec = nextRandInt();
+            out.links[i].contentionTimeAvgViInUsec = nextRandInt();
+            out.links[i].contentionNumSamplesVi = nextRandInt();
+            out.links[i].rxmpdu_vo = nextRandInt();
+            out.links[i].txmpdu_vo = nextRandInt();
+            out.links[i].lostmpdu_vo = nextRandInt();
+            out.links[i].retries_vo = nextRandInt();
+            out.links[i].contentionTimeMinVoInUsec = nextRandInt();
+            out.links[i].contentionTimeMaxVoInUsec = nextRandInt();
+            out.links[i].contentionTimeAvgVoInUsec = nextRandInt();
+            out.links[i].contentionNumSamplesVo = nextRandInt();
+            out.links[i].timeSliceDutyCycleInPercent = (short) (nextRandInt() % 101);
+            out.links[i].peerInfo = createNewPeerInfo(current.peerInfo);
+        }
+
         out.timeStampInMs = current.timeStampInMs + nextRandInt();
 
         out.rxmpdu_be = current.rxmpdu_be + nextRandInt();

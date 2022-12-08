@@ -8949,6 +8949,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(TEST_AP_MLD_MAC_ADDRESS_STR, connectionInfo.getApMldMacAddress().toString());
         assertEquals(TEST_MLO_LINK_ID, connectionInfo.getApMloLinkId());
         assertEquals(2, connectionInfo.getAffiliatedMloLinks().size());
+        // None of the links are active or idle.
+        assertTrue(connectionInfo.getAssociatedMloLinks().isEmpty());
     }
 
     /**
@@ -8983,6 +8985,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertNull(connectionInfo.getApMldMacAddress());
         assertEquals(MloLink.INVALID_MLO_LINK_ID, connectionInfo.getApMloLinkId());
         assertTrue(connectionInfo.getAffiliatedMloLinks().isEmpty());
+        assertTrue(connectionInfo.getAssociatedMloLinks().isEmpty());
     }
 
     /**
@@ -9049,6 +9052,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         for (MloLink link: mWifiInfo.getAffiliatedMloLinks()) {
             assertEquals(link.getState(), MloLink.MLO_LINK_STATE_ACTIVE);
         }
+        // All links are associated (ACTIVE)
+        assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
+                mWifiInfo.getAffiliatedMloLinks().size());
 
         // TID to link mapping. Make sure one link is IDLE.
         configureMloLinksInfoWithIdleLinks();
@@ -9058,6 +9064,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
         assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
         assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_IDLE);
+        // All links are associated (ACTIVE & IDLE)
+        assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
+                mWifiInfo.getAffiliatedMloLinks().size());
 
         // LInk Removal. Make sure removed link is UNASSOCIATED.
         reconfigureMloLinksInfoWithOneLink();
@@ -9067,6 +9076,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         links = mWifiInfo.getAffiliatedMloLinks();
         assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
         assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_UNASSOCIATED);
+        // One link is unassociated.
+        assertEquals(2, mWifiInfo.getAffiliatedMloLinks().size());
+        assertEquals(1, mWifiInfo.getAssociatedMloLinks().size());
+
     }
 
     /**

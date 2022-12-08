@@ -24,6 +24,8 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkScore;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.MloLink;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConnectedSessionInfo;
 import android.net.wifi.WifiInfo;
@@ -202,6 +204,17 @@ public class WifiScoreReport {
                 int newTxLinkSpeed = pollResults.getTxLinkSpeed();
                 int newFrequency = pollResults.getFrequency();
                 int newRxLinkSpeed = pollResults.getRxLinkSpeed();
+
+                /* Set link specific signal poll results */
+                for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+                    int linkId = link.getLinkId();
+                    link.setRssi(pollResults.getRssi(linkId));
+                    link.setTxLinkSpeedMbps(pollResults.getTxLinkSpeed(linkId));
+                    link.setRxLinkSpeedMbps(pollResults.getRxLinkSpeed(linkId));
+                    link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(
+                            pollResults.getFrequency(linkId)));
+                    link.setBand(ScanResult.toBand(pollResults.getFrequency(linkId)));
+                }
 
                 if (newRssi > WifiInfo.INVALID_RSSI && newRssi < WifiInfo.MAX_RSSI) {
                     if (newRssi > (WifiInfo.INVALID_RSSI + 256)) {

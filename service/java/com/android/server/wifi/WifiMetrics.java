@@ -34,6 +34,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
+import android.net.wifi.MloLink;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SoftApCapability;
@@ -6564,7 +6565,8 @@ public class WifiMetrics {
             // TODO(b/179518316): Enable this for secondary transient STA also if external scorer
             // is in charge of MBB.
             sendWifiUsabilityStats(mSeqNumInsideFramework, isSameBssidAndFreq,
-                    createNewWifiUsabilityStatsEntryParcelable(wifiUsabilityStatsEntry));
+                    createNewWifiUsabilityStatsEntryParcelable(wifiUsabilityStatsEntry, stats,
+                            info));
 
             mSeqNumInsideFramework++;
             mProbeStatusSinceLastUpdate =
@@ -6594,8 +6596,123 @@ public class WifiMetrics {
         mOnWifiUsabilityListeners.finishBroadcast();
     }
 
+    private android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[]
+            convertContentionTimeStats(WifiLinkLayerStats stats) {
+        android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[] contentionTimeStatsArray =
+                new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[
+                        android.net.wifi.WifiUsabilityStatsEntry.NUM_WME_ACCESS_CATEGORIES];
+        for (int ac = 0; ac < android.net.wifi.WifiUsabilityStatsEntry.NUM_WME_ACCESS_CATEGORIES;
+                ac++) {
+            android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats contentionTimeStats = null;
+            switch (ac) {
+                case android.net.wifi.WifiUsabilityStatsEntry.WME_ACCESS_CATEGORY_BE:
+                    contentionTimeStats =
+                            new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats(
+                                    stats.contentionTimeMinBeInUsec,
+                                    stats.contentionTimeMaxBeInUsec,
+                                    stats.contentionTimeAvgBeInUsec,
+                                    stats.contentionNumSamplesBe
+                            );
+                    break;
+                case android.net.wifi.WifiUsabilityStatsEntry.WME_ACCESS_CATEGORY_BK:
+                    contentionTimeStats =
+                            new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats(
+                                    stats.contentionTimeMinBkInUsec,
+                                    stats.contentionTimeMaxBkInUsec,
+                                    stats.contentionTimeAvgBkInUsec,
+                                    stats.contentionNumSamplesBk
+                            );
+                    break;
+                case android.net.wifi.WifiUsabilityStatsEntry.WME_ACCESS_CATEGORY_VO:
+                    contentionTimeStats =
+                            new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats(
+                                    stats.contentionTimeMinVoInUsec,
+                                    stats.contentionTimeMaxVoInUsec,
+                                    stats.contentionTimeAvgVoInUsec,
+                                    stats.contentionNumSamplesVo
+                            );
+                    break;
+                case android.net.wifi.WifiUsabilityStatsEntry.WME_ACCESS_CATEGORY_VI:
+                    contentionTimeStats =
+                            new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats(
+                                    stats.contentionTimeMinViInUsec,
+                                    stats.contentionTimeMaxViInUsec,
+                                    stats.contentionTimeAvgViInUsec,
+                                    stats.contentionNumSamplesVi
+                            );
+                    break;
+                default:
+                    Log.d(TAG, "Unknown WME Access Category: " + ac);
+                    contentionTimeStats = null;
+            }
+            contentionTimeStatsArray[ac] = contentionTimeStats;
+        }
+        return contentionTimeStatsArray;
+    }
+
+    private android.net.wifi.WifiUsabilityStatsEntry.RateStats[] convertRateStats(
+            WifiLinkLayerStats stats) {
+        android.net.wifi.WifiUsabilityStatsEntry.RateStats[] rateStats = null;
+        if (stats.peerInfo != null && stats.peerInfo.length > 0
+                && stats.peerInfo[0].rateStats != null) {
+            int numRates = stats.peerInfo[0].rateStats != null
+                    ? stats.peerInfo[0].rateStats.length : 0;
+            rateStats = new android.net.wifi.WifiUsabilityStatsEntry.RateStats[numRates];
+            for (int i = 0; i < numRates; i++) {
+                WifiLinkLayerStats.RateStat curRate = stats.peerInfo[0].rateStats[i];
+                android.net.wifi.WifiUsabilityStatsEntry.RateStats rate =
+                        new android.net.wifi.WifiUsabilityStatsEntry.RateStats(curRate.preamble,
+                                curRate.nss, curRate.bw, curRate.rateMcsIdx, curRate.bitRateInKbps,
+                                curRate.txMpdu, curRate.rxMpdu, curRate.mpduLost, curRate.retries);
+                rateStats[i] = rate;
+            }
+        }
+        return rateStats;
+    }
+
+    private SparseArray<android.net.wifi.WifiUsabilityStatsEntry.LinkStats> convertLinkStats(
+            WifiLinkLayerStats stats, WifiInfo info) {
+        SparseArray<android.net.wifi.WifiUsabilityStatsEntry.LinkStats> linkStats =
+                new SparseArray<>();
+        if (stats == null || stats.links == null || stats.links.length == 0) return linkStats;
+        // Create a link id to MLO link mapping
+        SparseArray<MloLink> mloLinks = new SparseArray<>();
+        for (MloLink link: info.getAffiliatedMloLinks()) {
+            mloLinks.put(link.getLinkId(), link);
+        }
+        // Fill per link stats.
+        for (WifiLinkLayerStats.LinkSpecificStats inStat : stats.links) {
+            if (inStat == null) break;
+            // Note: RSSI, Tx & Rx link speed are derived from signal poll stats which is updated in
+            // Mlolink or WifiInfo (non-MLO case).
+            android.net.wifi.WifiUsabilityStatsEntry.LinkStats outStat =
+                    new android.net.wifi.WifiUsabilityStatsEntry.LinkStats(inStat.link_id,
+                            inStat.radio_id,
+                            (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
+                                    new MloLink()).getRssi() : info.getRssi(),
+                            (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
+                                    new MloLink()).getTxLinkSpeedMbps() : info.getTxLinkSpeedMbps(),
+                            (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
+                                    new MloLink()).getRxLinkSpeedMbps() : info.getRxLinkSpeedMbps(),
+                            inStat.txmpdu_be + inStat.txmpdu_bk + inStat.txmpdu_vi
+                                    + inStat.txmpdu_vo,
+                            inStat.retries_be + inStat.retries_be + inStat.retries_vi
+                                    + inStat.retries_vo,
+                            inStat.lostmpdu_be + inStat.lostmpdu_bk + inStat.lostmpdu_vo
+                                    + inStat.lostmpdu_vi,
+                            inStat.rxmpdu_be + inStat.rxmpdu_bk + inStat.rxmpdu_vo
+                                    + inStat.rxmpdu_vi,
+                            inStat.beacon_rx,
+                            inStat.timeSliceDutyCycleInPercent, convertContentionTimeStats(stats),
+                            convertRateStats(stats));
+            linkStats.put(inStat.link_id, outStat);
+        }
+
+        return linkStats;
+    }
+
     private android.net.wifi.WifiUsabilityStatsEntry createNewWifiUsabilityStatsEntryParcelable(
-            WifiUsabilityStatsEntry s) {
+            WifiUsabilityStatsEntry s, WifiLinkLayerStats stats, WifiInfo info) {
         int probeStatus;
         switch (s.probeStatusSinceLastUpdate) {
             case WifiUsabilityStatsEntry.PROBE_STATUS_NO_PROBE:
@@ -6634,7 +6751,8 @@ public class WifiMetrics {
                 s.probeElapsedTimeSinceLastUpdateMs, s.probeMcsRateSinceLastUpdate,
                 s.rxLinkSpeedMbps, s.timeSliceDutyCycleInPercent, contentionTimeStats, rateStats,
                 radioStats, s.channelUtilizationRatio, s.isThroughputSufficient,
-                s.isWifiScoringEnabled, s.isCellularDataAvailable, 0, 0, 0, false
+                s.isWifiScoringEnabled, s.isCellularDataAvailable, 0, 0, 0, false,
+                convertLinkStats(stats, info)
         );
     }
 

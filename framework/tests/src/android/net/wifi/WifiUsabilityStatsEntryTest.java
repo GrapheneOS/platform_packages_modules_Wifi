@@ -24,6 +24,7 @@ import android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats;
 import android.net.wifi.WifiUsabilityStatsEntry.RadioStats;
 import android.net.wifi.WifiUsabilityStatsEntry.RateStats;
 import android.os.Parcel;
+import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
 
@@ -85,17 +86,25 @@ public class WifiUsabilityStatsEntryTest {
         radioStats[0] = new RadioStats(0, 10, 11, 12, 13, 14, 15, 16, 17, 18);
         radioStats[1] = new RadioStats(1, 20, 21, 22, 23, 24, 25, 26, 27, 28);
 
+        SparseArray<WifiUsabilityStatsEntry.LinkStats> linkStats = new SparseArray<>();
+        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0, 0, -50, 300, 200, 188, 2, 2, 100,
+                300, 100,
+                contentionTimeStats, rateStats));
+        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(1, 0, -40, 860, 600, 388, 2, 2, 200,
+                400, 100,
+                contentionTimeStats, rateStats));
+
         WifiUsabilityStatsEntry usabilityStatsEntry = new WifiUsabilityStatsEntry(
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
                 32, contentionTimeStats, rateStats, radioStats, 100, true,
-                true, true, 23, 24, 25, true);
+                true, true, 23, 24, 25, true, linkStats);
         assertEquals(32, usabilityStatsEntry.getTimeSliceDutyCycleInPercent());
 
         WifiUsabilityStatsEntry usabilityStatsEntryWithInvalidDutyCycleValue =
                 new WifiUsabilityStatsEntry(
                         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                         21, 22, -1, contentionTimeStats, rateStats, radioStats, 101, true, true,
-                        true, 23, 24, 25, true);
+                        true, 23, 24, 25, true, linkStats);
         try {
             usabilityStatsEntryWithInvalidDutyCycleValue.getTimeSliceDutyCycleInPercent();
             fail();
@@ -128,11 +137,18 @@ public class WifiUsabilityStatsEntryTest {
         RadioStats[] radioStats = new RadioStats[2];
         radioStats[0] = new RadioStats(0, 10, 11, 12, 13, 14, 15, 16, 17, 18);
         radioStats[1] = new RadioStats(1, 20, 21, 22, 23, 24, 25, 26, 27, 28);
+        SparseArray<WifiUsabilityStatsEntry.LinkStats> linkStats = new SparseArray<>();
+        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0, 0, -50, 300, 200, 188, 2, 2, 100,
+                300, 100,
+                contentionTimeStats, rateStats));
+        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(1, 0, -40, 860, 600, 388, 2, 2, 200,
+                400, 100,
+                contentionTimeStats, rateStats));
 
         return new WifiUsabilityStatsEntry(
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
                 50, contentionTimeStats, rateStats, radioStats, 102, true,
-                true, true, 23, 24, 25, true
+                true, true, 23, 24, 25, true, linkStats
         );
     }
 
