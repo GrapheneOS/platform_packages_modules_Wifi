@@ -148,6 +148,7 @@ public class WifiDataStallTest extends WifiBaseTest {
         mWifiDataStall = new WifiDataStall(mWifiMetrics, mContext,
                 mDeviceConfigFacade, mWifiChannelUtilization, mClock, mHandler,
                 mThroughputPredictor, mActiveModeWarden, mClientModeImplMonitor);
+        mWifiDataStall.enableVerboseLogging(true);
         mOldLlStats.txmpdu_be = 1000;
         mOldLlStats.retries_be = 1000;
         mOldLlStats.lostmpdu_be = 3000;
@@ -386,6 +387,7 @@ public class WifiDataStallTest extends WifiBaseTest {
                 WifiIsUnusableEvent.TYPE_DATA_STALL_BAD_TX);
     }
 
+
     /**
      * Verify there is no data stall from tx failures if tx is not consecutively bad
      */
@@ -416,7 +418,11 @@ public class WifiDataStallTest extends WifiBaseTest {
      */
     @Test
     public void verifyDataStallRxFailure() throws Exception {
-        when(mWifiInfo.getRxLinkSpeedMbps()).thenReturn(1);
+        when(mWifiInfo.getRxLinkSpeedMbps()).thenReturn(2);
+        when(mDeviceConfigFacade.getTputSufficientRatioThrDen()).thenReturn(1);
+        when(mDeviceConfigFacade.getTputSufficientRatioThrNum()).thenReturn(3);
+        when(mDeviceConfigFacade.getRxTputSufficientLowThrKbps()).thenReturn(1);
+
         mNewLlStats.retries_be = 2 * mOldLlStats.retries_be;
         when(mClock.getElapsedSinceBootMillis()).thenReturn(10L);
         assertEquals(WifiIsUnusableEvent.TYPE_UNKNOWN, mWifiDataStall
@@ -431,7 +437,7 @@ public class WifiDataStallTest extends WifiBaseTest {
                         mCapabilities, mOldLlStats, mNewLlStats, mWifiInfo, mTxBytes, mRxBytes));
         assertEquals(false, mWifiDataStall.isThroughputSufficient());
         assertEquals(4804, mWifiDataStall.getTxThroughputKbps());
-        assertEquals(960, mWifiDataStall.getRxThroughputKbps());
+        assertEquals(1921, mWifiDataStall.getRxThroughputKbps());
         verify(mWifiMetrics).logWifiIsUnusableEvent(TEST_IFACE_NAME,
                 WifiIsUnusableEvent.TYPE_DATA_STALL_TX_WITHOUT_RX);
     }

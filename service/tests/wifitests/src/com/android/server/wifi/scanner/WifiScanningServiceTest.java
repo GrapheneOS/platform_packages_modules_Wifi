@@ -3605,4 +3605,43 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mWifiScanningServiceImpl.stopPnoScan(client.listener, TEST_PACKAGE_NAME, null);
         mLooper.dispatchAll();
     }
+
+    /**
+     * Do a single scan and then stop.
+     * Expect scan canceled.
+     */
+    @Test
+    public void sendSingleScanRequestAndThenStop()
+            throws Exception {
+        WifiScanner.ScanSettings requestSettings = createRequest(channelsToSpec(2412), 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        ScanResults results = ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED, 2412);
+
+        startServiceAndLoadDriver();
+
+        when(mWifiScannerImpl0.startSingleScan(any(WifiNative.ScanSettings.class),
+                any(WifiNative.ScanEventHandler.class))).thenReturn(true);
+
+        TestClient client = new TestClient();
+        InOrder order = inOrder(client.listener, mWifiScannerImpl0);
+
+        // Run scan
+        client.sendSingleScanRequest(requestSettings, null);
+        mLooper.dispatchAll();
+        client.verifySuccessfulResponse();
+        WifiNative.ScanEventHandler eventHandler = verifyStartSingleScan(order,
+                computeSingleScanNativeSettings(requestSettings));
+        //Stop scan
+        mWifiScanningServiceImpl.stopScan(client.listener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+        mLooper.dispatchAll();
+        // dispatch scan results
+        when(mWifiScannerImpl0.getLatestSingleScanResults())
+                .thenReturn(results.getScanData());
+        eventHandler.onScanStatus(WifiNative.WIFI_SCAN_RESULTS_AVAILABLE);
+
+        // Stopped scan should not receive results
+        mLooper.dispatchAll();
+        order.verify(client.listener, never()).onResults(any());
+        order.verify(client.listener, never()).onSingleScanCompleted();
+    }
 }
