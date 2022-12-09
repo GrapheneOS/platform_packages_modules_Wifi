@@ -38,6 +38,7 @@ import android.hardware.wifi.supplicant.BssTmDataFlagsMask;
 import android.hardware.wifi.supplicant.BssTmStatusCode;
 import android.hardware.wifi.supplicant.BssidChangeReason;
 import android.hardware.wifi.supplicant.DppAkm;
+import android.hardware.wifi.supplicant.DppConfigurationData;
 import android.hardware.wifi.supplicant.DppConnectionKeys;
 import android.hardware.wifi.supplicant.DppEventType;
 import android.hardware.wifi.supplicant.DppFailureCode;
@@ -488,6 +489,19 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public void onDppSuccessConfigReceived(byte[] ssid, String password,
             byte[] psk, int securityAkm, DppConnectionKeys keys) {
+        processDppConfigReceivedEvent(ssid, password, psk, securityAkm, keys,
+                false);
+    }
+
+    @Override
+    public void onDppConfigReceived(DppConfigurationData configData) {
+        processDppConfigReceivedEvent(configData.ssid, configData.password, configData.psk,
+                configData.securityAkm, configData.dppConnectionKeys,
+                configData.connStatusRequested);
+    }
+
+    private void processDppConfigReceivedEvent(byte[] ssid, String password,
+            byte[] psk, int securityAkm, DppConnectionKeys keys, boolean connStatusRequested) {
         if (mStaIfaceHal.getDppCallback() == null) {
             Log.e(TAG, "onDppSuccessConfigReceived callback is null");
             return;
@@ -530,7 +544,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                 .getNameForUid(Process.WIFI_UID);
         newWifiConfiguration.status = WifiConfiguration.Status.ENABLED;
 
-        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration);
+        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration,
+                connStatusRequested);
     }
 
     @Override
@@ -542,6 +557,16 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             Log.e(TAG, "onSuccessConfigSent callback is null");
         }
     }
+
+    @Override
+    public void onDppConnectionStatusResultSent(int result) {
+        if (mStaIfaceHal.getDppCallback() != null) {
+            mStaIfaceHal.getDppCallback().onConnectionStatusResultSent(result);
+        } else {
+            Log.e(TAG, "onConnectionStatusResultSent callback is null");
+        }
+    }
+
 
     @Override
     public void onDppProgress(int code) {
@@ -1220,5 +1245,39 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public int getInterfaceVersion() {
         return ISupplicantStaIfaceCallback.VERSION;
+    }
+
+    private String getMloLinksInfoChangedReasonStr(int reason) {
+        switch (reason) {
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.TID_TO_LINK_MAP:
+                return "TID_TO_LINK_MAP";
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL:
+                return "MULTI_LINK_RECONFIG_AP_REMOVAL";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    private WifiMonitor.MloLinkInfoChangeReason convertMloLinkInfoChangedReason(int reason) {
+        switch (reason) {
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.TID_TO_LINK_MAP:
+                return WifiMonitor.MloLinkInfoChangeReason.TID_TO_LINK_MAP;
+            case ISupplicantStaIfaceCallback.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL:
+                return WifiMonitor.MloLinkInfoChangeReason.MULTI_LINK_RECONFIG_AP_REMOVAL;
+            default:
+                return WifiMonitor.MloLinkInfoChangeReason.UNKNOWN;
+        }
+    }
+
+    @Override
+    public void onMloLinksInfoChanged(int reason)
+            throws android.os.RemoteException {
+        synchronized (mLock) {
+            mStaIfaceHal.logCallback(
+                    "onMloLinksInfoChanged: reason " + Integer.toString(reason) + " ("
+                            + getMloLinksInfoChangedReasonStr(reason) + ")");
+            mWifiMonitor.broadcastMloLinksInfoChanged(mIfaceName,
+                    convertMloLinkInfoChangedReason(reason));
+        }
     }
 }

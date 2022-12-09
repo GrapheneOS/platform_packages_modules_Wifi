@@ -80,9 +80,10 @@ public class DppManager {
 
     private final DppEventCallback mDppEventCallback = new DppEventCallback() {
         @Override
-        public void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration) {
+        public void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration,
+                boolean connStatusRequested) {
             mHandler.post(() -> {
-                DppManager.this.onSuccessConfigReceived(newWifiConfiguration);
+                DppManager.this.onSuccessConfigReceived(newWifiConfiguration, connStatusRequested);
             });
         }
 
@@ -112,6 +113,14 @@ public class DppManager {
             mHandler.post(() -> {
                 DppManager.this.onDppConfiguratorKeyUpdate(key);
             });
+        }
+
+        @Override
+        public void onConnectionStatusResultSent(int result) {
+            mHandler.post(() -> {
+                DppManager.this.onConnectionStatusResultSent(result);
+            });
+
         }
     };
 
@@ -564,8 +573,13 @@ public class DppManager {
                 Log.e(TAG, "Failed to stop DPP Initiator");
             }
         }
-
         mDppRequestInfo.isGeneratingSelfConfiguration = false;
+
+        if (mDppRequestInfo.connStatusRequested) {
+            logd("skip DPP resource cleanup - waiting for send connection status result");
+            return;
+        }
+
         cleanupDppResources();
 
         logd("Success: Stopped DPP Session");
@@ -620,6 +634,7 @@ public class DppManager {
         public int bootstrapId;
         public int networkId;
         public boolean isGeneratingSelfConfiguration = false;
+        public boolean connStatusRequested = false;
 
         @Override
         public String toString() {
@@ -629,7 +644,8 @@ public class DppManager {
                     .append(", peerId=").append(peerId)
                     .append(", authRole=").append(authRole)
                     .append(", bootstrapId=").append(bootstrapId)
-                    .append(", nId=").append(networkId).toString();
+                    .append(", nId=").append(networkId)
+                    .append(", connStatusRequested=").append(connStatusRequested).toString();
         }
     }
 
@@ -642,9 +658,10 @@ public class DppManager {
         mVerboseLoggingEnabled = verboseEnabled;
     }
 
-    private void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration) {
+    private void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration,
+            boolean connStatusRequested) {
         try {
-            logd("onSuccessConfigReceived");
+            logd("onSuccessConfigReceived: connection status requested: " + connStatusRequested);
 
             if (mDppRequestInfo != null && mDppRequestInfo.isGeneratingSelfConfiguration) {
                 WifiConfiguration existingWifiConfig = mWifiConfigManager
@@ -688,6 +705,7 @@ public class DppManager {
                     if (mDppRequestInfo.authRole == DPP_AUTH_ROLE_RESPONDER) {
                         mDppMetrics.updateDppEnrolleeResponderSuccess();
                     }
+                    mDppRequestInfo.connStatusRequested = connStatusRequested;
                     mDppRequestInfo.callback.onSuccessConfigReceived(
                             networkUpdateResult.getNetworkId());
                 } else {
@@ -704,8 +722,15 @@ public class DppManager {
             Log.e(TAG, "Callback failure");
         }
 
-        // Success, DPP is complete. Clear the DPP session automatically
-        cleanupDppResources();
+        // Success
+        // If Peer configurator has not requested for connection status,
+        // DPP session is completed. Clear the DPP session immediately, otherwise wait for
+        // send connection status result
+        if (!mDppRequestInfo.connStatusRequested) {
+            cleanupDppResources();
+        } else {
+            Log.d(TAG, "Wait for enrollee to send connection status");
+        }
     }
 
     private void onSuccess(int dppStatusCode) {
@@ -828,6 +853,16 @@ public class DppManager {
                 Log.e(TAG, "Failed to update DPP configurator key.");
             }
         }
+    }
+
+    private void onConnectionStatusResultSent(int result) {
+        if (mDppRequestInfo == null) {
+            Log.e(TAG,
+                    "onConnectionStatusResultSent event without a request information object");
+            return;
+        }
+        logd("onConnectionStatusResultSent: result code: " + result);
+        cleanupDppResources();
     }
 
     /**
