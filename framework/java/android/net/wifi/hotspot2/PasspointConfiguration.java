@@ -37,6 +37,7 @@ import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.EventLog;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
@@ -950,6 +951,13 @@ public final class PasspointConfiguration implements Parcelable {
 
         // Optional: PerProviderSubscription/<X+>/Policy
         if (mPolicy != null && !mPolicy.validate()) {
+            return false;
+        }
+        // Optional: DecoratedIdentityPrefix
+        if (!TextUtils.isEmpty(mDecoratedIdentityPrefix)
+                && !mDecoratedIdentityPrefix.endsWith("!")) {
+            EventLog.writeEvent(0x534e4554, "246539931", -1,
+                    "Invalid decorated identity prefix");
             return false;
         }
 
