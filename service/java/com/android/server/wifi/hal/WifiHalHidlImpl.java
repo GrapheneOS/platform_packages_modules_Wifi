@@ -28,6 +28,7 @@ import android.os.IHwBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
 
@@ -456,7 +457,7 @@ public class WifiHalHidlImpl implements IWifiHal {
      */
     protected static boolean serviceDeclared() {
         try {
-            IServiceManager serviceManager = getServiceManagerMockable();
+            IServiceManager serviceManager = getServiceManager();
             if (serviceManager == null) {
                 Log.e(TAG, "Unable to get service manager to check for service.");
                 return false;
@@ -552,13 +553,19 @@ public class WifiHalHidlImpl implements IWifiHal {
         return android.hardware.wifi.V1_5.IWifi.castFrom(mWifi);
     }
 
-    protected static IServiceManager getServiceManagerMockable() {
+    private static IServiceManager getServiceManager() {
         try {
             return IServiceManager.getService();
         } catch (RemoteException e) {
             Log.e(TAG, "Exception getting IServiceManager: " + e);
             return null;
         }
+    }
+
+    // Non-static wrapper to allow mocking in the unit tests.
+    @VisibleForTesting
+    protected IServiceManager getServiceManagerMockable() {
+        return getServiceManager();
     }
 
     protected IWifi getWifiServiceMockable() {
