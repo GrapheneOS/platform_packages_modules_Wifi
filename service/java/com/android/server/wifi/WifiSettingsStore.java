@@ -380,8 +380,8 @@ public class WifiSettingsStore {
         pw.println("AirplaneModeEnhancementEnabled "
                 + mDeviceConfigFacade.isApmEnhancementEnabled());
         if (mAirplaneModeOn) {
-            pw.println("WifiOnBeforeEnteringApm" + mIsWifiOnBeforeEnteringApm);
-            pw.println("WifiOnAfterEnteringApm" + mIsWifiOnAfterEnteringApm);
+            pw.println("WifiOnBeforeEnteringApm " + mIsWifiOnBeforeEnteringApm);
+            pw.println("WifiOnAfterEnteringApm " + mIsWifiOnAfterEnteringApm);
             pw.println("UserToggledWifiDuringApm " + mUserToggledWifiDuringApm);
             pw.println("UserToggledWifiAfterEnteringApmWithinMinute "
                     + mUserToggledWifiAfterEnteringApmWithinMinute);
