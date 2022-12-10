@@ -33,7 +33,6 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.text.Editable;
@@ -245,11 +244,9 @@ public class WifiDialogActivity extends Activity  {
                 mActiveCountDownTimersPerId.valueAt(i).cancel();
             }
             mActiveCountDownTimersPerId.clear();
-        } else if (getSystemService(PowerManager.class).isInteractive()) {
-            // If we're stopping because we're switching to a new Activity, cancel all the dialogs.
-            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                mActiveDialogsPerId.get(i).cancel();
-            }
+        }
+        for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+            mActiveDialogsPerId.get(i).cancel();
         }
     }
 
