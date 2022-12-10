@@ -29,6 +29,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.aware.Capabilities;
+import com.android.server.wifi.aware.PairingConfigManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -196,6 +197,9 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         public static final int ALREADY_ENABLED = 10;
         public static final int FOLLOWUP_TX_QUEUE_FULL = 11;
         public static final int UNSUPPORTED_CONCURRENCY_NAN_DISABLED = 12;
+        public static final int INVALID_PAIRING_ID = 13;
+        public static final int INVALID_BOOTSTRAPPING_ID = 14;
+
 
         /**
          * Convert NanStatusCode from HIDL to framework.
@@ -265,6 +269,10 @@ public class WifiNanIface implements WifiHal.WifiInterface {
                     return FOLLOWUP_TX_QUEUE_FULL;
                 case android.hardware.wifi.NanStatusCode.UNSUPPORTED_CONCURRENCY_NAN_DISABLED:
                     return UNSUPPORTED_CONCURRENCY_NAN_DISABLED;
+                case android.hardware.wifi.NanStatusCode.INVALID_PAIRING_ID:
+                    return INVALID_PAIRING_ID;
+                case android.hardware.wifi.NanStatusCode.INVALID_BOOTSTRAPPING_ID:
+                    return INVALID_BOOTSTRAPPING_ID;
                 default:
                     Log.e(TAG, "Unknown NanStatusType received from AIDL: " + code);
                     return -1;
@@ -476,6 +484,28 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     }
 
     /**
+     * {@link IWifiNanIface#initiateNanPairingRequest(short, int, MacAddress, byte[], boolean, int, byte[], String, int)}
+     */
+    public boolean initiatePairing(short transactionId, int peerId, MacAddress peer,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        return validateAndCall("initiatePairing", false,
+                () -> mWifiNanIface.initiateNanPairingRequest(transactionId, peerId, peer,
+                        pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm));
+    }
+
+    /**
+     * {@link IWifiNanIface#respondToPairingRequest(short, int, boolean, byte[], boolean, int, byte[], String, int)}
+     */
+    public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        return validateAndCall("respondToPairingRequest", false,
+                () -> mWifiNanIface.respondToPairingRequest(transactionId, pairingId, accept,
+                        pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm));
+    }
+
+    /**
      * Framework callback object. Will get called when the equivalent events are received
      * from the HAL.
      */
@@ -568,6 +598,36 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         void notifyTerminateDataPathResponse(short id, int status);
 
         /**
+         * Invoked in response to a initiate NAN pairing request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifyInitiatePairingResponse(short id, int status,
+                int pairingInstanceId);
+
+        /**
+         * Invoked in response to a response NAN pairing request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifyRespondToPairingIndicationResponse(short id, int status);
+
+        /**
+         * Invoked in response to a initiate NAN Bootstrapping request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifyInitiateBootstrappingResponse(short id, int status,
+                int bootstrappingInstanceId);
+
+        /**
+         * Invoked in response to a response NAN Bootstrapping request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifyRespondToBootstrappingIndicationResponse(short id, int status);
+
+        /**
          * Indicates that a cluster event has been received.
          * @param eventType Type of the cluster event (see {@link NanClusterEventType}).
          * @param addr MAC Address associated with the corresponding event.
@@ -602,24 +662,22 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          *               or to set up a data-path.
          * @param addr NAN Discovery (management) MAC address of the peer.
          * @param serviceSpecificInfo The arbitrary information contained in the
-*                            |NanDiscoveryCommonConfig.serviceSpecificInfo| of
-*                            the peer's discovery session configuration.
+         *                            |NanDiscoveryCommonConfig.serviceSpecificInfo| of
+         *                            the peer's discovery session configuration.
          * @param matchFilter The match filter from the discovery packet (publish or subscribe)
-*                    which caused service discovery. Matches the
-*                    |NanDiscoveryCommonConfig.txMatchFilter| of the peer's unsolicited
-*                    publish message or of the local device's Active subscribe message.
+         *                    which caused service discovery. Matches the
+         *                    |NanDiscoveryCommonConfig.txMatchFilter| of the peer's unsolicited
+         *                    publish message or of the local device's Active subscribe message.
          * @param rangingIndicationType The ranging event(s) which triggered the ranging. Ex. can
-*                              indicate that continuous ranging was requested, or else that
-*                              an ingress event occurred. See {@link NanRangingIndication}.
+         *                              indicate that continuous ranging was requested, or else that
+         *                              an ingress event occurred. See {@link NanRangingIndication}.
          * @param rangingMeasurementInMm If ranging was required and executed, contains the
-*                               distance to the peer in mm.
+         *                               distance to the peer in mm.
          * @param scid Security Context Identifier identifies the Security Context.
-*             For NAN Shared Key Cipher Suite, this field contains the 16 octet PMKID
-*             identifying the PMK used for setting up the Secure Data Path.
+         *             For NAN Shared Key Cipher Suite, this field contains the 16 octet PMKID
+         *             identifying the PMK used for setting up the Secure Data Path.
          * @param peerCipherType Cipher type for data-paths constructed in the context of this
-         * @param nonce
-         * @param tag
-         * @param pairingConfig
+         *                       discovery session.
          */
         void eventMatch(byte discoverySessionId, int peerId, byte[] addr,
                 byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndicationType,
@@ -702,5 +760,29 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * @param ndpInstanceId Data-path ID of the terminated data-path.
          */
         void eventDataPathTerminated(int ndpInstanceId);
+
+        /**
+         * Indicates that the pairing request is from the peer device.
+         */
+        void eventPairingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
+                int ndpInstanceId, int requestType, boolean enableCache, byte[] nonce, byte[] tag);
+
+        /**
+         * Indicates that the pairing is finished
+         */
+        void eventPairingConfirm(int pairingId, boolean accept, int reason, int requestType,
+                boolean enableCache,
+                PairingConfigManager.PairingSecurityAssociationInfo npksa);
+
+        /**
+         * Indicates that the bootstrapping request is from the peer device.
+
+        void eventBootstrappingRequest(NanBootstrappingRequestInd event);
+
+        /**
+         * Indicates that the bootstrapping is finished
+
+        void eventBootstrappingConfirm(NanBootstrappingConfirmInd event);
+         */
     }
 }

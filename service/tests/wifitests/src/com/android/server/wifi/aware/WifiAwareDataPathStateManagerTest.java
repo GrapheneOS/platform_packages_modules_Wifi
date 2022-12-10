@@ -155,6 +155,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     TestAlarmManager mAlarmManager;
     @Mock private PowerManager mMockPowerManager;
     @Mock private WifiInjector mWifiInjector;
+    @Mock private PairingConfigManager mPairingConfigManager;
 
     @Rule
     public ErrorCollector collector = new ErrorCollector();
@@ -196,7 +197,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
         when(mWifiInjector.getWifiAwareLocalLog()).thenReturn(mLocalLog);
 
-        mDut = new WifiAwareStateManager(mWifiInjector);
+        mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
                 mWifiPermissionsUtil, mPermissionsWrapperMock, mClock, mMockNetdWrapper,

@@ -590,6 +590,48 @@ public class WifiAwareManager {
         }
     }
 
+    /**
+     * @hide
+     */
+    public void initiateNanPairingSetupRequest(int clientId, int sessionId, PeerHandle peerHandle,
+            String password, String pairingDeviceAlias) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateNanPairingRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateNanPairingRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.initiateNanPairingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    password, pairingDeviceAlias);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void responseNanPairingSetupRequest(int clientId, int sessionId, PeerHandle peerHandle,
+            int requestId, String password, String pairingDeviceAlias, boolean accept) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateNanPairingRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateNanPairingRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.responseNanPairingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    requestId, password, pairingDeviceAlias, accept);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     /** @hide */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void requestMacAddresses(int uid, int[] peerIds,
@@ -1036,6 +1078,23 @@ public class WifiAwareManager {
             mHandler.sendMessage(msg);
         }
 
+        @Override
+        public void onPairingSetupRequestReceived(int peerId, int requestId) {
+            mHandler.post(() ->
+                    mOriginalCallback.onPairingSetupRequestReceived(new PeerHandle(peerId),
+                            requestId));
+        }
+        @Override
+        public void onPairingSetupConfirmed(int peerId, boolean accept, String alias) {
+            mHandler.post(() -> mOriginalCallback.onPairingSetupConfirmed(new PeerHandle(peerId),
+                            accept, alias));
+        }
+        @Override
+        public void onPairingVerificationConfirmed(int peerId, boolean accept, String alias) {
+            mHandler.post(() -> mOriginalCallback.onPairingVerificationConfirmed(
+                    new PeerHandle(peerId), accept, alias));
+        }
+
         /*
          * Proxied methods
          */
@@ -1096,4 +1155,34 @@ public class WifiAwareManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Reset all paired devices setup by the caller by
+     * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     */
+    @RequiresPermission(CHANGE_WIFI_STATE)
+    public void resetPairedDevices() {
+        try {
+            mService.resetPairedDevices(mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Remove the target paired device setup by the caller by
+     * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     * @param alias The alias set by the caller
+     */
+    @RequiresPermission(CHANGE_WIFI_STATE)
+    public void removePairedDevice(@NonNull String alias) {
+        try {
+            mService.removePairedDevice(mContext.getOpPackageName(), alias);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
 }

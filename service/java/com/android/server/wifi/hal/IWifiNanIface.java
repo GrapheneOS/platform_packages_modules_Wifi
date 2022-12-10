@@ -226,4 +226,38 @@ public interface IWifiNanIface {
      * @param ndpId The NDP (Aware data path) ID to be terminated.
      */
     boolean endDataPath(short transactionId, int ndpId);
+
+    /**
+     * Response to a NAN pairing request for this from this session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param pairingId The id of the current pairing session
+     * @param accept True if accpect, false otherwise
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param pairingIdentityKey NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm);
+
+    /**
+     * Initiate a NAN pairing request for this publish/subscribe session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param pairingIdentityKey NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    boolean initiateNanPairingRequest(short transactionId, int peerId, MacAddress peer,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm);
 }

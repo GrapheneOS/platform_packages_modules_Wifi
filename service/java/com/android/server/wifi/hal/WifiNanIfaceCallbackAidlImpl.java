@@ -16,6 +16,11 @@
 
 package com.android.server.wifi.hal;
 
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_AKM_PASN;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_AKM_SAE;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION;
+
 import android.hardware.wifi.IWifiNanIfaceEventCallback;
 import android.hardware.wifi.NanBootstrappingConfirmInd;
 import android.hardware.wifi.NanBootstrappingMethod;
@@ -29,11 +34,14 @@ import android.hardware.wifi.NanDataPathRequestInd;
 import android.hardware.wifi.NanDataPathScheduleUpdateInd;
 import android.hardware.wifi.NanFollowupReceivedInd;
 import android.hardware.wifi.NanMatchInd;
+import android.hardware.wifi.NanPairingAkm;
 import android.hardware.wifi.NanPairingConfig;
 import android.hardware.wifi.NanPairingConfirmInd;
 import android.hardware.wifi.NanPairingRequestInd;
+import android.hardware.wifi.NanPairingRequestType;
 import android.hardware.wifi.NanStatus;
 import android.hardware.wifi.NanStatusCode;
+import android.hardware.wifi.NpkSecurityAssociation;
 import android.hardware.wifi.WifiChannelWidthInMhz;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
@@ -45,6 +53,7 @@ import android.net.wifi.util.HexEncoding;
 import android.util.Log;
 
 import com.android.server.wifi.aware.Capabilities;
+import com.android.server.wifi.aware.PairingConfigManager.PairingSecurityAssociationInfo;
 import com.android.server.wifi.hal.WifiNanIface.NanClusterEventType;
 import com.android.server.wifi.hal.WifiNanIface.NanRangingIndication;
 
@@ -243,23 +252,48 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public void notifyInitiatePairingResponse(char id, NanStatus status,
             int pairingInstanceId) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyInitiatePairingResponse: id=" + id
+                    + ", status=" + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifyInitiatePairingResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status), pairingInstanceId);
     }
 
     @Override
     public void notifyRespondToPairingIndicationResponse(char id, NanStatus status) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyRespondToPairingIndicationResponse: id=" + id
+                    + ", status=" + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifyRespondToPairingIndicationResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
     }
 
     @Override
     public void notifyInitiateBootstrappingResponse(char id, NanStatus status,
             int bootstrappingInstanceId) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyInitiateBootstrappingResponse: id=" + id
+                    + ", status=" + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifyInitiateBootstrappingResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status),
+                bootstrappingInstanceId);
     }
 
     @Override
     public void notifyRespondToBootstrappingIndicationResponse(char id, NanStatus status) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyRespondToBootstrappingIndicationResponse: id=" + id
+                    + ", status=" + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifyRespondToBootstrappingIndicationResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
     }
 
     @Override
@@ -473,23 +507,52 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     }
 
     @Override
-    public String getInterfaceHash() {
-        return IWifiNanIfaceEventCallback.HASH;
-    }
-
-    @Override
-    public int getInterfaceVersion() {
-        return IWifiNanIfaceEventCallback.VERSION;
-    }
-
-    @Override
     public void eventPairingRequest(NanPairingRequestInd event) {
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventPairingRequest: ndpInstanceId=");
+        }
+        mWifiNanIface.getFrameworkCallback().eventPairingRequest(event.discoverySessionId,
+                event.peerId, event.peerDiscMacAddr,
+                event.pairingInstanceId, pairingRequestTypeFromAidl(event.requestType),
+                event.enablePairingCache, event.peerNira.nonce, event.peerNira.tag);
+    }
 
+    private static int pairingRequestTypeFromAidl(@NanPairingRequestType int requestType) {
+        if (requestType == NanPairingRequestType.NAN_PAIRING_SETUP) {
+            return NAN_PAIRING_REQUEST_TYPE_SETUP;
+        }
+        return NAN_PAIRING_REQUEST_TYPE_VERIFICATION;
     }
 
     @Override
     public void eventPairingConfirm(NanPairingConfirmInd event) {
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventPairingConfirm: ndpInstanceId=");
+        }
+        mWifiNanIface.getFrameworkCallback().eventPairingConfirm(event.pairingInstanceId,
+                event.pairingSuccess, WifiNanIface.NanStatusCode.fromAidl(event.status.status),
+                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache,
+                createPairingSecurityAssociationInfo(event.npksa));
+    }
 
+    private static PairingSecurityAssociationInfo createPairingSecurityAssociationInfo(
+            NpkSecurityAssociation npksa) {
+        return new PairingSecurityAssociationInfo(npksa.peerNanIdentityKey,
+                npksa.localNanIdentityKey,
+                npksa.npk, createPublicPairingAkm(npksa.akm));
+    }
+
+    private static int createPublicPairingAkm(int aidlAkm) {
+        switch (aidlAkm) {
+            case NanPairingAkm.SAE:
+                return NAN_PAIRING_AKM_SAE;
+            case NanPairingAkm.PASN:
+                return NAN_PAIRING_AKM_PASN;
+        }
+        Log.e(TAG, "unknown pairing AKM");
+        return aidlAkm;
     }
 
     @Override
@@ -500,6 +563,16 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public void eventBootstrappingConfirm(NanBootstrappingConfirmInd event) {
 
+    }
+
+    @Override
+    public String getInterfaceHash() {
+        return IWifiNanIfaceEventCallback.HASH;
+    }
+
+    @Override
+    public int getInterfaceVersion() {
+        return IWifiNanIfaceEventCallback.VERSION;
     }
 
     private Capabilities toFrameworkCapability(NanCapabilities capabilities) {

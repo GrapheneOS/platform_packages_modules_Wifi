@@ -248,6 +248,20 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
                 () -> endDataPathInternal(methodStr, transactionId, ndpId));
     }
 
+    @Override
+    public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        return false;
+    }
+
+    @Override
+    public boolean initiateNanPairingRequest(short transactionId, int peerId, MacAddress peer,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        return false;
+    }
+
 
     // Internal Implementations
 

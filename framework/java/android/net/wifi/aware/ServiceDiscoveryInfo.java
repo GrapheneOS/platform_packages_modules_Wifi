@@ -111,7 +111,10 @@ public final class ServiceDiscoveryInfo {
     }
 
     /**
-     * Get the paired device alias if the discovered device has already paired.
+     * Get the paired device alias if the discovered device has already paired. If not null device
+     * will automatically start the NAN pairing verification,
+     * {@link DiscoverySessionCallback#onPairingVerificationConfirmed(PeerHandle, boolean, String)}
+     * will trigger when verification is finished
      */
     @Nullable
     public String getPairedAlias() {

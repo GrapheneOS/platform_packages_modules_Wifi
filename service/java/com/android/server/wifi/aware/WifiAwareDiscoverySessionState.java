@@ -19,6 +19,8 @@ package com.android.server.wifi.aware;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_24GHZ;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_5GHZ;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_DISABLED;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION;
 
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.AwarePairingConfig;
@@ -303,6 +305,105 @@ public class WifiAwareDiscoverySessionState {
     }
 
     /**
+     * Initiate a NAN pairing request for this publish/subscribe session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param nik NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    public boolean initiatePairing(short transactionId,
+            int peerId, String password, int requestType, byte[] nik, byte[] pmk, int akm) {
+        PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
+        if (peerInfo == null) {
+            Log.e(TAG, "initiatePairing: attempting to send pairing request to an address which"
+                    + "didn't match/contact us");
+            if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
+                return false;
+            }
+            try {
+                mCallback.onPairingSetupConfirmed(peerId, false, null);
+            } catch (RemoteException e) {
+                Log.e(TAG, "initiatePairing: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        boolean success = mWifiAwareNativeApi.initiatePairing(transactionId,
+                peerInfo.mInstanceId, peerInfo.mMac, nik,
+                mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
+                requestType, pmk, password, akm);
+        if (!success) {
+            if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
+                return false;
+            }
+            try {
+                mCallback.onPairingSetupConfirmed(peerId, false, null);
+            } catch (RemoteException e) {
+                Log.e(TAG, "initiatePairing: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Response to a NAN pairing request for this from this session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param pairingId The id of the current pairing session
+     * @param accept True if accpect, false otherwise
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param nik NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    public boolean respondToPairingRequest(short transactionId, int peerId, int pairingId,
+            boolean accept, byte[] nik, int requestType, byte[] pmk, String password, int akm) {
+        PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
+        if (peerInfo == null) {
+            Log.e(TAG, "respondToPairingRequest: attempting to response to message to an "
+                    + "address which didn't match/contact us");
+            if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
+                return false;
+            }
+            try {
+                mCallback.onPairingSetupConfirmed(peerId, false, null);
+            } catch (RemoteException e) {
+                Log.e(TAG, "respondToPairingRequest: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        boolean success = mWifiAwareNativeApi.respondToPairingRequest(transactionId, pairingId,
+                accept, nik, mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
+                requestType, pmk, password, akm);
+        if (!success) {
+            if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
+                return false;
+            }
+            try {
+                mCallback.onPairingSetupConfirmed(peerId, false, null);
+            } catch (RemoteException e) {
+                Log.e(TAG, "respondToPairingRequest: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Callback from HAL when a discovery occurs - i.e. when a match to an
      * active subscription request or to a solicited publish request occurs.
      * Propagates to client if registered.
@@ -316,12 +417,8 @@ public class WifiAwareDiscoverySessionState {
 *            used in the match decision).
      * @param rangingIndication Bit mask indicating the type of ranging event triggered.
      * @param rangeMm The range to the peer in mm (valid if rangingIndication specifies ingress
-     * @param peerCipherSuite
-     * @param scid
-     * @param pairingAlias
-     * @param pairingConfig
      */
-    public void onMatch(int requestorInstanceId, byte[] peerMac, byte[] serviceSpecificInfo,
+    public int onMatch(int requestorInstanceId, byte[] peerMac, byte[] serviceSpecificInfo,
             byte[] matchFilter, int rangingIndication, int rangeMm, int peerCipherSuite,
             byte[] scid, String pairingAlias,
             AwarePairingConfig pairingConfig) {
@@ -338,6 +435,7 @@ public class WifiAwareDiscoverySessionState {
         } catch (RemoteException e) {
             Log.w(TAG, "onMatch: RemoteException (FYI): " + e);
         }
+        return peerId;
     }
 
     /**
@@ -387,7 +485,39 @@ public class WifiAwareDiscoverySessionState {
         }
     }
 
-    private int getPeerIdOrAddIfNew(int requestorInstanceId, byte[] peerMac) {
+    /**
+     * Event that receive the pairing request from the peer
+     */
+    public void onPairingRequestReceived(int requestorInstanceId, byte[] peerMac,
+            int pairingId) {
+        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac);
+        try {
+            mCallback.onPairingSetupRequestReceived(peerId, pairingId);
+        } catch (RemoteException e) {
+            Log.w(TAG, "onPairingRequestReceived: RemoteException (FYI): " + e);
+        }
+    }
+
+    /**
+     * Event that receive the pairing request finished
+     */
+    public void onPairingConfirmReceived(int peerId, boolean accept, String alias,
+            int requestType) {
+        try {
+            if (requestType == NAN_PAIRING_REQUEST_TYPE_SETUP) {
+                mCallback.onPairingSetupConfirmed(peerId, accept, alias);
+            } else {
+                mCallback.onPairingVerificationConfirmed(peerId, accept, alias);
+            }
+        } catch (RemoteException e) {
+            Log.w(TAG, "onPairingConfirmReceived: RemoteException (FYI): " + e);
+        }
+    }
+
+    /**
+     * Get the ID of the peer assign by the framework
+     */
+    public int getPeerIdOrAddIfNew(int requestorInstanceId, byte[] peerMac) {
         for (int i = 0; i < mPeerInfoByRequestorInstanceId.size(); ++i) {
             PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.valueAt(i);
             if (peerInfo.mInstanceId == requestorInstanceId && Arrays.equals(peerMac,
@@ -399,7 +529,7 @@ public class WifiAwareDiscoverySessionState {
         int newPeerId = sNextPeerIdToBeAllocated++;
         PeerInfo newPeerInfo = new PeerInfo(requestorInstanceId, peerMac);
         mPeerInfoByRequestorInstanceId.put(newPeerId, newPeerInfo);
-
+        Log.d(TAG, "New peer info: peerId=" + newPeerId + ", peerInfo=" + newPeerInfo);
         mLocalLog.log("New peer info: peerId=" + newPeerId + ", peerInfo=" + newPeerInfo);
 
         return newPeerId;

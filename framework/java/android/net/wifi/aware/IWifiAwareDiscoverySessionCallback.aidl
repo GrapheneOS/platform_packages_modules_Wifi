@@ -41,4 +41,7 @@ oneway interface IWifiAwareDiscoverySessionCallback
     void onMessageSendFail(int messageId, int reason);
     void onMessageReceived(int peerId, in byte[] message);
     void onMatchExpired(int peerId);
+    void onPairingSetupRequestReceived(int peerId, int requestId);
+    void onPairingSetupConfirmed(int peerId, boolean accept, String alias);
+    void onPairingVerificationConfirmed(int peerId, boolean accept, String alias);
 }

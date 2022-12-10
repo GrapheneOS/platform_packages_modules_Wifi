@@ -124,5 +124,19 @@ public class TestUtils {
             addTransactionId(transactionId);
             return true;
         }
+
+        public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+                byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+                String password, int akm) {
+            addTransactionId(transactionId);
+            return true;
+        }
+
+        public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
+                byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+                String password, int akm) {
+            addTransactionId(transactionId);
+            return true;
+        }
     }
 }

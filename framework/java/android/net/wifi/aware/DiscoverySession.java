@@ -20,10 +20,14 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.net.NetworkSpecifier;
+import android.os.Build;
 import android.util.CloseGuard;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
+
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
@@ -251,6 +255,70 @@ public class DiscoverySession implements AutoCloseable {
     public void sendMessage(@NonNull PeerHandle peerHandle, int messageId,
             @Nullable byte[] message) {
         sendMessage(peerHandle, messageId, message, 0);
+    }
+
+    /**
+     * Initiate a Wi-Fi Aware Pairing setup request to the target peer. The NAN pairing request are
+     * set up in the context of a discovery session - executed after a publish/subscribe
+     * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], java.util.List)}
+     * event.
+     * The peer will get a callback indicating a message was received using
+     * {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}.
+     * If the NAN Pairing setup finished, both side will receive
+     * {@link DiscoverySessionCallback#onPairingSetupConfirmed(PeerHandle, boolean, String)}
+     * @param peerHandle The peer's handle for the pairing request. Must be a result of an
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
+     *{@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.
+     * @param password The password is used for the pairing setup. If set to empty or null, will use
+     *                 the opportunistic pairing
+     * @param peerDeviceAlias The alias of paired device set by caller, will help caller to identify
+     *                        the paired device.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void initiatePairingRequest(@NonNull PeerHandle peerHandle, @Nullable String password,
+            @NonNull String peerDeviceAlias) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "initiatePairingRequest: called post GC on WifiAwareManager");
+            return;
+        }
+        mgr.initiateNanPairingSetupRequest(mClientId, mSessionId, peerHandle, password,
+                peerDeviceAlias);
+    }
+
+    /**
+     * Respond to a Wi-Fi Aware Pairing setup request received from peer. This is the response to
+     * the {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}
+     * If the NAN Pairing setup finished, both side will receive
+     * {@link DiscoverySessionCallback#onPairingSetupConfirmed(PeerHandle, boolean, String)}
+     *
+     * @param requestId Id to identify the received pairing session, get by
+     * {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}
+     * @param peerHandle The peer's handle for the pairing request. Must be a result of an
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
+     * {@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.
+     * @param accept True to accept the request, false to reject.
+     * @param password The password is used for the pairing setup. If set to empty or null, will use
+     *                 the opportunistic pairing
+     * @param peerDeviceAlias The alias of paired device set by caller, will help caller to identify
+     *                        the paired device.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void respondToPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
+            boolean accept, @Nullable String password, @Nullable String peerDeviceAlias) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "initiatePairingRequest: called post GC on WifiAwareManager");
+            return;
+        }
+        mgr.responseNanPairingSetupRequest(mClientId, mSessionId, peerHandle, requestId, password,
+                peerDeviceAlias, accept);
     }
 
     /**

@@ -678,6 +678,78 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         return iface.endDataPath(transactionId, ndpId);
     }
 
+    /**
+     * Initiate a NAN pairing request for this publish/subscribe session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param pairingIdentityKey NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "initiatePairing: transactionId=" + transactionId + ", peerId=" + peerId
+                    + ", requestType=" + requestType + ", enablePairingCache=" + enablePairingCache
+                    + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "initiatePairing: null interface");
+            return false;
+        }
+
+        try {
+            MacAddress peerMac = MacAddress.fromBytes(peer);
+            return iface.initiatePairing(transactionId, peerId, peerMac,
+                    pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
+    }
+
+    /**
+     * Response to a NAN pairing request for this from this session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param pairingId The id of the current pairing session
+     * @param accept True if accpect, false otherwise
+     * @param password credential for the pairing setup
+     * @param requestType Setup or verification
+     * @param pairingIdentityKey NAN identity key
+     * @param pmk credential for the pairing verification
+     * @param akm Key exchange method is used for pairing
+     * @return True is the request send succeed.
+     */
+    public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+            String password, int akm) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "respondToDataPathRequest: transactionId=" + transactionId + ", accept="
+                    + accept + ", int pairingId=" + pairingId
+                    + ", enablePairingCache=" + enablePairingCache
+                    + ", requestType" + requestType);
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "respondToDataPathRequest: null interface");
+            return false;
+        }
+        return iface.respondToPairingRequest(transactionId, pairingId, accept,
+                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm);
+    }
+
     // utilities
 
     /**
