@@ -947,6 +947,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 WIFI_AP_STATE_DISABLING, HOTSPOT_NO_ERROR, TEST_INTERFACE_NAME,
                 softApModeConfig.getTargetMode());
         order.verify(mListener).onStopped(mSoftApManager);
+        verify(mCmiMonitor).unregisterListener(mCmiListenerCaptor.getValue());
     }
 
     /**

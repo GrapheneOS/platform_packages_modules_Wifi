@@ -123,6 +123,9 @@ public class WifiMonitor {
     /* MLO links change event */
     public static final int MLO_LINKS_INFO_CHANGED              = BASE + 77;
 
+    /* the AT_PERMANENT_ID_REQ denied indication for EAP-SIM/AKA/AKA' */
+    public static final int PERMANENT_ID_REQ_DENIED_INDICATION = BASE + 78;
+
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
     private static final int CONFIG_AUTH_FAILURE = 18;
@@ -649,6 +652,19 @@ public class WifiMonitor {
     public void broadcastCertificationEvent(String iface, int networkId, String ssid,
             int depth, X509Certificate cert) {
         sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, depth, cert);
+    }
+
+    /**
+     * Broadcast the indication of AT_PERMANENT_ID_REQ denied for EAP-SIM/AKA/AKA'
+     * when the strict conservative peer mode is enabled.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param networkId ID of the network in wpa_supplicant.
+     * @param ssid SSID of the network.
+     */
+    public void broadcastPermanentIdReqDenied(String iface, int networkId,
+            String ssid) {
+        sendMessage(iface, PERMANENT_ID_REQ_DENIED_INDICATION, 0, networkId, ssid);
     }
 
     /**
