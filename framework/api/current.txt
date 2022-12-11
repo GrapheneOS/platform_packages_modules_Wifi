@@ -558,7 +558,7 @@ package android.net.wifi {
     field public static final int WIFI_INTERFACE_TYPE_DIRECT = 3; // 0x3
     field public static final int WIFI_INTERFACE_TYPE_STA = 0; // 0x0
     field @Deprecated public static final int WIFI_MODE_FULL = 1; // 0x1
-    field public static final int WIFI_MODE_FULL_HIGH_PERF = 3; // 0x3
+    field @Deprecated public static final int WIFI_MODE_FULL_HIGH_PERF = 3; // 0x3
     field public static final int WIFI_MODE_FULL_LOW_LATENCY = 4; // 0x4
     field @Deprecated public static final int WIFI_MODE_SCAN_ONLY = 2; // 0x2
     field public static final int WIFI_MULTI_INTERNET_MODE_DBS_AP = 1; // 0x1
