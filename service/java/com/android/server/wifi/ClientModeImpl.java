@@ -7533,9 +7533,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         tmpConfigForCurrentSecurityParams.setSecurityParams(params);
         if (!WifiConfigurationUtil.isConfigLinkable(tmpConfigForCurrentSecurityParams)) return;
 
-        // check for FT/PSK
+        // Don't set SSID allowlist if we're connected to a network with Fast BSS Transition.
         ScanResult scanResult = mScanRequestProxy.getScanResult(mLastBssid);
-        if (scanResult == null || scanResult.capabilities.contains("FT/PSK")) {
+        if (scanResult == null || scanResult.capabilities.contains("FT/PSK")
+                || scanResult.capabilities.contains("FT/SAE")) {
             return;
         }
 
