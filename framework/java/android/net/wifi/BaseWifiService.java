@@ -525,7 +525,34 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void enableTdlsWithRemoteIpAddress(String remoteIPAddress, boolean enable,
+            @NonNull IBooleanListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void enableTdlsWithMacAddress(String remoteMacAddress, boolean enable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void enableTdlsWithRemoteMacAddress(String remoteMacAddress, boolean enable,
+            @NonNull IBooleanListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void isTdlsOperationCurrentlyAvailable(@NonNull IBooleanListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getMaxSupportedConcurrentTdlsSessions(@NonNull IIntegerListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getNumberOfEnabledTdlsSessions(@NonNull IIntegerListener listener) {
         throw new UnsupportedOperationException();
     }
 

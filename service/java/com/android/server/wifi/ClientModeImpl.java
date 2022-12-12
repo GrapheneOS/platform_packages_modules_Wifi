@@ -21,6 +21,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA256;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA384;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_TDLS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
@@ -347,6 +348,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private int mTargetNetworkId = WifiConfiguration.INVALID_NETWORK_ID;
     private WifiConfiguration mTargetWifiConfiguration = null;
     @Nullable private VcnManager mVcnManager = null;
+
+    // This is is used to track the number of TDLS peers enabled in driver via enableTdls()
+    private Set<String> mEnabledTdlsPeers = new ArraySet<>();
 
     /**
      * Method to clear {@link #mTargetBssid} and reset the current connected network's
@@ -1872,8 +1876,67 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     /**
      * Enable TDLS for a specific MAC address
      */
-    public void enableTdls(String remoteMacAddress, boolean enable) {
-        mWifiNative.startTdls(mInterfaceName, remoteMacAddress, enable);
+    public boolean enableTdls(String remoteMacAddress, boolean enable) {
+        boolean ret;
+        if (!canEnableTdls()) {
+            return false;
+        }
+        ret = mWifiNative.startTdls(mInterfaceName, remoteMacAddress, enable);
+        if (enable && ret) {
+            mEnabledTdlsPeers.add(remoteMacAddress);
+        } else {
+            mEnabledTdlsPeers.remove(remoteMacAddress);
+        }
+        return ret;
+    }
+
+    /**
+     * Enable TDLS for a specific IP address
+     */
+    public boolean enableTdlsWithRemoteIpAddress(String remoteIpAddress, boolean enable) {
+        boolean ret;
+        String remoteMacAddress = macAddressFromRoute(remoteIpAddress);
+        if (remoteMacAddress == null) {
+            return false;
+        }
+        ret = enableTdls(remoteMacAddress, enable);
+        return ret;
+    }
+
+    /**
+     *  Check if a TDLS session can be established
+     */
+    public boolean isTdlsOperationCurrentlyAvailable() {
+        return (getSupportedFeatures() & WIFI_FEATURE_TDLS) != 0 && isConnected()
+                && canEnableTdls();
+    }
+
+    /**
+     *  Return the number of Mac addresses configured in the driver for TDLS connection.
+     */
+    public int getNumberOfEnabledTdlsSessions() {
+        return mEnabledTdlsPeers.size();
+    }
+
+    /**
+     *  Return the maximum number of TDLS sessions supported by the device.
+     */
+    public int getMaxSupportedConcurrentTdlsSessions() {
+        return mWifiNative.getMaxSupportedConcurrentTdlsSessions(mInterfaceName);
+    }
+
+    private boolean canEnableTdls() {
+        // This function returns -1 if HAL doesn't have support for retrieving this info.
+        int maxTdlsSessionCount = mWifiNative.getMaxSupportedConcurrentTdlsSessions(mInterfaceName);
+        if (maxTdlsSessionCount < 0) {
+            return true;
+        }
+        if (mEnabledTdlsPeers.size() >= maxTdlsSessionCount) {
+            Log.e(TAG, "canEnableTdls() returned false: maxTdlsSessionCount: "
+                    + maxTdlsSessionCount + "EnabledTdlsPeers count: " + mEnabledTdlsPeers.size());
+            return false;
+        }
+        return true;
     }
 
     /** Send a message indicating bluetooth connection state changed, e.g. connected/disconnected */
@@ -3854,6 +3917,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mLastSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
         mLastSimBasedConnectionCarrierName = null;
         mLastSignalLevel = -1;
+        mEnabledTdlsPeers.clear();
         if (mWifiGlobals.isConnectedMacRandomizationEnabled()) {
             mFailedToResetMacAddress = !mWifiNative.setStaMacAddress(
                     mInterfaceName, MacAddressUtils.createRandomUnicastAddress());

@@ -708,6 +708,8 @@ package android.net.wifi {
     field public static final int API_SET_NETWORK_SELECTION_CONFIG = 8; // 0x8
     field public static final int API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY = 7; // 0x7
     field public static final int API_SET_SCAN_SCHEDULE = 6; // 0x6
+    field public static final int API_SET_TDLS_ENABLED = 34; // 0x22
+    field public static final int API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS = 35; // 0x23
     field public static final int API_SET_THIRD_PARTY_APPS_ENABLING_WIFI_CONFIRMATION_DIALOG = 9; // 0x9
     field public static final int API_SOFT_AP = 3; // 0x3
     field public static final int API_START_LOCAL_ONLY_HOTSPOT = 20; // 0x14

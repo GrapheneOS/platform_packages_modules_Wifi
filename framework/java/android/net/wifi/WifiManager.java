@@ -492,7 +492,9 @@ public class WifiManager {
             API_P2P_START_LISTENING,
             API_P2P_STOP_LISTENING,
             API_P2P_SET_CHANNELS,
-            API_WIFI_SCANNER_START_SCAN
+            API_WIFI_SCANNER_START_SCAN,
+            API_SET_TDLS_ENABLED,
+            API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS
     })
     public @interface ApiType {}
 
@@ -822,10 +824,32 @@ public class WifiManager {
     public static final int API_WIFI_SCANNER_START_SCAN = 33;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#setTdlsEnabled(InetAddress, boolean)} and
+     * {@link WifiManager#setTdlsEnabled(InetAddress, boolean, Executor, Consumer)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_SET_TDLS_ENABLED = 34;
+
+    /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of
+     * {@link WifiManager#setTdlsEnabledWithMacAddress(String, boolean)} and
+     * {@link WifiManager#setTdlsEnabledWithMacAddress(String, boolean, Executor, Consumer)}
+     * @hide
+     */
+    @SystemApi
+    public static final int API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS = 35;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 34;
+    public static final int API_MAX = 36;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
@@ -5842,6 +5866,43 @@ public class WifiManager {
     }
 
     /**
+     * Enable/Disable TDLS on a specific local route.
+     *
+     * Similar to {@link #setTdlsEnabled(InetAddress, boolean)}, except
+     * this version sends the result of the Enable/Disable request.
+     *
+     * @param remoteIPAddress IP address of the endpoint to setup TDLS with
+     * @param enable true = setup and false = tear down TDLS
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether TDLS was successfully enabled or disabled.
+     *                        {@code true} for success, {@code false} for failure.
+     *
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void setTdlsEnabled(@NonNull InetAddress remoteIPAddress, boolean enable,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        Objects.requireNonNull(remoteIPAddress, "remote IP address cannot be null");
+        try {
+            mService.enableTdlsWithRemoteIpAddress(remoteIPAddress.getHostAddress(), enable,
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
      * Similar to {@link #setTdlsEnabled(InetAddress, boolean) }, except
      * this version allows you to specify remote endpoint with a MAC address.
      * @param remoteMacAddress MAC address of the remote endpoint such as 00:00:0c:9f:f2:ab
@@ -5850,6 +5911,148 @@ public class WifiManager {
     public void setTdlsEnabledWithMacAddress(String remoteMacAddress, boolean enable) {
         try {
             mService.enableTdlsWithMacAddress(remoteMacAddress, enable);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Enable/Disable TDLS with a specific peer Mac Address.
+     *
+     * Similar to {@link #setTdlsEnabledWithMacAddress(String, boolean)}, except
+     * this version sends the result of the Enable/Disable request.
+     *
+     * @param remoteMacAddress Mac address of the endpoint to setup TDLS with
+     * @param enable true = setup and false = tear down TDLS
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether TDLS was successfully enabled or disabled.
+     *                        {@code true} for success, {@code false} for failure.
+     *
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void setTdlsEnabledWithMacAddress(@NonNull String remoteMacAddress, boolean enable,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        Objects.requireNonNull(remoteMacAddress, "remote Mac address cannot be null");
+        try {
+            mService.enableTdlsWithRemoteMacAddress(remoteMacAddress, enable,
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Check if a TDLS session can be established at this time via
+     * {@link #setTdlsEnabled(InetAddress, boolean)} or
+     * {@link #setTdlsEnabledWithMacAddress(String, boolean)} or
+     * {@link #setTdlsEnabled(InetAddress, boolean, Executor, Consumer)} or
+     * {@link #setTdlsEnabledWithMacAddress(String, boolean, Executor, Consumer)}
+     *
+     * Internally framework checks the STA connected state, device support for TDLS and
+     * the number of TDLS sessions available in driver/firmware.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether a TDLS session can be established at this time.
+     *                        {@code true} for available, {@code false} for not available.
+     *
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void isTdlsOperationCurrentlyAvailable(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.isTdlsOperationCurrentlyAvailable(
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Return the maximum number of concurrent TDLS sessions supported by the device.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return the maximum number of
+     *                        concurrent TDLS sessions supported by the device. Returns
+     *                        {@code -1} if information is not available,
+     *                        e.g. if the driver/firmware doesn't provide this information.
+     *
+     * @throws NullPointerException if the caller provided invalid inputs.
+     * @throws UnsupportedOperationException if the feature is not available.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void getMaxSupportedConcurrentTdlsSessions(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getMaxSupportedConcurrentTdlsSessions(
+                    new IIntegerListener.Stub() {
+                        @Override
+                        public void onResult(int value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Return the number of currently enabled TDLS sessions.
+     *
+     * Tracks the number of peers enabled for TDLS session via
+     * {@link #setTdlsEnabled(InetAddress, boolean) },
+     * {@link #setTdlsEnabledWithMacAddress(String, boolean) },
+     * {@link #setTdlsEnabled(InetAddress, boolean, Executor, Consumer) } and
+     * {@link #setTdlsEnabledWithMacAddress(String, boolean, Executor, Consumer) }
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return the number of Peer
+     *                        Mac addresses configured in the driver for TDLS session.
+     *
+     * @throws NullPointerException if the caller provided invalid inputs.
+     */
+    public void getNumberOfEnabledTdlsSessions(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getNumberOfEnabledTdlsSessions(
+                    new IIntegerListener.Stub() {
+                        @Override
+                        public void onResult(int value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

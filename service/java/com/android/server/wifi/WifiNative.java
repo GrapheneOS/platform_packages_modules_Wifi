@@ -2322,14 +2322,17 @@ public class WifiNative {
      * @param ifaceName Name of the interface.
      * @param macAddr MAC Address of the peer.
      * @param enable true to start discovery and setup, false to teardown.
+     * @return true if request is sent successfully, false otherwise.
      */
-    public void startTdls(@NonNull String ifaceName, String macAddr, boolean enable) {
+    public boolean startTdls(@NonNull String ifaceName, String macAddr, boolean enable) {
+        boolean ret = true;
         if (enable) {
             mSupplicantStaIfaceHal.initiateTdlsDiscover(ifaceName, macAddr);
-            mSupplicantStaIfaceHal.initiateTdlsSetup(ifaceName, macAddr);
+            ret = mSupplicantStaIfaceHal.initiateTdlsSetup(ifaceName, macAddr);
         } else {
-            mSupplicantStaIfaceHal.initiateTdlsTeardown(ifaceName, macAddr);
+            ret = mSupplicantStaIfaceHal.initiateTdlsTeardown(ifaceName, macAddr);
         }
+        return ret;
     }
 
     /**
@@ -4537,6 +4540,24 @@ public class WifiNative {
                 Log.e(TAG, "Fail to notify wificond country code changed to " + countryCode
                         + "because exception happened:" + re);
             }
+        }
+    }
+
+    /**
+     *  Return the maximum number of TDLS sessions supported by the device.
+     *  @return -1 if the information is not available on the device
+     */
+    public int getMaxSupportedConcurrentTdlsSessions(@NonNull String ifaceName) {
+        synchronized (mLock) {
+            Iface iface = mIfaceMgr.getIface(ifaceName);
+            if (iface == null) {
+                Log.e(TAG, "Failed to get the TDLS peer count, interface not found: "
+                        + ifaceName);
+                return -1;
+            }
+            // TODO b/262591976 call into HalDeviceManager and get the info from chip capabilities
+            // (IWifiChip#getWifiChipCapabilities()
+            return -1;
         }
     }
 
