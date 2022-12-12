@@ -109,10 +109,7 @@ public class WifiThreadRunner {
             return true;
         } else {
             Throwable callerThreadThrowable = new Throwable("Caller thread Stack trace:");
-            Throwable wifiThreadThrowable = new Throwable("Wifi thread Stack trace:");
-            wifiThreadThrowable.setStackTrace(mHandler.getLooper().getThread().getStackTrace());
             Log.e(TAG, "WifiThreadRunner.run() timed out!", callerThreadThrowable);
-            Log.e(TAG, "WifiThreadRunner.run() timed out!", wifiThreadThrowable);
             if (mTimeoutsAreErrors) {
                 throw new RuntimeException("WifiThreadRunner.run() timed out!");
             }
