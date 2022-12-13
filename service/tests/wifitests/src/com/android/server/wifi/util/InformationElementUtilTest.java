@@ -662,6 +662,65 @@ public class InformationElementUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Test Capabilities.generateCapabilitiesString() with RSN IE, CCMP and SAE+SAE_EXT_KEY.
+     * Expect the function to return a string with the proper security information.
+     */
+    @Test
+    public void buildCapabilities_rsnSaeSaeExtKeyElement() {
+        InformationElement ieRsn = new InformationElement();
+        ieRsn.id = InformationElement.EID_RSN;
+        ieRsn.bytes = new byte[] {
+                // RSNE Version (0x0001)
+                (byte) 0x01, (byte) 0x00,
+                // Group cipher suite: CCMP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x04,
+                // Number of cipher suites (1)
+                (byte) 0x01, (byte) 0x00,
+                // Cipher suite: CCMP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x04,
+                // Number of AKMs (2)
+                (byte) 0x02, (byte) 0x00,
+                // SAE AKM
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x08,
+                // SAE-EXT-KEY AKM
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x18,
+                // Padding
+                (byte) 0x00, (byte) 0x00 };
+        verifyCapabilityStringFromIeWithOweSupported(ieRsn,
+                "[RSN-SAE+SAE_EXT_KEY-CCMP]");
+    }
+
+    /**
+     * Test Capabilities.generateCapabilitiesString() with RSN IE, CCMP and
+     * SAE_EXT_KEY+FT_SAE_EXT_KEY.
+     * Expect the function to return a string with the proper security information.
+     */
+    @Test
+    public void buildCapabilities_rsnSaeExtKeyFtSaeExtKeyElement() {
+        InformationElement ieRsn = new InformationElement();
+        ieRsn.id = InformationElement.EID_RSN;
+        ieRsn.bytes = new byte[] {
+                // RSNE Version (0x0001)
+                (byte) 0x01, (byte) 0x00,
+                // Group cipher suite: CCMP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x04,
+                // Number of cipher suites (1)
+                (byte) 0x01, (byte) 0x00,
+                // Cipher suite: CCMP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x04,
+                // Number of AKMs (2)
+                (byte) 0x02, (byte) 0x00,
+                // SAE-EXT-KEY AKM
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x18,
+                // FT-SAE-EXT-KEY AKM
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x19,
+                // Padding
+                (byte) 0x00, (byte) 0x00 };
+        verifyCapabilityStringFromIeWithOweSupported(ieRsn,
+                "[RSN-SAE_EXT_KEY+FT/SAE_EXT_KEY-CCMP]");
+    }
+
+    /**
      * Test Capabilities.generateCapabilitiesString() with RSN IE, CCMP and OWE.
      * Expect the function to return a string with the proper security information.
      */
