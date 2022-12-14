@@ -88,6 +88,7 @@ import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
+import android.hardware.wifi.supplicant.SupplicantStateChangeData;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
@@ -1001,11 +1002,10 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
-     * Tests the handling of state change notification with key management
-     * to completed after configuring a network.
+     * Tests the handling of state change notification after configuring a network.
      */
     @Test
-    public void testStateChangeToCompletedCallbackWithAkm() throws Exception {
+    public void testStateChangeToCompleted() throws Exception {
         InOrder wifiMonitorInOrder = inOrder(mWifiMonitor);
         executeAndValidateInitializationSequence();
         int frameworkNetworkId = 6;
@@ -1013,15 +1013,18 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 TRANSLATED_SUPPLICANT_SSID.toString());
         assertNotNull(mISupplicantStaIfaceCallback);
 
-        int supplicantAkmMask = android.hardware.wifi.supplicant.KeyMgmtMask.WPA_PSK;
         BitSet expectedAkmMask = new BitSet();
         expectedAkmMask.set(WifiConfiguration.KeyMgmt.WPA_PSK);
 
-        mISupplicantStaIfaceCallback.onStateChangedWithAkm(
-                StaIfaceCallbackState.COMPLETED,
-                NativeUtil.macAddressToByteArray(BSSID), SUPPLICANT_NETWORK_ID,
-                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false,
-                supplicantAkmMask);
+        SupplicantStateChangeData stateChangeData = new SupplicantStateChangeData();
+        stateChangeData.newState = StaIfaceCallbackState.COMPLETED;
+        stateChangeData.id = frameworkNetworkId;
+        stateChangeData.ssid = NativeUtil.byteArrayFromArrayList(
+                NativeUtil.decodeSsid(SUPPLICANT_SSID));
+        stateChangeData.bssid = NativeUtil.macAddressToByteArray(BSSID);
+        stateChangeData.keyMgmtMask = android.hardware.wifi.supplicant.KeyMgmtMask.WPA_PSK;
+        stateChangeData.filsHlpSent = false;
+        mISupplicantStaIfaceCallback.onSupplicantStateChanged(stateChangeData);
 
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastNetworkConnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId), eq(false),
