@@ -1422,6 +1422,8 @@ public class InformationElementUtil {
         private static final int RSN_OSEN = 0x019a6f50;
         private static final int RSN_AKM_EAP_FILS_SHA256 = 0x0eac0f00;
         private static final int RSN_AKM_EAP_FILS_SHA384 = 0x0fac0f00;
+        private static final int RSN_AKM_SAE_EXT_KEY = 0x18ac0f00;
+        private static final int RSN_AKM_FT_SAE_EXT_KEY = 0x19ac0f00;
         private static final int RSN_AKM_DPP = 0x029a6f50;
 
         private static final int WPA_CIPHER_NONE = 0x00f25000;
@@ -1526,6 +1528,12 @@ public class InformationElementUtil {
                             break;
                         case RSN_AKM_FT_SAE:
                             rsnKeyManagement.add(ScanResult.KEY_MGMT_FT_SAE);
+                            break;
+                        case RSN_AKM_SAE_EXT_KEY:
+                            rsnKeyManagement.add(ScanResult.KEY_MGMT_SAE_EXT_KEY);
+                            break;
+                        case RSN_AKM_FT_SAE_EXT_KEY:
+                            rsnKeyManagement.add(ScanResult.KEY_MGMT_FT_SAE_EXT_KEY);
                             break;
                         case RSN_AKM_OWE:
                             rsnKeyManagement.add(ScanResult.KEY_MGMT_OWE);
@@ -1860,6 +1868,10 @@ public class InformationElementUtil {
                     return "SAE";
                 case ScanResult.KEY_MGMT_FT_SAE:
                     return "FT/SAE";
+                case ScanResult.KEY_MGMT_SAE_EXT_KEY:
+                    return "SAE_EXT_KEY";
+                case ScanResult.KEY_MGMT_FT_SAE_EXT_KEY:
+                    return "FT/SAE_EXT_KEY";
                 case ScanResult.KEY_MGMT_EAP_SUITE_B_192:
                     return "EAP_SUITE_B_192";
                 case ScanResult.KEY_MGMT_OSEN:

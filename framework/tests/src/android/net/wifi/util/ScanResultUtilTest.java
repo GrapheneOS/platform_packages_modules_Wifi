@@ -210,6 +210,25 @@ public class ScanResultUtilTest {
     }
 
     /**
+     * Test that a network which advertise SAE_EXT_KEY AKM is detected as SAE network
+     */
+    @Test
+    public void testSaeExtKeyAkmSupportedNetwork() {
+        final String ssid = "WPA3-AP";
+        String caps = "[RSN-SAE_EXT_KEY-CCMP][ESS]";
+
+        ScanResult input = new ScanResult(WifiSsid.fromUtf8Text(ssid), ssid,
+                "ab:cd:01:ef:45:89", 1245, 0, caps, -78, 2450, 1025, 22, 33, 20, 0,
+                0, true);
+
+        input.informationElements = new InformationElement[] {
+                createIE(InformationElement.EID_SSID, ssid.getBytes(StandardCharsets.UTF_8))
+        };
+
+        assertTrue(ScanResultUtil.isScanResultForSaeNetwork(input));
+    }
+
+    /**
      * Test that provided network supports FT/EAP AKM.
      */
     @Test
