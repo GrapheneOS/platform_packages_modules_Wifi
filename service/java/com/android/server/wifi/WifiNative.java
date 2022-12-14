@@ -1544,17 +1544,6 @@ public class WifiNative {
      ********************************************************/
 
     /**
-     * Request signal polling to wificond.
-     *
-     * @param ifaceName Name of the interface.
-     * Returns an SignalPollResult object.
-     * Returns null on failure.
-     */
-    public WifiNl80211Manager.SignalPollResult signalPoll(@NonNull String ifaceName) {
-        return mWifiCondManager.signalPoll(ifaceName);
-    }
-
-    /**
      * Query the list of valid frequencies for the provided band.
      * The result depends on the on the country code that has been set.
      *
@@ -3538,6 +3527,32 @@ public class WifiNative {
      */
     public ConnectionCapabilities getConnectionCapabilities(@NonNull String ifaceName) {
         return mSupplicantStaIfaceHal.getConnectionCapabilities(ifaceName);
+    }
+
+    /**
+     * Request signal polling to supplicant.
+     *
+     * @param ifaceName Name of the interface.
+     * Returns an array of SignalPollResult objects.
+     * Returns null on failure.
+     */
+    @Nullable
+    public WifiSignalPollResults signalPoll(@NonNull String ifaceName) {
+        // Query supplicant.
+        WifiSignalPollResults results = mSupplicantStaIfaceHal.getSignalPollResults(
+                ifaceName);
+        if (results == null) {
+            // Fallback to WifiCond.
+            WifiNl80211Manager.SignalPollResult result = mWifiCondManager.signalPoll(ifaceName);
+            if (result != null) {
+                // Convert WifiNl80211Manager#SignalPollResult to WifiSignalPollResults.
+                // Assume single link and linkId = 0.
+                results = new WifiSignalPollResults();
+                results.addEntry(0, result.currentRssiDbm, result.txBitrateMbps,
+                        result.rxBitrateMbps, result.associationFrequencyMHz);
+            }
+        }
+        return results;
     }
 
     /**

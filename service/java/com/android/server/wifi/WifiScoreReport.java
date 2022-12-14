@@ -28,7 +28,6 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConnectedSessionInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -197,13 +196,12 @@ public class WifiScoreReport {
             // update mWifiInfo
             // TODO(b/153075963): Better coordinate this class and ClientModeImpl to remove
             // redundant codes below and in ClientModeImpl#fetchRssiLinkSpeedAndFrequencyNative.
-            WifiNl80211Manager.SignalPollResult pollResult =
-                    mWifiNative.signalPoll(mInterfaceName);
-            if (pollResult != null) {
-                int newRssi = pollResult.currentRssiDbm;
-                int newTxLinkSpeed = pollResult.txBitrateMbps;
-                int newFrequency = pollResult.associationFrequencyMHz;
-                int newRxLinkSpeed = pollResult.rxBitrateMbps;
+            WifiSignalPollResults pollResults = mWifiNative.signalPoll(mInterfaceName);
+            if (pollResults != null) {
+                int newRssi = pollResults.getRssi();
+                int newTxLinkSpeed = pollResults.getTxLinkSpeed();
+                int newFrequency = pollResults.getFrequency();
+                int newRxLinkSpeed = pollResults.getRxLinkSpeed();
 
                 if (newRssi > WifiInfo.INVALID_RSSI && newRssi < WifiInfo.MAX_RSSI) {
                     if (newRssi > (WifiInfo.INVALID_RSSI + 256)) {
