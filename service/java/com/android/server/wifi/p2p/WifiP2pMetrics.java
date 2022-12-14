@@ -257,6 +257,12 @@ public class WifiP2pMetrics {
                     case P2pConnectionEvent.CLF_NEW_CONNECTION_ATTEMPT:
                         sb.append("NEW_CONNECTION_ATTEMPT");
                         break;
+                    case P2pConnectionEvent.CLF_GROUP_REMOVED:
+                        sb.append("GROUP_REMOVED");
+                        break;
+                    case P2pConnectionEvent.CLF_CREATE_GROUP_FAILED:
+                        sb.append("CREATE_GROUP_FAILED");
+                        break;
                     case P2pConnectionEvent.CLF_UNKNOWN:
                     default:
                         sb.append("UNKNOWN");
@@ -458,6 +464,12 @@ public class WifiP2pMetrics {
             case P2pConnectionEvent.CLF_NEW_CONNECTION_ATTEMPT:
                 return WifiStatsLog
                         .WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__NEW_CONNECTION_ATTEMPT;
+            case P2pConnectionEvent.CLF_GROUP_REMOVED:
+                return WifiStatsLog
+                        .WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__GROUP_REMOVED;
+            case P2pConnectionEvent.CLF_CREATE_GROUP_FAILED:
+                return WifiStatsLog
+                        .WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__CREATE_GROUP_FAILED;
             case P2pConnectionEvent.CLF_UNKNOWN:
             default:
                 return WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED__FAILURE_CODE__UNKNOWN;
