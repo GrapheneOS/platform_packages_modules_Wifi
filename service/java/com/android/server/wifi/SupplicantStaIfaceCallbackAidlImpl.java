@@ -1280,4 +1280,12 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                     convertMloLinkInfoChangedReason(reason));
         }
     }
+
+    @Override
+    public void onBssFrequencyChanged(int frequencyMhz)
+            throws android.os.RemoteException {
+        synchronized (mLock) {
+            mStaIfaceHal.logCallback("onBssFrequencyChanged: frequency " + frequencyMhz);
+        }
+    }
 }
