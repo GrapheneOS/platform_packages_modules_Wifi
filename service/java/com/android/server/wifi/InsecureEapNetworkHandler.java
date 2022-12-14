@@ -112,15 +112,15 @@ public class InsecureEapNetworkHandler {
     // by later TOFU procedure.
     @NonNull
     private WifiConfiguration mCurrentTofuConfig = null;
-    private int mPendingCaCertDepth = -1;
+    private int mPendingRootCaCertDepth = -1;
     @Nullable
-    private X509Certificate mPendingCaCert = null;
+    private X509Certificate mPendingRootCaCert = null;
     @Nullable
     private X509Certificate mPendingServerCert = null;
-    // This is updated on setting a pending CA cert.
-    private CertificateSubjectInfo mPendingCaCertSubjectInfo = null;
-    // This is updated on setting a pending CA cert.
-    private CertificateSubjectInfo mPendingCaCertIssuerInfo = null;
+    // This is updated on setting a pending server cert.
+    private CertificateSubjectInfo mPendingServerCertSubjectInfo = null;
+    // This is updated on setting a pending server cert.
+    private CertificateSubjectInfo mPendingServerCertIssuerInfo = null;
     // Record the whole server cert chain from Root CA to the server cert.
     private List<X509Certificate> mServerCertChain = new ArrayList<>();
     private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
@@ -225,15 +225,15 @@ public class InsecureEapNetworkHandler {
     }
 
     /**
-     * Store the received certifiate for later use.
+     * Stores a received certificate for later use.
      *
      * @param ssid the target network SSID.
      * @param depth the depth of this cert. The Root CA should be 0 or
      *        a positive number, and the server cert is 0.
-     * @param cert the Root CA certificate from the server.
+     * @param cert a certificate from the server.
      * @return true if the cert is cached; otherwise, false.
      */
-    public boolean setPendingCertificate(@NonNull String ssid, int depth,
+    public boolean addPendingCertificate(@NonNull String ssid, int depth,
             @NonNull X509Certificate cert) {
         String configProfileKey = mCurrentTofuConfig != null
                 ? mCurrentTofuConfig.getProfileKey() : "null";
@@ -253,27 +253,28 @@ public class InsecureEapNetworkHandler {
         if (depth == 0 && null == mPendingServerCert) {
             mPendingServerCert = cert;
             Log.d(TAG, "Pending server certificate: " + mPendingServerCert);
+            mPendingServerCertSubjectInfo = CertificateSubjectInfo.parse(
+                    cert.getSubjectX500Principal().getName());
+            if (null == mPendingServerCertSubjectInfo) {
+                Log.e(TAG, "CA cert has no valid subject.");
+                return false;
+            }
+            mPendingServerCertIssuerInfo = CertificateSubjectInfo.parse(
+                    cert.getIssuerX500Principal().getName());
+            if (null == mPendingServerCertIssuerInfo) {
+                Log.e(TAG, "CA cert has no valid issuer.");
+                return false;
+            }
         }
-        if (depth < mPendingCaCertDepth) {
+
+        // Root or intermediate cert.
+        if (depth < mPendingRootCaCertDepth) {
             Log.d(TAG, "Ignore intermediate cert." + cert);
             return true;
         }
-
-        mPendingCaCertSubjectInfo = CertificateSubjectInfo.parse(
-                cert.getSubjectDN().getName());
-        if (null == mPendingCaCertSubjectInfo) {
-            Log.e(TAG, "CA cert has no valid subject.");
-            return false;
-        }
-        mPendingCaCertIssuerInfo = CertificateSubjectInfo.parse(
-                cert.getIssuerDN().getName());
-        if (null == mPendingCaCertIssuerInfo) {
-            Log.e(TAG, "CA cert has no valid issuer.");
-            return false;
-        }
-        mPendingCaCertDepth = depth;
-        mPendingCaCert = cert;
-        Log.d(TAG, "Pending Root CA certificate: " + mPendingCaCert);
+        mPendingRootCaCertDepth = depth;
+        mPendingRootCaCert = cert;
+        Log.d(TAG, "Pending Root CA certificate: " + mPendingRootCaCert);
         return true;
     }
 
@@ -311,7 +312,7 @@ public class InsecureEapNetworkHandler {
         }
 
         if (useTrustOnFirstUse()) {
-            if (null == mPendingCaCert) {
+            if (null == mPendingRootCaCert) {
                 Log.d(TAG, "No valid CA cert for TLS-based connection.");
                 handleError(mCurrentTofuConfig.SSID);
                 return true;
@@ -399,8 +400,8 @@ public class InsecureEapNetworkHandler {
 
         X509Certificate parentCert = null;
         for (X509Certificate cert: mServerCertChain) {
-            String subject = cert.getSubjectDN().getName();
-            String issuer = cert.getIssuerDN().getName();
+            String subject = cert.getSubjectX500Principal().getName();
+            String issuer = cert.getIssuerX500Principal().getName();
             boolean isCa = cert.getBasicConstraints() >= 0;
             Log.d(TAG, "Subject: " + subject + ", Issuer: " + issuer + ", isCA: " + isCa);
 
@@ -413,7 +414,7 @@ public class InsecureEapNetworkHandler {
             } else {
                 // The issuer of intermediate cert of the leaf cert should be
                 // the same as the subject of its parent cert.
-                if (!parentCert.getSubjectDN().getName().equals(issuer)) {
+                if (!parentCert.getSubjectX500Principal().getName().equals(issuer)) {
                     Log.e(TAG, "The issuer does not match the subject of its parent.");
                     return false;
                 }
@@ -456,16 +457,16 @@ public class InsecureEapNetworkHandler {
         if (!useTrustOnFirstUse()) {
             mWifiConfigManager.setUserApproveNoCaCert(mCurrentTofuConfig.networkId, true);
         } else {
-            if (null == mPendingCaCert || null == mPendingServerCert) {
+            if (null == mPendingRootCaCert || null == mPendingServerCert) {
                 handleError(ssid);
                 return;
             }
             if (!mWifiConfigManager.updateCaCertificate(
-                    mCurrentTofuConfig.networkId, mPendingCaCert, mPendingServerCert)) {
+                    mCurrentTofuConfig.networkId, mPendingRootCaCert, mPendingServerCert)) {
                 // The user approved this network,
                 // keep the connection regardless of the result.
                 Log.e(TAG, "Cannot update CA cert to network " + mCurrentTofuConfig.getProfileKey()
-                        + ", CA cert = " + mPendingCaCert);
+                        + ", CA cert = " + mPendingRootCaCert);
             }
         }
         mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
@@ -505,7 +506,7 @@ public class InsecureEapNetworkHandler {
     private void askForUserApprovalForCaCertificate() {
         if (mCurrentTofuConfig == null || TextUtils.isEmpty(mCurrentTofuConfig.SSID)) return;
         if (useTrustOnFirstUse()) {
-            if (null == mPendingCaCert || null == mPendingServerCert) {
+            if (null == mPendingRootCaCert || null == mPendingServerCert) {
                 Log.e(TAG, "Cannot launch a dialog for TOFU without "
                         + "a valid pending CA certificate.");
                 return;
@@ -523,35 +524,38 @@ public class InsecureEapNetworkHandler {
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_abort_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_abort_text);
 
-        String message = null;
+        String message;
         String messageUrl = null;
         int messageUrlStart = 0;
         int messageUrlEnd = 0;
         if (useTrustOnFirstUse()) {
-            String signature = NativeUtil.hexStringFromByteArray(
-                    mPendingCaCert.getSignature());
             StringBuilder contentBuilder = new StringBuilder()
                     .append(mContext.getString(R.string.wifi_ca_cert_dialog_message_hint))
                     .append(mContext.getString(
                             R.string.wifi_ca_cert_dialog_message_server_name_text,
-                            mPendingCaCertSubjectInfo.commonName))
+                            mPendingServerCertSubjectInfo.commonName))
                     .append(mContext.getString(
                             R.string.wifi_ca_cert_dialog_message_issuer_name_text,
-                            mPendingCaCertIssuerInfo.commonName));
-            if (!TextUtils.isEmpty(mPendingCaCertSubjectInfo.organization)) {
+                            mPendingServerCertIssuerInfo.commonName));
+            if (!TextUtils.isEmpty(mPendingServerCertSubjectInfo.organization)) {
                 contentBuilder.append(mContext.getString(
                         R.string.wifi_ca_cert_dialog_message_organization_text,
-                        mPendingCaCertSubjectInfo.organization));
+                        mPendingServerCertSubjectInfo.organization));
             }
-            if (!TextUtils.isEmpty(mPendingCaCertSubjectInfo.email)) {
+            if (!TextUtils.isEmpty(mPendingServerCertSubjectInfo.email)) {
                 contentBuilder.append(mContext.getString(
                         R.string.wifi_ca_cert_dialog_message_contact_text,
-                        mPendingCaCertSubjectInfo.email));
+                        mPendingServerCertSubjectInfo.email));
             }
-            contentBuilder
-                    .append(mContext.getString(
-                            R.string.wifi_ca_cert_dialog_message_signature_name_text,
-                            signature.substring(0, 16)));
+            byte[] signature = mPendingServerCert.getSignature();
+            if (signature != null) {
+                String signatureString = NativeUtil.hexStringFromByteArray(signature);
+                if (signatureString.length() > 16) {
+                    signatureString = signatureString.substring(0, 16);
+                }
+                contentBuilder.append(mContext.getString(
+                        R.string.wifi_ca_cert_dialog_message_signature_name_text, signatureString));
+            }
             message = contentBuilder.toString();
         } else {
             String hint = mContext.getString(
@@ -622,7 +626,7 @@ public class InsecureEapNetworkHandler {
     private void notifyUserForCaCertificate() {
         if (mCurrentTofuConfig == null) return;
         if (useTrustOnFirstUse()) {
-            if (null == mPendingCaCert) return;
+            if (null == mPendingRootCaCert) return;
             if (null == mPendingServerCert) return;
         }
         dismissDialogAndNotification();
@@ -690,11 +694,11 @@ public class InsecureEapNetworkHandler {
     }
 
     private void clearInternalData() {
-        mPendingCaCertDepth = -1;
-        mPendingCaCert = null;
+        mPendingRootCaCertDepth = -1;
+        mPendingRootCaCert = null;
         mPendingServerCert = null;
-        mPendingCaCertSubjectInfo = null;
-        mPendingCaCertIssuerInfo = null;
+        mPendingServerCertSubjectInfo = null;
+        mPendingServerCertIssuerInfo = null;
         mCurrentTofuConfig = null;
     }
 
