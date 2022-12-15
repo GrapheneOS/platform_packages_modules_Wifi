@@ -108,6 +108,7 @@ public class WifiScoreCardTest extends WifiBaseTest {
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock Context mContext;
     @Mock Resources mResources;
+    @Mock WifiGlobals mWifiGlobals;
 
     private WifiLinkLayerStats mOldLlStats;
     private WifiLinkLayerStats mNewLlStats;
@@ -150,7 +151,7 @@ public class WifiScoreCardTest extends WifiBaseTest {
         mWifiInfo.setMaxSupportedRxLinkSpeedMbps(866);
         millisecondsPass(0);
         mWifiScoreCard = new WifiScoreCard(mClock, "some seed", mDeviceConfigFacade,
-                mContext);
+                mContext, mWifiGlobals);
         mWifiScoreCard.mPersistentHistograms = true; // TODO - remove when ready
         when(mDeviceConfigFacade.getConnectionFailureHighThrPercent()).thenReturn(
                 DeviceConfigFacade.DEFAULT_CONNECTION_FAILURE_HIGH_THR_PERCENT);
@@ -200,8 +201,7 @@ public class WifiScoreCardTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getIntArray(R.array.config_wifiRssiLevelThresholds))
                 .thenReturn(new int[]{-88, -77, -66, -55});
-        when(mResources.getInteger(R.integer.config_wifiPollRssiIntervalMilliseconds))
-                .thenReturn(3000);
+        when(mWifiGlobals.getPollRssiIntervalMillis()).thenReturn(3000);
         mOldLlStats = new WifiLinkLayerStats();
         mNewLlStats = new WifiLinkLayerStats();
         mTotalTxBytes = 0;

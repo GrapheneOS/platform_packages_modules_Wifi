@@ -5804,6 +5804,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mWifiConnectivityManager.setDeviceMobilityState(state);
             mWifiHealthMonitor.setDeviceMobilityState(state);
             mWifiDataStall.setDeviceMobilityState(state);
+            mActiveModeWarden.setDeviceMobilityState(state);
         });
     }
 

@@ -78,6 +78,7 @@ public class WifiDataStallTest extends WifiBaseTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock ClientModeImplMonitor mClientModeImplMonitor;
     @Mock ClientModeManager mClientModeManager;
+    @Mock WifiGlobals mWifiGlobals;
 
     private ActiveModeWarden.ModeChangeCallback mModeChangeCallback;
     private PrimaryClientModeManagerChangedCallback mPrimaryModeChangeCallback;
@@ -99,10 +100,8 @@ public class WifiDataStallTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mMockResources);
         when(mContext.getSystemService(Context.TELEPHONY_SERVICE)).thenReturn(mTelephonyManager);
         when(mTelephonyManager.createForSubscriptionId(anyInt())).thenReturn(mTelephonyManager);
+        when(mWifiGlobals.getPollRssiIntervalMillis()).thenReturn(3000);
 
-        mMockResources.setInteger(
-                R.integer.config_wifiPollRssiIntervalMilliseconds,
-                3000);
         mMockResources.setInteger(
                 R.integer.config_wifiDataStallMinTxBad, TEST_MIN_TX_BAD);
         mMockResources.setInteger(
@@ -147,7 +146,8 @@ public class WifiDataStallTest extends WifiBaseTest {
 
         mWifiDataStall = new WifiDataStall(mWifiMetrics, mContext,
                 mDeviceConfigFacade, mWifiChannelUtilization, mClock, mHandler,
-                mThroughputPredictor, mActiveModeWarden, mClientModeImplMonitor);
+                mThroughputPredictor, mActiveModeWarden, mClientModeImplMonitor,
+                mWifiGlobals);
         mWifiDataStall.enableVerboseLogging(true);
         mOldLlStats.txmpdu_be = 1000;
         mOldLlStats.retries_be = 1000;

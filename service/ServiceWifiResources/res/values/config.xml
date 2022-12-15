@@ -668,8 +668,32 @@
          they are coming from the background apps (default = 30 mins). -->
     <integer translatable="false" name="config_wifiRttBackgroundExecGapMs">1800000</integer>
 
-    <!-- Integer indicating the RSSI and link layer stats polling interval in milliseconds when device is connected and screen is on -->
+    <!-- Integer indicating the RSSI and link layer stats polling interval (regular interval) in
+    milliseconds when device is connected and screen is on -->
     <integer translatable="false" name="config_wifiPollRssiIntervalMilliseconds">3000</integer>
+
+    <!-- Integer indicating the RSSI and link layer stats polling interval (long interval) in
+    milliseconds when device is connected and screen is on. The long interval is to reduce
+    power consumption of link layer stats polling. This value should be greater than the regular
+    interval -->
+    <integer translatable="false" name="config_wifiPollRssiLongIntervalMilliseconds">9000</integer>
+
+    <!-- RSSI threshold in dBm to decide the RSSI and link layer stats polling interval, and also
+    for the client mode RSSI monitor. When the polling is enabled, if the device is stationary
+    and current RSSI >= Threshold + Hysteresis value, set long interval and enable RSSI monitoring
+    using the RSSI threshold. If device is non-stationary or current RSSI <= Threshold, set regular
+    interval and disable RSSI monitoring. -->
+    <integer translatable="false" name="config_wifiClientRssiMonitorThresholdDbm">-73</integer>
+
+    <!-- Hysteresis value in dB for the client mode RSSI monitor threshold. After the monitor is
+    enabled with RSSI >= Threshold + Hysteresis value, the RSSI threshold breach only happens
+    when the current RSSI <= Threshold, in order to avoid frequent switch between regular and
+    long polling intervals -->
+    <integer translatable="false" name="config_wifiClientRssiMonitorHysteresisDb">5</integer>
+
+    <!-- Enable the feature of adjusting link layer stats polling interval based on
+    device mobility state and client mode RSSI monitoring. -->
+    <bool translatable="false" name="config_wifiAdjustPollRssiIntervalEnabled">false</bool>
 
     <!-- Override channel utilization estimation with fixed value -->
     <bool translatable="false" name="config_wifiChannelUtilizationOverrideEnabled">true</bool>
