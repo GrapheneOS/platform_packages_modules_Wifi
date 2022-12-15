@@ -52,6 +52,7 @@ import android.hardware.wifi.supplicant.QosPolicyData;
 import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
+import android.hardware.wifi.supplicant.SupplicantStateChangeData;
 import android.hardware.wifi.supplicant.WpsConfigError;
 import android.hardware.wifi.supplicant.WpsErrorIndication;
 import android.net.MacAddress;
@@ -159,12 +160,18 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public void onStateChanged(int newState, byte[/* 6 */] bssid, int id,
             byte[] ssid, boolean filsHlpSent) {
-        onStateChangedWithAkm(newState, bssid, id, ssid, filsHlpSent, 0);
+        handleSupplicantStateChangedEvent(newState, bssid, id, ssid, filsHlpSent, 0, 0);
     }
 
     @Override
-    public void onStateChangedWithAkm(int newState, byte[/* 6 */] bssid, int id,
-            byte[] ssid, boolean filsHlpSent, int supplicantKeyMgmtMask) {
+    public void onSupplicantStateChanged(SupplicantStateChangeData stateChangeData) {
+        handleSupplicantStateChangedEvent(stateChangeData.newState, stateChangeData.bssid,
+                stateChangeData.id, stateChangeData.ssid, stateChangeData.filsHlpSent,
+                stateChangeData.keyMgmtMask, stateChangeData.frequencyMhz);
+    }
+
+    private void handleSupplicantStateChangedEvent(int newState, byte[/* 6 */] bssid, int id,
+            byte[] ssid, boolean filsHlpSent, int supplicantKeyMgmtMask, int frequencyMhz) {
         synchronized (mLock) {
             SupplicantState newSupplicantState =
                     supplicantAidlStateToFrameworkState(newState);
@@ -185,7 +192,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                     + ", bssid=" + bssidStr + ", ssid=" + wifiSsid.toString()
                     + ", filsHlpSent=" + filsHlpSent + ", supplicantKeyMgmtMask="
                     + String.format("0x%08X", supplicantKeyMgmtMask)
-                    + ", frameworkKeyMgmtMask=" + keyMgmtMask);
+                    + ", frameworkKeyMgmtMask=" + keyMgmtMask
+                    + ", frequencyMhz=" + frequencyMhz);
             if (newState != StaIfaceCallbackState.DISCONNECTED) {
                 // onStateChanged(DISCONNECTED) may come before onDisconnected(), so add this
                 // cache to track the state before the disconnect.
