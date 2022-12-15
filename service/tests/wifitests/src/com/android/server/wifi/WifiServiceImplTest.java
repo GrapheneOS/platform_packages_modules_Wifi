@@ -110,6 +110,7 @@ import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.app.admin.DevicePolicyManager;
 import android.app.admin.WifiSsidPolicy;
+import android.app.compat.CompatChanges;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.bluetooth.BluetoothAdapter;
 import android.compat.testing.PlatformCompatChangeRule;
@@ -217,9 +218,6 @@ import com.android.server.wifi.util.WifiPermissionsWrapper;
 import com.android.wifi.resources.R;
 
 import com.google.common.base.Strings;
-
-import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
-import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
 
 import org.junit.After;
 import org.junit.Before;
@@ -448,6 +446,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         mSession = mockitoSession()
                 .mockStatic(SubscriptionManager.class)
+                .mockStatic(CompatChanges.class)
                 .startMocking();
 
         mLog = spy(new LogcatLog(TAG));
@@ -4802,28 +4801,14 @@ public class WifiServiceImplTest extends WifiBaseTest {
      * trigeering the process of the network restoration in batches.
      */
     @Test
-    @EnableCompatChanges({NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE})
     public void testRestoreNetworksWithBatchOverrideDisallowed() {
+        lenient().when(CompatChanges.isChangeEnabled(eq(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE),
+                anyInt())).thenReturn(true);
         testRestoreNetworkConfiguration(0 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(1 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, false);
-    }
-
-    /**
-     * Verify that a call to
-     * {@link WifiServiceImpl#restoreNetworks(List)}
-     * trigeering the process of the network restoration in batches.
-     */
-    @Test
-    @DisableCompatChanges({NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE})
-    public void testRestoreNetworksWithBatchOverrideAllowed() {
-        testRestoreNetworkConfiguration(0 /* configNum */, 50 /* batchNum*/, true);
-        testRestoreNetworkConfiguration(1 /* configNum */, 50 /* batchNum*/, true);
-        testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/, true);
-        testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/, true);
-        testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, true);
     }
 
     /**
