@@ -2445,9 +2445,17 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
      */
     public long getSupportedFeatures() {
         // First AIDL version supports these three features.
-        return WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS
+        long result = WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS
                 | WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY
                 | WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL;
+        try {
+            if (mISupplicant.getInterfaceVersion() >= 2) {
+                result |= WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING;
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to get supplicant version", e);
+        }
+        return result;
     }
 
     private byte[] convertInformationElementSetToBytes(
