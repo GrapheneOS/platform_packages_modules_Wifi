@@ -3132,6 +3132,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             replyToMessage(message, WifiP2pManager.CREATE_GROUP_FAILED,
                                     WifiP2pManager.ERROR);
                             // remain at this state.
+                            String errorMsg = "P2P group creating failed";
+                            if (mVerboseLoggingEnabled) logd(getName() + errorMsg);
+                            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
+                                takeBugReportP2pFailureIfNeeded("Wi-Fi BugReport (P2P "
+                                        + mWifiP2pMetrics.getP2pGroupRoleString()
+                                        + " creation failure)", errorMsg);
+                            }
+                            mWifiP2pMetrics.endConnectionEvent(
+                                    P2pConnectionEvent.CLF_CREATE_GROUP_FAILED);
                         }
                         break;
                     }
@@ -3738,7 +3747,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                     + " negotiation failure)", errorMsg);
                         }
                         mWifiP2pMetrics.endConnectionEvent(
-                                P2pConnectionEvent.CLF_UNKNOWN);
+                                P2pConnectionEvent.CLF_GROUP_REMOVED);
                         handleGroupCreationFailure();
                         transitionTo(mInactiveState);
                         break;
@@ -4498,7 +4507,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             pw.println("mWifiP2pInfo " + mWifiP2pInfo);
             pw.println("mGroup " + mGroup);
             pw.println("mSavedPeerConfig " + mSavedPeerConfig);
-            pw.println("mGroups" + mGroups);
+            pw.println("mGroups " + mGroups);
             pw.println();
         }
 
