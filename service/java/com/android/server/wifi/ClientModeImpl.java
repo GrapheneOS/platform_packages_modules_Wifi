@@ -6000,6 +6000,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         clearTargetBssid("AllowlistRoamingCompleted");
                         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
                     }
+                    checkIfNeedDisconnectSecondaryWifi();
                     break;
                 }
                 case CMD_ONESHOT_RSSI_POLL: {
@@ -8019,6 +8020,30 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mWifiConfigManager.setRecentFailureAssociationStatus(netId, reason);
 
+    }
+
+    private void checkIfNeedDisconnectSecondaryWifi() {
+        if (!isPrimary()) {
+            return;
+        }
+        if (isConnected()) {
+            ConcreteClientModeManager ccmm =
+                    mWifiInjector.getActiveModeWarden().getClientModeManagerInRole(
+                            ROLE_CLIENT_SECONDARY_LONG_LIVED);
+            if (ccmm != null && ccmm.isConnected() && ccmm.isSecondaryInternet()) {
+                WifiInfo secondaryWifiInfo = ccmm.getConnectionInfo();
+                if (secondaryWifiInfo == null) return;
+                if ((secondaryWifiInfo.is5GHz() && mWifiInfo.is5GHz())
+                        || (secondaryWifiInfo.is6GHz() && mWifiInfo.is6GHz())
+                        || (secondaryWifiInfo.is24GHz() && mWifiInfo.is24GHz())) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "The master wifi and secondary wifi are at the same band,"
+                                + " disconnect the secondary wifi");
+                    }
+                    ccmm.disconnect();
+                }
+            }
+        }
     }
 
     private void setSelectedRcoiForPasspoint(WifiConfiguration config) {
