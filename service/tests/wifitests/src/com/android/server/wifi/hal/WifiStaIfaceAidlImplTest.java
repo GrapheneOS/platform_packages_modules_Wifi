@@ -28,6 +28,7 @@ import android.hardware.wifi.IWifiStaIface;
 import android.hardware.wifi.StaLinkLayerIfaceContentionTimeStats;
 import android.hardware.wifi.StaLinkLayerIfacePacketStats;
 import android.hardware.wifi.StaLinkLayerIfaceStats;
+import android.hardware.wifi.StaLinkLayerLinkStats;
 import android.hardware.wifi.StaLinkLayerRadioStats;
 import android.hardware.wifi.StaLinkLayerStats;
 import android.hardware.wifi.StaPeerInfo;
@@ -97,13 +98,15 @@ public class WifiStaIfaceAidlImplTest {
         Random r = new Random(1775968256);
         StaLinkLayerStats stats = new StaLinkLayerStats();
         stats.iface = new StaLinkLayerIfaceStats();
-        randomizePacketStats(r, stats.iface);
+        StaLinkLayerLinkStats link = new StaLinkLayerLinkStats();
+        stats.iface.links = new StaLinkLayerLinkStats[]{link};
+        randomizePacketStats(r, stats.iface.links[0]);
         StaLinkLayerRadioStats rstat = new StaLinkLayerRadioStats();
         randomizeRadioStats(r, rstat);
         stats.radios = new StaLinkLayerRadioStats[]{rstat};
         stats.timeStampInMs = r.nextLong() & 0xFFFFFFFFFFL;
-        randomizeContentionTimeStats(r, stats.iface);
-        stats.iface.peers = randomizePeerInfoStats(r);
+        randomizeContentionTimeStats(r, stats.iface.links[0]);
+        stats.iface.links[0].peers = randomizePeerInfoStats(r);
 
         WifiLinkLayerStats converted = mDut.halToFrameworkLinkLayerStats(stats);
 
@@ -315,7 +318,7 @@ public class WifiStaIfaceAidlImplTest {
     /**
      * Populate packet stats with non-negative random values.
      */
-    private static void randomizePacketStats(Random r,  StaLinkLayerIfaceStats stats) {
+    private static void randomizePacketStats(Random r,  StaLinkLayerLinkStats stats) {
         stats.wmeBePktStats = new StaLinkLayerIfacePacketStats();
         stats.wmeBkPktStats = new StaLinkLayerIfacePacketStats();
         stats.wmeViPktStats = new StaLinkLayerIfacePacketStats();
@@ -366,7 +369,7 @@ public class WifiStaIfaceAidlImplTest {
     /**
      * Populate contention time stats with non-negative random values.
      */
-    private static void randomizeContentionTimeStats(Random r, StaLinkLayerIfaceStats stats) {
+    private static void randomizeContentionTimeStats(Random r, StaLinkLayerLinkStats stats) {
         stats.wmeBeContentionTimeStats = new StaLinkLayerIfaceContentionTimeStats();
         stats.wmeBkContentionTimeStats = new StaLinkLayerIfaceContentionTimeStats();
         stats.wmeViContentionTimeStats = new StaLinkLayerIfaceContentionTimeStats();
@@ -409,87 +412,93 @@ public class WifiStaIfaceAidlImplTest {
 
     private void verifyIfaceStats(StaLinkLayerIfaceStats iface,
             WifiLinkLayerStats wifiLinkLayerStats) {
-        assertEquals(iface.beaconRx, wifiLinkLayerStats.beacon_rx);
-        assertEquals(iface.avgRssiMgmt, wifiLinkLayerStats.rssi_mgmt);
+        assertEquals(iface.links[0].beaconRx, wifiLinkLayerStats.links[0].beacon_rx);
+        assertEquals(iface.links[0].avgRssiMgmt, wifiLinkLayerStats.links[0].rssi_mgmt);
 
-        assertEquals(iface.wmeBePktStats.rxMpdu, wifiLinkLayerStats.rxmpdu_be);
-        assertEquals(iface.wmeBePktStats.txMpdu, wifiLinkLayerStats.txmpdu_be);
-        assertEquals(iface.wmeBePktStats.lostMpdu, wifiLinkLayerStats.lostmpdu_be);
-        assertEquals(iface.wmeBePktStats.retries, wifiLinkLayerStats.retries_be);
+        assertEquals(iface.links[0].wmeBePktStats.rxMpdu, wifiLinkLayerStats.links[0].rxmpdu_be);
+        assertEquals(iface.links[0].wmeBePktStats.txMpdu, wifiLinkLayerStats.links[0].txmpdu_be);
+        assertEquals(iface.links[0].wmeBePktStats.lostMpdu,
+                wifiLinkLayerStats.links[0].lostmpdu_be);
+        assertEquals(iface.links[0].wmeBePktStats.retries, wifiLinkLayerStats.links[0].retries_be);
 
-        assertEquals(iface.wmeBkPktStats.rxMpdu, wifiLinkLayerStats.rxmpdu_bk);
-        assertEquals(iface.wmeBkPktStats.txMpdu, wifiLinkLayerStats.txmpdu_bk);
-        assertEquals(iface.wmeBkPktStats.lostMpdu, wifiLinkLayerStats.lostmpdu_bk);
-        assertEquals(iface.wmeBkPktStats.retries, wifiLinkLayerStats.retries_bk);
+        assertEquals(iface.links[0].wmeBkPktStats.rxMpdu, wifiLinkLayerStats.links[0].rxmpdu_bk);
+        assertEquals(iface.links[0].wmeBkPktStats.txMpdu, wifiLinkLayerStats.links[0].txmpdu_bk);
+        assertEquals(iface.links[0].wmeBkPktStats.lostMpdu,
+                wifiLinkLayerStats.links[0].lostmpdu_bk);
+        assertEquals(iface.links[0].wmeBkPktStats.retries, wifiLinkLayerStats.links[0].retries_bk);
 
-        assertEquals(iface.wmeViPktStats.rxMpdu, wifiLinkLayerStats.rxmpdu_vi);
-        assertEquals(iface.wmeViPktStats.txMpdu, wifiLinkLayerStats.txmpdu_vi);
-        assertEquals(iface.wmeViPktStats.lostMpdu, wifiLinkLayerStats.lostmpdu_vi);
-        assertEquals(iface.wmeViPktStats.retries, wifiLinkLayerStats.retries_vi);
+        assertEquals(iface.links[0].wmeViPktStats.rxMpdu, wifiLinkLayerStats.links[0].rxmpdu_vi);
+        assertEquals(iface.links[0].wmeViPktStats.txMpdu, wifiLinkLayerStats.links[0].txmpdu_vi);
+        assertEquals(iface.links[0].wmeViPktStats.lostMpdu,
+                wifiLinkLayerStats.links[0].lostmpdu_vi);
+        assertEquals(iface.links[0].wmeViPktStats.retries, wifiLinkLayerStats.links[0].retries_vi);
 
-        assertEquals(iface.wmeVoPktStats.rxMpdu, wifiLinkLayerStats.rxmpdu_vo);
-        assertEquals(iface.wmeVoPktStats.txMpdu, wifiLinkLayerStats.txmpdu_vo);
-        assertEquals(iface.wmeVoPktStats.lostMpdu, wifiLinkLayerStats.lostmpdu_vo);
-        assertEquals(iface.wmeVoPktStats.retries, wifiLinkLayerStats.retries_vo);
+        assertEquals(iface.links[0].wmeVoPktStats.rxMpdu, wifiLinkLayerStats.links[0].rxmpdu_vo);
+        assertEquals(iface.links[0].wmeVoPktStats.txMpdu, wifiLinkLayerStats.links[0].txmpdu_vo);
+        assertEquals(iface.links[0].wmeVoPktStats.lostMpdu,
+                wifiLinkLayerStats.links[0].lostmpdu_vo);
+        assertEquals(iface.links[0].wmeVoPktStats.retries, wifiLinkLayerStats.links[0].retries_vo);
 
-        assertEquals(iface.wmeBeContentionTimeStats.contentionTimeMinInUsec,
-                wifiLinkLayerStats.contentionTimeMinBeInUsec);
-        assertEquals(iface.wmeBeContentionTimeStats.contentionTimeMaxInUsec,
-                wifiLinkLayerStats.contentionTimeMaxBeInUsec);
-        assertEquals(iface.wmeBeContentionTimeStats.contentionTimeAvgInUsec,
-                wifiLinkLayerStats.contentionTimeAvgBeInUsec);
-        assertEquals(iface.wmeBeContentionTimeStats.contentionNumSamples,
-                wifiLinkLayerStats.contentionNumSamplesBe);
+        assertEquals(iface.links[0].wmeBeContentionTimeStats.contentionTimeMinInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMinBeInUsec);
+        assertEquals(iface.links[0].wmeBeContentionTimeStats.contentionTimeMaxInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMaxBeInUsec);
+        assertEquals(iface.links[0].wmeBeContentionTimeStats.contentionTimeAvgInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeAvgBeInUsec);
+        assertEquals(iface.links[0].wmeBeContentionTimeStats.contentionNumSamples,
+                wifiLinkLayerStats.links[0].contentionNumSamplesBe);
 
-        assertEquals(iface.wmeBkContentionTimeStats.contentionTimeMinInUsec,
-                wifiLinkLayerStats.contentionTimeMinBkInUsec);
-        assertEquals(iface.wmeBkContentionTimeStats.contentionTimeMaxInUsec,
-                wifiLinkLayerStats.contentionTimeMaxBkInUsec);
-        assertEquals(iface.wmeBkContentionTimeStats.contentionTimeAvgInUsec,
-                wifiLinkLayerStats.contentionTimeAvgBkInUsec);
-        assertEquals(iface.wmeBkContentionTimeStats.contentionNumSamples,
-                wifiLinkLayerStats.contentionNumSamplesBk);
+        assertEquals(iface.links[0].wmeBkContentionTimeStats.contentionTimeMinInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMinBkInUsec);
+        assertEquals(iface.links[0].wmeBkContentionTimeStats.contentionTimeMaxInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMaxBkInUsec);
+        assertEquals(iface.links[0].wmeBkContentionTimeStats.contentionTimeAvgInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeAvgBkInUsec);
+        assertEquals(iface.links[0].wmeBkContentionTimeStats.contentionNumSamples,
+                wifiLinkLayerStats.links[0].contentionNumSamplesBk);
 
-        assertEquals(iface.wmeViContentionTimeStats.contentionTimeMinInUsec,
-                wifiLinkLayerStats.contentionTimeMinViInUsec);
-        assertEquals(iface.wmeViContentionTimeStats.contentionTimeMaxInUsec,
-                wifiLinkLayerStats.contentionTimeMaxViInUsec);
-        assertEquals(iface.wmeViContentionTimeStats.contentionTimeAvgInUsec,
-                wifiLinkLayerStats.contentionTimeAvgViInUsec);
-        assertEquals(iface.wmeViContentionTimeStats.contentionNumSamples,
-                wifiLinkLayerStats.contentionNumSamplesVi);
+        assertEquals(iface.links[0].wmeViContentionTimeStats.contentionTimeMinInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMinViInUsec);
+        assertEquals(iface.links[0].wmeViContentionTimeStats.contentionTimeMaxInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMaxViInUsec);
+        assertEquals(iface.links[0].wmeViContentionTimeStats.contentionTimeAvgInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeAvgViInUsec);
+        assertEquals(iface.links[0].wmeViContentionTimeStats.contentionNumSamples,
+                wifiLinkLayerStats.links[0].contentionNumSamplesVi);
 
-        assertEquals(iface.wmeVoContentionTimeStats.contentionTimeMinInUsec,
-                wifiLinkLayerStats.contentionTimeMinVoInUsec);
-        assertEquals(iface.wmeVoContentionTimeStats.contentionTimeMaxInUsec,
-                wifiLinkLayerStats.contentionTimeMaxVoInUsec);
-        assertEquals(iface.wmeVoContentionTimeStats.contentionTimeAvgInUsec,
-                wifiLinkLayerStats.contentionTimeAvgVoInUsec);
-        assertEquals(iface.wmeVoContentionTimeStats.contentionNumSamples,
-                wifiLinkLayerStats.contentionNumSamplesVo);
+        assertEquals(iface.links[0].wmeVoContentionTimeStats.contentionTimeMinInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMinVoInUsec);
+        assertEquals(iface.links[0].wmeVoContentionTimeStats.contentionTimeMaxInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeMaxVoInUsec);
+        assertEquals(iface.links[0].wmeVoContentionTimeStats.contentionTimeAvgInUsec,
+                wifiLinkLayerStats.links[0].contentionTimeAvgVoInUsec);
+        assertEquals(iface.links[0].wmeVoContentionTimeStats.contentionNumSamples,
+                wifiLinkLayerStats.links[0].contentionNumSamplesVo);
 
-        for (int i = 0; i < iface.peers.length; i++) {
-            assertEquals(iface.peers[i].staCount, wifiLinkLayerStats.peerInfo[i].staCount);
-            assertEquals(iface.peers[i].chanUtil, wifiLinkLayerStats.peerInfo[i].chanUtil);
-            for (int j = 0; j < iface.peers[i].rateStats.length; j++) {
-                assertEquals(iface.peers[i].rateStats[j].rateInfo.preamble,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].preamble);
-                assertEquals(iface.peers[i].rateStats[j].rateInfo.nss,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].nss);
-                assertEquals(iface.peers[i].rateStats[j].rateInfo.bw,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].bw);
-                assertEquals(iface.peers[i].rateStats[j].rateInfo.rateMcsIdx,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].rateMcsIdx);
-                assertEquals(iface.peers[i].rateStats[j].rateInfo.bitRateInKbps,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].bitRateInKbps);
-                assertEquals(iface.peers[i].rateStats[j].txMpdu,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].txMpdu);
-                assertEquals(iface.peers[i].rateStats[j].rxMpdu,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].rxMpdu);
-                assertEquals(iface.peers[i].rateStats[j].mpduLost,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].mpduLost);
-                assertEquals(iface.peers[i].rateStats[j].retries,
-                        wifiLinkLayerStats.peerInfo[i].rateStats[j].retries);
+        for (int i = 0; i < iface.links[0].peers.length; i++) {
+            assertEquals(iface.links[0].peers[i].staCount,
+                    wifiLinkLayerStats.links[0].peerInfo[i].staCount);
+            assertEquals(iface.links[0].peers[i].chanUtil,
+                    wifiLinkLayerStats.links[0].peerInfo[i].chanUtil);
+            for (int j = 0; j < iface.links[0].peers[i].rateStats.length; j++) {
+                assertEquals(iface.links[0].peers[i].rateStats[j].rateInfo.preamble,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].preamble);
+                assertEquals(iface.links[0].peers[i].rateStats[j].rateInfo.nss,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].nss);
+                assertEquals(iface.links[0].peers[i].rateStats[j].rateInfo.bw,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].bw);
+                assertEquals(iface.links[0].peers[i].rateStats[j].rateInfo.rateMcsIdx,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].rateMcsIdx);
+                assertEquals(iface.links[0].peers[i].rateStats[j].rateInfo.bitRateInKbps,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].bitRateInKbps);
+                assertEquals(iface.links[0].peers[i].rateStats[j].txMpdu,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].txMpdu);
+                assertEquals(iface.links[0].peers[i].rateStats[j].rxMpdu,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].rxMpdu);
+                assertEquals(iface.links[0].peers[i].rateStats[j].mpduLost,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].mpduLost);
+                assertEquals(iface.links[0].peers[i].rateStats[j].retries,
+                        wifiLinkLayerStats.links[0].peerInfo[i].rateStats[j].retries);
             }
         }
     }
