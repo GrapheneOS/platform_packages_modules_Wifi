@@ -1942,7 +1942,8 @@ public class XmlUtil {
          * @param softApConfig configuration of the Soft AP.
          */
         public static void writeSoftApConfigurationToXml(@NonNull XmlSerializer out,
-                @NonNull SoftApConfiguration softApConfig)
+                @NonNull SoftApConfiguration softApConfig,
+                WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
             XmlUtil.writeNextValue(out, XML_TAG_WIFI_SSID, softApConfig.getWifiSsid().toString());
             if (softApConfig.getBssid() != null) {
@@ -1956,8 +1957,8 @@ public class XmlUtil {
             XmlUtil.writeNextValue(out, XML_TAG_HIDDEN_SSID, softApConfig.isHiddenSsid());
             XmlUtil.writeNextValue(out, XML_TAG_SECURITY_TYPE, softApConfig.getSecurityType());
             if (!ApConfigUtil.isNonPasswordAP(softApConfig.getSecurityType())) {
-                XmlUtil.writeNextValue(out, XML_TAG_PASSPHRASE,
-                        softApConfig.getPassphrase());
+                XmlUtil.writeSoftApPassphraseToXml(out, softApConfig.getPassphrase(),
+                        encryptionUtil);
             }
 
             XmlUtil.writeNextValue(out, XML_TAG_MAX_NUMBER_OF_CLIENTS,
@@ -2018,7 +2019,9 @@ public class XmlUtil {
          */
         @Nullable
         public static SoftApConfiguration parseFromXml(XmlPullParser in, int outerTagDepth,
-                SettingsMigrationDataHolder settingsMigrationDataHolder)
+                SettingsMigrationDataHolder settingsMigrationDataHolder,
+                boolean shouldExpectEncryptedCredentials,
+                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException  {
             SoftApConfiguration.Builder softApConfigBuilder = new SoftApConfiguration.Builder();
             int securityType = SoftApConfiguration.SECURITY_TYPE_OPEN;
@@ -2196,6 +2199,10 @@ public class XmlUtil {
                                                     in, outerTagDepth + 1));
                                 }
                                 break;
+                            case XML_TAG_PASSPHRASE:
+                                passphrase = readSoftApPassphraseFromXml(in, outerTagDepth,
+                                        shouldExpectEncryptedCredentials, encryptionUtil);
+                                break;
                             default:
                                 Log.w(TAG, "Ignoring unknown tag found: " + tagName);
                                 break;
@@ -2245,6 +2252,44 @@ public class XmlUtil {
             }
             return softApConfigBuilder.build();
         } // End of parseFromXml
+    }
+
+    private static void writeSoftApPassphraseToXml(
+            XmlSerializer out, String passphrase, WifiConfigStoreEncryptionUtil encryptionUtil)
+            throws XmlPullParserException, IOException {
+        EncryptedData encryptedData = null;
+        if (encryptionUtil != null && passphrase != null) {
+            encryptedData = encryptionUtil.encrypt(passphrase.getBytes());
+            if (encryptedData == null) {
+                // We silently fail encryption failures!
+                Log.wtf(TAG, "Encryption of softAp passphrase failed");
+            }
+        }
+        if (encryptedData != null) {
+            writeNextSectionStart(out, SoftApConfigurationXmlUtil.XML_TAG_PASSPHRASE);
+            EncryptedDataXmlUtil.writeToXml(out, encryptedData);
+            writeNextSectionEnd(out, SoftApConfigurationXmlUtil.XML_TAG_PASSPHRASE);
+        } else {
+            writeNextValue(out, SoftApConfigurationXmlUtil.XML_TAG_PASSPHRASE, passphrase);
+        }
+    }
+
+    private static String readSoftApPassphraseFromXml(XmlPullParser in, int outerTagDepth,
+            boolean shouldExpectEncryptedCredentials, WifiConfigStoreEncryptionUtil encryptionUtil)
+            throws XmlPullParserException, IOException {
+        if (!shouldExpectEncryptedCredentials || encryptionUtil == null) {
+            throw new XmlPullParserException(
+                    "Encrypted passphraseBytes section not expected");
+        }
+        EncryptedData encryptedData =
+                XmlUtil.EncryptedDataXmlUtil.parseFromXml(in, outerTagDepth + 1);
+        byte[] passphraseBytes = encryptionUtil.decrypt(encryptedData);
+        if (passphraseBytes == null) {
+            Log.wtf(TAG, "Decryption of passphraseBytes failed");
+            return null;
+        } else {
+            return new String(passphraseBytes);
+        }
     }
 }
 
