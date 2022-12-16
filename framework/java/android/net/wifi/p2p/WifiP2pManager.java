@@ -160,6 +160,8 @@ public class WifiP2pManager {
     public static final long FEATURE_FLEXIBLE_DISCOVERY         = 1L << 1;
     /** @hide */
     public static final long FEATURE_GROUP_CLIENT_REMOVAL       = 1L << 2;
+    /** @hide */
+    public static final long FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING = 1L << 3;
 
     /**
      * Extra for transporting a WifiP2pConfig
@@ -1506,10 +1508,15 @@ public class WifiP2pManager {
         if (req == null) throw new IllegalArgumentException("service request is null");
     }
 
-    private static void checkP2pConfig(WifiP2pConfig c) {
+    private void checkP2pConfig(WifiP2pConfig c) {
         if (c == null) throw new IllegalArgumentException("config cannot be null");
         if (TextUtils.isEmpty(c.deviceAddress)) {
             throw new IllegalArgumentException("deviceAddress cannot be empty");
+        }
+        if (c.getGroupClientIpProvisioningMode()
+                == WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL
+                && !isGroupClientIpv6LinkLocalProvisioningSupported()) {
+            throw new UnsupportedOperationException("IPv6 link-local provisioning not supported");
         }
     }
 
@@ -2604,6 +2611,19 @@ public class WifiP2pManager {
         return isFeatureSupported(FEATURE_GROUP_CLIENT_REMOVAL);
     }
 
+    /**
+     * Check if this device supports the IPv6 link-local provisioning for a group client.
+     *
+     * Gates whether the
+     * {@link #connect(Channel, WifiP2pConfig, ActionListener)} method is functional on this device
+     * for {@link WifiP2pConfig#GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
+     *
+     * @return {@code true} if supported, {@code false} otherwise.
+     */
+    public boolean isGroupClientIpv6LinkLocalProvisioningSupported() {
+        return SdkLevel.isAtLeastT()
+                && isFeatureSupported(FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING);
+    }
 
     /**
      * Get a handover request message for use in WFA NFC Handover transfer.

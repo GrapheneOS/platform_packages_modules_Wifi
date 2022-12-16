@@ -542,10 +542,18 @@ public class WifiP2pConfig implements Parcelable {
          * a link-local IPv6 to the group client.
          * <p>
          *     Optional. {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} by default.
+         * <p>
+         * Use {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} to determine
+         * whether the device supports this feature for
+         * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}. If
+         * {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} returns
+         * {@code false} then {@link WifiP2pManager#connect(WifiP2pManager.Channel, WifiP2pConfig,
+         * WifiP2pManager.ActionListener)} method will throw {@link UnsupportedOperationException}
+         * when used with {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
          *
          * @param groupClientIpProvisioningMode the IP provisioning mode of the group client.
          *             This should be one of {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP},
-         *             {@link #GROUP_OWNER_BAND_2GHZ}, {@link #GROUP_OWNER_BAND_5GHZ}.
+         *             {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
          */
@@ -556,7 +564,8 @@ public class WifiP2pConfig implements Parcelable {
             // Since group client IP provisioning modes use NetworkStack functionalities introduced
             // in T, hence we need at least T sdk for this to be supported.
             if (!SdkLevel.isAtLeastT()) {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException(
+                        "IPv6 link-local provisioning not supported");
             }
             switch (groupClientIpProvisioningMode) {
                 case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP:

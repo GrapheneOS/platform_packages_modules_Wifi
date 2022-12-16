@@ -132,7 +132,6 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
@@ -3418,10 +3417,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiLinkLayerStats llStats = new WifiLinkLayerStats();
         llStats.txmpdu_be = 1000;
         llStats.rxmpdu_bk = 2000;
-        WifiNl80211Manager.SignalPollResult signalPollResult =
-                new WifiNl80211Manager.SignalPollResult(-42, 65, 54, sFreq);
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, -42, 65, 54, sFreq);
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
-        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
         mCmi.enableRssiPolling(true);
         connect();
@@ -3432,10 +3431,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiInfo wifiInfo = mWifiInfo;
         assertEquals(llStats.txmpdu_be, wifiInfo.txSuccess);
         assertEquals(llStats.rxmpdu_bk, wifiInfo.rxSuccess);
-        assertEquals(signalPollResult.currentRssiDbm, wifiInfo.getRssi());
-        assertEquals(signalPollResult.txBitrateMbps, wifiInfo.getLinkSpeed());
-        assertEquals(signalPollResult.txBitrateMbps, wifiInfo.getTxLinkSpeedMbps());
-        assertEquals(signalPollResult.rxBitrateMbps, wifiInfo.getRxLinkSpeedMbps());
+        assertEquals(signalPollResults.getRssi(), wifiInfo.getRssi());
+        assertEquals(signalPollResults.getTxLinkSpeed(), wifiInfo.getLinkSpeed());
+        assertEquals(signalPollResults.getTxLinkSpeed(), wifiInfo.getTxLinkSpeedMbps());
+        assertEquals(signalPollResults.getRxLinkSpeed(), wifiInfo.getRxLinkSpeedMbps());
         assertEquals(sFreq, wifiInfo.getFrequency());
         verify(mPerNetwork, atLeastOnce()).getTxLinkBandwidthKbps();
         verify(mPerNetwork, atLeastOnce()).getRxLinkBandwidthKbps();
@@ -3473,10 +3472,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Enable RSSI polling
         final long startMillis = 1_500_000_000_100L;
         WifiLinkLayerStats llStats = new WifiLinkLayerStats();
-        WifiNl80211Manager.SignalPollResult signalPollResult =
-                new WifiNl80211Manager.SignalPollResult(-42, 65, 54, sFreq);
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, -42, 65, 54, sFreq);
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
-        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(82_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(92_000);
@@ -3494,9 +3493,9 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // NetworkCapabilities should be updated when the connected channel frequency is changed
         // For example due to AP channel switch announcement(CSA).
-        WifiNl80211Manager.SignalPollResult signalPollResult1 =
-                new WifiNl80211Manager.SignalPollResult(-42, 65, 54, sFreq1);
-        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult1);
+        WifiSignalPollResults signalPollResults1 = new WifiSignalPollResults();
+        signalPollResults1.addEntry(0, -42, 65, 54, sFreq1);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults1);
         mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
         mLooper.dispatchAll();
 
@@ -3988,10 +3987,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiLinkLayerStats llStats = new WifiLinkLayerStats();
         llStats.txmpdu_be = 1000;
         llStats.rxmpdu_bk = 2000;
-        WifiNl80211Manager.SignalPollResult signalPollResult =
-                new WifiNl80211Manager.SignalPollResult(TEST_RSSI, 65, 54, sFreq);
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, TEST_RSSI, 65, 54, sFreq);
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
-        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
 
         connect();
         mLooper.dispatchAll();
@@ -4701,10 +4700,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiLinkLayerStats llStats = new WifiLinkLayerStats();
         llStats.txmpdu_be = 1000;
         llStats.rxmpdu_bk = 2000;
-        WifiNl80211Manager.SignalPollResult signalPollResult =
-                new WifiNl80211Manager.SignalPollResult(RSSI_THRESHOLD_BREACH_MIN, 65, 54, sFreq);
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, RSSI_THRESHOLD_BREACH_MIN, 65, 54, sFreq);
         when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
-        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResult);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
 
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),

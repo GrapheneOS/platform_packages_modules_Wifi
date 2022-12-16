@@ -93,7 +93,6 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.nl80211.DeviceWiphyCapabilities;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -2580,15 +2579,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private WifiLinkLayerStats updateLinkLayerStatsRssiSpeedFrequencyCapabilities(long txBytes,
             long rxBytes) {
         WifiLinkLayerStats stats = getWifiLinkLayerStats();
-        WifiNl80211Manager.SignalPollResult pollResult = mWifiNative.signalPoll(mInterfaceName);
-        if (pollResult == null) {
+        WifiSignalPollResults pollResults = mWifiNative.signalPoll(mInterfaceName);
+        if (pollResults == null) {
             return stats;
         }
 
-        int newRssi = pollResult.currentRssiDbm;
-        int newTxLinkSpeed = pollResult.txBitrateMbps;
-        int newFrequency = pollResult.associationFrequencyMHz;
-        int newRxLinkSpeed = pollResult.rxBitrateMbps;
+        int newRssi = pollResults.getRssi();
+        int newTxLinkSpeed = pollResults.getTxLinkSpeed();
+        int newFrequency = pollResults.getFrequency();
+        int newRxLinkSpeed = pollResults.getRxLinkSpeed();
         boolean updateNetworkCapabilities = false;
 
         if (mVerboseLoggingEnabled) {

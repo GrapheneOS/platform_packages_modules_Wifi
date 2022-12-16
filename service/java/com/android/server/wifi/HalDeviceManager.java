@@ -986,6 +986,23 @@ public class HalDeviceManager {
         mWifiHal.initialize(mIWifiDeathRecipient);
     }
 
+    private static String getIfaceTypeToString(@HdmIfaceTypeForCreation int type) {
+        switch (type) {
+            case HDM_CREATE_IFACE_STA:
+                return "STA";
+            case HDM_CREATE_IFACE_AP:
+                return "AP";
+            case HDM_CREATE_IFACE_AP_BRIDGE:
+                return "AP_BRIDGE";
+            case HDM_CREATE_IFACE_P2P:
+                return "P2P";
+            case HDM_CREATE_IFACE_NAN:
+                return "NAN";
+            default:
+                return "UNKNOWN " + type;
+        }
+    }
+
     private void teardownInternal() {
         managerStatusListenerDispatch();
         dispatchAllDestroyedListeners();
@@ -1640,6 +1657,23 @@ public class HalDeviceManager {
                             Pair.create(cacheEntry.name, cacheEntry.type), cacheEntry);
                     return iface;
                 }
+            } else {
+                List<String> createIfaceInfoString = new ArrayList<String>();
+                for (WifiChipInfo chipInfo : chipInfos) {
+                    for (int existingCreateType : CREATE_TYPES_BY_PRIORITY) {
+                        WifiIfaceInfo[] createTypeIfaces = chipInfo.ifaces[existingCreateType];
+                        for (WifiIfaceInfo intfInfo : createTypeIfaces) {
+                            if (intfInfo != null) {
+                                createIfaceInfoString.add(
+                                        "name=" + intfInfo.name + " type=" + getIfaceTypeToString(
+                                                intfInfo.createType));
+                            }
+                        }
+                    }
+                }
+                Log.i(TAG, "bestIfaceCreationProposal is null," + " requestIface="
+                        + getIfaceTypeToString(createIfaceType) + ", existingIface="
+                        + createIfaceInfoString);
             }
         }
 

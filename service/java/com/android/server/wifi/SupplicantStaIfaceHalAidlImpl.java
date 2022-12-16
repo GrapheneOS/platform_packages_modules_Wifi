@@ -60,6 +60,7 @@ import android.hardware.wifi.supplicant.QosPolicyRequestType;
 import android.hardware.wifi.supplicant.QosPolicyStatus;
 import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.RxFilterType;
+import android.hardware.wifi.supplicant.SignalPollResult;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
@@ -2870,6 +2871,42 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 handleServiceSpecificException(e, methodStr);
             }
             return capOut;
+        }
+    }
+
+    /**
+     * Returns signal poll results for all Wi-Fi links of the interface. Need service version at
+     * least 2 or higher.
+     *
+     * @param ifaceName Name of the interface.
+     * @return Signal poll results or null if error.
+     */
+    public WifiSignalPollResults getSignalPollResults(@NonNull String ifaceName) {
+        if (!isServiceVersionIsAtLeast(2)) return null;
+        synchronized (mLock) {
+            final String methodStr = "getSignalPollResult";
+            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) {
+                return null;
+            }
+            try {
+                SignalPollResult[] halSignalPollResults = iface.getSignalPollResults();
+                if (halSignalPollResults == null) {
+                    return null;
+                }
+                WifiSignalPollResults nativeSignalPollResults =
+                        new WifiSignalPollResults();
+                for (SignalPollResult r : halSignalPollResults) {
+                    nativeSignalPollResults.addEntry(r.linkId, r.currentRssiDbm, r.txBitrateMbps,
+                            r.rxBitrateMbps, r.frequencyMhz);
+                }
+                return nativeSignalPollResults;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
         }
     }
 
