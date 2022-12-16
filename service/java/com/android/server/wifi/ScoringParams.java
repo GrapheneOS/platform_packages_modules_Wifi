@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiNetworkSelectionConfig;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -243,6 +244,7 @@ public class ScoringParams {
 
     public ScoringParams(Context context) {
         mContext = context;
+        loadResources(mContext);
     }
 
     private void loadResources(Context context) {
@@ -330,7 +332,6 @@ public class ScoringParams {
         if (!("," + kvList).matches(COMMA_KEY_VAL_STAR)) {
             return false;
         }
-        loadResources(mContext);
         Values v = new Values(mVal);
         try {
             v.parseString(kvList);
@@ -387,10 +388,72 @@ public class ScoringParams {
     }
 
     /**
+     * Sets the RSSI thresholds for 2.4 GHz.
+     */
+    public void setRssi2Thresholds(int[] rssi2) {
+        if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi2)) {
+            mVal.rssi2[EXIT] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_bad_rssi_threshold_24GHz);
+            mVal.rssi2[ENTRY] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_entry_rssi_threshold_24GHz);
+            mVal.rssi2[SUFFICIENT] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_low_rssi_threshold_24GHz);
+            mVal.rssi2[GOOD] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_good_rssi_threshold_24GHz);
+        } else {
+            mVal.rssi2[EXIT] = rssi2[EXIT];
+            mVal.rssi2[ENTRY] = rssi2[ENTRY];
+            mVal.rssi2[SUFFICIENT] = rssi2[SUFFICIENT];
+            mVal.rssi2[GOOD] = rssi2[GOOD];
+        }
+    }
+
+    /**
+     * Sets the RSSI thresholds for 5 GHz.
+     */
+    public void setRssi5Thresholds(int[] rssi5) {
+        if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi5)) {
+            mVal.rssi5[EXIT] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_bad_rssi_threshold_5GHz);
+            mVal.rssi5[ENTRY] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_entry_rssi_threshold_5GHz);
+            mVal.rssi5[SUFFICIENT] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_low_rssi_threshold_5GHz);
+            mVal.rssi5[GOOD] = mContext.getResources().getInteger(
+                    R.integer.config_wifi_framework_wifi_score_good_rssi_threshold_5GHz);
+        } else {
+            mVal.rssi5[EXIT] = rssi5[EXIT];
+            mVal.rssi5[ENTRY] = rssi5[ENTRY];
+            mVal.rssi5[SUFFICIENT] = rssi5[SUFFICIENT];
+            mVal.rssi5[GOOD] = rssi5[GOOD];
+        }
+    }
+
+    /**
+     * Sets the RSSI thresholds for 6 GHz.
+     */
+    public void setRssi6Thresholds(int[] rssi6) {
+        if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi6)) {
+            mVal.rssi6[EXIT] = mContext.getResources().getInteger(
+                    R.integer.config_wifiFrameworkScoreBadRssiThreshold6ghz);
+            mVal.rssi6[ENTRY] = mContext.getResources().getInteger(
+                    R.integer.config_wifiFrameworkScoreEntryRssiThreshold6ghz);
+            mVal.rssi6[SUFFICIENT] = mContext.getResources().getInteger(
+                    R.integer.config_wifiFrameworkScoreLowRssiThreshold6ghz);
+            mVal.rssi6[GOOD] = mContext.getResources().getInteger(
+                    R.integer.config_wifiFrameworkScoreGoodRssiThreshold6ghz);
+        } else {
+            mVal.rssi6[EXIT] = rssi6[EXIT];
+            mVal.rssi6[ENTRY] = rssi6[ENTRY];
+            mVal.rssi6[SUFFICIENT] = rssi6[SUFFICIENT];
+            mVal.rssi6[GOOD] = rssi6[GOOD];
+        }
+    }
+
+    /**
      * Returns the number of seconds to use for rssi forecast.
      */
     public int getHorizonSeconds() {
-        loadResources(mContext);
         return mVal.horizon;
     }
 
@@ -399,7 +462,6 @@ public class ScoringParams {
      * no matter how bad the RSSI gets (packets per second).
      */
     public int getYippeeSkippyPacketsPerSecond() {
-        loadResources(mContext);
         return mVal.pps[HIGH_TRAFFIC];
     }
 
@@ -407,7 +469,6 @@ public class ScoringParams {
      * Returns a packet rate that should be considered acceptable to skip scan or network selection
      */
     public int getActiveTrafficPacketsPerSecond() {
-        loadResources(mContext);
         return mVal.pps[ACTIVE_TRAFFIC];
     }
 
@@ -423,7 +484,6 @@ public class ScoringParams {
      *
      */
     public int getNudKnob() {
-        loadResources(mContext);
         return mVal.nud;
     }
 
@@ -557,12 +617,13 @@ public class ScoringParams {
      * This value may be used to tag a set of experimental settings.
      */
     public int getExperimentIdentifier() {
-        loadResources(mContext);
         return mVal.expid;
     }
 
-    private int[] getRssiArray(int frequency) {
-        loadResources(mContext);
+    /**
+     * Returns the RSSI thresholds array for the input band.
+     */
+    public int[] getRssiArray(int frequency) {
         if (ScanResult.is24GHz(frequency)) {
             return mVal.rssi2;
         } else if (ScanResult.is5GHz(frequency)) {
@@ -577,7 +638,6 @@ public class ScoringParams {
 
     @Override
     public String toString() {
-        loadResources(mContext);
         return mVal.toString();
     }
 }

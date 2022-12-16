@@ -2151,6 +2151,9 @@ public class WifiManager {
      * This API allows a privileged app to customize the wifi framework's network selection logic.
      * To revert to default behavior, call this API with a {@link WifiNetworkSelectionConfig}
      * created from a default {@link WifiNetworkSelectionConfig.Builder}.
+     *
+     * Use {@link WifiManager#getNetworkSelectionConfig(Executor, Consumer)} to get the current
+     * network selection configuration.
      * <P>
      * @param nsConfig an Object representing the network selection configuration being programmed.
      *                 This should be created with a {@link WifiNetworkSelectionConfig.Builder}.
@@ -2172,6 +2175,48 @@ public class WifiManager {
                 throw new IllegalArgumentException("nsConfig can not be null");
             }
             mService.setNetworkSelectionConfig(nsConfig);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * This API allows a privileged app to retrieve the {@link WifiNetworkSelectionConfig}
+     * currently being used by the network selector.
+     *
+     * Use {@link WifiManager#setNetworkSelectionConfig(WifiNetworkSelectionConfig)} to set a
+     * new network selection configuration.
+     * <P>
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return
+     *                        {@link WifiNetworkSelectionConfig}
+     *
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    @SystemApi
+    public void getNetworkSelectionConfig(@NonNull Executor executor,
+            @NonNull Consumer<WifiNetworkSelectionConfig> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getNetworkSelectionConfig(
+                    new IWifiNetworkSelectionConfigListener.Stub() {
+                        @Override
+                        public void onResult(WifiNetworkSelectionConfig value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
