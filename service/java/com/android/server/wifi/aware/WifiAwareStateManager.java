@@ -203,6 +203,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int RESPONSE_TYPE_ON_INITIATE_BOOTSTRAPPING_FAIL = 219;
     private static final int RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_SUCCESS = 220;
     private static final int RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_FAIL = 221;
+    private static final int RESPONSE_TYPE_ON_SUSPEND = 222;
+    private static final int RESPONSE_TYPE_ON_RESUME = 223;
 
     private static final int NOTIFICATION_TYPE_INTERFACE_CHANGE = 301;
     private static final int NOTIFICATION_TYPE_CLUSTER_CHANGE = 302;
@@ -1655,6 +1657,30 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.arg2 = transactionId;
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG, success);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_STATUS_CODE, reasonOnFailure);
+        mSm.sendMessage(msg);
+    }
+
+    /**
+     * Response from firmware to {@link #suspendRequest(int)}.
+     */
+    public void onSuspendResponse(short transactionId, int status) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_RESPONSE);
+        msg.arg1 = RESPONSE_TYPE_ON_SUSPEND;
+        msg.arg2 = transactionId;
+        msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG, status == NanStatusCode.SUCCESS);
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_STATUS_CODE, status);
+        mSm.sendMessage(msg);
+    }
+
+    /**
+     * Response from firmware to {@link #resumeRequest(int)}.
+     */
+    public void onResumeResponse(short transactionId, int status) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_RESPONSE);
+        msg.arg1 = RESPONSE_TYPE_ON_RESUME;
+        msg.arg2 = transactionId;
+        msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG, status == NanStatusCode.SUCCESS);
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_STATUS_CODE, status);
         mSm.sendMessage(msg);
     }
 
