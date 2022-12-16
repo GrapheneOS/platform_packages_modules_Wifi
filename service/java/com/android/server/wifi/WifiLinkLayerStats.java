@@ -43,6 +43,12 @@ public class WifiLinkLayerStats {
         /** Link identifier of the link */
         public int link_id;
 
+        /** Identifier of the radio on which link is currently operating */
+        public int radio_id;
+
+        /** Frequency of the link in MHz */
+        public int frequencyMhz;
+
         /** Number of beacons received from our own AP */
         public int beacon_rx;
 

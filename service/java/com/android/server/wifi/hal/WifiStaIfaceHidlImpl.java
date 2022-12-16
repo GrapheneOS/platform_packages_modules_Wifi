@@ -973,6 +973,9 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
         stats.links[DEFAULT_LINK] = new WifiLinkLayerStats.LinkSpecificStats();
         stats.links[DEFAULT_LINK].link_id = 0;
         stats.links[DEFAULT_LINK].beacon_rx = iface.beaconRx;
+        /* HIDL is using legacy single link layer stats. */
+        stats.links[DEFAULT_LINK].radio_id = 0;
+        stats.links[DEFAULT_LINK].frequencyMhz = 0;
         stats.links[DEFAULT_LINK].rssi_mgmt = iface.avgRssiMgmt;
         // Statistics are broken out by Wireless Multimedia Extensions categories
         // WME Best Effort Access Category

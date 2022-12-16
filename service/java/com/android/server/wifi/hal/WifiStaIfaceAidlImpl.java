@@ -940,6 +940,8 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         if (aidlStats == null) return;
         stats.links[linkIndex] = new WifiLinkLayerStats.LinkSpecificStats();
         stats.links[linkIndex].link_id = aidlStats.linkId;
+        stats.links[linkIndex].radio_id = aidlStats.radioId;
+        stats.links[linkIndex].frequencyMhz = aidlStats.frequencyMhz;
         stats.links[linkIndex].beacon_rx = aidlStats.beaconRx;
         stats.links[linkIndex].rssi_mgmt = aidlStats.avgRssiMgmt;
         // Statistics are broken out by Wireless Multimedia Extensions categories
