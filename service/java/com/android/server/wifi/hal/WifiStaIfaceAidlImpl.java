@@ -27,6 +27,7 @@ import android.hardware.wifi.StaBackgroundScanBucketParameters;
 import android.hardware.wifi.StaBackgroundScanCapabilities;
 import android.hardware.wifi.StaBackgroundScanParameters;
 import android.hardware.wifi.StaLinkLayerIfaceStats;
+import android.hardware.wifi.StaLinkLayerLinkStats;
 import android.hardware.wifi.StaLinkLayerRadioStats;
 import android.hardware.wifi.StaLinkLayerStats;
 import android.hardware.wifi.StaPeerInfo;
@@ -923,57 +924,89 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         return out;
     }
 
-    private static void setIfaceStats(WifiLinkLayerStats stats, StaLinkLayerIfaceStats iface) {
-        if (iface == null) return;
-        stats.beacon_rx = iface.beaconRx;
-        stats.rssi_mgmt = iface.avgRssiMgmt;
+    private static void setIfaceStats(WifiLinkLayerStats stats,
+            StaLinkLayerIfaceStats iface) {
+        int linkIndex = 0;
+        if (iface == null || iface.links == null) return;
+        stats.links = new WifiLinkLayerStats.LinkSpecificStats[iface.links.length];
+        for (StaLinkLayerLinkStats link : iface.links) {
+            setIfaceStatsPerLinkFromAidl(stats, link, linkIndex);
+            linkIndex++;
+        }
+    }
+
+    private static void setIfaceStatsPerLinkFromAidl(WifiLinkLayerStats stats,
+            StaLinkLayerLinkStats aidlStats, int linkIndex) {
+        if (aidlStats == null) return;
+        stats.links[linkIndex] = new WifiLinkLayerStats.LinkSpecificStats();
+        stats.links[linkIndex].link_id = aidlStats.linkId;
+        stats.links[linkIndex].radio_id = aidlStats.radioId;
+        stats.links[linkIndex].frequencyMhz = aidlStats.frequencyMhz;
+        stats.links[linkIndex].beacon_rx = aidlStats.beaconRx;
+        stats.links[linkIndex].rssi_mgmt = aidlStats.avgRssiMgmt;
         // Statistics are broken out by Wireless Multimedia Extensions categories
         // WME Best Effort Access Category
-        stats.rxmpdu_be = iface.wmeBePktStats.rxMpdu;
-        stats.txmpdu_be = iface.wmeBePktStats.txMpdu;
-        stats.lostmpdu_be = iface.wmeBePktStats.lostMpdu;
-        stats.retries_be = iface.wmeBePktStats.retries;
+        stats.links[linkIndex].rxmpdu_be = aidlStats.wmeBePktStats.rxMpdu;
+        stats.links[linkIndex].txmpdu_be = aidlStats.wmeBePktStats.txMpdu;
+        stats.links[linkIndex].lostmpdu_be = aidlStats.wmeBePktStats.lostMpdu;
+        stats.links[linkIndex].retries_be = aidlStats.wmeBePktStats.retries;
         // WME Background Access Category
-        stats.rxmpdu_bk = iface.wmeBkPktStats.rxMpdu;
-        stats.txmpdu_bk = iface.wmeBkPktStats.txMpdu;
-        stats.lostmpdu_bk = iface.wmeBkPktStats.lostMpdu;
-        stats.retries_bk = iface.wmeBkPktStats.retries;
+        stats.links[linkIndex].rxmpdu_bk = aidlStats.wmeBkPktStats.rxMpdu;
+        stats.links[linkIndex].txmpdu_bk = aidlStats.wmeBkPktStats.txMpdu;
+        stats.links[linkIndex].lostmpdu_bk = aidlStats.wmeBkPktStats.lostMpdu;
+        stats.links[linkIndex].retries_bk = aidlStats.wmeBkPktStats.retries;
         // WME Video Access Category
-        stats.rxmpdu_vi = iface.wmeViPktStats.rxMpdu;
-        stats.txmpdu_vi = iface.wmeViPktStats.txMpdu;
-        stats.lostmpdu_vi = iface.wmeViPktStats.lostMpdu;
-        stats.retries_vi = iface.wmeViPktStats.retries;
+        stats.links[linkIndex].rxmpdu_vi = aidlStats.wmeViPktStats.rxMpdu;
+        stats.links[linkIndex].txmpdu_vi = aidlStats.wmeViPktStats.txMpdu;
+        stats.links[linkIndex].lostmpdu_vi = aidlStats.wmeViPktStats.lostMpdu;
+        stats.links[linkIndex].retries_vi = aidlStats.wmeViPktStats.retries;
         // WME Voice Access Category
-        stats.rxmpdu_vo = iface.wmeVoPktStats.rxMpdu;
-        stats.txmpdu_vo = iface.wmeVoPktStats.txMpdu;
-        stats.lostmpdu_vo = iface.wmeVoPktStats.lostMpdu;
-        stats.retries_vo = iface.wmeVoPktStats.retries;
-        stats.timeSliceDutyCycleInPercent = iface.timeSliceDutyCycleInPercent;
+        stats.links[linkIndex].rxmpdu_vo = aidlStats.wmeVoPktStats.rxMpdu;
+        stats.links[linkIndex].txmpdu_vo = aidlStats.wmeVoPktStats.txMpdu;
+        stats.links[linkIndex].lostmpdu_vo = aidlStats.wmeVoPktStats.lostMpdu;
+        stats.links[linkIndex].retries_vo = aidlStats.wmeVoPktStats.retries;
         // WME Best Effort Access Category
-        stats.contentionTimeMinBeInUsec = iface.wmeBeContentionTimeStats.contentionTimeMinInUsec;
-        stats.contentionTimeMaxBeInUsec = iface.wmeBeContentionTimeStats.contentionTimeMaxInUsec;
-        stats.contentionTimeAvgBeInUsec = iface.wmeBeContentionTimeStats.contentionTimeAvgInUsec;
-        stats.contentionNumSamplesBe = iface.wmeBeContentionTimeStats.contentionNumSamples;
+        stats.links[linkIndex].contentionTimeMinBeInUsec =
+                aidlStats.wmeBeContentionTimeStats.contentionTimeMinInUsec;
+        stats.links[linkIndex].contentionTimeMaxBeInUsec =
+                aidlStats.wmeBeContentionTimeStats.contentionTimeMaxInUsec;
+        stats.links[linkIndex].contentionTimeAvgBeInUsec =
+                aidlStats.wmeBeContentionTimeStats.contentionTimeAvgInUsec;
+        stats.links[linkIndex].contentionNumSamplesBe =
+                aidlStats.wmeBeContentionTimeStats.contentionNumSamples;
         // WME Background Access Category
-        stats.contentionTimeMinBkInUsec = iface.wmeBkContentionTimeStats.contentionTimeMinInUsec;
-        stats.contentionTimeMaxBkInUsec = iface.wmeBkContentionTimeStats.contentionTimeMaxInUsec;
-        stats.contentionTimeAvgBkInUsec = iface.wmeBkContentionTimeStats.contentionTimeAvgInUsec;
-        stats.contentionNumSamplesBk = iface.wmeBkContentionTimeStats.contentionNumSamples;
+        stats.links[linkIndex].contentionTimeMinBkInUsec =
+                aidlStats.wmeBkContentionTimeStats.contentionTimeMinInUsec;
+        stats.links[linkIndex].contentionTimeMaxBkInUsec =
+                aidlStats.wmeBkContentionTimeStats.contentionTimeMaxInUsec;
+        stats.links[linkIndex].contentionTimeAvgBkInUsec =
+                aidlStats.wmeBkContentionTimeStats.contentionTimeAvgInUsec;
+        stats.links[linkIndex].contentionNumSamplesBk =
+                aidlStats.wmeBkContentionTimeStats.contentionNumSamples;
         // WME Video Access Category
-        stats.contentionTimeMinViInUsec = iface.wmeViContentionTimeStats.contentionTimeMinInUsec;
-        stats.contentionTimeMaxViInUsec = iface.wmeViContentionTimeStats.contentionTimeMaxInUsec;
-        stats.contentionTimeAvgViInUsec = iface.wmeViContentionTimeStats.contentionTimeAvgInUsec;
-        stats.contentionNumSamplesVi = iface.wmeViContentionTimeStats.contentionNumSamples;
+        stats.links[linkIndex].contentionTimeMinViInUsec =
+                aidlStats.wmeViContentionTimeStats.contentionTimeMinInUsec;
+        stats.links[linkIndex].contentionTimeMaxViInUsec =
+                aidlStats.wmeViContentionTimeStats.contentionTimeMaxInUsec;
+        stats.links[linkIndex].contentionTimeAvgViInUsec =
+                aidlStats.wmeViContentionTimeStats.contentionTimeAvgInUsec;
+        stats.links[linkIndex].contentionNumSamplesVi =
+                aidlStats.wmeViContentionTimeStats.contentionNumSamples;
         // WME Voice Access Category
-        stats.contentionTimeMinVoInUsec = iface.wmeVoContentionTimeStats.contentionTimeMinInUsec;
-        stats.contentionTimeMaxVoInUsec = iface.wmeVoContentionTimeStats.contentionTimeMaxInUsec;
-        stats.contentionTimeAvgVoInUsec = iface.wmeVoContentionTimeStats.contentionTimeAvgInUsec;
-        stats.contentionNumSamplesVo = iface.wmeVoContentionTimeStats.contentionNumSamples;
+        stats.links[linkIndex].contentionTimeMinVoInUsec =
+                aidlStats.wmeVoContentionTimeStats.contentionTimeMinInUsec;
+        stats.links[linkIndex].contentionTimeMaxVoInUsec =
+                aidlStats.wmeVoContentionTimeStats.contentionTimeMaxInUsec;
+        stats.links[linkIndex].contentionTimeAvgVoInUsec =
+                aidlStats.wmeVoContentionTimeStats.contentionTimeAvgInUsec;
+        stats.links[linkIndex].contentionNumSamplesVo =
+                aidlStats.wmeVoContentionTimeStats.contentionNumSamples;
+        stats.links[linkIndex].timeSliceDutyCycleInPercent = aidlStats.timeSliceDutyCycleInPercent;
         // Peer information statistics
-        stats.peerInfo = new WifiLinkLayerStats.PeerInfo[iface.peers.length];
-        for (int i = 0; i < stats.peerInfo.length; i++) {
+        stats.links[linkIndex].peerInfo = new WifiLinkLayerStats.PeerInfo[aidlStats.peers.length];
+        for (int i = 0; i < stats.links[linkIndex].peerInfo.length; i++) {
             WifiLinkLayerStats.PeerInfo peer = new WifiLinkLayerStats.PeerInfo();
-            StaPeerInfo staPeerInfo = iface.peers[i];
+            StaPeerInfo staPeerInfo = aidlStats.peers[i];
             peer.staCount = (short) staPeerInfo.staCount;
             peer.chanUtil = (short) staPeerInfo.chanUtil;
             WifiLinkLayerStats.RateStat[] rateStats =
@@ -992,7 +1025,7 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
                 rateStats[j].retries = staRateStat.retries;
             }
             peer.rateStats = rateStats;
-            stats.peerInfo[i] = peer;
+            stats.links[linkIndex].peerInfo[i] = peer;
         }
     }
 
