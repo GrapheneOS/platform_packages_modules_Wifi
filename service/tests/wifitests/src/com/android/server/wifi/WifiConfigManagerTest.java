@@ -5834,6 +5834,13 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 (WifiConfiguration) intent.getExtra(WifiManager.EXTRA_WIFI_CONFIGURATION);
         assertNull(retrievedConfig);
 
+        // Verify System only broadcast
+        mContextConfigStoreMockOrder.verify(mContext).sendBroadcastAsUser(
+                intentCaptor.capture(),
+                eq(UserHandle.SYSTEM),
+                eq(android.Manifest.permission.NETWORK_STACK));
+        intent = intentCaptor.getValue();
+
         return intent.getIntExtra(WifiManager.EXTRA_CHANGE_REASON, -1);
     }
 
@@ -5868,8 +5875,12 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(mWifiConfigManager.loadFromStore());
         mContextConfigStoreMockOrder.verify(mContext).sendBroadcastAsUser(
                 any(Intent.class),
-                any(UserHandle.class),
+                eq(UserHandle.ALL),
                 eq(android.Manifest.permission.ACCESS_WIFI_STATE));
+        mContextConfigStoreMockOrder.verify(mContext).sendBroadcastAsUser(
+                any(Intent.class),
+                eq(UserHandle.SYSTEM),
+                eq(android.Manifest.permission.NETWORK_STACK));
     }
 
     private void triggerStoreReadIfNeeded() {
