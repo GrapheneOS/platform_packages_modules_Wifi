@@ -2071,22 +2071,17 @@ public class WifiMetrics {
                 // Write metrics to statsd
                 int wwFailureCode = getConnectionResultFailureCode(level2FailureCode,
                         level2FailureReason);
-
-                if (wwFailureCode != -1) {
-                    int timeSinceConnectedSeconds = (int) ((mPreviousSession != null ?
-                            (mClock.getElapsedSinceBootMillis()
-                                    - mPreviousSession.mSessionEndTimeMillis) :
-                            mClock.getElapsedSinceBootMillis()) / 1000);
-
-                    WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
-                            connectionSucceeded,
-                            wwFailureCode, currentConnectionEvent.mConnectionEvent.signalStrength,
-                            durationTakenToConnectMillis, band, currentConnectionEvent.mAuthType,
-                            currentConnectionEvent.mTrigger,
-                            currentConnectionEvent.mHasEverConnected,
-                            timeSinceConnectedSeconds
-                    );
-                }
+                int timeSinceConnectedSeconds = (int) ((mPreviousSession != null
+                        ? (mClock.getElapsedSinceBootMillis()
+                                - mPreviousSession.mSessionEndTimeMillis) :
+                        mClock.getElapsedSinceBootMillis()) / 1000);
+                WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
+                        connectionSucceeded,
+                        wwFailureCode, currentConnectionEvent.mConnectionEvent.signalStrength,
+                        durationTakenToConnectMillis, band, currentConnectionEvent.mAuthType,
+                        currentConnectionEvent.mTrigger,
+                        currentConnectionEvent.mHasEverConnected,
+                        timeSinceConnectedSeconds);
 
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);
@@ -2159,7 +2154,6 @@ public class WifiMetrics {
                 userToggledWifiAfterEnteringApmWithinMinute, false);
     }
 
-    // TODO(b/177341879): Add failure type ConnectionEvent.FAILURE_NO_RESPONSE into Westworld.
     private int getConnectionResultFailureCode(int level2FailureCode, int level2FailureReason) {
         switch (level2FailureCode) {
             case ConnectionEvent.FAILURE_NONE:
@@ -2183,8 +2177,18 @@ public class WifiMetrics {
                 return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_NETWORK_DISCONNECTION;
             case ConnectionEvent.FAILURE_ROAM_TIMEOUT:
                 return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_ROAM_TIMEOUT;
+            case ConnectionEvent.FAILURE_CONNECT_NETWORK_FAILED:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_CONNECT_NETWORK_FAILED;
+            case ConnectionEvent.FAILURE_NEW_CONNECTION_ATTEMPT:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_NEW_CONNECTION_ATTEMPT;
+            case ConnectionEvent.FAILURE_REDUNDANT_CONNECTION_ATTEMPT:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_REDUNDANT_CONNECTION_ATTEMPT;
+            case ConnectionEvent.FAILURE_NETWORK_NOT_FOUND:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_NETWORK_NOT_FOUND;
+            case ConnectionEvent.FAILURE_NO_RESPONSE:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_NO_RESPONSE;
             default:
-                return -1;
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__FAILURE_CODE__FAILURE_OTHERS;
         }
     }
 
