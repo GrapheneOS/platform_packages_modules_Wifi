@@ -16,6 +16,11 @@
 
 package android.net.wifi;
 
+import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -38,12 +43,19 @@ public class WifiNetworkSelectionConfigTest {
      */
     @Test
     public void testWifiNetworkSelectionConfigParcel() {
+        int[] rssi2Thresholds = {-81, -79, -73, -60};
+        int[] rssi5Thresholds = {-80, -77, -71, -55};
+        int[] rssi6Thresholds = {-79, -72, -65, -55};
+
         WifiNetworkSelectionConfig config = new WifiNetworkSelectionConfig.Builder()
                 .setAssociatedNetworkSelectionOverride(
                         WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED)
                 .setSufficiencyCheckEnabledWhenScreenOff(false)
                 .setUserConnectChoiceOverrideEnabled(false)
                 .setLastSelectionWeightEnabled(false)
+                .setRssiThresholds(WIFI_BAND_24_GHZ, rssi2Thresholds)
+                .setRssiThresholds(WIFI_BAND_5_GHZ, rssi5Thresholds)
+                .setRssiThresholds(WIFI_BAND_6_GHZ, rssi6Thresholds)
                 .build();
 
         Parcel parcelW = Parcel.obtain();
@@ -63,6 +75,9 @@ public class WifiNetworkSelectionConfigTest {
         assertTrue(parcelConfig.isSufficiencyCheckEnabledWhenScreenOn());
         assertFalse(parcelConfig.isUserConnectChoiceOverrideEnabled());
         assertFalse(parcelConfig.isLastSelectionWeightEnabled());
+        assertArrayEquals(rssi2Thresholds, parcelConfig.getRssiThresholds(WIFI_BAND_24_GHZ));
+        assertArrayEquals(rssi5Thresholds, parcelConfig.getRssiThresholds(WIFI_BAND_5_GHZ));
+        assertArrayEquals(rssi6Thresholds, parcelConfig.getRssiThresholds(WIFI_BAND_6_GHZ));
         assertEquals(config, parcelConfig);
         assertEquals(config.hashCode(), parcelConfig.hashCode());
     }
@@ -72,6 +87,28 @@ public class WifiNetworkSelectionConfigTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new WifiNetworkSelectionConfig.Builder()
                         .setAssociatedNetworkSelectionOverride(-1));
+    }
+
+    @Test
+    public void testInvalidRssiThresholdArrayThrowsException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_24_GHZ, new int[] {-200, -100, -50, 50}));
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_5_GHZ, new int[] {-100, -60, -70, -50}));
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_5_GHZ, new int[] {-60, -60, -50, -40}));
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_5_GHZ, new int[] {-127, -60, -50, -1}));
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_5_GHZ, new int[] {-126, -60, -50, 0}));
+        assertThrows(IllegalArgumentException.class,
+                () -> new WifiNetworkSelectionConfig.Builder()
+                        .setRssiThresholds(WIFI_BAND_6_GHZ, new int[] {0, 0, 0, -50}));
     }
 
     /**
@@ -87,5 +124,8 @@ public class WifiNetworkSelectionConfigTest {
         assertTrue(config.isSufficiencyCheckEnabledWhenScreenOn());
         assertTrue(config.isUserConnectChoiceOverrideEnabled());
         assertTrue(config.isLastSelectionWeightEnabled());
+        assertArrayEquals(new int[4], config.getRssiThresholds(WIFI_BAND_24_GHZ));
+        assertArrayEquals(new int[4], config.getRssiThresholds(WIFI_BAND_5_GHZ));
+        assertArrayEquals(new int[4], config.getRssiThresholds(WIFI_BAND_6_GHZ));
     }
 }

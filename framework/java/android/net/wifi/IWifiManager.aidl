@@ -43,6 +43,7 @@ import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
@@ -73,6 +74,8 @@ interface IWifiManager
     oneway void getWifiActivityEnergyInfoAsync(in IOnWifiActivityEnergyInfoListener listener);
 
     void setNetworkSelectionConfig(in WifiNetworkSelectionConfig nsConfig);
+
+    void getNetworkSelectionConfig(in IWifiNetworkSelectionConfigListener listener);
 
     void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean enable);
 

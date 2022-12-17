@@ -18,6 +18,9 @@ package com.android.server.wifi;
 
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_GENERIC;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_NO_CHANNEL;
 import static android.net.wifi.WifiManager.NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE;
@@ -104,6 +107,7 @@ import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApCapability;
@@ -340,6 +344,8 @@ public class WifiServiceImpl extends BaseWifiService {
     private boolean mWifiTetheringDisallowed;
     private boolean mIsBootComplete;
     private boolean mIsLocationModeEnabled;
+
+    private WifiNetworkSelectionConfig mNetworkSelectionConfig;
 
     /**
      * The wrapper of SoftApCallback is used in WifiService internally.
@@ -3172,13 +3178,64 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mLog.info("uid=% WifiNetworkSelectionConfig=%")
                 .c(uid).c(nsConfig.toString()).flush();
+
         mWifiThreadRunner.post(() -> {
+            mNetworkSelectionConfig = nsConfig;
             mWifiConnectivityManager.setNetworkSelectionConfig(nsConfig);
         });
         mLastCallerInfoManager.put(
                 WifiManager.API_SET_NETWORK_SELECTION_CONFIG,
                 Process.myTid(),
                 uid, Binder.getCallingPid(), "<unknown>", true);
+    }
+
+    /**
+     * See {@link WifiManager#getNetworkSelectionConfig(Executor, Consumer)}
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public void getNetworkSelectionConfig(@NonNull IWifiNetworkSelectionConfigListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException();
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + ", is not allowed to get network selection "
+                    + "config");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                if (mNetworkSelectionConfig == null) {
+                    mNetworkSelectionConfig = new WifiNetworkSelectionConfig.Builder().build();
+                }
+                WifiNetworkSelectionConfig.Builder builder =
+                        new WifiNetworkSelectionConfig.Builder(mNetworkSelectionConfig);
+                ScoringParams scoringParams = mWifiInjector.getScoringParams();
+                if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(
+                        mNetworkSelectionConfig.getRssiThresholds(WIFI_BAND_24_GHZ))) {
+                    builder = builder.setRssiThresholds(WIFI_BAND_24_GHZ,
+                            scoringParams.getRssiArray(ScanResult.BAND_24_GHZ_START_FREQ_MHZ));
+                }
+                if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(
+                        mNetworkSelectionConfig.getRssiThresholds(WIFI_BAND_5_GHZ))) {
+                    builder = builder.setRssiThresholds(WIFI_BAND_5_GHZ,
+                            scoringParams.getRssiArray(ScanResult.BAND_5_GHZ_START_FREQ_MHZ));
+                }
+                if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(
+                        mNetworkSelectionConfig.getRssiThresholds(WIFI_BAND_6_GHZ))) {
+                    builder = builder.setRssiThresholds(WIFI_BAND_6_GHZ,
+                            scoringParams.getRssiArray(ScanResult.BAND_6_GHZ_START_FREQ_MHZ));
+                }
+                mNetworkSelectionConfig = builder.build();
+                listener.onResult(mNetworkSelectionConfig);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**

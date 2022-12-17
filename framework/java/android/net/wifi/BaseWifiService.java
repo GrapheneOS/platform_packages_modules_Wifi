@@ -90,6 +90,11 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void getNetworkSelectionConfig(@NonNull IWifiNetworkSelectionConfigListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void setThirdPartyAppEnablingWifiConfirmationDialogEnabled(boolean enable) {
         throw new UnsupportedOperationException();
     }
