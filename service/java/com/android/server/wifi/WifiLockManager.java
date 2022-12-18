@@ -213,6 +213,11 @@ public class WifiLockManager {
         // This is to make sure worksource value can not be changed by caller
         // after function returns.
         WorkSource newWorkSource = new WorkSource(ws);
+        // High perf lock is deprecated. Acquisition of  High perf lock will be treated as a call to
+        // Low Latency Lock.
+        if (lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
+            lockMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
+        }
         return addLock(new WifiLock(lockMode, tag, binder, newWorkSource));
     }
 

@@ -1723,7 +1723,16 @@ public class WifiManager {
      * <p>
      * When there is no support from the hardware, the {@link #WIFI_MODE_FULL_HIGH_PERF}
      * lock will have no impact.
+     *
+     * @deprecated The {@code WIFI_MODE_FULL_HIGH_PERF} is deprecated and is automatically replaced
+     * with {@link #WIFI_MODE_FULL_LOW_LATENCY} with all the restrictions documented on that lock.
+     * I.e. any request to the {@code WIFI_MODE_FULL_HIGH_PERF} will now obtain a
+     * {@link #WIFI_MODE_FULL_LOW_LATENCY} lock instead.
+     * Deprecation is due to the impact of {@code WIFI_MODE_FULL_HIGH_PERF} on power dissipation.
+     * The {@link #WIFI_MODE_FULL_LOW_LATENCY} provides much of the same desired functionality with
+     * less impact on power dissipation.
      */
+    @Deprecated
     public static final int WIFI_MODE_FULL_HIGH_PERF = 3;
 
     /**
