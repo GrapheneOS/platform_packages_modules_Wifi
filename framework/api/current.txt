@@ -1527,6 +1527,8 @@ package android.net.wifi.rtt {
     method public int getDistanceMm();
     method public int getDistanceStdDevMm();
     method @Nullable public android.net.MacAddress getMacAddress();
+    method public int getMeasurementBandwidth();
+    method public int getMeasurementChannelFrequencyMHz();
     method public int getNumAttemptedMeasurements();
     method public int getNumSuccessfulMeasurements();
     method @Nullable public android.net.wifi.aware.PeerHandle getPeerHandle();
@@ -1540,6 +1542,7 @@ package android.net.wifi.rtt {
     field public static final int STATUS_FAIL = 1; // 0x1
     field public static final int STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC = 2; // 0x2
     field public static final int STATUS_SUCCESS = 0; // 0x0
+    field public static final int UNSPECIFIED = -1; // 0xffffffff
   }
 
   public abstract class RangingResultCallback {

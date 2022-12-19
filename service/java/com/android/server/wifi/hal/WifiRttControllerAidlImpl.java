@@ -276,7 +276,8 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                     rttResult.rssi / -2, rttResult.numberPerBurstPeer,
                     rttResult.successNumber, lci, lcr, responderLocation,
                     rttResult.timeStampInUs /  WifiRttController.CONVERSION_US_TO_MS,
-                    rttResult.type == RttType.TWO_SIDED));
+                    rttResult.type == RttType.TWO_SIDED, rttResult.channelFreqMHz,
+                    rttResult.packetBw));
         }
         return rangingResults;
     }
