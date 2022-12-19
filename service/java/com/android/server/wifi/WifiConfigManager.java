@@ -1488,6 +1488,7 @@ public class WifiConfigManager {
                         existingInternalConfig, newInternalConfig);
         if (hasCredentialChanged) {
             newInternalConfig.getNetworkSelectionStatus().setHasEverConnected(false);
+            newInternalConfig.setHasPreSharedKeyChanged(true);
         }
 
         // Ensure that the user approve flag is set to false for a new network.
