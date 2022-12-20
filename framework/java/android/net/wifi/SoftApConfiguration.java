@@ -34,6 +34,7 @@ import android.util.Log;
 import android.util.SparseIntArray;
 
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.internal.util.Preconditions;
 import com.android.modules.utils.build.SdkLevel;
@@ -69,6 +70,12 @@ import java.util.stream.IntStream;
 public final class SoftApConfiguration implements Parcelable {
 
     private static final String TAG = "SoftApConfiguration";
+
+    @VisibleForTesting
+    static final int PSK_MIN_LEN = 8;
+
+    @VisibleForTesting
+    static final int PSK_MAX_LEN = 63;
 
     /**
      * 2GHz band.
@@ -1497,13 +1504,18 @@ public final class SoftApConfiguration implements Parcelable {
          * and {@link #SECURITY_TYPE_WPA3_OWE}.
          *
          * @return Builder for chaining.
-         * @throws IllegalArgumentException when the passphrase length is empty and
-         *         {@code securityType} is any of the following:
-         *         {@link #SECURITY_TYPE_WPA2_PSK} or {@link #SECURITY_TYPE_WPA3_SAE_TRANSITION}
-         *         or {@link #SECURITY_TYPE_WPA3_SAE},
-         *         or non-null passphrase and {@code securityType} is
-         *         {@link #SECURITY_TYPE_OPEN} or {@link #SECURITY_TYPE_WPA3_OWE_TRANSITION} or
-         *         {@link #SECURITY_TYPE_WPA3_OWE}.
+         * @throws IllegalArgumentException when the passphrase is non-null for
+         *             - {@link #SECURITY_TYPE_OPEN}
+         *             - {@link #SECURITY_TYPE_WPA3_OWE_TRANSITION}
+         *             - {@link #SECURITY_TYPE_WPA3_OWE}
+         * @throws IllegalArgumentException when the passphrase is empty for
+         *             - {@link #SECURITY_TYPE_WPA2_PSK},
+         *             - {@link #SECURITY_TYPE_WPA3_SAE_TRANSITION},
+         *             - {@link #SECURITY_TYPE_WPA3_SAE},
+         * @throws IllegalArgumentException before {@link android.os.Build.VERSION_CODES#TIRAMISU})
+         *         when the passphrase is not between 8 and 63 bytes (inclusive) for
+         *             - {@link #SECURITY_TYPE_WPA2_PSK}
+         *             - {@link #SECURITY_TYPE_WPA3_SAE_TRANSITION}
          */
         @NonNull
         public Builder setPassphrase(@Nullable String passphrase, @SecurityType int securityType) {
@@ -1521,6 +1533,19 @@ public final class SoftApConfiguration implements Parcelable {
                 }
             } else {
                 Preconditions.checkStringNotEmpty(passphrase);
+                if (!SdkLevel.isAtLeastT() && (securityType == SECURITY_TYPE_WPA2_PSK
+                        || securityType == SECURITY_TYPE_WPA3_SAE_TRANSITION)) {
+                    int passphraseByteLength = 0;
+                    if (!TextUtils.isEmpty(passphrase)) {
+                        passphraseByteLength = passphrase.getBytes(StandardCharsets.UTF_8).length;
+                    }
+                    if (passphraseByteLength < PSK_MIN_LEN || passphraseByteLength > PSK_MAX_LEN) {
+                        throw new IllegalArgumentException(
+                                "Passphrase length must be at least " + PSK_MIN_LEN
+                                        + " and no more than " + PSK_MAX_LEN
+                                        + " for WPA2_PSK and WPA3_SAE_TRANSITION Mode");
+                    }
+                }
             }
             mSecurityType = securityType;
             mPassphrase = passphrase;
