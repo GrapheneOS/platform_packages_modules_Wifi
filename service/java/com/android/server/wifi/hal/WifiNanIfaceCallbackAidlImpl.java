@@ -510,7 +510,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     public void eventPairingRequest(NanPairingRequestInd event) {
         if (!checkFrameworkCallback()) return;
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventPairingRequest: ndpInstanceId=");
+            Log.v(TAG, "eventPairingRequest:");
         }
         mWifiNanIface.getFrameworkCallback().eventPairingRequest(event.discoverySessionId,
                 event.peerId, event.peerDiscMacAddr,
@@ -557,12 +557,24 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
 
     @Override
     public void eventBootstrappingRequest(NanBootstrappingRequestInd event) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventBootstrappingRequest:");
+        }
+        mWifiNanIface.getFrameworkCallback().eventBootstrappingRequest(event.discoverySessionId,
+                event.peerId, event.peerDiscMacAddr,
+                event.bootstrappingInstanceId, event.requestBootstrappingMethod);
     }
 
     @Override
     public void eventBootstrappingConfirm(NanBootstrappingConfirmInd event) {
-
+        if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventBootstrappingConfirm:");
+        }
+        mWifiNanIface.getFrameworkCallback().eventBootstrappingConfirm(
+                event.bootstrappingInstanceId, event.acceptRequest,
+                WifiNanIface.NanStatusCode.fromAidl(event.reasonCode.status));
     }
 
     @Override

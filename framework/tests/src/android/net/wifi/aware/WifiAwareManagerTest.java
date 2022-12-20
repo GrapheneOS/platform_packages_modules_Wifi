@@ -1870,18 +1870,32 @@ public class WifiAwareManagerTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSubscribeStarted(subscribeSession.capture());
 
-        // (3) initiate pairing request
+        // (3) Initiate bootstrapping
+        subscribeSession.getValue().initiateBootstrappingRequest(peerHandle,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+        inOrder.verify(mockAwareService).initiateBootStrappingSetupRequest(eq(clientId),
+                eq(sessionId), eq(peerId),
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+
+        // (4) Bootstrapping confirmed
+        sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onBootstrappingConfirmed(eq(peerHandle),
+                eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+
+        // (5) initiate pairing request
         subscribeSession.getValue().initiatePairingRequest(peerHandle, password, alias);
         inOrder.verify(mockAwareService).initiateNanPairingSetupRequest(eq(clientId), eq(sessionId),
                 eq(peerId), eq(password), eq(alias));
 
-        // (4) Received confirm event
+        // (6) Received confirm event
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerHandle), eq(true),
                 eq(alias));
 
-        // (5) terminate
+        // (7) terminate
         subscribeSession.getValue().close();
         mMockLooper.dispatchAll();
         inOrder.verify(mockAwareService).terminateSession(clientId, sessionId);

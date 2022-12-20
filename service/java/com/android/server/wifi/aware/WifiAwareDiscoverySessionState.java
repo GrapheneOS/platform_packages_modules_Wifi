@@ -139,6 +139,16 @@ public class WifiAwareDiscoverySessionState {
     }
 
     /**
+     * Check if proposed method can be fulfilled by the configure.
+     */
+    public boolean acceptsBootstrappingMethod(int method) {
+        if (mPairingConfig == null) {
+            return false;
+        }
+        return (mPairingConfig.getBootstrappingMethods() & method) != 0;
+    }
+
+    /**
      * Check the instant communication mode of the client.
      * @param timeout Specify a interval when instant mode config timeout
      * @return current instant mode one of the {@code INSTANT_MODE_*}
@@ -315,7 +325,7 @@ public class WifiAwareDiscoverySessionState {
      * @param nik NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
+     * @return True if the request send succeed.
      */
     public boolean initiatePairing(short transactionId,
             int peerId, String password, int requestType, byte[] nik, byte[] pmk, int akm) {
@@ -366,7 +376,7 @@ public class WifiAwareDiscoverySessionState {
      * @param nik NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
+     * @return True if the request send succeed.
      */
     public boolean respondToPairingRequest(short transactionId, int peerId, int pairingId,
             boolean accept, byte[] nik, int requestType, byte[] pmk, String password, int akm) {
@@ -401,6 +411,68 @@ public class WifiAwareDiscoverySessionState {
         }
 
         return true;
+    }
+
+    /**
+     * Initiate an Aware bootstrapping request
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param method proposed bootstrapping method
+     * @return True if the request send succeed.
+     */
+    public boolean initiateBootstrapping(short transactionId,
+            int peerId, int method) {
+        PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
+        if (peerInfo == null) {
+            Log.e(TAG, "initiateBootstrapping: attempting to send pairing request to an address"
+                    + " which didn't match/contact us");
+            try {
+                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method);
+            } catch (RemoteException e) {
+                Log.e(TAG, "initiateBootstrapping: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        boolean success = mWifiAwareNativeApi.initiateBootstrapping(transactionId,
+                peerInfo.mInstanceId, peerInfo.mMac, method);
+        if (!success) {
+            try {
+                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method);
+            } catch (RemoteException e) {
+                Log.e(TAG, "initiateBootstrapping: RemoteException=" + e);
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Respond to a bootstrapping request
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param bootstrappingId The id of current bootstrapping session
+     * @param accept True if the method proposed by peer is accepted, false otherwise
+     * @param method the accepted method
+     * @return True if the send success
+     */
+    public boolean respondToBootstrapping(short transactionId,
+            int peerId, int bootstrappingId, boolean accept, int method) {
+        PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
+        if (peerInfo == null) {
+            Log.e(TAG, "initiateBootstrapping: attempting to send pairing request to"
+                    + " an address which didn't match/contact us");
+            return false;
+        }
+
+        boolean success = mWifiAwareNativeApi.respondToBootstrappingRequest(transactionId,
+                bootstrappingId, accept);
+        return success;
     }
 
     /**
@@ -513,6 +585,18 @@ public class WifiAwareDiscoverySessionState {
             Log.w(TAG, "onPairingConfirmReceived: RemoteException (FYI): " + e);
         }
     }
+
+    /**
+     * Event that receive the bootstrapping request finished
+     */
+    public void onBootStrappingConfirmReceived(int peerId, boolean accept, int method) {
+        try {
+            mCallback.onBootstrappingVerificationConfirmed(peerId, accept, method);
+        } catch (RemoteException e) {
+            Log.w(TAG, "onBootStrappingConfirmReceived: RemoteException (FYI): " + e);
+        }
+    }
+
 
     /**
      * Get the ID of the peer assign by the framework

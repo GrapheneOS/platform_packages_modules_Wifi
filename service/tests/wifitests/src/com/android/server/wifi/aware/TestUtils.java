@@ -138,5 +138,15 @@ public class TestUtils {
             addTransactionId(transactionId);
             return true;
         }
+        public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
+                boolean accept) {
+            addTransactionId(transactionId);
+            return true;
+        }
+        public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer,
+                int method) {
+            addTransactionId(transactionId);
+            return true;
+        }
     }
 }

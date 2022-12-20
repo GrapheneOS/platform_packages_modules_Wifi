@@ -504,6 +504,24 @@ public class WifiNanIface implements WifiHal.WifiInterface {
                 () -> mWifiNanIface.respondToPairingRequest(transactionId, pairingId, accept,
                         pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm));
     }
+    /**
+     * {@link IWifiNanIface#initiateNanBootstrappingRequest(short, int, MacAddress, int)}
+     */
+    public boolean initiateBootstrapping(short transactionId, int peerId, MacAddress peer,
+            int method) {
+        return validateAndCall("initiateBootstrapping", false,
+                () -> mWifiNanIface.initiateNanBootstrappingRequest(transactionId, peerId, peer,
+                        method));
+    }
+    /**
+     * {@link IWifiNanIface#respondToNanBootstrappingRequest(short, int, boolean)}
+     */
+    public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
+            boolean accept) {
+        return validateAndCall("initiateBootstrapping", false,
+                () -> mWifiNanIface.respondToNanBootstrappingRequest(transactionId, bootstrappingId,
+                        accept));
+    }
 
     /**
      * Framework callback object. Will get called when the equivalent events are received
@@ -776,13 +794,13 @@ public class WifiNanIface implements WifiHal.WifiInterface {
 
         /**
          * Indicates that the bootstrapping request is from the peer device.
-
-        void eventBootstrappingRequest(NanBootstrappingRequestInd event);
+         */
+        void eventBootstrappingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
+                int bootstrappingInstanceId, int method);
 
         /**
          * Indicates that the bootstrapping is finished
-
-        void eventBootstrappingConfirm(NanBootstrappingConfirmInd event);
          */
+        void eventBootstrappingConfirm(int pairingId, boolean accept, int reason);
     }
 }

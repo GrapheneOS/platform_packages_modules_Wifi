@@ -750,6 +750,62 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                 pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm);
     }
 
+    /**
+     * Initiate a Bootstrapping request for this publish/subscribe session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *                      async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a match indication).
+     * @param peer The MAC address of the peer to create a connection with.
+     * @param method proposed bootstrapping method
+     * @return True if the request send success
+     */
+    public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer, int method) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "initiateBootstrapping: transactionId=" + transactionId
+                    + ", peerId=" + peerId + ", method=" + method
+                    + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "initiateBootstrapping: null interface");
+            return false;
+        }
+
+        try {
+            MacAddress peerMac = MacAddress.fromBytes(peer);
+            return iface.initiateBootstrapping(transactionId, peerId, peerMac, method);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
+    }
+
+    /**
+     * Response to a bootstrapping request for this from this session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *                      async callback to match with the original request.
+     * @param bootstrappingId The id of the current boostraping session
+     * @param accept True is proposed method is accepted
+     * @return True if the request send success
+     */
+    public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
+            boolean accept) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "respondToBootstrappingRequest: transactionId=" + transactionId);
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "respondToBootstrappingRequest: null interface");
+            return false;
+        }
+
+        return iface.respondToBootstrappingRequest(transactionId, bootstrappingId, accept);
+    }
+
     // utilities
 
     /**

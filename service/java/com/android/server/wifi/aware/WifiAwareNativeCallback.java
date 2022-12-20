@@ -265,12 +265,21 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     @Override
     public void notifyInitiateBootstrappingResponse(short id, int status,
             int bootstrappingInstanceId) {
-
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onInitiateBootStrappingResponseSuccess(id,
+                    bootstrappingInstanceId);
+        } else {
+            mWifiAwareStateManager.onInitiateBootStrappingResponseFail(id, status);
+        }
     }
 
     @Override
     public void notifyRespondToBootstrappingIndicationResponse(short id, int status) {
-
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onRespondToBootstrappingIndicationResponseSuccess(id);
+        } else {
+            mWifiAwareStateManager.onRespondToBootstrappingIndicationResponseFail(id, status);
+        }
     }
 
 
@@ -394,6 +403,18 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
             PairingConfigManager.PairingSecurityAssociationInfo npksa) {
         mWifiAwareStateManager.onPairingConfirmNotification(pairingId, accept, reason, requestType,
                 enableCache, npksa);
+    }
+
+    @Override
+    public void eventBootstrappingRequest(int discoverySessionId, int peerId,
+            byte[] peerDiscMacAddr, int bootstrappingInstanceId, int method) {
+        mWifiAwareStateManager.onBootstrappingRequestNotification(discoverySessionId, peerId,
+                peerDiscMacAddr, bootstrappingInstanceId, method);
+    }
+
+    @Override
+    public void eventBootstrappingConfirm(int pairingId, boolean accept, int reason) {
+        mWifiAwareStateManager.onBootstrappingConfirmNotification(pairingId, accept, reason);
     }
 
         /**

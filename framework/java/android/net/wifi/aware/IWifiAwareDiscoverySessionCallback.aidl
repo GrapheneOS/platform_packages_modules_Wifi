@@ -44,4 +44,5 @@ oneway interface IWifiAwareDiscoverySessionCallback
     void onPairingSetupRequestReceived(int peerId, int requestId);
     void onPairingSetupConfirmed(int peerId, boolean accept, String alias);
     void onPairingVerificationConfirmed(int peerId, boolean accept, String alias);
+    void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method);
 }
