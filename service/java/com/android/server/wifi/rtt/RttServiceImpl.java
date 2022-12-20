@@ -1305,7 +1305,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                                 lcr,
                                 responderLocation,
                                 resultForRequest.mTimestamp,
-                                resultForRequest.mIs80211mcMeasurement));
+                                resultForRequest.mIs80211mcMeasurement,
+                                resultForRequest.mFrequencyMHz,
+                                resultForRequest.mPacketBw));
                     } else {
                         finalResults.add(new RangingResult(
                                 status,
