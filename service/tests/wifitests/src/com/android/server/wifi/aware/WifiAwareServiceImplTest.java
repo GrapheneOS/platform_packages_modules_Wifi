@@ -19,6 +19,7 @@ package com.android.server.wifi.aware;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -809,6 +810,30 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         mDut.publish(mPackageName, mFeatureId, clientId, publishConfig, mockCallback, mExtras);
     }
 
+    @Test
+    public void testInitiateNanPairingSetupRequestWithPairingNotSupported() {
+        int sessionId = 2394;
+        int peerId = 2032;
+        String password = "password";
+        String alias = "alias";
+        int clientId = doConnect();
+        assertThrows(IllegalArgumentException.class, () ->
+                mDut.initiateNanPairingSetupRequest(clientId, sessionId, peerId, password, alias));
+    }
+
+    @Test
+    public void testResponseNanPairingSetupRequestWithPairingNotSupported() {
+        int sessionId = 2394;
+        int peerId = 2032;
+        int pairId = 1;
+        String password = "password";
+        String alias = "alias";
+        int clientId = doConnect();
+        assertThrows(IllegalArgumentException.class, () ->
+                mDut.responseNanPairingSetupRequest(clientId, sessionId, peerId, pairId, password,
+                        alias, true));
+    }
+
     /*
      * Utilities
      */
@@ -834,7 +859,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         // constructed configs.
         PublishConfig publishConfig = new PublishConfig(serviceName.getBytes(), ssi, matchFilter,
                 PublishConfig.PUBLISH_TYPE_UNSOLICITED, 0, true, false, false,
-                WifiScanner.WIFI_BAND_24_GHZ, null);
+                WifiScanner.WIFI_BAND_24_GHZ, null, null);
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -851,7 +876,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         // constructed configs.
         SubscribeConfig subscribeConfig = new SubscribeConfig(serviceName.getBytes(), ssi,
                 matchFilter, SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE, 0, true, false, 0, false, 0,
-                false, WifiScanner.WIFI_BAND_24_GHZ);
+                false, WifiScanner.WIFI_BAND_24_GHZ, null);
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -892,6 +917,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         cap.maxQueuedTransmitMessages = 6;
         cap.supportedCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
         cap.isInstantCommunicationModeSupported = false;
+        cap.isNanPairingSupported = false;
         return cap.toPublicCharacteristics();
     }
 
