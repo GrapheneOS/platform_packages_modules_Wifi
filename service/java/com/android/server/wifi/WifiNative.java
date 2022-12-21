@@ -3569,6 +3569,20 @@ public class WifiNative {
      */
     @Nullable
     public WifiSignalPollResults signalPoll(@NonNull String ifaceName) {
+        if (mMockWifiModem != null && mMockWifiModem.getMockWifiNl80211Manager() != null) {
+            // TODO: Call only when mock signalPoll is ready. i.e. test data is configured.
+            Log.i(TAG, "signalPoll was called from mock wificond");
+            WifiNl80211Manager.SignalPollResult result =
+                    mMockWifiModem.getMockWifiNl80211Manager().signalPoll(ifaceName);
+            if (result != null) {
+                // Convert WifiNl80211Manager#SignalPollResult to WifiSignalPollResults.
+                // Assume single link and linkId = 0.
+                WifiSignalPollResults results = new WifiSignalPollResults();
+                results.addEntry(0, result.currentRssiDbm, result.txBitrateMbps,
+                        result.rxBitrateMbps, result.associationFrequencyMHz);
+                return results;
+            }
+        }
         // Query supplicant.
         WifiSignalPollResults results = mSupplicantStaIfaceHal.getSignalPollResults(
                 ifaceName);
@@ -4593,7 +4607,7 @@ public class WifiNative {
             mMockWifiModem = null;
             return;
         }
-        mMockWifiModem = new MockWifiServiceUtil(mContext, serviceName);
+        mMockWifiModem = new MockWifiServiceUtil(mContext, serviceName, mWifiMonitor);
         if (mMockWifiModem == null) {
             Log.e(TAG, "MockWifiServiceUtil creation failed.");
             return;
