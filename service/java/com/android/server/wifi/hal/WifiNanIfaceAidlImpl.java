@@ -28,6 +28,8 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.hardware.wifi.NanBandIndex;
 import android.hardware.wifi.NanBandSpecificConfig;
+import android.hardware.wifi.NanBootstrappingRequest;
+import android.hardware.wifi.NanBootstrappingResponse;
 import android.hardware.wifi.NanCipherSuiteType;
 import android.hardware.wifi.NanConfigRequest;
 import android.hardware.wifi.NanConfigRequestSupplemental;
@@ -496,7 +498,61 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         }
     }
 
+    @Override
+    public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
+            int method) {
+        String methodStr = "initiateNanBootstrappingRequest";
+        NanBootstrappingRequest request = createNanBootstrappingRequest(peerId, peer, method);
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                mWifiNanIface.initiateBootstrappingRequest((char) transactionId, request);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public boolean respondToNanBootstrappingRequest(short transactionId, int bootstrappingId,
+            boolean accept) {
+        String methodStr = "respondToNanBootstrappingRequest";
+        NanBootstrappingResponse request = createNanBootstrappingResponse(bootstrappingId, accept);
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                mWifiNanIface.respondToBootstrappingIndicationRequest((char) transactionId,
+                        request);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
     // Utilities
+
+    private static NanBootstrappingResponse createNanBootstrappingResponse(int bootstrappingId,
+            boolean accept) {
+        NanBootstrappingResponse request = new NanBootstrappingResponse();
+        request.acceptRequest = accept;
+        request.bootstrappingInstanceId = bootstrappingId;
+        return request;
+    }
+
+    private static NanBootstrappingRequest createNanBootstrappingRequest(int peerId,
+            MacAddress peer, int method) {
+        NanBootstrappingRequest request = new NanBootstrappingRequest();
+        request.peerId = peerId;
+        request.peerDiscMacAddr = peer.toByteArray();
+        request.requestBootstrappingMethod = method;
+        return request;
+    }
 
     private static NanConfigRequestSupplemental createNanConfigRequestSupplemental(
             boolean rangingEnabled, boolean isInstantCommunicationEnabled, int instantModeChannel) {

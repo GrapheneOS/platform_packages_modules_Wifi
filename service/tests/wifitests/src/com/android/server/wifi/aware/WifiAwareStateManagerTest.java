@@ -4479,6 +4479,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final byte publishId = 15;
         final int peerId = 20;
         final int pairId = 1;
+        final int bootstrappingId = 101;
         final byte[] peerMac1 = HexEncoding.decode("060708090A0B".toCharArray(), false);
         final String alias = "alias";
 
@@ -4534,14 +4535,26 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertEquals(2, mDut.getAvailableAwareResources().getAvailableSubscribeSessionsCount());
         assertEquals(0, mDut.getAvailableAwareResources().getAvailableDataPathsCount());
 
-        // (3) receive pairing request
+        // (3) Receive bootstrapping request
+        mDut.onBootstrappingRequestNotification(publishId, peerId, peerMac1, bootstrappingId,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+        mMockLooper.dispatchAll();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).respondToBootstrappingRequest(transactionId.capture(),
+                eq(bootstrappingId), eq(true));
+        mDut.onRespondToBootstrappingIndicationResponseSuccess(transactionId.getValue());
+        mMockLooper.dispatchAll();
+        verify(mockSessionCallback).onBootstrappingVerificationConfirmed(peerIdCaptor.capture(),
+                eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN));
+
+        // (4) receive pairing request
         mDut.onPairingRequestNotification(publishId, peerId, peerMac1, pairId,
                 WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true, null, null);
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onPairingSetupRequestReceived(peerIdCaptor.capture(),
                 eq(pairId));
 
-        // (4) Response the request
+        // (5) Response the request
         mDut.responseNanPairingSetupRequest(clientId, sessionId.getValue(), peerIdCaptor.getValue(),
                 pairId, null, alias, true);
         mMockLooper.dispatchAll();
@@ -4554,11 +4567,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN));
 
-        // (5) Notify response succeed
+        // (6) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
         mMockLooper.dispatchAll();
 
-        // (6) Receive confirm event
+        // (7) Receive confirm event
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
                 WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true,
                 new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
@@ -4569,13 +4582,13 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-        // (7) publish termination (from firmware - not app!)
+        // (8) publish termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true));
 
-        // (8) app terminates session
+        // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -4716,6 +4729,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final byte subscribeId = 15;
         final int peerId = 20;
         final int pairId = 1;
+        final int bootstrappingId = 101;
         final byte[] peerMac = HexEncoding.decode("060708090A0B".toCharArray(), false);
         final String alias = "alias";
 
@@ -4777,6 +4791,18 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), isNull(), any());
+        // (3) Initiate bootstrapping request
+
+        mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
+                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
+                eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN));
+        mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
+        mDut.onBootstrappingConfirmNotification(bootstrappingId, true, NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
+                peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
 
         // (4) Initiate pairing setup request
         mDut.initiateNanPairingSetupRequest(clientId, sessionId.getValue(), peerIdCaptor.getValue(),

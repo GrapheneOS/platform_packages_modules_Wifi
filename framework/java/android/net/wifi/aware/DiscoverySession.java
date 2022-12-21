@@ -258,13 +258,13 @@ public class DiscoverySession implements AutoCloseable {
     }
 
     /**
-     * Initiate a Wi-Fi Aware Pairing setup request to the target peer. The NAN pairing request are
-     * set up in the context of a discovery session - executed after a publish/subscribe
-     * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], java.util.List)}
-     * event.
+     * Initiate a Wi-Fi Aware Pairing setup request to create a pairing with the target peer.
+     * The Aware pairing request should be done in the context of a discovery session -
+     * after a publish/subscribe
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} event is received.
      * The peer will get a callback indicating a message was received using
      * {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}.
-     * If the NAN Pairing setup finished, both side will receive
+     * When the Aware Pairing setup finished, both side will receive
      * {@link DiscoverySessionCallback#onPairingSetupConfirmed(PeerHandle, boolean, String)}
      * @param peerHandle The peer's handle for the pairing request. Must be a result of an
      * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
@@ -292,7 +292,7 @@ public class DiscoverySession implements AutoCloseable {
     /**
      * Respond to a Wi-Fi Aware Pairing setup request received from peer. This is the response to
      * the {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}
-     * If the NAN Pairing setup finished, both side will receive
+     * When the Aware Pairing setup finished, both side will receive
      * {@link DiscoverySessionCallback#onPairingSetupConfirmed(PeerHandle, boolean, String)}
      *
      * @param requestId Id to identify the received pairing session, get by
@@ -319,6 +319,36 @@ public class DiscoverySession implements AutoCloseable {
         }
         mgr.responseNanPairingSetupRequest(mClientId, mSessionId, peerHandle, requestId, password,
                 peerDeviceAlias, accept);
+    }
+
+    /**
+     * Initiate a Wi-Fi Aware bootstrapping setup request to create a pairing with the target peer.
+     * The Aware bootstrapping request should be done in the context of a discovery session -
+     * after a publish/subscribe
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} event is received.
+     * The peer will check if the method can be fulfilled by
+     * {@link AwarePairingConfig.Builder#setBootstrappingMethods(int)}
+     * When the Aware Bootstrapping setup finished, both side will receive
+     * {@link DiscoverySessionCallback#onBootstrappingConfirmed(PeerHandle, boolean, int)}
+     * @param peerHandle The peer's handle for the pairing request. Must be a result of an
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
+     * {@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.
+     * @param method one of the AwarePairingConfig#PAIRING_BOOTSTRAPPING_ values, should be one of
+     *               the methods received from {@link ServiceDiscoveryInfo#getPairingConfig()}
+     *               {@link AwarePairingConfig#getBootstrappingMethods()}
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void initiateBootstrappingRequest(@NonNull PeerHandle peerHandle,
+            @AwarePairingConfig.BootstrappingMethod int method) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "initiatePairingRequest: called post GC on WifiAwareManager");
+            return;
+        }
+        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method);
     }
 
     /**

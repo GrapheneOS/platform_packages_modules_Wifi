@@ -238,7 +238,7 @@ public interface IWifiNanIface {
      * @param pairingIdentityKey NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
+     * @return True if the request send succeed.
      */
     boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
@@ -255,9 +255,33 @@ public interface IWifiNanIface {
      * @param pairingIdentityKey NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
+     * @return True if the request send succeed.
      */
     boolean initiateNanPairingRequest(short transactionId, int peerId, MacAddress peer,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
             String password, int akm);
+
+    /**
+     * Initiate a bootstrapping request for this publish/subscribe session
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param peerId ID of the peer. Obtained through previous communication (a
+     *            match indication).
+     * @param peer The MAC address of the peer to create a connection with.
+     * @param method the proposed bootstrapping method
+     * @return True if the request send succeed.
+     */
+    boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
+            int method);
+
+    /**
+     * Respond to a bootstrapping request
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param bootstrappingId the id of this bootstrapping session
+     * @param accept True if the proposed bootstrapping method is accepted.
+     * @return True if the request send succeed.
+     */
+    boolean respondToNanBootstrappingRequest(short transactionId, int bootstrappingId,
+            boolean accept);
 }

@@ -55,6 +55,9 @@ import java.lang.ref.WeakReference;
 import java.nio.BufferOverflowException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 
 /**
  * This class provides the primary API for managing Wi-Fi Aware operations:
@@ -632,6 +635,27 @@ public class WifiAwareManager {
         }
     }
 
+    /**
+     * @hide
+     */
+    public void initiateBootStrappingSetupRequest(int clientId, int sessionId,
+            PeerHandle peerHandle, int method) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateBootStrappingSetupRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateBootStrappingSetupRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.initiateBootStrappingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    method);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     /** @hide */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void requestMacAddresses(int uid, int[] peerIds,
@@ -1094,6 +1118,11 @@ public class WifiAwareManager {
             mHandler.post(() -> mOriginalCallback.onPairingVerificationConfirmed(
                     new PeerHandle(peerId), accept, alias));
         }
+        @Override
+        public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
+            mHandler.post(() -> mOriginalCallback.onBootstrappingConfirmed(
+                    new PeerHandle(peerId), accept, method));
+        }
 
         /*
          * Proxied methods
@@ -1180,6 +1209,31 @@ public class WifiAwareManager {
     public void removePairedDevice(@NonNull String alias) {
         try {
             mService.removePairedDevice(mContext.getOpPackageName(), alias);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Get all the paired devices configured by the calling app.
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return a list of paired devices'
+     *                        alias
+     */
+    @RequiresPermission(ACCESS_WIFI_STATE)
+    public void getPairedDevice(@NonNull Executor executor,
+            @NonNull Consumer<List<String>> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getPairedDevices(
+                    mContext.getOpPackageName(),
+                    new IWifiAwarePairedDevicesListener.Stub() {
+                        public void onResult(List<String> value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> resultsCallback.accept(value));
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

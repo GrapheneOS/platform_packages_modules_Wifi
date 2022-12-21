@@ -33,6 +33,7 @@ import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.IWifiAwareManager;
+import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.os.Binder;
@@ -248,6 +249,15 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         int uid = getMockableCallingUid();
         enforceChangePermission();
         mStateManager.removePairedDevice(callingPackage, alias);
+    }
+    @Override
+    public void getPairedDevices(String callingPackage, @NonNull
+            IWifiAwarePairedDevicesListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        enforceAccessPermission();
+        mStateManager.getPairedDevices(callingPackage, listener);
     }
 
     @Override
@@ -560,6 +570,25 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         }
         mStateManager.responseNanPairingSetupRequest(clientId, sessionId, peerId, requestId,
                 password, pairingDeviceAlias, accept);
+    }
+
+    @Override
+    public void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,
+            int method) {
+        enforceAccessPermission();
+        enforceChangePermission();
+        if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
+            throw new IllegalArgumentException(
+                    "NAN pairing is not supported");
+        }
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG,
+                    "initiateBootStrappingSetupRequest: sessionId=" + sessionId
+                            + ", uid=" + uid + ", clientId=" + clientId + ", peerId=" + peerId);
+        }
+        mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method);
     }
 
     @Override

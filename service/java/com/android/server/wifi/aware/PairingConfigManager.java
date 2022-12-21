@@ -23,9 +23,11 @@ import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -182,5 +184,12 @@ public class PairingConfigManager {
             return;
         }
         aliasSet.remove(alias);
+    }
+
+    /**
+     * Get all paired devices alias for target calling app
+     */
+    public List<String> getAllPairedDevices(String callingPackage) {
+        return new ArrayList<>(mPerAppPairedAliasMap.get(callingPackage));
     }
 }
