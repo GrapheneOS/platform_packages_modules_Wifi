@@ -7123,6 +7123,44 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testFirmwareRoamDisconnectSecondaryInternetOnSameBand() throws Exception {
+        connect();
+        // After connection, the primary should be on 2.4Ghz.
+        assertTrue(mWifiInfo.is24GHz());
+
+        // Verify no disconnection of secondary if it's on another band.
+        ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
+        WifiInfo secondaryWifiInfo = mock(WifiInfo.class);
+        when(secondaryWifiInfo.is24GHz()).thenReturn(false);
+        when(secondaryWifiInfo.is5GHz()).thenReturn(true);
+        when(secondaryCmm.isConnected()).thenReturn(true);
+        when(secondaryCmm.isSecondaryInternet()).thenReturn(true);
+        when(secondaryCmm.getConnectionInfo()).thenReturn(secondaryWifiInfo);
+        when(mActiveModeWarden.getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED))
+                .thenReturn(secondaryCmm);
+
+        // Now send a network connection (indicating a roam) event, and verify no disconnection
+        // of secondary
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR1, false, null));
+        mLooper.dispatchAll();
+
+        assertTrue(mWifiInfo.is24GHz());
+        verify(secondaryCmm, never()).disconnect();
+
+        // Set the secondary to the same band as primary and then verify a disconnect after the
+        // primary roams.
+        when(secondaryWifiInfo.is24GHz()).thenReturn(true);
+        when(secondaryWifiInfo.is5GHz()).thenReturn(false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR1, false, null));
+        mLooper.dispatchAll();
+
+        assertTrue(mWifiInfo.is24GHz());
+        verify(secondaryCmm).disconnect();
+    }
+
+    @Test
     public void testProvisioningUpdateAfterConnect() throws Exception {
         connect();
 
