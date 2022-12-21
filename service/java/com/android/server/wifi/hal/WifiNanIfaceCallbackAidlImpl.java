@@ -17,6 +17,8 @@
 package com.android.server.wifi.hal;
 
 import android.hardware.wifi.IWifiNanIfaceEventCallback;
+import android.hardware.wifi.NanBootstrappingConfirmInd;
+import android.hardware.wifi.NanBootstrappingRequestInd;
 import android.hardware.wifi.NanCapabilities;
 import android.hardware.wifi.NanCipherSuiteType;
 import android.hardware.wifi.NanClusterEventInd;
@@ -26,6 +28,8 @@ import android.hardware.wifi.NanDataPathRequestInd;
 import android.hardware.wifi.NanDataPathScheduleUpdateInd;
 import android.hardware.wifi.NanFollowupReceivedInd;
 import android.hardware.wifi.NanMatchInd;
+import android.hardware.wifi.NanPairingConfirmInd;
+import android.hardware.wifi.NanPairingRequestInd;
 import android.hardware.wifi.NanStatus;
 import android.hardware.wifi.NanStatusCode;
 import android.hardware.wifi.WifiChannelWidthInMhz;
@@ -234,6 +238,28 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     }
 
     @Override
+    public void notifyInitiatePairingResponse(char id, NanStatus status,
+            int pairingInstanceId) {
+
+    }
+
+    @Override
+    public void notifyRespondToPairingIndicationResponse(char id, NanStatus status) {
+
+    }
+
+    @Override
+    public void notifyInitiateBootstrappingResponse(char id, NanStatus status,
+            int bootstrappingInstanceId) {
+
+    }
+
+    @Override
+    public void notifyRespondToBootstrappingIndicationResponse(char id, NanStatus status) {
+
+    }
+
+    @Override
     public void notifyTerminateDataPathResponse(char id, NanStatus status) {
         if (!checkFrameworkCallback()) return;
         if (mVerboseLoggingEnabled) {
@@ -408,6 +434,26 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public int getInterfaceVersion() {
         return IWifiNanIfaceEventCallback.VERSION;
+    }
+
+    @Override
+    public void eventPairingRequest(NanPairingRequestInd event) {
+
+    }
+
+    @Override
+    public void eventPairingConfirm(NanPairingConfirmInd event) {
+
+    }
+
+    @Override
+    public void eventBootstrappingRequest(NanBootstrappingRequestInd event) {
+
+    }
+
+    @Override
+    public void eventBootstrappingConfirm(NanBootstrappingConfirmInd event) {
+
     }
 
     private Capabilities toFrameworkCapability(NanCapabilities capabilities) {
