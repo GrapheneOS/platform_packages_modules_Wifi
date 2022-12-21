@@ -222,6 +222,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
+        assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
     }
 
     /**
@@ -353,6 +354,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 anyBoolean())).thenReturn(true);
         when(DeviceConfig.getBoolean(anyString(), eq("apm_enhancement_enabled"),
                 anyBoolean())).thenReturn(true);
+        when(DeviceConfig.getBoolean(anyString(), eq("oob_pseudonym_enabled"),
+                anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
 
         // Verifying fields are updated to the new values
@@ -420,5 +423,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(30, mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(true, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
+        assertEquals(true, mDeviceConfigFacade.isOobPseudonymEnabled());
     }
 }
