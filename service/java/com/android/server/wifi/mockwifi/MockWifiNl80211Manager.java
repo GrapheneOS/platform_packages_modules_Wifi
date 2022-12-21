@@ -17,6 +17,7 @@
 package com.android.server.wifi.mockwifi;
 
 import android.content.Context;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.IBinder;
 import android.util.Log;
@@ -66,7 +67,13 @@ public class MockWifiNl80211Manager {
         @Override
         public void onScanFailed() {
             Log.d(TAG, "Scan failed event " + mIfaceName);
-            mWifiMonitor.broadcastScanFailedEvent(mIfaceName);
+            mWifiMonitor.broadcastScanFailedEvent(mIfaceName, WifiScanner.REASON_UNSPECIFIED);
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.d(TAG, "Scan failed event: errorCode: " + errorCode);
+            mWifiMonitor.broadcastScanFailedEvent(mIfaceName, errorCode);
         }
     }
 
