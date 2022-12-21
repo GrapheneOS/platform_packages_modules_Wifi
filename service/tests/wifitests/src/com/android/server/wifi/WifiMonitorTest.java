@@ -34,6 +34,7 @@ import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.Message;
@@ -351,7 +352,7 @@ public class WifiMonitorTest extends WifiBaseTest {
     public void testBroadcastScanFailedEvent() {
         mWifiMonitor.registerHandler(
                 WLAN_IFACE_NAME, WifiMonitor.SCAN_FAILED_EVENT, mHandlerSpy);
-        mWifiMonitor.broadcastScanFailedEvent(WLAN_IFACE_NAME);
+        mWifiMonitor.broadcastScanFailedEvent(WLAN_IFACE_NAME, WifiScanner.REASON_UNSPECIFIED);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);

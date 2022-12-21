@@ -469,7 +469,13 @@ public class WifiNative {
         @Override
         public void onScanFailed() {
             Log.d(TAG, "Scan failed event");
-            mWifiMonitor.broadcastScanFailedEvent(mIfaceName);
+            mWifiMonitor.broadcastScanFailedEvent(mIfaceName, WifiScanner.REASON_UNSPECIFIED);
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.d(TAG, "Scan failed event: errorCode: " + errorCode);
+            mWifiMonitor.broadcastScanFailedEvent(mIfaceName, errorCode);
         }
     }
 
@@ -1575,9 +1581,11 @@ public class WifiNative {
      * @param enable6GhzRnr whether Reduced Neighbor Report should be enabled for 6Ghz scanning.
      * @return Returns true on success.
      */
-    public boolean scan(
+    public int scan(
             @NonNull String ifaceName, @WifiAnnotations.ScanType int scanType, Set<Integer> freqs,
             List<String> hiddenNetworkSSIDs, boolean enable6GhzRnr) {
+        int scanRequestStatus = WifiScanner.REASON_SUCCEEDED;
+        boolean scanStatus = true;
         List<byte[]> hiddenNetworkSsidsArrays = new ArrayList<>();
         for (String hiddenNetworkSsid : hiddenNetworkSSIDs) {
             try {
@@ -1589,16 +1597,30 @@ public class WifiNative {
                 continue;
             }
         }
-        // enable6GhzRnr is a new parameter first introduced in Android S.
         if (SdkLevel.isAtLeastS()) {
+            // enable6GhzRnr is a new parameter first introduced in Android S.
             Bundle extraScanningParams = new Bundle();
             extraScanningParams.putBoolean(WifiNl80211Manager.SCANNING_PARAM_ENABLE_6GHZ_RNR,
                     enable6GhzRnr);
-            return mWifiCondManager.startScan(ifaceName, scanType, freqs, hiddenNetworkSsidsArrays,
-                    extraScanningParams);
+            if (SdkLevel.isAtLeastU()) {
+                scanRequestStatus = mWifiCondManager.startScan2(ifaceName, scanType, freqs,
+                        hiddenNetworkSsidsArrays, extraScanningParams);
+            } else {
+                scanStatus = mWifiCondManager.startScan(ifaceName, scanType, freqs,
+                        hiddenNetworkSsidsArrays,
+                        extraScanningParams);
+                scanRequestStatus = scanStatus
+                        ? WifiScanner.REASON_SUCCEEDED : WifiScanner.REASON_UNSPECIFIED;
+
+            }
         } else {
-            return mWifiCondManager.startScan(ifaceName, scanType, freqs, hiddenNetworkSsidsArrays);
+            scanStatus = mWifiCondManager.startScan(ifaceName, scanType, freqs,
+                        hiddenNetworkSsidsArrays);
+            scanRequestStatus = scanStatus
+                    ? WifiScanner.REASON_SUCCEEDED : WifiScanner.REASON_UNSPECIFIED;
         }
+
+        return scanRequestStatus;
     }
 
     /**
@@ -3177,6 +3199,11 @@ public class WifiNative {
          * Called with the current cached scan results when gscan is resumed.
          */
         void onScanRestarted();
+        /**
+         * Callback to notify when the scan request fails.
+         * See WifiScanner.REASON_* for possible values.
+         */
+        void onScanRequestFailed(int errorCode);
     }
 
     /**

@@ -508,8 +508,8 @@ public class WifiMonitor {
      * Broadcast scan failed event to all the handlers registered for this event.
      * @param iface Name of iface on which this occurred.
      */
-    public void broadcastScanFailedEvent(String iface) {
-        sendMessage(iface, SCAN_FAILED_EVENT);
+    public void broadcastScanFailedEvent(String iface, int errorCode) {
+        sendMessage(iface, SCAN_FAILED_EVENT, errorCode);
     }
 
     /**
