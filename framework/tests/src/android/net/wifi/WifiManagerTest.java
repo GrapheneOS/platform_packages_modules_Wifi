@@ -3943,4 +3943,38 @@ public class WifiManagerTest {
         verify(mWifiService).getChannelData(any(IListListener.Stub.class), eq(TEST_PACKAGE_NAME),
                 any(Bundle.class));
     }
+
+    /**
+     * Verify call to {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     */
+    @Test
+    public void testAddQosPolicy() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+
+        final int policyId = 2;
+        final int direction = QosPolicyParams.DIRECTION_DOWNLINK;
+        final int userPriority = QosPolicyParams.USER_PRIORITY_VIDEO_LOW;
+        QosPolicyParams policyParams = new QosPolicyParams.Builder(policyId, direction)
+                .setUserPriority(userPriority)
+                .build();
+        ArgumentCaptor<QosPolicyParams> paramsCaptor =
+                ArgumentCaptor.forClass(QosPolicyParams.class);
+
+        mWifiManager.addQosPolicy(policyParams);
+        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any());
+        assertEquals(policyId, paramsCaptor.getValue().getPolicyId());
+        assertEquals(direction, paramsCaptor.getValue().getDirection());
+        assertEquals(userPriority, paramsCaptor.getValue().getUserPriority());
+    }
+
+    /**
+     * Verify call to {@link WifiManager#removeQosPolicy(int)}
+     */
+    @Test
+    public void testRemoveQosPolicy() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        final int policyId = 127;
+        mWifiManager.removeQosPolicy(policyId);
+        verify(mWifiService).removeQosPolicy(eq(policyId));
+    }
 }

@@ -10537,4 +10537,58 @@ public class WifiManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Add a new application-initiated QoS policy.
+     *
+     * Note: Policies are managed using a policy ID, which can be retrieved using
+     *       {@link QosPolicyParams#getPolicyId()}. This ID can be used when removing a policy via
+     *       {@link #removeQosPolicy(int)}. The caller is in charge of assigning and managing the
+     *       policy IDs for any requested policies.
+     *
+     * Note: Policies with duplicate IDs are not allowed. To update an existing policy, first
+     *       remove it using {@link #removeQosPolicy(int)}, and then re-add it using this API.
+     *
+     * @param policyParams {@link QosPolicyParams} object describing the requested policy.
+     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams) {
+        try {
+            mService.addQosPolicy(policyParams, new Binder());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Remove an existing application-initiated QoS policy, previously added via
+     * {@link #addQosPolicy(QosPolicyParams)}.
+     *
+     * Note: The policy is identified by its policy ID, which is assigned by the caller. The ID
+     *       for a given policy can be retrieved using {@link QosPolicyParams#getPolicyId()}.
+     *
+     * @param policyId ID of the policy to remove.
+     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    public void removeQosPolicy(int policyId) {
+        try {
+            mService.removeQosPolicy(policyId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }
