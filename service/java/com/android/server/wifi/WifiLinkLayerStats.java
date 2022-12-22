@@ -289,6 +289,7 @@ public class WifiLinkLayerStats {
      * Cumulative milliseconds when radio is awake due to hotspot 2.0 scan amd GAS exchange
      */
     public int on_time_hs20_scan;
+
     /**
      * channel stats
      */
@@ -306,6 +307,7 @@ public class WifiLinkLayerStats {
          */
         public int ccaBusyTimeMs;
     }
+
     /**
      * Channel stats list
      */
@@ -740,19 +742,29 @@ public class WifiLinkLayerStats {
      * Squash all link peer stats to a single list.
      */
     private void aggregatePeerStats() {
+        if (links == null) {
+            return;
+        }
         int numOfPeers = 0;
-        int i = 0, j;
         for (LinkSpecificStats link : links) {
-            numOfPeers += link.peerInfo.length;
+            if (link.peerInfo != null) {
+                numOfPeers += link.peerInfo.length;
+            }
+        }
+        if (numOfPeers == 0) {
+            return;
         }
         peerInfo = new PeerInfo[numOfPeers];
         for (LinkSpecificStats link : links) {
+            if (link.peerInfo == null) continue;
+            int i = 0;
             for (PeerInfo peer : link.peerInfo) {
                 peerInfo[i] = new PeerInfo();
                 peerInfo[i].staCount = peer.staCount;
                 peerInfo[i].chanUtil = peer.chanUtil;
+                if (peer.rateStats == null) continue;
                 peerInfo[i].rateStats = new RateStat[peer.rateStats.length];
-                j = 0;
+                int j = 0;
                 for (RateStat rateStat : peer.rateStats) {
                     peerInfo[i].rateStats[j] = new RateStat();
                     peerInfo[i].rateStats[j].preamble = rateStat.preamble;
