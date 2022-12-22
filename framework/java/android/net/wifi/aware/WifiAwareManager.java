@@ -55,6 +55,9 @@ import java.lang.ref.WeakReference;
 import java.nio.BufferOverflowException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 
 /**
  * This class provides the primary API for managing Wi-Fi Aware operations:
@@ -590,6 +593,69 @@ public class WifiAwareManager {
         }
     }
 
+    /**
+     * @hide
+     */
+    public void initiateNanPairingSetupRequest(int clientId, int sessionId, PeerHandle peerHandle,
+            String password, String pairingDeviceAlias) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateNanPairingRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateNanPairingRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.initiateNanPairingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    password, pairingDeviceAlias);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void responseNanPairingSetupRequest(int clientId, int sessionId, PeerHandle peerHandle,
+            int requestId, String password, String pairingDeviceAlias, boolean accept) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateNanPairingRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateNanPairingRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.responseNanPairingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    requestId, password, pairingDeviceAlias, accept);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void initiateBootStrappingSetupRequest(int clientId, int sessionId,
+            PeerHandle peerHandle, int method) {
+        if (peerHandle == null) {
+            throw new IllegalArgumentException(
+                    "initiateBootStrappingSetupRequest: invalid peerHandle - must be non-null");
+        }
+        if (VDBG) {
+            Log.v(TAG, "initiateBootStrappingSetupRequest(): clientId=" + clientId
+                    + ", sessionId=" + sessionId + ", peerHandle=" + peerHandle.peerId);
+        }
+        try {
+            mService.initiateBootStrappingSetupRequest(clientId, sessionId, peerHandle.peerId,
+                    method);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     /** @hide */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void requestMacAddresses(int uid, int[] peerIds,
@@ -800,6 +866,8 @@ public class WifiAwareManager {
         private static final String MESSAGE_BUNDLE_KEY_MESSAGE2 = "message2";
         private static final String MESSAGE_BUNDLE_KEY_CIPHER_SUITE = "key_cipher_suite";
         private static final String MESSAGE_BUNDLE_KEY_SCID = "key_scid";
+        private static final String MESSAGE_BUNDLE_KEY_PAIRING_ALIAS = "pairing_alias";
+        private static final String MESSAGE_BUNDLE_KEY_PAIRING_CONFIG = "pairing_config";
 
         private final WeakReference<WifiAwareManager> mAwareManager;
         private final boolean mIsPublish;
@@ -821,192 +889,114 @@ public class WifiAwareManager {
                 Log.v(TAG, "WifiAwareDiscoverySessionCallbackProxy ctor: isPublish=" + isPublish);
             }
 
-            mHandler = new Handler(looper) {
-                @Override
-                public void handleMessage(Message msg) {
-                    if (DBG) Log.d(TAG, "What=" + msg.what + ", msg=" + msg);
-
-                    if (mAwareManager.get() == null) {
-                        Log.w(TAG, "WifiAwareDiscoverySessionCallbackProxy: handleMessage post GC");
-                        return;
-                    }
-
-                    switch (msg.what) {
-                        case CALLBACK_SESSION_STARTED:
-                            onProxySessionStarted(msg.arg1);
-                            break;
-                        case CALLBACK_SESSION_CONFIG_SUCCESS:
-                            mOriginalCallback.onSessionConfigUpdated();
-                            break;
-                        case CALLBACK_SESSION_CONFIG_FAIL:
-                            mOriginalCallback.onSessionConfigFailed();
-                            if (mSession == null) {
-                                /*
-                                 * creation failed (as opposed to update
-                                 * failing)
-                                 */
-                                mAwareManager.clear();
-                            }
-                            break;
-                        case CALLBACK_SESSION_TERMINATED:
-                            onProxySessionTerminated(msg.arg1);
-                            break;
-                        case CALLBACK_MATCH:
-                        case CALLBACK_MATCH_WITH_DISTANCE:
-                            List<byte[]> matchFilter = null;
-                            Bundle data = msg.getData();
-                            byte[] arg = data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2);
-                            try {
-                                matchFilter = new TlvBufferUtils.TlvIterable(0, 1, arg).toList();
-                            } catch (BufferOverflowException e) {
-                                matchFilter = Collections.emptyList();
-                                Log.e(TAG, "onServiceDiscovered: invalid match filter byte array '"
-                                        + new String(HexEncoding.encode(arg))
-                                        + "' - cannot be parsed: e=" + e);
-                            }
-                            if (msg.what == CALLBACK_MATCH) {
-                                mOriginalCallback.onServiceDiscovered(new PeerHandle(msg.arg1),
-                                        data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
-                                        matchFilter);
-                                mOriginalCallback.onServiceDiscovered(
-                                        new ServiceDiscoveryInfo(
-                                                new PeerHandle(msg.arg1),
-                                                data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
-                                                matchFilter,
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)));
-
-                            } else {
-                                mOriginalCallback.onServiceDiscoveredWithinRange(
-                                        new PeerHandle(msg.arg1),
-                                        msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
-                                        matchFilter, msg.arg2);
-                                mOriginalCallback.onServiceDiscoveredWithinRange(
-                                        new ServiceDiscoveryInfo(
-                                                new PeerHandle(msg.arg1),
-                                                data.getInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE),
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE),
-                                                matchFilter,
-                                                data.getByteArray(MESSAGE_BUNDLE_KEY_SCID)),
-                                        msg.arg2);
-                            }
-                            break;
-                        case CALLBACK_MESSAGE_SEND_SUCCESS:
-                            mOriginalCallback.onMessageSendSucceeded(msg.arg1);
-                            break;
-                        case CALLBACK_MESSAGE_SEND_FAIL:
-                            mOriginalCallback.onMessageSendFailed(msg.arg1);
-                            break;
-                        case CALLBACK_MESSAGE_RECEIVED:
-                            mOriginalCallback.onMessageReceived(new PeerHandle(msg.arg1),
-                                    (byte[]) msg.obj);
-                            break;
-                        case CALLBACK_MATCH_EXPIRED:
-                            mOriginalCallback
-                                    .onServiceLost(new PeerHandle(msg.arg1),
-                                            WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE);
-                            break;
-                    }
-                }
-            };
+            mHandler = new Handler(looper);
         }
 
         @Override
         public void onSessionStarted(int sessionId) {
             if (VDBG) Log.v(TAG, "onSessionStarted: sessionId=" + sessionId);
-
-            Message msg = mHandler.obtainMessage(CALLBACK_SESSION_STARTED);
-            msg.arg1 = sessionId;
-            mHandler.sendMessage(msg);
+            mHandler.post(() -> onProxySessionStarted(sessionId));
         }
 
         @Override
         public void onSessionConfigSuccess() {
             if (VDBG) Log.v(TAG, "onSessionConfigSuccess");
-
-            Message msg = mHandler.obtainMessage(CALLBACK_SESSION_CONFIG_SUCCESS);
-            mHandler.sendMessage(msg);
+            mHandler.post(mOriginalCallback::onSessionConfigUpdated);
         }
 
         @Override
         public void onSessionConfigFail(int reason) {
             if (VDBG) Log.v(TAG, "onSessionConfigFail: reason=" + reason);
-
-            Message msg = mHandler.obtainMessage(CALLBACK_SESSION_CONFIG_FAIL);
-            msg.arg1 = reason;
-            mHandler.sendMessage(msg);
+            mHandler.post(() -> {
+                mOriginalCallback.onSessionConfigFailed();
+                if (mSession == null) {
+                    /* creation failed (as opposed to update failing) */
+                    mAwareManager.clear();
+                }
+            });
         }
 
         @Override
         public void onSessionTerminated(int reason) {
             if (VDBG) Log.v(TAG, "onSessionTerminated: reason=" + reason);
-
-            Message msg = mHandler.obtainMessage(CALLBACK_SESSION_TERMINATED);
-            msg.arg1 = reason;
-            mHandler.sendMessage(msg);
-        }
-
-        private void onMatchCommon(int messageType, int peerId, byte[] serviceSpecificInfo,
-                byte[] matchFilter, int distanceMm, int peerCipherSuite, byte[] scid) {
-            Bundle data = new Bundle();
-            data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE, serviceSpecificInfo);
-            data.putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE2, matchFilter);
-            data.putInt(MESSAGE_BUNDLE_KEY_CIPHER_SUITE, peerCipherSuite);
-            data.putByteArray(MESSAGE_BUNDLE_KEY_SCID, scid);
-
-            Message msg = mHandler.obtainMessage(messageType);
-            msg.arg1 = peerId;
-            msg.arg2 = distanceMm;
-            msg.setData(data);
-            mHandler.sendMessage(msg);
+            mHandler.post(() -> onProxySessionTerminated(reason));
         }
 
         @Override
         public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
-                int peerCipherSuite, byte[] scid) {
+                int peerCipherSuite, byte[] scid, String pairingAlias,
+                AwarePairingConfig pairingConfig) {
             if (VDBG) Log.v(TAG, "onMatch: peerId=" + peerId);
 
-            onMatchCommon(CALLBACK_MATCH, peerId, serviceSpecificInfo, matchFilter, 0,
-                    peerCipherSuite, scid);
+            mHandler.post(() -> {
+                List<byte[]> matchFilterList = getMatchFilterList(matchFilter);
+                mOriginalCallback.onServiceDiscovered(new PeerHandle(peerId), serviceSpecificInfo,
+                        matchFilterList);
+                mOriginalCallback.onServiceDiscovered(
+                        new ServiceDiscoveryInfo(new PeerHandle(peerId), peerCipherSuite,
+                                serviceSpecificInfo, matchFilterList, scid, pairingAlias,
+                                pairingConfig));
+            });
+        }
+
+        private List<byte[]> getMatchFilterList(byte[] matchFilter) {
+            List<byte[]> matchFilterList = null;
+            try {
+                matchFilterList = new TlvBufferUtils.TlvIterable(0, 1, matchFilter).toList();
+            } catch (BufferOverflowException e) {
+                matchFilterList = Collections.emptyList();
+                Log.e(TAG, "onServiceDiscovered: invalid match filter byte array '"
+                        + new String(HexEncoding.encode(matchFilter))
+                        + "' - cannot be parsed: e=" + e);
+            }
+            return matchFilterList;
         }
 
         @Override
         public void onMatchWithDistance(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
-                int distanceMm, int peerCipherSuite, byte[] scid) {
+                int distanceMm, int peerCipherSuite, byte[] scid, String pairingAlias,
+                AwarePairingConfig pairingConfig) {
             if (VDBG) {
                 Log.v(TAG, "onMatchWithDistance: peerId=" + peerId + ", distanceMm=" + distanceMm);
             }
-
-            onMatchCommon(CALLBACK_MATCH_WITH_DISTANCE, peerId, serviceSpecificInfo, matchFilter,
-                    distanceMm, peerCipherSuite, scid);
+            mHandler.post(() -> {
+                List<byte[]> matchFilterList = getMatchFilterList(matchFilter);
+                mOriginalCallback.onServiceDiscoveredWithinRange(
+                        new PeerHandle(peerId),
+                        serviceSpecificInfo,
+                        matchFilterList, distanceMm);
+                mOriginalCallback.onServiceDiscoveredWithinRange(
+                        new ServiceDiscoveryInfo(
+                                new PeerHandle(peerId),
+                                peerCipherSuite,
+                                serviceSpecificInfo,
+                                matchFilterList,
+                                scid,
+                                pairingAlias,
+                                pairingConfig),
+                        distanceMm);
+            });
         }
         @Override
         public void onMatchExpired(int peerId) {
             if (VDBG) {
                 Log.v(TAG, "onMatchExpired: peerId=" + peerId);
             }
-            Message msg = mHandler.obtainMessage(CALLBACK_MATCH_EXPIRED);
-            msg.arg1 = peerId;
-            mHandler.sendMessage(msg);
+            mHandler.post(() ->
+                    mOriginalCallback.onServiceLost(new PeerHandle(peerId),
+                            WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE));
         }
 
         @Override
         public void onMessageSendSuccess(int messageId) {
             if (VDBG) Log.v(TAG, "onMessageSendSuccess");
-
-            Message msg = mHandler.obtainMessage(CALLBACK_MESSAGE_SEND_SUCCESS);
-            msg.arg1 = messageId;
-            mHandler.sendMessage(msg);
+            mHandler.post(() -> mOriginalCallback.onMessageSendSucceeded(messageId));
         }
 
         @Override
         public void onMessageSendFail(int messageId, int reason) {
             if (VDBG) Log.v(TAG, "onMessageSendFail: reason=" + reason);
-
-            Message msg = mHandler.obtainMessage(CALLBACK_MESSAGE_SEND_FAIL);
-            msg.arg1 = messageId;
-            msg.arg2 = reason;
-            mHandler.sendMessage(msg);
+            mHandler.post(() -> mOriginalCallback.onMessageSendFailed(messageId));
         }
 
         @Override
@@ -1014,15 +1004,34 @@ public class WifiAwareManager {
             if (VDBG) {
                 Log.v(TAG, "onMessageReceived: peerId=" + peerId);
             }
+            mHandler.post(() -> mOriginalCallback.onMessageReceived(new PeerHandle(peerId),
+                    message));
+        }
 
-            Message msg = mHandler.obtainMessage(CALLBACK_MESSAGE_RECEIVED);
-            msg.arg1 = peerId;
-            msg.obj = message;
-            mHandler.sendMessage(msg);
+        @Override
+        public void onPairingSetupRequestReceived(int peerId, int requestId) {
+            mHandler.post(() ->
+                    mOriginalCallback.onPairingSetupRequestReceived(new PeerHandle(peerId),
+                            requestId));
+        }
+        @Override
+        public void onPairingSetupConfirmed(int peerId, boolean accept, String alias) {
+            mHandler.post(() -> mOriginalCallback.onPairingSetupConfirmed(new PeerHandle(peerId),
+                            accept, alias));
+        }
+        @Override
+        public void onPairingVerificationConfirmed(int peerId, boolean accept, String alias) {
+            mHandler.post(() -> mOriginalCallback.onPairingVerificationConfirmed(
+                    new PeerHandle(peerId), accept, alias));
+        }
+        @Override
+        public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
+            mHandler.post(() -> mOriginalCallback.onBootstrappingConfirmed(
+                    new PeerHandle(peerId), accept, method));
         }
 
         /*
-         * Proxied methods
+         * Proxies methods
          */
         public void onProxySessionStarted(int sessionId) {
             if (VDBG) Log.v(TAG, "Proxy: onSessionStarted: sessionId=" + sessionId);
@@ -1081,4 +1090,59 @@ public class WifiAwareManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Reset all paired devices setup by the caller by
+     * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     */
+    @RequiresPermission(CHANGE_WIFI_STATE)
+    public void resetPairedDevices() {
+        try {
+            mService.resetPairedDevices(mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Remove the target paired device setup by the caller by
+     * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     * @param alias The alias set by the caller
+     */
+    @RequiresPermission(CHANGE_WIFI_STATE)
+    public void removePairedDevice(@NonNull String alias) {
+        try {
+            mService.removePairedDevice(mContext.getOpPackageName(), alias);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Get all the paired devices configured by the calling app.
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return a list of paired devices'
+     *                        alias
+     */
+    @RequiresPermission(ACCESS_WIFI_STATE)
+    public void getPairedDevice(@NonNull Executor executor,
+            @NonNull Consumer<List<String>> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getPairedDevices(
+                    mContext.getOpPackageName(),
+                    new IWifiAwarePairedDevicesListener.Stub() {
+                        public void onResult(List<String> value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> resultsCallback.accept(value));
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
 }

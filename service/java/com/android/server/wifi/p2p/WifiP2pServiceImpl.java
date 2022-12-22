@@ -1873,8 +1873,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case UPDATE_P2P_DISALLOWED_CHANNELS:
                     case WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT:
                     case SET_MIRACAST_MODE:
+                        break;
                     case WifiP2pManager.START_LISTEN:
+                        replyToMessage(message, WifiP2pManager.START_LISTEN_FAILED,
+                                WifiP2pManager.BUSY);
+                        break;
                     case WifiP2pManager.SET_CHANNEL:
+                        replyToMessage(message, WifiP2pManager.SET_CHANNEL_FAILED,
+                                WifiP2pManager.BUSY);
+                        break;
                     case ENABLE_P2P:
                         // Enable is lazy and has no response
                         break;
