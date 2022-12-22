@@ -102,6 +102,7 @@ import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScanResultsCallback;
 import android.net.wifi.ISoftApCallback;
+import android.net.wifi.IStringListener;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
@@ -2723,6 +2724,29 @@ public class WifiServiceImpl extends BaseWifiService {
 
         final SoftApConfiguration config = mWifiApConfigStore.getApConfiguration();
         return config == null ? new SoftApConfiguration.Builder().build() : config;
+    }
+
+    /**
+     * See {@code WifiManager#queryLastConfiguredTetheredApPassphraseSinceBoot(Executor, Consumer)}
+     */
+    @Override
+    public void queryLastConfiguredTetheredApPassphraseSinceBoot(IStringListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException("App not allowed to read last WiFi AP passphrase "
+                    + "(uid = " + uid + ")");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiApConfigStore
+                        .getLastConfiguredTetheredApPassphraseSinceBoot());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**

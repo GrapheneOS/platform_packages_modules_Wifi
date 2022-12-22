@@ -22,6 +22,7 @@ import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
+import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.Characteristics;
@@ -46,6 +47,9 @@ interface IWifiAwareManager
     boolean isInstantCommunicationModeEnabled();
     boolean isSetChannelOnDataPathSupported();
     void setAwareParams(in AwareParams parameters);
+    void resetPairedDevices(in String callingPackage);
+    void removePairedDevice(in String callingPackage, in String alias);
+    void getPairedDevices(in String callingPackage, in IWifiAwarePairedDevicesListener value);
 
     // client API
     void connect(in IBinder binder, in String callingPackage, in String callingFeatureId,
@@ -66,6 +70,11 @@ interface IWifiAwareManager
     void sendMessage(int clientId, int discoverySessionId, int peerId, in byte[] message,
         int messageId, int retryCount);
     void terminateSession(int clientId, int discoverySessionId);
+    void initiateNanPairingSetupRequest(int clientId, int sessionId, int peerId,
+                String password, String pairingDeviceAlias);
+    void responseNanPairingSetupRequest(int clientId, int sessionId, int peerId,
+                int requestId, String password, String pairingDeviceAlias, boolean accept);
+    void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,int method);
 
     // internal APIs: intended to be used between System Services (restricted permissions)
     void requestMacAddresses(int uid, in int[] peerIds, in IWifiAwareMacAddressProvider callback);

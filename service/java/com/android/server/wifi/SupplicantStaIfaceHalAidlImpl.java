@@ -44,6 +44,7 @@ import android.hardware.wifi.supplicant.DppAkm;
 import android.hardware.wifi.supplicant.DppCurve;
 import android.hardware.wifi.supplicant.DppNetRole;
 import android.hardware.wifi.supplicant.DppResponderBootstrapInfo;
+import android.hardware.wifi.supplicant.INonStandardCertCallback;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantStaIface;
 import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
@@ -61,6 +62,7 @@ import android.hardware.wifi.supplicant.QosPolicyStatus;
 import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.RxFilterType;
 import android.hardware.wifi.supplicant.SignalPollResult;
+import android.hardware.wifi.supplicant.SupplicantStatusCode;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
@@ -71,6 +73,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiKeystore;
 import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.IBinder;
@@ -149,6 +152,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private final WifiGlobals mWifiGlobals;
     private final SsidTranslator mSsidTranslator;
     private CountDownLatch mWaitForDeathLatch;
+    private INonStandardCertCallback mNonStandardCertCallback;
 
     private class SupplicantDeathRecipient implements DeathRecipient {
         @Override
@@ -401,6 +405,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             mCurrentNetworkLocalConfigs.clear();
             mCurrentNetworkRemoteHandles.clear();
             mLinkedNetworkLocalAndRemoteConfigs.clear();
+            mNonStandardCertCallback = null;
         }
     }
 
@@ -449,6 +454,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 mWaitForDeathLatch = null;
                 serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
                 setLogLevel(mVerboseHalLoggingEnabled);
+                registerNonStandardCertCallback();
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
@@ -3514,6 +3520,53 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             // Update cached config after setting native data successfully.
             currentConfig.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
             return true;
+        }
+    }
+
+    private class NonStandardCertCallback extends INonStandardCertCallback.Stub {
+        @Override
+        public byte[] getBlob(String alias) {
+            Log.i(TAG, "Non-standard certificate requested");
+            byte[] blob = WifiKeystore.get(alias);
+            if (blob != null) {
+                return blob;
+            } else {
+                Log.e(TAG, "Unable to retrieve the blob");
+                throw new ServiceSpecificException(SupplicantStatusCode.FAILURE_UNKNOWN);
+            }
+        }
+
+        @Override
+        public String getInterfaceHash() {
+            return INonStandardCertCallback.HASH;
+        }
+
+        @Override
+        public int getInterfaceVersion() {
+            return INonStandardCertCallback.VERSION;
+        }
+    }
+
+    private void registerNonStandardCertCallback() {
+        synchronized (mLock) {
+            final String methodStr = "registerNonStandardCertCallback";
+            if (!checkSupplicantAndLogFailure(methodStr) || !isServiceVersionIsAtLeast(2)) {
+                return;
+            } else if (mNonStandardCertCallback != null) {
+                Log.i(TAG, "Non-standard cert callback has already been registered");
+                return;
+            }
+
+            try {
+                INonStandardCertCallback tempCallback = new NonStandardCertCallback();
+                mISupplicant.registerNonStandardCertCallback(tempCallback);
+                mNonStandardCertCallback = tempCallback;
+                Log.i(TAG, "Non-standard cert callback was registered");
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
         }
     }
 }

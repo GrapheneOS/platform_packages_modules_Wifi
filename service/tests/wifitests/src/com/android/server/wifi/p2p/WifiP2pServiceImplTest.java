@@ -2589,6 +2589,24 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt(), anyString(), eq(true));
     }
 
+    @Test
+    public void testStartListenAndSetChannelFailureWithDefaultStateHandling() throws Exception {
+        setTargetSdkGreaterThanT();
+        when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
+                any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), any(), anyBoolean()))
+                .thenReturn(InterfaceConflictManager.ICM_ABORT_COMMAND);
+
+        mockEnterDisabledState();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.START_LISTEN);
+        verify(mWifiNative, never()).setupInterface(any(), any(), any());
+        assertTrue(mClientHandler.hasMessages(WifiP2pManager.START_LISTEN_FAILED));
+
+        mockEnterDisabledState();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.SET_CHANNEL);
+        verify(mWifiNative, never()).setupInterface(any(), any(), any());
+        assertTrue(mClientHandler.hasMessages(WifiP2pManager.SET_CHANNEL_FAILED));
+    }
+
     /**
      * Verify WifiP2pManager.STOP_LISTEN_FAILED is returned when native call failure.
      */

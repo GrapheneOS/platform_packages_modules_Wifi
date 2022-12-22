@@ -244,7 +244,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan start succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
         assertFalse("second scan while first scan running should fail immediately",
@@ -266,13 +266,13 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan fails
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(false);
+                .thenReturn(WifiScanner.REASON_UNSPECIFIED);
 
         // start scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
 
         mLooper.dispatchAll();
-        order.verify(eventHandler).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
+        order.verify(eventHandler).onScanRequestFailed(eq(WifiScanner.REASON_UNSPECIFIED));
 
         verifyNoMoreInteractions(eventHandler);
     }
@@ -295,7 +295,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         // start scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
@@ -305,7 +305,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
         mAlarmManager.dispatch(WificondScannerImpl.TIMEOUT_ALARM_TAG);
         mLooper.dispatchAll();
 
-        order.verify(eventHandler).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
+        order.verify(eventHandler).onScanRequestFailed(eq(WifiScanner.REASON_TIMEOUT));
 
         verifyNoMoreInteractions(eventHandler);
     }
@@ -328,17 +328,18 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         // start scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
         mLooper.dispatchAll();
 
         // Fire failed event
-        mWifiMonitor.sendMessage(eq(IFACE_NAME), WifiMonitor.SCAN_FAILED_EVENT);
+        mWifiMonitor.sendMessage(eq(IFACE_NAME), WifiMonitor.SCAN_FAILED_EVENT,
+                WifiScanner.REASON_UNSPECIFIED);
         mLooper.dispatchAll();
 
-        order.verify(eventHandler).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
+        order.verify(eventHandler).onScanRequestFailed(eq(WifiScanner.REASON_UNSPECIFIED));
 
         verifyNoMoreInteractions(eventHandler);
     }
@@ -384,7 +385,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scans succeed
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         // start first scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
@@ -462,7 +463,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         // start scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
@@ -516,7 +517,7 @@ public abstract class BaseWifiScannerImplTest extends WifiBaseTest {
 
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         // start scan
         assertTrue(mScanner.startSingleScan(settings, eventHandler));

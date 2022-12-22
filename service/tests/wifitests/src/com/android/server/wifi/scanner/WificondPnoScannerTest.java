@@ -204,7 +204,7 @@ public class WificondPnoScannerTest extends WifiBaseTest {
             WifiNative.PnoEventHandler pnoEventHandler) {
         // Scans succeed
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(true);
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
         when(mWifiNative.startPnoScan(eq(IFACE_NAME), any(WifiNative.PnoSettings.class)))
                 .thenReturn(true);
         when(mWifiNative.stopPnoScan(IFACE_NAME)).thenReturn(true);

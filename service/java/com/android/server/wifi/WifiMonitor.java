@@ -41,6 +41,7 @@ import com.android.server.wifi.hotspot2.WnmData;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
@@ -249,6 +250,18 @@ public class WifiMonitor {
         setMonitoring(iface, false);
     }
 
+    /**
+     * Returns the names of any interfaces that are being monitored.
+     */
+    public List<String> getMonitoredIfaceNames() {
+        List<String> monitoringIfaceList = new ArrayList<>();
+        for (String iface : mMonitoringMap.keySet()) {
+            if (mMonitoringMap.get(iface)) {
+                monitoringIfaceList.add(iface);
+            }
+        }
+        return monitoringIfaceList;
+    }
 
     /**
      * Similar functions to Handler#sendMessage that send the message to the registered handler
@@ -508,8 +521,8 @@ public class WifiMonitor {
      * Broadcast scan failed event to all the handlers registered for this event.
      * @param iface Name of iface on which this occurred.
      */
-    public void broadcastScanFailedEvent(String iface) {
-        sendMessage(iface, SCAN_FAILED_EVENT);
+    public void broadcastScanFailedEvent(String iface, int errorCode) {
+        sendMessage(iface, SCAN_FAILED_EVENT, errorCode);
     }
 
     /**
