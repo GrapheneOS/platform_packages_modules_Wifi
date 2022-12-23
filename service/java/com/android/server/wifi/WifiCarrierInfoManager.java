@@ -426,7 +426,8 @@ public class WifiCarrierInfoManager {
             };
     private void handleUserDismissAction() {
         Log.i(TAG, "User dismissed the notification");
-        mNotificationUpdateTime = 0;
+        mNotificationUpdateTime = mClock.getElapsedSinceBootMillis() + mContext.getResources()
+                .getInteger(R.integer.config_wifiImsiProtectionNotificationDelaySeconds) * 1000L;
         mWifiMetrics.addUserApprovalCarrierUiReaction(ACTION_USER_DISMISS,
                 mIsLastUserApprovalUiDialog);
     }

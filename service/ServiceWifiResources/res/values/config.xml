@@ -998,4 +998,7 @@
     <!-- Boolean indicating whether we should enable the STA current connected DFS channel
          for SAP, WFD GO, Wi-Fi Aware -->
     <bool translatable="false" name="config_wifiEnableStaDfsChannelForPeerNetwork">false</bool>
+    <!-- Indicates the number of seconds to delay the next IMSI protection notification after user
+         dismiss the current one-->
+    <integer translatable="false" name="config_wifiImsiProtectionNotificationDelaySeconds">300</integer>
 </resources>
