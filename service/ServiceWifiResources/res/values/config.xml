@@ -961,4 +961,8 @@
 
     <!-- boolean indicating whether the caller thread needs to wait for destroyed listeners -->
     <bool translatable="false" name ="config_wifiWaitForDestroyedListeners">false</bool>
+
+    <!-- Indicates the number of seconds to delay the next IMSI protection notification after user
+         dismiss the current one-->
+    <integer translatable="false" name="config_wifiImsiProtectionNotificationDelaySeconds">300</integer>
 </resources>
