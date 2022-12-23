@@ -990,12 +990,4 @@
 
     <!-- Indicates the number of channels is allowed to set in a WifiNetworkSpecifier  -->
     <integer translatable="false" name ="config_wifiNetworkSpecifierMaxPreferredChannels">5</integer>
-
-    <!-- Boolean indicating whether we should enable the STA current connected indoor channel
-     for SAP, WFD GO, Wi-Fi Aware -->
-    <bool translatable="false" name="config_wifiEnableStaIndoorChannelForPeerNetwork">false</bool>
-
-    <!-- Boolean indicating whether we should enable the STA current connected DFS channel
-         for SAP, WFD GO, Wi-Fi Aware -->
-    <bool translatable="false" name="config_wifiEnableStaDfsChannelForPeerNetwork">false</bool>
 </resources>

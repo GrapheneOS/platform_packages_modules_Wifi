@@ -494,11 +494,6 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void queryLastConfiguredTetheredApPassphraseSinceBoot(IStringListener listener) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean setWifiApConfiguration(WifiConfiguration wifiConfig, String packageName) {
         throw new UnsupportedOperationException();
     }

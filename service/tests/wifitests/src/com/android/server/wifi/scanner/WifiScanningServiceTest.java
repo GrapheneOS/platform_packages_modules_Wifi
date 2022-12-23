@@ -1006,13 +1006,12 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         verify(mBatteryStats).reportWifiScanStartedFromSource(eq(workSource));
 
         // but then fails to execute
-        eventHandler.onScanRequestFailed(WifiScanner.REASON_UNSPECIFIED);
+        eventHandler.onScanStatus(WifiNative.WIFI_SCAN_FAILED);
         mLooper.dispatchAll();
         client.verifyFailedResponse(
-                WifiScanner.REASON_UNSPECIFIED,
-                "Scan failed - unspecified reason");
+                WifiScanner.REASON_UNSPECIFIED, "Scan failed");
         assertDumpContainsCallbackLog("singleScanFailed",
-                "reason=" + WifiScanner.REASON_UNSPECIFIED + ", Scan failed - unspecified reason");
+                "reason=" + WifiScanner.REASON_UNSPECIFIED + ", Scan failed");
         verify(mWifiMetrics).incrementOneshotScanCount();
         verify(mWifiMetrics).incrementScanReturnEntry(WifiMetricsProto.WifiLog.SCAN_UNKNOWN, 1);
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource));
@@ -3042,13 +3041,13 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         verify(mBatteryStats).reportWifiScanStartedFromSource(eq(workSource));
 
         // but then fails to execute
-        eventHandler0.onScanRequestFailed(WifiScanner.REASON_UNSPECIFIED);
-        eventHandler1.onScanRequestFailed(WifiScanner.REASON_UNSPECIFIED);
+        eventHandler0.onScanStatus(WifiNative.WIFI_SCAN_FAILED);
+        eventHandler1.onScanStatus(WifiNative.WIFI_SCAN_FAILED);
         mLooper.dispatchAll();
         client.verifyFailedResponse(
-                WifiScanner.REASON_UNSPECIFIED, "Scan failed - unspecified reason");
+                WifiScanner.REASON_UNSPECIFIED, "Scan failed");
         assertDumpContainsCallbackLog("singleScanFailed",
-                "reason=" + WifiScanner.REASON_UNSPECIFIED + ", Scan failed - unspecified reason");
+                "reason=" + WifiScanner.REASON_UNSPECIFIED + ", Scan failed");
         verify(mWifiMetrics).incrementOneshotScanCount();
         verify(mWifiMetrics).incrementScanReturnEntry(WifiMetricsProto.WifiLog.SCAN_UNKNOWN, 1);
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource));
@@ -3644,39 +3643,5 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         order.verify(client.listener, never()).onResults(any());
         order.verify(client.listener, never()).onSingleScanCompleted();
-    }
-
-    /**
-     * Verify that scan abort failure message is received by the listener.
-     */
-    @Test
-    public void sendSingleScanRequestWhichGetsAbortedAfterStart() throws Exception {
-
-        WifiScanner.ScanSettings requestSettings = createRequest(WifiScanner.WIFI_BAND_BOTH, 0,
-                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
-
-        startServiceAndLoadDriver();
-
-        TestClient client = new TestClient();
-        InOrder order = inOrder(client.listener, mWifiScannerImpl0);
-
-        // successful start
-        when(mWifiScannerImpl0.startSingleScan(any(WifiNative.ScanSettings.class),
-                any(WifiNative.ScanEventHandler.class))).thenReturn(true);
-
-        client.sendSingleScanRequest(requestSettings, null);
-
-        // Scan is successfully queue
-        mLooper.dispatchAll();
-        WifiNative.ScanEventHandler eventHandler =
-                verifyStartSingleScan(order, computeSingleScanNativeSettings(requestSettings));
-        client.verifySuccessfulResponse();
-
-        // scan is aborted
-        eventHandler.onScanRequestFailed(WifiScanner.REASON_ABORT);
-        mLooper.dispatchAll();
-        client.verifyFailedResponse(
-                WifiScanner.REASON_ABORT,
-                "Scan aborted");
     }
 }

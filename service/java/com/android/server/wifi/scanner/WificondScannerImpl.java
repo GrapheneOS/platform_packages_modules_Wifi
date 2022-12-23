@@ -118,7 +118,7 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
     public void cleanup() {
         synchronized (mSettingsLock) {
             cancelScanTimeout();
-            reportScanFailure(WifiScanner.REASON_UNSPECIFIED);
+            reportScanFailure();
             stopHwPnoScan();
             mMaxNumScanSsids = -1;
             mNextHiddenNetworkScanId = 0;
@@ -213,23 +213,22 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
                     mClock.getElapsedSinceBootNanos(),
                     reportFullResults, allFreqs, eventHandler);
 
-            int scanStatus = WifiScanner.REASON_UNSPECIFIED;
+            boolean success = false;
             Set<Integer> freqs = Collections.emptySet();
             if (!allFreqs.isEmpty()) {
                 freqs = allFreqs.getScanFreqs();
-                scanStatus = mWifiNative.scan(
+                success = mWifiNative.scan(
                         getIfaceName(), settings.scanType, freqs, hiddenNetworkSSIDSet,
                         settings.enable6GhzRnr);
-                if (scanStatus != WifiScanner.REASON_SUCCEEDED) {
-                    Log.e(TAG, "Failed to start scan, freqs=" + freqs + " status: "
-                            + scanStatus);
+                if (!success) {
+                    Log.e(TAG, "Failed to start scan, freqs=" + freqs);
                 }
             } else {
                 // There is a scan request but no available channels could be scanned for.
                 // We regard it as a scan failure in this case.
                 Log.e(TAG, "Failed to start scan because there is no available channel to scan");
             }
-            if (scanStatus == WifiScanner.REASON_SUCCEEDED) {
+            if (success) {
                 if (DBG) {
                     Log.d(TAG, "Starting wifi scan for freqs=" + freqs
                             + " on iface " + getIfaceName());
@@ -246,8 +245,7 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
                         TIMEOUT_ALARM_TAG, mScanTimeoutListener, mEventHandler);
             } else {
                 // indicate scan failure async
-                int finalScanStatus = scanStatus;
-                mEventHandler.post(() -> reportScanFailure(finalScanStatus));
+                mEventHandler.post(() -> reportScanFailure());
             }
 
             return true;
@@ -284,7 +282,7 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
     private void handleScanTimeout() {
         synchronized (mSettingsLock) {
             Log.e(TAG, "Timed out waiting for scan result from wificond");
-            reportScanFailure(WifiScanner.REASON_TIMEOUT);
+            reportScanFailure();
             mScanTimeoutListener = null;
         }
     }
@@ -293,9 +291,9 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
     public boolean handleMessage(Message msg) {
         switch(msg.what) {
             case WifiMonitor.SCAN_FAILED_EVENT:
-                Log.w(TAG, "Scan failed: error code: " + msg.arg1);
+                Log.w(TAG, "Scan failed");
                 cancelScanTimeout();
-                reportScanFailure(msg.arg1);
+                reportScanFailure();
                 break;
             case WifiMonitor.PNO_SCAN_RESULTS_EVENT:
                 pollLatestScanDataForPno();
@@ -319,12 +317,12 @@ public class WificondScannerImpl extends WifiScannerImpl implements Handler.Call
         }
     }
 
-    private void reportScanFailure(int errorCode) {
+    private void reportScanFailure() {
         synchronized (mSettingsLock) {
             if (mLastScanSettings != null) {
                 if (mLastScanSettings.singleScanEventHandler != null) {
                     mLastScanSettings.singleScanEventHandler
-                            .onScanRequestFailed(errorCode);
+                            .onScanStatus(WifiNative.WIFI_SCAN_FAILED);
                 }
                 mLastScanSettings = null;
             }

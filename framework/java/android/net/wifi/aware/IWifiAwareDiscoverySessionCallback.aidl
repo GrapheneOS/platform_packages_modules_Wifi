@@ -16,8 +16,6 @@
 
 package android.net.wifi.aware;
 
-import android.net.wifi.aware.AwarePairingConfig;
-
 /**
  * Callback interface that WifiAwareManager implements
  *
@@ -31,18 +29,12 @@ oneway interface IWifiAwareDiscoverySessionCallback
     void onSessionTerminated(int reason);
 
     void onMatch(int peerId, in byte[] serviceSpecificInfo, in byte[] matchFilter,
-            int peerCipherSuite, in byte[] scid, String pairingAlias,
-            in AwarePairingConfig pairingConfig);
+            int peerCipherSuite, in byte[] scid);
     void onMatchWithDistance(int peerId, in byte[] serviceSpecificInfo, in byte[] matchFilter,
-            int distanceMm, int peerCipherSuite, in byte[] scid, String pairingAlias,
-            in AwarePairingConfig pairingConfig);
+            int distanceMm, int peerCipherSuite, in byte[] scid);
 
     void onMessageSendSuccess(int messageId);
     void onMessageSendFail(int messageId, int reason);
     void onMessageReceived(int peerId, in byte[] message);
     void onMatchExpired(int peerId);
-    void onPairingSetupRequestReceived(int peerId, int requestId);
-    void onPairingSetupConfirmed(int peerId, boolean accept, String alias);
-    void onPairingVerificationConfirmed(int peerId, boolean accept, String alias);
-    void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method);
 }

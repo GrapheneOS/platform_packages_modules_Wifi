@@ -5584,44 +5584,6 @@ public class WifiManager {
     }
 
     /**
-     * Gets the last configured Wi-Fi tethered AP passphrase.
-     *
-     * Note: It may be null when there is no passphrase changed since
-     * device boot.
-     *
-     * @param executor The executor on which callback will be invoked.
-     * @param resultCallback An asynchronous callback that will return the last configured
-     *                       Wi-Fi tethered AP passphrase.
-     *
-     * @throws SecurityException if the caller does not have permission.
-     * @throws NullPointerException if the caller provided invalid inputs.
-     *
-     * @hide
-     */
-    @Nullable
-    @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
-    public void queryLastConfiguredTetheredApPassphraseSinceBoot(@NonNull Executor executor,
-            @NonNull Consumer<String> resultCallback) {
-        Objects.requireNonNull(executor, "executor cannot be null");
-        Objects.requireNonNull(resultCallback, "resultsCallback cannot be null");
-        try {
-            mService.queryLastConfiguredTetheredApPassphraseSinceBoot(
-                    new IStringListener.Stub() {
-                        @Override
-                        public void onResult(String value) {
-                            Binder.clearCallingIdentity();
-                            executor.execute(() -> {
-                                resultCallback.accept(value);
-                            });
-                        }
-                    });
-        } catch (RemoteException e) {
-            throw e.rethrowFromSystemServer();
-        }
-    }
-
-    /**
      * Sets the tethered Wi-Fi AP Configuration.
      * @return {@code true} if the operation succeeded, {@code false} otherwise
      *

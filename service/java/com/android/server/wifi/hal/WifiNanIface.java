@@ -19,7 +19,6 @@ package com.android.server.wifi.hal;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
-import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -29,7 +28,6 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.aware.Capabilities;
-import com.android.server.wifi.aware.PairingConfigManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -197,9 +195,6 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         public static final int ALREADY_ENABLED = 10;
         public static final int FOLLOWUP_TX_QUEUE_FULL = 11;
         public static final int UNSUPPORTED_CONCURRENCY_NAN_DISABLED = 12;
-        public static final int INVALID_PAIRING_ID = 13;
-        public static final int INVALID_BOOTSTRAPPING_ID = 14;
-
 
         /**
          * Convert NanStatusCode from HIDL to framework.
@@ -269,10 +264,6 @@ public class WifiNanIface implements WifiHal.WifiInterface {
                     return FOLLOWUP_TX_QUEUE_FULL;
                 case android.hardware.wifi.NanStatusCode.UNSUPPORTED_CONCURRENCY_NAN_DISABLED:
                     return UNSUPPORTED_CONCURRENCY_NAN_DISABLED;
-                case android.hardware.wifi.NanStatusCode.INVALID_PAIRING_ID:
-                    return INVALID_PAIRING_ID;
-                case android.hardware.wifi.NanStatusCode.INVALID_BOOTSTRAPPING_ID:
-                    return INVALID_BOOTSTRAPPING_ID;
                 default:
                     Log.e(TAG, "Unknown NanStatusType received from AIDL: " + code);
                     return -1;
@@ -388,21 +379,20 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
+     * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig)}
      */
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
-            byte[] nik) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
         return validateAndCall("publish", false,
-                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig, nik));
+                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig));
     }
 
     /**
-     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
+     * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig)}
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig, byte[] nik) {
+            SubscribeConfig subscribeConfig) {
         return validateAndCall("subscribe", false,
-                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig, nik));
+                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig));
     }
 
     /**
@@ -481,46 +471,6 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     public boolean endDataPath(short transactionId, int ndpId) {
         return validateAndCall("endDataPath", false,
                 () -> mWifiNanIface.endDataPath(transactionId, ndpId));
-    }
-
-    /**
-     * {@link IWifiNanIface#initiateNanPairingRequest(short, int, MacAddress, byte[], boolean, int, byte[], String, int)}
-     */
-    public boolean initiatePairing(short transactionId, int peerId, MacAddress peer,
-            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm) {
-        return validateAndCall("initiatePairing", false,
-                () -> mWifiNanIface.initiateNanPairingRequest(transactionId, peerId, peer,
-                        pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm));
-    }
-
-    /**
-     * {@link IWifiNanIface#respondToPairingRequest(short, int, boolean, byte[], boolean, int, byte[], String, int)}
-     */
-    public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
-            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm) {
-        return validateAndCall("respondToPairingRequest", false,
-                () -> mWifiNanIface.respondToPairingRequest(transactionId, pairingId, accept,
-                        pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm));
-    }
-    /**
-     * {@link IWifiNanIface#initiateNanBootstrappingRequest(short, int, MacAddress, int)}
-     */
-    public boolean initiateBootstrapping(short transactionId, int peerId, MacAddress peer,
-            int method) {
-        return validateAndCall("initiateBootstrapping", false,
-                () -> mWifiNanIface.initiateNanBootstrappingRequest(transactionId, peerId, peer,
-                        method));
-    }
-    /**
-     * {@link IWifiNanIface#respondToNanBootstrappingRequest(short, int, boolean)}
-     */
-    public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
-            boolean accept) {
-        return validateAndCall("initiateBootstrapping", false,
-                () -> mWifiNanIface.respondToNanBootstrappingRequest(transactionId, bootstrappingId,
-                        accept));
     }
 
     /**
@@ -616,36 +566,6 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         void notifyTerminateDataPathResponse(short id, int status);
 
         /**
-         * Invoked in response to a initiate NAN pairing request.
-         * @param id ID corresponding to the original request.
-         * @param status Status the operation (see {@link NanStatusCode}).
-         */
-        void notifyInitiatePairingResponse(short id, int status,
-                int pairingInstanceId);
-
-        /**
-         * Invoked in response to a response NAN pairing request.
-         * @param id ID corresponding to the original request.
-         * @param status Status the operation (see {@link NanStatusCode}).
-         */
-        void notifyRespondToPairingIndicationResponse(short id, int status);
-
-        /**
-         * Invoked in response to a initiate NAN Bootstrapping request.
-         * @param id ID corresponding to the original request.
-         * @param status Status the operation (see {@link NanStatusCode}).
-         */
-        void notifyInitiateBootstrappingResponse(short id, int status,
-                int bootstrappingInstanceId);
-
-        /**
-         * Invoked in response to a response NAN Bootstrapping request.
-         * @param id ID corresponding to the original request.
-         * @param status Status the operation (see {@link NanStatusCode}).
-         */
-        void notifyRespondToBootstrappingIndicationResponse(short id, int status);
-
-        /**
          * Indicates that a cluster event has been received.
          * @param eventType Type of the cluster event (see {@link NanClusterEventType}).
          * @param addr MAC Address associated with the corresponding event.
@@ -699,8 +619,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          */
         void eventMatch(byte discoverySessionId, int peerId, byte[] addr,
                 byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndicationType,
-                int rangingMeasurementInMm, byte[] scid, int peerCipherType, byte[] nonce,
-                byte[] tag, AwarePairingConfig pairingConfig);
+                int rangingMeasurementInMm, byte[] scid, int peerCipherType);
 
         /**
          * Indicates that a previously discovered match (service) has expired.
@@ -778,29 +697,5 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * @param ndpInstanceId Data-path ID of the terminated data-path.
          */
         void eventDataPathTerminated(int ndpInstanceId);
-
-        /**
-         * Indicates that the pairing request is from the peer device.
-         */
-        void eventPairingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
-                int ndpInstanceId, int requestType, boolean enableCache, byte[] nonce, byte[] tag);
-
-        /**
-         * Indicates that the pairing is finished
-         */
-        void eventPairingConfirm(int pairingId, boolean accept, int reason, int requestType,
-                boolean enableCache,
-                PairingConfigManager.PairingSecurityAssociationInfo npksa);
-
-        /**
-         * Indicates that the bootstrapping request is from the peer device.
-         */
-        void eventBootstrappingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
-                int bootstrappingInstanceId, int method);
-
-        /**
-         * Indicates that the bootstrapping is finished
-         */
-        void eventBootstrappingConfirm(int pairingId, boolean accept, int reason);
     }
 }

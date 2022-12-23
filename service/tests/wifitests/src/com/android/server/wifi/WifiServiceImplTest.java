@@ -146,7 +146,6 @@ import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScanResultsCallback;
 import android.net.wifi.ISoftApCallback;
-import android.net.wifi.IStringListener;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
@@ -10864,39 +10863,5 @@ public class WifiServiceImplTest extends WifiBaseTest {
         Network mockNetwork = mock(Network.class);
         when(mActiveModeWarden.getCurrentNetwork()).thenReturn(mockNetwork);
         assertEquals(mockNetwork, mWifiServiceImpl.getCurrentNetwork());
-    }
-
-    @Test
-    public void testQueryLastConfiguredTetheredApPassphraseSinceBootExceptions() {
-        // good inputs should result in no exceptions.
-        IStringListener listener = mock(IStringListener.class);
-        // null listener ==> IllegalArgumentException
-        assertThrows(IllegalArgumentException.class,
-                () -> mWifiServiceImpl.queryLastConfiguredTetheredApPassphraseSinceBoot(null));
-
-        // No permission ==> SecurityException
-        assertThrows(SecurityException.class,
-                () -> mWifiServiceImpl.queryLastConfiguredTetheredApPassphraseSinceBoot(listener));
-    }
-
-    @Test
-    public void testQueryLastConfiguredTetheredApPassphraseSinceBoot() throws RemoteException {
-        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
-        IStringListener listener = mock(IStringListener.class);
-        String lastPassphrase = "testLastPassphrase";
-
-        InOrder inOrder = inOrder(listener);
-        when(mWifiApConfigStore.getLastConfiguredTetheredApPassphraseSinceBoot())
-                .thenReturn(lastPassphrase);
-        mWifiServiceImpl.queryLastConfiguredTetheredApPassphraseSinceBoot(listener);
-        mLooper.dispatchAll();
-        inOrder.verify(listener).onResult(lastPassphrase);
-
-        // Test on null return.
-        when(mWifiApConfigStore.getLastConfiguredTetheredApPassphraseSinceBoot())
-                .thenReturn(null);
-        mWifiServiceImpl.queryLastConfiguredTetheredApPassphraseSinceBoot(listener);
-        mLooper.dispatchAll();
-        inOrder.verify(listener).onResult(null);
     }
 }

@@ -396,15 +396,14 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
 
     /**
      * Start or modify a service publish session.
-     *  @param transactionId transactionId Transaction ID for the transaction -
+     *
+     * @param transactionId transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param publishId ID of the requested session - 0 to request a new publish
      *            session.
      * @param publishConfig Configuration of the discovery session.
-     * @param nik
      */
-    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
-            byte[] nik) {
+    public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "publish: transactionId=" + transactionId + ", publishId=" + publishId
                     + ", config=" + publishConfig);
@@ -416,20 +415,20 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "publish: null interface");
             return false;
         }
-        return iface.publish(transactionId, publishId, publishConfig, nik);
+        return iface.publish(transactionId, publishId, publishConfig);
     }
 
     /**
      * Start or modify a service subscription session.
-     *  @param transactionId transactionId Transaction ID for the transaction -
+     *
+     * @param transactionId transactionId Transaction ID for the transaction -
      *            used in the async callback to match with the original request.
      * @param subscribeId ID of the requested session - 0 to request a new
      *            subscribe session.
      * @param subscribeConfig Configuration of the discovery session.
-     * @param nik
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig, byte[] nik) {
+            SubscribeConfig subscribeConfig) {
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "subscribe: transactionId=" + transactionId + ", subscribeId=" + subscribeId
                     + ", config=" + subscribeConfig);
@@ -441,7 +440,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "subscribe: null interface");
             return false;
         }
-        return iface.subscribe(transactionId, subscribeId, subscribeConfig, nik);
+        return iface.subscribe(transactionId, subscribeId, subscribeConfig);
     }
 
     /**
@@ -676,134 +675,6 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
         return iface.endDataPath(transactionId, ndpId);
-    }
-
-    /**
-     * Initiate a NAN pairing request for this publish/subscribe session
-     * @param transactionId Transaction ID for the transaction - used in the
-     *            async callback to match with the original request.
-     * @param peerId ID of the peer. Obtained through previous communication (a
-     *            match indication).
-     * @param password credential for the pairing setup
-     * @param requestType Setup or verification
-     * @param pairingIdentityKey NAN identity key
-     * @param pmk credential for the pairing verification
-     * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
-     */
-    public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
-            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "initiatePairing: transactionId=" + transactionId + ", peerId=" + peerId
-                    + ", requestType=" + requestType + ", enablePairingCache=" + enablePairingCache
-                    + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
-        }
-        recordTransactionId(transactionId);
-
-        WifiNanIface iface = mHal.getWifiNanIface();
-        if (iface == null) {
-            Log.e(TAG, "initiatePairing: null interface");
-            return false;
-        }
-
-        try {
-            MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiatePairing(transactionId, peerId, peerMac,
-                    pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
-            return false;
-        }
-    }
-
-    /**
-     * Response to a NAN pairing request for this from this session
-     * @param transactionId Transaction ID for the transaction - used in the
-     *            async callback to match with the original request.
-     * @param pairingId The id of the current pairing session
-     * @param accept True if accpect, false otherwise
-     * @param password credential for the pairing setup
-     * @param requestType Setup or verification
-     * @param pairingIdentityKey NAN identity key
-     * @param pmk credential for the pairing verification
-     * @param akm Key exchange method is used for pairing
-     * @return True is the request send succeed.
-     */
-    public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
-            byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "respondToDataPathRequest: transactionId=" + transactionId + ", accept="
-                    + accept + ", int pairingId=" + pairingId
-                    + ", enablePairingCache=" + enablePairingCache
-                    + ", requestType" + requestType);
-        }
-        recordTransactionId(transactionId);
-
-        WifiNanIface iface = mHal.getWifiNanIface();
-        if (iface == null) {
-            Log.e(TAG, "respondToDataPathRequest: null interface");
-            return false;
-        }
-        return iface.respondToPairingRequest(transactionId, pairingId, accept,
-                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm);
-    }
-
-    /**
-     * Initiate a Bootstrapping request for this publish/subscribe session
-     * @param transactionId Transaction ID for the transaction - used in the
-     *                      async callback to match with the original request.
-     * @param peerId ID of the peer. Obtained through previous communication (a match indication).
-     * @param peer The MAC address of the peer to create a connection with.
-     * @param method proposed bootstrapping method
-     * @return True if the request send success
-     */
-    public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer, int method) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "initiateBootstrapping: transactionId=" + transactionId
-                    + ", peerId=" + peerId + ", method=" + method
-                    + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
-        }
-        recordTransactionId(transactionId);
-
-        WifiNanIface iface = mHal.getWifiNanIface();
-        if (iface == null) {
-            Log.e(TAG, "initiateBootstrapping: null interface");
-            return false;
-        }
-
-        try {
-            MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiateBootstrapping(transactionId, peerId, peerMac, method);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
-            return false;
-        }
-    }
-
-    /**
-     * Response to a bootstrapping request for this from this session
-     * @param transactionId Transaction ID for the transaction - used in the
-     *                      async callback to match with the original request.
-     * @param bootstrappingId The id of the current boostraping session
-     * @param accept True is proposed method is accepted
-     * @return True if the request send success
-     */
-    public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
-            boolean accept) {
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "respondToBootstrappingRequest: transactionId=" + transactionId);
-        }
-        recordTransactionId(transactionId);
-
-        WifiNanIface iface = mHal.getWifiNanIface();
-        if (iface == null) {
-            Log.e(TAG, "respondToBootstrappingRequest: null interface");
-            return false;
-        }
-
-        return iface.respondToBootstrappingRequest(transactionId, bootstrappingId, accept);
     }
 
     // utilities

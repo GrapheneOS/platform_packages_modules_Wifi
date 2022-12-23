@@ -94,12 +94,12 @@ public class WifiNanIfaceAidlImplTest {
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
                 "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
 
-        mDut.publish(tid, pid, pubDefault, null);
-        mDut.publish(tid, pid, pubWithRanging, null);
-        mDut.subscribe(tid, pid, subDefault, null);
-        mDut.subscribe(tid, pid, subWithMin, null);
-        mDut.subscribe(tid, pid, subWithMax, null);
-        mDut.subscribe(tid, pid, subWithMinMax, null);
+        mDut.publish(tid, pid, pubDefault);
+        mDut.publish(tid, pid, pubWithRanging);
+        mDut.subscribe(tid, pid, subDefault);
+        mDut.subscribe(tid, pid, subWithMin);
+        mDut.subscribe(tid, pid, subWithMax);
+        mDut.subscribe(tid, pid, subWithMinMax);
 
         verify(mIWifiNanIfaceMock, times(2))
                 .startPublishRequest(eq((char) tid), pubCaptor.capture());

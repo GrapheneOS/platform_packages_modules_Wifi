@@ -106,13 +106,13 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         // No scan is issued to WifiNative.
         verify(mWifiNative, never()).scan(any(), anyInt(), any(), any(List.class), anyBoolean());
         // A scan failed event must be reported.
-        verify(eventHandler).onScanRequestFailed(eq(WifiScanner.REASON_UNSPECIFIED));
+        verify(eventHandler).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
     }
 
     @Test
     public void cleanupReportsFailureIfScanInProgress() {
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+                .thenReturn(true);
 
         // setup ongoing scan
         WifiNative.ScanSettings settings = new NativeScanSettingsBuilder()
@@ -126,13 +126,13 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         mLooper.dispatchAll();
 
         // no scan failure message
-        verify(eventHandler, never()).onScanRequestFailed(eq(WifiScanner.REASON_UNSPECIFIED));
+        verify(eventHandler, never()).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
 
         // tear down the iface
         mScanner.cleanup();
 
         // verify received scan failure callback
-        verify(eventHandler).onScanRequestFailed(eq(WifiScanner.REASON_UNSPECIFIED));
+        verify(eventHandler).onScanStatus(WifiNative.WIFI_SCAN_FAILED);
     }
 
     @Test
@@ -183,7 +183,7 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
 
         // Kick off a scan
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+                .thenReturn(true);
         WifiNative.ScanEventHandler eventHandler = mock(WifiNative.ScanEventHandler.class);
         assertTrue(mScanner.startSingleScan(settings, eventHandler));
         mLooper.dispatchAll();
@@ -253,7 +253,7 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         InOrder order = inOrder(eventHandler, mWifiNative);
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+                .thenReturn(true);
         when(mWifiNative.getScanResults(eq(IFACE_NAME))).thenReturn(rawScanResults);
 
         int ap_count = rawScanResults.size();
@@ -323,7 +323,7 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         InOrder order = inOrder(eventHandler, mWifiNative);
         // scan succeeds
         when(mWifiNative.scan(eq(IFACE_NAME), anyInt(), any(), any(List.class), anyBoolean()))
-                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+                .thenReturn(true);
         when(mWifiNative.getScanResults(eq(IFACE_NAME))).thenReturn(rawScanResults);
 
         // Trigger a scan to update mNativeScanResults in WificondScannerImpl.

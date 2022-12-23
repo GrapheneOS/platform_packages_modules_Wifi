@@ -20,11 +20,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.IBinder;
 import android.util.Log;
-
-import com.android.server.wifi.WifiMonitor;
 
 /** This class provides wrapper APIs for binding interfaces to mock service. */
 public class MockWifiServiceUtil {
@@ -38,16 +35,14 @@ public class MockWifiServiceUtil {
     public static final int BINDER_MAX_RETRY = 3;
 
     private Context mContext;
-    private WifiMonitor mWifiMonitor;
     private String mServiceName;
     private String mPackageName;
     private MockWifiNl80211Manager mMockWifiNl80211Manager;
     private IBinder mMockNl80211Binder;
     private ServiceConnection mMockNl80211ServiceConnection;
 
-    public MockWifiServiceUtil(Context context, String serviceName, WifiMonitor wifiMonitor) {
+    public MockWifiServiceUtil(Context context, String serviceName) {
         mContext = context;
-        mWifiMonitor = wifiMonitor;
         String[] componentInfo = serviceName.split("/", 2);
         mPackageName = componentInfo[0];
         mServiceName = componentInfo[1];
@@ -65,8 +60,7 @@ public class MockWifiServiceUtil {
             Log.d(TAG, "Wifi mock Service " + getModuleName(mService) + "  - onServiceConnected");
             if (mService == MOCK_NL80211_SERVICE) {
                 mMockNl80211Binder = binder;
-                mMockWifiNl80211Manager = new MockWifiNl80211Manager(mMockNl80211Binder, mContext,
-                        mWifiMonitor);
+                mMockWifiNl80211Manager = new MockWifiNl80211Manager(mMockNl80211Binder, mContext);
             }
 
         }
@@ -149,10 +143,5 @@ public class MockWifiServiceUtil {
             default:
                 return "none";
         }
-    }
-
-    public WifiNl80211Manager getMockWifiNl80211Manager() {
-        return mMockWifiNl80211Manager == null
-                ? null : mMockWifiNl80211Manager.getWifiNl80211Manager();
     }
 }

@@ -343,7 +343,7 @@ public class WifiNanIfaceCallbackHidlImpl extends IWifiNanIfaceEventCallback.Stu
                 event.addr, convertArrayListToNativeByteArray(event.serviceSpecificInfo),
                 convertArrayListToNativeByteArray(event.matchFilter),
                 NanRangingIndication.fromHidl(event.rangingIndicationType),
-                event.rangingMeasurementInCm * 10, new byte[0], 0, null, null, null);
+                event.rangingMeasurementInCm * 10, new byte[0], 0);
     }
 
     @Override
@@ -368,7 +368,7 @@ public class WifiNanIfaceCallbackHidlImpl extends IWifiNanIfaceEventCallback.Stu
                 convertArrayListToNativeByteArray(event.matchFilter),
                 NanRangingIndication.fromHidl(event.rangingIndicationType),
                 event.rangingMeasurementInMm, convertArrayListToNativeByteArray(event.scid),
-                toPublicCipherSuites(event.peerCipherType), null, null, null);
+                toPublicCipherSuites(event.peerCipherType));
     }
 
     @Override

@@ -38,7 +38,6 @@ import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScanResultsCallback;
 import android.net.wifi.ISoftApCallback;
-import android.net.wifi.IStringListener;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
@@ -237,8 +236,6 @@ interface IWifiManager
     WifiConfiguration getWifiApConfiguration();
 
     SoftApConfiguration getSoftApConfiguration();
-
-    void queryLastConfiguredTetheredApPassphraseSinceBoot(IStringListener listener);
 
     boolean setWifiApConfiguration(in WifiConfiguration wifiConfig, String packageName);
 

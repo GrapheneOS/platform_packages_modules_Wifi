@@ -39,7 +39,6 @@ public class Capabilities {
     public int maxSubscribeInterfaceAddresses;
     public int supportedCipherSuites;
     public boolean isInstantCommunicationModeSupported;
-    public boolean isNanPairingSupported;
 
     /**
      * Converts the internal capabilities to a parcelable & potentially app-facing
@@ -58,7 +57,6 @@ public class Capabilities {
         bundle.putInt(Characteristics.KEY_MAX_NDI_NUMBER, maxNdiInterfaces);
         bundle.putInt(Characteristics.KEY_MAX_PUBLISH_NUMBER, maxPublishes);
         bundle.putInt(Characteristics.KEY_MAX_SUBSCRIBE_NUMBER, maxSubscribes);
-        bundle.putBoolean(Characteristics.KEY_SUPPORT_NAN_PAIRING, isNanPairingSupported);
         return new Characteristics(bundle);
     }
 
@@ -76,7 +74,6 @@ public class Capabilities {
                 + ", maxSubscribeInterfaceAddresses=" + maxSubscribeInterfaceAddresses
                 + ", supportedCipherSuites=" + supportedCipherSuites
                 + ", isInstantCommunicationModeSupport=" + isInstantCommunicationModeSupported
-                + ", isNanPairingSupported=" + isNanPairingSupported
                 + "]";
     }
 }

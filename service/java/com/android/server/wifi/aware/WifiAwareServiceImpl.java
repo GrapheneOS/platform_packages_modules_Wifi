@@ -33,7 +33,6 @@ import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.IWifiAwareManager;
-import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.os.Binder;
@@ -56,8 +55,8 @@ import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiSettingsConfigStore;
-import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
@@ -235,29 +234,6 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                     + "(uid = " + uid + ")");
         }
         mStateManager.setAwareParams(params);
-    }
-
-    @Override
-    public void resetPairedDevices(String callingPackage) {
-        int uid = getMockableCallingUid();
-        enforceChangePermission();
-        mStateManager.resetPairedDevices(callingPackage);
-    }
-
-    @Override
-    public void removePairedDevice(String callingPackage, String alias) {
-        int uid = getMockableCallingUid();
-        enforceChangePermission();
-        mStateManager.removePairedDevice(callingPackage, alias);
-    }
-    @Override
-    public void getPairedDevices(String callingPackage, @NonNull
-            IWifiAwarePairedDevicesListener listener) {
-        if (listener == null) {
-            throw new IllegalArgumentException("listener should not be null");
-        }
-        enforceAccessPermission();
-        mStateManager.getPairedDevices(callingPackage, listener);
     }
 
     @Override
@@ -529,66 +505,6 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         enforceNetworkStackPermission();
 
         mStateManager.requestMacAddresses(uid, peerIds, callback);
-    }
-
-    @Override
-    public void initiateNanPairingSetupRequest(int clientId, int sessionId, int peerId,
-            String password, String pairingDeviceAlias) {
-        enforceAccessPermission();
-        enforceChangePermission();
-        if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
-            throw new IllegalArgumentException(
-                    "NAN pairing is not supported");
-        }
-        int uid = getMockableCallingUid();
-        enforceClientValidity(uid, clientId);
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG,
-                    "initiateNanPairingRequest: sessionId=" + sessionId + ", uid=" + uid
-                            + ", clientId=" + clientId + ", peerId=" + peerId);
-        }
-        mStateManager.initiateNanPairingSetupRequest(clientId, sessionId, peerId, password,
-                pairingDeviceAlias);
-
-    }
-
-    @Override
-    public void responseNanPairingSetupRequest(int clientId, int sessionId, int peerId,
-            int requestId, String password, String pairingDeviceAlias, boolean accept) {
-        enforceAccessPermission();
-        enforceChangePermission();
-        if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
-            throw new IllegalArgumentException(
-                    "NAN pairing is not supported");
-        }
-        int uid = getMockableCallingUid();
-        enforceClientValidity(uid, clientId);
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG,
-                    "responsePairingRequest: sessionId=" + sessionId + ", uid=" + uid
-                            + ", clientId=" + clientId + ", peerId=" + peerId);
-        }
-        mStateManager.responseNanPairingSetupRequest(clientId, sessionId, peerId, requestId,
-                password, pairingDeviceAlias, accept);
-    }
-
-    @Override
-    public void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,
-            int method) {
-        enforceAccessPermission();
-        enforceChangePermission();
-        if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
-            throw new IllegalArgumentException(
-                    "NAN pairing is not supported");
-        }
-        int uid = getMockableCallingUid();
-        enforceClientValidity(uid, clientId);
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG,
-                    "initiateBootStrappingSetupRequest: sessionId=" + sessionId
-                            + ", uid=" + uid + ", clientId=" + clientId + ", peerId=" + peerId);
-        }
-        mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method);
     }
 
     @Override

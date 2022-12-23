@@ -320,7 +320,6 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         mDataStoreSource.fromDeserialized(expectedConfig);
         verifyApConfig(expectedConfig, store.getApConfiguration());
         assertTrue(store.getApConfiguration().isUserConfigurationInternal());
-        String lassPassphrase = store.getLastConfiguredTetheredApPassphraseSinceBoot();
 
         store.setApConfiguration(null);
         verifyDefaultApConfig(store.getApConfiguration(), TEST_DEFAULT_AP_SSID);
@@ -328,9 +327,6 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         verify(mWifiConfigManager).saveToStore(true);
         verify(mBackupManagerProxy).notifyDataChanged();
         assertFalse(store.getApConfiguration().isUserConfigurationInternal());
-        assertNotEquals(lassPassphrase, store.getLastConfiguredTetheredApPassphraseSinceBoot());
-        assertEquals(store.getLastConfiguredTetheredApPassphraseSinceBoot(),
-                store.getApConfiguration().getPassphrase());
     }
 
     /**
@@ -1395,19 +1391,5 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         assertNotNull(
                 store.generateLocalOnlyHotspotConfig(mContext, store.getApConfiguration(),
                 mSoftApCapability).getPersistentRandomizedMacAddress());
-    }
-
-    @Test
-    public void testLastPassphraseIsNonNull() throws Exception {
-        WifiApConfigStore store = createWifiApConfigStore();
-        SoftApConfiguration config = store.getApConfiguration();
-        String lastPassphrase = store.getLastConfiguredTetheredApPassphraseSinceBoot();
-        assertNotNull(lastPassphrase);
-        assertEquals(config.getPassphrase(),
-                store.getLastConfiguredTetheredApPassphraseSinceBoot());
-        // Set to none security
-        store.setApConfiguration(new SoftApConfiguration.Builder()
-                .setSsid(TEST_DEFAULT_HOTSPOT_SSID).build());
-        assertEquals(lastPassphrase, store.getLastConfiguredTetheredApPassphraseSinceBoot());
     }
 }

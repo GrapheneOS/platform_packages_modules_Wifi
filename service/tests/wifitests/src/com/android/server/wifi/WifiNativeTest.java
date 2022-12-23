@@ -701,13 +701,8 @@ public class WifiNativeTest extends WifiBaseTest {
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
 
-        if (SdkLevel.isAtLeastU()) {
-            mScanCallbackCaptor.getValue().onScanFailed(WifiScanner.REASON_UNSPECIFIED);
-        } else {
-            mScanCallbackCaptor.getValue().onScanFailed();
-        }
-        verify(mWifiMonitor).broadcastScanFailedEvent(WIFI_IFACE_NAME,
-                WifiScanner.REASON_UNSPECIFIED);
+        mScanCallbackCaptor.getValue().onScanFailed();
+        verify(mWifiMonitor).broadcastScanFailedEvent(WIFI_IFACE_NAME);
     }
 
     /**
@@ -785,13 +780,8 @@ public class WifiNativeTest extends WifiBaseTest {
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
 
-        if (SdkLevel.isAtLeastU()) {
-            mScanCallbackCaptor.getValue().onScanFailed(WifiScanner.REASON_UNSPECIFIED);
-        } else {
-            mScanCallbackCaptor.getValue().onScanFailed();
-        }
-        verify(mWifiMonitor).broadcastScanFailedEvent(eq(WIFI_IFACE_NAME),
-                eq(WifiScanner.REASON_UNSPECIFIED));
+        mScanCallbackCaptor.getValue().onScanFailed();
+        verify(mWifiMonitor).broadcastScanFailedEvent(WIFI_IFACE_NAME);
     }
 
     /**
@@ -896,15 +886,9 @@ public class WifiNativeTest extends WifiBaseTest {
                 SCAN_HIDDEN_NETWORK_SSID_SET, true);
         ArgumentCaptor<List<byte[]>> ssidSetCaptor = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
-        if (SdkLevel.isAtLeastU()) {
-            verify(mWificondControl).startScan2(
-                    eq(WIFI_IFACE_NAME), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                    eq(SCAN_FREQ_SET), ssidSetCaptor.capture(), bundleCaptor.capture());
-        } else {
-            verify(mWificondControl).startScan(
-                    eq(WIFI_IFACE_NAME), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                    eq(SCAN_FREQ_SET), ssidSetCaptor.capture(), bundleCaptor.capture());
-        }
+        verify(mWificondControl).startScan(
+                eq(WIFI_IFACE_NAME), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
+                eq(SCAN_FREQ_SET), ssidSetCaptor.capture(), bundleCaptor.capture());
         List<byte[]> ssidSet = ssidSetCaptor.getValue();
         assertArrayEquals(ssidSet.toArray(), SCAN_HIDDEN_NETWORK_BYTE_SSID_SET.toArray());
         Bundle bundle = bundleCaptor.getValue();

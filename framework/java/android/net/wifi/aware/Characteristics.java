@@ -54,8 +54,6 @@ public final class Characteristics implements Parcelable {
     public static final String KEY_MAX_SUBSCRIBE_NUMBER = "key_max_subscribe_number";
     /** @hide */
     public static final String KEY_MAX_NDI_NUMBER = "key_max_ndi_number";
-    /** @hide */
-    public static final String KEY_SUPPORT_NAN_PAIRING = "key_support_nan_pairing";
 
     private final Bundle mCharacteristics;
 
@@ -160,15 +158,6 @@ public final class Characteristics implements Parcelable {
             throw new UnsupportedOperationException();
         }
         return mCharacteristics.getBoolean(KEY_IS_INSTANT_COMMUNICATION_MODE_SUPPORTED);
-    }
-
-    /**
-     * Check if the Aware Pairing is supported. The Aware Pairing is defined as per Wi-Fi Alliance
-     * (WFA) Wi-Fi Aware specifications version 4.0 Section 7.6.
-     * @return True if supported, false otherwise.
-     */
-    public boolean isAwarePairingSupported() {
-        return mCharacteristics.getBoolean(KEY_SUPPORT_NAN_PAIRING);
     }
 
     /** @hide */
