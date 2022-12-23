@@ -748,6 +748,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 .withoutIPv4()
                                 .withIpv6LinkLocalOnly()
                                 .withRandomMacAddress()
+                                .withUniqueEui64AddressesOnly()
                                 .build();
                         break;
                     case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP:
