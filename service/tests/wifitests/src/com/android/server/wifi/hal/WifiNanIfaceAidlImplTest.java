@@ -94,12 +94,12 @@ public class WifiNanIfaceAidlImplTest {
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
                 "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
 
-        mDut.publish(tid, pid, pubDefault);
-        mDut.publish(tid, pid, pubWithRanging);
-        mDut.subscribe(tid, pid, subDefault);
-        mDut.subscribe(tid, pid, subWithMin);
-        mDut.subscribe(tid, pid, subWithMax);
-        mDut.subscribe(tid, pid, subWithMinMax);
+        mDut.publish(tid, pid, pubDefault, null);
+        mDut.publish(tid, pid, pubWithRanging, null);
+        mDut.subscribe(tid, pid, subDefault, null);
+        mDut.subscribe(tid, pid, subWithMin, null);
+        mDut.subscribe(tid, pid, subWithMax, null);
+        mDut.subscribe(tid, pid, subWithMinMax, null);
 
         verify(mIWifiNanIfaceMock, times(2))
                 .startPublishRequest(eq((char) tid), pubCaptor.capture());
@@ -505,7 +505,7 @@ public class WifiNanIfaceAidlImplTest {
             collector.checkThat("securityConfig.cipherType", halCipherSuite,
                     equalTo(nidpr.securityConfig.cipherType));
             collector.checkThat("securityConfig.pmk", pmk, equalTo(nidpr.securityConfig.pmk));
-            collector.checkThat("securityConfig.passphrase", null,
+            collector.checkThat("securityConfig.passphrase", new byte[0],
                     equalTo(nidpr.securityConfig.passphrase));
         }
 
@@ -526,7 +526,7 @@ public class WifiNanIfaceAidlImplTest {
                     WifiNanIface.SERVICE_NAME_FOR_OOB_DATA_PATH.getBytes(),
                     equalTo(nidpr.serviceNameOutOfBand));
         } else {
-            collector.checkThat("serviceNameOutOfBand", null,
+            collector.checkThat("serviceNameOutOfBand", new byte[0],
                     equalTo(nidpr.serviceNameOutOfBand));
         }
     }
@@ -577,7 +577,7 @@ public class WifiNanIfaceAidlImplTest {
                 collector.checkThat("securityConfig.cipherType", halCipherSuite,
                         equalTo(nrtdpir.securityConfig.cipherType));
                 collector.checkThat("securityConfig.pmk", pmk, equalTo(nrtdpir.securityConfig.pmk));
-                collector.checkThat("securityConfig.passphrase", null,
+                collector.checkThat("securityConfig.passphrase", new byte[0],
                         equalTo(nrtdpir.securityConfig.passphrase));
             }
 
@@ -598,7 +598,7 @@ public class WifiNanIfaceAidlImplTest {
                         WifiNanIface.SERVICE_NAME_FOR_OOB_DATA_PATH.getBytes(),
                         equalTo((nrtdpir.serviceNameOutOfBand)));
             } else {
-                collector.checkThat("serviceNameOutOfBand", null,
+                collector.checkThat("serviceNameOutOfBand", new byte[0],
                         equalTo(nrtdpir.serviceNameOutOfBand));
             }
         }

@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.aware;
 
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.util.Log;
 import android.util.SparseArray;
@@ -242,6 +243,47 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     }
 
     @Override
+    public void notifyInitiatePairingResponse(short id, int status,
+            int pairingInstanceId) {
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onInitiatePairingResponseSuccess(id, pairingInstanceId);
+        } else {
+            mWifiAwareStateManager.onInitiatePairingResponseFail(id, status);
+        }
+
+    }
+
+    @Override
+    public void notifyRespondToPairingIndicationResponse(short id, int status) {
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onRespondToPairingIndicationResponseSuccess(id);
+        } else {
+            mWifiAwareStateManager.onRespondToPairingIndicationResponseFail(id, status);
+        }
+    }
+
+    @Override
+    public void notifyInitiateBootstrappingResponse(short id, int status,
+            int bootstrappingInstanceId) {
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onInitiateBootStrappingResponseSuccess(id,
+                    bootstrappingInstanceId);
+        } else {
+            mWifiAwareStateManager.onInitiateBootStrappingResponseFail(id, status);
+        }
+    }
+
+    @Override
+    public void notifyRespondToBootstrappingIndicationResponse(short id, int status) {
+        if (status == NanStatusCode.SUCCESS) {
+            mWifiAwareStateManager.onRespondToBootstrappingIndicationResponseSuccess(id);
+        } else {
+            mWifiAwareStateManager.onRespondToBootstrappingIndicationResponseFail(id, status);
+        }
+    }
+
+
+    @Override
     public void eventClusterEvent(int eventType, byte[] addr) {
         incrementCbCount(CB_EV_CLUSTER);
         if (eventType == NanClusterEventType.DISCOVERY_MAC_ADDRESS_CHANGED) {
@@ -278,11 +320,12 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     @Override
     public void eventMatch(byte discoverySessionId, int peerId, byte[] addr,
             byte[] serviceSpecificInfo, byte[] matchFilter, int rangingIndicationType,
-            int rangingMeasurementInMm, byte[] scid, int peerCipherType) {
+            int rangingMeasurementInMm, byte[] scid, int peerCipherType, byte[] nonce, byte[] tag,
+            AwarePairingConfig pairingConfig) {
         incrementCbCount(CB_EV_MATCH);
         mWifiAwareStateManager.onMatchNotification(discoverySessionId, peerId,
                 addr, serviceSpecificInfo, matchFilter, rangingIndicationType,
-                rangingMeasurementInMm, scid, peerCipherType);
+                rangingMeasurementInMm, scid, peerCipherType, nonce, tag, pairingConfig);
     }
 
     @Override
@@ -347,9 +390,36 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
         mWifiAwareStateManager.onDataPathEndNotification(ndpInstanceId);
     }
 
-    /**
-     * Reset the channel info when Aware is down.
-     */
+    @Override
+    public void eventPairingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
+            int ndpInstanceId, int requestType, boolean enableCache, byte[] nonce, byte[] tag) {
+        mWifiAwareStateManager.onPairingRequestNotification(discoverySessionId, peerId,
+                peerDiscMacAddr, ndpInstanceId, requestType, enableCache, nonce, tag);
+    }
+
+    @Override
+    public void eventPairingConfirm(int pairingId, boolean accept, int reason, int requestType,
+            boolean enableCache,
+            PairingConfigManager.PairingSecurityAssociationInfo npksa) {
+        mWifiAwareStateManager.onPairingConfirmNotification(pairingId, accept, reason, requestType,
+                enableCache, npksa);
+    }
+
+    @Override
+    public void eventBootstrappingRequest(int discoverySessionId, int peerId,
+            byte[] peerDiscMacAddr, int bootstrappingInstanceId, int method) {
+        mWifiAwareStateManager.onBootstrappingRequestNotification(discoverySessionId, peerId,
+                peerDiscMacAddr, bootstrappingInstanceId, method);
+    }
+
+    @Override
+    public void eventBootstrappingConfirm(int pairingId, boolean accept, int reason) {
+        mWifiAwareStateManager.onBootstrappingConfirmNotification(pairingId, accept, reason);
+    }
+
+        /**
+         * Reset the channel info when Aware is down.
+         */
     /* package */ void resetChannelInfo() {
         mChannelInfoPerNdp.clear();
     }

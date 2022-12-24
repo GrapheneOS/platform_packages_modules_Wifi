@@ -61,13 +61,14 @@ public class TestUtils {
             return true;
         }
 
-        public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig) {
+        public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
+                byte[] nik) {
             addTransactionId(transactionId);
             return true;
         }
 
         public boolean subscribe(short transactionId, byte subscribeId,
-                SubscribeConfig subscribeConfig) {
+                SubscribeConfig subscribeConfig, byte[] nik) {
             addTransactionId(transactionId);
             return true;
         }
@@ -120,6 +121,30 @@ public class TestUtils {
         }
 
         public boolean endDataPath(short transactionId, int ndpId) {
+            addTransactionId(transactionId);
+            return true;
+        }
+
+        public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
+                byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+                String password, int akm) {
+            addTransactionId(transactionId);
+            return true;
+        }
+
+        public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
+                byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
+                String password, int akm) {
+            addTransactionId(transactionId);
+            return true;
+        }
+        public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
+                boolean accept) {
+            addTransactionId(transactionId);
+            return true;
+        }
+        public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer,
+                int method) {
             addTransactionId(transactionId);
             return true;
         }

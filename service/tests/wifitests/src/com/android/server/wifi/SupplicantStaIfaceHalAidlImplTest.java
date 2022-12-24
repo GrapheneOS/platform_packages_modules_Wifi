@@ -235,6 +235,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         doReturn(CONNECTED_MAC_ADDRESS_BYTES).when(mISupplicantStaIfaceMock).getMacAddress();
         mHandler = spy(new Handler(mLooper.getLooper()));
         when(mISupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
+        when(mISupplicantMock.getInterfaceVersion()).thenReturn(ISupplicant.VERSION);
         when(mSsidTranslator.getTranslatedSsid(any())).thenReturn(TRANSLATED_SUPPLICANT_SSID);
         when(mSsidTranslator.getOriginalSsid(any())).thenAnswer((Answer<WifiSsid>) invocation ->
                 WifiSsid.fromString(((WifiConfiguration) invocation.getArgument(0)).SSID));
@@ -2579,6 +2580,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         assertTrue(mDut.startDaemon());
         verify(mISupplicantMock).getInterfaceVersion();
         verify(mServiceBinderMock).linkToDeath(mSupplicantDeathCaptor.capture(), anyInt());
+        verify(mISupplicantMock).registerNonStandardCertCallback(any());
         assertTrue(mDut.isInitializationComplete());
 
         // Attempt to setup the interface
