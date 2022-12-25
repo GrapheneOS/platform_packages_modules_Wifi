@@ -30,6 +30,7 @@ import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
@@ -141,6 +142,8 @@ interface IWifiManager
     boolean startScan(String packageName, String featureId);
 
     List<ScanResult> getScanResults(String callingPackage, String callingFeatureId);
+
+    void getChannelData(in IListListener listener, String packageName, in Bundle extras);
 
     boolean disconnect(String packageName);
 

@@ -25,6 +25,8 @@ import static android.net.wifi.WifiAvailableChannel.OP_MODE_SAP;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_STA;
 import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
+import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_FREQUENCY_MHZ;
+import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_NUM_AP;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_SOFTAP;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_WIFI_AWARE;
 import static android.net.wifi.WifiManager.COEX_RESTRICTION_WIFI_DIRECT;
@@ -138,6 +140,7 @@ import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
@@ -10898,5 +10901,61 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.queryLastConfiguredTetheredApPassphraseSinceBoot(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(null);
+    }
+
+    @Test
+    public void testChannelDataThrowsExceptionsAndOnResult() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastT());
+        List<Bundle> dataList = new ArrayList<>();
+        IListListener listener = new IListListener() {
+            @Override
+            public void onResult(List value) throws RemoteException {
+                dataList.addAll(value);
+            }
+            @Override
+            public IBinder asBinder() {
+                return null;
+            }
+        };
+
+        //verify listener null case
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.getChannelData(null, TEST_PACKAGE_NAME, mExtras));
+
+        when(mScanRequestProxy.getScanResults()).thenReturn(createChannelDataScanResults());
+        mWifiServiceImpl.getChannelData(listener, TEST_PACKAGE_NAME, mExtras);
+        mLooper.dispatchAll();
+
+        //verify the result
+        assertEquals(2, dataList.size());
+        Bundle dataBundle1 = dataList.get(0);
+        assertEquals(2412, dataBundle1.getInt(CHANNEL_DATA_KEY_FREQUENCY_MHZ));
+        assertEquals(1, dataBundle1.getInt(CHANNEL_DATA_KEY_NUM_AP));
+        Bundle dataBundle2 = dataList.get(1);
+        assertEquals(5805, dataBundle2.getInt(CHANNEL_DATA_KEY_FREQUENCY_MHZ));
+        assertEquals(2, dataBundle2.getInt(CHANNEL_DATA_KEY_NUM_AP));
+
+        //verify it will fail without nearby permission
+        doThrow(new SecurityException()).when(mWifiPermissionsUtil).enforceNearbyDevicesPermission(
+                any(), anyBoolean(), any());
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getChannelData(listener, TEST_PACKAGE_NAME, mExtras));
+    }
+
+    private List<ScanResult> createChannelDataScanResults() {
+        List<ScanResult> scanResults = new ArrayList<>();
+        scanResults.add(
+                new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
+                        TEST_CAP, -78, 2412, 1024, 22, 33, 20, 0, 0, true));
+        scanResults.add(
+                new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
+                        TEST_CAP, -85, 2417, 1024, 22, 33, 20, 0, 0, true));
+        scanResults.add(
+                new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
+                        TEST_CAP, -60, 5805, 1024, 22, 33, 20, 0, 0, true));
+        scanResults.add(
+                new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
+                        TEST_CAP, -70, 5805, 1024, 22, 33, 20, 0, 0, true));
+        return scanResults;
     }
 }

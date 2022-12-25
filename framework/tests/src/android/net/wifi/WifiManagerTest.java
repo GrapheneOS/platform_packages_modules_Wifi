@@ -144,6 +144,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Unit tests for {@link android.net.wifi.WifiManager}.
@@ -3928,5 +3929,18 @@ public class WifiManagerTest {
         cbCaptor.getValue().onResults(canCreate, interfaces, packagesForInterfaces);
         verify(resultCallback).accept(eq(canCreate), resultCaptor.capture());
         assertEquals(interfacePairs, resultCaptor.getValue());
+    }
+
+    /**
+     * Verify call to getChannelData goes to WifiServiceImpl
+     */
+    @Test
+    public void testChannelData() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        Consumer<List<Bundle>> resultsCallback = mock(Consumer.class);
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        mWifiManager.getChannelData(executor, resultsCallback);
+        verify(mWifiService).getChannelData(any(IListListener.Stub.class), eq(TEST_PACKAGE_NAME),
+                any(Bundle.class));
     }
 }
