@@ -2284,7 +2284,7 @@ public class WifiChipHidlImpl implements IWifiChip {
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
         if (mWifiChip == null) {
-            Log.wtf(TAG, "Cannot call " + methodStr + " because mWifiChip is null");
+            Log.e(TAG, "Cannot call " + methodStr + " because mWifiChip is null");
             return defaultVal;
         }
         return supplier.get();
