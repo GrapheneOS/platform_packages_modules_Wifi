@@ -166,6 +166,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Mock WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
 
     private List<SubscriptionInfo> mSubInfoList;
+    private long mCurrentTimeMills = 1000L;
 
     MockitoSession mMockingSession = null;
     TestLooper mLooper;
@@ -293,12 +294,14 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mResources.getText(
                 eq(R.string.wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation)))
                 .thenReturn("blah");
+        when(mResources.getInteger(eq(R.integer.config_wifiImsiProtectionNotificationDelaySeconds)))
+                .thenReturn(300);
         mWifiCarrierInfoManager.addImsiExemptionUserApprovalListener(mListener);
         verify(mSubscriptionManager).addOnSubscriptionsChangedListener(any(),
                 mListenerArgumentCaptor.capture());
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
         mLooper.dispatchAll();
-        when(mClock.getElapsedSinceBootMillis()).thenReturn(1000L);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(mCurrentTimeMills);
     }
 
     @After
@@ -1738,6 +1741,10 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         reset(mWifiNotificationManager);
         // No Notification is active, should send notification again.
         mWifiCarrierInfoManager.sendImsiProtectionExemptionNotificationIfRequired(DATA_CARRIER_ID);
+        verifyNoMoreInteractions(mWifiNotificationManager);
+
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(mCurrentTimeMills + 6 * 60 * 1000);
+        mWifiCarrierInfoManager.sendImsiProtectionExemptionNotificationIfRequired(DATA_CARRIER_ID);
         validateImsiProtectionNotification(CARRIER_NAME);
         reset(mWifiNotificationManager);
 
@@ -1822,8 +1829,12 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         verify(mContext).sendBroadcast(intentCaptor.capture());
         assertEquals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS, intentCaptor.getValue().getAction());
 
-        // As no notification is active, new notification should be sent
+        // As user dismissed the notification, there will be a certain time to delay the next
+        // notification
         mWifiCarrierInfoManager.sendImsiProtectionExemptionNotificationIfRequired(DATA_CARRIER_ID);
+        verifyNoMoreInteractions(mWifiNotificationManager);
+
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(mCurrentTimeMills + 6 * 60 * 1000);
         validateImsiProtectionNotification(CARRIER_NAME);
 
         verify(mWifiConfigManager, never()).saveToStore(true);

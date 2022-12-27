@@ -282,6 +282,7 @@
           <item type="integer" name="config_wifiNetworkSpecifierMaxPreferredChannels" />
           <item type="bool" name="config_wifiEnableStaIndoorChannelForPeerNetwork" />
           <item type="bool" name="config_wifiEnableStaDfsChannelForPeerNetwork" />
+          <item type="integer" name="config_wifiImsiProtectionNotificationDelaySeconds" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->
