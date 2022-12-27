@@ -326,6 +326,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mCurrentDiscoveryInterfaceMac = ALL_ZERO_MAC;
+    private byte[] mClusterId = ALL_ZERO_MAC;
+    private int mClusterEventType = -1;
     // Flag to help defer the connect request when disable Aware is not finished, to prevent race
     // condition.
     private boolean mAwareIsDisabling = false;
@@ -3197,6 +3199,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil, extra, mLocalLog);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
+            client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
@@ -3727,6 +3730,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 Log.w(TAG,
                         "onConfigCompletedLocal onConnectSuccess(): RemoteException (FYI): " + e);
             }
+            client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
         } else if (completedCommand.arg1 == COMMAND_TYPE_DISCONNECT) {
             /*
@@ -4343,6 +4347,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onClusterChangeLocal(int clusterEventType, byte[] clusterId) {
+
+        mClusterId = clusterId;
+        mClusterEventType = clusterEventType;
+
         if (VDBG) {
             Log.v(TAG, "onClusterChange: clusterEventType=" + clusterEventType + ", clusterId="
                     + String.valueOf(HexEncoding.encode(clusterId)));

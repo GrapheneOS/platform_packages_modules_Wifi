@@ -723,6 +723,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInterfaceAddressChangeNotification(someMac);
         mMockLooper.dispatchAll();
 
+        inOrder.verify(mockCallback2).onClusterIdChanged(
+                IdentityChangedListener.CLUSTER_CHANGE_EVENT_STARTED, ALL_ZERO_MAC);
         inOrder.verify(mockCallback2).onIdentityChanged(ALL_ZERO_MAC);
 
         // (3) deliver new identity - still without LOCATIONING permission (should get an event)

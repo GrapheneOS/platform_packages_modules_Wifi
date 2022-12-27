@@ -23,6 +23,7 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_D
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.content.Context;
+import android.net.MacAddress;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IdentityChangedListener;
@@ -73,6 +74,7 @@ public class WifiAwareClientState {
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mLastDiscoveryInterfaceMac = ALL_ZERO_MAC;
+    private byte[] mLastClusterId = ALL_ZERO_MAC;
 
     public WifiAwareClientState(Context context, int clientId, int uid, int pid,
             String callingPackage, @Nullable String callingFeatureId,
@@ -281,7 +283,9 @@ public class WifiAwareClientState {
                             HexEncoding.encode(clusterId)) + ", currentDiscoveryInterfaceMac="
                             + String.valueOf(HexEncoding.encode(currentDiscoveryInterfaceMac))
                             + ", mLastDiscoveryInterfaceMac=" + String.valueOf(
-                            HexEncoding.encode(mLastDiscoveryInterfaceMac)));
+                            HexEncoding.encode(mLastDiscoveryInterfaceMac))
+                            + ", mLastClusterId="
+                            + String.valueOf(HexEncoding.encode(mLastClusterId)));
         }
         if (mNotifyIdentityChange && !Arrays.equals(currentDiscoveryInterfaceMac,
                 mLastDiscoveryInterfaceMac)) {
@@ -298,6 +302,27 @@ public class WifiAwareClientState {
         }
 
         mLastDiscoveryInterfaceMac = currentDiscoveryInterfaceMac;
+
+        if (mNotifyIdentityChange && !Arrays.equals(clusterId, mLastClusterId)) {
+            boolean hasPermission = mWifiPermissionsUtil.checkCallersLocationPermission(
+                    mCallingPackage, mCallingFeatureId, mUid,
+                    /* coarseForTargetSdkLessThanQ */ true, null);
+            if (VDBG) Log.v(TAG, "hasPermission=" + hasPermission);
+            MacAddress clusterIdToMacAddress = null;
+            try {
+                clusterIdToMacAddress = MacAddress.fromBytes(clusterId);
+            } catch (IllegalArgumentException iae) {
+                Log.e(TAG, " Invalid MAC address, " + iae);
+            }
+            try {
+                mCallback.onClusterIdChanged(clusterEventType,
+                        hasPermission ? clusterId : ALL_ZERO_MAC);
+            } catch (RemoteException e) {
+                Log.w(TAG, "onClusterIdChanged: RemoteException - ignored: " + e);
+            }
+        }
+
+        mLastClusterId = clusterId;
     }
 
     /**

@@ -880,7 +880,10 @@ package android.net.wifi.aware {
 
   public class IdentityChangedListener {
     ctor public IdentityChangedListener();
+    method public void onClusterIdChanged(int, @NonNull android.net.MacAddress);
     method public void onIdentityChanged(byte[]);
+    field public static final int CLUSTER_CHANGE_EVENT_JOINED = 1; // 0x1
+    field public static final int CLUSTER_CHANGE_EVENT_STARTED = 0; // 0x0
   }
 
   public final class ParcelablePeerHandle extends android.net.wifi.aware.PeerHandle implements android.os.Parcelable {
