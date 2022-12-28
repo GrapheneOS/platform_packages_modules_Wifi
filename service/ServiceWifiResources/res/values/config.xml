@@ -362,6 +362,9 @@
     <!-- Indicates that dynamic country code update in AP mode is supported on this device -->
     <bool translatable="false" name="config_wifiSoftApDynamicCountryCodeUpdateSupported">false</bool>
 
+    <!-- Indicates that dynamic country code update in STA mode is supported on this device -->
+    <bool translatable="false" name="config_wifiStaDynamicCountryCodeUpdateSupported">false</bool>
+
     <!-- list of SSIDs to force disable MAC randomization -->
     <string-array translatable="false" name="config_wifiForceDisableMacRandomizationSsidList">
         <!-- SSIDs are expected in quoted format:

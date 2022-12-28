@@ -69,6 +69,7 @@
           <item type="integer" name="config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond" />
           <item type="bool" name="config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging" />
           <item type="bool" name="config_wifiSoftApDynamicCountryCodeUpdateSupported" />
+          <item type="bool" name="config_wifiStaDynamicCountryCodeUpdateSupported" />
           <item type="bool" name="config_wifiSoftapResetChannelConfig" />
           <item type="bool" name="config_wifiSoftapResetHiddenConfig" />
           <item type="bool" name="config_wifiSoftapResetUserControlConfig" />
