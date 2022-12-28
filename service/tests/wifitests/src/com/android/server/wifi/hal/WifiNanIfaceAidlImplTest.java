@@ -401,7 +401,7 @@ public class WifiNanIfaceAidlImplTest {
             boolean initialConfiguration, boolean isInteractive, boolean isIdle,
             int discoveryWindow24Ghz, int discoveryWindow5Ghz) throws RemoteException {
         mDut.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
-                initialConfiguration, false, false, 2437,
+                initialConfiguration, false, false, 2437, -1 /* clusterId */,
                 1800 /* PARAM_MAC_RANDOM_INTERVAL_SEC_DEFAULT */,
                 getPowerParams(isInteractive, isIdle, discoveryWindow24Ghz, discoveryWindow5Ghz));
 
