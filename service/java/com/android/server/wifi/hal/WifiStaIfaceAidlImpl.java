@@ -662,6 +662,26 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         }
     }
 
+    /**
+     * See comments for {@link IWifiStaIface#setDtimMultiplier(int)}
+     */
+    @Override
+    public boolean setDtimMultiplier(int multiplier) {
+        final String methodStr = "setDtimMultiplier";
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                mWifiStaIface.setDtimMultiplier(multiplier);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
     private class StaIfaceEventCallback extends IWifiStaIfaceEventCallback.Stub {
         @Override
         public void onBackgroundScanFailure(int cmdId) {

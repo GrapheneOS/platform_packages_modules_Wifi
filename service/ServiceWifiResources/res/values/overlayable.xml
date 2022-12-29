@@ -283,6 +283,11 @@
           <item type="bool" name="config_wifiEnableStaIndoorChannelForPeerNetwork" />
           <item type="bool" name="config_wifiEnableStaDfsChannelForPeerNetwork" />
           <item type="integer" name="config_wifiImsiProtectionNotificationDelaySeconds" />
+          <item type="bool" name="config_wifiDtimMultiplierConfigEnabled" />
+          <item type="integer" name="config_wifiDtimMultiplierIpv4Only" />
+          <item type="integer" name="config_wifiDtimMultiplierIpv6Only" />
+          <item type="integer" name="config_wifiDtimMultiplierIpv6Ipv4" />
+          <item type="integer" name="config_wifiDtimMultiplierMulticastLockEnabled" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->
