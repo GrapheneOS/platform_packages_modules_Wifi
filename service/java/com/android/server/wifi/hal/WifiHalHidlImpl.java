@@ -590,7 +590,7 @@ public class WifiHalHidlImpl implements IWifiHal {
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
         if (mWifi == null) {
-            Log.wtf(TAG, "Cannot call " + methodStr + " because mWifi is null");
+            Log.e(TAG, "Cannot call " + methodStr + " because mWifi is null");
             return defaultVal;
         }
         return supplier.get();
