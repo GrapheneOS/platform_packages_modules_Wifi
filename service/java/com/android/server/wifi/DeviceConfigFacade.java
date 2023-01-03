@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * This class allows getting all configurable flags from DeviceConfig.
  */
 public class DeviceConfigFacade {
-    private Context mContext;
+    private final Context mContext;
     private final WifiMetrics mWifiMetrics;
 
     private static final String NAMESPACE = "wifi";
@@ -208,6 +208,7 @@ public class DeviceConfigFacade {
     private boolean mInterfaceFailureBugreportEnabled;
     private boolean mP2pFailureBugreportEnabled;
     private boolean mApmEnhancementEnabled;
+    private boolean mAwareSuspensionEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -385,7 +386,8 @@ public class DeviceConfigFacade {
                 "p2p_failure_bugreport_enabled", false);
         mApmEnhancementEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "apm_enhancement_enabled", false);
-
+        mAwareSuspensionEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "aware_suspension_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -822,5 +824,12 @@ public class DeviceConfigFacade {
         // reads the value set by Bluetooth device config for APM enhancement feature flag
         return Settings.Global.getInt(
                 mContext.getContentResolver(), "apm_enhancement_enabled", 0) == 1;
+    }
+
+    /**
+     * Gets the feature flag for Aware suspension
+     */
+    public boolean isAwareSuspensionEnabled() {
+        return mAwareSuspensionEnabled;
     }
 }
