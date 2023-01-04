@@ -16,6 +16,10 @@
 
 package android.net.wifi.aware;
 
+import android.annotation.IntDef;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 /**
  * Base class for a listener which is called with the MAC address of the Aware interface whenever
  * it is changed. Change may be due to device joining a cluster, starting a cluster, or discovery
@@ -28,6 +32,25 @@ package android.net.wifi.aware;
  * {@link WifiAwareSession#createNetworkSpecifierPassphrase(int, byte[], String)}.
  */
 public class IdentityChangedListener {
+    /** @hide */
+    @IntDef(prefix = {"CLUSTER_CHANGE_EVENT_"}, value = {
+        CLUSTER_CHANGE_EVENT_STARTED,
+        CLUSTER_CHANGE_EVENT_JOINED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ClusterChangeEvent {}
+
+    /**
+     * Wi-Fi Aware cluster change event type when starting a cluster.
+     */
+    /** @hide */
+    public static final int CLUSTER_CHANGE_EVENT_STARTED = 0;
+    /**
+     * Wi-Fi Aware cluster change event type when joining a cluster.
+     */
+    /** @hide */
+    public static final int CLUSTER_CHANGE_EVENT_JOINED = 1;
+
     /**
      * @param mac The MAC address of the Aware discovery interface. The application must have the
      * {@link android.Manifest.permission#ACCESS_FINE_LOCATION} to get the actual MAC address,

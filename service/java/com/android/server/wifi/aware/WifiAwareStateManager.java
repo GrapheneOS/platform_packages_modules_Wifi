@@ -40,6 +40,7 @@ import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
+import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -1634,7 +1635,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * membership has changed (e.g. due to starting a new cluster or joining
      * another cluster).
      */
-    public void onClusterChangeNotification(int clusterEventType, byte[] clusterId) {
+    public void onClusterChangeNotification(
+            @IdentityChangedListener.ClusterChangeEvent int clusterEventType,
+            byte[] clusterId) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_CLUSTER_CHANGE;
         msg.arg2 = clusterEventType;

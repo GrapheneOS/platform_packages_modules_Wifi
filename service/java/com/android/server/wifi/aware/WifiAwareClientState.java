@@ -25,6 +25,7 @@ import android.app.AppOpsManager;
 import android.content.Context;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareEventCallback;
+import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.util.HexEncoding;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -51,9 +52,6 @@ public class WifiAwareClientState {
     private static final String TAG = "WifiAwareClientState";
     private static final boolean VDBG = false; // STOPSHIP if true
     private boolean mDbg = false;
-
-    /* package */ static final int CLUSTER_CHANGE_EVENT_STARTED = 0;
-    /* package */ static final int CLUSTER_CHANGE_EVENT_JOINED = 1;
 
     private final Context mContext;
     private final IWifiAwareEventCallback mCallback;
@@ -274,8 +272,8 @@ public class WifiAwareClientState {
      * @param clusterId The cluster ID of the cluster started or joined.
      * @param currentDiscoveryInterfaceMac The MAC address of the discovery interface.
      */
-    public void onClusterChange(int clusterEventType, byte[] clusterId,
-            byte[] currentDiscoveryInterfaceMac) {
+    public void onClusterChange(@IdentityChangedListener.ClusterChangeEvent int clusterEventType,
+            byte[] clusterId, byte[] currentDiscoveryInterfaceMac) {
         if (mDbg) {
             Log.v(TAG,
                     "onClusterChange: mClientId=" + mClientId + ", mNotifyIdentityChange="

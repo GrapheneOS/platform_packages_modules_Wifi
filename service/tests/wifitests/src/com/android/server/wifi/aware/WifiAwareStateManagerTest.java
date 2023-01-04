@@ -68,6 +68,7 @@ import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
+import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -717,7 +718,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockCallback2).onConnectSuccess(clientId2);
 
         // (2) deliver Aware events - without LOCATIONING permission
-        mDut.onClusterChangeNotification(WifiAwareClientState.CLUSTER_CHANGE_EVENT_STARTED,
+        mDut.onClusterChangeNotification(IdentityChangedListener.CLUSTER_CHANGE_EVENT_STARTED,
                 someMac);
         mDut.onInterfaceAddressChangeNotification(someMac);
         mMockLooper.dispatchAll();
