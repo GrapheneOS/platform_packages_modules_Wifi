@@ -1299,11 +1299,9 @@ package android.net.wifi.rtt {
     field public static final int PREAMBLE_HT = 1; // 0x1
     field public static final int PREAMBLE_LEGACY = 0; // 0x0
     field public static final int PREAMBLE_VHT = 2; // 0x2
-    field public static final int RESPONDER_AP = 0; // 0x0
     field public static final int RESPONDER_AWARE = 4; // 0x4
     field public static final int RESPONDER_P2P_CLIENT = 3; // 0x3
     field public static final int RESPONDER_P2P_GO = 2; // 0x2
-    field public static final int RESPONDER_STA = 1; // 0x1
     field public final int centerFreq0;
     field public final int centerFreq1;
     field public final int channelWidth;
