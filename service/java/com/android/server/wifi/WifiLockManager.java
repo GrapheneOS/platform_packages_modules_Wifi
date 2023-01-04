@@ -37,6 +37,7 @@ import android.util.Pair;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.WorkSourceUtil;
 
@@ -213,9 +214,9 @@ public class WifiLockManager {
         // This is to make sure worksource value can not be changed by caller
         // after function returns.
         WorkSource newWorkSource = new WorkSource(ws);
-        // High perf lock is deprecated. Acquisition of  High perf lock will be treated as a call to
-        // Low Latency Lock.
-        if (lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
+        // High perf lock is deprecated from Android U onwards. Acquisition of  High perf lock
+        // will be treated as a call to Low Latency Lock.
+        if (SdkLevel.isAtLeastU() && lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
             lockMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
         return addLock(new WifiLock(lockMode, tag, binder, newWorkSource));
