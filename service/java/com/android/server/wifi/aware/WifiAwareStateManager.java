@@ -1634,10 +1634,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * membership has changed (e.g. due to starting a new cluster or joining
      * another cluster).
      */
-    public void onClusterChangeNotification(int flag, byte[] clusterId) {
+    public void onClusterChangeNotification(int clusterEventType, byte[] clusterId) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_CLUSTER_CHANGE;
-        msg.arg2 = flag;
+        msg.arg2 = clusterEventType;
         msg.obj = clusterId;
         mSm.sendMessage(msg);
     }
@@ -2069,10 +2069,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case NOTIFICATION_TYPE_CLUSTER_CHANGE: {
-                    int flag = msg.arg2;
+                    int clusterEventType = msg.arg2;
                     byte[] clusterId = (byte[]) msg.obj;
 
-                    onClusterChangeLocal(flag, clusterId);
+                    onClusterChangeLocal(clusterEventType, clusterId);
                     break;
                 }
                 case NOTIFICATION_TYPE_MATCH: {
@@ -4339,15 +4339,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mAwareMetrics.recordEnableAware();
     }
 
-    private void onClusterChangeLocal(int flag, byte[] clusterId) {
+    private void onClusterChangeLocal(int clusterEventType, byte[] clusterId) {
         if (VDBG) {
-            Log.v(TAG, "onClusterChange: flag=" + flag + ", clusterId="
+            Log.v(TAG, "onClusterChange: clusterEventType=" + clusterEventType + ", clusterId="
                     + String.valueOf(HexEncoding.encode(clusterId)));
         }
 
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState client = mClients.valueAt(i);
-            client.onClusterChange(flag, clusterId, mCurrentDiscoveryInterfaceMac);
+            client.onClusterChange(clusterEventType, clusterId, mCurrentDiscoveryInterfaceMac);
         }
 
         mAwareMetrics.recordEnableAware();
