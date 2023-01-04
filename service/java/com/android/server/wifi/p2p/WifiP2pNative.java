@@ -27,7 +27,6 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.os.Handler;
-import android.os.Process;
 import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.Log;
@@ -216,7 +215,7 @@ public class WifiP2pNative {
                 mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToSupplicant();
                 return null;
             }
-            mSupportedFeatures = mSupplicantP2pIfaceHal.getSupportedFeatures();
+            getSupportedFeatures();
             Log.i(TAG, "P2P interface setup completed");
             return ifaceName;
         } else {
@@ -272,17 +271,8 @@ public class WifiP2pNative {
      */
     public long getSupportedFeatures() {
         if (-1L != mSupportedFeatures) return mSupportedFeatures;
-
-        Log.i(TAG, "Set up a temporary P2P interface to get supported features.");
-        // Try to set up a temporary interface to get supported features.
-        WorkSource ws =  new WorkSource(Process.SYSTEM_UID);
-        String ifname = setupInterface(null, null, ws);
-        if (TextUtils.isEmpty(ifname)) {
-            Log.e(TAG, "Cannot set up a temporary P2P interface.");
-            return 0L;
-        }
-        teardownInterface();
-        mP2pIfaceName = null;
+        mSupportedFeatures = mSupplicantP2pIfaceHal.getSupportedFeatures();
+        Log.i(TAG, "Retrieved supported features: " + mSupportedFeatures);
         return mSupportedFeatures;
     }
 
