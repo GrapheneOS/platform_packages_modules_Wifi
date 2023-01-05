@@ -717,7 +717,6 @@ public class WifiConfigManager {
 
     /**
      * Returns whether MAC randomization is supported on this device.
-     * @param config
      * @return
      */
     private boolean isMacRandomizationSupported() {
