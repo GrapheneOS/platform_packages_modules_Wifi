@@ -270,15 +270,17 @@ public class WifiAwareClientState {
      * concerns). Dispatched if the client registered for the identity changed
      * event.
      *
-     * @param mac The cluster ID of the cluster started or joined.
+     * @param clusterEventType The type of the cluster event that triggered the callback.
+     * @param clusterId The cluster ID of the cluster started or joined.
      * @param currentDiscoveryInterfaceMac The MAC address of the discovery interface.
      */
-    public void onClusterChange(int flag, byte[] mac, byte[] currentDiscoveryInterfaceMac) {
+    public void onClusterChange(int clusterEventType, byte[] clusterId,
+            byte[] currentDiscoveryInterfaceMac) {
         if (mDbg) {
             Log.v(TAG,
                     "onClusterChange: mClientId=" + mClientId + ", mNotifyIdentityChange="
-                            + mNotifyIdentityChange + ", mac=" + String.valueOf(
-                            HexEncoding.encode(mac)) + ", currentDiscoveryInterfaceMac="
+                            + mNotifyIdentityChange + ", clusterId=" + String.valueOf(
+                            HexEncoding.encode(clusterId)) + ", currentDiscoveryInterfaceMac="
                             + String.valueOf(HexEncoding.encode(currentDiscoveryInterfaceMac))
                             + ", mLastDiscoveryInterfaceMac=" + String.valueOf(
                             HexEncoding.encode(mLastDiscoveryInterfaceMac)));
