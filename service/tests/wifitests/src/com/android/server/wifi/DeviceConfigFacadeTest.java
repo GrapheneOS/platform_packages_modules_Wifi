@@ -223,6 +223,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isAwareSuspensionEnabled());
+        assertEquals(false, mDeviceConfigFacade.isHighPerfLockDeprecated());
     }
 
     /**
@@ -356,6 +357,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 anyBoolean())).thenReturn(true);
         when(DeviceConfig.getBoolean(anyString(), eq("aware_suspension_enabled"),
                 anyBoolean())).thenReturn(true);
+        when(DeviceConfig.getBoolean(anyString(), eq("high_perf_lock_deprecated"),
+                anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
 
         // Verifying fields are updated to the new values
@@ -424,5 +427,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(true, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
         assertEquals(true, mDeviceConfigFacade.isAwareSuspensionEnabled());
+        assertEquals(true, mDeviceConfigFacade.isHighPerfLockDeprecated());
     }
 }
