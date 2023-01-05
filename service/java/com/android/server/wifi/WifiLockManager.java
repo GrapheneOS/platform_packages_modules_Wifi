@@ -91,10 +91,12 @@ public class WifiLockManager {
     private int mFullLowLatencyLocksAcquired;
     private int mFullLowLatencyLocksReleased;
     private long mCurrentSessionStartTimeMs;
+    private final DeviceConfigFacade mDeviceConfigFacade;
 
     WifiLockManager(Context context, BatteryStatsManager batteryStats,
             ActiveModeWarden activeModeWarden, FrameworkFacade frameworkFacade,
-            Handler handler, Clock clock, WifiMetrics wifiMetrics) {
+            Handler handler, Clock clock, WifiMetrics wifiMetrics,
+            DeviceConfigFacade deviceConfigFacade) {
         mContext = context;
         mBatteryStats = batteryStats;
         mActiveModeWarden = activeModeWarden;
@@ -103,6 +105,7 @@ public class WifiLockManager {
         mHandler = handler;
         mClock = clock;
         mWifiMetrics = wifiMetrics;
+        mDeviceConfigFacade = deviceConfigFacade;
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -216,7 +219,8 @@ public class WifiLockManager {
         WorkSource newWorkSource = new WorkSource(ws);
         // High perf lock is deprecated from Android U onwards. Acquisition of  High perf lock
         // will be treated as a call to Low Latency Lock.
-        if (SdkLevel.isAtLeastU() && lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                && lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
             lockMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
         return addLock(new WifiLock(lockMode, tag, binder, newWorkSource));

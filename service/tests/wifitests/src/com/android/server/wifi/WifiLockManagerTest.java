@@ -87,6 +87,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     @Mock WifiMetrics mWifiMetrics;
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock PowerManager mPowerManager;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
     TestLooper mLooper;
     Handler mHandler;
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
@@ -113,9 +114,12 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager);
 
         when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
+        /* Test with High perf lock deprecated. */
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(true);
 
         mWifiLockManager = new WifiLockManager(mContext, mBatteryStats,
-                mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics);
+                mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics,
+                mDeviceConfigFacade);
         verify(mContext, atLeastOnce()).registerReceiver(
                 mBroadcastReceiverCaptor.capture(), any(), any(), any());
     }
@@ -190,16 +194,26 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void acquireWifiLockWithValidParamsShouldSucceed() throws Exception {
-        // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
-        // is active only when screen is ON and the acquiring app is running in the foreground.
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
+        assertEquals(WifiManager.WIFI_MODE_FULL_HIGH_PERF, mWifiLockManager.getStrongestLockMode());
+        //Release the lock.
+        releaseWifiLockSuccessful(mBinder);
+
+        // Test with high perf lock deprecated (Android U+ only).
         if (SdkLevel.isAtLeastU()) {
+            when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(true);
+            // From Android U onwards, acquiring high perf lock is treated as low latency lock,
+            // which is active only when screen is ON and the acquiring app is running in the
+            // foreground.
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder,
+                    mWorkSource);
+            assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                    mWifiLockManager.getStrongestLockMode());
         }
-        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
-        assertEquals(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                        : WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-                mWifiLockManager.getStrongestLockMode());
     }
 
     /**
@@ -213,13 +227,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void secondCallToAcquireWifiLockWithSameBinderShouldFail() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
         assertEquals(expectedMode, mWifiLockManager.getStrongestLockMode());
         assertFalse(mWifiLockManager.acquireWifiLock(expectedMode, "", mBinder, mWorkSource));
@@ -236,7 +250,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void releaseWifiLockShouldSucceed() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
@@ -244,7 +258,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
         releaseWifiLockSuccessful(mBinder);
         verify(mWifiMetrics).addWifiLockAcqSession(
-                eq(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+                eq(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                        ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                         : WifiManager.WIFI_MODE_FULL_HIGH_PERF),
                 anyLong());
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
@@ -260,17 +275,17 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void releaseLocksForOneCallerNotImpactOtherCallers() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         IBinder toReleaseBinder = mock(IBinder.class);
         WorkSource toReleaseWS = new WorkSource(DEFAULT_TEST_UID_1);
         WorkSource toKeepWS = new WorkSource(DEFAULT_TEST_UID_2);
 
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         acquireWifiLockSuccessful(
                 WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", toReleaseBinder, toReleaseWS);
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, toKeepWS);
@@ -304,14 +319,15 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void checkForProperValueForGetStrongestLockMode() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
-        assertEquals(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        assertEquals(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                        ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                         : WifiManager.WIFI_MODE_FULL_HIGH_PERF,
                 mWifiLockManager.getStrongestLockMode());
         releaseWifiLockSuccessful(mBinder);
@@ -338,7 +354,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void createMergedWorkSourceShouldSucceed() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
@@ -401,7 +417,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
@@ -426,7 +442,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
@@ -458,7 +474,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testHiPerfLockAcquireCauseDisablePS() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
             when(mClientModeManager.getSupportedFeatures())
@@ -468,7 +484,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
                 mBinder, mWorkSource);
-        assertEquals(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        assertEquals(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                        ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                         : WifiManager.WIFI_MODE_FULL_HIGH_PERF,
                 mWifiLockManager.getStrongestLockMode());
         verify(mClientModeManager).setPowerSave(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK, false);
@@ -480,20 +497,20 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void testHiPerfLockReleaseCauseEnablePS() throws Exception {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         InOrder inOrder = inOrder(mClientModeManager);
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
@@ -611,6 +628,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void testHiPerfLockAcquireFail() throws Exception {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         IBinder fullLockBinder = mock(IBinder.class);
         WorkSource fullLockWS = new WorkSource(DEFAULT_TEST_UID_1);
 
@@ -620,14 +638,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
@@ -653,6 +670,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void testHiPerfLockReleaseFail() throws Exception {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         IBinder fullLockBinder = mock(IBinder.class);
         WorkSource fullLockWS = new WorkSource(DEFAULT_TEST_UID_1);
 
@@ -664,14 +682,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_MODE_FULL_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
@@ -1387,6 +1404,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void testForceLowLatencyFailure() throws Exception {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(false);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
@@ -1395,11 +1413,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
@@ -1408,7 +1425,9 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         assertFalse(mWifiLockManager.forceLowLatencyMode(true));
         assertEquals(expectedMode, mWifiLockManager.getStrongestLockMode());
-        inOrder.verify(mClientModeManager, times(SdkLevel.isAtLeastU() ? 2 : 1)).setLowLatencyMode(
+        inOrder.verify(mClientModeManager,
+                times(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU() ? 2
+                        : 1)).setLowLatencyMode(
                 true);
         // Since setLowLatencyMode() failed, no call to setPowerSave()
         inOrder.verify(mClientModeManager, never()).setPowerSave(
@@ -1435,7 +1454,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testAcquireLockWhileDisconnectedConnect() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
@@ -1444,7 +1463,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 mBinder, mWorkSource));
         mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
 
-        assertEquals(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        assertEquals(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                        ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                         : WifiManager.WIFI_MODE_FULL_HIGH_PERF,
                 mWifiLockManager.getStrongestLockMode());
         verify(mBatteryStats).reportFullWifiLockAcquiredFromSource(eq(mWorkSource));
@@ -1469,6 +1489,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
     @Test
     public void testWifiLockActiveWithAnyConnection() {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
         List<ClientModeManager> clientModeManagers = new ArrayList<>();
@@ -1478,11 +1499,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         // acquire the lock and assert it's not active since there's no wifi connection yet.
@@ -1522,6 +1542,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
      */
     @Test
     public void testHighPerfLockMetrics() throws Exception {
+        int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         long acquireTime      = 1000;
         long activationTime   = 2000;
         long deactivationTime = 3000;
@@ -1535,14 +1556,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-                : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+            expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
         // Acquire the lock
@@ -1644,12 +1664,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void dumpOutputsCorrectInformationWithActiveLocks() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
 
-        int expectedMode = SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        int expectedMode = mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                 : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, TEST_WIFI_LOCK_TAG,
                 mBinder, mWorkSource);
@@ -1663,7 +1684,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         mWifiLockManager.dump(pw);
 
         String wifiLockManagerDumpString = sw.toString();
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             assertTrue(wifiLockManagerDumpString.contains(
                     "Locks acquired: 0 full high perf, 2 full low latency"));
             assertTrue(wifiLockManagerDumpString.contains(
@@ -1688,14 +1709,15 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testUnlinkDeathRecipiientCatchesException() throws Exception {
         // From Android U onwards, acquiring high perf lock is treated as low latency lock, which
         // is active only when screen is ON and the acquiring app is running in the foreground.
-        if (SdkLevel.isAtLeastU()) {
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
             when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
                 mBinder, mWorkSource);
-        assertEquals(SdkLevel.isAtLeastU() ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        assertEquals(mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                        ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                         : WifiManager.WIFI_MODE_FULL_HIGH_PERF,
                 mWifiLockManager.getStrongestLockMode());
 
