@@ -53,6 +53,7 @@ import org.xmlpull.v1.XmlSerializer;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -390,18 +391,20 @@ public class XmlUtil {
         public static final String XML_TAG_DPP_NET_ACCESS_KEY = "DppNetAccessKey";
 
         /**
-         * Write WepKeys to the XML stream.
-         * WepKeys array is intialized in WifiConfiguration constructor, but all of the elements
-         * are set to null. User may chose to set any one of the key elements in WifiConfiguration.
+         * Write Wep Keys to the XML stream.
+         * WepKeys array is initialized in WifiConfiguration constructor and all the elements
+         * are set to null. User may choose to set any one of the key elements in WifiConfiguration.
          * XmlUtils serialization doesn't handle this array of nulls well .
-         * So, write empty strings if some of the keys are not initialized and null if all of
+         * So, write empty strings if the keys are not initialized and null if all
          * the elements are empty.
          */
-        private static void writeWepKeysToXml(XmlSerializer out, String[] wepKeys)
+        private static void writeWepKeysToXml(XmlSerializer out, String[] wepKeys,
+                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
-            String[] wepKeysToWrite = new String[wepKeys.length];
+            final int len = wepKeys == null ? 0 : wepKeys.length;
+            String[] wepKeysToWrite = new String[len];
             boolean hasWepKey = false;
-            for (int i = 0; i < wepKeys.length; i++) {
+            for (int i = 0; i < len; i++) {
                 if (wepKeys[i] == null) {
                     wepKeysToWrite[i] = new String();
                 } else {
@@ -409,11 +412,34 @@ public class XmlUtil {
                     hasWepKey = true;
                 }
             }
-            if (hasWepKey) {
-                XmlUtil.writeNextValue(out, XML_TAG_WEP_KEYS, wepKeysToWrite);
-            } else {
+            if (!hasWepKey) {
                 XmlUtil.writeNextValue(out, XML_TAG_WEP_KEYS, null);
+                return;
             }
+            if (encryptionUtil == null) {
+                XmlUtil.writeNextValue(out, XML_TAG_WEP_KEYS, wepKeysToWrite);
+                return;
+            }
+            EncryptedData[] encryptedDataArray = new EncryptedData[len];
+            for (int i = 0; i < len; i++) {
+                if (wepKeys[i] == null) {
+                    encryptedDataArray[i] = new EncryptedData(null, null);
+                } else {
+                    encryptedDataArray[i] = encryptionUtil.encrypt(wepKeys[i].getBytes());
+                    if (encryptedDataArray[i] == null) {
+                        // We silently fail encryption failures!
+                        Log.wtf(TAG, "Encryption of WEP keys failed");
+                        // If any key encryption fails, we just fall back with unencrypted keys.
+                        XmlUtil.writeNextValue(out, XML_TAG_WEP_KEYS, wepKeysToWrite);
+                        return;
+                    }
+                }
+            }
+            XmlUtil.writeNextSectionStart(out, XML_TAG_WEP_KEYS);
+            for (int i = 0; i < len; i++) {
+                XmlUtil.EncryptedDataXmlUtil.writeToXml(out, encryptedDataArray[i]);
+            }
+            XmlUtil.writeNextSectionEnd(out, XML_TAG_WEP_KEYS);
         }
 
         /**
@@ -535,7 +561,7 @@ public class XmlUtil {
             XmlUtil.writeNextValue(out, XML_TAG_CONFIG_KEY, configuration.getKey());
             XmlUtil.writeNextValue(out, XML_TAG_SSID, configuration.SSID);
             writePreSharedKeyToXml(out, configuration, encryptionUtil);
-            writeWepKeysToXml(out, configuration.wepKeys);
+            writeWepKeysToXml(out, configuration.wepKeys, encryptionUtil);
             XmlUtil.writeNextValue(out, XML_TAG_WEP_TX_KEY_INDEX, configuration.wepTxKeyIndex);
             XmlUtil.writeNextValue(out, XML_TAG_HIDDEN_SSID, configuration.hiddenSSID);
             XmlUtil.writeNextValue(out, XML_TAG_REQUIRE_PMF, configuration.requirePmf);
@@ -696,6 +722,24 @@ public class XmlUtil {
                     wepKeys[i] = wepKeysInData[i];
                 }
             }
+        }
+
+        private static String[] populateWepKeysFromXmlValue(XmlPullParser in,
+                int outerTagDepth, @NonNull WifiConfigStoreEncryptionUtil encryptionUtil)
+                throws XmlPullParserException, IOException {
+            List<String> wepKeyList = new ArrayList<>();
+            final List<EncryptedData> encryptedDataList =
+                    XmlUtil.EncryptedDataXmlUtil.parseListFromXml(in, outerTagDepth);
+            for (int i = 0; i < encryptedDataList.size(); i++) {
+                byte[] passphraseBytes = encryptionUtil.decrypt(encryptedDataList.get(i));
+                if (passphraseBytes == null) {
+                    Log.wtf(TAG, "Decryption of passphraseBytes failed");
+                } else {
+                    wepKeyList.add(new String(passphraseBytes, StandardCharsets.UTF_8));
+                }
+            }
+            return wepKeyList.size() > 0 ? wepKeyList.toArray(
+                    new String[wepKeyList.size()]) : null;
         }
 
         private static SecurityParams parseSecurityParamsFromXml(
@@ -1012,6 +1056,14 @@ public class XmlUtil {
                                         encryptedData.getEncryptedData(),
                                         encryptedData.getIv());
                             }
+                            break;
+                        case XML_TAG_WEP_KEYS:
+                            if (!shouldExpectEncryptedCredentials || encryptionUtil == null) {
+                                throw new XmlPullParserException(
+                                        "Encrypted wepKeys section not expected");
+                            }
+                            configuration.wepKeys = populateWepKeysFromXmlValue(in,
+                                    outerTagDepth + 1, encryptionUtil);
                             break;
                         case XML_TAG_SECURITY_PARAMS_LIST:
                             parseSecurityParamsListFromXml(in, outerTagDepth + 1, configuration);
@@ -1749,6 +1801,46 @@ public class XmlUtil {
                 }
             }
             return new EncryptedData(encryptedData, iv);
+        }
+
+        /**
+         * Parses the EncryptedData data elements arrays from the provided XML stream to a list of
+         * EncryptedData object.
+         *
+         * @param in            XmlPullParser instance pointing to the XML stream.
+         * @param outerTagDepth depth of the outer tag in the XML document.
+         * @return List of encryptedData object if parsing is successful, empty otherwise.
+         */
+        public static @NonNull List<EncryptedData> parseListFromXml(XmlPullParser in,
+                int outerTagDepth) throws XmlPullParserException, IOException {
+            List<EncryptedData> encryptedDataList = new ArrayList<>();
+            // Loop through and parse out all the elements from the stream within this section.
+            while (!XmlUtil.isNextSectionEnd(in, outerTagDepth)) {
+                if (in.getAttributeValue(null, "name") != null) {
+                    String[] valueName = new String[1];
+                    Object value = XmlUtil.readCurrentValue(in, valueName);
+                    if (valueName[0] == null) {
+                        throw new XmlPullParserException("Missing value name");
+                    }
+                    byte[] encryptedData;
+                    byte[] iv;
+                    if (XML_TAG_ENCRYPTED_DATA.equals(valueName[0])) {
+                        encryptedData = (byte[]) value;
+                        if (!XmlUtil.isNextSectionEnd(in, outerTagDepth) && in.getAttributeValue(
+                                null, "name") != null) {
+                            value = XmlUtil.readCurrentValue(in, valueName);
+                            if (valueName[0] == null) {
+                                throw new XmlPullParserException("Missing value name");
+                            }
+                            if (XML_TAG_IV.equals(valueName[0])) {
+                                iv = (byte[]) value;
+                                encryptedDataList.add(new EncryptedData(encryptedData, iv));
+                            }
+                        }
+                    }
+                }
+            }
+            return encryptedDataList;
         }
     }
 

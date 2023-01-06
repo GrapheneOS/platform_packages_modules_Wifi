@@ -20,6 +20,7 @@ import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREG
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCI;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCR;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT;
+import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_STA_RESPONDER;
 
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
@@ -478,6 +479,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 capabilities.oneSidedRttSupported);
         characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCI, capabilities.lciSupported);
         characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_LCR, capabilities.lcrSupported);
+        characteristics.putBoolean(CHARACTERISTICS_KEY_BOOLEAN_STA_RESPONDER,
+                capabilities.responderSupported);
         return characteristics;
     }
 

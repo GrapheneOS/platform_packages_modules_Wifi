@@ -103,11 +103,17 @@ public class WifiRttManager {
      */
     public static final String CHARACTERISTICS_KEY_BOOLEAN_LCR = "key_lcr";
 
+    /**
+     * Bundle key to access if device supports to be a responder in station mode
+     */
+    public static final String CHARACTERISTICS_KEY_BOOLEAN_STA_RESPONDER = "key_sta_responder";
+
     /** @hide */
     @StringDef(prefix = { "CHARACTERISTICS_KEY_"}, value = {
             CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT,
             CHARACTERISTICS_KEY_BOOLEAN_LCI,
             CHARACTERISTICS_KEY_BOOLEAN_LCR,
+            CHARACTERISTICS_KEY_BOOLEAN_STA_RESPONDER,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface RttCharacteristicsKey {}
