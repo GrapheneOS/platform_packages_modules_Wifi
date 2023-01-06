@@ -1610,9 +1610,12 @@ package android.net.wifi.rtt {
     method @IntRange(from=0) public int getFrequencyMhz();
     method @Nullable public android.net.MacAddress getMacAddress();
     method public int getPreamble();
+    method public int getResponderType();
     method public boolean is80211mcSupported();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.rtt.ResponderConfig> CREATOR;
+    field public static final int RESPONDER_AP = 0; // 0x0
+    field public static final int RESPONDER_STA = 1; // 0x1
   }
 
   public static final class ResponderConfig.Builder {
@@ -1625,6 +1628,7 @@ package android.net.wifi.rtt {
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setFrequencyMhz(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setMacAddress(@NonNull android.net.MacAddress);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setPreamble(int);
+    method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setResponderType(int);
   }
 
   public final class ResponderLocation implements android.os.Parcelable {
@@ -1675,6 +1679,7 @@ package android.net.wifi.rtt {
     field public static final String CHARACTERISTICS_KEY_BOOLEAN_LCI = "key_lci";
     field public static final String CHARACTERISTICS_KEY_BOOLEAN_LCR = "key_lcr";
     field public static final String CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT = "key_one_sided_rtt";
+    field public static final String CHARACTERISTICS_KEY_BOOLEAN_STA_RESPONDER = "key_sta_responder";
   }
 
 }
