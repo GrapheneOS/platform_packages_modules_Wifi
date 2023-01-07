@@ -211,6 +211,7 @@ public class DeviceConfigFacade {
     private boolean mAwareSuspensionEnabled;
     private boolean mHighPerfLockDeprecated;
     private boolean mOobPseudonymEnabled;
+    private boolean mApplicationQosPolicyApiEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -394,6 +395,8 @@ public class DeviceConfigFacade {
                 "high_perf_lock_deprecated", false);
         mOobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "oob_pseudonym_enabled", false);
+        mApplicationQosPolicyApiEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "application_qos_policy_api_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -851,5 +854,12 @@ public class DeviceConfigFacade {
      */
     public boolean isOobPseudonymEnabled() {
         return mOobPseudonymEnabled;
+    }
+
+    /**
+     * Gets the feature flag indicating whether the application QoS policy API is enabled.
+     */
+    public boolean isApplicationQosPolicyApiEnabled() {
+        return mApplicationQosPolicyApiEnabled;
     }
 }

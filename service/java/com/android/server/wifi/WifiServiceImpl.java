@@ -290,6 +290,7 @@ public class WifiServiceImpl extends BaseWifiService {
     @VisibleForTesting
     public final CountryCodeTracker mCountryCodeTracker;
     private final MultiInternetManager mMultiInternetManager;
+    private final DeviceConfigFacade mDeviceConfigFacade;
     private boolean mIsWifiServiceStarted = false;
 
     /**
@@ -524,6 +525,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mCountryCodeTracker = new CountryCodeTracker();
         mWifiTetheringDisallowed = false;
         mMultiInternetManager = mWifiInjector.getMultiInternetManager();
+        mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
     }
 
     /**
@@ -7157,6 +7159,9 @@ public class WifiServiceImpl extends BaseWifiService {
     public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
+        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+            Log.i(TAG, "addQosPolicy is disabled on this device");
+            return;
         }
         int uid = Binder.getCallingUid();
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
@@ -7173,6 +7178,9 @@ public class WifiServiceImpl extends BaseWifiService {
     public void removeQosPolicy(int policyId) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
+        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+            Log.i(TAG, "removeQosPolicy is disabled on this device");
+            return;
         }
         int uid = Binder.getCallingUid();
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
