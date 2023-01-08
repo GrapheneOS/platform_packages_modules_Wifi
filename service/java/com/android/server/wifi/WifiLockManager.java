@@ -37,6 +37,7 @@ import android.util.Pair;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.WorkSourceUtil;
 
@@ -90,10 +91,12 @@ public class WifiLockManager {
     private int mFullLowLatencyLocksAcquired;
     private int mFullLowLatencyLocksReleased;
     private long mCurrentSessionStartTimeMs;
+    private final DeviceConfigFacade mDeviceConfigFacade;
 
     WifiLockManager(Context context, BatteryStatsManager batteryStats,
             ActiveModeWarden activeModeWarden, FrameworkFacade frameworkFacade,
-            Handler handler, Clock clock, WifiMetrics wifiMetrics) {
+            Handler handler, Clock clock, WifiMetrics wifiMetrics,
+            DeviceConfigFacade deviceConfigFacade) {
         mContext = context;
         mBatteryStats = batteryStats;
         mActiveModeWarden = activeModeWarden;
@@ -102,6 +105,7 @@ public class WifiLockManager {
         mHandler = handler;
         mClock = clock;
         mWifiMetrics = wifiMetrics;
+        mDeviceConfigFacade = deviceConfigFacade;
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -213,9 +217,10 @@ public class WifiLockManager {
         // This is to make sure worksource value can not be changed by caller
         // after function returns.
         WorkSource newWorkSource = new WorkSource(ws);
-        // High perf lock is deprecated. Acquisition of  High perf lock will be treated as a call to
-        // Low Latency Lock.
-        if (lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
+        // High perf lock is deprecated from Android U onwards. Acquisition of  High perf lock
+        // will be treated as a call to Low Latency Lock.
+        if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
+                && lockMode == WifiManager.WIFI_MODE_FULL_HIGH_PERF) {
             lockMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
         return addLock(new WifiLock(lockMode, tag, binder, newWorkSource));
