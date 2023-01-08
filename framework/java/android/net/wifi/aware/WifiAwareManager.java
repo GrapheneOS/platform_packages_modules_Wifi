@@ -32,6 +32,7 @@ import android.annotation.SystemApi;
 import android.annotation.SystemService;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.MacAddress;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.wifi.WifiManager;
@@ -414,7 +415,7 @@ public class WifiAwareManager {
      *
      * @param attachCallback A callback for attach events, extended from
      * {@link AttachCallback}.
-     * @param identityChangedListener A listener for changed identity, extended from
+     * @param identityChangedListener A callback for changed identity or cluster ID, extended from
      * {@link IdentityChangedListener}.
      * @param handler The Handler on whose thread to execute the callbacks of the {@code
      * attachCallback} and {@code identityChangedListener} objects. If a null is provided then the
@@ -755,6 +756,7 @@ public class WifiAwareManager {
         private static final int CALLBACK_CONNECT_FAIL = 1;
         private static final int CALLBACK_IDENTITY_CHANGED = 2;
         private static final int CALLBACK_ATTACH_TERMINATE = 3;
+        private static final int CALLBACK_CLUSTER_ID_CHANGED = 4;
 
         private final Handler mHandler;
         private final WeakReference<WifiAwareManager> mAwareManager;
@@ -808,6 +810,19 @@ public class WifiAwareManager {
                         case CALLBACK_ATTACH_TERMINATE:
                             mAwareManager.clear();
                             attachCallback.onAwareSessionTerminated();
+                            break;
+                        case CALLBACK_CLUSTER_ID_CHANGED:
+                            if (identityChangedListener == null) {
+                                Log.e(TAG, "CALLBACK_CLUSTER_ID_CHANGED: null listener.");
+                            } else {
+                                try {
+                                    identityChangedListener.onClusterIdChanged(
+                                            msg.arg1, MacAddress.fromBytes((byte[]) msg.obj));
+                                } catch (IllegalArgumentException iae) {
+                                    Log.e(TAG, " Invalid MAC address, " + iae);
+                                }
+                            }
+                            break;
                     }
                 }
             };
@@ -845,6 +860,21 @@ public class WifiAwareManager {
             if (VDBG) Log.v(TAG, "onAwareSessionTerminated");
 
             Message msg = mHandler.obtainMessage(CALLBACK_ATTACH_TERMINATE);
+            mHandler.sendMessage(msg);
+        }
+
+        @Override
+        public void onClusterIdChanged(
+                @IdentityChangedListener.ClusterChangeEvent int clusterEventType,
+                byte[] clusterId) {
+            if (VDBG) {
+                Log.v(TAG, "onClusterIdChanged: clusterId="
+                        + new String(HexEncoding.encode(clusterId))
+                        + ", clusterEventType=" + clusterEventType);
+            }
+            Message msg = mHandler.obtainMessage(CALLBACK_CLUSTER_ID_CHANGED);
+            msg.arg1 = clusterEventType;
+            msg.obj = clusterId;
             mHandler.sendMessage(msg);
         }
     }
