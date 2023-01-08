@@ -209,6 +209,7 @@ public class DeviceConfigFacade {
     private boolean mP2pFailureBugreportEnabled;
     private boolean mApmEnhancementEnabled;
     private boolean mAwareSuspensionEnabled;
+    private boolean mHighPerfLockDeprecated;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -388,6 +389,8 @@ public class DeviceConfigFacade {
                 "apm_enhancement_enabled", false);
         mAwareSuspensionEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "aware_suspension_enabled", false);
+        mHighPerfLockDeprecated = DeviceConfig.getBoolean(NAMESPACE,
+                "high_perf_lock_deprecated", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -831,5 +834,12 @@ public class DeviceConfigFacade {
      */
     public boolean isAwareSuspensionEnabled() {
         return mAwareSuspensionEnabled;
+    }
+
+    /**
+     * Gets the feature flag for High Perf lock deprecation
+     */
+    public boolean isHighPerfLockDeprecated() {
+        return mHighPerfLockDeprecated;
     }
 }

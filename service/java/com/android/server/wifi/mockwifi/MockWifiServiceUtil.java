@@ -37,6 +37,11 @@ public class MockWifiServiceUtil {
     public static final int BINDER_RETRY_MILLIS = 3 * 100;
     public static final int BINDER_MAX_RETRY = 3;
 
+    public static final String METHOD_SEPARATOR = ",";
+    public static final String CLASS_IDENTIFIER = "-";
+
+    private static final String TAG_MOCK_NL80211 = "WifiNL80211ManagerImp";
+
     private Context mContext;
     private WifiMonitor mWifiMonitor;
     private String mServiceName;
@@ -151,7 +156,39 @@ public class MockWifiServiceUtil {
         }
     }
 
-    public WifiNl80211Manager getMockWifiNl80211Manager() {
+    /**
+     * set mocked methods.
+     *
+     * @param methods mocked methods with format HAL-method, ...
+     */
+    public boolean setMockedMethods(String methods) {
+        Log.i(TAG, "setMockedMethods - " + methods);
+        if (methods == null) {
+            return false;
+        }
+        if (mMockWifiNl80211Manager != null) {
+            mMockWifiNl80211Manager.resetMockedMethods();
+        }
+        String[] mockedMethods = methods.split(METHOD_SEPARATOR);
+        for (String mockedMethod : mockedMethods) {
+            String[] mockedMethodInfo = mockedMethod.split(CLASS_IDENTIFIER);
+            if (mockedMethodInfo.length != 2) {
+                return false;
+            }
+            String mockedClassName = mockedMethodInfo[0];
+            String mockedMethodName = mockedMethodInfo[1];
+            if (TAG_MOCK_NL80211.equals(mockedClassName) && mMockWifiNl80211Manager != null) {
+                mMockWifiNl80211Manager.addMockedMethod(mockedMethodName);
+            }
+        }
+        return true;
+    }
+
+    public MockWifiNl80211Manager getMockWifiNl80211Manager() {
+        return mMockWifiNl80211Manager;
+    }
+
+    public WifiNl80211Manager getWifiNl80211Manager() {
         return mMockWifiNl80211Manager == null
                 ? null : mMockWifiNl80211Manager.getWifiNl80211Manager();
     }

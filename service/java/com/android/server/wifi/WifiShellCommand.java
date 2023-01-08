@@ -1795,6 +1795,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 case "get-mock-wifimodem-service":
                     pw.print(mWifiNative.getMockWifiServiceName());
                     return 0;
+                case "set-mock-wifimodem-methods":
+                    String methods = getNextArgRequired();
+                    if (mWifiNative.setMockWifiMethods(methods)) {
+                        pw.print("true");
+                    } else {
+                        pw.print("fail to set mock method: " + methods);
+                        return -1;
+                    }
+                    return 0;
                 default:
                     return handleDefaultCommands(cmd);
             }

@@ -24,6 +24,9 @@ import android.util.Log;
 
 import com.android.server.wifi.WifiMonitor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Mocked WifiNl80211Manager
  */
@@ -33,6 +36,7 @@ public class MockWifiNl80211Manager {
     private Context mContext;
     private WifiNl80211Manager mMockWifiNl80211Manager;
     private final WifiMonitor mWifiMonitor;
+    private Set<String> mConfiguredMethodSet = new HashSet<>();
 
     public MockWifiNl80211Manager(IBinder wificondBinder, Context context,
             WifiMonitor wifiMonitor) {
@@ -49,6 +53,31 @@ public class MockWifiNl80211Manager {
 
     public WifiNl80211Manager getWifiNl80211Manager() {
         return mMockWifiNl80211Manager;
+    }
+
+    /**
+     * Reset mocked methods.
+     */
+    public void resetMockedMethods() {
+        mConfiguredMethodSet.clear();
+    }
+
+    /**
+     * Adds mocked method
+     *
+     * @param method the method name is updated
+     */
+    public void addMockedMethod(String method) {
+        mConfiguredMethodSet.add(method);
+    }
+
+    /**
+     * Whether or not the method is mocked. (i.e. The framework should call this mocked method)
+     *
+     * @param method the method name.
+     */
+    public boolean isMethodConfigured(String method) {
+        return mConfiguredMethodSet.contains(method);
     }
 
     private class NormalScanEventCallback implements WifiNl80211Manager.ScanEventCallback {
