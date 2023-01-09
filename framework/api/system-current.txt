@@ -1174,6 +1174,22 @@ package android.net.wifi.aware {
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPmk(@NonNull android.net.wifi.aware.PeerHandle, @NonNull byte[]);
   }
 
+  public final class PublishConfig implements android.os.Parcelable {
+    method public boolean isSuspendable();
+  }
+
+  public static final class PublishConfig.Builder {
+    method @NonNull @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public android.net.wifi.aware.PublishConfig.Builder setSuspendable(boolean);
+  }
+
+  public final class SubscribeConfig implements android.os.Parcelable {
+    method public boolean isSuspendable();
+  }
+
+  public static final class SubscribeConfig.Builder {
+    method @NonNull @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public android.net.wifi.aware.SubscribeConfig.Builder setSuspendable(boolean);
+  }
+
   public class WifiAwareManager {
     method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void enableInstantCommunicationMode(boolean);
     method @RequiresPermission(allOf={android.Manifest.permission.OVERRIDE_WIFI_CONFIG, android.Manifest.permission.CHANGE_WIFI_STATE}) public void setAwareParams(@Nullable android.net.wifi.aware.AwareParams);
