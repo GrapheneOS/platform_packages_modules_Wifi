@@ -26,6 +26,8 @@ import android.telephony.Annotation.NetworkType;
 import android.util.Log;
 import android.util.SparseArray;
 
+import androidx.annotation.Nullable;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
@@ -873,6 +875,20 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         }
     };
 
+    /** Get identifiers of the links if multi link configuration exists.
+     *
+     * @return An array of link identifiers if exists, otherwise null.
+     */
+    @Nullable
+    public int[] getLinkIds() {
+        if (mLinkStats == null) return null;
+        int[] result = new int[mLinkStats.size()];
+        for (int i = 0; i < mLinkStats.size(); i++) {
+            result[i] = mLinkStats.keyAt(i);
+        }
+        return result;
+    }
+
     /** Absolute milliseconds from device boot when these stats were sampled */
     public long getTimeStampMillis() {
         return mTimeStampMillis;
@@ -883,9 +899,45 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         return mRssi;
     }
 
+    /** The RSSI (in dBm) of the link at the sample time.
+     *
+     * @param linkId Identifier of the link.
+     * @return RSSI in dBm.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public int getRssi(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mRssi;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
+    /**
+     * Get firmware/hardware implementation specific persistent value for this
+     * device, identifying the radio interface for which the stats are produced.
+     *
+     * @param linkId Identifier of the link.
+     * @return Radio identifier.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getRadioId(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mRadioId;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
     /** Link speed at the sample time in Mbps */
     public int getLinkSpeedMbps() {
         return mLinkSpeedMbps;
+    }
+
+    /**
+     * Tx Link speed of the link at the sample time in Mbps.
+     *
+     * @param linkId Identifier of the link.
+     * @return Transmit link speed in Mpbs.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public int getTxLinkSpeedMbps(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTxLinkSpeedMbps;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /** The total number of tx success counted from the last radio chip reset */
@@ -893,9 +945,34 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         return mTotalTxSuccess;
     }
 
+    /**
+     * The total number of tx success on a link counted from the last radio chip reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total tx success count.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getTotalTxSuccess(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalTxSuccess;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
     /** The total number of MPDU data packet retries counted from the last radio chip reset */
     public long getTotalTxRetries() {
         return mTotalTxRetries;
+    }
+
+    /**
+     * The total number of MPDU data packet retries on a link counted from the last radio chip
+     * reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total tx retries count.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getTotalTxRetries(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalTxRetries;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /** The total number of tx bad counted from the last radio chip reset */
@@ -903,9 +980,33 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         return mTotalTxBad;
     }
 
+    /**
+     * The total number of tx bad on a link counted from the last radio chip reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total tx bad count.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getTotalTxBad(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalTxBad;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
     /** The total number of rx success counted from the last radio chip reset */
     public long getTotalRxSuccess() {
         return mTotalRxSuccess;
+    }
+
+    /**
+     * The total number of rx success on a link counted from the last radio chip reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total rx success count.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getTotalRxSuccess(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalRxSuccess;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /** The total time the wifi radio is on in ms counted from the last radio chip reset */
@@ -970,6 +1071,18 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         return mTotalBeaconRx;
     }
 
+    /**
+     * The total number of beacons received from the last radio chip reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total beacons received.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public long getTotalBeaconRx(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalBeaconRx;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
     /** The status of link probe since last stats update */
     @ProbeStatus public int getProbeStatusSinceLastUpdate() {
         return mProbeStatusSinceLastUpdate;
@@ -991,19 +1104,52 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     }
 
     /**
+     * Rx Link speed of the link at the sample time in Mbps.
+     *
+     * @param linkId Identifier of the link.
+     * @return Receive link speed in Mbps.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public int getRxLinkSpeedMbps(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mRxLinkSpeedMbps;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
+    /**
      * Duty cycle of the connection.
      * if this connection is being served using time slicing on a radio with one or more interfaces
      * (i.e MCC), then this method returns the duty cycle assigned to this interface in percent.
      * If no concurrency or not using time slicing during concurrency (i.e SCC or DBS), set to 100.
      *
      * @return duty cycle in percent if known.
-     * @throws NoSuchElementException if the duty cylce is unknown (not provided by the HAL).
+     * @throws NoSuchElementException if the duty cycle is unknown (not provided by the HAL).
      */
     public @IntRange(from = 0, to = 100) int getTimeSliceDutyCycleInPercent() {
         if (mTimeSliceDutyCycleInPercent == -1) {
             throw new NoSuchElementException("Unknown value");
         }
         return mTimeSliceDutyCycleInPercent;
+    }
+
+    /**
+     * Duty cycle of the connection for a link.
+     * if this connection is being served using time slicing on a radio with one or more interfaces
+     * (i.e MCC), then this method returns the duty cycle assigned to this interface in percent.
+     * If no concurrency or not using time slicing during concurrency (i.e SCC or DBS), set to 100.
+     *
+     * @param linkId Identifier of the link.
+     * @return duty cycle in percent if known.
+     * @throws NoSuchElementException if the duty cycle is unknown (not provided by the HAL) or
+     * linkId is invalid.
+     */
+    public @IntRange(from = 0, to = 100) int getTimeSliceDutyCycleInPercent(int linkId) {
+        if (!mLinkStats.contains(linkId)) {
+            throw new NoSuchElementException("linkId is invalid - " + linkId);
+        }
+        if (mLinkStats.get(linkId).mTimeSliceDutyCycleInPercent == -1) {
+            throw new NoSuchElementException("Unknown value");
+        }
+        return mLinkStats.get(linkId).mTimeSliceDutyCycleInPercent;
     }
 
     /**
@@ -1016,6 +1162,30 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         if (mContentionTimeStats != null
                 && mContentionTimeStats.length == NUM_WME_ACCESS_CATEGORIES) {
             return mContentionTimeStats[ac];
+        }
+        Log.e(TAG, "The ContentionTimeStats is not filled out correctly: "
+                + Arrays.toString(mContentionTimeStats));
+        return new ContentionTimeStats();
+    }
+
+    /**
+     * Data packet contention time statistics of a link for Access Category.
+     *
+     * @param linkId Identifier of the link.
+     * @param ac The access category, see {@link WmeAccessCategory}.
+     * @return The contention time statistics, see {@link ContentionTimeStats}.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    @NonNull
+    public ContentionTimeStats getContentionTimeStats(int linkId, @WmeAccessCategory int ac) {
+        if (!mLinkStats.contains(linkId)) {
+            throw new NoSuchElementException("linkId is invalid - " + linkId);
+        }
+        ContentionTimeStats[] linkContentionTimeStats = mLinkStats.get(
+                linkId).mContentionTimeStats;
+        if (linkContentionTimeStats != null
+                && linkContentionTimeStats.length == NUM_WME_ACCESS_CATEGORIES) {
+            return linkContentionTimeStats[ac];
         }
         Log.e(TAG, "The ContentionTimeStats is not filled out correctly: "
                 + Arrays.toString(mContentionTimeStats));
@@ -1042,6 +1212,33 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             return Arrays.asList(mRateStats);
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * Rate information and statistics, which are ordered by preamble, modulation and coding scheme
+     * (MCS), and number of spatial streams (NSS) for link.
+     *
+     * @param linkId Identifier of the link.
+     * @return A list of rate statistics in the form of a list of {@link RateStats} objects.
+     *         Depending on the link type, the list is created following the order of:
+     *         - HT (IEEE Std 802.11-2020, Section 19): LEGACY rates (1Mbps, ..., 54Mbps),
+     *           HT MCS0, ..., MCS15;
+     *         - VHT (IEEE Std 802.11-2020, Section 21): LEGACY rates (1Mbps, ..., 54Mbps),
+     *           VHT MCS0/NSS1, ..., VHT MCS11/NSS1, VHT MCSO/NSS2, ..., VHT MCS11/NSS2;
+     *         - HE (IEEE Std 802.11ax-2020, Section 27): LEGACY rates (1Mbps, ..., 54Mbps),
+     *           HE MCS0/NSS1, ..., HE MCS11/NSS1, HE MCSO/NSS2, ..., HE MCS11/NSS2.
+     *         - EHT (IEEE std 802.11be-2021, Section 36): Legacy rates (1Mbps, ..., 54Mbps),
+     *           EHT MSC0/NSS1, ..., EHT MCS14/NSS1, EHT MCS0/NSS2, ..., EHT MCS14/NSS2.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    @NonNull
+    public List<RateStats> getRateStats(int linkId) {
+        if (mLinkStats.contains(linkId)) {
+            RateStats[] rateStats = mLinkStats.get(linkId).mRateStats;
+            if (rateStats != null) return Arrays.asList(rateStats);
+            return Collections.emptyList();
+        }
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /**
