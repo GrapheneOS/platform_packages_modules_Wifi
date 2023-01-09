@@ -188,13 +188,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     @Override
     public boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
             boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
-            boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
+            boolean isInstantCommunicationEnabled, int instantModeChannel,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters) {
         final String methodStr = "enableAndConfigure";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             NanConfigRequestSupplemental supplemental = createNanConfigRequestSupplemental(
-                    rangingEnabled, isInstantCommunicationEnabled, instantModeChannel, clusterId);
+                    rangingEnabled, isInstantCommunicationEnabled, instantModeChannel);
             if (initialConfiguration) {
                 NanEnableRequest req = createNanEnableRequest(
                         configRequest, notifyIdentityChange, supplemental,
@@ -556,8 +556,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     private static NanConfigRequestSupplemental createNanConfigRequestSupplemental(
-            boolean rangingEnabled, boolean isInstantCommunicationEnabled, int instantModeChannel,
-            int clusterId) {
+            boolean rangingEnabled, boolean isInstantCommunicationEnabled, int instantModeChannel) {
         NanConfigRequestSupplemental out = new NanConfigRequestSupplemental();
         out.discoveryBeaconIntervalMs = 0;
         out.numberOfSpatialStreamsInDiscovery = 0;
@@ -565,7 +564,6 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         out.enableRanging = rangingEnabled;
         out.enableInstantCommunicationMode = isInstantCommunicationEnabled;
         out.instantModeChannel = instantModeChannel;
-        out.clusterId = clusterId;
         return out;
     }
 

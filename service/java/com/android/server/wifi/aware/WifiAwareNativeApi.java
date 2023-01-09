@@ -348,20 +348,18 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param rangingEnabled Indicates whether or not enable ranging.
      * @param isInstantCommunicationEnabled Indicates whether or not enable instant communication
      * @param instantModeChannel
-     * @param clusterId the id of the cluster to join.
      */
     public boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
             boolean notifyIdentityChange, boolean initialConfiguration, boolean isInteractive,
             boolean isIdle, boolean rangingEnabled, boolean isInstantCommunicationEnabled,
-            int instantModeChannel, int clusterId) {
+            int instantModeChannel) {
         Log.d(TAG, "enableAndConfigure: transactionId=" + transactionId + ", configRequest="
                 + configRequest + ", notifyIdentityChange=" + notifyIdentityChange
                 + ", initialConfiguration=" + initialConfiguration
                 + ", isInteractive=" + isInteractive + ", isIdle=" + isIdle
                 + ", isRangingEnabled=" + rangingEnabled
                 + ", isInstantCommunicationEnabled=" + isInstantCommunicationEnabled
-                + ", instantModeChannel=" + instantModeChannel
-                + ", clusterId=" + clusterId);
+                + ", instantModeChannel=" + instantModeChannel);
         recordTransactionId(transactionId);
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -371,7 +369,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         }
         return iface.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
                 initialConfiguration, rangingEnabled,
-                isInstantCommunicationEnabled, instantModeChannel, clusterId,
+                isInstantCommunicationEnabled, instantModeChannel,
                 mExternalSetParams.getOrDefault(PARAM_MAC_RANDOM_INTERVAL_SEC,
                         mSettableParameters.get(PARAM_MAC_RANDOM_INTERVAL_SEC)),
                 getPowerParameters(isInteractive, isIdle));

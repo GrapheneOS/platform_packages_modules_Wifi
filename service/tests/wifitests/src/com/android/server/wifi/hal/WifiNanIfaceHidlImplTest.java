@@ -527,7 +527,7 @@ public class WifiNanIfaceHidlImplTest {
         mIsInterface12 = isHal12;
 
         mDut.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
-                initialConfiguration, false, false, 2437, -1 /* clusterId */,
+                initialConfiguration, false, false, 2437,
                 1800 /* PARAM_MAC_RANDOM_INTERVAL_SEC_DEFAULT */,
                 getPowerParams(isInteractive, isIdle, discoveryWindow24Ghz, discoveryWindow5Ghz));
 
