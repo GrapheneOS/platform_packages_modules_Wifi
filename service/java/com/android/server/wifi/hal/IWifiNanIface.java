@@ -76,14 +76,13 @@ public interface IWifiNanIface {
      * @param rangingEnabled Indicates whether to enable ranging.
      * @param isInstantCommunicationEnabled Indicates whether to enable instant communication
      * @param instantModeChannel
-     * @param clusterId Indicate which cluster to join.
      * @param macAddressRandomizationIntervalSec
      * @param powerParameters Instance of {@link WifiNanIface.PowerParameters} containing the
      *                        parameters to use in our config request.
      */
     boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
             boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
-            boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
+            boolean isInstantCommunicationEnabled, int instantModeChannel,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters);
 
     /**

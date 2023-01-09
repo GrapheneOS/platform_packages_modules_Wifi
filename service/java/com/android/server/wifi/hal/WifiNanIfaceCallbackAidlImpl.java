@@ -611,7 +611,6 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
         frameworkCapabilities.isInstantCommunicationModeSupported =
                 capabilities.instantCommunicationModeSupportFlag;
         frameworkCapabilities.isNanPairingSupported = capabilities.supportsPairing;
-        frameworkCapabilities.isSetClusterIdSupported = capabilities.supportsSetClusterId;
 
         return frameworkCapabilities;
     }

@@ -123,7 +123,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      */
     public boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
             boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
-            boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
+            boolean isInstantCommunicationEnabled, int instantModeChannel,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters) {
         final String methodStr = "enableAndConfigure";
         return validateAndCall(methodStr, false,

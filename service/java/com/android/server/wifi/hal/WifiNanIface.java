@@ -370,12 +370,12 @@ public class WifiNanIface implements WifiHal.WifiInterface {
      */
     public boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
             boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
-            boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
+            boolean isInstantCommunicationEnabled, int instantModeChannel,
             int macAddressRandomizationIntervalSec, PowerParameters powerParameters) {
         return validateAndCall("enableAndConfigure", false,
                 () -> mWifiNanIface.enableAndConfigure(transactionId, configRequest,
                         notifyIdentityChange, initialConfiguration, rangingEnabled,
-                        isInstantCommunicationEnabled, instantModeChannel, clusterId,
+                        isInstantCommunicationEnabled, instantModeChannel,
                         macAddressRandomizationIntervalSec, powerParameters));
     }
 
