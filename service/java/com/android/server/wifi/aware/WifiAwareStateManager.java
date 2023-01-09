@@ -129,7 +129,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public static final int NAN_PAIRING_AKM_PASN = 1;
 
 
-
+    public static final int NAN_PARAM_NOT_SET = -1;
 
     public static final int INSTANT_MODE_DISABLED = 0;
     public static final int INSTANT_MODE_24GHZ = 1;
@@ -318,8 +318,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean mInstantCommModeGlobalEnable = false;
     private int mOverrideInstantMode = INSTANT_MODE_DISABLED;
     private int mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
+    private int mClusterIdInt = NAN_PARAM_NOT_SET; // -1 is not set.
     private static final int AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ = 2437; // Channel 6
-    private int mAwareBand5InstantCommunicationChannelFreq = -1; // -1 is not set, 0 is unsupported.
+    private int mAwareBand5InstantCommunicationChannelFreq =
+            NAN_PARAM_NOT_SET; // -1 is not set, 0 is unsupported.
     private static final int AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_149 = 5745;
     private static final int AWARE_BAND_5_INSTANT_COMMUNICATION_CHANNEL_FREQ_CHANNEL_44 = 5220;
 
@@ -458,6 +460,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         j.put("supportedCipherSuites", mCapabilities.supportedCipherSuites);
                         j.put("isInstantCommunicationModeSupported",
                                 mCapabilities.isInstantCommunicationModeSupported);
+                        j.put("isSetClusterIdSupported",
+                                mCapabilities.isSetClusterIdSupported);
                     } catch (JSONException e) {
                         Log.e(TAG, "onCommand: get_capabilities e=" + e);
                     }
@@ -544,6 +548,25 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mOverrideInstantMode = INSTANT_MODE_DISABLED;
                 return 0;
             }
+            case "set_cluster_id": {
+                String arg = parentShell.getNextArgRequired();
+                int clusterId;
+                try {
+                    clusterId = Integer.valueOf(arg);
+                } catch (NumberFormatException e) {
+                    pw_err.println("Can't convert value to integer -- '" + arg + "'");
+                    return -1;
+                }
+
+                if (clusterId < ConfigRequest.CLUSTER_ID_MIN
+                        || clusterId > ConfigRequest.CLUSTER_ID_MAX) {
+                    pw_err.println("cluster ID must be in the range of 0x0000, 0xFFFF. "
+                            + "Cluster ID =" + arg);
+                    return -1;
+                }
+
+                return setClusterId(clusterId) ? 0 : -1;
+            }
             default:
                 pw_err.println("Unknown 'wifiaware state_mgr <cmd>'");
         }
@@ -578,6 +601,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 + "communication mode to 'enabled' with the specified band");
         pw.println(" clear_override_instant_communication_mode: clear the override of the instant "
                 + "communication mode");
+        pw.println(" set_cluster_id <value>: set the cluster id to request to join a cluster");
     }
 
     /**
@@ -895,12 +919,31 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             return;
         }
-        boolean changed = mInstantCommModeGlobalEnable != enabled;
+        if (mInstantCommModeGlobalEnable == enabled) return;
+
         mInstantCommModeGlobalEnable = enabled;
-        if (!changed) {
-            return;
-        }
         reconfigure();
+    }
+
+    /**
+     * Set cluster ID if supported.
+     * @param clusterId value ranges from 0x0000 to 0xFFFF.
+     */
+    private boolean setClusterId(int clusterId) {
+        if (mCapabilities == null) {
+            Log.e(TAG, "Aware capability is not loaded.");
+            return false;
+        }
+
+        if (!mCapabilities.isSetClusterIdSupported) {
+            Log.e(TAG, "Device does not support setting cluster ID.");
+            return false;
+        }
+        if (mClusterIdInt == clusterId) return true;
+
+        mClusterIdInt = clusterId;
+        reconfigure();
+        return true;
     }
 
     /**
@@ -3220,7 +3263,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         boolean success = mWifiAwareNativeApi.enableAndConfigure(transactionId, merged,
                 notificationRequired, mCurrentAwareConfiguration == null,
                 mPowerManager.isInteractive(), mPowerManager.isDeviceIdleMode(),
-                rangingRequired, enableInstantMode, instantModeChannel);
+                rangingRequired, enableInstantMode, instantModeChannel, mClusterIdInt);
         if (!success) {
             if (mCurrentAwareConfiguration == null) {
                 mWifiAwareNativeManager.releaseAware();
@@ -3292,7 +3335,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         return mWifiAwareNativeApi.enableAndConfigure(transactionId, merged, notificationReqs,
                 false, mPowerManager.isInteractive(), mPowerManager.isDeviceIdleMode(),
-                rangingEnabled, enableInstantMode, instantModeChannel);
+                rangingEnabled, enableInstantMode, instantModeChannel, mClusterIdInt);
     }
 
     private boolean reconfigureLocal(short transactionId) {
@@ -3316,7 +3359,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         return mWifiAwareNativeApi.enableAndConfigure(transactionId, mCurrentAwareConfiguration,
                 notificationReqs, false, mPowerManager.isInteractive(),
                 mPowerManager.isDeviceIdleMode(), rangingEnabled,
-                enableInstantMode, instantModeChannel);
+                enableInstantMode, instantModeChannel, mClusterIdInt);
     }
 
     private void terminateSessionLocal(int clientId, int sessionId) {
