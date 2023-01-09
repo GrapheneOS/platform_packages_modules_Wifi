@@ -655,6 +655,7 @@ android_test {
             "com.android.server.wifi.coex.CoexUtils",
             "com.android.server.wifi.coex.CoexUtils$*",
             "com.android.server.wifi.coex.CoexUtils.**",
+            "com.android.server.wifi.hal.**",
             "com.android.server.wifi.hotspot2.ANQPData",
             "com.android.server.wifi.hotspot2.ANQPData$*",
             "com.android.server.wifi.hotspot2.ANQPData.**",
