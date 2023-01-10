@@ -49,6 +49,7 @@ import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.server.wifi.Clock;
 import com.android.server.wifi.NetworkUpdateResult;
 import com.android.server.wifi.ScanDetail;
 import com.android.server.wifi.WifiCarrierInfoManager;
@@ -92,6 +93,7 @@ public class PasspointNetworkNominateHelperTest {
     private static final WifiConfiguration TEST_CONFIG2 = generateWifiConfig(TEST_FQDN2);
     private static PasspointProvider sTestProvider1;
     private static PasspointProvider sTestProvider2;
+    private static final long TEST_START_TIME_MS = 0;
 
     @Mock PasspointManager mPasspointManager;
     @Mock WifiConfigManager mWifiConfigManager;
@@ -99,6 +101,7 @@ public class PasspointNetworkNominateHelperTest {
     @Mock LocalLog mLocalLog;
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock Resources mResources;
+    @Mock Clock mClock;
     PasspointNetworkNominateHelper mNominateHelper;
 
     /**
@@ -141,7 +144,7 @@ public class PasspointNetworkNominateHelperTest {
      * @param bssid The BSSID associated with the scan
      * @return {@link ScanDetail}
      */
-    private static ScanDetail generateScanDetail(String ssid, String bssid) {
+    private ScanDetail generateScanDetail(String ssid, String bssid) {
         NetworkDetail networkDetail = mock(NetworkDetail.class);
         when(networkDetail.isInterworking()).thenReturn(true);
         when(networkDetail.getHSRelease()).thenReturn(NetworkDetail.HSRelease.R1);
@@ -156,7 +159,15 @@ public class PasspointNetworkNominateHelperTest {
         when(scanDetail.getBSSIDString()).thenReturn(bssid);
         when(scanDetail.getScanResult()).thenReturn(scanResult);
         when(scanDetail.getNetworkDetail()).thenReturn(networkDetail);
+        long currentTime = mClock.getWallClockMillis();
+        when(scanDetail.getSeen()).thenReturn(currentTime);
+        when(scanDetail.toKeyString()).thenReturn(bssid);
         return scanDetail;
+    }
+
+    private void advanceClockMs(long millis) {
+        long currentTimeMs = mClock.getWallClockMillis();
+        when(mClock.getWallClockMillis()).thenReturn(currentTimeMs + millis);
     }
 
     /**
@@ -172,9 +183,10 @@ public class PasspointNetworkNominateHelperTest {
                 .thenReturn(new String[0]);
 
         mNominateHelper = new PasspointNetworkNominateHelper(mPasspointManager, mWifiConfigManager,
-                mLocalLog, mWifiCarrierInfoManager, mResources);
+                mLocalLog, mWifiCarrierInfoManager, mResources, mClock);
         // Always assume Passpoint is enabled as we don't disable it in the test.
         when(mPasspointManager.isWifiPasspointEnabled()).thenReturn(true);
+        when(mClock.getWallClockMillis()).thenReturn(TEST_START_TIME_MS);
     }
 
     /**
@@ -258,7 +270,7 @@ public class PasspointNetworkNominateHelperTest {
         verify(mWifiConfigManager).updateScanDetailForNetwork(
                 eq(TEST_NETWORK_ID), any(ScanDetail.class));
 
-        // When empty Scan result received later, should be not candidate return.
+        // When Scan results time out, should be not candidate return.
         when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
         candidates = mNominateHelper
                 .getPasspointNetworkCandidates(Collections.emptyList(), false);
@@ -824,7 +836,7 @@ public class PasspointNetworkNominateHelperTest {
     }
 
     @Test
-    public void testRefreshPasspointNetworkCandidatesUsesLastSeenScans() {
+    public void testRefreshPasspointNetworkCandidatesUsesCachedScans() {
         List<ScanDetail> scanDetails = Arrays.asList(generateScanDetail(TEST_SSID1, TEST_BSSID1));
 
         // Setup matching providers for ScanDetail with TEST_SSID1.
@@ -834,6 +846,7 @@ public class PasspointNetworkNominateHelperTest {
         // No profiles have been added, so expect the first candidate matching to return nothing.
         assertEquals(mNominateHelper.getPasspointNetworkCandidates(
                 scanDetails, false).size(), 0);
+        verify(mPasspointManager, times(1)).matchProvider(any());
 
         // Add a homeProvider for the scan detail passed in earlier
         when(mPasspointManager.matchProvider(any(ScanResult.class))).thenReturn(homeProvider);
@@ -841,8 +854,9 @@ public class PasspointNetworkNominateHelperTest {
                 any(), eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(TEST_CONFIG1);
 
-        // Refreshing the network candidates with the old scans should now result in a match
+        // Refreshing the network candidates with the cached scans should now result in a match
         mNominateHelper.updateBestMatchScanDetailForProviders();
+        verify(mPasspointManager, times(2)).matchProvider(any());
         // Verify the content of the WifiConfiguration that was added to WifiConfigManager.
         ArgumentCaptor<WifiConfiguration> addedConfig =
                 ArgumentCaptor.forClass(WifiConfiguration.class);
@@ -859,6 +873,13 @@ public class PasspointNetworkNominateHelperTest {
                 eq(TEST_NETWORK_ID), any(ScanResult.class), anyInt(), any());
         verify(mWifiConfigManager).updateScanDetailForNetwork(
                 eq(TEST_NETWORK_ID), any(ScanDetail.class));
+
+        // Timeout the scan detail and verify we don't try to match the scan detail again.
+        advanceClockMs(PasspointNetworkNominateHelper.SCAN_DETAIL_EXPIRATION_MS);
+        mNominateHelper.updateBestMatchScanDetailForProviders();
+        verify(mPasspointManager, times(2)).matchProvider(any());
+        verify(mWifiConfigManager, times(1)).addOrUpdateNetwork(any(), anyInt(),
+                any(), eq(false));
     }
 
     /**
