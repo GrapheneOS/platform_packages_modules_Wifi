@@ -195,3 +195,12 @@ platform_compat_config
     name: "wifi-compat-config",
     src: ":framework-wifi-pre-jarjar",
 }
+
+java_api_contribution {
+    name: "framework-wifi-public-stubs",
+    api_surface: "public",
+    api_file: "api/current.txt",
+    visibility: [
+        "//build/orchestrator/apis",
+    ],
+}
