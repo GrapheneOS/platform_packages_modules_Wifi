@@ -326,7 +326,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         verifyDefaultApConfig(mDataStoreSource.toSerialize(), TEST_DEFAULT_AP_SSID);
         verify(mWifiConfigManager).saveToStore(true);
         verify(mBackupManagerProxy).notifyDataChanged();
-        assertTrue(store.getApConfiguration().isUserConfigurationInternal());
+        assertFalse(store.getApConfiguration().isUserConfigurationInternal());
     }
 
     /**

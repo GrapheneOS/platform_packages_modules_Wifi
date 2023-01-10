@@ -414,6 +414,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock DevicePolicyManager mDevicePolicyManager;
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiKeyStore mWifiKeyStore;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
 
@@ -565,6 +566,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mContext.getSystemService(DevicePolicyManager.class)).thenReturn(mDevicePolicyManager);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiInjector.getWifiKeyStore()).thenReturn(mWifiKeyStore);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -6127,7 +6129,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         final String fqdn = "example.com";
-        WifiConfiguration network = WifiConfigurationTestUtil.createOpenNetwork();
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.networkId = TEST_NETWORK_ID;
+        WifiConfiguration eapNetwork = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.TLS, WifiEnterpriseConfig.Phase2.NONE);
+        eapNetwork.networkId = TEST_NETWORK_ID + 1;
         PasspointConfiguration config = new PasspointConfiguration();
         HomeSp homeSp = new HomeSp();
         homeSp.setFqdn(fqdn);
@@ -6137,7 +6143,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         config.setCredential(credential);
 
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
-                .thenReturn(Arrays.asList(network));
+                .thenReturn(Arrays.asList(openNetwork, eapNetwork));
         when(mPasspointManager.getProviderConfigs(anyInt(), anyBoolean()))
                 .thenReturn(Arrays.asList(config));
 
@@ -6148,8 +6154,12 @@ public class WifiServiceImplTest extends WifiBaseTest {
         // Let the final post inside the |factoryReset| method run to completion.
         mLooper.dispatchAll();
 
+        verify(mWifiApConfigStore).setApConfiguration(null);
         verify(mWifiConfigManager).removeNetwork(
-                network.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+                openNetwork.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+        verify(mWifiConfigManager).removeNetwork(
+                eapNetwork.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+        verify(mWifiKeyStore).removeKeys(eapNetwork.enterpriseConfig, true);
         verify(mPasspointManager).removeProvider(anyInt(), anyBoolean(), eq(config.getUniqueId()),
                 isNull());
         verify(mPasspointManager).clearAnqpRequestsAndFlushCache();
@@ -6368,17 +6378,24 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiConfigManager.addOrUpdateNetwork(any(),  anyInt(), any(), eq(false))).thenReturn(
                 new NetworkUpdateResult(0));
 
+        // Verify caller fails to add network as Guest user.
         when(mWifiPermissionsUtil.checkSystemAlertWindowPermission(
                 Process.myUid(), TEST_PACKAGE_NAME)).thenReturn(true);
-
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         mLooper.startAutoDispatch();
+        assertEquals(-1,
+                mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
+
+        // Verify caller successfully add network when not a Guest user.
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(false);
         assertEquals(0,
                 mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
-        verify(mWifiPermissionsUtil).checkSystemAlertWindowPermission(anyInt(), anyString());
+        verify(mWifiPermissionsUtil, times(2))
+                .checkSystemAlertWindowPermission(anyInt(), anyString());
         verify(mWifiConfigManager).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
         verify(mWifiMetrics).incrementNumAddOrUpdateNetworkCalls();
     }

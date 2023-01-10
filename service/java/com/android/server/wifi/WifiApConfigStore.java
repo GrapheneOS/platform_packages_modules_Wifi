@@ -177,14 +177,11 @@ public class WifiApConfigStore {
      * and the main Wifi thread (CMD_START_AP).
      */
     public synchronized void setApConfiguration(SoftApConfiguration config) {
-        if (config == null) {
-            config = getDefaultApConfiguration();
-        } else {
-            config = sanitizePersistentApConfig(config);
-        }
+        SoftApConfiguration newConfig = config == null ? getDefaultApConfiguration()
+                : new SoftApConfiguration.Builder(sanitizePersistentApConfig(config))
+                        .setUserConfiguration(true).build();
         persistConfigAndTriggerBackupManagerProxy(
-                new SoftApConfiguration.Builder(updatePersistentRandomizedMacAddress(config))
-                    .setUserConfiguration(true).build());
+                updatePersistentRandomizedMacAddress(newConfig));
     }
 
     /**
