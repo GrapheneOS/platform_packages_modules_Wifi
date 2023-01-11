@@ -21,10 +21,15 @@ import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiNetworkSelectionConfig;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.SparseArray;
+
+import androidx.annotation.RequiresApi;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.KeyValueListParser;
 import com.android.wifi.resources.R;
 
@@ -46,6 +51,16 @@ public class ScoringParams {
 
     private static final int ACTIVE_TRAFFIC = 1;
     private static final int HIGH_TRAFFIC = 2;
+
+    @VisibleForTesting
+    public static final int FREQUENCY_WEIGHT_LOW = -40;
+    @VisibleForTesting
+    public static final int FREQUENCY_WEIGHT_DEFAULT = 0;
+    @VisibleForTesting
+    public static final int FREQUENCY_WEIGHT_HIGH = 40;
+
+    SparseArray<Integer> mFrequencyWeights = new SparseArray<>();
+
     /**
      * Parameter values are stored in a separate container so that a new collection of values can
      * be checked for consistency before activating them.
@@ -390,6 +405,7 @@ public class ScoringParams {
     /**
      * Sets the RSSI thresholds for 2.4 GHz.
      */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void setRssi2Thresholds(int[] rssi2) {
         if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi2)) {
             mVal.rssi2[EXIT] = mContext.getResources().getInteger(
@@ -411,6 +427,7 @@ public class ScoringParams {
     /**
      * Sets the RSSI thresholds for 5 GHz.
      */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void setRssi5Thresholds(int[] rssi5) {
         if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi5)) {
             mVal.rssi5[EXIT] = mContext.getResources().getInteger(
@@ -432,6 +449,7 @@ public class ScoringParams {
     /**
      * Sets the RSSI thresholds for 6 GHz.
      */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void setRssi6Thresholds(int[] rssi6) {
         if (WifiNetworkSelectionConfig.isRssiThresholdResetArray(rssi6)) {
             mVal.rssi6[EXIT] = mContext.getResources().getInteger(
@@ -448,6 +466,33 @@ public class ScoringParams {
             mVal.rssi6[SUFFICIENT] = rssi6[SUFFICIENT];
             mVal.rssi6[GOOD] = rssi6[GOOD];
         }
+    }
+
+    /**
+     * Sets the frequency weights list
+     */
+    public void setFrequencyWeights(SparseArray<Integer> weights) {
+        mFrequencyWeights = weights;
+    }
+
+    /**
+     * Returns the frequency weight score for the provided frequency
+     */
+    public int getFrequencyScore(int frequencyMegaHertz) {
+        if (SdkLevel.isAtLeastT() && mFrequencyWeights.contains(frequencyMegaHertz)) {
+            switch(mFrequencyWeights.get(frequencyMegaHertz)) {
+                case WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_LOW:
+                    return FREQUENCY_WEIGHT_LOW;
+                case WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_HIGH:
+                    return FREQUENCY_WEIGHT_HIGH;
+                default:
+                    // This should never happen because we've validated the frequency weights
+                    // in WifiNetworkSectionConfig.
+                    Log.wtf(TAG, "Invalid frequency weight type "
+                            + mFrequencyWeights.get(frequencyMegaHertz));
+            }
+        }
+        return FREQUENCY_WEIGHT_DEFAULT;
     }
 
     /**
