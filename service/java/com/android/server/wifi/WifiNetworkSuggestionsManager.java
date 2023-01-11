@@ -1650,6 +1650,8 @@ public class WifiNetworkSuggestionsManager {
                     }
                 },
                 new WifiThreadRunner(mHandler)).launchDialog();
+        mNotificationUpdateTime = mClock.getElapsedSinceBootMillis()
+                + NOTIFICATION_UPDATE_DELAY_MILLS;
         mIsLastUserApprovalUiDialog = true;
     }
 
