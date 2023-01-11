@@ -129,7 +129,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public static final int NAN_PAIRING_AKM_SAE = 0;
     public static final int NAN_PAIRING_AKM_PASN = 1;
 
-
     public static final int NAN_PARAM_NOT_SET = -1;
 
     public static final int INSTANT_MODE_DISABLED = 0;
@@ -204,7 +203,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int RESPONSE_TYPE_ON_INITIATE_BOOTSTRAPPING_FAIL = 219;
     private static final int RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_SUCCESS = 220;
     private static final int RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_FAIL = 221;
-
 
     private static final int NOTIFICATION_TYPE_INTERFACE_CHANGE = 301;
     private static final int NOTIFICATION_TYPE_CLUSTER_CHANGE = 302;
@@ -282,7 +280,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID =
             "bootstrapping_request_id";
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT = "bootstrapping_accept";
-
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -370,7 +367,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mLocalLog = wifiInjector.getWifiAwareLocalLog();
         mPairingConfigManager = pairingConfigManager;
         onReset();
-
     }
 
     /**
@@ -398,7 +394,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public static final String PARAM_ON_IDLE_DISABLE_AWARE = "on_idle_disable_aware";
     public static final int PARAM_ON_IDLE_DISABLE_AWARE_DEFAULT = 1; // 0 = false, 1 = true
 
-    private Map<String, Integer> mSettableParameters = new HashMap<>();
+    private final Map<String, Integer> mSettableParameters = new HashMap<>();
 
     /**
      * Interpreter of adb shell command 'adb shell wifiaware native_api ...'.
@@ -800,7 +796,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public Characteristics getCharacteristics() {
         if (mCharacteristics == null && mCapabilities != null) {
-            mCharacteristics = mCapabilities.toPublicCharacteristics();
+            mCharacteristics = mCapabilities.toPublicCharacteristics(
+                    mWifiInjector.getDeviceConfigFacade());
         }
 
         return mCharacteristics;
@@ -1190,6 +1187,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         responseNanPairingRequest(clientId, sessionId, peerId, requestId, null,
                 pairingDeviceAlias, NAN_PAIRING_REQUEST_TYPE_VERIFICATION, pmk, akm, accept);
     }
+
     private void responseNanPairingRequest(int clientId, int sessionId, int peerId, int requestId,
             String password, String pairingDeviceAlias, int requestType, byte[] pmk, int akm,
             boolean accept) {
@@ -1908,7 +1906,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mSm.sendMessage(msg);
     }
 
-
     /**
      * State machine.
      */
@@ -2354,7 +2351,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 default:
                     Log.wtf(TAG, "processNotification: this isn't a NOTIFICATION -- msg=" + msg);
-                    return;
             }
         }
 
@@ -3081,7 +3077,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + mFwQueuedSendMessages.size() + ", mSendQueueBlocked="
                     + mSendQueueBlocked);
 
-
             /*
              * Note: using 'first' to always time-out (remove) at least 1 notification (partially)
              * due to test code needs: there's no way to mock elapsedRealtime(). TODO: replace with
@@ -3727,7 +3722,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean endDataPathLocal(short transactionId, int ndpId) {
-
         mLocalLog.log("endDataPathLocal: transactionId=" + transactionId + ", ndpId=" + ndpId);
         sendAwareResourcesChangedBroadcast();
         return mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
@@ -3833,7 +3827,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
              */
         } else {
             Log.wtf(TAG, "onConfigFailedLocal: unexpected failedCommand=" + failedCommand);
-            return;
         }
     }
 
@@ -4390,7 +4383,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onClusterChangeLocal(int clusterEventType, byte[] clusterId) {
-
         mClusterId = clusterId;
         mClusterEventType = clusterEventType;
 

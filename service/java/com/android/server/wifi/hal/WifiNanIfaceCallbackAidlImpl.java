@@ -69,7 +69,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     private static final String TAG = "WifiNanIfaceCallbackAidlImpl";
 
     private boolean mVerboseLoggingEnabled;
-    private WifiNanIfaceAidlImpl mWifiNanIface;
+    private final WifiNanIfaceAidlImpl mWifiNanIface;
 
     public WifiNanIfaceCallbackAidlImpl(WifiNanIfaceAidlImpl wifiNanIface) {
         mWifiNanIface = wifiNanIface;
@@ -612,6 +612,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 capabilities.instantCommunicationModeSupportFlag;
         frameworkCapabilities.isNanPairingSupported = capabilities.supportsPairing;
         frameworkCapabilities.isSetClusterIdSupported = capabilities.supportsSetClusterId;
+        frameworkCapabilities.isSuspensionSupported = capabilities.supportsSuspension;
 
         return frameworkCapabilities;
     }
@@ -647,8 +648,9 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     /**
      * Convert HAL channelBandwidth to framework enum
      */
-    private @WifiAnnotations.ChannelWidth int getChannelBandwidthFromHal(int channelBandwidth) {
-        switch(channelBandwidth) {
+    @WifiAnnotations.ChannelWidth
+    private int getChannelBandwidthFromHal(int channelBandwidth) {
+        switch (channelBandwidth) {
             case WifiChannelWidthInMhz.WIDTH_40:
                 return ScanResult.CHANNEL_WIDTH_40MHZ;
             case WifiChannelWidthInMhz.WIDTH_80:
