@@ -323,6 +323,13 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
                 () -> stopSendingKeepAlivePacketsInternal(methodStr, cmdId));
     }
 
+    /**
+     * See comments for {@link IWifiStaIface#setDtimMultiplier(int)}
+     */
+    public boolean setDtimMultiplier(int multiplier) {
+        Log.d(TAG, "setDtimMultiplier is not implemented by HIDL");
+        return false;
+    }
 
     // Internal Implementations
 

@@ -353,4 +353,12 @@ public class WifiStaIface implements WifiHal.WifiInterface {
         return validateAndCall("stopSendingKeepAlivePackets", false,
                 () -> mWifiStaIface.stopSendingKeepAlivePackets(cmdId));
     }
+
+    /**
+     * See comments for {@link IWifiStaIface#setDtimMultiplier(int)}
+     */
+    public boolean setDtimMultiplier(int multiplier) {
+        return validateAndCall("setDtimMultiplier", false,
+                () -> mWifiStaIface.setDtimMultiplier(multiplier));
+    }
 }
