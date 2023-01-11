@@ -40,6 +40,7 @@ public class Capabilities {
     public int supportedCipherSuites;
     public boolean isInstantCommunicationModeSupported;
     public boolean isNanPairingSupported;
+    public boolean isSetClusterIdSupported;
 
     /**
      * Converts the internal capabilities to a parcelable & potentially app-facing
@@ -77,6 +78,7 @@ public class Capabilities {
                 + ", supportedCipherSuites=" + supportedCipherSuites
                 + ", isInstantCommunicationModeSupport=" + isInstantCommunicationModeSupported
                 + ", isNanPairingSupported=" + isNanPairingSupported
+                + ", isSetClusterIdSupported=" + isSetClusterIdSupported
                 + "]";
     }
 }
