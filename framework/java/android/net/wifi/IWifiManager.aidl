@@ -423,4 +423,6 @@ interface IWifiManager
     void addQosPolicy(in QosPolicyParams policyParams, in IBinder binder);
 
     void removeQosPolicy(int policyId);
+
+    void removeAllQosPolicies();
 }

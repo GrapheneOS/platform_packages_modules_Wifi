@@ -7188,4 +7188,20 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
         }
     }
+
+    /**
+     * See {@link WifiManager#removeAllQosPolicies()}.
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void removeAllQosPolicies() {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
+        }
+    }
 }
