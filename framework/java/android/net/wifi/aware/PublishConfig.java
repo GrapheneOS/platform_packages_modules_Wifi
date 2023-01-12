@@ -16,9 +16,13 @@
 
 package android.net.wifi.aware;
 
+import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
+
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresPermission;
+import android.annotation.SystemApi;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
@@ -37,7 +41,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Defines the configuration of a Aware publish session. Built using
+ * Defines the configuration of an Aware publish session. Built using
  * {@link PublishConfig.Builder}. A publish session is created using
  * {@link WifiAwareSession#publish(PublishConfig, DiscoverySessionCallback,
  * android.os.Handler)} or updated using
@@ -54,7 +58,7 @@ public final class PublishConfig implements Parcelable {
     /**
      * Defines an unsolicited publish session - a publish session where the publisher is
      * advertising itself by broadcasting on-the-air. An unsolicited publish session is paired
-     * with an passive subscribe session {@link SubscribeConfig#SUBSCRIBE_TYPE_PASSIVE}.
+     * with a passive subscribe session {@link SubscribeConfig#SUBSCRIBE_TYPE_PASSIVE}.
      * Configuration is done using {@link PublishConfig.Builder#setPublishType(int)}.
      */
     public static final int PUBLISH_TYPE_UNSOLICITED = 0;
@@ -97,12 +101,14 @@ public final class PublishConfig implements Parcelable {
 
     private final AwarePairingConfig mPairingConfig;
 
+    private final boolean mIsSuspendable;
+
     /** @hide */
     public PublishConfig(byte[] serviceName, byte[] serviceSpecificInfo, byte[] matchFilter,
             int publishType, int ttlSec, boolean enableTerminateNotification,
             boolean enableRanging, boolean enableInstantMode, @WifiScanner.WifiBand int
             band, WifiAwareDataPathSecurityConfig securityConfig,
-            AwarePairingConfig pairingConfig) {
+            AwarePairingConfig pairingConfig, boolean isSuspendable) {
         mServiceName = serviceName;
         mServiceSpecificInfo = serviceSpecificInfo;
         mMatchFilter = matchFilter;
@@ -114,6 +120,7 @@ public final class PublishConfig implements Parcelable {
         mBand = band;
         mSecurityConfig = securityConfig;
         mPairingConfig = pairingConfig;
+        mIsSuspendable = isSuspendable;
     }
 
     @Override
@@ -133,7 +140,8 @@ public final class PublishConfig implements Parcelable {
                 + ", mEnableInstantMode=" + mEnableInstantMode
                 + ", mBand=" + mBand
                 + ", mSecurityConfig" + mSecurityConfig
-                + ", mPairingConfig" + mPairingConfig;
+                + ", mPairingConfig" + mPairingConfig
+                + ", mIsSuspendable=" + mIsSuspendable;
     }
 
     @Override
@@ -154,9 +162,11 @@ public final class PublishConfig implements Parcelable {
         dest.writeInt(mBand);
         dest.writeParcelable(mSecurityConfig, flags);
         dest.writeParcelable(mPairingConfig, flags);
+        dest.writeBoolean(mIsSuspendable);
     }
 
-    public static final @android.annotation.NonNull Creator<PublishConfig> CREATOR = new Creator<PublishConfig>() {
+    @NonNull
+    public static final Creator<PublishConfig> CREATOR = new Creator<>() {
         @Override
         public PublishConfig[] newArray(int size) {
             return new PublishConfig[size];
@@ -177,10 +187,11 @@ public final class PublishConfig implements Parcelable {
                     .readParcelable(WifiAwareDataPathSecurityConfig.class.getClassLoader());
             AwarePairingConfig pairingConfig = in
                     .readParcelable(AwarePairingConfig.class.getClassLoader());
+            boolean isSuspendable = in.readBoolean();
 
             return new PublishConfig(serviceName, ssi, matchFilter, publishType, ttlSec,
                     enableTerminateNotification, enableRanging, enableInstantMode,
-                    band, securityConfig, pairingConfig);
+                    band, securityConfig, pairingConfig, isSuspendable);
         }
     };
 
@@ -204,6 +215,7 @@ public final class PublishConfig implements Parcelable {
                 && mEnableRanging == lhs.mEnableRanging
                 && mEnableInstantMode == lhs.mEnableInstantMode
                 && mBand == lhs.mBand
+                && mIsSuspendable == lhs.mIsSuspendable
                 && Objects.equals(mSecurityConfig, lhs.mSecurityConfig)
                 && Objects.equals(mPairingConfig, lhs.mPairingConfig);
     }
@@ -212,7 +224,8 @@ public final class PublishConfig implements Parcelable {
     public int hashCode() {
         return Objects.hash(Arrays.hashCode(mServiceName), Arrays.hashCode(mServiceSpecificInfo),
                 Arrays.hashCode(mMatchFilter), mPublishType, mTtlSec, mEnableTerminateNotification,
-                mEnableRanging, mEnableInstantMode, mBand, mSecurityConfig, mPairingConfig);
+                mEnableRanging, mEnableInstantMode, mBand, mSecurityConfig, mPairingConfig,
+                mIsSuspendable);
     }
 
     /**
@@ -265,18 +278,20 @@ public final class PublishConfig implements Parcelable {
                     throw new IllegalArgumentException("instant mode is not supported");
                 }
             }
+            if (mIsSuspendable && !characteristics.isSuspensionSupported()) {
+                throw new IllegalArgumentException("Aware Suspension is not supported");
+            }
             if (mSecurityConfig != null && (characteristics.getSupportedCipherSuites()
                     & mSecurityConfig.getCipherSuite()) == 0) {
                 throw new IllegalArgumentException("Unsupported cipher suite");
+            }
+            if (mPairingConfig != null && !characteristics.isAwarePairingSupported()) {
+                throw new IllegalArgumentException("Aware Pairing is not supported");
             }
         }
 
         if (!rttSupported && mEnableRanging) {
             throw new IllegalArgumentException("Ranging is not supported");
-        }
-
-        if (mPairingConfig != null && !characteristics.isAwarePairingSupported()) {
-            throw new IllegalArgumentException("Aware Pairing is not supported");
         }
     }
 
@@ -296,7 +311,8 @@ public final class PublishConfig implements Parcelable {
      * or {@link WifiScanner#WIFI_BAND_5_GHZ}. If instant communication mode is not enabled will
      * return {@link WifiScanner#WIFI_BAND_24_GHZ} as default.
      */
-    public @WifiScanner.WifiBand int getInstantCommunicationBand() {
+    @WifiScanner.WifiBand
+    public int getInstantCommunicationBand() {
         return mBand;
     }
 
@@ -321,6 +337,21 @@ public final class PublishConfig implements Parcelable {
     }
 
     /**
+     * Check if suspension is supported for this publish session.
+     * @see Builder#setSuspendable(boolean)
+     * @return true for supported, false otherwise.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SystemApi
+    public boolean isSuspendable() {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+        return mIsSuspendable;
+    }
+
+    /**
      * Builder used to build {@link PublishConfig} objects.
      */
     public static final class Builder {
@@ -335,6 +366,7 @@ public final class PublishConfig implements Parcelable {
         private int mBand = WifiScanner.WIFI_BAND_24_GHZ;
         private WifiAwareDataPathSecurityConfig mSecurityConfig = null;
         private AwarePairingConfig mPairingConfig = null;
+        private boolean mIsSuspendable = false;
 
         /**
          * Specify the service name of the publish session. The actual on-air
@@ -504,7 +536,8 @@ public final class PublishConfig implements Parcelable {
          * @return the current {@link Builder} builder, enabling chaining of builder methods.
          */
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        public @NonNull Builder setInstantCommunicationModeEnabled(boolean enabled,
+        @NonNull
+        public Builder setInstantCommunicationModeEnabled(boolean enabled,
                 @WifiScanner.WifiBand int band) {
             if (!SdkLevel.isAtLeastT()) {
                 throw new UnsupportedOperationException();
@@ -533,7 +566,8 @@ public final class PublishConfig implements Parcelable {
          *                       context Identifier
          * @return the current {@link Builder} builder, enabling chaining of builder methods.
          */
-        public @NonNull Builder setDataPathSecurityConfig(
+        @NonNull
+        public Builder setDataPathSecurityConfig(
                 @NonNull WifiAwareDataPathSecurityConfig securityConfig) {
             if (securityConfig == null) {
                 throw new IllegalArgumentException("The WifiAwareDataPathSecurityConfig "
@@ -566,13 +600,40 @@ public final class PublishConfig implements Parcelable {
         }
 
         /**
+         * Specify whether to configure the publish discovery session to be suspendable. This API
+         * doesn't suspend the session, it allows it to be suspended in the future.
+         * <p>
+         * Optional. Not suspendable by default.
+         * <p>
+         * The device must support Wi-Fi Aware suspension for a publish session to be
+         * suspendable. Feature support check is determined by
+         * {@link Characteristics#isSuspensionSupported()}.
+         *
+         * @param isSuspendable If true, then this publish session can be suspended.
+         *
+         * @return the current {@link Builder} builder, enabling chaining of builder methods.
+         * @hide
+         */
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        @RequiresPermission(value = MANAGE_WIFI_NETWORK_SELECTION)
+        @SystemApi
+        @NonNull
+        public Builder setSuspendable(boolean isSuspendable) {
+            if (!SdkLevel.isAtLeastU()) {
+                throw new UnsupportedOperationException();
+            }
+            mIsSuspendable = isSuspendable;
+            return this;
+        }
+
+        /**
          * Build {@link PublishConfig} given the current requests made on the
          * builder.
          */
         public PublishConfig build() {
             return new PublishConfig(mServiceName, mServiceSpecificInfo, mMatchFilter, mPublishType,
                     mTtlSec, mEnableTerminateNotification, mEnableRanging, mEnableInstantMode,
-                    mBand, mSecurityConfig, mPairingConfig);
+                    mBand, mSecurityConfig, mPairingConfig, mIsSuspendable);
         }
     }
 }
