@@ -16,6 +16,11 @@
 
 package com.android.server.wifi;
 
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_INVALID_CONFIGURATION;
+import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_INVALID_CONFIGURATION_ENTERPRISE;
+import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_NO_PERMISSION_MODIFY_CONFIG;
+import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_SUCCESS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
 import android.Manifest;
@@ -1351,7 +1356,8 @@ public class WifiConfigManager {
                     WifiConfigurationUtil.VALIDATE_FOR_ADD)) {
                 Log.e(TAG, "Cannot add network with invalid config");
                 return new Pair<>(
-                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
+                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID,
+                                STATUS_INVALID_CONFIGURATION),
                         existingInternalConfig);
             }
             newInternalConfig =
@@ -1368,7 +1374,8 @@ public class WifiConfigManager {
                     config, supportedFeatures, WifiConfigurationUtil.VALIDATE_FOR_UPDATE)) {
                 Log.e(TAG, "Cannot update network with invalid config");
                 return new Pair<>(
-                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
+                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID,
+                                STATUS_INVALID_CONFIGURATION),
                         existingInternalConfig);
             }
             // Check for the app's permission before we let it update this network.
@@ -1376,7 +1383,8 @@ public class WifiConfigManager {
                 Log.e(TAG, "UID " + uid + " does not have permission to update configuration "
                         + config.getProfileKey());
                 return new Pair<>(
-                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
+                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID,
+                                STATUS_NO_PERMISSION_MODIFY_CONFIG),
                         existingInternalConfig);
             }
             if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
@@ -1434,6 +1442,27 @@ public class WifiConfigManager {
             return new Pair<>(
                     new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
                     existingInternalConfig);
+        }
+
+        if (config.isEnterprise()
+                && config.enterpriseConfig.isEapMethodServerCertUsed()
+                && !config.enterpriseConfig.isMandatoryParameterSetForServerCertValidation()
+                && !config.enterpriseConfig.isTrustOnFirstUseEnabled()) {
+            boolean isSettingsOrSuw = mContext.checkPermission(Manifest.permission.NETWORK_SETTINGS,
+                    -1 /* pid */, uid) == PERMISSION_GRANTED
+                    || mContext.checkPermission(Manifest.permission.NETWORK_SETUP_WIZARD,
+                    -1 /* pid */, uid) == PERMISSION_GRANTED;
+            if (!(mWifiInjector.getWifiGlobals().isInsecureEnterpriseConfigurationAllowed()
+                    && isSettingsOrSuw)) {
+                Log.e(TAG, "Enterprise network configuration is missing either a Root CA "
+                        + "or a domain name");
+                return new Pair<>(
+                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID,
+                                STATUS_INVALID_CONFIGURATION_ENTERPRISE),
+                        existingInternalConfig);
+            }
+            Log.w(TAG, "Insecure Enterprise network " + config.SSID
+                    + " configured by Settings/SUW");
         }
 
         // Update the keys for saved enterprise networks. For Passpoint, the certificates
@@ -1526,6 +1555,7 @@ public class WifiConfigManager {
 
         NetworkUpdateResult result = new NetworkUpdateResult(
                 newInternalConfig.networkId,
+                STATUS_SUCCESS,
                 hasIpChanged,
                 hasProxyChanged,
                 hasCredentialChanged,
