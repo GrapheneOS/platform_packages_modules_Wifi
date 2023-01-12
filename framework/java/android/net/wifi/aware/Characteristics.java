@@ -56,6 +56,8 @@ public final class Characteristics implements Parcelable {
     public static final String KEY_MAX_NDI_NUMBER = "key_max_ndi_number";
     /** @hide */
     public static final String KEY_SUPPORT_NAN_PAIRING = "key_support_nan_pairing";
+    /** @hide */
+    public static final String KEY_SUPPORT_SUSPENSION = "key_support_suspension";
 
     private final Bundle mCharacteristics;
 
@@ -169,6 +171,16 @@ public final class Characteristics implements Parcelable {
      */
     public boolean isAwarePairingSupported() {
         return mCharacteristics.getBoolean(KEY_SUPPORT_NAN_PAIRING);
+    }
+
+    /**
+     * Check if Aware Suspension is supported. Aware Suspension is a mechanism of putting an Aware
+     * connection in and out of a low-power mode while preserving the discovery sessions and data
+     * paths.
+     * @return True if supported, false otherwise.
+     */
+    public boolean isSuspensionSupported() {
+        return mCharacteristics.getBoolean(KEY_SUPPORT_SUSPENSION);
     }
 
     /** @hide */

@@ -1001,4 +1001,19 @@
     <!-- Indicates the number of seconds to delay the next IMSI protection notification after user
          dismiss the current one-->
     <integer translatable="false" name="config_wifiImsiProtectionNotificationDelaySeconds">300</integer>
+    <!-- Boolean indicating whether DTIM multiplier configuration is enabled. DTIM multiplier value
+        is when the system is in the suspended mode. Enabling this feature with the low multiplier
+        in IPv6 mode and the high multiplier in IPv4 only mode ensures the IPv6 address
+        doesn't expire due to missing RA while reducing the power consumption in IPv4 only mode.
+        -->
+    <bool translatable="false" name="config_wifiDtimMultiplierConfigEnabled">false</bool>
+    <!-- Indicates the DTIM multiple value used when the multicast lock is enabled regardless of
+        IP address type -->
+    <integer translatable="false" name="config_wifiDtimMultiplierMulticastLockEnabled">1</integer>
+    <!-- Indicates the DTIM multiple value used when it has only IPv6 address -->
+    <integer translatable="false" name="config_wifiDtimMultiplierIpv6Only">2</integer>
+    <!-- Indicates the DTIM multiple value used when it has only IPv4 address -->
+    <integer translatable="false" name="config_wifiDtimMultiplierIpv4Only">9</integer>
+    <!-- Indicates the DTIM multiple value used when it has both IPv4 and IPv6 addresses -->
+    <integer translatable="false" name="config_wifiDtimMultiplierIpv6Ipv4">2</integer>
 </resources>

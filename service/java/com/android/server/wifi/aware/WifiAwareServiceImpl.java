@@ -20,7 +20,6 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGI
 
 import android.Manifest;
 import android.annotation.NonNull;
-import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
@@ -55,6 +54,7 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.SystemBuildProperties;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
@@ -77,8 +77,6 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     private boolean mVerboseLoggingEnabled = false;
     private boolean mVerboseHalLoggingEnabled = false;
 
-    private Context mContext;
-    private AppOpsManager mAppOps;
     private WifiPermissionsUtil mWifiPermissionsUtil;
     private WifiAwareStateManager mStateManager;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -92,12 +90,12 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             new SparseArray<>();
     private int mNextClientId = 1;
     private final SparseIntArray mUidByClientId = new SparseIntArray();
+    private final Context mContext;
     private final BuildProperties mBuildProperties;
     private final FrameworkFacade mFrameworkFacade;
 
     public WifiAwareServiceImpl(Context context) {
         mContext = context;
-        mAppOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         mBuildProperties = new SystemBuildProperties();
         mFrameworkFacade = new FrameworkFacade();
     }
@@ -183,7 +181,8 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         enforceAccessPermission();
 
         return mStateManager.getCapabilities() == null ? null
-                : mStateManager.getCapabilities().toPublicCharacteristics();
+                : mStateManager.getCapabilities().toPublicCharacteristics(
+                        WifiInjector.getInstance().getDeviceConfigFacade());
     }
 
     @Override
@@ -549,7 +548,6 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         }
         mStateManager.initiateNanPairingSetupRequest(clientId, sessionId, peerId, password,
                 pairingDeviceAlias);
-
     }
 
     @Override
@@ -645,7 +643,6 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             mWifiPermissionsUtil.enforceNearbyDevicesPermission(extras.getParcelable(
                     WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), true, message);
         }
-
     }
 
     private void enforceNetworkStackPermission() {

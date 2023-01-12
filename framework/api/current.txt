@@ -838,6 +838,7 @@ package android.net.wifi.aware {
     method public int getSupportedCipherSuites();
     method public boolean isAwarePairingSupported();
     method public boolean isInstantCommunicationModeSupported();
+    method public boolean isSuspensionSupported();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.Characteristics> CREATOR;
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_128 = 4; // 0x4

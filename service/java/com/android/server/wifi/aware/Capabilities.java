@@ -19,6 +19,8 @@ package com.android.server.wifi.aware;
 import android.net.wifi.aware.Characteristics;
 import android.os.Bundle;
 
+import com.android.server.wifi.DeviceConfigFacade;
+
 /**
  * A container class for Aware (vendor) implementation capabilities (or
  * limitations). Filled-in by the firmware.
@@ -41,12 +43,13 @@ public class Capabilities {
     public boolean isInstantCommunicationModeSupported;
     public boolean isNanPairingSupported;
     public boolean isSetClusterIdSupported;
+    public boolean isSuspensionSupported;
 
     /**
      * Converts the internal capabilities to a parcelable & potentially app-facing
      * characteristics bundle. Only some of the information is exposed.
      */
-    public Characteristics toPublicCharacteristics() {
+    public Characteristics toPublicCharacteristics(DeviceConfigFacade deviceConfigFacade) {
         Bundle bundle = new Bundle();
         bundle.putInt(Characteristics.KEY_MAX_SERVICE_NAME_LENGTH, maxServiceNameLen);
         bundle.putInt(Characteristics.KEY_MAX_SERVICE_SPECIFIC_INFO_LENGTH,
@@ -60,6 +63,8 @@ public class Capabilities {
         bundle.putInt(Characteristics.KEY_MAX_PUBLISH_NUMBER, maxPublishes);
         bundle.putInt(Characteristics.KEY_MAX_SUBSCRIBE_NUMBER, maxSubscribes);
         bundle.putBoolean(Characteristics.KEY_SUPPORT_NAN_PAIRING, isNanPairingSupported);
+        bundle.putBoolean(Characteristics.KEY_SUPPORT_SUSPENSION,
+                deviceConfigFacade.isAwareSuspensionEnabled() && isSuspensionSupported);
         return new Characteristics(bundle);
     }
 
@@ -79,6 +84,7 @@ public class Capabilities {
                 + ", isInstantCommunicationModeSupport=" + isInstantCommunicationModeSupported
                 + ", isNanPairingSupported=" + isNanPairingSupported
                 + ", isSetClusterIdSupported=" + isSetClusterIdSupported
+                + ", isSuspensionSupported=" + isSuspensionSupported
                 + "]";
     }
 }

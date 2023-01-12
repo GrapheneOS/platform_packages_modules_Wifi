@@ -35,7 +35,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.Manifest;
-import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -61,6 +60,7 @@ import android.util.SparseIntArray;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiBaseTest;
@@ -115,6 +115,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     @Mock private WifiPermissionsWrapper mPermissionsWrapperMock;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private InterfaceConflictManager mInterfaceConflictManager;
+    @Mock private DeviceConfigFacade mDeviceConfigFacade;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -147,16 +148,15 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
         when(mHandlerThreadMock.getLooper()).thenReturn(mMockLooper.getLooper());
 
-        AppOpsManager appOpsMock = mock(AppOpsManager.class);
-        when(mContextMock.getSystemService(Context.APP_OPS_SERVICE)).thenReturn(appOpsMock);
-
         when(mContextMock.getApplicationContext()).thenReturn(mContextMock);
         when(mContextMock.getPackageManager()).thenReturn(mPackageManagerMock);
         when(mPackageManagerMock.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE))
                 .thenReturn(true);
         when(mPackageManagerMock.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT))
                 .thenReturn(true);
-        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(getCharacteristics());
+        when(mDeviceConfigFacade.isAwareSuspensionEnabled()).thenReturn(true);
+        Characteristics characteristics = getCharacteristics(mDeviceConfigFacade);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
         when(mWifiSettingsConfigStore.get(eq(WIFI_VERBOSE_LOGGING_ENABLED))).thenReturn(true);
         // mock target SDK version to be pre-T by default to keep existing tests working.
         when(mWifiPermissionsUtil.isTargetSdkLessThan(any(), eq(Build.VERSION_CODES.TIRAMISU),
@@ -218,7 +218,6 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
         mDut.enableInstantCommunicationMode(mPackageName, true);
         verify(mAwareStateManagerMock).enableInstantCommunicationMode(eq(true));
-
     }
 
 
@@ -247,8 +246,6 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
     /**
      * Validate disconnect() - correct pass-through args.
-     *
-     * @throws Exception
      */
     @Test
     public void testDisconnect() throws Exception {
@@ -351,7 +348,6 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
         mDut.subscribe(mPackageName, mFeatureId, clientId, subscribeConfig, mockCallback, mExtras);
     }
-
 
     /**
      * Validates that on binder death we get a disconnect().
@@ -762,8 +758,9 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         cap.maxQueuedTransmitMessages = 6;
         cap.supportedCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
         cap.isInstantCommunicationModeSupported = true;
+        cap.isSuspensionSupported = true;
 
-        Characteristics characteristics = cap.toPublicCharacteristics();
+        Characteristics characteristics = cap.toPublicCharacteristics(mDeviceConfigFacade);
         assertEquals(characteristics.getMaxServiceNameLength(), maxServiceName);
         assertEquals(characteristics.getMaxServiceSpecificInfoLength(), maxServiceSpecificInfo);
         assertEquals(characteristics.getMaxMatchFilterLength(), maxMatchFilter);
@@ -774,8 +771,9 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         assertEquals(characteristics.getNumberOfSupportedPublishSessions(), 2);
         assertEquals(characteristics.getNumberOfSupportedSubscribeSessions(), 2);
         if (SdkLevel.isAtLeastS()) {
-            assertEquals(characteristics.isInstantCommunicationModeSupported(), true);
+            assertTrue(characteristics.isInstantCommunicationModeSupported());
         }
+        assertTrue(characteristics.isSuspensionSupported());
     }
 
     @Test
@@ -901,7 +899,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         return clientId.getValue();
     }
 
-    private static Characteristics getCharacteristics() {
+    private static Characteristics getCharacteristics(DeviceConfigFacade deviceConfigFacade) {
         Capabilities cap = new Capabilities();
         cap.maxConcurrentAwareClusters = 1;
         cap.maxPublishes = 2;
@@ -918,7 +916,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         cap.supportedCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
         cap.isInstantCommunicationModeSupported = false;
         cap.isNanPairingSupported = false;
-        return cap.toPublicCharacteristics();
+        return cap.toPublicCharacteristics(deviceConfigFacade);
     }
 
     private int getInternalStateUid(int clientId) throws Exception {

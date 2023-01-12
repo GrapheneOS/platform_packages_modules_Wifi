@@ -1839,4 +1839,15 @@ public class WifiVendorHal {
             return mWifiChip.getUsableChannels(band, mode, filter);
         }
     }
+
+    /**
+     * Set DTIM multiplier used when the system is in the suspended mode.
+     */
+    public boolean setDtimMultiplier(@NonNull String ifaceName, int multiplier) {
+        synchronized (sLock) {
+            WifiStaIface iface = getStaIface(ifaceName);
+            if (iface == null) return false;
+            return iface.setDtimMultiplier(multiplier);
+        }
+    }
 }
