@@ -69,6 +69,9 @@ public class WifiInfoTest {
     private static final String AP_MLD_MAC_ADDRESS = "22:33:44:55:66:77";
     private static final String MLO_LINK_STA_MAC_ADDRESS = "12:34:56:78:9a:bc";
     private static final String MLO_LINK_AP_MAC_ADDRESS = "bc:9a:78:56:34:12";
+    private static final int TEST_MLO_LINK_ID = 3;
+    private static final int TEST_CHANNEL = 36;
+    private static final int TEST_LINK_SPEED = 300;
 
     private void addMloInfo(WifiInfo info) {
         info.setApMldMacAddress(MacAddress.fromString(AP_MLD_MAC_ADDRESS));
@@ -78,6 +81,13 @@ public class WifiInfoTest {
         link.setApMacAddress(MacAddress.fromString(MLO_LINK_AP_MAC_ADDRESS));
         links.add(link);
         info.setAffiliatedMloLinks(links);
+        link.setRssi(TEST_RSSI);
+        link.setLinkId(TEST_MLO_LINK_ID);
+        link.setBand(WifiScanner.WIFI_BAND_5_GHZ);
+        link.setChannel(TEST_CHANNEL);
+        link.setRxLinkSpeedMbps(TEST_LINK_SPEED);
+        link.setTxLinkSpeedMbps(TEST_LINK_SPEED);
+        link.setState(MloLink.MLO_LINK_STATE_UNASSOCIATED);
     }
 
     private void assertMloNoRedaction(WifiInfo info) {
@@ -90,6 +100,13 @@ public class WifiInfoTest {
             assertEquals(MLO_LINK_AP_MAC_ADDRESS, link.getApMacAddress().toString());
             assertNotNull(link.getStaMacAddress());
             assertEquals(MLO_LINK_STA_MAC_ADDRESS, link.getStaMacAddress().toString());
+            assertEquals(TEST_RSSI, link.getRssi());
+            assertEquals(TEST_CHANNEL, link.getChannel());
+            assertEquals(TEST_LINK_SPEED, link.getRxLinkSpeedMbps());
+            assertEquals(TEST_LINK_SPEED, link.getTxLinkSpeedMbps());
+            assertEquals(TEST_MLO_LINK_ID, link.getLinkId());
+            assertEquals(WifiScanner.WIFI_BAND_5_GHZ, link.getBand());
+            assertEquals(MloLink.MLO_LINK_STATE_UNASSOCIATED, link.getState());
         }
     }
 
@@ -790,5 +807,60 @@ public class WifiInfoTest {
         informationElements.add(informationElement);
 
         return informationElements;
+    }
+
+    @Test
+    public void testMloLink() throws Exception {
+        // Create an MLO link and set parameters.
+        MloLink link1 = new MloLink();
+        link1.setStaMacAddress(MacAddress.fromString(MLO_LINK_STA_MAC_ADDRESS));
+        link1.setApMacAddress(MacAddress.fromString(MLO_LINK_AP_MAC_ADDRESS));
+        link1.setRssi(TEST_RSSI);
+        link1.setLinkId(TEST_MLO_LINK_ID);
+        link1.setBand(WifiScanner.WIFI_BAND_5_GHZ);
+        link1.setChannel(TEST_CHANNEL);
+        link1.setRxLinkSpeedMbps(TEST_LINK_SPEED);
+        link1.setTxLinkSpeedMbps(TEST_LINK_SPEED);
+        link1.setState(MloLink.MLO_LINK_STATE_UNASSOCIATED);
+
+        // Make sure all parameters are set.
+        assertNotNull(link1.getApMacAddress());
+        assertEquals(MLO_LINK_AP_MAC_ADDRESS, link1.getApMacAddress().toString());
+        assertNotNull(link1.getStaMacAddress());
+        assertEquals(MLO_LINK_STA_MAC_ADDRESS, link1.getStaMacAddress().toString());
+        assertEquals(TEST_RSSI, link1.getRssi());
+        assertEquals(TEST_CHANNEL, link1.getChannel());
+        assertEquals(TEST_LINK_SPEED, link1.getRxLinkSpeedMbps());
+        assertEquals(TEST_LINK_SPEED, link1.getTxLinkSpeedMbps());
+        assertEquals(TEST_MLO_LINK_ID, link1.getLinkId());
+        assertEquals(WifiScanner.WIFI_BAND_5_GHZ, link1.getBand());
+        assertEquals(MloLink.MLO_LINK_STATE_UNASSOCIATED, link1.getState());
+
+        // Test RSSI range.
+        link1.setRssi(WifiInfo.INVALID_RSSI - 1);
+        assertEquals(WifiInfo.INVALID_RSSI, link1.getRssi());
+        link1.setRssi(WifiInfo.MAX_RSSI + 1);
+        assertEquals(WifiInfo.MAX_RSSI, link1.getRssi());
+
+        // Copy link
+        MloLink link2 = new MloLink(link1, 0);
+
+        // Check links are equal.
+        assertTrue(link1.equals(link2));
+        assertEquals(link2.hashCode(), link1.hashCode());
+        assertEquals(link2.toString(), link1.toString());
+
+        // Change one parameter and check the links are not equal.
+        link1.setState(MloLink.MLO_LINK_STATE_INVALID);
+        assertFalse(link1.equals(link2));
+        assertNotEquals(link2.hashCode(), link1.hashCode());
+        assertNotEquals(link2.toString(), link1.toString());
+
+        // Validate states.
+        assertTrue(MloLink.isValidState(MloLink.MLO_LINK_STATE_INVALID));
+        assertTrue(MloLink.isValidState(MloLink.MLO_LINK_STATE_UNASSOCIATED));
+        assertTrue(MloLink.isValidState(MloLink.MLO_LINK_STATE_ACTIVE));
+        assertTrue(MloLink.isValidState(MloLink.MLO_LINK_STATE_IDLE));
+        assertFalse(MloLink.isValidState(MloLink.MLO_LINK_STATE_INVALID - 1));
     }
 }
