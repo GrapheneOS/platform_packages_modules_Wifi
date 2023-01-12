@@ -245,4 +245,12 @@ public interface IWifiStaIface {
      * @return true if successful, false otherwise.
      */
     boolean stopSendingKeepAlivePackets(int cmdId);
+
+    /**
+     * Set DTIM multiplier used when the system is in the suspended mode.
+     *
+     * @param multiplier DTIM multiplier value to set.
+     * @return true if successful, false otherwise.
+     */
+    boolean setDtimMultiplier(int multiplier);
 }

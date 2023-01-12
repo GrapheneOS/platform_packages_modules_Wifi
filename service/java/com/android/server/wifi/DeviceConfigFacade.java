@@ -210,6 +210,7 @@ public class DeviceConfigFacade {
     private boolean mApmEnhancementEnabled;
     private boolean mAwareSuspensionEnabled;
     private boolean mHighPerfLockDeprecated;
+    private boolean mOobPseudonymEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -391,6 +392,8 @@ public class DeviceConfigFacade {
                 "aware_suspension_enabled", false);
         mHighPerfLockDeprecated = DeviceConfig.getBoolean(NAMESPACE,
                 "high_perf_lock_deprecated", false);
+        mOobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "oob_pseudonym_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -841,5 +844,12 @@ public class DeviceConfigFacade {
      */
     public boolean isHighPerfLockDeprecated() {
         return mHighPerfLockDeprecated;
+    }
+
+    /**
+     * Gets the feature flag for the OOB pseudonym of EAP-SIM/AKA/AKA'
+     */
+    public boolean isOobPseudonymEnabled() {
+        return mOobPseudonymEnabled;
     }
 }

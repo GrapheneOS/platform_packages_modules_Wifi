@@ -4659,4 +4659,15 @@ public class WifiNative {
         }
         return mMockWifiModem.setMockedMethods(methods);
     }
+
+    /**
+     * Set DTIM multiplier used when the system is in the suspended mode.
+     *
+     * @param ifaceName Name of the interface.
+     * @param multiplier integer DTIM multiplier value to set.
+     * @return true for success
+     */
+    public boolean setDtimMultiplier(String ifaceName, int multiplier) {
+        return mWifiVendorHal.setDtimMultiplier(ifaceName, multiplier);
+    }
 }
