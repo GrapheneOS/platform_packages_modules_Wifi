@@ -969,4 +969,16 @@ public class BaseWifiService extends IWifiManager.Stub {
     public void removeAllQosPolicies() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void addLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName, String featureId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName) {
+        throw new UnsupportedOperationException();
+    }
 }

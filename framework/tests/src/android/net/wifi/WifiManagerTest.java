@@ -186,6 +186,8 @@ public class WifiManagerTest {
     @Mock OnWifiUsabilityStatsListener mOnWifiUsabilityStatsListener;
     @Mock OnWifiActivityEnergyInfoListener mOnWifiActivityEnergyInfoListener;
     @Mock SuggestionConnectionStatusListener mSuggestionConnectionListener;
+    @Mock
+    WifiManager.LocalOnlyConnectionFailureListener mLocalOnlyConnectionFailureListener;
     @Mock Runnable mRunnable;
     @Mock Executor mExecutor;
     @Mock Executor mAnotherExecutor;
@@ -3117,7 +3119,8 @@ public class WifiManagerTest {
         ArgumentCaptor<ISuggestionConnectionStatusListener.Stub> callbackCaptor =
                 ArgumentCaptor.forClass(ISuggestionConnectionStatusListener.Stub.class);
         Executor executor = new SynchronousExecutor();
-        mWifiManager.addSuggestionConnectionStatusListener(executor, mSuggestionConnectionListener);
+        mWifiManager.addSuggestionConnectionStatusListener(executor,
+                mSuggestionConnectionListener);
         verify(mWifiService).registerSuggestionConnectionStatusListener(callbackCaptor.capture(),
                 anyString(), nullable(String.class));
         callbackCaptor.getValue().onConnectionStatus(mWifiNetworkSuggestion, errorCode);
@@ -3983,4 +3986,19 @@ public class WifiManagerTest {
         mWifiManager.removeQosPolicy(policyId);
         verify(mWifiService).removeQosPolicy(eq(policyId));
     }
+
+    @Test
+    public void testAddRemoveLocaOnlyConnectionListener() throws RemoteException {
+        assertThrows(IllegalArgumentException.class, () -> mWifiManager
+                .addLocalOnlyConnectionFailureListener(null, mLocalOnlyConnectionFailureListener));
+        assertThrows(IllegalArgumentException.class, () -> mWifiManager
+                .addLocalOnlyConnectionFailureListener(mExecutor, null));
+        mWifiManager.addLocalOnlyConnectionFailureListener(mExecutor,
+                mLocalOnlyConnectionFailureListener);
+        verify(mWifiService).addLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME),
+                nullable(String.class));
+        mWifiManager.removeLocalOnlyConnectionFailureListener(mLocalOnlyConnectionFailureListener);
+        verify(mWifiService).removeLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME));
+    }
+
 }
