@@ -4517,7 +4517,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         Log.i(getTag(), "Connecting with " + currentMacAddress
                                 + " as the mac address");
                     }
-
+                    mWifiPseudonymManager.enableStrictConservativePeerModeIfSupported(config);
                     mTargetWifiConfiguration = config;
                     mNetworkNotFoundEventCount = 0;
                     /* Check for FILS configuration again after updating the config */
@@ -7117,7 +7117,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mWifiScoreCard.noteConnectionAttempt(mWifiInfo, mLastScanRssi, config.SSID);
                     setTargetBssid(config, bssid);
                     mTargetNetworkId = netId;
-
+                    mWifiPseudonymManager.enableStrictConservativePeerModeIfSupported(config);
                     logd("CMD_START_ROAM sup state "
                             + " my state " + getCurrentState().getName()
                             + " nid=" + Integer.toString(netId)
