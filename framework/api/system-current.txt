@@ -1172,6 +1172,15 @@ package android.net.wifi.aware {
 
   public class DiscoverySession implements java.lang.AutoCloseable {
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPmk(@NonNull android.net.wifi.aware.PeerHandle, @NonNull byte[]);
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void resume();
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void suspend();
+  }
+
+  public class DiscoverySessionCallback {
+    method public void onSessionResumeFailed(int);
+    method public void onSessionResumeSuccess();
+    method public void onSessionSuspendFailed(int);
+    method public void onSessionSuspendSuccess();
   }
 
   public final class PublishConfig implements android.os.Parcelable {
@@ -1193,6 +1202,13 @@ package android.net.wifi.aware {
   public class WifiAwareManager {
     method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void enableInstantCommunicationMode(boolean);
     method @RequiresPermission(allOf={android.Manifest.permission.OVERRIDE_WIFI_CONFIG, android.Manifest.permission.CHANGE_WIFI_STATE}) public void setAwareParams(@Nullable android.net.wifi.aware.AwareParams);
+    field public static final int WIFI_AWARE_RESUME_INTERNAL_ERROR = 2; // 0x2
+    field public static final int WIFI_AWARE_RESUME_INVALID_SESSION = 1; // 0x1
+    field public static final int WIFI_AWARE_RESUME_REDUNDANT_REQUEST = 0; // 0x0
+    field public static final int WIFI_AWARE_SUSPEND_CANNOT_SUSPEND = 2; // 0x2
+    field public static final int WIFI_AWARE_SUSPEND_INTERNAL_ERROR = 3; // 0x3
+    field public static final int WIFI_AWARE_SUSPEND_INVALID_SESSION = 1; // 0x1
+    field public static final int WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST = 0; // 0x0
   }
 
   public class WifiAwareSession implements java.lang.AutoCloseable {

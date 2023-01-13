@@ -29,6 +29,10 @@ oneway interface IWifiAwareDiscoverySessionCallback
     void onSessionConfigSuccess();
     void onSessionConfigFail(int reason);
     void onSessionTerminated(int reason);
+    void onSessionSuspendSuccess();
+    void onSessionSuspendFail(int reason);
+    void onSessionResumeSuccess();
+    void onSessionResumeFail(int reason);
 
     void onMatch(int peerId, in byte[] serviceSpecificInfo, in byte[] matchFilter,
             int peerCipherSuite, in byte[] scid, String pairingAlias,

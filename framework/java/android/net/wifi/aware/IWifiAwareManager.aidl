@@ -75,6 +75,8 @@ interface IWifiAwareManager
     void responseNanPairingSetupRequest(int clientId, int sessionId, int peerId,
                 int requestId, String password, String pairingDeviceAlias, boolean accept);
     void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,int method);
+    void suspend(int clientId, int sessionId);
+    void resume(int clientId, int sessionId);
 
     // internal APIs: intended to be used between System Services (restricted permissions)
     void requestMacAddresses(int uid, in int[] peerIds, in IWifiAwareMacAddressProvider callback);
