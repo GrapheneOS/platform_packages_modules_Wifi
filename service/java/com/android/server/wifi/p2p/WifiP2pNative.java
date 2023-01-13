@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.p2p;
 
+import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.CoexUnsafeChannel;
@@ -200,7 +202,10 @@ public class WifiP2pNative {
             String ifaceName = createP2pIface(handler, requestorWs);
             if (ifaceName == null) {
                 Log.e(TAG, "Failed to create P2p iface");
-                mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToHal();
+                if (mHalDeviceManager.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P,
+                        requestorWs)) {
+                    mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToHal();
+                }
                 return null;
             }
             if (!waitForSupplicantConnection()) {
