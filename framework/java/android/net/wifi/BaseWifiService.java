@@ -956,17 +956,18 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder) {
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
+            @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeQosPolicy(int policyId) {
+    public void removeQosPolicy(int policyId, @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeAllQosPolicies() {
+    public void removeAllQosPolicies(@NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 }

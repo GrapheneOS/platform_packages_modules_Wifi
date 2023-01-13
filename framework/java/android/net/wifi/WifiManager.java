@@ -10561,7 +10561,7 @@ public class WifiManager {
     })
     public void addQosPolicy(@NonNull QosPolicyParams policyParams) {
         try {
-            mService.addQosPolicy(policyParams, new Binder());
+            mService.addQosPolicy(policyParams, new Binder(), mContext.getOpPackageName());
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -10586,7 +10586,7 @@ public class WifiManager {
     })
     public void removeQosPolicy(int policyId) {
         try {
-            mService.removeQosPolicy(policyId);
+            mService.removeQosPolicy(policyId, mContext.getOpPackageName());
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -10607,7 +10607,7 @@ public class WifiManager {
     })
     public void removeAllQosPolicies() {
         try {
-            mService.removeAllQosPolicies();
+            mService.removeAllQosPolicies(mContext.getOpPackageName());
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

@@ -3967,7 +3967,7 @@ public class WifiManagerTest {
                 ArgumentCaptor.forClass(QosPolicyParams.class);
 
         mWifiManager.addQosPolicy(policyParams);
-        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any());
+        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any(), eq(TEST_PACKAGE_NAME));
         assertEquals(policyId, paramsCaptor.getValue().getPolicyId());
         assertEquals(direction, paramsCaptor.getValue().getDirection());
         assertEquals(userPriority, paramsCaptor.getValue().getUserPriority());
@@ -3981,6 +3981,6 @@ public class WifiManagerTest {
         assumeTrue(SdkLevel.isAtLeastU());
         final int policyId = 127;
         mWifiManager.removeQosPolicy(policyId);
-        verify(mWifiService).removeQosPolicy(eq(policyId));
+        verify(mWifiService).removeQosPolicy(eq(policyId), eq(TEST_PACKAGE_NAME));
     }
 }
