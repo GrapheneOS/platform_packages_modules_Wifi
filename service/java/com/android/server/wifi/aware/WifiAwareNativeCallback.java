@@ -283,6 +283,15 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
         }
     }
 
+    @Override
+    public void notifySuspendResponse(short id, int status) {
+        mWifiAwareStateManager.onSuspendResponse(id, status);
+    }
+
+    @Override
+    public void notifyResumeResponse(short id, int status) {
+        mWifiAwareStateManager.onResumeResponse(id, status);
+    }
 
     @Override
     public void eventClusterEvent(int eventType, byte[] addr) {

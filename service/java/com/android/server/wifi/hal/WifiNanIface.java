@@ -646,6 +646,20 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         void notifyRespondToBootstrappingIndicationResponse(short id, int status);
 
         /**
+         * Invoked in response to a connection suspension request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifySuspendResponse(short id, int status);
+
+        /**
+         * Invoked in response to a connection resume request.
+         * @param id ID corresponding to the original request.
+         * @param status Status the operation (see {@link NanStatusCode}).
+         */
+        void notifyResumeResponse(short id, int status);
+
+        /**
          * Indicates that a cluster event has been received.
          * @param eventType Type of the cluster event (see {@link NanClusterEventType}).
          * @param addr MAC Address associated with the corresponding event.

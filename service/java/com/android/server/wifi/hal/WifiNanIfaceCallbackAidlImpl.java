@@ -308,6 +308,32 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     }
 
     @Override
+    public void notifySuspendResponse(char id, NanStatus status) {
+        if (!checkFrameworkCallback()) {
+            return;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifySuspendResponse: id=" + id + ", status="
+                    + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifySuspendResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
+    }
+
+    @Override
+    public void notifyResumeResponse(char id, NanStatus status) {
+        if (!checkFrameworkCallback()) {
+            return;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyResumeResponse: id=" + id + ", status="
+                    + statusString(status));
+        }
+        mWifiNanIface.getFrameworkCallback().notifyResumeResponse(
+                (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
+    }
+
+    @Override
     public void eventClusterEvent(NanClusterEventInd event) {
         if (!checkFrameworkCallback()) return;
         if (mVerboseLoggingEnabled) {
