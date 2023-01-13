@@ -63,6 +63,7 @@ import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.util.Log;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.aware.Capabilities;
 
 import java.nio.charset.StandardCharsets;
@@ -75,7 +76,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     private android.hardware.wifi.IWifiNanIface mWifiNanIface;
     private String mIfaceName;
     private final Object mLock = new Object();
-    private WifiNanIfaceCallbackAidlImpl mHalCallback;
+    private final WifiNanIfaceCallbackAidlImpl mHalCallback;
     private WifiNanIface.Callback mFrameworkCallback;
 
     public WifiNanIfaceAidlImpl(@NonNull android.hardware.wifi.IWifiNanIface nanIface) {
@@ -149,8 +150,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             if (!checkIfaceAndLogFailure(methodStr)) return null;
             if (mIfaceName != null) return mIfaceName;
             try {
-                String ifaceName = mWifiNanIface.getName();
-                mIfaceName = ifaceName;
+                mIfaceName = mWifiNanIface.getName();
                 return mIfaceName;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
@@ -789,6 +789,9 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             }
         }
 
+        req.baseConfigs.enableSessionSuspendability = SdkLevel.isAtLeastU()
+                && publishConfig.isSuspendable();
+
         req.publishType = publishConfig.mPublishType;
         req.txType = NanTxType.BROADCAST;
         req.pairingConfig = createAidlPairingConfig(publishConfig.getPairingConfig());
@@ -841,6 +844,9 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.baseConfigs.securityConfig.pmk = new byte[32];
         req.baseConfigs.securityConfig.passphrase = new byte[0];
         req.baseConfigs.securityConfig.scid = new byte[16];
+
+        req.baseConfigs.enableSessionSuspendability = SdkLevel.isAtLeastU()
+                && subscribeConfig.isSuspendable();
 
         req.subscribeType = subscribeConfig.mSubscribeType;
         req.pairingConfig = createAidlPairingConfig(subscribeConfig.getPairingConfig());

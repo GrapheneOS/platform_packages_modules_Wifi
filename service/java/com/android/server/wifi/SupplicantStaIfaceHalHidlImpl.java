@@ -2017,6 +2017,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
                 return false;
             }
             ISupplicantStaIface iface = checkSupplicantStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) return false;
             // Get a v1.4 supplicant STA Interface
             android.hardware.wifi.supplicant.V1_4.ISupplicantStaIface staIfaceV14 =
                     getStaIfaceMockableV1_4(iface);

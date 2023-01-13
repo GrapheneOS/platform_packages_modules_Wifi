@@ -857,7 +857,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         // constructed configs.
         PublishConfig publishConfig = new PublishConfig(serviceName.getBytes(), ssi, matchFilter,
                 PublishConfig.PUBLISH_TYPE_UNSOLICITED, 0, true, false, false,
-                WifiScanner.WIFI_BAND_24_GHZ, null, null);
+                WifiScanner.WIFI_BAND_24_GHZ, null, null, false);
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -874,7 +874,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         // constructed configs.
         SubscribeConfig subscribeConfig = new SubscribeConfig(serviceName.getBytes(), ssi,
                 matchFilter, SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE, 0, true, false, 0, false, 0,
-                false, WifiScanner.WIFI_BAND_24_GHZ, null);
+                false, WifiScanner.WIFI_BAND_24_GHZ, null, false);
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);

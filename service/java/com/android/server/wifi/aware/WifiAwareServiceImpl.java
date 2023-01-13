@@ -249,6 +249,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         enforceChangePermission();
         mStateManager.removePairedDevice(callingPackage, alias);
     }
+
     @Override
     public void getPairedDevices(String callingPackage, @NonNull
             IWifiAwarePairedDevicesListener listener) {
@@ -403,8 +404,13 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException("PublishConfig must not be null");
         }
         publishConfig.assertValid(mStateManager.getCharacteristics(),
-                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)
-        );
+                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT));
+
+        if (SdkLevel.isAtLeastU() && publishConfig.isSuspendable()
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
 
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
@@ -424,10 +430,15 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException("PublishConfig must not be null");
         }
         publishConfig.assertValid(mStateManager.getCharacteristics(),
-                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)
-        );
+                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT));
 
         int uid = getMockableCallingUid();
+        if (SdkLevel.isAtLeastU() && publishConfig.isSuspendable()
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
+
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "updatePublish: uid=" + uid + ", clientId=" + clientId + ", sessionId="
@@ -457,8 +468,13 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException("SubscribeConfig must not be null");
         }
         subscribeConfig.assertValid(mStateManager.getCharacteristics(),
-                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)
-        );
+                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT));
+
+        if (SdkLevel.isAtLeastU() && subscribeConfig.isSuspendable()
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
 
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
@@ -478,10 +494,15 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException("SubscribeConfig must not be null");
         }
         subscribeConfig.assertValid(mStateManager.getCharacteristics(),
-                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)
-        );
+                mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT));
 
         int uid = getMockableCallingUid();
+        if (SdkLevel.isAtLeastU() && subscribeConfig.isSuspendable()
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
+
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "updateSubscribe: uid=" + uid + ", clientId=" + clientId + ", sessionId="
