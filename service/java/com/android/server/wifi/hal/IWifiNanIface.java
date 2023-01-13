@@ -285,4 +285,22 @@ public interface IWifiNanIface {
      */
     boolean respondToNanBootstrappingRequest(short transactionId, int bootstrappingId,
             boolean accept);
+
+    /**
+     * Suspend the specified Aware session.
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param pubSubId ID of the existing publish/subscribe session.
+     * @return True if the request sent successfully.
+     */
+    boolean suspend(short transactionId, byte pubSubId);
+
+    /**
+     * Resume the specified (suspended) Aware session.
+     * @param transactionId Transaction ID for the transaction - used in the
+     *            async callback to match with the original request.
+     * @param pubSubId ID of the existing publish/subscribe session.
+     * @return True if the request sent successfully.
+     */
+    boolean resume(short transactionId, byte pubSubId);
 }

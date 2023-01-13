@@ -808,6 +808,50 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         return iface.respondToBootstrappingRequest(transactionId, bootstrappingId, accept);
     }
 
+    /**
+     * Suspends the specified Aware session.
+     * @param transactionId transactionId Transaction ID for the transaction -
+     *            used in the async callback to match with the original request.
+     * @param pubSubId ID of the existing publish/subscribe session.
+     * @return True if the request is sent successfully.
+     */
+    public boolean suspendRequest(short transactionId, byte pubSubId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "suspendRequest: transactionId=" + transactionId);
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "suspendRequest: null interface");
+            return false;
+        }
+
+        return iface.suspendRequest(transactionId, pubSubId);
+    }
+
+    /**
+     * Resumes the specified (suspended) Aware session.
+     * @param transactionId transactionId Transaction ID for the transaction -
+     *            used in the async callback to match with the original request.
+     * @param pubSubId ID of the existing publish/subscribe session.
+     * @return True if the request is sent successfully.
+     */
+    public boolean resumeRequest(short transactionId, byte pubSubId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "resumeRequest: transactionId=" + transactionId);
+        }
+        recordTransactionId(transactionId);
+
+        WifiNanIface iface = mHal.getWifiNanIface();
+        if (iface == null) {
+            Log.e(TAG, "resumeRequest: null interface");
+            return false;
+        }
+
+        return iface.resumeRequest(transactionId, pubSubId);
+    }
+
     // utilities
 
     /**
