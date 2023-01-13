@@ -303,7 +303,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private WifiAwareStateMachine mSm;
     public WifiAwareDataPathStateManager mDataPathMgr;
     private PowerManager mPowerManager;
-    private LocationManager mLocationManager;
     private InterfaceConflictManager mInterfaceConflictMgr;
     private WifiManager mWifiManager;
     private Handler mHandler;
@@ -630,7 +629,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 wifiPermissionsUtil, permissionsWrapper, netdWrapper);
 
         mPowerManager = mContext.getSystemService(PowerManager.class);
-        mLocationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
         mWifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
 
         IntentFilter intentFilter = new IntentFilter();
@@ -3717,7 +3715,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 + ", securityConfig=" + ((securityConfig == null) ? "" : securityConfig)
                 + ", isOutOfBand="
                 + isOutOfBand + ", appInfo=" + (appInfo == null ? "<null>" : "<non-null>"));
-
 
         boolean success = mWifiAwareNativeApi.initiateDataPath(transactionId, peerId,
                 channelRequestType, channel, peer, interfaceName, isOutOfBand,
