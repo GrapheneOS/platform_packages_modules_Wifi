@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"نیٹ ورک کی تصدیق کی ضرورت ہے"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"منسلک ہونے سے قبل <xliff:g id="SSID">%1$s</xliff:g> کے لیے نیٹ ورک کی تفصیلات کا جائزہ لیں۔ جاری رکھنے کیلئے تھپتھپائیں۔"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"سرٹیفکیٹ انسٹالیشن ناکام ہو گیا۔"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> سے منسلک نہیں کر سکتے"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"سرور سرٹیفکیٹ چین غلط ہے۔"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ٹھیک ہے"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"اس نیٹ ورک کی توثیق نہیں کر سکتے"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"بہرحال منسلک کریں"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"منسلک نہ کریں"</string>

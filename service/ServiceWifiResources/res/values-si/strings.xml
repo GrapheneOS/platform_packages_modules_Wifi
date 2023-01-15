@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"ජාලය සත්‍යාපනය කිරීම අවශ්‍ය වේ"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"සම්බන්ධ වීමට පෙර <xliff:g id="SSID">%1$s</xliff:g> සඳහා ජාල විස්තර සමාලෝචනය කරන්න. ඉදිරියට යාමට තට්ටු කරන්න."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"සහතික ස්ථාපනය කිරීම අසාර්ථක විය."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> වෙත සම්බන්ධ විය නොහැක"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"සේවාදායක සහතික දාමය අවලංගුයි."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"හරි"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"මෙම ජාලය සත්‍යාපනය කළ නොහැකිය"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"කෙසේ වෙතත් සම්බන්ධ කරන්න"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"සම්බන්ධ නොකරන්න"</string>

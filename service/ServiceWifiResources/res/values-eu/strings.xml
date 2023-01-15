@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Sarea egiaztatu egin behar da"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Konektatu aurretik, berrikusi <xliff:g id="SSID">%1$s</xliff:g> sarearen xehetasunak. Sakatu hau aurrera egiteko."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Ezin izan da instalatu ziurtagiria."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Ezin da konektatu <xliff:g id="VALUE">%1$s</xliff:g> sarera"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Zerbitzari-ziurtagiriaren kateak ez du balio."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Ados"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Ezin da egiaztatu sarea"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Konektatu halere"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Ez konektatu"</string>

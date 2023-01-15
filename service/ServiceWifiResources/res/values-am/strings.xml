@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"አውታረ መረብ መረጋገጥ አለበት"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"ከማገናኘትዎ በፊት የአውታረ መረብ ዝርዝሮችን ለ<xliff:g id="SSID">%1$s</xliff:g> ይገምግሙ። ለመቀጠል መታ ያድርጉ።"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"የእውቅና ማረጋገጫ መጫን አልተሳካም።"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"ከ<xliff:g id="VALUE">%1$s</xliff:g> ጋር መገናኘት አልተቻለም"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"የአገልጋይ እውቅና ማረጋገጫ ሰንሰለቱ ልክ አይደለም።"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"እሺ"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ይህን አውታረ መረብ ማረጋገጥ አልተቻለም"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"ለማንኛውም ተገናኝ"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"አታገናኝ"</string>
