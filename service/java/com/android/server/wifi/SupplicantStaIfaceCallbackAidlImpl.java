@@ -49,6 +49,7 @@ import android.hardware.wifi.supplicant.MboAssocDisallowedReasonCode;
 import android.hardware.wifi.supplicant.MboCellularDataConnectionPrefValue;
 import android.hardware.wifi.supplicant.MboTransitionReasonCode;
 import android.hardware.wifi.supplicant.QosPolicyData;
+import android.hardware.wifi.supplicant.QosPolicyScsResponseStatus;
 import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
@@ -1294,6 +1295,15 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             throws android.os.RemoteException {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onBssFrequencyChanged: frequency " + frequencyMhz);
+        }
+    }
+
+    @Override
+    public void onQosPolicyResponseForScs(QosPolicyScsResponseStatus[] qosPolicyScsResponseStatus)
+            throws android.os.RemoteException {
+        synchronized (mLock) {
+            mStaIfaceHal.logCallback("onQosPolicyResponseForScs: size="
+                    + qosPolicyScsResponseStatus.length);
         }
     }
 }
