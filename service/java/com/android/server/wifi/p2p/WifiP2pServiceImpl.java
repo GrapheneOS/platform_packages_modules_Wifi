@@ -1182,18 +1182,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                     }
                 }, new IntentFilter(LocationManager.MODE_CHANGED_ACTION));
-                // Register for tethering state
-                if (!SdkLevel.isAtLeastS()) {
-                    mContext.registerReceiver(new BroadcastReceiver() {
-                        @Override
-                        public void onReceive(Context context, Intent intent) {
-                            final ArrayList<String> interfaces = intent.getStringArrayListExtra(
-                                    TetheringManager.EXTRA_ACTIVE_LOCAL_ONLY);
-
-                            sendMessage(TETHER_INTERFACE_STATE_CHANGED, interfaces);
-                        }
-                    }, new IntentFilter(TetheringManager.ACTION_TETHER_STATE_CHANGED));
-                }
                 mSettingsConfigStore.registerChangeListener(
                         WIFI_VERBOSE_LOGGING_ENABLED,
                         (key, newValue) -> enableVerboseLogging(newValue),
