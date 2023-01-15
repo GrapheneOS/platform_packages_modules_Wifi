@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
@@ -26,9 +27,12 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiNetworkSelectionConfig;
+import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.wifi.resources.R;
 
 import org.junit.Before;
@@ -392,5 +396,40 @@ public class ScoringParamsTest extends WifiBaseTest {
         assertEquals(mSufficient6GHz, mScoringParams.getSufficientRssi(6255));
         assertEquals(mGood6GHz, mScoringParams.getGoodRssi(6275));
         assertEquals(mGood6GHz, mScoringParams.getGoodRssi(ScanResult.BAND_6_GHZ_START_FREQ_MHZ));
+    }
+
+    /**
+     * Check that frequency weight score returns the expected value
+     */
+    @Test
+    public void testGetFrequencyScore() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        // Without setting frequency weights, frequency score should return default value
+        assertEquals(mScoringParams.getFrequencyScore(ScanResult.BAND_24_GHZ_START_FREQ_MHZ),
+                ScoringParams.FREQUENCY_WEIGHT_DEFAULT);
+        assertEquals(mScoringParams.getFrequencyScore(ScanResult.BAND_5_GHZ_START_FREQ_MHZ),
+                ScoringParams.FREQUENCY_WEIGHT_DEFAULT);
+        assertEquals(mScoringParams.getFrequencyScore(ScanResult.BAND_6_GHZ_START_FREQ_MHZ),
+                ScoringParams.FREQUENCY_WEIGHT_DEFAULT);
+
+        // Set frequency weights
+        SparseArray<Integer> weights = new SparseArray<>();
+        weights.put(ScanResult.BAND_24_GHZ_START_FREQ_MHZ,
+                WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_LOW);
+        weights.put(ScanResult.BAND_6_GHZ_START_FREQ_MHZ,
+                WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_HIGH);
+        mScoringParams.setFrequencyWeights(weights);
+
+        // Verify the frequency score change
+        assertEquals(mScoringParams.getFrequencyScore(ScanResult.BAND_24_GHZ_START_FREQ_MHZ),
+                ScoringParams.FREQUENCY_WEIGHT_LOW);
+        assertEquals(mScoringParams.getFrequencyScore(ScanResult.BAND_6_GHZ_START_FREQ_MHZ),
+                ScoringParams.FREQUENCY_WEIGHT_HIGH);
+
+        // Verify frequency not present in the list returns the default score
+        assertEquals(mScoringParams.getFrequencyScore(2000),
+                ScoringParams.FREQUENCY_WEIGHT_DEFAULT);
+        assertEquals(mScoringParams.getFrequencyScore(6000),
+                ScoringParams.FREQUENCY_WEIGHT_DEFAULT);
     }
 }

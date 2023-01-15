@@ -21,13 +21,17 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiNetworkSelectionConfig;
+import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiCandidates.Candidate;
 import com.android.server.wifi.WifiCandidates.CandidateScorer;
 import com.android.server.wifi.WifiCandidates.ScoredCandidate;
@@ -551,6 +555,32 @@ public class CandidateScorerTest extends WifiBaseTest {
             // Increasing the scoring bucket size should allow more band bonus to get applied.
             doReturn(1000).when(mScoringParams).getScoringBucketStepSize();
             assertEquals(scoreNoBandBonus + 500, evaluate(mCandidate1), TOL);
+        }
+    }
+
+    @Test
+    public void testFrequencyScore() {
+        assumeTrue(SdkLevel.isAtLeastT());
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            // setup two candidates with the same RSSI
+            mCandidate1 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-77).setFrequency(5180);
+            mCandidate2 = new ConcreteCandidate().setNominatorId(0)
+                    .setScanRssi(-77).setFrequency(5975);
+
+            // both should be equal score
+            assertEquals(evaluate(mCandidate2), evaluate(mCandidate1), TOL);
+
+            // set high frequency weight and verify candidate 2 has higher score
+            SparseArray<Integer> weights = new SparseArray<>();
+            weights.put(5975, WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_HIGH);
+            mScoringParams.setFrequencyWeights(weights);
+            assertTrue(evaluate(mCandidate2) > evaluate(mCandidate1));
+
+            // set low frequency weight and verify candidate 2 has lower score
+            weights.put(5975, WifiNetworkSelectionConfig.FREQUENCY_WEIGHT_LOW);
+            mScoringParams.setFrequencyWeights(weights);
+            assertTrue(evaluate(mCandidate2) < evaluate(mCandidate1));
         }
     }
 }

@@ -842,6 +842,7 @@ package android.net.wifi {
   public final class WifiNetworkSelectionConfig implements android.os.Parcelable {
     method public int describeContents();
     method public int getAssociatedNetworkSelectionOverride();
+    method @NonNull public android.util.SparseArray<java.lang.Integer> getFrequencyWeights();
     method @NonNull public int[] getRssiThresholds(int);
     method public boolean isLastSelectionWeightEnabled();
     method public boolean isSufficiencyCheckEnabledWhenScreenOff();
@@ -852,6 +853,8 @@ package android.net.wifi {
     field public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED = 1; // 0x1
     field public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE = 0; // 0x0
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiNetworkSelectionConfig> CREATOR;
+    field public static final int FREQUENCY_WEIGHT_HIGH = 1; // 0x1
+    field public static final int FREQUENCY_WEIGHT_LOW = 0; // 0x0
   }
 
   public static final class WifiNetworkSelectionConfig.Builder {
@@ -859,6 +862,7 @@ package android.net.wifi {
     ctor public WifiNetworkSelectionConfig.Builder(@NonNull android.net.wifi.WifiNetworkSelectionConfig);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig build();
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setAssociatedNetworkSelectionOverride(int) throws java.lang.IllegalArgumentException;
+    method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setFrequencyWeights(@NonNull android.util.SparseArray<java.lang.Integer>) throws java.lang.IllegalArgumentException;
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setLastSelectionWeightEnabled(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setRssiThresholds(int, @NonNull int[]) throws java.lang.IllegalArgumentException;
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setSufficiencyCheckEnabledWhenScreenOff(boolean);
