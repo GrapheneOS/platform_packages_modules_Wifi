@@ -842,6 +842,7 @@ package android.net.wifi {
   public final class WifiNetworkSelectionConfig implements android.os.Parcelable {
     method public int describeContents();
     method public int getAssociatedNetworkSelectionOverride();
+    method @NonNull public android.util.SparseArray<java.lang.Integer> getFrequencyWeights();
     method @NonNull public int[] getRssiThresholds(int);
     method public boolean isLastSelectionWeightEnabled();
     method public boolean isSufficiencyCheckEnabledWhenScreenOff();
@@ -852,6 +853,8 @@ package android.net.wifi {
     field public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED = 1; // 0x1
     field public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE = 0; // 0x0
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiNetworkSelectionConfig> CREATOR;
+    field public static final int FREQUENCY_WEIGHT_HIGH = 1; // 0x1
+    field public static final int FREQUENCY_WEIGHT_LOW = 0; // 0x0
   }
 
   public static final class WifiNetworkSelectionConfig.Builder {
@@ -859,6 +862,7 @@ package android.net.wifi {
     ctor public WifiNetworkSelectionConfig.Builder(@NonNull android.net.wifi.WifiNetworkSelectionConfig);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig build();
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setAssociatedNetworkSelectionOverride(int) throws java.lang.IllegalArgumentException;
+    method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setFrequencyWeights(@NonNull android.util.SparseArray<java.lang.Integer>) throws java.lang.IllegalArgumentException;
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setLastSelectionWeightEnabled(boolean);
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setRssiThresholds(int, @NonNull int[]) throws java.lang.IllegalArgumentException;
     method @NonNull public android.net.wifi.WifiNetworkSelectionConfig.Builder setSufficiencyCheckEnabledWhenScreenOff(boolean);
@@ -1038,17 +1042,25 @@ package android.net.wifi {
     method public int getCellularSignalStrengthDbm();
     method @IntRange(from=0xffffffff, to=255) public int getChannelUtilizationRatio();
     method @NonNull public android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats getContentionTimeStats(int);
+    method @NonNull public android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats getContentionTimeStats(int, int);
+    method @Nullable public int[] getLinkIds();
     method public int getLinkSpeedMbps();
     method public int getProbeElapsedTimeSinceLastUpdateMillis();
     method public int getProbeMcsRateSinceLastUpdate();
     method public int getProbeStatusSinceLastUpdate();
+    method public long getRadioId(int);
     method @NonNull public java.util.List<android.net.wifi.WifiUsabilityStatsEntry.RateStats> getRateStats();
+    method @NonNull public java.util.List<android.net.wifi.WifiUsabilityStatsEntry.RateStats> getRateStats(int);
     method public int getRssi();
+    method public int getRssi(int);
     method public int getRxLinkSpeedMbps();
+    method public int getRxLinkSpeedMbps(int);
     method @IntRange(from=0, to=100) public int getTimeSliceDutyCycleInPercent();
+    method @IntRange(from=0, to=100) public int getTimeSliceDutyCycleInPercent(int);
     method public long getTimeStampMillis();
     method public long getTotalBackgroundScanTimeMillis();
     method public long getTotalBeaconRx();
+    method public long getTotalBeaconRx(int);
     method public long getTotalCcaBusyFreqTimeMillis();
     method public long getTotalHotspot2ScanTimeMillis();
     method public long getTotalNanScanTimeMillis();
@@ -1059,10 +1071,15 @@ package android.net.wifi {
     method public long getTotalRadioTxTimeMillis();
     method public long getTotalRoamScanTimeMillis();
     method public long getTotalRxSuccess();
+    method public long getTotalRxSuccess(int);
     method public long getTotalScanTimeMillis();
     method public long getTotalTxBad();
+    method public long getTotalTxBad(int);
     method public long getTotalTxRetries();
+    method public long getTotalTxRetries(int);
     method public long getTotalTxSuccess();
+    method public long getTotalTxSuccess(int);
+    method public int getTxLinkSpeedMbps(int);
     method @NonNull public java.util.List<android.net.wifi.WifiUsabilityStatsEntry.RadioStats> getWifiLinkLayerRadioStats();
     method public boolean isCellularDataAvailable();
     method public boolean isSameRegisteredCell();

@@ -25,8 +25,11 @@ package android.net.wifi {
     method public int getBand();
     method @IntRange(from=1) public int getChannel();
     method @IntRange(from=android.net.wifi.MloLink.INVALID_MLO_LINK_ID, to=0xf) public int getLinkId();
+    method public int getRssi();
+    method @IntRange(from=0xffffffff) public int getRxLinkSpeedMbps();
     method @Nullable public android.net.MacAddress getStaMacAddress();
     method public int getState();
+    method @IntRange(from=0xffffffff) public int getTxLinkSpeedMbps();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.MloLink> CREATOR;
     field public static final int INVALID_MLO_LINK_ID = -1; // 0xffffffff
@@ -359,6 +362,7 @@ package android.net.wifi {
     method @NonNull public java.util.List<android.net.wifi.MloLink> getAffiliatedMloLinks();
     method @Nullable public android.net.MacAddress getApMldMacAddress();
     method @IntRange(from=android.net.wifi.MloLink.INVALID_MLO_LINK_ID, to=0xf) public int getApMloLinkId();
+    method @NonNull public java.util.List<android.net.wifi.MloLink> getAssociatedMloLinks();
     method public String getBSSID();
     method public int getCurrentSecurityType();
     method public static android.net.NetworkInfo.DetailedState getDetailedStateOf(android.net.wifi.SupplicantState);
