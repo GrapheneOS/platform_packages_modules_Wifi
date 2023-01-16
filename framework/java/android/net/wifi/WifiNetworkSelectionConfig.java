@@ -20,8 +20,12 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.SystemApi;
 import android.net.wifi.ScanResult.WifiBand;
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.SparseArray;
+
+import androidx.annotation.RequiresApi;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -34,6 +38,7 @@ import java.util.function.Consumer;
  * @hide
  */
 @SystemApi
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 public final class WifiNetworkSelectionConfig implements Parcelable {
     /** @hide */
     @Retention(RetentionPolicy.SOURCE)
@@ -62,6 +67,24 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
      */
     public static final int ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED = 2;
 
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"FREQUENCY_WEIGHT_"}, value = {
+            FREQUENCY_WEIGHT_LOW,
+            FREQUENCY_WEIGHT_HIGH})
+    public @interface FrequencyWeight {}
+
+    /**
+     * A constant used in {@link Builder#setFrequencyWeights(SparseArray)} to indicate a low
+     * preference for the frequency it's associated with.
+     */
+    public static final int FREQUENCY_WEIGHT_LOW = 0;
+    /**
+     * A constant used in {@link Builder#setFrequencyWeights(SparseArray)} to indicate a high
+     * preference for the frequency it's associated with.
+     */
+    public static final int FREQUENCY_WEIGHT_HIGH = 1;
+
     private boolean mSufficiencyCheckEnabledWhenScreenOff = true;
     private boolean mSufficiencyCheckEnabledWhenScreenOn = true;
     private boolean mUserConnectChoiceOverrideEnabled = true;
@@ -76,6 +99,9 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
 
     /** RSSI thresholds for 6 GHz band (dBm) */
     private int[] mRssi6Thresholds = new int[4];
+
+    /** Frequency weight list */
+    private SparseArray<Integer> mFrequencyWeights = new SparseArray<>();
 
     // empty constructor
     private WifiNetworkSelectionConfig() {
@@ -92,6 +118,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         mRssi2Thresholds = that.mRssi2Thresholds;
         mRssi5Thresholds = that.mRssi5Thresholds;
         mRssi6Thresholds = that.mRssi6Thresholds;
+        mFrequencyWeights = that.mFrequencyWeights;
     }
 
     /**
@@ -146,7 +173,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
     }
 
     private static boolean isValidRssiThresholdArray(int[] thresholds) {
-        if (thresholds.length != 4) return false;
+        if (thresholds == null || thresholds.length != 4) return false;
 
         if (!isRssiThresholdResetArray(thresholds)) {
             int low = WifiInfo.MIN_RSSI - 1;
@@ -157,6 +184,16 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 }
                 low = thresholds[i];
             }
+        }
+        return true;
+    }
+
+    private static boolean isValidFrequencyWeightArray(SparseArray<Integer> weights) {
+        if (weights == null) return false;
+
+        for (int i = 0; i < weights.size(); i++) {
+            int value = weights.valueAt(i);
+            if (value < FREQUENCY_WEIGHT_LOW || value > FREQUENCY_WEIGHT_HIGH) return false;
         }
         return true;
     }
@@ -180,7 +217,8 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         return isValidAssociatedNetworkSelectionOverride(mAssociatedNetworkSelectionOverride)
                 && isValidRssiThresholdArray(mRssi2Thresholds)
                 && isValidRssiThresholdArray(mRssi5Thresholds)
-                && isValidRssiThresholdArray(mRssi6Thresholds);
+                && isValidRssiThresholdArray(mRssi6Thresholds)
+                && isValidFrequencyWeightArray(mFrequencyWeights);
     }
 
     /**
@@ -205,6 +243,13 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
     }
 
     /**
+     * See {@link Builder#setFrequencyWeights(SparseArray)}.
+     */
+    public @NonNull SparseArray<Integer> getFrequencyWeights() {
+        return mFrequencyWeights;
+    }
+
+    /**
      * Used to create a {@link WifiNetworkSelectionConfig} Object.
      */
     public static final class Builder {
@@ -220,6 +265,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
             mWifiNetworkSelectionConfig.mRssi2Thresholds = new int[4];
             mWifiNetworkSelectionConfig.mRssi5Thresholds = new int[4];
             mWifiNetworkSelectionConfig.mRssi6Thresholds = new int[4];
+            mWifiNetworkSelectionConfig.mFrequencyWeights = new SparseArray<>();
         }
 
         public Builder(@NonNull WifiNetworkSelectionConfig config) {
@@ -410,6 +456,38 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
             return this;
         }
 
+        /**
+         * Sets the frequency weights that will be used by the network selector to provide
+         * a bonus or penalty to the specified frequencies in the list.
+         * <p>
+         * The input SparseArray has to adhere to the following (key, value) format.
+         * Key: frequency the weight needs to be applied to in MHz (ex. 5201MHz -> 5201)
+         * Value: one of {@link FrequencyWeight}
+         * <ul>
+         *      <li>{@link #FREQUENCY_WEIGHT_LOW}</li>
+         *      <li>{@link #FREQUENCY_WEIGHT_HIGH}</li>
+         * </ul>
+         * <p>
+         * By default, all frequencies not present in the list will not have any frequency weight.
+         * <p>
+         * To removed the frequency weights set, pass in an empty SparseArray.
+         * The network selector will go back to treating all the frequencies with
+         * an equal preference.
+         * @param weights frequency weights
+         * @throws IllegalArgumentException if the input is invalid.
+         */
+        public @NonNull Builder setFrequencyWeights(@NonNull SparseArray<Integer> weights)
+                throws IllegalArgumentException {
+            if (!isValidFrequencyWeightArray(weights)) {
+                if (weights == null) {
+                    throw new IllegalArgumentException("Invalid frequency weights=null");
+                }
+                throw new IllegalArgumentException("Invalid frequency weights="
+                        + weights.toString());
+            }
+            mWifiNetworkSelectionConfig.mFrequencyWeights = weights;
+            return this;
+        }
 
         /**
          * Creates a WifiNetworkSelectionConfig for use in
@@ -426,7 +504,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 mSufficiencyCheckEnabledWhenScreenOn, mAssociatedNetworkSelectionOverride,
                 mUserConnectChoiceOverrideEnabled, mLastSelectionWeightEnabled,
                 Arrays.hashCode(mRssi2Thresholds), Arrays.hashCode(mRssi5Thresholds),
-                Arrays.hashCode(mRssi6Thresholds));
+                Arrays.hashCode(mRssi6Thresholds), mFrequencyWeights.contentHashCode());
     }
 
     @Override
@@ -445,7 +523,8 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 && mLastSelectionWeightEnabled == lhs.mLastSelectionWeightEnabled
                 && Arrays.equals(mRssi2Thresholds, lhs.mRssi2Thresholds)
                 && Arrays.equals(mRssi5Thresholds, lhs.mRssi5Thresholds)
-                && Arrays.equals(mRssi6Thresholds, lhs.mRssi6Thresholds);
+                && Arrays.equals(mRssi6Thresholds, lhs.mRssi6Thresholds)
+                && mFrequencyWeights.contentEquals(lhs.mFrequencyWeights);
     }
 
     public static final @NonNull Creator<WifiNetworkSelectionConfig> CREATOR =
@@ -461,6 +540,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                     in.readIntArray(config.mRssi2Thresholds);
                     in.readIntArray(config.mRssi5Thresholds);
                     in.readIntArray(config.mRssi6Thresholds);
+                    config.mFrequencyWeights = in.readSparseArray(null, java.lang.Integer.class);
                     return config;
                 }
 
@@ -485,6 +565,7 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
         dest.writeIntArray(mRssi2Thresholds);
         dest.writeIntArray(mRssi5Thresholds);
         dest.writeIntArray(mRssi6Thresholds);
+        dest.writeSparseArray(mFrequencyWeights);
     }
 
     @Override
@@ -505,7 +586,9 @@ public final class WifiNetworkSelectionConfig implements Parcelable {
                 .append(", mRssi5Thresholds=")
                 .append(Arrays.toString(mRssi5Thresholds))
                 .append(", mRssi6Thresholds=")
-                .append(Arrays.toString(mRssi6Thresholds));
+                .append(Arrays.toString(mRssi6Thresholds))
+                .append(", mFrequencyWeights=")
+                .append(mFrequencyWeights.toString());
         return sb.toString();
     }
 }
