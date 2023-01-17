@@ -10591,4 +10591,25 @@ public class WifiManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Remove all application-initiated QoS policies requested by this caller,
+     * previously added via {@link #addQosPolicy(QosPolicyParams)}.
+     *
+     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION
+    })
+    public void removeAllQosPolicies() {
+        try {
+            mService.removeAllQosPolicies();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }
