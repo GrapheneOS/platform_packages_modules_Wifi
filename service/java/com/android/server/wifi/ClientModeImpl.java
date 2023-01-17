@@ -25,6 +25,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
@@ -3821,7 +3822,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     void registerDisconnected() {
-        if (isPrimary()) {
+        if (mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY
+                || mClientModeManager.getRole() == ROLE_CLIENT_SCAN_ONLY) {
             mWifiInjector.getActiveModeWarden().setCurrentNetwork(getCurrentNetwork());
         }
         if (mLastNetworkId != WifiConfiguration.INVALID_NETWORK_ID) {
