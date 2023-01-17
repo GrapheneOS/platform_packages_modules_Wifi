@@ -1016,4 +1016,7 @@
     <integer translatable="false" name="config_wifiDtimMultiplierIpv4Only">9</integer>
     <!-- Indicates the DTIM multiple value used when it has both IPv4 and IPv6 addresses -->
     <integer translatable="false" name="config_wifiDtimMultiplierIpv6Ipv4">2</integer>
+    <!-- Boolean indicating whether the firmware can handle the Wifi Aware request priority between
+    the offloading and framework-->
+    <bool translatable="false" name="config_wifiAwareOffloadingFirmwareHandlePriority">false</bool>
 </resources>
