@@ -2867,8 +2867,11 @@ public class WifiConnectivityManager {
                         // filter out candidates that are disabled.
                         WifiConfiguration config =
                                 mConfigManager.getConfiguredNetwork(candidate.getNetworkConfigId());
-                        return config != null
-                                && config.getNetworkSelectionStatus().isNetworkEnabled()
+                        if (config == null || mConfigManager.isNetworkTemporarilyDisabledByUser(
+                                config.isPasspoint() ? config.FQDN : config.SSID)) {
+                            return false;
+                        }
+                        return config.getNetworkSelectionStatus().isNetworkEnabled()
                                 && config.allowAutojoin;
                     })
                     .collect(Collectors.toList());
