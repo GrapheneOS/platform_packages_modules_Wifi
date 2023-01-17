@@ -113,6 +113,7 @@ import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
@@ -289,6 +290,7 @@ public class WifiServiceImpl extends BaseWifiService {
     @VisibleForTesting
     public final CountryCodeTracker mCountryCodeTracker;
     private final MultiInternetManager mMultiInternetManager;
+    private final DeviceConfigFacade mDeviceConfigFacade;
     private boolean mIsWifiServiceStarted = false;
 
     /**
@@ -523,6 +525,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mCountryCodeTracker = new CountryCodeTracker();
         mWifiTetheringDisallowed = false;
         mMultiInternetManager = mWifiInjector.getMultiInternetManager();
+        mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
     }
 
     /**
@@ -7147,5 +7150,43 @@ public class WifiServiceImpl extends BaseWifiService {
     public int getMaxNumberOfChannelsPerRequest() {
         return mContext.getResources()
                 .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
+    }
+
+    /**
+     * See {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+            Log.i(TAG, "addQosPolicy is disabled on this device");
+            return;
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + " is not allowed to add QoS policies");
+        }
+    }
+
+    /**
+     * See {@link WifiManager#removeQosPolicy(int)}.
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void removeQosPolicy(int policyId) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+            Log.i(TAG, "removeQosPolicy is disabled on this device");
+            return;
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
+        }
     }
 }
