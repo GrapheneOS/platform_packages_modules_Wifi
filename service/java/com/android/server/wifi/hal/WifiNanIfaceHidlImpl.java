@@ -274,6 +274,15 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
         return false;
     }
 
+    @Override
+    public boolean suspend(short transactionId, byte pubSubId) {
+        return false;
+    }
+
+    @Override
+    public boolean resume(short transactionId, byte pubSubId) {
+        return false;
+    }
 
     // Internal Implementations
 

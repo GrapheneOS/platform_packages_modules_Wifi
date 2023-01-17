@@ -95,7 +95,7 @@ public class WifiAwareNativeManager {
      * Returns the WifiNanIface through which commands to the NAN HAL are dispatched.
      * Return may be null if not initialized/available.
      */
-    @VisibleForTesting
+    @VisibleForTesting(visibility = VisibleForTesting.Visibility.PACKAGE)
     public WifiNanIface getWifiNanIface() {
         synchronized (mLock) {
             return mWifiNanIface;
