@@ -957,7 +957,7 @@ public class BaseWifiService extends IWifiManager.Stub {
 
     @Override
     public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
-            @NonNull String packageName) {
+            @NonNull String packageName, @NonNull IIntegerListener listener) {
         throw new UnsupportedOperationException();
     }
 

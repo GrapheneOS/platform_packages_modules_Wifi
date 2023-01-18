@@ -28,6 +28,7 @@ import android.net.wifi.IActionListener;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
@@ -420,7 +421,7 @@ interface IWifiManager
 
     int getMaxNumberOfChannelsPerRequest();
 
-    void addQosPolicy(in QosPolicyParams policyParams, in IBinder binder, String packageName);
+    void addQosPolicy(in QosPolicyParams policyParams, in IBinder binder, String packageName, in IIntegerListener callback);
 
     void removeQosPolicy(int policyId, String packageName);
 

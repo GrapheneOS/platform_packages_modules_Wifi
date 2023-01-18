@@ -94,6 +94,7 @@ import android.net.wifi.IActionListener;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
@@ -7153,24 +7154,36 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     * See {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
-            @NonNull String packageName) {
+            @NonNull String packageName, @NonNull IIntegerListener listener) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
-            Log.i(TAG, "addQosPolicy is disabled on this device");
-            return;
+            throw new UnsupportedOperationException("addQosPolicy is disabled on this device");
         }
+
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to add QoS policies");
         }
+
+        Objects.requireNonNull(policyParams, "policyParams cannot be null");
+        Objects.requireNonNull(binder, "binder cannot be null");
+        Objects.requireNonNull(listener, "listener cannot be null");
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**

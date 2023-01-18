@@ -1871,6 +1871,52 @@ public class WifiManager {
      */
     public static final String CHANNEL_DATA_KEY_NUM_AP = "CHANNEL_DATA_KEY_NUM_AP";
 
+    /**
+     * This policy is being tracked by the Wifi service.
+     * Indicates success for {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
+     * @hide
+     */
+    @SystemApi
+    public static final int QOS_REQUEST_STATUS_TRACKING = 0;
+
+    /**
+     * A policy with the same policy ID is already being tracked.
+     * @hide
+     */
+    @SystemApi
+    public static final int QOS_REQUEST_STATUS_ALREADY_ACTIVE = 1;
+
+    /**
+     * There are insufficient resources to handle this request at this time.
+     * @hide
+     */
+    @SystemApi
+    public static final int QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES = 2;
+
+    /**
+     * The parameters in the policy request are invalid.
+     * @hide
+     */
+    @SystemApi
+    public static final int QOS_REQUEST_STATUS_INVALID_PARAMETERS = 3;
+
+    /**
+     * An unspecified failure occurred while processing this request.
+     * @hide
+     */
+    @SystemApi
+    public static final int QOS_REQUEST_STATUS_FAILURE_UNKNOWN = 4;
+
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"QOS_REQUEST_STATUS_"}, value = {
+            QOS_REQUEST_STATUS_TRACKING,
+            QOS_REQUEST_STATUS_ALREADY_ACTIVE,
+            QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES,
+            QOS_REQUEST_STATUS_INVALID_PARAMETERS,
+            QOS_REQUEST_STATUS_FAILURE_UNKNOWN})
+    public @interface QosRequestStatus {}
+
     /* Number of currently active WifiLocks and MulticastLocks */
     @UnsupportedAppUsage
     private int mActiveLockCount;
@@ -10550,7 +10596,13 @@ public class WifiManager {
      *       remove it using {@link #removeQosPolicy(int)}, and then re-add it using this API.
      *
      * @param policyParams {@link QosPolicyParams} object describing the requested policy.
-     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return an integer status code
+     *                        from {@link QosRequestStatus}.
+     *
+     * @throws SecurityException if caller does not have the required permissions.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     * @throws UnsupportedOperationException if the feature is not enabled.
      * @hide
      */
     @SystemApi
@@ -10559,9 +10611,22 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             MANAGE_WIFI_NETWORK_SELECTION
     })
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams) {
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
         try {
-            mService.addQosPolicy(policyParams, new Binder(), mContext.getOpPackageName());
+            mService.addQosPolicy(policyParams, new Binder(), mContext.getOpPackageName(),
+                    new IIntegerListener.Stub() {
+                        @Override
+                        public void onResult(@QosRequestStatus int value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -10569,13 +10634,13 @@ public class WifiManager {
 
     /**
      * Remove an existing application-initiated QoS policy, previously added via
-     * {@link #addQosPolicy(QosPolicyParams)}.
+     * {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      *
      * Note: The policy is identified by its policy ID, which is assigned by the caller. The ID
      *       for a given policy can be retrieved using {@link QosPolicyParams#getPolicyId()}.
      *
      * @param policyId ID of the policy to remove.
-     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @throws SecurityException if caller does not have the required permissions.
      * @hide
      */
     @SystemApi
@@ -10594,9 +10659,9 @@ public class WifiManager {
 
     /**
      * Remove all application-initiated QoS policies requested by this caller,
-     * previously added via {@link #addQosPolicy(QosPolicyParams)}.
+     * previously added via {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      *
-     * @throws {@link SecurityException} if caller does not have the required permissions.
+     * @throws SecurityException if caller does not have the required permissions.
      * @hide
      */
     @SystemApi
