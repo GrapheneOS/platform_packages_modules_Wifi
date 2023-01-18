@@ -225,6 +225,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isAwareSuspensionEnabled());
         assertEquals(false, mDeviceConfigFacade.isHighPerfLockDeprecated());
         assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
+        assertEquals(false, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
     }
 
     /**
@@ -362,6 +363,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 anyBoolean())).thenReturn(true);
         when(DeviceConfig.getBoolean(anyString(), eq("oob_pseudonym_enabled"),
                 anyBoolean())).thenReturn(true);
+        when(DeviceConfig.getBoolean(anyString(), eq("application_qos_policy_api_enabled"),
+                anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
 
         // Verifying fields are updated to the new values
@@ -432,5 +435,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.isAwareSuspensionEnabled());
         assertEquals(true, mDeviceConfigFacade.isHighPerfLockDeprecated());
         assertEquals(true, mDeviceConfigFacade.isOobPseudonymEnabled());
+        assertEquals(true, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
     }
 }

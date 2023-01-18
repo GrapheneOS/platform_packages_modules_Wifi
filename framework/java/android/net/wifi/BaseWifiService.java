@@ -954,4 +954,19 @@ public class BaseWifiService extends IWifiManager.Stub {
     public int getMaxNumberOfChannelsPerRequest() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeQosPolicy(int policyId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeAllQosPolicies() {
+        throw new UnsupportedOperationException();
+    }
 }
