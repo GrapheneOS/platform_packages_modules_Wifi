@@ -832,6 +832,98 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                         alias, true));
     }
 
+    @Test
+    public void testSuspendWithSuspensionNotSupported() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mDut.suspend(clientId, sessionId));
+    }
+
+    @Test
+    public void testSuspendWithNoNetworkSelectionPermission() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        assertThrows(
+                SecurityException.class,
+                () -> mDut.suspend(clientId, sessionId));
+    }
+
+    @Test
+    public void testSuspendWithValidConfiguration() {
+        int sessionId = 345;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(true);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mDut.suspend(clientId, sessionId);
+
+        verify(mAwareStateManagerMock).suspend(clientId, sessionId);
+    }
+
+    @Test
+    public void testResumeWithSuspensionNotSupported() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        assertThrows(UnsupportedOperationException.class, () -> mDut.resume(clientId, sessionId));
+    }
+
+    @Test
+    public void testResumeWithNoNetworkSelectionPermission() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        assertThrows(
+                SecurityException.class,
+                () -> mDut.resume(clientId, sessionId));
+    }
+
+    @Test
+    public void testResumeWithValidConfiguration() {
+        int sessionId = 345;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(true);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mDut.resume(clientId, sessionId);
+
+        verify(mAwareStateManagerMock).resume(clientId, sessionId);
+    }
+
     /*
      * Utilities
      */

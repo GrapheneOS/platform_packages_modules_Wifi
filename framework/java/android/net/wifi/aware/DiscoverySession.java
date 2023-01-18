@@ -16,8 +16,11 @@
 
 package android.net.wifi.aware;
 
+import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.net.NetworkSpecifier;
 import android.os.Build;
@@ -349,6 +352,58 @@ public class DiscoverySession implements AutoCloseable {
             return;
         }
         mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method);
+    }
+
+    /**
+     * Put Aware connection into suspension mode to save power.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
+    public void suspend() {
+        if (mTerminated) {
+            Log.w(TAG, "suspend: called on terminated session");
+            throw new IllegalStateException("Suspend called on a terminated session.");
+        }
+
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "suspend: called post GC on WifiAwareManager");
+            throw new IllegalStateException("Failed to get WifiAwareManager.");
+        }
+
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+
+        mgr.suspend(mClientId, mSessionId);
+    }
+
+    /**
+     * Wake up Aware connection from suspension mode to transmit data.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
+    public void resume() {
+        if (mTerminated) {
+            Log.w(TAG, "resume: called on terminated session");
+            throw new IllegalStateException("Resume called on a terminated session.");
+        }
+
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "resume: called post GC on WifiAwareManager");
+            throw new IllegalStateException("Failed to get WifiAwareManager.");
+        }
+
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException();
+        }
+
+        mgr.resume(mClientId, mSessionId);
     }
 
     /**

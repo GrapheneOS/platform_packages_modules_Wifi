@@ -210,6 +210,79 @@ public class WifiAwareManager {
      */
     public static final int WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE = 1;
 
+    /** @hide */
+    @IntDef({
+            WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST,
+            WIFI_AWARE_SUSPEND_INVALID_SESSION,
+            WIFI_AWARE_SUSPEND_CANNOT_SUSPEND,
+            WIFI_AWARE_SUSPEND_INTERNAL_ERROR})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SessionSuspensionFailedReasonCode {}
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * session is already suspended.
+     * @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST = 0;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * specified session does not support suspension.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_INVALID_SESSION = 1;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * session could not be suspended due to more than one app using it.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_CANNOT_SUSPEND = 2;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when an
+     * error is encountered with the request.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_INTERNAL_ERROR = 3;
+
+    /** @hide */
+    @IntDef({
+            WIFI_AWARE_RESUME_REDUNDANT_REQUEST,
+            WIFI_AWARE_RESUME_INVALID_SESSION,
+            WIFI_AWARE_RESUME_INTERNAL_ERROR})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SessionResumptionFailedReasonCode {}
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when the
+     * session is not suspended.
+     * @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_REDUNDANT_REQUEST = 0;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when the
+     * specified session does not support suspension.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_INVALID_SESSION = 1;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when an
+     * error is encountered with the request.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_INTERNAL_ERROR = 2;
+
     private final Context mContext;
     private final IWifiAwareManager mService;
 
@@ -953,6 +1026,30 @@ public class WifiAwareManager {
         }
 
         @Override
+        public void onSessionSuspendSuccess() {
+            if (VDBG) Log.v(TAG, "onSessionSuspendSuccess");
+            mHandler.post(mOriginalCallback::onSessionSuspendSuccess);
+        }
+
+        @Override
+        public void onSessionSuspendFail(int reason) {
+            if (VDBG) Log.v(TAG, "onSessionSuspendFail: reason=" + reason);
+            mHandler.post(() -> mOriginalCallback.onSessionSuspendFailed(reason));
+        }
+
+        @Override
+        public void onSessionResumeSuccess() {
+            if (VDBG) Log.v(TAG, "onSessionResumeSuccess");
+            mHandler.post(mOriginalCallback::onSessionResumeSuccess);
+        }
+
+        @Override
+        public void onSessionResumeFail(int reason) {
+            if (VDBG) Log.v(TAG, "onSessionResumeFail: reason=" + reason);
+            mHandler.post(() -> mOriginalCallback.onSessionResumeFailed(reason));
+        }
+
+        @Override
         public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
                 int peerCipherSuite, byte[] scid, String pairingAlias,
                 AwarePairingConfig pairingConfig) {
@@ -1175,4 +1272,25 @@ public class WifiAwareManager {
         }
     }
 
+    /**
+     * @hide
+     */
+    public void suspend(int clientId, int sessionId) {
+        try {
+            mService.suspend(clientId, sessionId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void resume(int clientId, int sessionId) {
+        try {
+            mService.resume(clientId, sessionId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }
