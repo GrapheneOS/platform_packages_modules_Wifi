@@ -5221,6 +5221,48 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED, message.arg1);
     }
 
+    @Test
+    public void testGetListenStateWhenStarted() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiPermissionsUtil.checkCanAccessWifiDirect(anyString(), anyString(), anyInt(),
+                anyBoolean())).thenReturn(false);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.GET_LISTEN_STATE);
+        assertTrue(mClientHandler.hasMessages(WifiP2pManager.GET_LISTEN_STATE_FAILED));
+
+        when(mWifiPermissionsUtil.checkCanAccessWifiDirect(eq(TEST_PACKAGE_NAME), eq("testFeature"),
+                anyInt(), anyBoolean())).thenReturn(true);
+        when(mWifiNative.p2pExtListen(anyBoolean(), anyInt(), anyInt())).thenReturn(true);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.START_LISTEN);
+        verify(mWifiNative).p2pStopFind();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.GET_LISTEN_STATE);
+
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.STOP_LISTEN);
+        verify(mWifiNative, times(2)).p2pExtListen(anyBoolean(), anyInt(), anyInt());
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.GET_LISTEN_STATE);
+
+        verify(mClientHandler, times(5)).sendMessage(mMessageCaptor.capture());
+        List<Message> messages = mMessageCaptor.getAllValues();
+        assertEquals(WifiP2pManager.GET_LISTEN_STATE_FAILED, messages.get(0).what);
+        assertEquals(WifiP2pManager.START_LISTEN_SUCCEEDED, messages.get(1).what);
+        assertEquals(WifiP2pManager.RESPONSE_GET_LISTEN_STATE, messages.get(2).what);
+        assertEquals(WifiP2pManager.WIFI_P2P_LISTEN_STARTED, messages.get(2).arg1);
+
+        assertEquals(WifiP2pManager.STOP_LISTEN_SUCCEEDED, messages.get(3).what);
+        assertEquals(WifiP2pManager.RESPONSE_GET_LISTEN_STATE, messages.get(4).what);
+        assertEquals(WifiP2pManager.WIFI_P2P_LISTEN_STOPPED, messages.get(4).arg1);
+    }
+
+    @Test
+    public void testGetListenStateWhenStopped() throws Exception {
+        forceP2pEnabled(mClient1);
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.GET_LISTEN_STATE);
+
+        verify(mClientHandler).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.RESPONSE_GET_LISTEN_STATE, message.what);
+        assertEquals(WifiP2pManager.WIFI_P2P_LISTEN_STOPPED, message.arg1);
+    }
+
     /**
      * Verify that respond with RESPONSE_NETWORK_INFO
      * when caller sends REQUEST_NETWORK_INFO.
