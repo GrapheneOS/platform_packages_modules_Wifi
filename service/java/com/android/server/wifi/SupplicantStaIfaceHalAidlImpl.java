@@ -69,6 +69,7 @@ import android.hardware.wifi.supplicant.WpsConfigMethods;
 import android.net.DscpPolicy;
 import android.net.MacAddress;
 import android.net.NetworkAgent;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations;
@@ -3422,7 +3423,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 QosPolicyStatus halPolicyStatus = new QosPolicyStatus();
                 halPolicyStatus.policyId = (byte) frameworkPolicyStatus.policyId;
                 halPolicyStatus.status = dscpPolicyToAidlQosPolicyStatusCode(
-                        frameworkPolicyStatus.dscpPolicyStatus);
+                        frameworkPolicyStatus.statusCode);
                 halPolicyStatusList[index] = halPolicyStatus;
                 index++;
             }
@@ -3460,6 +3461,30 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             handleServiceSpecificException(e, methodStr);
         }
         return false;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#addQosPolicyRequestForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
+            @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeQosPolicyForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
+            @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
+            @NonNull String ifaceName) {
+        return null;
     }
 
     /**

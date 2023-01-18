@@ -149,11 +149,11 @@ public class QosPolicyRequestHandlerTest {
         for (QosPolicyStatus status : mQosStatusListCaptor.getValue()) {
             if (status.policyId == invalidPolicyRequest.policyId) {
                 assertEquals(NetworkAgent.DSCP_POLICY_STATUS_REQUEST_DECLINED,
-                        status.dscpPolicyStatus);
+                        status.statusCode);
             } else if (status.policyId == removePolicyRequest.policyId) {
-                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_DELETED, status.dscpPolicyStatus);
+                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_DELETED, status.statusCode);
             } else {  // valid add request
-                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.dscpPolicyStatus);
+                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.statusCode);
             }
         }
     }
@@ -186,7 +186,7 @@ public class QosPolicyRequestHandlerTest {
                     eq(QOS_REQUEST_DIALOG_TOKEN + i), eq(true), mQosStatusListCaptor.capture());
             assertEquals(policies.size(), mQosStatusListCaptor.getValue().size());
             for (QosPolicyStatus status : mQosStatusListCaptor.getValue()) {
-                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.dscpPolicyStatus);
+                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.statusCode);
             }
         }
     }
@@ -214,7 +214,7 @@ public class QosPolicyRequestHandlerTest {
                 eq(true), mQosStatusListCaptor.capture());
         assertEquals(policies.size(), mQosStatusListCaptor.getValue().size());
         for (QosPolicyStatus status : mQosStatusListCaptor.getValue()) {
-            assertEquals(NetworkAgent.DSCP_POLICY_STATUS_REQUEST_DECLINED, status.dscpPolicyStatus);
+            assertEquals(NetworkAgent.DSCP_POLICY_STATUS_REQUEST_DECLINED, status.statusCode);
         }
     }
 
@@ -272,9 +272,9 @@ public class QosPolicyRequestHandlerTest {
         for (QosPolicyStatus status : mQosStatusListCaptor.getValue()) {
             if (status.policyId == 3) {
                 assertEquals(NetworkAgent.DSCP_POLICY_STATUS_INSUFFICIENT_PROCESSING_RESOURCES,
-                        status.dscpPolicyStatus);
+                        status.statusCode);
             }  else {
-                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.dscpPolicyStatus);
+                assertEquals(NetworkAgent.DSCP_POLICY_STATUS_SUCCESS, status.statusCode);
             }
         }
     }

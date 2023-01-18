@@ -53,6 +53,7 @@ import android.hardware.wifi.supplicant.V1_4.LegacyMode;
 import android.hidl.manager.V1_0.IServiceManager;
 import android.hidl.manager.V1_0.IServiceNotification;
 import android.net.MacAddress;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations.WifiStandard;
@@ -3974,6 +3975,33 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     public boolean removeAllQosPolicies(String ifaceName) {
         throw new UnsupportedOperationException(
                 "removeAllQosPolicies is not supported by the HIDL HAL");
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#addQosPolicyRequestForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
+            @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
+        Log.e(TAG, "addQosPolicyRequestForScs is not supported by the HIDL HAL");
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeQosPolicyForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
+            @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
+        Log.e(TAG, "removeQosPolicyForScs is not supported by the HIDL HAL");
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
+            @NonNull String ifaceName) {
+        Log.e(TAG, "removeAllQosPoliciesForScs is not supported by the HIDL HAL");
+        return null;
     }
 
     /**
