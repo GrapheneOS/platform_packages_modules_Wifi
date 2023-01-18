@@ -2082,7 +2082,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Sending connection failure event to " + packageName);
         }
-        for (int i = 0; i < listenersTracker.beginBroadcast(); i++) {
+        final int n = listenersTracker.beginBroadcast();
+        for (int i = 0; i < n; i++) {
             try {
                 listenersTracker.getBroadcastItem(i).onConnectionStatus(networkSpecifier,
                         internalConnectionEventToLocalOnlyFailureCode(connectionEvent));
