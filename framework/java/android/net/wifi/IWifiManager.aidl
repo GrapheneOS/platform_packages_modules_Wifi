@@ -32,6 +32,7 @@ import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
 import android.net.wifi.IOnWifiDriverCountryCodeChangedListener;
@@ -336,6 +337,10 @@ interface IWifiManager
     void registerSuggestionConnectionStatusListener(in ISuggestionConnectionStatusListener listener, String packageName, String featureId);
 
     void unregisterSuggestionConnectionStatusListener(in ISuggestionConnectionStatusListener listener, String packageName);
+
+    void addLocalOnlyConnectionStatusListener(in ILocalOnlyConnectionStatusListener listener, String packageName, String featureId);
+
+    void removeLocalOnlyConnectionStatusListener(in ILocalOnlyConnectionStatusListener listener, String packageName);
 
     int calculateSignalLevel(int rssi);
 

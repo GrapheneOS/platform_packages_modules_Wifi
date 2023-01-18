@@ -97,6 +97,7 @@ import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
@@ -269,6 +270,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private final ConnectHelper mConnectHelper;
     private final WifiGlobals mWifiGlobals;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
+    private final WifiNetworkFactory mWifiNetworkFactory;
     private @WifiManager.VerboseLoggingLevel int mVerboseLoggingLevel =
             WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
     private boolean mVerboseLoggingEnabled = false;
@@ -498,6 +500,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mLohsSoftApTracker = new LohsSoftApTracker();
         mActiveModeWarden.registerLohsCallback(mLohsSoftApTracker);
         mWifiNetworkSuggestionsManager = mWifiInjector.getWifiNetworkSuggestionsManager();
+        mWifiNetworkFactory = mWifiInjector.getWifiNetworkFactory();
         mDppManager = mWifiInjector.getDppManager();
         mWifiThreadRunner = mWifiInjector.getWifiThreadRunner();
         mWifiHandlerThread = mWifiInjector.getWifiHandlerThread();
@@ -4909,8 +4912,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // Remove all suggestions from the package.
         mWifiNetworkSuggestionsManager.removeApp(pkgName);
-        mWifiInjector.getWifiNetworkFactory().removeUserApprovedAccessPointsForApp(
-                pkgName);
+        mWifiInjector.getWifiNetworkFactory().removeApp(pkgName);
 
         // Remove all Passpoint profiles from package.
         mWifiInjector.getPasspointManager().removePasspointProviderWithPackage(
@@ -6351,6 +6353,9 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     public void unregisterSuggestionConnectionStatusListener(
             @NonNull ISuggestionConnectionStatusListener listener, String packageName) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
         enforceAccessPermission();
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
@@ -6361,6 +6366,67 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiThreadRunner.post(() ->
                 mWifiNetworkSuggestionsManager
                         .unregisterSuggestionConnectionStatusListener(listener, packageName, uid));
+    }
+
+    /**
+     * {@link WifiManager#addLocalOnlyConnectionFailureListener(Executor, WifiManager.LocalOnlyConnectionFailureListener)}
+     */
+    @Override
+    public void addLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName, String featureId) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
+
+        final int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        enforceAccessPermission();
+        long callingIdentity = Binder.clearCallingIdentity();
+        try {
+            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
+                Log.e(TAG, "UID " + uid + " not visible to the current user");
+                throw new SecurityException("UID " + uid + " not visible to the current user");
+            }
+        } finally {
+            // restore calling identity
+            Binder.restoreCallingIdentity(callingIdentity);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("addLocalOnlyConnectionFailureListener uid=%").c(uid).flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiNetworkFactory.addLocalOnlyConnectionStatusListener(listener, packageName,
+                        featureId));
+    }
+
+    /**
+     * {@link WifiManager#removeLocalOnlyConnectionFailureListener(WifiManager.LocalOnlyConnectionFailureListener)}
+     */
+    @Override
+    public void removeLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
+        enforceAccessPermission();
+        int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        long callingIdentity = Binder.clearCallingIdentity();
+        try {
+            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
+                Log.e(TAG, "UID " + uid + " not visible to the current user");
+                throw new SecurityException("UID " + uid + " not visible to the current user");
+            }
+        } finally {
+            // restore calling identity
+            Binder.restoreCallingIdentity(callingIdentity);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("removeLocalOnlyConnectionFailureListener uid=%")
+                    .c(uid).flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiNetworkFactory.removeLocalOnlyConnectionStatusListener(listener, packageName));
     }
 
     @Override

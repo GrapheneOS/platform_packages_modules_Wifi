@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
+import static android.net.wifi.WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_IP_PROVISIONING;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.WifiNetworkFactory.PERIODIC_SCAN_INTERVAL_MS;
@@ -73,6 +74,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkProvider;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.INetworkRequestUserSelectionCallback;
 import android.net.wifi.ScanResult;
@@ -181,6 +183,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     @Mock PowerManager mPowerManager;
     @Mock ClientModeImplMonitor mCmiMonitor;
     @Mock MultiInternetManager mMultiInternetManager;
+    @Mock ILocalOnlyConnectionStatusListener mLocalOnlyConnectionStatusListener;
+    private @Mock IBinder mBinder;
     private @Mock ClientModeManager mPrimaryClientModeManager;
     private @Mock WifiGlobals mWifiGlobals;
     private MockitoSession mStaticMockSession = null;
@@ -324,6 +328,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Setup with wifi on.
         mWifiNetworkFactory.enableVerboseLogging(true);
+        when(mLocalOnlyConnectionStatusListener.asBinder()).thenReturn(mBinder);
     }
 
     /**
@@ -1737,6 +1742,8 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         sendNetworkRequestAndSetupForConnectionStatus();
 
         assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.addLocalOnlyConnectionStatusListener(mLocalOnlyConnectionStatusListener,
+                TEST_PACKAGE_NAME_1, null);
 
         // Send network connection failure indication beyond the retry limit to trigger the failure
         // handling.
@@ -1760,6 +1767,9 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
         verify(mConnectivityManager).declareNetworkRequestUnfulfillable(eq(mNetworkRequest));
+        verify(mLocalOnlyConnectionStatusListener).onConnectionStatus(
+                eq((WifiNetworkSpecifier) mNetworkRequest.getNetworkSpecifier()),
+                eq(STATUS_LOCAL_ONLY_CONNECTION_FAILURE_IP_PROVISIONING));
     }
 
     /**
@@ -3060,7 +3070,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 mConnectHelper);
 
         // 2. Remove all approvals for the app.
-        mWifiNetworkFactory.removeUserApprovedAccessPointsForApp(TEST_PACKAGE_NAME_1);
+        mWifiNetworkFactory.removeApp(TEST_PACKAGE_NAME_1);
 
         // 3. Second request for the same access point
         ScanResult matchingScanResult = mTestScanDatas[0].getResults()[0];
