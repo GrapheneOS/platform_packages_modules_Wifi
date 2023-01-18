@@ -39,6 +39,7 @@ import android.util.SparseArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.WifiStatsLog;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WorkSourceUtil;
 
 import java.io.PrintWriter;
@@ -92,11 +93,12 @@ public class WifiLockManager {
     private int mFullLowLatencyLocksReleased;
     private long mCurrentSessionStartTimeMs;
     private final DeviceConfigFacade mDeviceConfigFacade;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
 
     WifiLockManager(Context context, BatteryStatsManager batteryStats,
             ActiveModeWarden activeModeWarden, FrameworkFacade frameworkFacade,
             Handler handler, Clock clock, WifiMetrics wifiMetrics,
-            DeviceConfigFacade deviceConfigFacade) {
+            DeviceConfigFacade deviceConfigFacade, WifiPermissionsUtil wifiPermissionsUtil) {
         mContext = context;
         mBatteryStats = batteryStats;
         mActiveModeWarden = activeModeWarden;
@@ -106,6 +108,7 @@ public class WifiLockManager {
         mClock = clock;
         mWifiMetrics = wifiMetrics;
         mDeviceConfigFacade = deviceConfigFacade;
+        mWifiPermissionsUtil = wifiPermissionsUtil;
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -181,8 +184,7 @@ public class WifiLockManager {
                         return;
                     }
 
-                    boolean newModeIsFg = (importance
-                            == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+                    boolean newModeIsFg = isAppForeground(uid, importance);
                     if (uidRec.mIsFg == newModeIsFg) {
                         return; // already at correct state
                     }
@@ -193,7 +195,8 @@ public class WifiLockManager {
                     // If conditions for lock activation are met,
                     // then UID either share the blame, or removed from sharing
                     // whether to start or stop the blame based on UID fg/bg state
-                    if (canActivateLowLatencyLock()) {
+                    if (canActivateLowLatencyLock(
+                            isAppScreenOnExempted(uid) ? IGNORE_SCREEN_STATE_MASK : 0)) {
                         setBlameLowLatencyUid(uid, uidRec.mIsFg);
                     }
                 });
@@ -260,7 +263,11 @@ public class WifiLockManager {
             return WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
-        if (mScreenOn && countFgLowLatencyUids() > 0) {
+        if (mScreenOn && countFgLowLatencyUids(false) > 0) {
+            return WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
+        }
+
+        if (!mScreenOn && countFgLowLatencyUids(true) > 0) {
             return WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
@@ -440,6 +447,27 @@ public class WifiLockManager {
         return true;
     }
 
+    private boolean isAppForeground(final int uid, final int importance) {
+        if ((importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND)) {
+            return true;
+        }
+        // Exemption for applications running with CAR Mode permissions.
+        if (mWifiPermissionsUtil.checkEnterCarModePrioritized(uid) && (importance
+                <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE)) {
+            return true;
+        }
+        // Add any exemption cases for applications regarding restricting Low latency locks to
+        // running in the foreground.
+        return false;
+    }
+
+    private boolean isAppScreenOnExempted(int uid) {
+        // Exemption for applications running with CAR Mode permissions.
+        if (mWifiPermissionsUtil.checkEnterCarModePrioritized(uid)) return true;
+        // Add more exemptions here
+        return false;
+    }
+
     private void addUidToLlWatchList(int uid) {
         UidRec uidRec = mLowLatencyUidWatchList.get(uid);
         if (uidRec != null) {
@@ -450,11 +478,13 @@ public class WifiLockManager {
             mLowLatencyUidWatchList.put(uid, uidRec);
 
             // Now check if the uid is running in foreground
-            if (mFrameworkFacade.isAppForeground(mContext, uid)) {
+            if (isAppForeground(uid,
+                    mContext.getSystemService(ActivityManager.class).getUidImportance(uid))) {
                 uidRec.mIsFg = true;
             }
 
-            if (canActivateLowLatencyLock(0, uidRec)) {
+            if (canActivateLowLatencyLock(isAppScreenOnExempted(uid) ? IGNORE_SCREEN_STATE_MASK : 0,
+                    uidRec)) {
                 // Share the blame for this uid
                 setBlameLowLatencyUid(uid, true);
             }
@@ -766,13 +796,17 @@ public class WifiLockManager {
         return null;
     }
 
-    private int countFgLowLatencyUids() {
+    private int countFgLowLatencyUids(boolean isScreenOnExempted) {
         int uidCount = 0;
         int listSize = mLowLatencyUidWatchList.size();
         for (int idx = 0; idx < listSize; idx++) {
             UidRec uidRec = mLowLatencyUidWatchList.valueAt(idx);
             if (uidRec.mIsFg) {
-                uidCount++;
+                if (isScreenOnExempted) {
+                    if (isAppScreenOnExempted(uidRec.mUid)) uidCount++;
+                } else {
+                    uidCount++;
+                }
             }
         }
         return uidCount;
