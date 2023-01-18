@@ -77,6 +77,7 @@ import android.net.ConnectivityManager;
 import android.net.InetAddresses;
 import android.net.MacAddress;
 import android.net.NetworkInfo;
+import android.net.TetheringInterface;
 import android.net.TetheringManager;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
@@ -110,6 +111,7 @@ import android.os.WorkSource;
 import android.os.test.TestLooper;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.ArraySet;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -163,6 +165,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Unit test harness for WifiP2pServiceImpl.
@@ -201,7 +204,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     private BroadcastReceiver mLocationModeReceiver;
     private BroadcastReceiver mWifiStateChangedReceiver;
-    private BroadcastReceiver mTetherStateReceiver;
     private BroadcastReceiver mUserRestrictionReceiver;
     private Handler mClientHandler;
     private Messenger mP2pStateMachineMessenger;
@@ -220,6 +222,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     private ArgumentCaptor<Message> mMessageCaptor = ArgumentCaptor.forClass(Message.class);
     private MockitoSession mStaticMockSession = null;
     private Bundle mAttribution = new Bundle();
+    private ArgumentCaptor<TetheringManager.TetheringEventCallback> mTetheringEventCallbackCaptor =
+            ArgumentCaptor.forClass(TetheringManager.TetheringEventCallback.class);
+    private TetheringManager.TetheringEventCallback mTetheringEventCallback;
 
     @Mock Bundle mBundle;
     @Mock Context mContext;
@@ -349,28 +354,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      * Simulate tethering flow is completed
      */
     private void simulateTetherReady() throws Exception {
-        if (!SdkLevel.isAtLeastS()) {
-            ArrayList<String> availableList = new ArrayList<>();
-            ArrayList<String> localOnlyList = new ArrayList<>();
-            localOnlyList.add(IFACE_NAME_P2P);
-            ArrayList<String> tetherList = new ArrayList<>();
-            ArrayList<String> erroredList = new ArrayList<>();
-
-            Intent intent = new Intent(TetheringManager.ACTION_TETHER_STATE_CHANGED);
-            intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
-            intent.putStringArrayListExtra(TetheringManager.EXTRA_AVAILABLE_TETHER, availableList);
-            intent.putStringArrayListExtra(TetheringManager.EXTRA_ACTIVE_LOCAL_ONLY, localOnlyList);
-            intent.putStringArrayListExtra(TetheringManager.EXTRA_ACTIVE_TETHER, tetherList);
-            intent.putStringArrayListExtra(TetheringManager.EXTRA_ERRORED_TETHER, erroredList);
-            mTetherStateReceiver.onReceive(mContext, intent);
-            mLooper.dispatchAll();
-        } else {
-            Message msg = Message.obtain();
-            msg.what = WifiP2pServiceImpl.TETHER_INTERFACE_STATE_CHANGED;
-            msg.obj = new ArrayList<>(Arrays.asList(IFACE_NAME_P2P));
-            mP2pStateMachineMessenger.send(Message.obtain(msg));
-            mLooper.dispatchAll();
-        }
+        mTetheringEventCallback.onLocalOnlyInterfacesChanged(Collections.unmodifiableSet(
+                (new ArraySet(new TetheringInterface[]{
+                        new TetheringInterface(TetheringManager.TETHERING_WIFI_P2P,
+                                IFACE_NAME_P2P)}))));
+        mLooper.dispatchAll();
     }
 
     /**
@@ -1006,6 +994,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         simulateLocationModeChange(true);
         checkIsP2pInitWhenClientConnected(true, clientBinder,
                 new WorkSource(clientBinder.getCallingUid(), TEST_PACKAGE_NAME));
+        verify(mTetheringManager).registerTetheringEventCallback(any(Executor.class),
+                mTetheringEventCallbackCaptor.capture());
+        mTetheringEventCallback = mTetheringEventCallbackCaptor.getValue();
         verify(mContext).sendBroadcastWithMultiplePermissions(
                 argThat(new WifiP2pServiceImplTest
                        .P2pConnectionChangedIntentMatcherForNetworkState(IDLE)), any());
@@ -1326,19 +1317,14 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             // register these event:
             // * WifiManager.WIFI_STATE_CHANGED_ACTION        -- always
             // * LocationManager.MODE_CHANGED_ACTION          -- always
-            // * TetheringManager.ACTION_TETHER_STATE_CHANGED -- <  S
             // * UserManager.ACTION_USER_RESTRICTIONS_CHANGED -- >= T
             if (SdkLevel.isAtLeastT()) {
                 verify(mContext, times(3)).registerReceiver(mBcastRxCaptor.capture(),
                         any(IntentFilter.class));
                 mUserRestrictionReceiver = mBcastRxCaptor.getAllValues().get(2);
-            } else if (SdkLevel.isAtLeastS()) {
+            } else {
                 verify(mContext, times(2)).registerReceiver(mBcastRxCaptor.capture(),
                         any(IntentFilter.class));
-            } else {
-                verify(mContext, times(3)).registerReceiver(mBcastRxCaptor.capture(),
-                        any(IntentFilter.class));
-                mTetherStateReceiver = mBcastRxCaptor.getAllValues().get(2);
             }
             mWifiStateChangedReceiver = mBcastRxCaptor.getAllValues().get(0);
             mLocationModeReceiver = mBcastRxCaptor.getAllValues().get(1);
@@ -2385,7 +2371,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         reset(mClientHandler);
 
         sendGroupStartedMsg(mTestWifiP2pGroup);
-        simulateTetherReady();
         sendRequestGroupInfoMsg(mClientMessenger);
         verify(mClientHandler).sendMessage(mMessageCaptor.capture());
         assertEquals(WifiP2pManager.RESPONSE_GROUP_INFO, mMessageCaptor.getValue().what);
@@ -7102,6 +7087,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         group.setIsGroupOwner(true);
         group.setInterface(IFACE_NAME_P2P);
         sendGroupStartedMsg(group);
+        simulateTetherReady();
+        verify(mWifiP2pMetrics).startGroupEvent(group);
         sendGroupRemovedMsg();
 
         //force to back disabled state

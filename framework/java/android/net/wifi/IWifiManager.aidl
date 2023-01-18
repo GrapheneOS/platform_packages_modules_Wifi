@@ -47,6 +47,7 @@ import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiAvailableChannel;
@@ -418,4 +419,10 @@ interface IWifiManager
     void reportCreateInterfaceImpact(String packageName, int interfaceType, boolean requireNewInterface, in IInterfaceCreationInfoCallback callback);
 
     int getMaxNumberOfChannelsPerRequest();
+
+    void addQosPolicy(in QosPolicyParams policyParams, in IBinder binder);
+
+    void removeQosPolicy(int policyId);
+
+    void removeAllQosPolicies();
 }

@@ -524,6 +524,22 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     }
 
     /**
+     * See comments for {@link IWifiNanIface#suspend(short, byte)}
+     */
+    public boolean suspendRequest(short transactionId, byte pubSubId) {
+        return validateAndCall("suspendRequest", false,
+            () -> mWifiNanIface.suspend(transactionId, pubSubId));
+    }
+
+    /**
+     * See comments for {@link IWifiNanIface#resume(short, byte)}
+     */
+    public boolean resumeRequest(short transactionId, byte pubSubId) {
+        return validateAndCall("resumeRequest", false,
+            () -> mWifiNanIface.resume(transactionId, pubSubId));
+    }
+
+    /**
      * Framework callback object. Will get called when the equivalent events are received
      * from the HAL.
      */

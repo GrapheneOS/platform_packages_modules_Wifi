@@ -536,6 +536,40 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         }
     }
 
+    @Override
+    public boolean suspend(short transactionId, byte pubSubId) {
+        String methodStr = "suspend";
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                mWifiNanIface.suspendRequest((char) transactionId, pubSubId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public boolean resume(short transactionId, byte pubSubId) {
+        String methodStr = "resume";
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                mWifiNanIface.resumeRequest((char) transactionId, pubSubId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
     // Utilities
 
     private static NanBootstrappingResponse createNanBootstrappingResponse(int bootstrappingId,

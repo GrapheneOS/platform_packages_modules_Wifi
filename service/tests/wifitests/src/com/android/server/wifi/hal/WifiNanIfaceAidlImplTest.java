@@ -393,6 +393,21 @@ public class WifiNanIfaceAidlImplTest {
                 /* halCipherSuite */ 0);
     }
 
+    @Test
+    public void testSuspendRequest() throws Exception {
+        short tid = 250;
+        byte pid = 34;
+        mDut.suspend(tid, pid);
+        verify(mIWifiNanIfaceMock).suspendRequest(eq((char) tid), eq(pid));
+    }
+
+    @Test
+    public void testResumeRequest() throws Exception {
+        short tid = 251;
+        byte pid = 35;
+        mDut.resume(tid, pid);
+        verify(mIWifiNanIfaceMock).resumeRequest(eq((char) tid), eq(pid));
+    }
 
     // utilities
 
