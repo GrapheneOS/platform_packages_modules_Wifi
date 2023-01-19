@@ -452,7 +452,7 @@ public class WifiAwareManager {
             CHANGE_WIFI_STATE
     })
     public void attach(@NonNull AttachCallback attachCallback, @Nullable Handler handler) {
-        attach(handler, null, attachCallback, null);
+        attach(handler, null, attachCallback, null, false);
     }
 
     /**
@@ -502,17 +502,17 @@ public class WifiAwareManager {
     public void attach(@NonNull AttachCallback attachCallback,
             @NonNull IdentityChangedListener identityChangedListener,
             @Nullable Handler handler) {
-        attach(handler, null, attachCallback, identityChangedListener);
+        attach(handler, null, attachCallback, identityChangedListener, false);
     }
 
     /** @hide */
     public void attach(Handler handler, ConfigRequest configRequest,
             AttachCallback attachCallback,
-            IdentityChangedListener identityChangedListener) {
+            IdentityChangedListener identityChangedListener, boolean forOffloading) {
         if (VDBG) {
             Log.v(TAG, "attach(): handler=" + handler + ", callback=" + attachCallback
                     + ", configRequest=" + configRequest + ", identityChangedListener="
-                    + identityChangedListener);
+                    + identityChangedListener + ", forOffloading" + forOffloading);
         }
 
         if (attachCallback == null) {
@@ -532,7 +532,7 @@ public class WifiAwareManager {
                 mService.connect(binder, mContext.getOpPackageName(), mContext.getAttributionTag(),
                         new WifiAwareEventCallbackProxy(this, looper, binder, attachCallback,
                                 identityChangedListener), configRequest,
-                        identityChangedListener != null, extras);
+                        identityChangedListener != null, extras, forOffloading);
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             }
@@ -1293,4 +1293,28 @@ public class WifiAwareManager {
             throw e.rethrowFromSystemServer();
         }
     }
+    /**
+     * Attach to the Wi-Fi Aware service as an offload session. All discovery sessions and
+     * connections will be handled via out-of-band connections.
+     * The Aware session created by this attach method will have the lowest priority when resource
+     * conflicts arise (e.g. Aware has to be torn down to create other WiFi interfaces).
+     *
+     * @see #attach(AttachCallback, Handler)
+     * @param attachCallback A callback for attach events, extended from
+     * {@link AttachCallback}.
+     * @param handler The Handler on whose thread to execute the callbacks of the {@code
+     * attachCallback} object. If a null is provided then the application's main thread will be
+     *                used.
+     * @hide
+     */
+    @SystemApi
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE, CHANGE_WIFI_STATE, OVERRIDE_WIFI_CONFIG})
+    public void attachOffload(@NonNull Handler handler,
+            @NonNull AttachCallback attachCallback) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Null handler provided");
+        }
+        attach(handler, null, attachCallback, null, true);
+    }
+
 }
