@@ -356,6 +356,12 @@ public class DiscoverySession implements AutoCloseable {
 
     /**
      * Put Aware connection into suspension mode to save power.
+     * <p>
+     * This method would work only for a {@link DiscoverySession} which has been created using
+     * a suspendable {@link PublishConfig} or {@link SubscribeConfig}.
+     *
+     * @see PublishConfig#isSuspendable()
+     * @see SubscribeConfig#isSuspendable()
      * @hide
      */
     @SystemApi
@@ -382,6 +388,12 @@ public class DiscoverySession implements AutoCloseable {
 
     /**
      * Wake up Aware connection from suspension mode to transmit data.
+     * <p>
+     * This method would work only for a {@link DiscoverySession} which has been created using
+     * a suspendable {@link PublishConfig} or {@link SubscribeConfig}.
+     *
+     * @see PublishConfig#isSuspendable()
+     * @see SubscribeConfig#isSuspendable()
      * @hide
      */
     @SystemApi
