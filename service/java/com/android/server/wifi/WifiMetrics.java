@@ -6661,8 +6661,11 @@ public class WifiMetrics {
             for (int i = 0; i < numRates; i++) {
                 WifiLinkLayerStats.RateStat curRate = stats.peerInfo[0].rateStats[i];
                 android.net.wifi.WifiUsabilityStatsEntry.RateStats rate =
-                        new android.net.wifi.WifiUsabilityStatsEntry.RateStats(curRate.preamble,
-                                curRate.nss, curRate.bw, curRate.rateMcsIdx, curRate.bitRateInKbps,
+                        new android.net.wifi.WifiUsabilityStatsEntry.RateStats(
+                                convertPreambleTypeEnumToUsabilityStatsType(curRate.preamble),
+                                convertSpatialStreamEnumToUsabilityStatsType(curRate.nss),
+                                convertBandwidthEnumToUsabilityStatsType(curRate.bw),
+                                curRate.rateMcsIdx, curRate.bitRateInKbps,
                                 curRate.txMpdu, curRate.rxMpdu, curRate.mpduLost, curRate.retries);
                 rateStats[i] = rate;
             }

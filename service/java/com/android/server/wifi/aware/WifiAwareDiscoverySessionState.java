@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.aware;
 
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INTERNAL_ERROR;
+
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_24GHZ;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_5GHZ;
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_DISABLED;
@@ -27,6 +29,7 @@ import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.util.HexEncoding;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -64,6 +67,8 @@ public class WifiAwareDiscoverySessionState {
     private int mInstantModeBand;
     private final LocalLog mLocalLog;
     private AwarePairingConfig mPairingConfig;
+    private boolean mIsSuspendable;
+    private boolean mIsSuspended;
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac) {
@@ -87,7 +92,7 @@ public class WifiAwareDiscoverySessionState {
     public WifiAwareDiscoverySessionState(WifiAwareNativeApi wifiAwareNativeApi, int sessionId,
             byte pubSubId, IWifiAwareDiscoverySessionCallback callback, boolean isPublishSession,
             boolean isRangingEnabled, long creationTime, boolean instantModeEnabled,
-            int instantModeBand, LocalLog localLog,
+            int instantModeBand, boolean isSuspendable, LocalLog localLog,
             AwarePairingConfig pairingConfig) {
         mWifiAwareNativeApi = wifiAwareNativeApi;
         mSessionId = sessionId;
@@ -99,6 +104,7 @@ public class WifiAwareDiscoverySessionState {
         mUpdateTime = creationTime;
         mInstantModeEnabled = instantModeEnabled;
         mInstantModeBand = instantModeBand;
+        mIsSuspendable = isSuspendable;
         mLocalLog = localLog;
         mPairingConfig = pairingConfig;
     }
@@ -136,6 +142,14 @@ public class WifiAwareDiscoverySessionState {
 
     public void setInstantModeBand(int band) {
         mInstantModeBand = band;
+    }
+
+    public boolean isSuspendable() {
+        return mIsSuspendable;
+    }
+
+    public boolean isSessionSuspended() {
+        return mIsSuspended;
     }
 
     /**
@@ -312,6 +326,84 @@ public class WifiAwareDiscoverySessionState {
         }
 
         return success;
+    }
+
+    /**
+     * Request to suspend the current session.
+     *
+     * @param transactionId Transaction ID for the transaction - used in the async callback to match
+     *     with the original request.
+     */
+    public boolean suspend(short transactionId) {
+        if (!mWifiAwareNativeApi.suspendRequest(transactionId, mPubSubId)) {
+            onSuspendFail(WIFI_AWARE_SUSPEND_INTERNAL_ERROR);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Notifies that session suspension has succeeded and updates the session state.
+     */
+    public void onSuspendSuccess() {
+        mIsSuspended = true;
+        try {
+            mCallback.onSessionSuspendSuccess();
+        } catch (RemoteException e) {
+            Log.e(TAG, "onSuspendSuccess: RemoteException=" + e);
+        }
+    }
+
+    /**
+     * Notify the session callback that suspension failed.
+     * @param reason an {@link WifiAwareManager.SessionSuspensionFailedReasonCode} indicating why
+     *               the session failed to be suspended.
+     */
+    public void onSuspendFail(@WifiAwareManager.SessionSuspensionFailedReasonCode int reason) {
+        try {
+            mCallback.onSessionSuspendFail(reason);
+        } catch (RemoteException e) {
+            Log.e(TAG, "onSuspendFail: RemoteException=" + e);
+        }
+    }
+
+    /**
+     * Request to resume the current (suspended) session.
+     *
+     * @param transactionId Transaction ID for the transaction - used in the async callback to match
+     *     with the original request.
+     */
+    public boolean resume(short transactionId) {
+        if (!mWifiAwareNativeApi.resumeRequest(transactionId, mPubSubId)) {
+            onResumeFail(WIFI_AWARE_SUSPEND_INTERNAL_ERROR);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Notifies that has been resumed successfully and updates the session state.
+     */
+    public void onResumeSuccess() {
+        mIsSuspended = false;
+        try {
+            mCallback.onSessionResumeSuccess();
+        } catch (RemoteException e) {
+            Log.e(TAG, "onResumeSuccess: RemoteException=" + e);
+        }
+    }
+
+    /**
+     * Notify the session callback that the resumption of the session failed.
+     * @param reason an {@link WifiAwareManager.SessionResumptionFailedReasonCode} indicating why
+     *               the session failed to be resumed.
+     */
+    public void onResumeFail(@WifiAwareManager.SessionResumptionFailedReasonCode int reason) {
+        try {
+            mCallback.onSessionResumeFail(reason);
+        } catch (RemoteException e) {
+            Log.e(TAG, "onResumeFail: RemoteException=" + e);
+        }
     }
 
     /**

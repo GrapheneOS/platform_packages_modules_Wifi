@@ -18,6 +18,7 @@ package android.net.wifi.aware;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SystemApi;
 
 import java.util.List;
 
@@ -90,6 +91,59 @@ public class DiscoverySessionCallback {
      * or {@link SubscribeConfig.Builder#setTtlSec(int)}).
      */
     public void onSessionTerminated() {
+        /* empty */
+    }
+
+    /**
+     * Called when a discovery session (publish or subscribe) has been suspended successfully.
+     * Suspension is triggered by {@link DiscoverySession#suspend()}.
+     * @hide
+     */
+    @SystemApi
+    public void onSessionSuspendSuccess() {
+        /* empty */
+    }
+
+    /**
+     * Called when a discovery session (publish or subscribe) has failed to be suspended
+     * successfully. Suspension is triggered by {@link DiscoverySession#suspend()}.
+     *
+     * @param reason One of:
+     *      {@link WifiAwareManager#WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST},
+     *      {@link WifiAwareManager#WIFI_AWARE_SUSPEND_INVALID_SESSION},
+     *      {@link WifiAwareManager#WIFI_AWARE_SUSPEND_CANNOT_SUSPEND},
+     *      {@link WifiAwareManager#WIFI_AWARE_SUSPEND_INTERNAL_ERROR}
+     * @hide
+     */
+    @SystemApi
+    public void onSessionSuspendFailed(
+            @WifiAwareManager.SessionSuspensionFailedReasonCode int reason) {
+        /* empty */
+    }
+
+    /**
+     * Called when a discovery session (publish or subscribe) has been resumed from suspension
+     * successfully. Resumption is triggered by {@link DiscoverySession#resume()}.
+     * @hide
+     */
+    @SystemApi
+    public void onSessionResumeSuccess() {
+        /* empty */
+    }
+
+    /**
+     * Called when a discovery session (publish or subscribe) has failed to be resumed from
+     * suspension successfully. Resumption is triggered by {@link DiscoverySession#resume()}.
+     *
+     * @param reason One of:
+     *      {@link WifiAwareManager#WIFI_AWARE_RESUME_REDUNDANT_REQUEST},
+     *      {@link WifiAwareManager#WIFI_AWARE_RESUME_INVALID_SESSION},
+     *      {@link WifiAwareManager#WIFI_AWARE_RESUME_INTERNAL_ERROR}
+     * @hide
+     */
+    @SystemApi
+    public void onSessionResumeFailed(
+            @WifiAwareManager.SessionResumptionFailedReasonCode int reason) {
         /* empty */
     }
 

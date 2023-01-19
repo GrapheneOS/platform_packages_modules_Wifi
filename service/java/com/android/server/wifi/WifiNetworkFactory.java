@@ -44,6 +44,7 @@ import android.net.NetworkFactory;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.wifi.IActionListener;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.INetworkRequestUserSelectionCallback;
 import android.net.wifi.ScanResult;
@@ -51,6 +52,7 @@ import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.SecurityType;
 import android.net.wifi.WifiContext;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.util.ScanResultUtil;
@@ -195,6 +197,10 @@ public class WifiNetworkFactory extends NetworkFactory {
      */
     private boolean mHasNewDataToSerialize = false;
 
+    private final HashMap<String, RemoteCallbackList<ILocalOnlyConnectionStatusListener>>
+            mLocalOnlyStatusListenerPerApp = new HashMap<>();
+    private final HashMap<String, String> mFeatureIdPerApp = new HashMap<>();
+
     /**
      * Helper class to store an access point that the user previously approved for a specific app.
      * TODO(b/123014687): Move to a common util class.
@@ -308,7 +314,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         public void onAlarm() {
             Log.e(TAG, "Timed-out connecting to network");
             if (mUserSelectedNetwork != null) {
-                handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID);
+                handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID,
+                        WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT);
             } else {
                 Log.wtf(TAG, "mUserSelectedNetwork is null, when connection time out");
             }
@@ -364,7 +371,8 @@ public class WifiNetworkFactory extends NetworkFactory {
                 Log.e(TAG, "mUserSelectedNetwork is null, when connection failure");
                 return;
             }
-            handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID);
+            handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID,
+                    reason);
         }
     }
 
@@ -1204,7 +1212,7 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (failureCode == WifiMetrics.ConnectionEvent.FAILURE_NONE) {
             handleNetworkConnectionSuccess(network, bssid);
         } else {
-            handleNetworkConnectionFailure(network, bssid);
+            handleNetworkConnectionFailure(network, bssid, failureCode);
         }
     }
 
@@ -1232,7 +1240,7 @@ public class WifiNetworkFactory extends NetworkFactory {
      * Invoked by {@link ClientModeImpl} on failure to connect to a network.
      */
     private void handleNetworkConnectionFailure(@NonNull WifiConfiguration failedNetwork,
-            @NonNull String failedBssid) {
+            @NonNull String failedBssid, int failureCode) {
         if (mUserSelectedNetwork == null || failedNetwork == null) {
             return;
         }
@@ -1270,6 +1278,9 @@ public class WifiNetworkFactory extends NetworkFactory {
             }
             mRegisteredCallbacks.finishBroadcast();
         }
+        sendConnectionFailureIfAllowed(mActiveSpecificNetworkRequest.getRequestorPackageName(),
+                mActiveSpecificNetworkRequest.getRequestorUid(),
+                mActiveSpecificNetworkRequestSpecifier, failureCode);
         teardownForActiveRequest();
     }
 
@@ -2012,13 +2023,95 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     /**
-     * Remove all user approved access points for the specified app.
+     * Remove all user approved access points and listener for the specified app.
      */
-    public void removeUserApprovedAccessPointsForApp(@NonNull String packageName) {
+    public void removeApp(@NonNull String packageName) {
         if (mUserApprovedAccessPointMap.remove(packageName) != null) {
             Log.i(TAG, "Removing all approved access points for " + packageName);
         }
+        RemoteCallbackList<ILocalOnlyConnectionStatusListener> listenerTracker =
+                mLocalOnlyStatusListenerPerApp.remove(packageName);
+        if (listenerTracker != null) listenerTracker.kill();
+        mFeatureIdPerApp.remove(packageName);
         saveToStore();
+    }
+
+    /**
+     * Add a listener to get the connection failure of the local-only conncetion
+     */
+    public void addLocalOnlyConnectionStatusListener(
+            @NonNull ILocalOnlyConnectionStatusListener listener, String packageName,
+            String featureId) {
+        RemoteCallbackList<ILocalOnlyConnectionStatusListener> listenersTracker =
+                mLocalOnlyStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null) {
+            listenersTracker = new RemoteCallbackList<>();
+        }
+        listenersTracker.register(listener);
+        mLocalOnlyStatusListenerPerApp.put(packageName, listenersTracker);
+        if (!mFeatureIdPerApp.containsKey(packageName)) {
+            mFeatureIdPerApp.put(packageName, featureId);
+        }
+    }
+
+    /**
+     * Remove a listener which added before
+     */
+    public void removeLocalOnlyConnectionStatusListener(
+            @NonNull ILocalOnlyConnectionStatusListener listener, String packageName) {
+        RemoteCallbackList<ILocalOnlyConnectionStatusListener> listenersTracker =
+                mLocalOnlyStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null || !listenersTracker.unregister(listener)) {
+            Log.w(TAG, "removeLocalOnlyConnectionFailureListener: Listener from " + packageName
+                    + " already unregister.");
+        }
+        if (listenersTracker != null && listenersTracker.getRegisteredCallbackCount() == 0) {
+            mLocalOnlyStatusListenerPerApp.remove(packageName);
+            mFeatureIdPerApp.remove(packageName);
+        }
+    }
+
+    private void sendConnectionFailureIfAllowed(String packageName,
+            int uid, @NonNull WifiNetworkSpecifier networkSpecifier, int connectionEvent) {
+        RemoteCallbackList<ILocalOnlyConnectionStatusListener> listenersTracker =
+                mLocalOnlyStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null || listenersTracker.getRegisteredCallbackCount() == 0) {
+            return;
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Sending connection failure event to " + packageName);
+        }
+        final int n = listenersTracker.beginBroadcast();
+        for (int i = 0; i < n; i++) {
+            try {
+                listenersTracker.getBroadcastItem(i).onConnectionStatus(networkSpecifier,
+                        internalConnectionEventToLocalOnlyFailureCode(connectionEvent));
+            } catch (RemoteException e) {
+                Log.e(TAG, "sendNetworkCallback: remote exception -- " + e);
+            }
+        }
+        listenersTracker.finishBroadcast();
+    }
+
+    private @WifiManager.LocalOnlyConnectionStatusCode int
+            internalConnectionEventToLocalOnlyFailureCode(int connectionEvent) {
+        switch (connectionEvent) {
+            case WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION:
+            case WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_ASSOCIATION;
+            case WifiMetrics.ConnectionEvent.FAILURE_SSID_TEMP_DISABLED:
+            case WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_AUTHENTICATION;
+            case WifiMetrics.ConnectionEvent.FAILURE_DHCP:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_IP_PROVISIONING;
+            case WifiMetrics.ConnectionEvent.FAILURE_NETWORK_NOT_FOUND:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NOT_FOUND;
+            case WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NO_RESPONSE;
+            default:
+                return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN;
+        }
     }
 
     /**
@@ -2027,6 +2120,12 @@ public class WifiNetworkFactory extends NetworkFactory {
     public void clear() {
         mUserApprovedAccessPointMap.clear();
         mApprovedApp = null;
+        for (RemoteCallbackList<ILocalOnlyConnectionStatusListener> listenerTracker
+                : mLocalOnlyStatusListenerPerApp.values()) {
+            listenerTracker.kill();
+        }
+        mLocalOnlyStatusListenerPerApp.clear();
+        mFeatureIdPerApp.clear();
         Log.i(TAG, "Cleared all internal state");
         saveToStore();
     }
