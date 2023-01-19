@@ -1775,18 +1775,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 case NOTIFICATION_TYPE_ON_DATA_PATH_REQUEST: {
                     int ndpId = (int) msg.obj;
-                    boolean success = mDataPathMgr.onDataPathRequest(
+                    mDataPathMgr.onDataPathRequest(
                             msg.arg2, msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS),
                             ndpId, msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE));
-
-                    if (success) {
-                        WakeupMessage timeout = new WakeupMessage(mContext, getHandler(),
-                                HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG, MESSAGE_TYPE_DATA_PATH_TIMEOUT,
-                                ndpId);
-                        mDataPathConfirmTimeoutMessages.put(ndpId, timeout);
-                        timeout.schedule(
-                                SystemClock.elapsedRealtime() + AWARE_WAIT_FOR_DP_CONFIRM_TIMEOUT);
-                    }
 
                     break;
                 }
@@ -2097,7 +2088,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case COMMAND_TYPE_END_DATA_PATH:
-                    waitForResponse = endDataPathLocal(mCurrentTransactionId, msg.arg2);
+                    int ndpId = msg.arg2;
+                    WakeupMessage timeout = mDataPathConfirmTimeoutMessages.get(ndpId);
+                    if (timeout != null) {
+                        mDataPathConfirmTimeoutMessages.remove(ndpId);
+                        timeout.cancel();
+                    }
+                    waitForResponse = endDataPathLocal(mCurrentTransactionId, ndpId);
                     break;
                 case COMMAND_TYPE_DELAYED_INITIALIZATION:
                     if (SdkLevel.isAtLeastT()) {
@@ -2226,7 +2223,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
                             msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
                     break;
-                case RESPONSE_TYPE_ON_INITIATE_DATA_PATH_SUCCESS:
+                case RESPONSE_TYPE_ON_INITIATE_DATA_PATH_SUCCESS: {
                     int ndpId = (int) msg.obj;
                     boolean success = onInitiateDataPathResponseSuccessLocal(mCurrentCommand,
                             ndpId);
@@ -2241,14 +2238,25 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
 
                     break;
+                }
                 case RESPONSE_TYPE_ON_INITIATE_DATA_PATH_FAIL:
                     onInitiateDataPathResponseFailLocal(mCurrentCommand, (int) msg.obj);
                     break;
-                case RESPONSE_TYPE_ON_RESPOND_TO_DATA_PATH_SETUP_REQUEST:
-                    onRespondToDataPathSetupRequestResponseLocal(mCurrentCommand,
+                case RESPONSE_TYPE_ON_RESPOND_TO_DATA_PATH_SETUP_REQUEST: {
+                    boolean success = onRespondToDataPathSetupRequestResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
                             msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
+                    if (success) {
+                        int ndpId = mCurrentCommand.arg2;
+                        WakeupMessage timeout = new WakeupMessage(mContext, getHandler(),
+                                HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG, MESSAGE_TYPE_DATA_PATH_TIMEOUT,
+                                ndpId);
+                        mDataPathConfirmTimeoutMessages.put(ndpId, timeout);
+                        timeout.schedule(
+                                SystemClock.elapsedRealtime() + AWARE_WAIT_FOR_DP_CONFIRM_TIMEOUT);
+                    }
                     break;
+                }
                 case RESPONSE_TYPE_ON_END_DATA_PATH:
                     onEndPathEndResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
@@ -3363,14 +3371,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mDataPathMgr.onDataPathInitiateFail((WifiAwareNetworkSpecifier) command.obj, reason);
     }
 
-    private void onRespondToDataPathSetupRequestResponseLocal(Message command, boolean success,
+    private boolean onRespondToDataPathSetupRequestResponseLocal(Message command, boolean success,
             int reasonOnFailure) {
         if (VDBG) {
             Log.v(TAG, "onRespondToDataPathSetupRequestResponseLocal: command=" + command
                     + ", success=" + success + ", reasonOnFailure=" + reasonOnFailure);
         }
 
-        mDataPathMgr.onRespondToDataPathRequest(command.arg2, success, reasonOnFailure);
+        return mDataPathMgr.onRespondToDataPathRequest(command.arg2, success, reasonOnFailure);
     }
 
     private void onEndPathEndResponseLocal(Message command, boolean success, int reasonOnFailure) {
