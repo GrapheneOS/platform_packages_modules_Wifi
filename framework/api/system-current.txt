@@ -571,7 +571,7 @@ package android.net.wifi {
 
   public class WifiManager {
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
-    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicy(@NonNull android.net.wifi.QosPolicyParams);
+    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicy(@NonNull android.net.wifi.QosPolicyParams, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addWifiVerboseLoggingStatusChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoin(int, boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoinPasspoint(@NonNull String, boolean);
@@ -754,6 +754,11 @@ package android.net.wifi {
     field public static final int IFACE_IP_MODE_UNSPECIFIED = -1; // 0xffffffff
     field public static final int PASSPOINT_HOME_NETWORK = 0; // 0x0
     field public static final int PASSPOINT_ROAMING_NETWORK = 1; // 0x1
+    field public static final int QOS_REQUEST_STATUS_ALREADY_ACTIVE = 1; // 0x1
+    field public static final int QOS_REQUEST_STATUS_FAILURE_UNKNOWN = 4; // 0x4
+    field public static final int QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES = 2; // 0x2
+    field public static final int QOS_REQUEST_STATUS_INVALID_PARAMETERS = 3; // 0x3
+    field public static final int QOS_REQUEST_STATUS_TRACKING = 0; // 0x0
     field public static final int SAP_CLIENT_BLOCK_REASON_CODE_BLOCKED_BY_USER = 0; // 0x0
     field public static final int SAP_CLIENT_BLOCK_REASON_CODE_NO_MORE_STAS = 1; // 0x1
     field public static final int SAP_START_FAILURE_GENERAL = 0; // 0x0

@@ -3954,7 +3954,7 @@ public class WifiManagerTest {
     }
 
     /**
-     * Verify call to {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     * Verify call to {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      */
     @Test
     public void testAddQosPolicy() throws Exception {
@@ -3969,8 +3969,12 @@ public class WifiManagerTest {
         ArgumentCaptor<QosPolicyParams> paramsCaptor =
                 ArgumentCaptor.forClass(QosPolicyParams.class);
 
-        mWifiManager.addQosPolicy(policyParams);
-        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any(), eq(TEST_PACKAGE_NAME));
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        Consumer<Integer> resultsCallback = mock(Consumer.class);
+
+        mWifiManager.addQosPolicy(policyParams, executor, resultsCallback);
+        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any(), eq(TEST_PACKAGE_NAME),
+                any(IIntegerListener.Stub.class));
         assertEquals(policyId, paramsCaptor.getValue().getPolicyId());
         assertEquals(direction, paramsCaptor.getValue().getDirection());
         assertEquals(userPriority, paramsCaptor.getValue().getUserPriority());
