@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Անհրաժեշտ է ստուգել ցանցը"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Միանալուց առաջ ցանցի տվյալներում ստուգեք դրա անվանումը (<xliff:g id="SSID">%1$s</xliff:g>)։ Հպեք՝ շարունակելու համար։"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Չհաջողվեց տեղադրել հավաստագիրը։"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Չհաջողվեց միանալ <xliff:g id="VALUE">%1$s</xliff:g> ցանցին"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Սերվերի հավաստագրերի շղթան անվավեր է։"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Եղավ"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Չհաջողվեց հաստատել այս ցանցը"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Միանալ"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Չմիանալ"</string>

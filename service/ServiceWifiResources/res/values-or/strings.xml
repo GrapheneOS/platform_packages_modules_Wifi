@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"ନେଟୱାର୍କକୁ ଯାଞ୍ଚ କରିବା ଆବଶ୍ୟକ"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"ସଂଯୋଗ କରିବା ପୂର୍ବରୁ <xliff:g id="SSID">%1$s</xliff:g> ପାଇଁ ଥିବା ନେଟୱାର୍କ ବିବରଣୀର ସମୀକ୍ଷା କରନ୍ତୁ। ଜାରି ରଖିବାକୁ ଟାପ କରନ୍ତୁ।"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"ସାର୍ଟିଫିକେଟ ଇନଷ୍ଟଲ କରିବା ବିଫଳ ହୋଇଛି।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> ସହ କନେକ୍ଟ କରାଯାଇପାରିବ ନାହିଁ"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"ସର୍ଭର ସାର୍ଟିଫିକେଟ ଚେନ ଅବୈଧ ଅଟେ।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ଠିକ୍ ଅଛି"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ଏହି ନେଟୱାର୍କକୁ ଯାଞ୍ଚ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"ଯେ କୌଣସି ମତେ ସଂଯୋଗ କରନ୍ତୁ"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"ସଂଯୋଗ କରନ୍ତୁ ନାହିଁ"</string>

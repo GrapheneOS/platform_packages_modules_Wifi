@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Sieť je potrebné overiť"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Pred pripojením skontrolujte podrobnosti siete (<xliff:g id="SSID">%1$s</xliff:g>). Pokračujte klepnutím."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Certifikát sa nepodarilo nainštalovať"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"K sieti <xliff:g id="VALUE">%1$s</xliff:g> sa nedá pripojiť"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Reťazec certifikátu servera je neplatný."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"OK"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Táto sieť sa nedá overiť"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Pripojiť"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Nepripojiť"</string>

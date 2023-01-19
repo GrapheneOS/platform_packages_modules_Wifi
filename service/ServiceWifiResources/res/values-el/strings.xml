@@ -137,6 +137,9 @@
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Απαιτείται επαλήθευση του δικτύου."</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Ελέγξτε τις λεπτομέρειες του δικτύου <xliff:g id="SSID">%1$s</xliff:g> πριν από τη σύνδεση. Πατήστε για συνέχεια."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Αποτυχία εγκατάστασης πιστοποιητικού."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Δεν είναι δυνατή η σύνδεση με <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Η αλυσίδα πιστοποιητικού διακομιστή δεν είναι έγκυρη."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"OK"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Δεν είναι δυνατή η επαλήθευση αυτού του δικτύου."</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Σύνδεση ούτως ή άλλως"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Να μην γίνει σύνδεση"</string>
