@@ -172,34 +172,46 @@ public class WifiLockManager {
         return canActivateLowLatencyLock(0, null);
     }
 
-    // Detect UIDs going foreground/background
+    private void onAppForeground(final int uid, final int importance) {
+        mHandler.post(() -> {
+            UidRec uidRec = mLowLatencyUidWatchList.get(uid);
+            if (uidRec == null) {
+                // Not a uid in the watch list
+                return;
+            }
+
+            boolean newModeIsFg = isAppForeground(uid, importance);
+            if (uidRec.mIsFg == newModeIsFg) {
+                return; // already at correct state
+            }
+
+            uidRec.mIsFg = newModeIsFg;
+            updateOpMode();
+
+            // If conditions for lock activation are met,
+            // then UID either share the blame, or removed from sharing
+            // whether to start or stop the blame based on UID fg/bg state
+            if (canActivateLowLatencyLock(
+                    isAppScreenOnExempted(uid) ? IGNORE_SCREEN_STATE_MASK : 0)) {
+                setBlameLowLatencyUid(uid, uidRec.mIsFg);
+            }
+        });
+    }
+
+    // Detect UIDs going,
+    //          - Foreground <-> Background
+    //          - Foreground service <-> Background
     private void registerUidImportanceTransitions() {
         mActivityManager.addOnUidImportanceListener(new ActivityManager.OnUidImportanceListener() {
             @Override
             public void onUidImportance(final int uid, final int importance) {
-                mHandler.post(() -> {
-                    UidRec uidRec = mLowLatencyUidWatchList.get(uid);
-                    if (uidRec == null) {
-                        // Not a uid in the watch list
-                        return;
-                    }
-
-                    boolean newModeIsFg = isAppForeground(uid, importance);
-                    if (uidRec.mIsFg == newModeIsFg) {
-                        return; // already at correct state
-                    }
-
-                    uidRec.mIsFg = newModeIsFg;
-                    updateOpMode();
-
-                    // If conditions for lock activation are met,
-                    // then UID either share the blame, or removed from sharing
-                    // whether to start or stop the blame based on UID fg/bg state
-                    if (canActivateLowLatencyLock(
-                            isAppScreenOnExempted(uid) ? IGNORE_SCREEN_STATE_MASK : 0)) {
-                        setBlameLowLatencyUid(uid, uidRec.mIsFg);
-                    }
-                });
+                onAppForeground(uid, importance);
+            }
+        }, ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        mActivityManager.addOnUidImportanceListener(new ActivityManager.OnUidImportanceListener() {
+            @Override
+            public void onUidImportance(final int uid, final int importance) {
+                onAppForeground(uid, importance);
             }
         }, ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
     }
@@ -452,7 +464,8 @@ public class WifiLockManager {
             return true;
         }
         // Exemption for applications running with CAR Mode permissions.
-        if (mWifiPermissionsUtil.checkEnterCarModePrioritized(uid) && (importance
+        if (mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)
+                && (importance
                 <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE)) {
             return true;
         }
@@ -463,7 +476,9 @@ public class WifiLockManager {
 
     private boolean isAppScreenOnExempted(int uid) {
         // Exemption for applications running with CAR Mode permissions.
-        if (mWifiPermissionsUtil.checkEnterCarModePrioritized(uid)) return true;
+        if (mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)) {
+            return true;
+        }
         // Add more exemptions here
         return false;
     }
