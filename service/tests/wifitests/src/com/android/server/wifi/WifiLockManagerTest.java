@@ -43,6 +43,7 @@ import android.os.test.TestLooper;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -88,6 +89,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock PowerManager mPowerManager;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     TestLooper mLooper;
     Handler mHandler;
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
@@ -108,6 +110,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         mLooper = new TestLooper();
         mHandler = new Handler(mLooper.getLooper());
         when(mContext.getSystemService(Context.ACTIVITY_SERVICE)).thenReturn(mActivityManager);
+        when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
 
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
@@ -119,7 +122,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         mWifiLockManager = new WifiLockManager(mContext, mBatteryStats,
                 mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics,
-                mDeviceConfigFacade);
+                mDeviceConfigFacade, mWifiPermissionsUtil);
         verify(mContext, atLeastOnce()).registerReceiver(
                 mBroadcastReceiverCaptor.capture(), any(), any(), any());
     }
@@ -208,7 +211,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
             // which is active only when screen is ON and the acquiring app is running in the
             // foreground.
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder,
                     mWorkSource);
             assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
@@ -230,7 +234,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
@@ -252,7 +257,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
@@ -278,7 +284,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         int expectedMode = WifiManager.WIFI_MODE_FULL_HIGH_PERF;
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
@@ -321,7 +328,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
 
@@ -356,7 +364,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         WorkSource checkMWS = mWifiLockManager.createMergedWorkSource();
@@ -419,7 +428,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
 
@@ -444,7 +454,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
@@ -476,7 +487,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
@@ -506,7 +518,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
@@ -640,7 +653,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
@@ -684,7 +698,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_MODE_FULL_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
@@ -839,7 +854,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testForegroundAppAcquireLowLatencyScreenOn() throws Exception {
         // Set screen on, and app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
                 mBinder, mWorkSource);
@@ -857,11 +873,31 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testForegroundAppAcquireLowLatencyScreenOff() throws Exception {
         // Set screen off, and app is foreground
         setScreenState(false);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
-
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
         assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
                 "", mBinder, mWorkSource));
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD,
+                mWifiLockManager.getStrongestLockMode());
+    }
+
+    /**
+     * Test if an exempted foreground app acquires a low-latency lock, and screen is off,
+     * then that lock becomes effective.
+     */
+    @Test
+    public void testForegroundAppAcquireLowLatencyScreenOffExemption() throws Exception {
+        // Set screen off, and app is foreground
+        setScreenState(false);
+        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        // Acquire the lock.
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource);
+        // Check for low latency.
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
                 mWifiLockManager.getStrongestLockMode());
     }
 
@@ -873,11 +909,32 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testBackgroundAppAcquireLowLatencyScreenOn() throws Exception {
         // Set screen on, and app is background
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(false);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
 
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
         assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
                 "", mBinder, mWorkSource));
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD,
+                mWifiLockManager.getStrongestLockMode());
+    }
+
+    /**
+     * Test if an exempted app not in foreground acquires a low-latency lock, and screen is on,
+     * then that lock becomes effective.
+     */
+    @Test
+    public void testBackgroundAppAcquireLowLatencyScreenOnExemption() throws Exception {
+        // Set screen on, and app is foreground service.
+        setScreenState(true);
+        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
+        // Acquire the lock.
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource);
+        // Check for low latency.
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
                 mWifiLockManager.getStrongestLockMode());
     }
 
@@ -889,7 +946,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testLatencyLockAcquireCauseLlEnableNew() throws Exception {
         // Set screen on, and app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn(WifiManager.WIFI_FEATURE_LOW_LATENCY);
@@ -909,7 +967,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testLatencyLockAcquireCauseLL_enableLegacy() throws Exception {
         // Set screen on, and app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_TX_POWER_LIMIT);
 
@@ -928,7 +987,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testLatencyLockReleaseCauseLlDisable() throws Exception {
         // Set screen on, and app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -965,7 +1025,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // Set screen on, and app is foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -994,7 +1055,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // Set screen on, and app is foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -1022,7 +1084,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testLatencyLockGoScreenOff() throws Exception {
         // Set screen on, app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -1059,7 +1122,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testLatencyLockGoBackground() throws Exception {
         // Initially, set screen on, app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -1267,7 +1331,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -1415,7 +1480,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
@@ -1456,7 +1522,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
@@ -1478,7 +1545,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testAcquireLockWhileConnectedDisconnect() throws Exception {
         // Set screen on, and app foreground
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
         mWifiLockManager.updateWifiClientConnected(mClientModeManager, false);
@@ -1501,7 +1569,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             expectedMode = WifiManager.WIFI_MODE_FULL_LOW_LATENCY;
         }
 
@@ -1558,7 +1627,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
             when(mClientModeManager.getSupportedFeatures())
                     .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
             when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
@@ -1607,7 +1677,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // Set condition for activation of low-latency (except connection to AP)
         setScreenState(true);
-        when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.getSupportedFeatures())
                 .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
 
@@ -1666,7 +1737,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         int expectedMode = mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()
@@ -1711,7 +1783,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // is active only when screen is ON and the acquiring app is running in the foreground.
         if (mDeviceConfigFacade.isHighPerfLockDeprecated() && SdkLevel.isAtLeastU()) {
             setScreenState(true);
-            when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(true);
+            when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         }
 
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",

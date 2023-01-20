@@ -418,6 +418,7 @@ package android.net.wifi {
   }
 
   public class WifiManager {
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addLocalOnlyConnectionFailureListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.LocalOnlyConnectionFailureListener);
     method @Deprecated public int addNetwork(android.net.wifi.WifiConfiguration);
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_STACK, android.Manifest.permission.NETWORK_SETUP_WIZARD, android.Manifest.permission.NETWORK_MANAGED_PROVISIONING}, conditional=true) public android.net.wifi.WifiManager.AddNetworkResult addNetworkPrivileged(@NonNull android.net.wifi.WifiConfiguration);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public int addNetworkSuggestions(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>);
@@ -495,6 +496,7 @@ package android.net.wifi {
     method @Deprecated public boolean reconnect();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void registerScanResultsCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.ScanResultsCallback);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void registerSubsystemRestartTrackingCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.SubsystemRestartTrackingCallback);
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeLocalOnlyConnectionFailureListener(@NonNull android.net.wifi.WifiManager.LocalOnlyConnectionFailureListener);
     method @Deprecated public boolean removeNetwork(int);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public int removeNetworkSuggestions(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public int removeNetworkSuggestions(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>, int);
@@ -539,6 +541,12 @@ package android.net.wifi {
     field public static final String NETWORK_STATE_CHANGED_ACTION = "android.net.wifi.STATE_CHANGE";
     field public static final String RSSI_CHANGED_ACTION = "android.net.wifi.RSSI_CHANGED";
     field public static final String SCAN_RESULTS_AVAILABLE_ACTION = "android.net.wifi.SCAN_RESULTS";
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_ASSOCIATION = 1; // 0x1
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_AUTHENTICATION = 2; // 0x2
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_IP_PROVISIONING = 3; // 0x3
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NOT_FOUND = 4; // 0x4
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NO_RESPONSE = 5; // 0x5
+    field public static final int STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN = 0; // 0x0
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_ADD_DUPLICATE = 3; // 0x3
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_ADD_EXCEEDS_MAX_PER_APP = 4; // 0x4
     field public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_ADD_INVALID = 7; // 0x7
@@ -608,6 +616,10 @@ package android.net.wifi {
     ctor public WifiManager.InterfaceCreationImpact(int, @NonNull java.util.Set<java.lang.String>);
     method public int getInterfaceType();
     method @NonNull public java.util.Set<java.lang.String> getPackages();
+  }
+
+  public static interface WifiManager.LocalOnlyConnectionFailureListener {
+    method public void onConnectionStatus(@NonNull android.net.wifi.WifiNetworkSpecifier, int);
   }
 
   public static class WifiManager.LocalOnlyHotspotCallback {

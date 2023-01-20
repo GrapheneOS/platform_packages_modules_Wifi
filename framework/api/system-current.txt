@@ -571,7 +571,7 @@ package android.net.wifi {
 
   public class WifiManager {
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
-    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicy(@NonNull android.net.wifi.QosPolicyParams);
+    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicy(@NonNull android.net.wifi.QosPolicyParams, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addWifiVerboseLoggingStatusChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoin(int, boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoinPasspoint(@NonNull String, boolean);
@@ -754,6 +754,11 @@ package android.net.wifi {
     field public static final int IFACE_IP_MODE_UNSPECIFIED = -1; // 0xffffffff
     field public static final int PASSPOINT_HOME_NETWORK = 0; // 0x0
     field public static final int PASSPOINT_ROAMING_NETWORK = 1; // 0x1
+    field public static final int QOS_REQUEST_STATUS_ALREADY_ACTIVE = 1; // 0x1
+    field public static final int QOS_REQUEST_STATUS_FAILURE_UNKNOWN = 4; // 0x4
+    field public static final int QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES = 2; // 0x2
+    field public static final int QOS_REQUEST_STATUS_INVALID_PARAMETERS = 3; // 0x3
+    field public static final int QOS_REQUEST_STATUS_TRACKING = 0; // 0x0
     field public static final int SAP_CLIENT_BLOCK_REASON_CODE_BLOCKED_BY_USER = 0; // 0x0
     field public static final int SAP_CLIENT_BLOCK_REASON_CODE_NO_MORE_STAS = 1; // 0x1
     field public static final int SAP_START_FAILURE_GENERAL = 0; // 0x0
@@ -1233,6 +1238,15 @@ package android.net.wifi.aware {
 
   public class DiscoverySession implements java.lang.AutoCloseable {
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPmk(@NonNull android.net.wifi.aware.PeerHandle, @NonNull byte[]);
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void resume();
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void suspend();
+  }
+
+  public class DiscoverySessionCallback {
+    method public void onSessionResumeFailed(int);
+    method public void onSessionResumeSuccess();
+    method public void onSessionSuspendFailed(int);
+    method public void onSessionSuspendSuccess();
   }
 
   public final class PublishConfig implements android.os.Parcelable {
@@ -1252,8 +1266,16 @@ package android.net.wifi.aware {
   }
 
   public class WifiAwareManager {
+    method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void attachOffload(@NonNull android.os.Handler, @NonNull android.net.wifi.aware.AttachCallback);
     method @RequiresPermission(allOf={android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public void enableInstantCommunicationMode(boolean);
     method @RequiresPermission(allOf={android.Manifest.permission.OVERRIDE_WIFI_CONFIG, android.Manifest.permission.CHANGE_WIFI_STATE}) public void setAwareParams(@Nullable android.net.wifi.aware.AwareParams);
+    field public static final int WIFI_AWARE_RESUME_INTERNAL_ERROR = 2; // 0x2
+    field public static final int WIFI_AWARE_RESUME_INVALID_SESSION = 1; // 0x1
+    field public static final int WIFI_AWARE_RESUME_REDUNDANT_REQUEST = 0; // 0x0
+    field public static final int WIFI_AWARE_SUSPEND_CANNOT_SUSPEND = 2; // 0x2
+    field public static final int WIFI_AWARE_SUSPEND_INTERNAL_ERROR = 3; // 0x3
+    field public static final int WIFI_AWARE_SUSPEND_INVALID_SESSION = 1; // 0x1
+    field public static final int WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST = 0; // 0x0
   }
 
   public class WifiAwareSession implements java.lang.AutoCloseable {

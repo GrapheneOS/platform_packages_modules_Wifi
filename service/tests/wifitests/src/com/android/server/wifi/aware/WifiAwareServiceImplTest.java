@@ -238,10 +238,11 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         String callingPackage = "com.google.somePackage";
         String callingFeatureId = "com.google.someFeature";
         mDut.connect(mBinderMock, callingPackage, callingFeatureId, mCallbackMock,
-                configRequest, false, mExtras);
+                configRequest, false, mExtras, false);
 
         verify(mAwareStateManagerMock).connect(anyInt(), anyInt(), anyInt(), eq(callingPackage),
-                eq(callingFeatureId), eq(mCallbackMock), eq(configRequest), eq(false), any());
+                eq(callingFeatureId), eq(mCallbackMock), eq(configRequest), eq(false), any(),
+                eq(false));
     }
 
     /**
@@ -259,6 +260,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     /**
      * Validate that security exception thrown when attempting operation using
      * an invalid client ID.
+     * 240
      */
     @Test(expected = SecurityException.class)
     public void testFailOnInvalidClientId() {
@@ -377,9 +379,9 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
         int prevId = 0;
         for (int i = 0; i < loopCount; ++i) {
-            mDut.connect(mBinderMock, "", "", mCallbackMock, null, false, mExtras);
+            mDut.connect(mBinderMock, "", "", mCallbackMock, null, false, mExtras, false);
             inOrder.verify(mAwareStateManagerMock).connect(clientIdCaptor.capture(), anyInt(),
-                    anyInt(), any(), any(), eq(mCallbackMock), any(), eq(false), any());
+                    anyInt(), any(), any(), eq(mCallbackMock), any(), eq(false), any(), eq(false));
             int id = clientIdCaptor.getValue();
             if (i != 0) {
                 assertTrue("Client ID incrementing", id > prevId);
@@ -832,6 +834,124 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                         alias, true));
     }
 
+    @Test
+    public void testSuspendWithSuspensionNotSupported() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mDut.suspend(clientId, sessionId));
+    }
+
+    @Test
+    public void testSuspendWithNoNetworkSelectionPermission() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        assertThrows(
+                SecurityException.class,
+                () -> mDut.suspend(clientId, sessionId));
+    }
+
+    @Test
+    public void testSuspendWithValidConfiguration() {
+        int sessionId = 345;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(true);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mDut.suspend(clientId, sessionId);
+
+        verify(mAwareStateManagerMock).suspend(clientId, sessionId);
+    }
+
+    @Test
+    public void testResumeWithSuspensionNotSupported() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        assertThrows(UnsupportedOperationException.class, () -> mDut.resume(clientId, sessionId));
+    }
+
+    @Test
+    public void testResumeWithNoNetworkSelectionPermission() {
+        int sessionId = 123;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(false);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        assertThrows(
+                SecurityException.class,
+                () -> mDut.resume(clientId, sessionId));
+    }
+
+    @Test
+    public void testResumeWithValidConfiguration() {
+        int sessionId = 345;
+        int clientId = doConnect();
+
+        Characteristics characteristics = mock(Characteristics.class);
+        when(characteristics.isSuspensionSupported()).thenReturn(true);
+        when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mDut.resume(clientId, sessionId);
+
+        verify(mAwareStateManagerMock).resume(clientId, sessionId);
+    }
+
+    @Test
+    public void attachOffload() {
+        when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
+        String callingPackage = "com.google.somePackage";
+        String callingFeatureId = "com.google.someFeature";
+
+        mDut.connect(mBinderMock, callingPackage, callingFeatureId, mCallbackMock, null, false,
+                mExtras, true);
+
+        ArgumentCaptor<Integer> clientId = ArgumentCaptor.forClass(Integer.class);
+        verify(mAwareStateManagerMock).connect(clientId.capture(), anyInt(), anyInt(),
+                eq(callingPackage), eq(callingFeatureId), eq(mCallbackMock),
+                eq(new ConfigRequest.Builder().build()), eq(false), any(), eq(true));
+    }
+
+    @Test
+    public void attachOffloadWithoutPermission() {
+        when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(false);
+        String callingPackage = "com.google.somePackage";
+        String callingFeatureId = "com.google.someFeature";
+
+        assertThrows(SecurityException.class, () ->mDut.connect(mBinderMock, callingPackage,
+                callingFeatureId, mCallbackMock, null, false, mExtras, true));
+
+    }
+
     /*
      * Utilities
      */
@@ -889,12 +1009,12 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         String callingFeatureId = "com.google.someFeature";
 
         mDut.connect(mBinderMock, callingPackage, callingFeatureId, mCallbackMock, null, false,
-                mExtras);
+                mExtras, false);
 
         ArgumentCaptor<Integer> clientId = ArgumentCaptor.forClass(Integer.class);
         verify(mAwareStateManagerMock).connect(clientId.capture(), anyInt(), anyInt(),
                 eq(callingPackage), eq(callingFeatureId), eq(mCallbackMock),
-                eq(new ConfigRequest.Builder().build()), eq(false), any());
+                eq(new ConfigRequest.Builder().build()), eq(false), any(), eq(false));
 
         return clientId.getValue();
     }

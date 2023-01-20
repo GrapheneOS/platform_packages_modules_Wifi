@@ -210,6 +210,79 @@ public class WifiAwareManager {
      */
     public static final int WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE = 1;
 
+    /** @hide */
+    @IntDef({
+            WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST,
+            WIFI_AWARE_SUSPEND_INVALID_SESSION,
+            WIFI_AWARE_SUSPEND_CANNOT_SUSPEND,
+            WIFI_AWARE_SUSPEND_INTERNAL_ERROR})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SessionSuspensionFailedReasonCode {}
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * session is already suspended.
+     * @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST = 0;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * specified session does not support suspension.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_INVALID_SESSION = 1;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when the
+     * session could not be suspended due to more than one app using it.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_CANNOT_SUSPEND = 2;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionSuspendFailed(int)} when an
+     * error is encountered with the request.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_SUSPEND_INTERNAL_ERROR = 3;
+
+    /** @hide */
+    @IntDef({
+            WIFI_AWARE_RESUME_REDUNDANT_REQUEST,
+            WIFI_AWARE_RESUME_INVALID_SESSION,
+            WIFI_AWARE_RESUME_INTERNAL_ERROR})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SessionResumptionFailedReasonCode {}
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when the
+     * session is not suspended.
+     * @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_REDUNDANT_REQUEST = 0;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when the
+     * specified session does not support suspension.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_INVALID_SESSION = 1;
+
+    /**
+     * Reason code provided in {@link DiscoverySessionCallback#onSessionResumeFailed(int)} when an
+     * error is encountered with the request.
+      @hide
+     */
+    @SystemApi
+    public static final int WIFI_AWARE_RESUME_INTERNAL_ERROR = 2;
+
     private final Context mContext;
     private final IWifiAwareManager mService;
 
@@ -379,7 +452,7 @@ public class WifiAwareManager {
             CHANGE_WIFI_STATE
     })
     public void attach(@NonNull AttachCallback attachCallback, @Nullable Handler handler) {
-        attach(handler, null, attachCallback, null);
+        attach(handler, null, attachCallback, null, false);
     }
 
     /**
@@ -429,17 +502,17 @@ public class WifiAwareManager {
     public void attach(@NonNull AttachCallback attachCallback,
             @NonNull IdentityChangedListener identityChangedListener,
             @Nullable Handler handler) {
-        attach(handler, null, attachCallback, identityChangedListener);
+        attach(handler, null, attachCallback, identityChangedListener, false);
     }
 
     /** @hide */
     public void attach(Handler handler, ConfigRequest configRequest,
             AttachCallback attachCallback,
-            IdentityChangedListener identityChangedListener) {
+            IdentityChangedListener identityChangedListener, boolean forOffloading) {
         if (VDBG) {
             Log.v(TAG, "attach(): handler=" + handler + ", callback=" + attachCallback
                     + ", configRequest=" + configRequest + ", identityChangedListener="
-                    + identityChangedListener);
+                    + identityChangedListener + ", forOffloading" + forOffloading);
         }
 
         if (attachCallback == null) {
@@ -459,7 +532,7 @@ public class WifiAwareManager {
                 mService.connect(binder, mContext.getOpPackageName(), mContext.getAttributionTag(),
                         new WifiAwareEventCallbackProxy(this, looper, binder, attachCallback,
                                 identityChangedListener), configRequest,
-                        identityChangedListener != null, extras);
+                        identityChangedListener != null, extras, forOffloading);
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             }
@@ -953,6 +1026,30 @@ public class WifiAwareManager {
         }
 
         @Override
+        public void onSessionSuspendSuccess() {
+            if (VDBG) Log.v(TAG, "onSessionSuspendSuccess");
+            mHandler.post(mOriginalCallback::onSessionSuspendSuccess);
+        }
+
+        @Override
+        public void onSessionSuspendFail(int reason) {
+            if (VDBG) Log.v(TAG, "onSessionSuspendFail: reason=" + reason);
+            mHandler.post(() -> mOriginalCallback.onSessionSuspendFailed(reason));
+        }
+
+        @Override
+        public void onSessionResumeSuccess() {
+            if (VDBG) Log.v(TAG, "onSessionResumeSuccess");
+            mHandler.post(mOriginalCallback::onSessionResumeSuccess);
+        }
+
+        @Override
+        public void onSessionResumeFail(int reason) {
+            if (VDBG) Log.v(TAG, "onSessionResumeFail: reason=" + reason);
+            mHandler.post(() -> mOriginalCallback.onSessionResumeFailed(reason));
+        }
+
+        @Override
         public void onMatch(int peerId, byte[] serviceSpecificInfo, byte[] matchFilter,
                 int peerCipherSuite, byte[] scid, String pairingAlias,
                 AwarePairingConfig pairingConfig) {
@@ -1173,6 +1270,51 @@ public class WifiAwareManager {
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
+    }
+
+    /**
+     * @hide
+     */
+    public void suspend(int clientId, int sessionId) {
+        try {
+            mService.suspend(clientId, sessionId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void resume(int clientId, int sessionId) {
+        try {
+            mService.resume(clientId, sessionId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+    /**
+     * Attach to the Wi-Fi Aware service as an offload session. All discovery sessions and
+     * connections will be handled via out-of-band connections.
+     * The Aware session created by this attach method will have the lowest priority when resource
+     * conflicts arise (e.g. Aware has to be torn down to create other WiFi interfaces).
+     *
+     * @see #attach(AttachCallback, Handler)
+     * @param attachCallback A callback for attach events, extended from
+     * {@link AttachCallback}.
+     * @param handler The Handler on whose thread to execute the callbacks of the {@code
+     * attachCallback} object. If a null is provided then the application's main thread will be
+     *                used.
+     * @hide
+     */
+    @SystemApi
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE, CHANGE_WIFI_STATE, OVERRIDE_WIFI_CONFIG})
+    public void attachOffload(@NonNull Handler handler,
+            @NonNull AttachCallback attachCallback) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Null handler provided");
+        }
+        attach(handler, null, attachCallback, null, true);
     }
 
 }

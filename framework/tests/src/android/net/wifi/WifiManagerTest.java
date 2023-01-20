@@ -186,6 +186,8 @@ public class WifiManagerTest {
     @Mock OnWifiUsabilityStatsListener mOnWifiUsabilityStatsListener;
     @Mock OnWifiActivityEnergyInfoListener mOnWifiActivityEnergyInfoListener;
     @Mock SuggestionConnectionStatusListener mSuggestionConnectionListener;
+    @Mock
+    WifiManager.LocalOnlyConnectionFailureListener mLocalOnlyConnectionFailureListener;
     @Mock Runnable mRunnable;
     @Mock Executor mExecutor;
     @Mock Executor mAnotherExecutor;
@@ -3117,7 +3119,8 @@ public class WifiManagerTest {
         ArgumentCaptor<ISuggestionConnectionStatusListener.Stub> callbackCaptor =
                 ArgumentCaptor.forClass(ISuggestionConnectionStatusListener.Stub.class);
         Executor executor = new SynchronousExecutor();
-        mWifiManager.addSuggestionConnectionStatusListener(executor, mSuggestionConnectionListener);
+        mWifiManager.addSuggestionConnectionStatusListener(executor,
+                mSuggestionConnectionListener);
         verify(mWifiService).registerSuggestionConnectionStatusListener(callbackCaptor.capture(),
                 anyString(), nullable(String.class));
         callbackCaptor.getValue().onConnectionStatus(mWifiNetworkSuggestion, errorCode);
@@ -3951,7 +3954,7 @@ public class WifiManagerTest {
     }
 
     /**
-     * Verify call to {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     * Verify call to {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      */
     @Test
     public void testAddQosPolicy() throws Exception {
@@ -3966,8 +3969,12 @@ public class WifiManagerTest {
         ArgumentCaptor<QosPolicyParams> paramsCaptor =
                 ArgumentCaptor.forClass(QosPolicyParams.class);
 
-        mWifiManager.addQosPolicy(policyParams);
-        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any());
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        Consumer<Integer> resultsCallback = mock(Consumer.class);
+
+        mWifiManager.addQosPolicy(policyParams, executor, resultsCallback);
+        verify(mWifiService).addQosPolicy(paramsCaptor.capture(), any(), eq(TEST_PACKAGE_NAME),
+                any(IIntegerListener.Stub.class));
         assertEquals(policyId, paramsCaptor.getValue().getPolicyId());
         assertEquals(direction, paramsCaptor.getValue().getDirection());
         assertEquals(userPriority, paramsCaptor.getValue().getUserPriority());
@@ -3981,6 +3988,21 @@ public class WifiManagerTest {
         assumeTrue(SdkLevel.isAtLeastU());
         final int policyId = 127;
         mWifiManager.removeQosPolicy(policyId);
-        verify(mWifiService).removeQosPolicy(eq(policyId));
+        verify(mWifiService).removeQosPolicy(eq(policyId), eq(TEST_PACKAGE_NAME));
     }
+
+    @Test
+    public void testAddRemoveLocaOnlyConnectionListener() throws RemoteException {
+        assertThrows(IllegalArgumentException.class, () -> mWifiManager
+                .addLocalOnlyConnectionFailureListener(null, mLocalOnlyConnectionFailureListener));
+        assertThrows(IllegalArgumentException.class, () -> mWifiManager
+                .addLocalOnlyConnectionFailureListener(mExecutor, null));
+        mWifiManager.addLocalOnlyConnectionFailureListener(mExecutor,
+                mLocalOnlyConnectionFailureListener);
+        verify(mWifiService).addLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME),
+                nullable(String.class));
+        mWifiManager.removeLocalOnlyConnectionFailureListener(mLocalOnlyConnectionFailureListener);
+        verify(mWifiService).removeLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME));
+    }
+
 }

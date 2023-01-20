@@ -141,6 +141,7 @@ import android.net.wifi.IDppCallback;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
@@ -394,6 +395,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock ICoexCallback mCoexCallback;
     @Mock IScanResultsCallback mScanResultsCallback;
     @Mock ISuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
+    @Mock ILocalOnlyConnectionStatusListener mLocalOnlyConnectionStatusListener;
     @Mock ISuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     @Mock IOnWifiActivityEnergyInfoListener mOnWifiActivityEnergyInfoListener;
     @Mock ISubsystemRestartCallback mSubsystemRestartCallback;
@@ -5670,7 +5672,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mScanRequestProxy).clearScanRequestTimestampsForApp(packageName, uid);
         verify(mWifiNetworkSuggestionsManager).removeApp(packageName);
-        verify(mWifiNetworkFactory).removeUserApprovedAccessPointsForApp(packageName);
+        verify(mWifiNetworkFactory).removeApp(packageName);
         verify(mPasspointManager).removePasspointProviderWithPackage(packageName);
     }
 
@@ -5702,7 +5704,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mScanRequestProxy).clearScanRequestTimestampsForApp(packageName, uid);
         verify(mWifiNetworkSuggestionsManager).removeApp(packageName);
-        verify(mWifiNetworkFactory).removeUserApprovedAccessPointsForApp(packageName);
+        verify(mWifiNetworkFactory).removeApp(packageName);
         verify(mPasspointManager).removePasspointProviderWithPackage(packageName);
     }
 
@@ -5736,7 +5738,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mScanRequestProxy).clearScanRequestTimestampsForApp(packageName, uid);
         verify(mWifiNetworkSuggestionsManager).removeApp(packageName);
-        verify(mWifiNetworkFactory).removeUserApprovedAccessPointsForApp(packageName);
+        verify(mWifiNetworkFactory).removeApp(packageName);
         verify(mPasspointManager).removePasspointProviderWithPackage(packageName);
     }
 
@@ -5761,7 +5763,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mScanRequestProxy, never()).clearScanRequestTimestampsForApp(anyString(), anyInt());
         verify(mWifiNetworkSuggestionsManager, never()).removeApp(anyString());
-        verify(mWifiNetworkFactory, never()).removeUserApprovedAccessPointsForApp(anyString());
+        verify(mWifiNetworkFactory, never()).removeApp(anyString());
         verify(mPasspointManager, never()).removePasspointProviderWithPackage(anyString());
     }
 
@@ -5786,7 +5788,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mScanRequestProxy, never()).clearScanRequestTimestampsForApp(anyString(), anyInt());
         verify(mWifiNetworkSuggestionsManager, never()).removeApp(anyString());
-        verify(mWifiNetworkFactory, never()).removeUserApprovedAccessPointsForApp(anyString());
+        verify(mWifiNetworkFactory, never()).removeApp(anyString());
         verify(mPasspointManager, never()).removePasspointProviderWithPackage(anyString());
     }
 
@@ -9013,7 +9015,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         verify(mScanRequestProxy).clearScanRequestTimestampsForApp(TEST_PACKAGE_NAME, TEST_UID);
         verify(mWifiNetworkSuggestionsManager).removeApp(TEST_PACKAGE_NAME);
-        verify(mWifiNetworkFactory).removeUserApprovedAccessPointsForApp(TEST_PACKAGE_NAME);
+        verify(mWifiNetworkFactory).removeApp(TEST_PACKAGE_NAME);
         verify(mPasspointManager).removePasspointProviderWithPackage(TEST_PACKAGE_NAME);
     }
 
@@ -10940,6 +10942,48 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 any(), anyBoolean(), any());
         assertThrows(SecurityException.class,
                 () -> mWifiServiceImpl.getChannelData(listener, TEST_PACKAGE_NAME, mExtras));
+    }
+
+    /**
+     * Test register callback without ACCESS_WIFI_STATE permission.
+     */
+    @Test
+    public void testRegisterLocalOnlyNetworkCallbackWithMissingAccessWifiPermission() {
+        doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
+                eq(ACCESS_WIFI_STATE), eq("WifiService"));
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .addLocalOnlyConnectionStatusListener(
+                mLocalOnlyConnectionStatusListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID));
+    }
+
+    /**
+     * Test unregister callback without permission.
+     */
+    @Test
+    public void testUnregisterLocalOnlyNetworkCallbackWithMissingPermission() {
+        doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
+                eq(ACCESS_WIFI_STATE), eq("WifiService"));
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyConnectionStatusListener(
+                        mLocalOnlyConnectionStatusListener, TEST_PACKAGE_NAME));
+    }
+
+    /**
+     * Test register nad unregister callback will go to WifiNetworkSuggestionManager
+     */
+    @Test
+    public void testRegisterUnregisterLocalOnlyNetworkCallback() throws Exception {
+        mWifiServiceImpl.addLocalOnlyConnectionStatusListener(
+                mLocalOnlyConnectionStatusListener, TEST_PACKAGE_NAME, TEST_FEATURE_ID);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).addLocalOnlyConnectionStatusListener(
+                eq(mLocalOnlyConnectionStatusListener), eq(TEST_PACKAGE_NAME), eq(TEST_FEATURE_ID)
+        );
+        mWifiServiceImpl.removeLocalOnlyConnectionStatusListener(
+                mLocalOnlyConnectionStatusListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).removeLocalOnlyConnectionStatusListener(
+                eq(mLocalOnlyConnectionStatusListener), eq(TEST_PACKAGE_NAME));
     }
 
     private List<ScanResult> createChannelDataScanResults() {

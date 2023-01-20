@@ -54,7 +54,7 @@ interface IWifiAwareManager
     // client API
     void connect(in IBinder binder, in String callingPackage, in String callingFeatureId,
             in IWifiAwareEventCallback callback, in ConfigRequest configRequest,
-            boolean notifyOnIdentityChanged, in Bundle extras);
+            boolean notifyOnIdentityChanged, in Bundle extras, boolean forAwareOffload);
     void disconnect(int clientId, in IBinder binder);
 
     void publish(in String callingPackage, in String callingFeatureId, int clientId,
@@ -75,6 +75,8 @@ interface IWifiAwareManager
     void responseNanPairingSetupRequest(int clientId, int sessionId, int peerId,
                 int requestId, String password, String pairingDeviceAlias, boolean accept);
     void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,int method);
+    void suspend(int clientId, int sessionId);
+    void resume(int clientId, int sessionId);
 
     // internal APIs: intended to be used between System Services (restricted permissions)
     void requestMacAddresses(int uid, in int[] peerIds, in IWifiAwareMacAddressProvider callback);

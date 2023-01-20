@@ -94,9 +94,11 @@ import android.net.wifi.IActionListener;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
+import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
@@ -269,6 +271,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private final ConnectHelper mConnectHelper;
     private final WifiGlobals mWifiGlobals;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
+    private final WifiNetworkFactory mWifiNetworkFactory;
     private @WifiManager.VerboseLoggingLevel int mVerboseLoggingLevel =
             WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
     private boolean mVerboseLoggingEnabled = false;
@@ -498,6 +501,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mLohsSoftApTracker = new LohsSoftApTracker();
         mActiveModeWarden.registerLohsCallback(mLohsSoftApTracker);
         mWifiNetworkSuggestionsManager = mWifiInjector.getWifiNetworkSuggestionsManager();
+        mWifiNetworkFactory = mWifiInjector.getWifiNetworkFactory();
         mDppManager = mWifiInjector.getDppManager();
         mWifiThreadRunner = mWifiInjector.getWifiThreadRunner();
         mWifiHandlerThread = mWifiInjector.getWifiHandlerThread();
@@ -4909,8 +4913,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // Remove all suggestions from the package.
         mWifiNetworkSuggestionsManager.removeApp(pkgName);
-        mWifiInjector.getWifiNetworkFactory().removeUserApprovedAccessPointsForApp(
-                pkgName);
+        mWifiInjector.getWifiNetworkFactory().removeApp(pkgName);
 
         // Remove all Passpoint profiles from package.
         mWifiInjector.getPasspointManager().removePasspointProviderWithPackage(
@@ -6351,6 +6354,9 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     public void unregisterSuggestionConnectionStatusListener(
             @NonNull ISuggestionConnectionStatusListener listener, String packageName) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
         enforceAccessPermission();
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
@@ -6361,6 +6367,67 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiThreadRunner.post(() ->
                 mWifiNetworkSuggestionsManager
                         .unregisterSuggestionConnectionStatusListener(listener, packageName, uid));
+    }
+
+    /**
+     * {@link WifiManager#addLocalOnlyConnectionFailureListener(Executor, WifiManager.LocalOnlyConnectionFailureListener)}
+     */
+    @Override
+    public void addLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName, String featureId) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
+
+        final int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        enforceAccessPermission();
+        long callingIdentity = Binder.clearCallingIdentity();
+        try {
+            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
+                Log.e(TAG, "UID " + uid + " not visible to the current user");
+                throw new SecurityException("UID " + uid + " not visible to the current user");
+            }
+        } finally {
+            // restore calling identity
+            Binder.restoreCallingIdentity(callingIdentity);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("addLocalOnlyConnectionFailureListener uid=%").c(uid).flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiNetworkFactory.addLocalOnlyConnectionStatusListener(listener, packageName,
+                        featureId));
+    }
+
+    /**
+     * {@link WifiManager#removeLocalOnlyConnectionFailureListener(WifiManager.LocalOnlyConnectionFailureListener)}
+     */
+    @Override
+    public void removeLocalOnlyConnectionStatusListener(ILocalOnlyConnectionStatusListener listener,
+            String packageName) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
+        enforceAccessPermission();
+        int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        long callingIdentity = Binder.clearCallingIdentity();
+        try {
+            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
+                Log.e(TAG, "UID " + uid + " not visible to the current user");
+                throw new SecurityException("UID " + uid + " not visible to the current user");
+            }
+        } finally {
+            // restore calling identity
+            Binder.restoreCallingIdentity(callingIdentity);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("removeLocalOnlyConnectionFailureListener uid=%")
+                    .c(uid).flush();
+        }
+        mWifiThreadRunner.post(() ->
+                mWifiNetworkFactory.removeLocalOnlyConnectionStatusListener(listener, packageName));
     }
 
     @Override
@@ -7153,22 +7220,36 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#addQosPolicy(QosPolicyParams)}.
+     * See {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder) {
+    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
+            @NonNull String packageName, @NonNull IIntegerListener listener) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
-            Log.i(TAG, "addQosPolicy is disabled on this device");
-            return;
+            throw new UnsupportedOperationException("addQosPolicy is disabled on this device");
         }
+
         int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to add QoS policies");
         }
+
+        Objects.requireNonNull(policyParams, "policyParams cannot be null");
+        Objects.requireNonNull(binder, "binder cannot be null");
+        Objects.requireNonNull(listener, "listener cannot be null");
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**
@@ -7176,7 +7257,7 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void removeQosPolicy(int policyId) {
+    public void removeQosPolicy(int policyId, @NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
@@ -7184,6 +7265,7 @@ public class WifiServiceImpl extends BaseWifiService {
             return;
         }
         int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
@@ -7195,11 +7277,15 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void removeAllQosPolicies() {
+    public void removeAllQosPolicies(@NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
+        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+            Log.i(TAG, "removeAllQosPolicies is disabled on this device");
+            return;
         }
         int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
         if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");

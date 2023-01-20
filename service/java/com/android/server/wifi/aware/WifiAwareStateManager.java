@@ -18,6 +18,8 @@ package com.android.server.wifi.aware;
 
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INVALID_SESSION;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -180,6 +182,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int COMMAND_TYPE_RESPONSE_PAIRING_REQUEST = 126;
     private static final int COMMAND_TYPE_INITIATE_BOOTSTRAPPING_REQUEST = 127;
     private static final int COMMAND_TYPE_RESPONSE_BOOTSTRAPPING_REQUEST = 128;
+    private static final int COMMAND_TYPE_SUSPEND_SESSION = 129;
+    private static final int COMMAND_TYPE_RESUME_SESSION = 130;
 
     private static final int RESPONSE_TYPE_ON_CONFIG_SUCCESS = 200;
     private static final int RESPONSE_TYPE_ON_CONFIG_FAIL = 201;
@@ -282,6 +286,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID =
             "bootstrapping_request_id";
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT = "bootstrapping_accept";
+    private static final String MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD = "aware_offload";
+
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -1010,7 +1016,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void connect(int clientId, int uid, int pid, String callingPackage,
             @Nullable String callingFeatureId, IWifiAwareEventCallback callback,
-            ConfigRequest configRequest, boolean notifyOnIdentityChanged, Bundle extra) {
+            ConfigRequest configRequest, boolean notifyOnIdentityChanged, Bundle extra,
+            boolean forAwareOffload) {
+        if (!mContext.getResources()
+                .getBoolean(R.bool.config_wifiAwareOffloadingFirmwareHandlePriority)
+                && isAwareOffloading() && !forAwareOffload) {
+            deferDisableAware();
+        }
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_CONNECT;
         msg.arg2 = clientId;
@@ -1023,7 +1035,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE,
                 notifyOnIdentityChanged);
         msg.getData().putBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE, extra);
+        msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD, forAwareOffload);
         mSm.sendMessage(msg);
+        if (!forAwareOffload) {
+            for (int i = 0; i < mClients.size(); i++) {
+                WifiAwareClientState clientState = mClients.valueAt(i);
+                if (clientState.isAwareOffload()) {
+                    disconnect(clientState.getClientId());
+                }
+            }
+        }
     }
 
     /**
@@ -1373,6 +1394,28 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     /**
+     * Suspend the specified Aware session.
+     */
+    public void suspend(int clientId, int sessionId) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
+        msg.arg1 = COMMAND_TYPE_SUSPEND_SESSION;
+        msg.arg2 = clientId;
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_SESSION_ID, sessionId);
+        mSm.sendMessage(msg);
+    }
+
+    /**
+     * Resume the specified (suspended) Aware session.
+     */
+    public void resume(int clientId, int sessionId) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
+        msg.arg1 = COMMAND_TYPE_RESUME_SESSION;
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_SESSION_ID, sessionId);
+        msg.arg2 = clientId;
+        mSm.sendMessage(msg);
+    }
+
+    /**
      * Aware follow-on messages (L2 messages) are queued by the firmware for transmission
      * on-the-air. The firmware has limited queue depth. The host queues all messages and doles
      * them out to the firmware when possible. This command removes the next messages for
@@ -1659,7 +1702,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     /**
-     * Response from firmware to {@link #suspendRequest(int)}.
+     * Response from firmware to {@link #suspend(int, int)}.
      */
     public void onSuspendResponse(short transactionId, int status) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_RESPONSE);
@@ -1671,7 +1714,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     /**
-     * Response from firmware to {@link #resumeRequest(int)}.
+     * Response from firmware to {@link #resume(int, int)}.
      */
     public void onResumeResponse(short transactionId, int status) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_RESPONSE);
@@ -2425,12 +2468,20 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             MESSAGE_BUNDLE_KEY_CALLING_FEATURE_ID);
                     boolean notifyIdentityChange = msg.getData().getBoolean(
                             MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE);
-
+                    boolean awareOffload = msg.getData().getBoolean(
+                            MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD);
+                    WorkSource workSource;
+                    if (awareOffload) {
+                        workSource = new WorkSource(Process.WIFI_UID);
+                    } else {
+                        workSource = new WorkSource(uid, callingPackage);
+                    }
                     int proceedWithOperation =
                             mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG, msg,
                                     this, mWaitingState, mWaitState,
                                     HalDeviceManager.HDM_CREATE_IFACE_NAN,
-                                    new WorkSource(uid, callingPackage), false /* bypassDialog */);
+                                    workSource, false /* bypassDialog */
+                            );
 
                     if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                         // handling user rejection or possible conflict (pending command)
@@ -2449,7 +2500,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         waitForResponse = connectLocal(mCurrentTransactionId, clientId, uid, pid,
                                 callingPackage, callingFeatureId, callback, configRequest,
                                 notifyIdentityChange,
-                                msg.getData().getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE));
+                                msg.getData().getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE),
+                                awareOffload);
                     } else { // InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER
                         waitForResponse = false;
                     }
@@ -2719,6 +2771,22 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     mWifiAwareNativeManager.releaseAware();
                     waitForResponse = false;
                     break;
+                case COMMAND_TYPE_SUSPEND_SESSION: {
+                    int clientId = msg.arg2;
+                    int sessionId = msg.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
+
+                    waitForResponse = suspendSessionLocal(mCurrentTransactionId, clientId,
+                        sessionId);
+                    break;
+                }
+                case COMMAND_TYPE_RESUME_SESSION: {
+                    int clientId = msg.arg2;
+                    int sessionId = msg.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
+
+                    waitForResponse = resumeSessionLocal(mCurrentTransactionId, clientId,
+                        sessionId);
+                    break;
+                }
                 default:
                     waitForResponse = false;
                     Log.wtf(TAG, "processCommand: this isn't a COMMAND -- msg=" + msg);
@@ -2929,6 +2997,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 case RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_FAIL: {
                     int reason = (int) msg.obj;
                     Log.e(TAG, "RespondToBootstrappingIndication failed, reason: " + reason);
+                    break;
+                }
+                case RESPONSE_TYPE_ON_SUSPEND: {
+                    int statusCode = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
+                    boolean success = msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG);
+                    onSuspendResponseLocal(mCurrentCommand, success, statusCode);
+                    break;
+                }
+                case RESPONSE_TYPE_ON_RESUME: {
+                    int statusCode = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
+                    boolean success = msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG);
+                    onResumeResponseLocal(mCurrentCommand, success, statusCode);
                     break;
                 }
                 default:
@@ -3208,7 +3288,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean connectLocal(short transactionId, int clientId, int uid, int pid,
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
-            boolean notifyIdentityChange, Bundle extra) {
+            boolean notifyIdentityChange, Bundle extra, boolean awareOffload) {
         mLocalLog.log("connectLocal(): transactionId=" + transactionId + ", clientId=" + clientId
                 + ", uid=" + uid + ", pid=" + pid + ", callingPackage=" + callingPackage
                 + ", callback=" + callback + ", configRequest=" + configRequest
@@ -3251,6 +3331,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         if (mCurrentAwareConfiguration != null && mCurrentAwareConfiguration.equals(merged)
                 && (mCurrentIdentityNotification || !notifyIdentityChange)) {
+            if (awareOffload && !isAwareOffloading()) {
+                try {
+                    mLocalLog.log("Connect failure for clientId:" + clientId);
+                    callback.onConnectFail(clientId);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "connectLocal onConnectFail(): RemoteException (FYI): " + e);
+                }
+                return false;
+            }
             try {
                 mLocalLog.log("Connect success for clientId:" + clientId);
                 callback.onConnectSuccess(clientId);
@@ -3259,7 +3348,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
-                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil, extra, mLocalLog);
+                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil, extra, mLocalLog,
+                    awareOffload);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
@@ -3282,7 +3372,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         if (mCurrentAwareConfiguration == null) {
-            mWifiAwareNativeManager.tryToGetAware(new WorkSource(uid, callingPackage));
+            WorkSource workSource;
+            if (awareOffload) {
+                workSource = new WorkSource(Process.WIFI_UID);
+            } else {
+                workSource = new WorkSource(uid, callingPackage);
+            }
+            mWifiAwareNativeManager.tryToGetAware(workSource);
         }
 
         boolean success = mWifiAwareNativeApi.enableAndConfigure(transactionId, merged,
@@ -3604,21 +3700,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean initiateBootstrappingRequestLocal(short transactionId, int clientId,
             int sessionId, int peerId, int method) {
+        String methodString = "initiateBootstrappingRequestLocal";
         if (VDBG) {
-            Log.v(TAG, "initiateBootstrappingRequestLocal: transactionId=" + transactionId
+            Log.v(TAG, methodString + ": transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
         }
-        WifiAwareClientState client = mClients.get(clientId);
-        if (client == null) {
-            Log.e(TAG, "initiateBootstrappingRequestLocal: no client exists for clientId="
-                    + clientId);
-            return false;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "initiateBootstrappingRequestLocal: no session exists for clientId="
-                    + clientId + ", sessionId=" + sessionId);
             return false;
         }
         return session.initiateBootstrapping(transactionId, peerId, method);
@@ -3626,21 +3715,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean respondToBootstrappingRequestLocal(short transactionId, int clientId,
             int sessionId, int peerId, int bootstrappingId, boolean accept, int method) {
+        String methodString = "respondToBootstrappingRequestLocal";
         if (VDBG) {
-            Log.v(TAG, "respondToBootstrappingRequestLocal: transactionId=" + transactionId
+            Log.v(TAG, methodString + ": transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
         }
-        WifiAwareClientState client = mClients.get(clientId);
-        if (client == null) {
-            Log.e(TAG, "respondToBootstrappingRequestLocal: no client exists for clientId="
-                    + clientId);
-            return false;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "respondToBootstrappingRequestLocal: no session exists for clientId="
-                    + clientId + ", sessionId=" + sessionId);
             return false;
         }
         return session.respondToBootstrapping(transactionId, peerId, bootstrappingId, accept,
@@ -3649,20 +3731,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean sendFollowonMessageLocal(short transactionId, int clientId, int sessionId,
             int peerId, byte[] message, int messageId) {
-        mLocalLog.log("sendFollowonMessageLocal(): transactionId=" + transactionId + ", clientId="
+        String methodString = "sendFollowonMessageLocal";
+        mLocalLog.log(methodString + "(): transactionId=" + transactionId + ", clientId="
                 + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId
                 + ", messageId=" + messageId);
 
-        WifiAwareClientState client = mClients.get(clientId);
-        if (client == null) {
-            Log.e(TAG, "sendFollowonMessageLocal: no client exists for clientId=" + clientId);
-            return false;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "sendFollowonMessageLocal: no session exists for clientId=" + clientId
-                    + ", sessionId=" + sessionId);
             return false;
         }
 
@@ -3775,11 +3851,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE);
             String callingPackage = data.getString(MESSAGE_BUNDLE_KEY_CALLING_PACKAGE);
             String callingFeatureId = data.getString(MESSAGE_BUNDLE_KEY_CALLING_FEATURE_ID);
+            boolean awareOffload = data.getBoolean(MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD);
 
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil,
-                    data.getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE), mLocalLog);
+                    data.getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE), mLocalLog, awareOffload);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
             mClients.put(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
@@ -3877,6 +3954,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         boolean isRangingEnabled = false;
         boolean enableInstantMode = false;
+        boolean isSuspendable;
         int instantModeBand;
         int minRange = -1;
         int maxRange = -1;
@@ -3886,6 +3964,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     MESSAGE_BUNDLE_KEY_CONFIG);
             isRangingEnabled = publishConfig.mEnableRanging;
             enableInstantMode = publishConfig.isInstantCommunicationModeEnabled();
+            isSuspendable = SdkLevel.isAtLeastU() && publishConfig.isSuspendable();
             instantModeBand = publishConfig.getInstantCommunicationBand();
             pairingConfig = publishConfig.getPairingConfig();
         } else {
@@ -3893,6 +3972,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     MESSAGE_BUNDLE_KEY_CONFIG);
             isRangingEnabled =
                     subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet;
+            isSuspendable = SdkLevel.isAtLeastU() && subscribeConfig.isSuspendable();
             if (subscribeConfig.mMinDistanceMmSet) {
                 minRange = subscribeConfig.mMinDistanceMm;
             }
@@ -3929,8 +4009,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
             WifiAwareDiscoverySessionState session = new WifiAwareDiscoverySessionState(
                     mWifiAwareNativeApi, sessionId, pubSubId, callback, isPublish, isRangingEnabled,
-                    SystemClock.elapsedRealtime(), enableInstantMode, instantModeBand, mLocalLog,
-                    pairingConfig);
+                    SystemClock.elapsedRealtime(), enableInstantMode, instantModeBand,
+                    isSuspendable, mLocalLog, pairingConfig);
             session.enableVerboseLogging(mVerboseLoggingEnabled);
             client.addSession(session);
 
@@ -4053,22 +4133,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onMessageSendSuccessLocal(Message completedCommand) {
-        mLocalLog.log("onMessageSendSuccess: completedCommand=" + completedCommand);
+        String methodString = "onMessageSendFailLocal";
+        mLocalLog.log(methodString + ": completedCommand=" + completedCommand);
 
         int clientId = completedCommand.arg2;
         int sessionId = completedCommand.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
         int messageId = completedCommand.getData().getInt(MESSAGE_BUNDLE_KEY_MESSAGE_ID);
 
-        WifiAwareClientState client = mClients.get(clientId);
-        if (client == null) {
-            Log.e(TAG, "onMessageSendSuccessLocal: no client exists for clientId=" + clientId);
-            return;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onMessageSendSuccessLocal: no session exists for clientId=" + clientId
-                    + ", sessionId=" + sessionId);
             return;
         }
 
@@ -4080,24 +4154,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onMessageSendFailLocal(Message failedCommand, int reason) {
+        String methodString = "onMessageSendFailLocal";
         if (VDBG) {
-            Log.v(TAG, "onMessageSendFail: failedCommand=" + failedCommand + ", reason=" + reason);
+            Log.v(TAG, methodString + ": failedCommand=" + failedCommand + ", reason=" + reason);
         }
 
         int clientId = failedCommand.arg2;
         int sessionId = failedCommand.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
         int messageId = failedCommand.getData().getInt(MESSAGE_BUNDLE_KEY_MESSAGE_ID);
 
-        WifiAwareClientState client = mClients.get(clientId);
-        if (client == null) {
-            Log.e(TAG, "onMessageSendFailLocal: no client exists for clientId=" + clientId);
-            return;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onMessageSendFailLocal: no session exists for clientId=" + clientId
-                    + ", sessionId=" + sessionId);
             return;
         }
 
@@ -4160,25 +4228,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean onRespondToPairingIndicationResponseSuccessLocal(Message command) {
-        mLocalLog.log("onRespondToPairingIndicationResponseSuccessLocal: command=" + command);
+        String methodString = "onRespondToPairingIndicationResponseSuccessLocal";
+        mLocalLog.log(methodString + ": command=" + command);
         Bundle data = command.getData();
         PairingInfo pairingInfo = new PairingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
         int requestId = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_REQUEST_ID);
-        WifiAwareClientState client = mClients.get(pairingInfo.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onRespondToPairingIndicationResponseSuccessLocal: no client exists "
-                    + "for clientId=" + pairingInfo.mClientId);
-            return false;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(pairingInfo.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
+                pairingInfo.mSessionId, methodString);
         if (session == null) {
-            Log.e(TAG, "onRespondToPairingIndicationResponseSuccessLocal: no session exists for"
-                    + "clientId=" + pairingInfo.mClientId
-                    + ", sessionId=" + pairingInfo.mSessionId);
             return false;
         }
         mPairingRequest.append(requestId, pairingInfo);
@@ -4186,7 +4247,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onRespondToPairingIndicationResponseFail(Message command, int reason) {
-        mLocalLog.log("onRespondToPairingIndicationResponseFail: command=" + command
+        String methodString = "onRespondToPairingIndicationResponseFail";
+        mLocalLog.log(methodString + ": command=" + command
                 + " reason=" + reason);
 
         Bundle data = command.getData();
@@ -4194,18 +4256,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
-        WifiAwareClientState client = mClients.get(pairingInfo.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onRespondToPairingIndicationResponseFail: no client exists for clientId="
-                    + pairingInfo.mClientId);
-            return;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(pairingInfo.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
+                pairingInfo.mSessionId, methodString);
         if (session == null) {
-            Log.e(TAG, "onRespondToPairingIndicationResponseFail: no session exists for clientId="
-                    + pairingInfo.mClientId
-                    + ", sessionId=" + pairingInfo.mSessionId);
             return;
         }
         if (data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE) == NAN_PAIRING_REQUEST_TYPE_SETUP) {
@@ -4223,7 +4277,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean onInitiatePairingResponseSuccessLocal(Message command, int paireId) {
-        mLocalLog.log("onInitiatePairingResponseSuccessLocal: command=" + command + ", ndpId="
+        String methodString = "onInitiatePairingResponseSuccessLocal";
+        mLocalLog.log(methodString + ": command=" + command + ", ndpId="
                 + paireId);
 
         Bundle data = command.getData();
@@ -4231,28 +4286,20 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
-        WifiAwareClientState client = mClients.get(pairingInfo.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onInitiatePairingResponseSuccessLocal: no client exists for clientId="
-                    + pairingInfo.mClientId);
-            return false;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(pairingInfo.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
+                pairingInfo.mSessionId, methodString);
         if (session == null) {
-            Log.e(TAG, "onInitiatePairingResponseSuccessLocal: no session exists for clientId="
-                    + pairingInfo.mClientId
-                    + ", sessionId=" + pairingInfo.mSessionId);
             return false;
         }
 
         mPairingRequest.append(paireId, pairingInfo);
-
         return true;
     }
 
     private void onInitiatePairingResponseFailLocal(Message command, int reason) {
-        mLocalLog.log("onInitiatePairingResponseFailLocal: command=" + command + ", reason="
+        String methodString = "onInitiatePairingResponseFailLocal";
+        mLocalLog.log(methodString + ": command=" + command + ", reason="
                 + reason);
 
         Bundle data = command.getData();
@@ -4260,18 +4307,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
-        WifiAwareClientState client = mClients.get(pairingInfo.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onInitiatePairingResponseFailLocal: no client exists for clientId="
-                    + pairingInfo.mClientId);
-            return;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(pairingInfo.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
+                pairingInfo.mSessionId, methodString);
         if (session == null) {
-            Log.e(TAG, "onInitiatePairingResponseFailLocal: no session exists for clientId="
-                    + pairingInfo.mClientId
-                    + ", sessionId=" + pairingInfo.mSessionId);
             return;
         }
         if (data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE) == NAN_PAIRING_REQUEST_TYPE_SETUP) {
@@ -4281,26 +4320,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean onInitiateBootstrappingResponseSuccessLocal(Message command, int id) {
-        mLocalLog.log("onInitiateBootstrappingResponseSuccessLocal: command=" + command + ", ndpId="
-                + id);
+        String methodString = "onInitiateBootstrappingResponseSuccessLocal";
+        mLocalLog.log(methodString + ": command=" + command + ", ndpId=" + id);
 
         Bundle data = command.getData();
         BootStrppingInfo info = new BootStrppingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD));
-        WifiAwareClientState client = mClients.get(info.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onInitiatePairingResponseSuccessLocal: no client exists for clientId="
-                    + info.mClientId);
-            return false;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(info.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onInitiatePairingResponseSuccessLocal: no session exists for clientId="
-                    + info.mClientId
-                    + ", sessionId=" + info.mSessionId);
             return false;
         }
 
@@ -4309,54 +4339,84 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onInitiateBootStrappingResponseFailLocal(Message command, int reason) {
-        mLocalLog.log("onInitiateBootStrappingResponseFailLocal: command=" + command + ", reason="
-                + reason);
+        String methodString = "onInitiateBootStrappingResponseFailLocal";
+        mLocalLog.log(methodString + ": command=" + command + ", reason=" + reason);
 
         Bundle data = command.getData();
         BootStrppingInfo info = new BootStrppingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD));
-        WifiAwareClientState client = mClients.get(info.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onInitiatePairingResponseFailLocal: no client exists for clientId="
-                    + info.mClientId);
-            return;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(info.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onInitiatePairingResponseFailLocal: no session exists for clientId="
-                    + info.mClientId
-                    + ", sessionId=" + info.mSessionId);
             return;
         }
         session.onBootStrappingConfirmReceived(info.mPeerId, false, info.mMethod);
     }
 
     private void onRespondToBootStrappingRequestSuccessLocal(Message command) {
-        mLocalLog.log("onRespondToBootStrappingRequestSuccessLocal: command=" + command);
+        String methodString = "onRespondToBootStrappingRequestSuccessLocal";
+        mLocalLog.log(methodString + ": command=" + command);
 
         Bundle data = command.getData();
         BootStrppingInfo info = new BootStrppingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD));
-        WifiAwareClientState client = mClients.get(info.mClientId);
-        if (client == null) {
-            Log.e(TAG, "onRespondToBootStrappingRequestSuccessLocal: no client exists for "
-                    + "clientId=" + info.mClientId);
-            return;
-        }
 
-        WifiAwareDiscoverySessionState session = client.getSession(info.mSessionId);
+        WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onRespondToBootStrappingRequestSuccessLocal: no session exists for "
-                    + "clientId=" + info.mClientId + ", sessionId=" + info.mSessionId);
             return;
         }
         if (data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT)) {
             session.onBootStrappingConfirmReceived(info.mPeerId, true, info.mMethod);
+        }
+    }
+
+    private void onSuspendResponseLocal(Message command, boolean success,
+            @WifiAwareManager.SessionSuspensionFailedReasonCode int reason) {
+        String methodString = "onSuspendResponseLocal";
+        mLocalLog.log(methodString + ": command=" + command + ", success=" + success
+                + ", reason=" + reason);
+
+        int clientId = command.arg2;
+        int sessionId = command.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
+
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
+        if (session == null) {
+            return;
+        }
+        if (success) {
+            session.onSuspendSuccess();
+        } else {
+            session.onSuspendFail(reason);
+        }
+    }
+
+    private void onResumeResponseLocal(Message command, boolean success,
+            @WifiAwareManager.SessionResumptionFailedReasonCode int reason) {
+        String methodString = "onResumeResponseLocal";
+        mLocalLog.log(methodString + ": command="
+                + command + ", success=" + success + ", reason=" + reason);
+
+        IWifiAwareDiscoverySessionCallback callback =
+                (IWifiAwareDiscoverySessionCallback) command.obj;
+        int clientId = command.arg2;
+        int sessionId = command.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
+
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
+        if (session == null) {
+            return;
+        }
+        if (success) {
+            session.onResumeSuccess();
+        } else {
+            session.onResumeFail(reason);
         }
     }
 
@@ -4386,6 +4446,50 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         // TODO: do something with this
+    }
+
+    private boolean suspendSessionLocal(short transactionId, int clientId, int sessionId) {
+        String methodString = "suspendSessionLocal";
+        mLocalLog.log(methodString + "(): transactionId=" + transactionId + ", clientId="
+                + clientId + ", sessionId=" + sessionId);
+
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
+        if (session == null) {
+            return false;
+        }
+        if (!session.isSuspendable()) {
+            session.onResumeFail(WIFI_AWARE_SUSPEND_INVALID_SESSION);
+            return false;
+        }
+        if (session.isSessionSuspended()) {
+            session.onResumeFail(WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST);
+            return false;
+        }
+
+        return session.suspend(transactionId);
+    }
+
+    private boolean resumeSessionLocal(short transactionId, int clientId, int sessionId) {
+        mLocalLog.log("resumeSessionLocal(): transactionId=" + transactionId + ", clientId="
+                + clientId + ", sessionId=" + sessionId);
+
+        String methodString = "resumeSessionLocal";
+        WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
+                methodString);
+        if (session == null) {
+            return false;
+        }
+        if (!session.isSuspendable()) {
+            session.onResumeFail(WIFI_AWARE_SUSPEND_INVALID_SESSION);
+            return false;
+        }
+        if (!session.isSessionSuspended()) {
+            session.onResumeFail(WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST);
+            return false;
+        }
+
+        return session.resume(transactionId);
     }
 
     /*
@@ -4644,19 +4748,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (info == null) {
             return false;
         }
-        WifiAwareClientState client = mClients.get(info.mClientId);
-        if (client == null) {
-            Log.e(TAG,
-                    "onBootStrappingConfirmReceivedLocal: no client exists for clientId="
-                            + info.mClientId);
-            return false;
-        }
-
-        WifiAwareDiscoverySessionState session = client.getSession(info.mSessionId);
+        String methodString = "onBootStrappingConfirmReceivedLocal";
+        WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
+                methodString);
         if (session == null) {
-            Log.e(TAG, "onBootStrappingConfirmReceivedLocal: no session exists for clientId="
-                    + info.mClientId
-                    + ", sessionId=" + info.mSessionId);
             return false;
         }
         session.onBootStrappingConfirmReceived(info.mPeerId, accept, info.mMethod);
@@ -4683,6 +4778,28 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         return null;
+    }
+
+    @Nullable
+    private WifiAwareDiscoverySessionState getClientSession(int clientId, int sessionId,
+            String methodString) {
+        WifiAwareClientState client = mClients.get(clientId);
+        if (client == null) {
+            Log.e(
+                    TAG,
+                    methodString + ": no client exists for " + "clientId=" + clientId);
+            return null;
+        }
+
+        WifiAwareDiscoverySessionState session = client.getSession(sessionId);
+        if (session == null) {
+            Log.e(TAG,
+                    methodString + ": no session exists for "
+                            + "clientId=" + clientId + ", sessionId=" + sessionId);
+            return null;
+        }
+
+        return session;
     }
 
     /**
@@ -4782,9 +4899,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG, "createMergedRequestorWs(): mClients=[" + mClients + "]");
         }
         WorkSource requestorWs = new WorkSource();
+        boolean isForAwareOffLoad = false;
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState clientState = mClients.valueAt(i);
-            requestorWs.add(new WorkSource(clientState.getUid(), clientState.getCallingPackage()));
+            if (clientState.isAwareOffload()) {
+                isForAwareOffLoad = true;
+            } else {
+                requestorWs.add(
+                        new WorkSource(clientState.getUid(), clientState.getCallingPackage()));
+            }
+        }
+        if (requestorWs.size() == 0 && isForAwareOffLoad) {
+            return new WorkSource(Process.WIFI_UID);
         }
         return requestorWs;
     }
@@ -4944,5 +5070,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         return mAwareBand5InstantCommunicationChannelFreq == 0
                 ? AWARE_BAND_2_INSTANT_COMMUNICATION_CHANNEL_FREQ
                 : mAwareBand5InstantCommunicationChannelFreq;
+    }
+
+    private boolean isAwareOffloading() {
+        for (int i = 0; i < mClients.size(); ++i) {
+            WifiAwareClientState clientState = mClients.valueAt(i);
+            if (clientState.isAwareOffload()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

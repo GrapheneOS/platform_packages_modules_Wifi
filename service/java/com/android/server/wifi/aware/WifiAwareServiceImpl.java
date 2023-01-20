@@ -263,7 +263,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     @Override
     public void connect(final IBinder binder, String callingPackage, String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
-            boolean notifyOnIdentityChanged, Bundle extras) {
+            boolean notifyOnIdentityChanged, Bundle extras, boolean forOffloading) {
         enforceAccessPermission();
         enforceChangePermission();
 
@@ -284,6 +284,10 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         if (notifyOnIdentityChanged) {
             enforceNearbyOrLocationPermission(callingPackage, callingFeatureId,
                     getMockableCallingUid(), extras, "Wifi Aware attach");
+        }
+        if (forOffloading && !mWifiPermissionsUtil.checkConfigOverridePermission(uid)) {
+            throw new SecurityException("Enable Wifi Aware for offloading require"
+                    + "OVERRIDE_WIFI_CONFIG permission");
         }
 
         if (configRequest != null) {
@@ -339,7 +343,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         }
 
         mStateManager.connect(clientId, uid, pid, callingPackage, callingFeatureId, callback,
-                configRequest, notifyOnIdentityChanged, extras);
+                configRequest, notifyOnIdentityChanged, extras, forOffloading);
     }
 
     @Override
@@ -608,6 +612,52 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                             + ", uid=" + uid + ", clientId=" + clientId + ", peerId=" + peerId);
         }
         mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method);
+    }
+
+    @Override
+    public void suspend(int clientId, int sessionId) {
+        enforceAccessPermission();
+        enforceChangePermission();
+
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
+
+        if (!mStateManager.getCharacteristics().isSuspensionSupported()) {
+            throw new UnsupportedOperationException("NAN suspension is not supported.");
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "suspend: clientId=" + clientId + ", sessionId=" + sessionId);
+        }
+
+        mStateManager.suspend(clientId, sessionId);
+    }
+
+    @Override
+    public void resume(int clientId, int sessionId) {
+        enforceAccessPermission();
+        enforceChangePermission();
+
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("App not allowed to use Aware suspension"
+                    + "(uid = " + uid + ")");
+        }
+
+        if (!mStateManager.getCharacteristics().isSuspensionSupported()) {
+            throw new UnsupportedOperationException("NAN suspension is not supported.");
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "resume: clientId=" + clientId + ", sessionId=" + sessionId);
+        }
+
+        mStateManager.resume(clientId, sessionId);
     }
 
     @Override
