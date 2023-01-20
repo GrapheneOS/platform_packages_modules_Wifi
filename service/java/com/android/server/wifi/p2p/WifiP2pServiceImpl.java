@@ -217,6 +217,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private UserManager mUserManager;
     private InterfaceConflictManager mInterfaceConflictManager;
     private WifiP2pNative mWifiNative;
+    private HalDeviceManager mHalDeviceManager;
 
     private static final Boolean JOIN_GROUP = true;
     private static final Boolean FORM_GROUP = false;
@@ -633,6 +634,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         HandlerThread wifiP2pThread = mWifiInjector.getWifiP2pServiceHandlerThread();
         mClientHandler = new ClientHandler(TAG, wifiP2pThread.getLooper());
         mWifiNative = mWifiInjector.getWifiP2pNative();
+        mHalDeviceManager = mWifiInjector.getHalDeviceManager();
         mP2pStateMachine = new P2pStateMachine(TAG, wifiP2pThread.getLooper(), mP2pSupported);
         mP2pStateMachine.setDbg(false); // can enable for very verbose logs
         mP2pStateMachine.start();
@@ -2241,7 +2243,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         }
 
         class P2pDisabledState extends State {
-            private void setupInterfaceFeatures(String interfaceName) {
+            private void setupInterfaceFeatures() {
                 if (mWifiGlobals.isP2pMacRandomizationSupported()) {
                     Log.i(TAG, "Supported feature: P2P MAC randomization");
                     mWifiNative.setMacRandomization(true);
@@ -2270,11 +2272,16 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 if (mInterfaceName == null) {
                     String errorMsg = "Failed to setup interface for P2P";
                     Log.e(TAG, errorMsg);
-                    takeBugReportInterfaceFailureIfNeeded("Wi-Fi BugReport (P2P interface failure)",
-                            errorMsg);
+                    if (!mHalDeviceManager.isItPossibleToCreateIface(
+                            HalDeviceManager.HDM_CREATE_IFACE_P2P, requestorWs)) {
+                        Log.w(TAG, "Interface resource is not available");
+                    } else {
+                        takeBugReportInterfaceFailureIfNeeded(
+                                "Wi-Fi BugReport (P2P interface failure)", errorMsg);
+                    }
                     return false;
                 }
-                setupInterfaceFeatures(mInterfaceName);
+                setupInterfaceFeatures();
                 try {
                     mNetdWrapper.setInterfaceUp(mInterfaceName);
                 } catch (IllegalStateException ie) {
