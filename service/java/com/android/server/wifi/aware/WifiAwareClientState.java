@@ -71,6 +71,7 @@ public class WifiAwareClientState {
 
     private final AppOpsManager mAppOps;
     private final long mCreationTime;
+    private final boolean mAwareOffload;
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mLastDiscoveryInterfaceMac = ALL_ZERO_MAC;
@@ -80,7 +81,8 @@ public class WifiAwareClientState {
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
             boolean notifyIdentityChange, long creationTime,
-            WifiPermissionsUtil wifiPermissionsUtil, Bundle extra, LocalLog localLog) {
+            WifiPermissionsUtil wifiPermissionsUtil, Bundle extra, LocalLog localLog,
+            boolean awareOffload) {
         mContext = context;
         mClientId = clientId;
         mUid = uid;
@@ -90,6 +92,7 @@ public class WifiAwareClientState {
         mCallback = callback;
         mConfigRequest = configRequest;
         mNotifyIdentityChange = notifyIdentityChange;
+        mAwareOffload = awareOffload;
 
         mAppOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         mCreationTime = creationTime;
@@ -154,6 +157,10 @@ public class WifiAwareClientState {
 
     public Bundle getExtra() {
         return mExtra;
+    }
+
+    public boolean isAwareOffload() {
+        return mAwareOffload;
     }
     /**
      * Searches the discovery sessions of this client and returns the one

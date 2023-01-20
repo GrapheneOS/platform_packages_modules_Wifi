@@ -640,7 +640,8 @@ public final class SubscribeConfig implements Parcelable {
 
         /**
          * Specify whether to configure the subscribe discovery session to be suspendable. This API
-         * doesn't suspend the session, it allows it to be suspended in the future.
+         * doesn't suspend the session, it allows it to be suspended and resumed in the future using
+         * {@link DiscoverySession#suspend()} and {@link DiscoverySession#resume()} respectively.
          * <p>
          * Optional. Not suspendable by default.
          * <p>
@@ -651,6 +652,9 @@ public final class SubscribeConfig implements Parcelable {
          * @param isSuspendable If true, then this subscribe session can be suspended.
          *
          * @return the current {@link Builder} builder, enabling chaining of builder methods.
+         *
+         * @see DiscoverySession#suspend()
+         * @see DiscoverySession#resume()
          * @hide
          */
         @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)

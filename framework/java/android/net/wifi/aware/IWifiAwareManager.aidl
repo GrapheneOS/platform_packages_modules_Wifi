@@ -54,7 +54,7 @@ interface IWifiAwareManager
     // client API
     void connect(in IBinder binder, in String callingPackage, in String callingFeatureId,
             in IWifiAwareEventCallback callback, in ConfigRequest configRequest,
-            boolean notifyOnIdentityChanged, in Bundle extras);
+            boolean notifyOnIdentityChanged, in Bundle extras, boolean forAwareOffload);
     void disconnect(int clientId, in IBinder binder);
 
     void publish(in String callingPackage, in String callingFeatureId, int clientId,

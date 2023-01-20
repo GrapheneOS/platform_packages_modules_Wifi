@@ -288,6 +288,8 @@
           <item type="integer" name="config_wifiDtimMultiplierIpv6Only" />
           <item type="integer" name="config_wifiDtimMultiplierIpv6Ipv4" />
           <item type="integer" name="config_wifiDtimMultiplierMulticastLockEnabled" />
+          <item type="bool" name="config_wifiAwareOffloadingFirmwareHandlePriority" />
+
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->
