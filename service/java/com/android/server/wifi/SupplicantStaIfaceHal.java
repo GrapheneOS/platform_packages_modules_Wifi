@@ -757,12 +757,14 @@ public class SupplicantStaIfaceHal {
         }
     }
 
+    protected static final int QOS_POLICY_SCS_REQUEST_STATUS_ERROR_UNKNOWN = -1;
     protected static final int QOS_POLICY_SCS_REQUEST_STATUS_SENT = 0;
     protected static final int QOS_POLICY_SCS_REQUEST_STATUS_ALREADY_ACTIVE = 1;
     protected static final int QOS_POLICY_SCS_REQUEST_STATUS_NOT_EXIST = 2;
     protected static final int QOS_POLICY_SCS_REQUEST_STATUS_INVALID = 3;
 
     @IntDef(prefix = { "QOS_POLICY_SCS_REQUEST_STATUS_" }, value = {
+            QOS_POLICY_SCS_REQUEST_STATUS_ERROR_UNKNOWN,
             QOS_POLICY_SCS_REQUEST_STATUS_SENT,
             QOS_POLICY_SCS_REQUEST_STATUS_ALREADY_ACTIVE,
             QOS_POLICY_SCS_REQUEST_STATUS_NOT_EXIST,
@@ -771,6 +773,7 @@ public class SupplicantStaIfaceHal {
     @Retention(RetentionPolicy.SOURCE)
     protected @interface QosPolicyScsRequestStatusCode {}
 
+    protected static final int QOS_POLICY_SCS_RESPONSE_STATUS_ERROR_UNKNOWN = -1;
     protected static final int QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS = 0;
     protected static final int QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_REQUEST_DECLINED = 1;
     protected static final int QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_NOT_SUPPORTED_BY_AP = 2;
@@ -784,6 +787,7 @@ public class SupplicantStaIfaceHal {
     protected static final int QOS_POLICY_SCS_RESPONSE_STATUS_TIMEOUT = 8;
 
     @IntDef(prefix = { "QOS_POLICY_SCS_RESPONSE_STATUS_" }, value = {
+            QOS_POLICY_SCS_RESPONSE_STATUS_ERROR_UNKNOWN,
             QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS,
             QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_REQUEST_DECLINED,
             QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_NOT_SUPPORTED_BY_AP,

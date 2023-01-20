@@ -54,10 +54,14 @@ import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.LegacyMode;
 import android.hardware.wifi.supplicant.MloLinksInfo;
+import android.hardware.wifi.supplicant.PortRange;
 import android.hardware.wifi.supplicant.QosPolicyClassifierParams;
 import android.hardware.wifi.supplicant.QosPolicyClassifierParamsMask;
 import android.hardware.wifi.supplicant.QosPolicyData;
 import android.hardware.wifi.supplicant.QosPolicyRequestType;
+import android.hardware.wifi.supplicant.QosPolicyScsData;
+import android.hardware.wifi.supplicant.QosPolicyScsRequestStatus;
+import android.hardware.wifi.supplicant.QosPolicyScsRequestStatusCode;
 import android.hardware.wifi.supplicant.QosPolicyStatus;
 import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.RxFilterType;
@@ -2851,6 +2855,92 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
+     * Convert from a framework {@link QosPolicyParams} to a HAL QosPolicyScsData object.
+     */
+    @VisibleForTesting
+    protected static QosPolicyScsData frameworkToHalQosPolicyScsData(QosPolicyParams params) {
+        QosPolicyScsData halData = new QosPolicyScsData();
+        halData.policyId = (byte) params.getTranslatedPolicyId();
+        halData.userPriority = (byte) params.getUserPriority();
+        QosPolicyClassifierParams classifierParams = new QosPolicyClassifierParams();
+        int paramsMask = 0;
+
+        classifierParams.srcIp = new byte[0];
+        classifierParams.dstIp = new byte[0];
+        classifierParams.dstPortRange = new PortRange();
+
+        if (params.getSourceAddress() != null) {
+            paramsMask |= QosPolicyClassifierParamsMask.SRC_IP;
+            classifierParams.srcIp = params.getSourceAddress().toByteArray();
+        }
+        if (params.getDestinationAddress() != null) {
+            paramsMask |= QosPolicyClassifierParamsMask.DST_IP;
+            classifierParams.dstIp = params.getDestinationAddress().toByteArray();
+        }
+        if (params.getSourcePort() != DscpPolicy.SOURCE_PORT_ANY) {
+            paramsMask |= QosPolicyClassifierParamsMask.SRC_PORT;
+            classifierParams.srcPort = params.getSourcePort();
+        }
+        if (params.getDestinationPortRange() != null) {
+            paramsMask |= QosPolicyClassifierParamsMask.DST_PORT_RANGE;
+            classifierParams.dstPortRange.startPort = params.getDestinationPortRange()[0];
+            classifierParams.dstPortRange.endPort = params.getDestinationPortRange()[1];
+        }
+        if (params.getProtocol() != QosPolicyParams.PROTOCOL_ANY) {
+            paramsMask |= QosPolicyClassifierParamsMask.PROTOCOL_NEXT_HEADER;
+            classifierParams.protocolNextHdr = (byte) params.getProtocol();
+        }
+        if (params.getDscp() != QosPolicyParams.DSCP_ANY) {
+            paramsMask |= QosPolicyClassifierParamsMask.DSCP;
+            classifierParams.dscp = (byte) params.getDscp();
+        }
+
+        classifierParams.classifierParamMask = paramsMask;
+        halData.classifierParams = classifierParams;
+        return halData;
+    }
+
+    private static QosPolicyScsData[] frameworkToHalQosPolicyScsDataList(
+            List<QosPolicyParams> frameworkPolicies) {
+        QosPolicyScsData[] halDataList = new QosPolicyScsData[frameworkPolicies.size()];
+        int index = 0;
+        for (QosPolicyParams policy : frameworkPolicies) {
+            halDataList[index] = frameworkToHalQosPolicyScsData(policy);
+            index++;
+        }
+        return halDataList;
+    }
+
+    private static @SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode int
+            halToFrameworkQosPolicyScsRequestStatusCode(int statusCode) {
+        switch (statusCode) {
+            case QosPolicyScsRequestStatusCode.SENT:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT;
+            case QosPolicyScsRequestStatusCode.ALREADY_ACTIVE:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_ALREADY_ACTIVE;
+            case QosPolicyScsRequestStatusCode.NOT_EXIST:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_NOT_EXIST;
+            case QosPolicyScsRequestStatusCode.INVALID:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_INVALID;
+            default:
+                Log.wtf(TAG, "Invalid QosPolicyScsRequestStatusCode: " + statusCode);
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_ERROR_UNKNOWN;
+        }
+    }
+
+    private static List<SupplicantStaIfaceHal.QosPolicyStatus>
+            halToFrameworkQosPolicyScsRequestStatusList(QosPolicyScsRequestStatus[] halStatusList) {
+        List<SupplicantStaIfaceHal.QosPolicyStatus> frameworkStatusList = new ArrayList<>();
+        for (QosPolicyScsRequestStatus halStatus : halStatusList) {
+            frameworkStatusList.add(new SupplicantStaIfaceHal.QosPolicyStatus(
+                    halStatus.policyId,
+                    halToFrameworkQosPolicyScsRequestStatusCode(
+                            halStatus.qosPolicyScsRequestStatusCode)));
+        }
+        return frameworkStatusList;
+    }
+
+    /**
      * Returns connection capabilities of the current network
      *
      * @param ifaceName Name of the interface.
@@ -3468,7 +3558,24 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      */
     public List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
             @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
-        return null;
+        synchronized (mLock) {
+            final String methodStr = "addQosPolicyRequestForScs";
+            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) {
+                return null;
+            }
+            try {
+                QosPolicyScsData[] halPolicies = frameworkToHalQosPolicyScsDataList(policies);
+                QosPolicyScsRequestStatus[] halStatusList =
+                        iface.addQosPolicyRequestForScs(halPolicies);
+                return halToFrameworkQosPolicyScsRequestStatusList(halStatusList);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
+        }
     }
 
     /**
@@ -3476,7 +3583,27 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      */
     public List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
             @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
-        return null;
+        synchronized (mLock) {
+            final String methodStr = "removeQosPolicyForScs";
+            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) {
+                return null;
+            }
+            try {
+                byte[] halPolicyIds = new byte[policyIds.size()];
+                for (int i = 0; i < policyIds.size(); i++) {
+                    halPolicyIds[i] = policyIds.get(i);
+                }
+                QosPolicyScsRequestStatus[] halStatusList =
+                        iface.removeQosPolicyForScs(halPolicyIds);
+                return halToFrameworkQosPolicyScsRequestStatusList(halStatusList);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
+        }
     }
 
     /**
@@ -3484,7 +3611,22 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      */
     public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
             @NonNull String ifaceName) {
-        return null;
+        synchronized (mLock) {
+            final String methodStr = "removeAllQosPoliciesForScs";
+            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
+            if (iface == null) {
+                return null;
+            }
+            try {
+                QosPolicyScsRequestStatus[] halStatusList = iface.removeAllQosPoliciesForScs();
+                return halToFrameworkQosPolicyScsRequestStatusList(halStatusList);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
+        }
     }
 
     /**
