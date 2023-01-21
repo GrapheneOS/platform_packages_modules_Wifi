@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -220,6 +221,8 @@ public class WifiP2pNativeTest extends WifiBaseTest {
         when(mHalDeviceManagerMock.createP2pIface(
                 any(HalDeviceManager.InterfaceDestroyedListener.class),
                 eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(null);
+        when(mHalDeviceManagerMock.isItPossibleToCreateIface(
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), eq(mWorkSourceMock))).thenReturn(true);
 
         mWifiP2pNative.setupInterface(mDestroyedListenerMock, mHandlerMock, mWorkSourceMock);
         verify(mWifiMetrics).incrementNumSetupP2pInterfaceFailureDueToHal();
@@ -227,6 +230,22 @@ public class WifiP2pNativeTest extends WifiBaseTest {
                 mWifiP2pNative.setupInterface(
                         mDestroyedListenerMock, mHandlerMock, mWorkSourceMock),
                 null);
+    }
+
+    /**
+     * Verifies that Wi-Fi metrics do correct action when setting up p2p interface failed and
+     * HalDevMgr not possibly creating it.
+     */
+    @Test
+    public void testSetupInterfaceFailureInCreatingP2pIfaceWhenHalDevMgrNotPossiblyCreate() {
+        when(mHalDeviceManagerMock.createP2pIface(
+                any(HalDeviceManager.InterfaceDestroyedListener.class),
+                eq(mHandlerMock), eq(mWorkSourceMock))).thenReturn(null);
+        when(mHalDeviceManagerMock.isItPossibleToCreateIface(
+                eq(HalDeviceManager.HDM_CREATE_IFACE_P2P), eq(mWorkSourceMock))).thenReturn(false);
+
+        mWifiP2pNative.setupInterface(mDestroyedListenerMock, mHandlerMock, mWorkSourceMock);
+        verify(mWifiMetrics, never()).incrementNumSetupP2pInterfaceFailureDueToHal();
     }
 
     /**

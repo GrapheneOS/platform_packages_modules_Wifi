@@ -144,8 +144,12 @@ public class WifiLockManagerTest extends WifiBaseTest {
     private void captureUidImportanceListener() {
         ArgumentCaptor<ActivityManager.OnUidImportanceListener> uidImportanceListener =
                 ArgumentCaptor.forClass(ActivityManager.OnUidImportanceListener.class);
-
-        verify(mActivityManager).addOnUidImportanceListener(uidImportanceListener.capture(),
+        /**
+         * {@link WifiLockManager#registerUidImportanceTransitions()} is adding listeners for
+         * foreground to background and foreground service to background transitions.
+         */
+        verify(mActivityManager, times(2)).addOnUidImportanceListener(
+                uidImportanceListener.capture(),
                 anyInt());
         mUidImportanceListener = uidImportanceListener.getValue();
         assertNotNull(mUidImportanceListener);
@@ -890,7 +894,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testForegroundAppAcquireLowLatencyScreenOffExemption() throws Exception {
         // Set screen off, and app is foreground
         setScreenState(false);
-        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
         when(mActivityManager.getUidImportance(anyInt())).thenReturn(
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         // Acquire the lock.
@@ -927,7 +932,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
     public void testBackgroundAppAcquireLowLatencyScreenOnExemption() throws Exception {
         // Set screen on, and app is foreground service.
         setScreenState(true);
-        when(mWifiPermissionsUtil.checkEnterCarModePrioritized(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
         when(mActivityManager.getUidImportance(anyInt())).thenReturn(
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
         // Acquire the lock.
