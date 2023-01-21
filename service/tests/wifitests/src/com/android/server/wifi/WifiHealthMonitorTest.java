@@ -111,6 +111,8 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
     Resources mResources;
     @Mock
     ActiveModeWarden mActiveModeWarden;
+    @Mock
+    WifiGlobals mWifiGlobals;
 
     private final ArrayList<String> mKeys = new ArrayList<>();
     private final ArrayList<WifiScoreCard.BlobListener> mBlobListeners = new ArrayList<>();
@@ -177,7 +179,7 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
         mWifiConfigManager = mockConfigManager();
 
         mWifiScoreCard = new WifiScoreCard(mClock, "some seed", mDeviceConfigFacade,
-                mContext);
+                mContext, mWifiGlobals);
         mAlarmManager = new TestAlarmManager();
         when(mContext.getSystemService(Context.ALARM_SERVICE))
                 .thenReturn(mAlarmManager.getAlarmManager());

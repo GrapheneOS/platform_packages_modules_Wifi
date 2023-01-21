@@ -48,6 +48,7 @@ import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.WifiScanner;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -144,6 +145,8 @@ public class ActiveModeWarden {
     private boolean mIsShuttingdown = false;
     private boolean mVerboseLoggingEnabled = false;
     private boolean mAllowRootToGetLocalOnlyCmm = true;
+    private @DeviceMobilityState int mDeviceMobilityState =
+            WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN;
     /** Cache to store the external scorer for primary and secondary (MBB) client mode manager. */
     @Nullable private Pair<IBinder, IWifiConnectedNetworkScorer> mClientModeManagerScorer;
 
@@ -2633,6 +2636,26 @@ public class ActiveModeWarden {
      */
     private int getStaBandsFromConfigStore() {
         return mWifiInjector.getSettingsConfigStore().get(WIFI_NATIVE_SUPPORTED_STA_BANDS);
+    }
+
+    /**
+     * Save the device mobility state when it updates. If the primary client mode manager is
+     * non-null, pass the mobility state to clientModeImpl and update the RSSI polling
+     * interval accordingly.
+     */
+    public void setDeviceMobilityState(@DeviceMobilityState int newState) {
+        mDeviceMobilityState = newState;
+        ClientModeManager cm = getPrimaryClientModeManagerNullable();
+        if (cm != null) {
+            cm.onDeviceMobilityStateUpdated(newState);
+        }
+    }
+
+    /**
+     * Get the current device mobility state
+     */
+    public int getDeviceMobilityState() {
+        return mDeviceMobilityState;
     }
 
 }

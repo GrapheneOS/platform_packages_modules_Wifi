@@ -202,6 +202,10 @@
           <item type="integer" name="config_wifiEstimateRssiErrorMarginDb" />
           <item type="integer" name="config_wifiRttBackgroundExecGapMs" />
           <item type="integer" name="config_wifiPollRssiIntervalMilliseconds" />
+          <item type="integer" name="config_wifiPollRssiLongIntervalMilliseconds" />
+          <item type="integer" name="config_wifiClientRssiMonitorThresholdDbm" />
+          <item type="integer" name="config_wifiClientRssiMonitorHysteresisDb" />
+          <item type="bool" name="config_wifiAdjustPollRssiIntervalEnabled" />
           <item type="bool" name="config_wifiChannelUtilizationOverrideEnabled" />
           <item type="integer" name="config_wifiChannelUtilizationOverride2g" />
           <item type="integer" name="config_wifiChannelUtilizationOverride5g" />

@@ -212,6 +212,7 @@ public class DeviceConfigFacade {
     private boolean mHighPerfLockDeprecated;
     private boolean mOobPseudonymEnabled;
     private boolean mApplicationQosPolicyApiEnabled;
+    private boolean mAdjustPollRssiIntervalEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -397,6 +398,8 @@ public class DeviceConfigFacade {
                 "oob_pseudonym_enabled", false);
         mApplicationQosPolicyApiEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "application_qos_policy_api_enabled", false);
+        mAdjustPollRssiIntervalEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "adjust_poll_rssi_interval_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -861,5 +864,12 @@ public class DeviceConfigFacade {
      */
     public boolean isApplicationQosPolicyApiEnabled() {
         return mApplicationQosPolicyApiEnabled;
+    }
+
+    /**
+     * Gets the feature flag for adjusting link layer stats and RSSI polling interval
+     */
+    public boolean isAdjustPollRssiIntervalEnabled() {
+        return mAdjustPollRssiIntervalEnabled;
     }
 }
