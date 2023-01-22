@@ -26,6 +26,7 @@ import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.nl80211.DeviceWiphyCapabilities;
@@ -79,6 +80,9 @@ public interface ClientMode {
     void startConnectToNetwork(int networkId, int uid, String bssid);
 
     void startRoamToNetwork(int networkId, String bssid);
+
+    /** When the device mobility changes, update the RSSI polling interval accordingly */
+    void onDeviceMobilityStateUpdated(@DeviceMobilityState int newState);
 
     boolean setWifiConnectedNetworkScorer(IBinder binder, IWifiConnectedNetworkScorer scorer);
 
