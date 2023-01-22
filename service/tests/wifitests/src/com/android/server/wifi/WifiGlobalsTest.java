@@ -62,10 +62,8 @@ public class WifiGlobalsTest extends WifiBaseTest {
     @Test
     public void testPollRssiIntervalIsSetCorrectly() throws Exception {
         assertEquals(3000, mWifiGlobals.getPollRssiIntervalMillis());
-        mResources.setInteger(R.integer.config_wifiPollRssiIntervalMilliseconds, 6000);
-        assertEquals(6000, mWifiGlobals.getPollRssiIntervalMillis());
-        mResources.setInteger(R.integer.config_wifiPollRssiIntervalMilliseconds, 7000);
-        assertEquals(6000, mWifiGlobals.getPollRssiIntervalMillis());
+        mResources.setInteger(R.integer.config_wifiPollRssiIntervalMilliseconds, 9000);
+        assertEquals(9000, new WifiGlobals(mContext).getPollRssiIntervalMillis());
     }
 
     /** Verify that Bluetooth active is set correctly with BT state/connection state changes */

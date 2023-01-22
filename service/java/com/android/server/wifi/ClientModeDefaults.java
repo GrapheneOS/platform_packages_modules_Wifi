@@ -24,6 +24,7 @@ import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.nl80211.DeviceWiphyCapabilities;
@@ -66,6 +67,8 @@ public interface ClientModeDefaults extends ClientMode {
     default void startConnectToNetwork(int networkId, int uid, String bssid) { }
 
     default void startRoamToNetwork(int networkId, String bssid) { }
+
+    default void onDeviceMobilityStateUpdated(@DeviceMobilityState int newState) { }
 
     default boolean setWifiConnectedNetworkScorer(
             IBinder binder, IWifiConnectedNetworkScorer scorer) {
