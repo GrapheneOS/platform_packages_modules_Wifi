@@ -2844,7 +2844,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private void setMultiLinkInfo(@Nullable String bssid) {
         if (bssid == null) return;
-        ScanResult matchingScanResult = mScanRequestProxy.getScanResult(bssid);
+        ScanDetailCache scanDetailCache = mWifiConfigManager.getScanDetailCacheForNetwork(
+                mWifiInfo.getNetworkId());
+        if (scanDetailCache == null) return;
+        ScanResult matchingScanResult = scanDetailCache.getScanResult(bssid);
         if (matchingScanResult == null) return;
         if (matchingScanResult.getApMldMacAddress() != null) {
             mWifiInfo.setApMldMacAddress(matchingScanResult.getApMldMacAddress());

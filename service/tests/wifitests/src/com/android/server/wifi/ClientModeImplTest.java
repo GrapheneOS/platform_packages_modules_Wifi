@@ -8882,8 +8882,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mScanResult.getApMloLinkId()).thenReturn(TEST_MLO_LINK_ID);
         when(mScanResult.getAffiliatedMloLinks()).thenReturn(mloLinks);
 
-        when(mScanRequestProxy.getScanResults()).thenReturn(Arrays.asList(mScanResult));
-        when(mScanRequestProxy.getScanResult(any())).thenReturn(mScanResult);
+        when(mWifiConfigManager.getScanDetailCacheForNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(mScanDetailCache);
+        when(mScanDetailCache.getScanResult(any())).thenReturn(mScanResult);
+
     }
 
     private void setScanResultWithoutMloInfo() {
