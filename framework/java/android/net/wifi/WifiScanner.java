@@ -176,7 +176,7 @@ public class WifiScanner {
     /** Abort - Due to another high priority operation like roaming, offload scan etc. */
     public static final int REASON_ABORT = -7;
     /** No such device - Wrong interface or interface doesn't exist. */
-    public static final int REASON_NO_DEV = -8;
+    public static final int REASON_NO_DEVICE = -8;
     /** Invalid argument - Wrong/unsupported argument passed in scan params. */
     public static final int REASON_INVALID_ARGS = -9;
     /** Timeout - Device didn't respond back with scan results */
@@ -193,7 +193,7 @@ public class WifiScanner {
             REASON_DUPLICATE_REQEUST,
             REASON_BUSY,
             REASON_ABORT,
-            REASON_NO_DEV,
+            REASON_NO_DEVICE,
             REASON_INVALID_ARGS,
             REASON_TIMEOUT,
     })
