@@ -114,6 +114,7 @@ java_library {
         // the necessary core platform APIs.
         "libprotobuf-java-lite",
         "libnanohttpd",
+        "modules-utils-backgroundthread",
         "modules-utils-locallog",
         "netd-client",
         "networkstack-client",
