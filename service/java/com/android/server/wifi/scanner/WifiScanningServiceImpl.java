@@ -3005,7 +3005,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 return "Scan failed - Device or resource busy";
             case WifiScanner.REASON_ABORT:
                 return "Scan aborted";
-            case WifiScanner.REASON_NO_DEV:
+            case WifiScanner.REASON_NO_DEVICE:
                 return "Scan failed - No such device";
             case WifiScanner.REASON_INVALID_ARGS:
                 return "Scan failed - invalid argument";
