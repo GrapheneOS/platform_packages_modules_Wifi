@@ -21,6 +21,9 @@ import android.os.Bundle;
 
 import com.android.server.wifi.DeviceConfigFacade;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * A container class for Aware (vendor) implementation capabilities (or
  * limitations). Filled-in by the firmware.
@@ -66,6 +69,28 @@ public class Capabilities {
         bundle.putBoolean(Characteristics.KEY_SUPPORT_SUSPENSION,
                 deviceConfigFacade.isAwareSuspensionEnabled() && isSuspensionSupported);
         return new Characteristics(bundle);
+    }
+
+    JSONObject toJSON() throws JSONException {
+        JSONObject j = new JSONObject();
+        j.put("maxConcurrentAwareClusters", maxConcurrentAwareClusters);
+        j.put("maxPublishes", maxPublishes);
+        j.put("maxSubscribes", maxSubscribes);
+        j.put("maxServiceNameLen", maxServiceNameLen);
+        j.put("maxMatchFilterLen", maxTotalMatchFilterLen);
+        j.put("maxServiceSpecificInfoLen", maxServiceSpecificInfoLen);
+        j.put("maxExtendedServiceSpecificInfoLen", maxExtendedServiceSpecificInfoLen);
+        j.put("maxNdiInterfaces", maxNdiInterfaces);
+        j.put("maxNdpSessions", maxNdpSessions);
+        j.put("maxAppInfoLen", maxAppInfoLen);
+        j.put("maxQueuedTransmitMessages", maxQueuedTransmitMessages);
+        j.put("maxSubscribeInterfaceAddresses", maxSubscribeInterfaceAddresses);
+        j.put("supportedCipherSuites", supportedCipherSuites);
+        j.put("isInstantCommunicationModeSupported", isInstantCommunicationModeSupported);
+        j.put("isSetClusterIdSupported", isSetClusterIdSupported);
+        j.put("isNanPairingSupported", isNanPairingSupported);
+        j.put("isSuspensionSupported", isSuspensionSupported);
+        return j;
     }
 
     @Override
