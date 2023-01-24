@@ -1080,6 +1080,8 @@ public class WifiMetrics {
         private int mAuthType;
         private int mTrigger;
         private boolean mHasEverConnected;
+        private boolean mIsCarrierWifi;
+        private boolean mIsOobPseudonymEnabled;
 
         private ConnectionEvent() {
             mConnectionEvent = new WifiMetricsProto.ConnectionEvent();
@@ -1089,6 +1091,8 @@ public class WifiMetrics {
             mConfigBssid = "<NULL>";
             mWifiState = WifiMetricsProto.WifiLog.WIFI_UNKNOWN;
             mScreenOn = false;
+            mIsCarrierWifi = false;
+            mIsOobPseudonymEnabled = false;
         }
 
         public String toString() {
@@ -1324,6 +1328,8 @@ public class WifiMetrics {
                         clientRoleEnumToString(mConnectionEvent.interfaceRole));
                 sb.append(", isFirstConnectionAfterBoot="
                         + mConnectionEvent.isFirstConnectionAfterBoot);
+                sb.append(", isCarrierWifi=" + mIsCarrierWifi);
+                sb.append(", isOobPseudonymEnabled=" + mIsOobPseudonymEnabled);
                 return sb.toString();
             }
         }
@@ -1339,6 +1345,10 @@ public class WifiMetrics {
                     // Probe-responses)
                     if (config.dtimInterval > 0) {
                         mRouterFingerPrint.mRouterFingerPrintProto.dtim = config.dtimInterval;
+                    }
+
+                    if (config.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
+                        mIsCarrierWifi = true;
                     }
 
                     mConfigSsid = config.SSID;
@@ -1816,7 +1826,8 @@ public class WifiMetrics {
      * or 0 if there is no unfinished connection
      */
     public int startConnectionEvent(
-            String ifaceName, WifiConfiguration config, String targetBSSID, int roamType) {
+            String ifaceName, WifiConfiguration config, String targetBSSID, int roamType,
+            boolean isOobPseudonymEnabled) {
         synchronized (mLock) {
             int overlapWithLastConnectionMs = 0;
             ConnectionEvent currentConnectionEvent = mCurrentConnectionEventPerIface.get(ifaceName);
@@ -1861,6 +1872,7 @@ public class WifiMetrics {
             currentConnectionEvent.mConnectionEvent.networkSelectorExperimentId =
                     mNetworkSelectorExperimentId;
             currentConnectionEvent.updateFromWifiConfiguration(config);
+            currentConnectionEvent.mIsOobPseudonymEnabled = isOobPseudonymEnabled;
             currentConnectionEvent.mConfigBssid = "any";
             currentConnectionEvent.mWifiState = mWifiState;
             currentConnectionEvent.mScreenOn = mScreenOn;
@@ -2081,7 +2093,9 @@ public class WifiMetrics {
                         durationTakenToConnectMillis, band, currentConnectionEvent.mAuthType,
                         currentConnectionEvent.mTrigger,
                         currentConnectionEvent.mHasEverConnected,
-                        timeSinceConnectedSeconds);
+                        timeSinceConnectedSeconds,
+                        currentConnectionEvent.mIsCarrierWifi,
+                        currentConnectionEvent.mIsOobPseudonymEnabled);
 
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);

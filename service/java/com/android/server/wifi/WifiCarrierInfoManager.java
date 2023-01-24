@@ -63,6 +63,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.entitlement.PseudonymInfo;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -78,6 +79,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -179,6 +181,7 @@ public class WifiCarrierInfoManager {
     private final WifiNotificationManager mNotificationManager;
     private final WifiMetrics mWifiMetrics;
     private final Clock mClock;
+    private final WifiPseudonymManager mWifiPseudonymManager;
     /**
      * Cached Map of <subscription ID, CarrierConfig PersistableBundle> since retrieving the
      * PersistableBundle from CarrierConfigManager is somewhat expensive as it has hundreds of
@@ -521,7 +524,8 @@ public class WifiCarrierInfoManager {
             @NonNull WifiConfigStore configStore,
             @NonNull Handler handler,
             @NonNull WifiMetrics wifiMetrics,
-            @NonNull Clock clock) {
+            @NonNull Clock clock,
+            @NonNull WifiPseudonymManager wifiPseudonymManager) {
         mTelephonyManager = telephonyManager;
         mContext = context;
         mWifiInjector = wifiInjector;
@@ -532,6 +536,7 @@ public class WifiCarrierInfoManager {
         mNotificationManager = mWifiInjector.getWifiNotificationManager();
         mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
         mClock = clock;
+        mWifiPseudonymManager = wifiPseudonymManager;
         // Register broadcast receiver for UI interactions.
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION);
@@ -702,6 +707,9 @@ public class WifiCarrierInfoManager {
                 } catch (IllegalArgumentException e) {
                     vlogd("IMSI encryption info is not available.");
                 }
+                if (isOobPseudonymFeatureEnabled(subInfo.getCarrierId()) && isSimReady(subId)) {
+                    mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(subInfo.getCarrierId());
+                }
             }
             PersistableBundle bundleOld = cachedCarrierConfigPerSubIdOld.get(subId);
             if (bundleOld != null && bundleOld.getBoolean(CarrierConfigManager
@@ -850,6 +858,15 @@ public class WifiCarrierInfoManager {
         SimInfo simInfo = getSimInfo(subId);
         if (simInfo == null) {
             return null;
+        }
+
+        if (isOobPseudonymFeatureEnabled(config.carrierId)) {
+            Optional<PseudonymInfo> pseudonymInfo =
+                    mWifiPseudonymManager.getValidPseudonymInfo(config.carrierId);
+            if (pseudonymInfo.isEmpty()) {
+                return null;
+            }
+            return Pair.create(pseudonymInfo.get().getPseudonym(), "");
         }
 
         String identity = buildIdentity(getSimMethodForConfig(config), simInfo.imsi,
@@ -1531,11 +1548,22 @@ public class WifiCarrierInfoManager {
                 return null;
             }
             SimInfo simInfo = getSimInfo(subId);
-            if (simInfo != null) {
-                return simInfo.imsi;
+            if (simInfo == null) {
+                vlogd("no active SIM card to match the carrier ID.");
+                return null;
             }
+            if (isOobPseudonymFeatureEnabled(simInfo.simCarrierId)) {
+                if (mWifiPseudonymManager.getValidPseudonymInfo(simInfo.simCarrierId).isEmpty()) {
+                    vlogd("valid pseudonym is not available.");
+                    // matching only when the network is seen.
+                    mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(
+                            simInfo.simCarrierId);
+                    return null;
+                }
+            }
+            return simInfo.imsi;
         }
-        vlogd("no active SIM card to match the carrier ID.");
+
         return null;
     }
 
@@ -1571,6 +1599,15 @@ public class WifiCarrierInfoManager {
             if (requiresImsiEncryption(subId) && !isImsiEncryptionInfoAvailable(subId)) {
                 vlogd("required IMSI encryption information is not available.");
                 continue;
+            }
+            int carrierId = subInfo.getCarrierId();
+            if (isOobPseudonymFeatureEnabled(carrierId)) {
+                if (mWifiPseudonymManager.getValidPseudonymInfo(carrierId).isEmpty()) {
+                    vlogd("valid pseudonym is not available.");
+                    // matching only when the network is seen.
+                    mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(carrierId);
+                    continue;
+                }
             }
             SimInfo simInfo = getSimInfo(subId);
             if (simInfo == null) {
@@ -1875,6 +1912,9 @@ public class WifiCarrierInfoManager {
         if (requiresImsiEncryption(subId)) {
             return;
         }
+        if (isOobPseudonymFeatureEnabled(carrierId)) {
+            return;
+        }
         if (mImsiPrivacyProtectionExemptionMap.containsKey(carrierId)) {
             return;
         }
@@ -2132,6 +2172,9 @@ public class WifiCarrierInfoManager {
         }
         WifiStringResourceWrapper wifiStringResourceWrapper =
                 mContext.getStringResourceWrapper(getMatchingSubId(carrierId), carrierId);
-        return wifiStringResourceWrapper.getBoolean(CONFIG_WIFI_OOB_PSEUDONYM_ENABLED, false);
+        boolean ret = wifiStringResourceWrapper.getBoolean(CONFIG_WIFI_OOB_PSEUDONYM_ENABLED,
+                false);
+        vlogd("isOobPseudonymFeatureEnabled() = " + ret);
+        return ret;
     }
 }
