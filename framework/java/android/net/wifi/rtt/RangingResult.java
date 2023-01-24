@@ -414,8 +414,8 @@ public final class RangingResult implements Parcelable {
      * @return center frequency in Mhz of the channel if available, otherwise {@link #UNSPECIFIED}
      * is returned.
      * <p>
-     * Only valid if {@link #getStatus()} returns {@link #STATUS_SUCCESS}, otherwise will
-     * throw an exception.
+     * @throws IllegalStateException if {@link #getStatus()} does not return
+     * {@link #STATUS_SUCCESS}.
      */
     public int getMeasurementChannelFrequencyMHz() {
         if (mStatus != STATUS_SUCCESS) {
@@ -434,8 +434,8 @@ public final class RangingResult implements Parcelable {
      * {@link ScanResult #CHANNEL_WIDTH_80MHZ_PLUS_MHZ} or {@link ScanResult #CHANNEL_WIDTH_320MHZ}
      * if available, otherwise {@link #UNSPECIFIED} is returned.
      * <p>
-     * Only valid if {@link #getStatus()} returns {@link #STATUS_SUCCESS}, otherwise will
-     * throw an exception.
+     * @throws IllegalStateException if {@link #getStatus()} does not return
+     * {@link #STATUS_SUCCESS}.
      */
     public @ChannelWidth int getMeasurementBandwidth() {
         if (mStatus != STATUS_SUCCESS) {
