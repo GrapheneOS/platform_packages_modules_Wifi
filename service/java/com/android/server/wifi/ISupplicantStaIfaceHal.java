@@ -798,6 +798,14 @@ interface ISupplicantStaIfaceHal {
             @NonNull String ifaceName);
 
     /**
+     * Register a callback to receive notifications for QoS SCS transactions.
+     * Callback should only be registered once.
+     *
+     * @param callback {@link SupplicantStaIfaceHal.QosScsResponseCallback} to register.
+     */
+    void registerQosScsResponseCallback(SupplicantStaIfaceHal.QosScsResponseCallback callback);
+
+    /**
      * Generate DPP credential for network access
      *
      * @param ifaceName Name of the interface.

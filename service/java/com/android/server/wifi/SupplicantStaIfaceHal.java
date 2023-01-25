@@ -801,6 +801,20 @@ public class SupplicantStaIfaceHal {
     @Retention(RetentionPolicy.SOURCE)
     protected @interface QosPolicyScsResponseStatusCode {}
 
+    /**
+     * Callback to receive responses for QoS SCS transactions.
+     */
+    protected interface QosScsResponseCallback {
+        /**
+         * Called to indicate a response from the AP.
+         *
+         * @param ifaceName Name of the interface where the event occurred.
+         * @param statusList List of {@link QosPolicyStatus} objects. Status code will be
+         *                   one of {@link QosPolicyScsResponseStatusCode}.
+         */
+        void onApResponse(String ifaceName, List<QosPolicyStatus> statusList);
+    }
+
     public SupplicantStaIfaceHal(Context context, WifiMonitor monitor,
             FrameworkFacade frameworkFacade, Handler handler,
             Clock clock, WifiMetrics wifiMetrics,
@@ -2288,6 +2302,19 @@ public class SupplicantStaIfaceHal {
             return null;
         }
         return mStaIfaceHal.removeAllQosPoliciesForScs(ifaceName);
+    }
+
+    /**
+     * See comments for
+     * {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(QosScsResponseCallback)}
+     */
+    public void registerQosScsResponseCallback(@NonNull QosScsResponseCallback callback) {
+        String methodStr = "registerQosScsResponseCallback";
+        if (mStaIfaceHal == null) {
+            handleNullHal(methodStr);
+            return;
+        }
+        mStaIfaceHal.registerQosScsResponseCallback(callback);
     }
 
     /**

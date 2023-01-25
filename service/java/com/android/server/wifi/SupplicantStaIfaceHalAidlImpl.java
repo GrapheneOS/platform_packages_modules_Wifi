@@ -158,6 +158,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private final SsidTranslator mSsidTranslator;
     private CountDownLatch mWaitForDeathLatch;
     private INonStandardCertCallback mNonStandardCertCallback;
+    private SupplicantStaIfaceHal.QosScsResponseCallback mQosScsResponseCallback;
 
     private class SupplicantDeathRecipient implements DeathRecipient {
         @Override
@@ -3627,6 +3628,28 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             }
             return null;
         }
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(
+     *                             SupplicantStaIfaceHal.QosScsResponseCallback)}
+     */
+    public void registerQosScsResponseCallback(
+            @NonNull SupplicantStaIfaceHal.QosScsResponseCallback callback) {
+        synchronized (mLock) {
+            if (callback == null) {
+                Log.e(TAG, "QosScsResponseCallback should not be null");
+                return;
+            } else if (mQosScsResponseCallback != null) {
+                Log.e(TAG, "mQosScsResponseCallback has already been assigned");
+                return;
+            }
+            mQosScsResponseCallback = callback;
+        }
+    }
+
+    protected SupplicantStaIfaceHal.QosScsResponseCallback getQosScsResponseCallback() {
+        return mQosScsResponseCallback;
     }
 
     /**

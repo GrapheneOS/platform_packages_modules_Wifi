@@ -50,6 +50,7 @@ import android.hardware.wifi.supplicant.MboCellularDataConnectionPrefValue;
 import android.hardware.wifi.supplicant.MboTransitionReasonCode;
 import android.hardware.wifi.supplicant.QosPolicyData;
 import android.hardware.wifi.supplicant.QosPolicyScsResponseStatus;
+import android.hardware.wifi.supplicant.QosPolicyScsResponseStatusCode;
 import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
@@ -1298,12 +1299,56 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         }
     }
 
+    private static @SupplicantStaIfaceHal.QosPolicyScsResponseStatusCode int
+            halToFrameworkQosPolicyScsResponseStatusCode(int statusCode) {
+        switch (statusCode) {
+            case QosPolicyScsResponseStatusCode.SUCCESS:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS;
+            case QosPolicyScsResponseStatusCode.TCLAS_REQUEST_DECLINED:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_REQUEST_DECLINED;
+            case QosPolicyScsResponseStatusCode.TCLAS_NOT_SUPPORTED_BY_AP:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_NOT_SUPPORTED_BY_AP;
+            case QosPolicyScsResponseStatusCode.TCLAS_INSUFFICIENT_RESOURCES:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_INSUFFICIENT_RESOURCES;
+            case QosPolicyScsResponseStatusCode.TCLAS_RESOURCES_EXHAUSTED:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_RESOURCES_EXHAUSTED;
+            case QosPolicyScsResponseStatusCode.TCLAS_PROCESSING_TERMINATED_INSUFFICIENT_QOS:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_PROCESSING_TERMINATED_INSUFFICIENT_QOS;
+            case QosPolicyScsResponseStatusCode.TCLAS_PROCESSING_TERMINATED_POLICY_CONFLICT:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_PROCESSING_TERMINATED_POLICY_CONFLICT;
+            case QosPolicyScsResponseStatusCode.TCLAS_PROCESSING_TERMINATED:
+                return SupplicantStaIfaceHal
+                        .QOS_POLICY_SCS_RESPONSE_STATUS_TCLAS_PROCESSING_TERMINATED;
+            case QosPolicyScsResponseStatusCode.TIMEOUT:
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_TIMEOUT;
+            default:
+                Log.wtf(TAG, "Invalid QosPolicyScsResponseStatusCode: " + statusCode);
+                return SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_ERROR_UNKNOWN;
+        }
+    }
+
     @Override
-    public void onQosPolicyResponseForScs(QosPolicyScsResponseStatus[] qosPolicyScsResponseStatus)
-            throws android.os.RemoteException {
+    public void onQosPolicyResponseForScs(QosPolicyScsResponseStatus[] halStatusList) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onQosPolicyResponseForScs: size="
-                    + qosPolicyScsResponseStatus.length);
+                    + halStatusList.length);
+            SupplicantStaIfaceHal.QosScsResponseCallback frameworkCallback =
+                    mStaIfaceHal.getQosScsResponseCallback();
+            if (frameworkCallback == null) return;
+
+            List<SupplicantStaIfaceHal.QosPolicyStatus> frameworkStatusList = new ArrayList<>();
+            for (QosPolicyScsResponseStatus halStatus : halStatusList) {
+                frameworkStatusList.add(new SupplicantStaIfaceHal.QosPolicyStatus(
+                        halStatus.policyId,
+                        halToFrameworkQosPolicyScsResponseStatusCode(
+                                halStatus.qosPolicyScsResponseStatusCode)));
+            }
+            frameworkCallback.onApResponse(mIfaceName, frameworkStatusList);
         }
     }
 }

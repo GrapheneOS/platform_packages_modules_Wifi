@@ -4005,6 +4005,15 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
+     * See comments for {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(
+     *                             SupplicantStaIfaceHal.QosScsResponseCallback)}
+     */
+    public void registerQosScsResponseCallback(
+            @NonNull SupplicantStaIfaceHal.QosScsResponseCallback callback) {
+        Log.e(TAG, "registerQosScsResponseCallback is not supported by the HIDL HAL");
+    }
+
+    /**
      * Generate DPP credential for network access
      *
      * @param ifaceName Name of the interface.
