@@ -288,7 +288,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT = "bootstrapping_accept";
     private static final String MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD = "aware_offload";
 
-
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
 
@@ -444,35 +443,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 return 0;
             }
             case "get_capabilities": {
-                JSONObject j = new JSONObject();
                 if (mCapabilities != null) {
                     try {
-                        j.put("maxConcurrentAwareClusters",
-                                mCapabilities.maxConcurrentAwareClusters);
-                        j.put("maxPublishes", mCapabilities.maxPublishes);
-                        j.put("maxSubscribes", mCapabilities.maxSubscribes);
-                        j.put("maxServiceNameLen", mCapabilities.maxServiceNameLen);
-                        j.put("maxMatchFilterLen", mCapabilities.maxMatchFilterLen);
-                        j.put("maxTotalMatchFilterLen", mCapabilities.maxTotalMatchFilterLen);
-                        j.put("maxServiceSpecificInfoLen", mCapabilities.maxServiceSpecificInfoLen);
-                        j.put("maxExtendedServiceSpecificInfoLen",
-                                mCapabilities.maxExtendedServiceSpecificInfoLen);
-                        j.put("maxNdiInterfaces", mCapabilities.maxNdiInterfaces);
-                        j.put("maxNdpSessions", mCapabilities.maxNdpSessions);
-                        j.put("maxAppInfoLen", mCapabilities.maxAppInfoLen);
-                        j.put("maxQueuedTransmitMessages", mCapabilities.maxQueuedTransmitMessages);
-                        j.put("maxSubscribeInterfaceAddresses",
-                                mCapabilities.maxSubscribeInterfaceAddresses);
-                        j.put("supportedCipherSuites", mCapabilities.supportedCipherSuites);
-                        j.put("isInstantCommunicationModeSupported",
-                                mCapabilities.isInstantCommunicationModeSupported);
-                        j.put("isSetClusterIdSupported",
-                                mCapabilities.isSetClusterIdSupported);
+                        pw_out.println(mCapabilities.toJSON().toString());
                     } catch (JSONException e) {
                         Log.e(TAG, "onCommand: get_capabilities e=" + e);
                     }
                 }
-                pw_out.println(j.toString());
                 return 0;
             }
             case "get_aware_resources": {
@@ -868,7 +845,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 callback.macAddress(peerIdToMacList);
             } catch (RemoteException e) {
                 Log.e(TAG, "requestMacAddress (sync): exception on callback -- " + e);
-
             }
         });
     }
@@ -1008,7 +984,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
                 }
         );
-
     }
 
     /**
@@ -1256,7 +1231,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID, bootstrappingId);
         mSm.sendMessage(msg);
     }
-
 
     /**
      * Enable usage of Aware. Doesn't actually turn on Aware (form clusters) - that
@@ -1980,10 +1954,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     class WifiAwareStateMachine extends StateMachine {
         private static final int TRANSACTION_ID_IGNORE = 0;
 
-        private DefaultState mDefaultState = new DefaultState();
-        private WaitState mWaitState = new WaitState();
-        private WaitForResponseState mWaitForResponseState = new WaitForResponseState();
-        private WaitingState mWaitingState = new WaitingState(this);
+        private final DefaultState mDefaultState = new DefaultState();
+        private final WaitState mWaitState = new WaitState();
+        private final WaitForResponseState mWaitForResponseState = new WaitForResponseState();
+        private final WaitingState mWaitingState = new WaitingState(this);
 
         private short mNextTransactionId = 1;
         public int mNextSessionId = 1;
@@ -1997,8 +1971,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         private boolean mSendQueueBlocked = false;
         private final SparseArray<Message> mHostQueuedSendMessages = new SparseArray<>();
         private final Map<Short, Message> mFwQueuedSendMessages = new LinkedHashMap<>();
-        private WakeupMessage mSendMessageTimeoutMessage = new WakeupMessage(mContext, getHandler(),
-                HAL_SEND_MESSAGE_TIMEOUT_TAG, MESSAGE_TYPE_SEND_MESSAGE_TIMEOUT);
+        private final WakeupMessage mSendMessageTimeoutMessage = new WakeupMessage(mContext,
+                getHandler(), HAL_SEND_MESSAGE_TIMEOUT_TAG, MESSAGE_TYPE_SEND_MESSAGE_TIMEOUT);
 
         private static final long AWARE_WAIT_FOR_DP_CONFIRM_TIMEOUT = 20_000;
         private static final long AWARE_WAIT_FOR_PAIRING_CONFIRM_TIMEOUT = 20_000;
@@ -2969,7 +2943,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         timeout.schedule(SystemClock.elapsedRealtime()
                                 + AWARE_WAIT_FOR_PAIRING_CONFIRM_TIMEOUT);
                     }
-
                     break;
                 }
                 case RESPONSE_TYPE_ON_RESPONSE_PAIRING_FAIL: {
@@ -3899,7 +3872,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (mInstantCommModeClientRequest != INSTANT_MODE_DISABLED
                 && !mInstantCommModeGlobalEnable) {
             // Change the instant communication mode when timeout
-            mHandler.postDelayed(() -> reconfigure(), (long) mContext.getResources()
+            mHandler.postDelayed(this::reconfigure, (long) mContext.getResources()
                     .getInteger(R.integer.config_wifiAwareInstantCommunicationModeDurationMillis));
         }
     }
@@ -3959,8 +3932,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", pubSubId=" + pubSubId + ", isPublish=" + isPublish);
         }
 
-        boolean isRangingEnabled = false;
-        boolean enableInstantMode = false;
+        boolean isRangingEnabled;
+        boolean enableInstantMode;
         boolean isSuspendable;
         int instantModeBand;
         int minRange = -1;
