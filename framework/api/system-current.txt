@@ -1244,9 +1244,9 @@ package android.net.wifi.aware {
 
   public class DiscoverySessionCallback {
     method public void onSessionResumeFailed(int);
-    method public void onSessionResumeSuccess();
+    method public void onSessionResumeSucceeded();
     method public void onSessionSuspendFailed(int);
-    method public void onSessionSuspendSuccess();
+    method public void onSessionSuspendSucceeded();
   }
 
   public final class PublishConfig implements android.os.Parcelable {
