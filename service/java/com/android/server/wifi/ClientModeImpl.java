@@ -95,6 +95,7 @@ import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.ConditionVariable;
 import android.os.IBinder;
 import android.os.Looper;
@@ -2745,18 +2746,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         Intent intent = new Intent(WifiManager.RSSI_CHANGED_ACTION);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
         intent.putExtra(WifiManager.EXTRA_NEW_RSSI, newRssi);
-        final BroadcastOptions opts;
+        final Bundle opts;
         if (SdkLevel.isAtLeastU()) {
-            opts = BroadcastOptions.makeBasic();
-            opts.setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT);
+            opts = BroadcastOptions.makeBasic()
+                    .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
+                    .setDeferUntilActive(true)
+                    .toBundle();
         } else {
             opts = null;
         }
         mBroadcastQueue.queueOrSendBroadcast(
                 mClientModeManager,
                 () -> mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
-                        android.Manifest.permission.ACCESS_WIFI_STATE,
-                        opts == null ? null : opts.toBundle()));
+                        android.Manifest.permission.ACCESS_WIFI_STATE, opts));
     }
 
     private void sendLinkConfigurationChangedBroadcast() {
