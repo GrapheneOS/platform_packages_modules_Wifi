@@ -22,6 +22,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
 import android.app.AppOpsManager;
+import android.app.BroadcastOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.IScanResultsCallback;
@@ -29,6 +30,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.util.ScanResultUtil;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -314,18 +316,35 @@ public class ScanRequestProxy {
         Intent intent = new Intent(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
         intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, scanSucceeded);
-        mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+        mContext.sendBroadcastAsUser(intent, UserHandle.ALL, null,
+                createBroadcastOptionsForScanResultsAvailable(scanSucceeded));
     }
 
     /**
      * Helper method to send the scan request failure broadcast to specified package.
      */
     private void sendScanResultFailureBroadcastToPackage(String packageName) {
+        final boolean scanSucceeded = false;
         Intent intent = new Intent(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-        intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
+        intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, scanSucceeded);
         intent.setPackage(packageName);
-        mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+        mContext.sendBroadcastAsUser(intent, UserHandle.ALL, null,
+                createBroadcastOptionsForScanResultsAvailable(scanSucceeded));
+    }
+
+    static Bundle createBroadcastOptionsForScanResultsAvailable(boolean scanSucceeded) {
+        if (!SdkLevel.isAtLeastU()) return null;
+
+        // Delay delivering the broadcast to apps in the Cached state and apply policy such
+        // that when a new SCAN_RESULTS_AVAILABLE broadcast is sent, any older pending
+        // broadcasts with the same 'scanSucceeded' extra value will be discarded.
+        return BroadcastOptions.makeBasic()
+                .setDeliveryGroupMatchingKey(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION,
+                        String.valueOf(scanSucceeded))
+                .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
+                .setDeferUntilActive(true)
+                .toBundle();
     }
 
     private void trimPastScanRequestTimesForForegroundApp(
