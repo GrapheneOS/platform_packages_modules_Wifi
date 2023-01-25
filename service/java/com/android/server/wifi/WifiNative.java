@@ -1579,11 +1579,12 @@ public class WifiNative {
      * @param freqs list of frequencies to scan for, if null scan all supported channels.
      * @param hiddenNetworkSSIDs List of hidden networks to be scanned for.
      * @param enable6GhzRnr whether Reduced Neighbor Report should be enabled for 6Ghz scanning.
+     * @param vendorIes Byte array of vendor IEs
      * @return Returns true on success.
      */
     public int scan(
             @NonNull String ifaceName, @WifiAnnotations.ScanType int scanType, Set<Integer> freqs,
-            List<String> hiddenNetworkSSIDs, boolean enable6GhzRnr) {
+            List<String> hiddenNetworkSSIDs, boolean enable6GhzRnr, byte[] vendorIes) {
         int scanRequestStatus = WifiScanner.REASON_SUCCEEDED;
         boolean scanStatus = true;
         List<byte[]> hiddenNetworkSsidsArrays = new ArrayList<>();
@@ -1603,6 +1604,8 @@ public class WifiNative {
             extraScanningParams.putBoolean(WifiNl80211Manager.SCANNING_PARAM_ENABLE_6GHZ_RNR,
                     enable6GhzRnr);
             if (SdkLevel.isAtLeastU()) {
+                extraScanningParams.putByteArray(WifiNl80211Manager.EXTRA_SCANNING_PARAM_VENDOR_IES,
+                        vendorIes);
                 scanRequestStatus = mWifiCondManager.startScan2(ifaceName, scanType, freqs,
                         hiddenNetworkSsidsArrays, extraScanningParams);
             } else {
@@ -3099,6 +3102,7 @@ public class WifiNative {
         /* Not used for bg scans. Only works for single scans. */
         public HiddenNetwork[] hiddenNetworks;
         public BucketSettings[] buckets;
+        public byte[] vendorIes;
     }
 
     /**
