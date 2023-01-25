@@ -974,7 +974,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     /**
-     * @see WifiAwareManager#getPairedDevice(Executor, Consumer)
+     * @see WifiAwareManager#getPairedDevices(Executor, Consumer)
      */
     public void getPairedDevices(String callingPackage, IWifiAwarePairedDevicesListener listener) {
         mHandler.post(() -> {
