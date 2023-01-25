@@ -4405,8 +4405,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mLocalLog.log(methodString + ": command="
                 + command + ", success=" + success + ", reason=" + reason);
 
-        IWifiAwareDiscoverySessionCallback callback =
-                (IWifiAwareDiscoverySessionCallback) command.obj;
         int clientId = command.arg2;
         int sessionId = command.getData().getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
 
