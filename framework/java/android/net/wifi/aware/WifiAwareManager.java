@@ -1143,18 +1143,33 @@ public class WifiAwareManager {
         }
         @Override
         public void onPairingSetupConfirmed(int peerId, boolean accept, String alias) {
-            mHandler.post(() -> mOriginalCallback.onPairingSetupConfirmed(new PeerHandle(peerId),
-                            accept, alias));
+            if (accept) {
+                mHandler.post(() -> mOriginalCallback.onPairingSetupSuccess(new PeerHandle(peerId),
+                        alias));
+            } else {
+                mHandler.post(() -> mOriginalCallback
+                        .onPairingSetupFailure(new PeerHandle(peerId)));
+            }
         }
         @Override
         public void onPairingVerificationConfirmed(int peerId, boolean accept, String alias) {
-            mHandler.post(() -> mOriginalCallback.onPairingVerificationConfirmed(
-                    new PeerHandle(peerId), accept, alias));
+            if (accept) {
+                mHandler.post(() -> mOriginalCallback.onPairingVerificationSuccess(
+                        new PeerHandle(peerId), alias));
+            } else {
+                mHandler.post(() -> mOriginalCallback
+                        .onPairingVerificationFailure(new PeerHandle(peerId)));
+            }
         }
         @Override
         public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
-            mHandler.post(() -> mOriginalCallback.onBootstrappingConfirmed(
-                    new PeerHandle(peerId), accept, method));
+            if (accept) {
+                mHandler.post(() -> mOriginalCallback.onBootstrappingSuccess(
+                        new PeerHandle(peerId), accept, method));
+            } else {
+                mHandler.post(() -> mOriginalCallback.onPairingSetupFailure(
+                        new PeerHandle(peerId)));
+            }
         }
 
         /*
@@ -1221,7 +1236,7 @@ public class WifiAwareManager {
     /**
      * Reset all paired devices setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
     public void resetPairedDevices() {
@@ -1235,7 +1250,7 @@ public class WifiAwareManager {
     /**
      * Remove the target paired device setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, boolean, String, String)}
+     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
      * @param alias The alias set by the caller
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
@@ -1254,7 +1269,7 @@ public class WifiAwareManager {
      *                        alias
      */
     @RequiresPermission(ACCESS_WIFI_STATE)
-    public void getPairedDevice(@NonNull Executor executor,
+    public void getPairedDevices(@NonNull Executor executor,
             @NonNull Consumer<List<String>> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");

@@ -1801,15 +1801,15 @@ public class WifiAwareManagerTest {
                 eq(pairId));
 
         // (4) Response to the request
-        publishSession.getValue().respondToPairingRequest(pairId, peerHandle, true, password,
-                alias);
+        publishSession.getValue().respondToPairingRequest(pairId, peerHandle, alias, password
+        );
         inOrder.verify(mockAwareService).responseNanPairingSetupRequest(eq(clientId), eq(sessionId),
                 eq(peerId), eq(pairId), eq(password), eq(alias), eq(true));
 
         // (5) Pairing confirm received
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerHandle), eq(true),
+        inOrder.verify(mockSessionCallback).onPairingSetupSuccess(eq(peerHandle),
                 eq(alias));
 
         // (6) terminate
@@ -1881,18 +1881,18 @@ public class WifiAwareManagerTest {
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onBootstrappingConfirmed(eq(peerHandle),
+        inOrder.verify(mockSessionCallback).onBootstrappingSuccess(eq(peerHandle),
                 eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
 
         // (5) initiate pairing request
-        subscribeSession.getValue().initiatePairingRequest(peerHandle, password, alias);
+        subscribeSession.getValue().initiatePairingRequest(peerHandle, alias, password);
         inOrder.verify(mockAwareService).initiateNanPairingSetupRequest(eq(clientId), eq(sessionId),
                 eq(peerId), eq(password), eq(alias));
 
         // (6) Received confirm event
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerHandle), eq(true),
+        inOrder.verify(mockSessionCallback).onPairingSetupSuccess(eq(peerHandle),
                 eq(alias));
 
         // (7) terminate
