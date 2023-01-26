@@ -277,6 +277,7 @@
           <item type="array" name="config_wifiExcludedFromUserApprovalForD2dInterfacePriority" />
           <item type="bool" name="config_wifiUserApprovalNotRequireForDisconnectedP2p" />
           <item type="bool" name="config_wifiNetworkCentricQosPolicyFeatureEnabled" />
+          <item type="bool" name="config_wifiApplicationCentricQosPolicyFeatureEnabled" />
           <item type="string" name="config_wifiDriverWorldModeCountryCode" />
           <item type="bool" name="config_wifiPasspointUseApWanLinkStatusAnqpElement" />
           <item type="array" name="config_wifiPasspointUseApWanLinkStatusAnqpElementFqdnAllowlist" />
