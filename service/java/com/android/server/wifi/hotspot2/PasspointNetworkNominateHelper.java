@@ -96,8 +96,7 @@ public class PasspointNetworkNominateHelper {
      * Should be called each time have new scan details.
      */
     public void updatePasspointConfig(List<ScanDetail> scanDetails) {
-        filterAndUpdateScanDetails(scanDetails);
-        updateBestMatchScanDetailForProviders();
+        updateBestMatchScanDetailForProviders(filterAndUpdateScanDetails(scanDetails));
     }
 
     /**
@@ -178,12 +177,10 @@ public class PasspointNetworkNominateHelper {
     }
 
     /**
-     * Use the latest scan details to add/update the matched passpoint to WifiConfigManager.  This
-     * should be used if new profiles have been added but scan results remain the same, or new
-     * ScanDetails available.
+     * Use the latest scan details to add/update the matched passpoint to WifiConfigManager.
+     * @param scanDetails
      */
-    public void updateBestMatchScanDetailForProviders() {
-        List<ScanDetail> scanDetails = updateAndGetCachedScanDetails();
+    public void updateBestMatchScanDetailForProviders(List<ScanDetail> scanDetails) {
         if (mPasspointManager.isProvidersListEmpty() || !mPasspointManager.isWifiPasspointEnabled()
                 || scanDetails.isEmpty()) {
             return;
@@ -200,6 +197,13 @@ public class PasspointNetworkNominateHelper {
                 createWifiConfigForProvider(highestRssi.get());
             }
         }
+    }
+
+    /**
+     * Refreshes the Wifi configs for each provider using the cached scans.
+     */
+    public void refreshWifiConfigsForProviders() {
+        updateBestMatchScanDetailForProviders(updateAndGetCachedScanDetails());
     }
 
     /**
