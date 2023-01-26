@@ -1026,9 +1026,9 @@ public class WifiAwareManager {
         }
 
         @Override
-        public void onSessionSuspendSuccess() {
-            if (VDBG) Log.v(TAG, "onSessionSuspendSuccess");
-            mHandler.post(mOriginalCallback::onSessionSuspendSuccess);
+        public void onSessionSuspendSucceeded() {
+            if (VDBG) Log.v(TAG, "onSessionSuspendSucceeded");
+            mHandler.post(mOriginalCallback::onSessionSuspendSucceeded);
         }
 
         @Override
@@ -1038,9 +1038,9 @@ public class WifiAwareManager {
         }
 
         @Override
-        public void onSessionResumeSuccess() {
-            if (VDBG) Log.v(TAG, "onSessionResumeSuccess");
-            mHandler.post(mOriginalCallback::onSessionResumeSuccess);
+        public void onSessionResumeSucceeded() {
+            if (VDBG) Log.v(TAG, "onSessionResumeSucceeded");
+            mHandler.post(mOriginalCallback::onSessionResumeSucceeded);
         }
 
         @Override

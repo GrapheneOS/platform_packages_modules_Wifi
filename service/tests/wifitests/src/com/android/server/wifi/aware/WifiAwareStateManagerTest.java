@@ -43,6 +43,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -209,7 +210,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mResources = new MockResources();
         mResources.setInteger(R.integer.config_wifiAwareInstantCommunicationModeDurationMillis,
                 30000);
-        mResources.setBoolean(R.bool.config_wifiAwareOffloadingFirmwareHandlePriority, true);
         when(mMockContext.getResources()).thenReturn(mResources);
 
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
@@ -5235,7 +5235,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      * that IdentityChanged not delivered if configuration disables delivery.
      */
     @Test
-    public void testAwareWithOffloading() throws Exception {
+    public void testAwareWithOffloadingWithFwHandlePriority() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiAwareOffloadingFirmwareHandlePriority, true);
         final int clientId1 = 1005;
         final int clientId2 = 1007;
         final int clusterLow = 5;
@@ -5274,10 +5275,84 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (2) connect Aware session for App
         mDut.connect(clientId2, uid, pid, callingPackage, callingFeature, mockCallback2,
-                configRequest, true, mExtras, false);
+                configRequest, false, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback2).onConnectSuccess(clientId2);
+        // Session for offloading should be terminated.
+        inOrder.verify(mockCallback1).onAttachTerminate();
+
+        // (3) connect Aware session for offloading again - should reject
+        mDut.connect(clientId1, uid, pid, callingPackage, callingFeature, mockCallback1,
+                configRequest, false, mExtras, true);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback1).onConnectFail(anyInt());
+
+        // (6) Aware down - session should be terminated.
+        mDut.onAwareDownNotification(reason);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback2).onAttachTerminate();
+
+        validateInternalClientInfoCleanedUp(clientId1);
+        validateInternalClientInfoCleanedUp(clientId2);
+
+        verifyNoMoreInteractions(mockCallback1, mockCallback2, mMockNative);
+    }
+
+    /**
+     * Validates that all events are delivered with correct arguments. Validates
+     * that IdentityChanged not delivered if configuration disables delivery.
+     */
+    @Test
+    public void testAwareWithOffloadingWithoutFwHandlePriority() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiAwareOffloadingFirmwareHandlePriority, false);
+        final int clientId1 = 1005;
+        final int clientId2 = 1007;
+        final int clusterLow = 5;
+        final int clusterHigh = 100;
+        final int masterPref = 111;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final int reason = NanStatusCode.INTERNAL_FAILURE;
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().setClusterLow(clusterLow)
+                .setClusterHigh(clusterHigh).setMasterPreference(masterPref)
+                .build();
+
+        IWifiAwareEventCallback mockCallback1 = mock(IWifiAwareEventCallback.class);
+        IWifiAwareEventCallback mockCallback2 = mock(IWifiAwareEventCallback.class);
+        ArgumentCaptor<Short> transactionIdCapture = ArgumentCaptor.forClass(Short.class);
+        InOrder inOrder = inOrder(mockCallback1, mockCallback2, mMockNative);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).getCapabilities(transactionIdCapture.capture());
+        reset(mMockNativeManager);
+
+        // (1) connect Aware session for offloading
+        mDut.connect(clientId1, uid, pid, callingPackage, callingFeature, mockCallback1,
+                configRequest, false, mExtras, true);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).enableAndConfigure(transactionIdCapture.capture(),
-                eq(configRequest), eq(true), eq(false), eq(true), eq(false), eq(false), eq(false),
+                eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
+                anyInt(), anyInt());
+        short transactionId = transactionIdCapture.getValue();
+        mDut.onConfigSuccessResponse(transactionId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback1).onConnectSuccess(clientId1);
+
+        // (2) connect Aware session for App
+        mDut.connect(clientId2, uid, pid, callingPackage, callingFeature, mockCallback2,
+                configRequest, true, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).disable(transactionIdCapture.capture());
+        mDut.onDisableResponse(transactionIdCapture.getValue(), NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        verify(mMockNativeManager, never()).releaseAware();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).enableAndConfigure(transactionIdCapture.capture(),
+                eq(configRequest), eq(true), eq(true), eq(true), eq(false), eq(false), eq(false),
                 anyInt(), anyInt());
         transactionId = transactionIdCapture.getValue();
         mDut.onConfigSuccessResponse(transactionId);
