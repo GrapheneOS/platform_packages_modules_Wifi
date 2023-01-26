@@ -348,7 +348,7 @@ public class WifiAwareDiscoverySessionState {
     public void onSuspendSuccess() {
         mIsSuspended = true;
         try {
-            mCallback.onSessionSuspendSuccess();
+            mCallback.onSessionSuspendSucceeded();
         } catch (RemoteException e) {
             Log.e(TAG, "onSuspendSuccess: RemoteException=" + e);
         }
@@ -387,7 +387,7 @@ public class WifiAwareDiscoverySessionState {
     public void onResumeSuccess() {
         mIsSuspended = false;
         try {
-            mCallback.onSessionResumeSuccess();
+            mCallback.onSessionResumeSucceeded();
         } catch (RemoteException e) {
             Log.e(TAG, "onResumeSuccess: RemoteException=" + e);
         }

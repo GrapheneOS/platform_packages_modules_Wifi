@@ -619,7 +619,7 @@ package android.net.wifi {
   }
 
   public static interface WifiManager.LocalOnlyConnectionFailureListener {
-    method public void onConnectionStatus(@NonNull android.net.wifi.WifiNetworkSpecifier, int);
+    method public void onConnectionFailed(@NonNull android.net.wifi.WifiNetworkSpecifier, int);
   }
 
   public static class WifiManager.LocalOnlyHotspotCallback {

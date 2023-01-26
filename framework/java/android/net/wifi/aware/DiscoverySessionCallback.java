@@ -100,7 +100,7 @@ public class DiscoverySessionCallback {
      * @hide
      */
     @SystemApi
-    public void onSessionSuspendSuccess() {
+    public void onSessionSuspendSucceeded() {
         /* empty */
     }
 
@@ -127,7 +127,7 @@ public class DiscoverySessionCallback {
      * @hide
      */
     @SystemApi
-    public void onSessionResumeSuccess() {
+    public void onSessionResumeSucceeded() {
         /* empty */
     }
 
