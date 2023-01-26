@@ -353,7 +353,7 @@ public class WifiAwareManagerTest {
                 (Class) List.class);
 
         // (0) connect + success
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -454,7 +454,7 @@ public class WifiAwareManagerTest {
                 .forClass(PublishDiscoverySession.class);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -511,7 +511,7 @@ public class WifiAwareManagerTest {
         ArgumentCaptor<PeerHandle> peerIdCaptor = ArgumentCaptor.forClass(PeerHandle.class);
 
         // (0) connect + success
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -607,7 +607,7 @@ public class WifiAwareManagerTest {
                 .forClass(SubscribeDiscoverySession.class);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1025,7 +1025,7 @@ public class WifiAwareManagerTest {
                 mockPublishSession, mockRttListener);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1144,7 +1144,7 @@ public class WifiAwareManagerTest {
                 mockPublishSession, mockRttListener);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1330,7 +1330,7 @@ public class WifiAwareManagerTest {
                 mockPublishSession, mockRttListener);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1582,7 +1582,7 @@ public class WifiAwareManagerTest {
                 mockPublishSession, mockRttListener);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1622,7 +1622,7 @@ public class WifiAwareManagerTest {
                 mockPublishSession, mockRttListener);
 
         // (1) connect successfully
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1776,7 +1776,7 @@ public class WifiAwareManagerTest {
                 (Class) List.class);
 
         // (0) connect + success
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
@@ -1852,7 +1852,7 @@ public class WifiAwareManagerTest {
         ArgumentCaptor<PeerHandle> peerIdCaptor = ArgumentCaptor.forClass(PeerHandle.class);
 
         // (0) connect + success
-        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
                 eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);

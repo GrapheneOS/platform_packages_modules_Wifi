@@ -2029,7 +2029,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         InOrder inOrderS = inOrder(mockAwareService, mockCallback, mockSessionCallback);
 
-        mgr.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mgr.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         inOrderS.verify(mockAwareService).connect(any(), any(), any(),
                 clientProxyCallback.capture(), eq(configRequest), eq(false), any(), eq(false));
         IWifiAwareEventCallback iwaec = clientProxyCallback.getValue();
@@ -2109,7 +2109,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         AttachCallback mockCallback = mock(AttachCallback.class);
 
-        mgr.attach(mMockLooperHandler, configRequest, mockCallback, null, false);
+        mgr.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
         verify(mockAwareService).connect(any(), any(), any(),
                 clientProxyCallback.capture(), eq(configRequest), eq(false), any(), eq(false));
         clientProxyCallback.getValue().onConnectSuccess(clientId);
