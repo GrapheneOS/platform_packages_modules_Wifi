@@ -113,7 +113,7 @@ public final class ServiceDiscoveryInfo {
     /**
      * Get the paired device alias if the discovered device has already paired. If not null device
      * will automatically start the NAN pairing verification,
-     * {@link DiscoverySessionCallback#onPairingVerificationSuccess(PeerHandle, String)}
+     * {@link DiscoverySessionCallback#onPairingVerificationSucceed(PeerHandle, String)}
      * will trigger when verification is finished
      */
     @Nullable

@@ -1809,7 +1809,7 @@ public class WifiAwareManagerTest {
         // (5) Pairing confirm received
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onPairingSetupSuccess(eq(peerHandle),
+        inOrder.verify(mockSessionCallback).onPairingSetupSucceeded(eq(peerHandle),
                 eq(alias));
 
         // (6) terminate
@@ -1881,7 +1881,7 @@ public class WifiAwareManagerTest {
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onBootstrappingSuccess(eq(peerHandle),
+        inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
                 eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
 
         // (5) initiate pairing request
@@ -1892,7 +1892,7 @@ public class WifiAwareManagerTest {
         // (6) Received confirm event
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
         mMockLooper.dispatchAll();
-        inOrder.verify(mockSessionCallback).onPairingSetupSuccess(eq(peerHandle),
+        inOrder.verify(mockSessionCallback).onPairingSetupSucceeded(eq(peerHandle),
                 eq(alias));
 
         // (7) terminate
