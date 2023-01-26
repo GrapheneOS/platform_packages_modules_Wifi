@@ -5618,9 +5618,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             mPeersLostDuringConnection.clear();
             mServiceDiscReqId = null;
+
             Bundle extras = new Bundle();
             extras.putBoolean(WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE, true);
-            sendMessage(WifiP2pManager.DISCOVER_PEERS, extras);
+            final Message msg = obtainMessage(WifiP2pManager.DISCOVER_PEERS, extras);
+            msg.sendingUid = Process.myUid();
+            sendMessage(msg);
 
             sendDisconnectWifiRequest(false);
         }

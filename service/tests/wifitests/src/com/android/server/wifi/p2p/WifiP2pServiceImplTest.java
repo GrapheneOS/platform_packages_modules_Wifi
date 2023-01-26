@@ -7049,4 +7049,26 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(WifiP2pManager.RESPONSE_CONNECTION_INFO, mMessageCaptor.getValue().what);
         assertFalse(((WifiP2pInfo) mMessageCaptor.getValue().obj).groupFormed);
     }
+
+    /**
+     * Verify that GroupFailure triggers internal p2p discover
+     */
+    @Test
+    public void testGroupfailuretriggerInternalDiscoverPeers() throws Exception {
+        lenient().when(Process.myUid()).thenReturn(Process.SYSTEM_UID);
+        when(mWifiNative.p2pFind(anyInt())).thenReturn(true);
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+
+        mockEnterProvisionDiscoveryState();
+
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+
+        /* Trigger a group failure */
+        sendSimpleMsg(null, WifiP2pManager.CANCEL_CONNECT);
+
+        /* Verify that p2p discover is triggered */
+        verify(mWifiNative).p2pFind(anyInt());
+    }
 }
