@@ -399,7 +399,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      * Use to avoid the case where the framework is using a newer
      * interface version than the service.
      */
-    private boolean isServiceVersionIsAtLeast(int expectedVersion) {
+    protected boolean isServiceVersionAtLeast(int expectedVersion) {
         return expectedVersion <= mServiceVersion;
     }
 
@@ -2601,7 +2601,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     }
 
     private long aidlWpaDrvFeatureSetToFrameworkV2(int drvCapabilitiesMask) {
-        if (!isServiceVersionIsAtLeast(2)) return 0;
+        if (!isServiceVersionAtLeast(2)) return 0;
 
         final String methodStr = "getWpaDriverFeatureSetV2";
         long featureSet = 0;
@@ -2980,7 +2980,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      * @return Signal poll results or null if error.
      */
     public WifiSignalPollResults getSignalPollResults(@NonNull String ifaceName) {
-        if (!isServiceVersionIsAtLeast(2)) return null;
+        if (!isServiceVersionAtLeast(2)) return null;
         synchronized (mLock) {
             final String methodStr = "getSignalPollResult";
             ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
@@ -3740,7 +3740,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private void registerNonStandardCertCallback() {
         synchronized (mLock) {
             final String methodStr = "registerNonStandardCertCallback";
-            if (!checkSupplicantAndLogFailure(methodStr) || !isServiceVersionIsAtLeast(2)) {
+            if (!checkSupplicantAndLogFailure(methodStr) || !isServiceVersionAtLeast(2)) {
                 return;
             } else if (mNonStandardCertCallback != null) {
                 Log.i(TAG, "Non-standard cert callback has already been registered");

@@ -835,6 +835,20 @@ public class SupplicantStaIfaceHal {
     }
 
     /**
+     * Check whether the AIDL service is running at least the expected version.
+     *
+     * @param expectedVersion Version number to check.
+     * @return true if the AIDL service is available and >= the expected version, false otherwise.
+     */
+    public boolean isAidlServiceVersionAtLeast(int expectedVersion) {
+        if (mStaIfaceHal == null || mStaIfaceHal instanceof SupplicantStaIfaceHalHidlImpl) {
+            return false;
+        }
+        return ((SupplicantStaIfaceHalAidlImpl) mStaIfaceHal)
+                .isServiceVersionAtLeast(expectedVersion);
+    }
+
+    /**
      * Enable/Disable verbose logging.
      */
     void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {

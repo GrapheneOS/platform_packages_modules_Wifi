@@ -7203,10 +7203,12 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     private boolean isApplicationQosPolicyFeatureEnabled() {
-        // Both the experiment flag and overlay value must be enabled.
+        // Both the experiment flag and overlay value must be enabled,
+        // and the HAL must support this feature.
         return mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()
                 && mContext.getResources().getBoolean(
-                        R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled);
+                        R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled)
+                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(2);
     }
 
     /**

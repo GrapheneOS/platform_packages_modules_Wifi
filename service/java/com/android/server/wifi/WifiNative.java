@@ -2957,6 +2957,16 @@ public class WifiNative {
         mSupplicantStaIfaceHal.registerDppCallback(dppEventCallback);
     }
 
+    /**
+     * Check whether the Supplicant AIDL service is running at least the expected version.
+     *
+     * @param expectedVersion Version number to check.
+     * @return true if the AIDL service is available and >= the expected version, false otherwise.
+     */
+    public boolean isSupplicantAidlServiceVersionAtLeast(int expectedVersion) {
+        return mSupplicantStaIfaceHal.isAidlServiceVersionAtLeast(expectedVersion);
+    }
+
     /********************************************************
      * Vendor HAL operations
      ********************************************************/
