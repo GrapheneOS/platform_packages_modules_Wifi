@@ -1116,30 +1116,30 @@ public class WifiAwareManager {
         @Override
         public void onPairingSetupConfirmed(int peerId, boolean accept, String alias) {
             if (accept) {
-                mHandler.post(() -> mOriginalCallback.onPairingSetupSuccess(new PeerHandle(peerId),
-                        alias));
+                mHandler.post(() -> mOriginalCallback
+                        .onPairingSetupSucceeded(new PeerHandle(peerId), alias));
             } else {
                 mHandler.post(() -> mOriginalCallback
-                        .onPairingSetupFailure(new PeerHandle(peerId)));
+                        .onPairingSetupFailed(new PeerHandle(peerId)));
             }
         }
         @Override
         public void onPairingVerificationConfirmed(int peerId, boolean accept, String alias) {
             if (accept) {
-                mHandler.post(() -> mOriginalCallback.onPairingVerificationSuccess(
+                mHandler.post(() -> mOriginalCallback.onPairingVerificationSucceed(
                         new PeerHandle(peerId), alias));
             } else {
                 mHandler.post(() -> mOriginalCallback
-                        .onPairingVerificationFailure(new PeerHandle(peerId)));
+                        .onPairingVerificationFailed(new PeerHandle(peerId)));
             }
         }
         @Override
         public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
             if (accept) {
-                mHandler.post(() -> mOriginalCallback.onBootstrappingSuccess(
+                mHandler.post(() -> mOriginalCallback.onBootstrappingSucceeded(
                         new PeerHandle(peerId), accept, method));
             } else {
-                mHandler.post(() -> mOriginalCallback.onPairingSetupFailure(
+                mHandler.post(() -> mOriginalCallback.onBootstrappingFailed(
                         new PeerHandle(peerId)));
             }
         }
