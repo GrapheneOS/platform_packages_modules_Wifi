@@ -1318,7 +1318,7 @@ public final class ScanResult implements Parcelable {
      * @return array of {@code WifiInfo#SECURITY_TYPE_*}.
      */
     @NonNull
-    public @WifiInfo.SecurityType int[] getSecurityTypes() {
+    public @WifiAnnotations.SecurityType int[] getSecurityTypes() {
         List<SecurityParams> params = ScanResultUtil.generateSecurityParamsListFromScanResult(this);
         int[] securityTypes = new int[params.size()];
         for (int i = 0; i < securityTypes.length; i++) {
