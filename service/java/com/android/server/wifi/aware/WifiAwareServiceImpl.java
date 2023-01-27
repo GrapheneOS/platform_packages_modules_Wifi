@@ -564,6 +564,10 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             throw new IllegalArgumentException(
                     "NAN pairing is not supported");
         }
+        if (pairingDeviceAlias == null) {
+            throw new IllegalArgumentException(
+                    "initiateNanPairingRequest: invalid pairingDeviceAlias - must be non-null");
+        }
         int uid = getMockableCallingUid();
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
@@ -583,6 +587,13 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
             throw new IllegalArgumentException(
                     "NAN pairing is not supported");
+        }
+        if (accept) {
+            if (pairingDeviceAlias == null) {
+                throw new IllegalArgumentException(
+                        "responseNanPairingSetupRequest: invalid pairingDeviceAlias - "
+                                + "must be non-null");
+            }
         }
         int uid = getMockableCallingUid();
         enforceClientValidity(uid, clientId);
