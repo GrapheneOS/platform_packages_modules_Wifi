@@ -35,6 +35,7 @@ import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiNetworkSelectionConfig.AssociatedNetworkSelectionOverride;
@@ -551,7 +552,7 @@ public class WifiNetworkSelector {
             // Skip network that does not meet the admin set minimum security level restriction
             if (adminMinimumSecurityLevel != 0) {
                 boolean securityRestrictionPassed = false;
-                @WifiInfo.SecurityType int[] securityTypes = scanResult.getSecurityTypes();
+                @WifiAnnotations.SecurityType int[] securityTypes = scanResult.getSecurityTypes();
                 for (int type : securityTypes) {
                     int securityLevel = WifiInfo.convertSecurityTypeToDpmWifiSecurity(type);
 

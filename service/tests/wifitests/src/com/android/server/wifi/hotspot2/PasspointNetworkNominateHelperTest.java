@@ -855,7 +855,7 @@ public class PasspointNetworkNominateHelperTest {
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(TEST_CONFIG1);
 
         // Refreshing the network candidates with the cached scans should now result in a match
-        mNominateHelper.updateBestMatchScanDetailForProviders();
+        mNominateHelper.refreshWifiConfigsForProviders();
         verify(mPasspointManager, times(2)).matchProvider(any());
         // Verify the content of the WifiConfiguration that was added to WifiConfigManager.
         ArgumentCaptor<WifiConfiguration> addedConfig =
@@ -876,7 +876,7 @@ public class PasspointNetworkNominateHelperTest {
 
         // Timeout the scan detail and verify we don't try to match the scan detail again.
         advanceClockMs(PasspointNetworkNominateHelper.SCAN_DETAIL_EXPIRATION_MS);
-        mNominateHelper.updateBestMatchScanDetailForProviders();
+        mNominateHelper.refreshWifiConfigsForProviders();
         verify(mPasspointManager, times(2)).matchProvider(any());
         verify(mWifiConfigManager, times(1)).addOrUpdateNetwork(any(), anyInt(),
                 any(), eq(false));

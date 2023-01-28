@@ -583,7 +583,7 @@ public class PasspointManager {
         }
         mWifiMetrics.incrementNumPasspointProviderInstallSuccess();
         if (mPasspointNetworkNominateHelper != null) {
-            mPasspointNetworkNominateHelper.updateBestMatchScanDetailForProviders();
+            mPasspointNetworkNominateHelper.refreshWifiConfigsForProviders();
         }
         return true;
     }
