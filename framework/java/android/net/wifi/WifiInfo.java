@@ -192,29 +192,6 @@ public class WifiInfo implements TransportInfo, Parcelable {
      */
     public static final int DPM_SECURITY_TYPE_UNKNOWN = -1;
 
-    /**
-     * Security type of current connection.
-     * @hide
-     */
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef(prefix = { "SECURITY_TYPE_" }, value = {
-            SECURITY_TYPE_UNKNOWN,
-            SECURITY_TYPE_OPEN,
-            SECURITY_TYPE_WEP,
-            SECURITY_TYPE_PSK,
-            SECURITY_TYPE_EAP,
-            SECURITY_TYPE_SAE,
-            SECURITY_TYPE_OWE,
-            SECURITY_TYPE_WAPI_PSK,
-            SECURITY_TYPE_WAPI_CERT,
-            SECURITY_TYPE_EAP_WPA3_ENTERPRISE,
-            SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT,
-            SECURITY_TYPE_PASSPOINT_R1_R2,
-            SECURITY_TYPE_PASSPOINT_R3,
-            SECURITY_TYPE_DPP,
-    })
-    public @interface SecurityType {}
-
     /** @see #isPrimary() - No permission to access the field.  */
     private static final int IS_PRIMARY_NO_PERMISSION = -1;
     /** @see #isPrimary() - false */
@@ -1950,7 +1927,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      *
      * @return the security type, or {@link #SECURITY_TYPE_UNKNOWN} if not currently connected.
      */
-    public @SecurityType int getCurrentSecurityType() {
+    public @WifiAnnotations.SecurityType int getCurrentSecurityType() {
         return mSecurityType;
     }
 
@@ -1960,7 +1937,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * @return security type as a WifiInfo.SecurityType
      * @hide
      */
-    public static @SecurityType int convertWifiConfigurationSecurityType(
+    public static @WifiAnnotations.SecurityType int convertWifiConfigurationSecurityType(
             @WifiConfiguration.SecurityType int wifiConfigSecurity) {
         switch (wifiConfigSecurity) {
             case WifiConfiguration.SECURITY_TYPE_OPEN:
@@ -2002,7 +1979,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * @hide
      */
     public static int convertSecurityTypeToDpmWifiSecurity(
-            @WifiInfo.SecurityType int securityType) {
+            @WifiAnnotations.SecurityType int securityType) {
         switch (securityType) {
             case SECURITY_TYPE_OPEN:
             case SECURITY_TYPE_OWE:

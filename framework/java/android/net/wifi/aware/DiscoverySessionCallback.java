@@ -326,7 +326,7 @@ public class DiscoverySessionCallback {
      *                   {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String,
      *                   String)}
      */
-    public void onPairingSetupSuccess(@NonNull PeerHandle peerHandle,
+    public void onPairingSetupSucceeded(@NonNull PeerHandle peerHandle,
             @NonNull String alias) {
 
     }
@@ -336,7 +336,7 @@ public class DiscoverySessionCallback {
      *
      * @param peerHandle The pairing peer handle.
      */
-    public void onPairingSetupFailure(@NonNull PeerHandle peerHandle) {
+    public void onPairingSetupFailed(@NonNull PeerHandle peerHandle) {
 
     }
 
@@ -350,7 +350,7 @@ public class DiscoverySessionCallback {
      *                   {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String,
      *                   String)}
      */
-    public void onPairingVerificationSuccess(@NonNull PeerHandle peerHandle,
+    public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle,
             @NonNull String alias){
 
     }
@@ -360,7 +360,7 @@ public class DiscoverySessionCallback {
      *
      * @param peerHandle The pairing peer handle
      */
-    public void onPairingVerificationFailure(@NonNull PeerHandle peerHandle) {
+    public void onPairingVerificationFailed(@NonNull PeerHandle peerHandle) {
 
     }
 
@@ -372,7 +372,7 @@ public class DiscoverySessionCallback {
      * @param accept True if the bootstrapping method is accepted by the peer, false otherwise
      * @param method The bootstrapping method accept by the peer
      */
-    public void onBootstrappingSuccess(@NonNull PeerHandle peerHandle, boolean accept,
+    public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle, boolean accept,
             @AwarePairingConfig.BootstrappingMethod int method){
 
     }
@@ -382,7 +382,7 @@ public class DiscoverySessionCallback {
      *
      * @param peerHandle The bootstrapping peer handle
      */
-    public void onBootstrappingMethodFailure(@NonNull PeerHandle peerHandle) {
+    public void onBootstrappingFailed(@NonNull PeerHandle peerHandle) {
 
     }
 }

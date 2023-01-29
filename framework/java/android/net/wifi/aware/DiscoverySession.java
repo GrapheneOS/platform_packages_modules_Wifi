@@ -268,7 +268,7 @@ public class DiscoverySession implements AutoCloseable {
      * The peer will get a callback indicating a message was received using
      * {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}.
      * When the Aware Pairing setup is finished, both sides will receive
-     * {@link DiscoverySessionCallback#onPairingSetupSuccess(PeerHandle, String)}
+     * {@link DiscoverySessionCallback#onPairingSetupSucceeded(PeerHandle, String)}
      *
      * @param peerHandle      The peer's handle for the pairing request. Must be a result of a
      *                        {@link
@@ -301,7 +301,7 @@ public class DiscoverySession implements AutoCloseable {
      * response to the
      * {@link DiscoverySessionCallback#onPairingSetupRequestReceived(PeerHandle, int)}
      * When the Aware Pairing setup is finished, both sides will receive
-     * {@link DiscoverySessionCallback#onPairingSetupSuccess(PeerHandle, String)}
+     * {@link DiscoverySessionCallback#onPairingSetupSucceeded(PeerHandle, String)}
      *
      * @param requestId       Id to identify the received pairing session, obtained by
      *                        {@link
@@ -371,7 +371,7 @@ public class DiscoverySession implements AutoCloseable {
      * The peer will check if the method can be fulfilled by
      * {@link AwarePairingConfig.Builder#setBootstrappingMethods(int)}
      * When the Aware Bootstrapping setup finished, both side will receive
-     * {@link DiscoverySessionCallback#onBootstrappingSuccess(PeerHandle, boolean, int)}
+     * {@link DiscoverySessionCallback#onBootstrappingSucceeded(PeerHandle, boolean, int)}
      * @param peerHandle The peer's handle for the pairing request. Must be a result of an
      * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
      * {@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.

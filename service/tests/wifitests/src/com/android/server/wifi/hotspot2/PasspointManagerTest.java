@@ -441,8 +441,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         when(provider.getPackageName()).thenReturn(packageName);
         assertTrue(mManager.addOrUpdateProvider(
                 config, TEST_CREATOR_UID, TEST_PACKAGE, isSuggestion, true, false));
-        verify(mPasspointNetworkNominateHelper, atLeastOnce())
-                .updateBestMatchScanDetailForProviders();
+        verify(mPasspointNetworkNominateHelper, atLeastOnce()).refreshWifiConfigsForProviders();
         return provider;
     }
 
