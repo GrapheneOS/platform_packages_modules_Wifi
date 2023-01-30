@@ -51,6 +51,7 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDG
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_NAN;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
+import static com.android.server.wifi.ScanRequestProxy.createBroadcastOptionsForScanResultsAvailable;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
@@ -899,10 +900,12 @@ public class WifiServiceImpl extends BaseWifiService {
         // clear calling identity to send broadcast
         long callingIdentity = Binder.clearCallingIdentity();
         try {
+            final boolean scanSucceeded = false;
             Intent intent = new Intent(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-            intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
-            mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+            intent.putExtra(WifiManager.EXTRA_RESULTS_UPDATED, scanSucceeded);
+            mContext.sendBroadcastAsUser(intent, UserHandle.ALL, null,
+                    createBroadcastOptionsForScanResultsAvailable(scanSucceeded));
         } finally {
             // restore calling identity
             Binder.restoreCallingIdentity(callingIdentity);

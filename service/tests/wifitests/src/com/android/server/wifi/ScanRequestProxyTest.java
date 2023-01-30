@@ -25,6 +25,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_SCAN_THROTTLE
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 import android.app.ActivityManager;
@@ -36,11 +37,13 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanSettings.HiddenNetwork;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 
 import androidx.test.filters.SmallTest;
 
@@ -1040,8 +1043,10 @@ public class ScanRequestProxyTest extends WifiBaseTest {
     private void validateScanResultsAvailableBroadcastSent(boolean expectScanSuceeded) {
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
         ArgumentCaptor<UserHandle> userHandleCaptor = ArgumentCaptor.forClass(UserHandle.class);
+        ArgumentCaptor<Bundle> broadcastOptionsCaptor = ArgumentCaptor.forClass(Bundle.class);
         mInOrder.verify(mContext).sendBroadcastAsUser(
-                intentCaptor.capture(), userHandleCaptor.capture());
+                intentCaptor.capture(), userHandleCaptor.capture(), isNull(),
+                broadcastOptionsCaptor.capture());
 
         assertEquals(userHandleCaptor.getValue(), UserHandle.ALL);
 
@@ -1050,13 +1055,17 @@ public class ScanRequestProxyTest extends WifiBaseTest {
         assertEquals(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT, intent.getFlags());
         boolean scanSucceeded = intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
         assertEquals(expectScanSuceeded, scanSucceeded);
+
+        verifyScanAvailableBroadcastOptions(broadcastOptionsCaptor.getValue(), scanSucceeded);
     }
 
     private void validateScanResultsFailureBroadcastSent(String expectedPackageName) {
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
         ArgumentCaptor<UserHandle> userHandleCaptor = ArgumentCaptor.forClass(UserHandle.class);
+        ArgumentCaptor<Bundle> broadcastOptionsCaptor = ArgumentCaptor.forClass(Bundle.class);
         mInOrder.verify(mContext).sendBroadcastAsUser(
-                intentCaptor.capture(), userHandleCaptor.capture());
+                intentCaptor.capture(), userHandleCaptor.capture(), isNull(),
+                broadcastOptionsCaptor.capture());
 
         assertEquals(userHandleCaptor.getValue(), UserHandle.ALL);
 
@@ -1067,6 +1076,29 @@ public class ScanRequestProxyTest extends WifiBaseTest {
         assertFalse(scanSucceeded);
         String packageName = intent.getPackage();
         assertEquals(expectedPackageName, packageName);
+
+        verifyScanAvailableBroadcastOptions(broadcastOptionsCaptor.getValue(), false);
+    }
+
+    private void verifyScanAvailableBroadcastOptions(Bundle actualBroadcastOptions,
+            boolean actualScansucceeded) {
+        if (SdkLevel.isAtLeastU()) {
+            ArrayMap<String, Object> actualOptions = asMap(actualBroadcastOptions);
+            ArrayMap<String, Object> expectedOptions = asMap(ScanRequestProxy
+                    .createBroadcastOptionsForScanResultsAvailable(actualScansucceeded));
+            assertNotNull(expectedOptions);
+            assertEquals(expectedOptions, actualOptions);
+        }
+    }
+
+    private static ArrayMap<String, Object> asMap(Bundle bundle) {
+        final ArrayMap<String, Object> map = new ArrayMap<>();
+        if (bundle != null) {
+            for (String key : bundle.keySet()) {
+                map.put(key, bundle.get(key));
+            }
+        }
+        return map;
     }
 
     private void validateScanAvailableBroadcastSent(boolean expectedScanAvailable) {
