@@ -1062,4 +1062,9 @@
     <!-- Boolean indicating whether the firmware can handle the Wifi Aware request priority between
     the offloading and framework-->
     <bool translatable="false" name="config_wifiAwareOffloadingFirmwareHandlePriority">false</bool>
+    <!-- Boolean indicating whether the framework can disable Wi-Fi chip power save while acquiring
+         a low latency lock. If the flag is set to false, chipset should make changes to replace
+         disable of power save to avoid the high latency when chip is in power save mode as part of
+         handling the HAL API setLatencyMode(). -->
+    <bool translatable="false" name ="config_wifiLowLatencyLockDisableChipPowerSave">true</bool>
 </resources>
