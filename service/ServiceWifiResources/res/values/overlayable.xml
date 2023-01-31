@@ -295,6 +295,7 @@
           <item type="integer" name="config_wifiDtimMultiplierIpv6Ipv4" />
           <item type="integer" name="config_wifiDtimMultiplierMulticastLockEnabled" />
           <item type="bool" name="config_wifiAwareOffloadingFirmwareHandlePriority" />
+          <item type="bool" name="config_wifiLowLatencyLockDisableChipPowerSave" />
 
           <!-- Params from config.xml that can be overlayed -->
 
