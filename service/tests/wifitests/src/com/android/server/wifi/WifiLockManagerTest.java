@@ -31,6 +31,7 @@ import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
@@ -44,6 +45,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.resources.R;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -93,6 +95,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     TestLooper mLooper;
     Handler mHandler;
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
+    @Mock Resources mResources;
 
     /**
      * Method to setup a WifiLockManager for the tests.
@@ -119,6 +122,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
         /* Test with High perf lock deprecated. */
         when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(true);
+        /* Test the default behavior: config_wifiLowLatencyLockDisableChipPowerSave = true */
+        when(mContext.getResources()).thenReturn(mResources);
+        when(mResources.getBoolean(
+                R.bool.config_wifiLowLatencyLockDisableChipPowerSave)).thenReturn(true);
 
         mWifiLockManager = new WifiLockManager(mContext, mBatteryStats,
                 mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics,
@@ -1811,5 +1818,41 @@ public class WifiLockManagerTest extends WifiBaseTest {
         assertNotNull(broadcastReceiver);
         Intent intent = new Intent(screenOn  ? ACTION_SCREEN_ON : ACTION_SCREEN_OFF);
         broadcastReceiver.onReceive(mContext, intent);
+    }
+
+    /**
+     * Verify that low latency indeed skip calling chip power save with the overlay setting,
+     * config_wifiLowLatencyLockDisableChipPowerSave = false.
+     */
+    @Test
+    public void testLowLatencyDisableChipPowerSave() throws Exception {
+        // config_wifiLowLatencyLockDisableChipPowerSave = false.
+        when(mResources.getBoolean(
+                R.bool.config_wifiLowLatencyLockDisableChipPowerSave)).thenReturn(false);
+        // Set screen on, app foreground.
+        setScreenState(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(false);
+        when(mClientModeManager.getSupportedFeatures())
+                .thenReturn((long) WifiManager.WIFI_FEATURE_LOW_LATENCY);
+
+        InOrder inOrder = inOrder(mClientModeManager);
+
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource);
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+        assertTrue(mWifiLockManager.forceLowLatencyMode(true));
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+        inOrder.verify(mClientModeManager).setLowLatencyMode(true);
+        // Make sure ConcreteClientModeManager#setPowerSave is never called.
+        inOrder.verify(mClientModeManager, never()).setPowerSave(
+                ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
+                false);
+
     }
 }
