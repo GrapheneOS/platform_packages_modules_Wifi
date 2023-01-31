@@ -5078,6 +5078,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
+    @Override
+    public void setLinkLayerStatsPollingInterval(int newIntervalMs) {
+        mRssiMonitor.overridePollRssiInterval(newIntervalMs);
+    }
+
     private boolean isNewConnectionInProgress(@NonNull String disconnectingSsid) {
         String targetSsid = getConnectingSsidInternal();
         // If network is removed while connecting, targetSsid can be null.

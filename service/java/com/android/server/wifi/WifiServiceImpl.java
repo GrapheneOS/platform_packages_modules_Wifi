@@ -7493,4 +7493,41 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         // TODO: Add an implementation for this API.
     }
+
+    /**
+     * See {@link WifiManager#setLinkLayerStatsPollingInterval(int)}.
+     */
+    @Override
+    public void setLinkLayerStatsPollingInterval(int intervalMs) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        enforceAnyPermissionOf(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION);
+        if (intervalMs < 0) {
+            throw new IllegalArgumentException("intervalMs should not be smaller than 0");
+        }
+        mWifiThreadRunner.post(() -> mActiveModeWarden.getPrimaryClientModeManager()
+                    .setLinkLayerStatsPollingInterval(intervalMs));
+    }
+
+    /**
+     * See {@link WifiManager#getLinkLayerStatsPollingInterval(Executor, Consumer)}.
+     */
+    @Override
+    public void getLinkLayerStatsPollingInterval(@NonNull IIntegerListener listener) {
+        if (!SdkLevel.isAtLeastT()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+        enforceAnyPermissionOf(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION);
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiGlobals.getPollRssiIntervalMillis());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
 }

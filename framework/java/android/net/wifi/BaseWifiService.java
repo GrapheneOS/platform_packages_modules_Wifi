@@ -1019,4 +1019,14 @@ public class BaseWifiService extends IWifiManager.Stub {
             String packageName) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void setLinkLayerStatsPollingInterval(int intervalMs) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getLinkLayerStatsPollingInterval(@NonNull IIntegerListener listener) {
+        throw new UnsupportedOperationException();
+    }
 }
