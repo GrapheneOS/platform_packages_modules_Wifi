@@ -39,40 +39,26 @@ public class WifiGlobals {
     private final AtomicBoolean mIpReachabilityDisconnectEnabled = new AtomicBoolean(true);
     private final AtomicBoolean mIsBluetoothConnected = new AtomicBoolean(false);
 
-    // This is read from the overlay, cache it after boot up.
+    // These are read from the overlay, cache them after boot up.
     private final boolean mIsWpa3SaeUpgradeEnabled;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mIsWpa3SaeUpgradeOffloadEnabled;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mIsOweUpgradeEnabled;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mFlushAnqpCacheOnWifiToggleOffEvent;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mIsWpa3SaeH2eSupported;
-    // This is read from the overlay, cache it after boot up.
     private final String mP2pDeviceNamePrefix;
-    // This is read from the overlay, cache it after boot up.
     private final int mP2pDeviceNamePostfixNumDigits;
-    // This is read from the overlay, cache it after boot up.
     private final int mClientModeImplNumLogRecs;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mSaveFactoryMacToConfigStoreEnabled;
     private final int mWifiLowConnectedScoreThresholdToTriggerScanForMbb;
     private final int mWifiLowConnectedScoreScanPeriodSeconds;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mWifiAllowInsecureEnterpriseConfiguration;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mIsP2pMacRandomizationSupported;
-    // This is read from the overlay, cache it after boot up.
     private final int mPollRssiShortIntervalMillis;
-    // This is read from the overlay, cache it after boot up.
     private final int mPollRssiLongIntervalMillis;
-    // This is read from the overlay, cache it after boot up.
     private final int mClientRssiMonitorThresholdDbm;
-    // This is read from the overlay, cache it after boot up.
     private final int mClientRssiMonitorHysteresisDb;
-    // This is read from the overlay, cache it after boot up.
     private final boolean mAdjustPollRssiIntervalEnabled;
+    private final boolean mWifiInterfaceAddedSelfRecoveryEnabled;
 
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
@@ -119,6 +105,8 @@ public class WifiGlobals {
                 R.integer.config_wifiClientRssiMonitorHysteresisDb);
         mAdjustPollRssiIntervalEnabled = mContext.getResources().getBoolean(
                 R.bool.config_wifiAdjustPollRssiIntervalEnabled);
+        mWifiInterfaceAddedSelfRecoveryEnabled = mContext.getResources().getBoolean(
+                R.bool.config_wifiInterfaceAddedSelfRecoveryEnabled);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -318,6 +306,13 @@ public class WifiGlobals {
         return mAdjustPollRssiIntervalEnabled;
     }
 
+    /**
+     * Get whether hot-plugging an interface will trigger a restart of the wifi stack.
+     */
+    public boolean isWifiInterfaceAddedSelfRecoveryEnabled() {
+        return mWifiInterfaceAddedSelfRecoveryEnabled;
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -339,8 +334,10 @@ public class WifiGlobals {
                 + mWifiLowConnectedScoreScanPeriodSeconds);
         pw.println("mIsUsingExternalScorer="
                 + mIsUsingExternalScorer);
-        pw.println("mWifiAllowInsecureEnterpriseConfiguratio"
+        pw.println("mWifiAllowInsecureEnterpriseConfiguration="
                 + mWifiAllowInsecureEnterpriseConfiguration);
         pw.println("mIsP2pMacRandomizationSupported" + mIsP2pMacRandomizationSupported);
+        pw.println("mWifiInterfaceAddedSelfRecoveryEnabled="
+                + mWifiInterfaceAddedSelfRecoveryEnabled);
     }
 }

@@ -75,6 +75,7 @@ import java.util.Set;
 public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     private static final String IFACE_NAME_0 = "mockWlan0";
     private static final String IFACE_NAME_1 = "mockWlan1";
+    private static final String SELF_RECOVERY_IFACE_NAME = "mockWlan2";
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
     private static final long TEST_SUPPORTED_FEATURES = 0;
     private static final int STA_FAILURE_CODE_START_DAEMON = 1;
@@ -104,8 +105,10 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     @Mock private WifiNative.StatusListener mStatusListener;
     @Mock private WifiNative.InterfaceCallback mIfaceCallback0;
     @Mock private WifiNative.InterfaceCallback mIfaceCallback1;
+    @Mock private WifiNative.InterfaceEventCallback mIfaceEventCallback0;
 
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock private WifiGlobals mWifiGlobals;
     @Mock private SoftApManager mSoftApManager;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
 
@@ -192,11 +195,16 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mHostapdHal.removeAccessPoint(any())).thenReturn(true);
         when(mHostapdHal.registerApCallback(any(), any())).thenReturn(true);
 
+        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(false);
+
         when(mWifiInjector.makeNetdWrapper()).thenReturn(mNetdWrapper);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getContext()).thenReturn(mContext);
+        when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         mResources = getMockResources();
         mResources.setBoolean(R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled, false);
+        mResources.setString(
+                R.string.config_wifiSelfRecoveryInterfaceName, SELF_RECOVERY_IFACE_NAME);
         when(mContext.getResources()).thenReturn(mResources);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mDeviceConfigFacade.isInterfaceFailureBugreportEnabled()).thenReturn(false);
@@ -209,7 +217,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
                 .thenReturn(TEST_SUPPORTED_BANDS);
 
         mInOrder = inOrder(mWifiVendorHal, mWificondControl, mSupplicantStaIfaceHal, mHostapdHal,
-                mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1, mWifiMetrics);
+                mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1, mIfaceEventCallback0,
+                mWifiMetrics);
 
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWificondControl,
@@ -229,7 +238,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     public void tearDown() throws Exception {
         verifyNoMoreInteractions(mWifiVendorHal, mWificondControl, mSupplicantStaIfaceHal,
                 mHostapdHal, mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1,
-                mWifiMetrics);
+                mIfaceEventCallback0, mWifiMetrics);
     }
 
     private MockResources getMockResources() {
@@ -563,7 +572,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
             ArgumentCaptor<NetdEventObserver> networkObserverCaptor) {
         mInOrder.verify(mWificondControl).setupInterfaceForClientMode(eq(ifaceName), any(),
                 any(), any());
-        mInOrder.verify(mNetdWrapper).registerObserver(networkObserverCaptor.capture());
+        mInOrder.verify(mNetdWrapper, atLeastOnce())
+                .registerObserver(networkObserverCaptor.capture());
         mInOrder.verify(mWifiMonitor).startMonitoring(ifaceName);
         mInOrder.verify(mNetdWrapper).isInterfaceUp(ifaceName);
         mInOrder.verify(mWifiVendorHal).enableLinkLayerStats(ifaceName);
@@ -627,7 +637,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
      */
     @Test
     public void testSetupClientInterfaceAndTriggerInterfaceDown() throws Exception {
-        executeAndValidateSetupSoftApInterface(
+        executeAndValidateSetupClientInterface(
                 false, false, IFACE_NAME_0, mIfaceCallback0, mIfaceDestroyedListenerCaptor0,
                 mNetworkObserverCaptor0);
 
@@ -640,13 +650,30 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
      */
     @Test
     public void testSetupClientInterfaceAndTriggerInterfaceUp() throws Exception {
-        executeAndValidateSetupSoftApInterface(
+        executeAndValidateSetupClientInterface(
                 false, false, IFACE_NAME_0, mIfaceCallback0, mIfaceDestroyedListenerCaptor0,
                 mNetworkObserverCaptor0);
 
         executeAndValidateInterfaceStateChange(
                 IFACE_NAME_0, true, mNetworkObserverCaptor0.getValue());
         mInOrder.verify(mIfaceCallback0).onUp(IFACE_NAME_0);
+    }
+
+    /**
+     * Triggers adding the interface configured as
+     * {@link R.string.config_wifiSelfRecoveryInterfaceName}. Verifies that this fires
+     * {@link com.android.server.wifi.WifiNative.InterfaceEventCallback#onInterfaceAdded(String)}.
+     */
+    @Test
+    public void testSetupClientInterfaceForScanAndTriggerInterfaceAdded() throws Exception {
+        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(true);
+        mWifiNative.setWifiNativeInterfaceEventCallback(mIfaceEventCallback0);
+        executeAndValidateSetupClientInterfaceForScan(
+                false, false, IFACE_NAME_0, mIfaceCallback0, mIfaceDestroyedListenerCaptor0,
+                mNetworkObserverCaptor0);
+
+        executeAndValidateInterfaceAdded(
+                SELF_RECOVERY_IFACE_NAME, mNetworkObserverCaptor0.getAllValues());
     }
 
     /**
@@ -1488,7 +1515,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
             verify(mWifiMetrics).incrementNumSetupClientInterfaceFailureDueToWificond();
             return;
         }
-        mInOrder.verify(mNetdWrapper).registerObserver(networkObserverCaptor.capture());
+        mInOrder.verify(mNetdWrapper, atLeastOnce())
+                .registerObserver(networkObserverCaptor.capture());
         mInOrder.verify(mWifiMonitor).startMonitoring(ifaceName);
         mInOrder.verify(mNetdWrapper).isInterfaceUp(ifaceName);
         mInOrder.verify(mWifiVendorHal).enableLinkLayerStats(ifaceName);
@@ -1672,5 +1700,12 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         networkObserver.interfaceLinkStateChanged(ifaceName, up);
         mLooper.dispatchAll();
         mInOrder.verify(mNetdWrapper).isInterfaceUp(ifaceName);
+    }
+
+    private void executeAndValidateInterfaceAdded(
+            String ifaceName, List<NetdEventObserver> networkObservers) throws Exception {
+        networkObservers.forEach(observer -> observer.interfaceAdded(ifaceName));
+        mLooper.dispatchAll();
+        mInOrder.verify(mIfaceEventCallback0).onInterfaceAdded(ifaceName);
     }
 }

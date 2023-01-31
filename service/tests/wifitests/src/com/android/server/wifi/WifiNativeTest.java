@@ -267,6 +267,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
     @Mock private SoftApManager mSoftApManager;
     @Mock private SsidTranslator mSsidTranslator;
+    @Mock private WifiGlobals mWifiGlobals;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
 
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
@@ -311,6 +312,7 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mSettingsConfigStore);
         when(mWifiInjector.getContext()).thenReturn(mContext);
         when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
+        when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         mResources = getMockResources();
         mResources.setBoolean(R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled, false);
         when(mContext.getResources()).thenReturn(mResources);
