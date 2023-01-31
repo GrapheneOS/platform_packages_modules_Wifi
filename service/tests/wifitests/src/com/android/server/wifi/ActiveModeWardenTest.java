@@ -68,6 +68,7 @@ import android.net.MacAddress;
 import android.net.Network;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApConfiguration.Builder;
@@ -2431,6 +2432,31 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
         assertInDisabledState();
         verifyNoMoreInteractions(mClientModeManager, mSoftApManager);
+    }
+
+    @Test
+    public void testNetworkStateChangeListener() throws Exception {
+        IWifiNetworkStateChangedListener testListener =
+                mock(IWifiNetworkStateChangedListener.class);
+        when(testListener.asBinder()).thenReturn(mock(IBinder.class));
+
+        // register listener and verify results delivered
+        mActiveModeWarden.addWifiNetworkStateChangedListener(testListener);
+        mActiveModeWarden.onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTED);
+        verify(testListener).onWifiNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTED);
+
+        // unregister listener and verify results no longer delivered
+        mActiveModeWarden.removeWifiNetworkStateChangedListener(testListener);
+        mActiveModeWarden.onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_DISCONNECTED);
+        verify(testListener, never()).onWifiNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_DISCONNECTED);
     }
 
     /**

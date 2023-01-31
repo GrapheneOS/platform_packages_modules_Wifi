@@ -43,6 +43,7 @@ import android.location.LocationManager;
 import android.net.Network;
 import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
@@ -140,6 +141,8 @@ public class ActiveModeWarden {
 
     private final RemoteCallbackList<ISubsystemRestartCallback> mRestartCallbacks =
             new RemoteCallbackList<>();
+    private final RemoteCallbackList<IWifiNetworkStateChangedListener>
+            mWifiNetworkStateChangedListeners = new RemoteCallbackList<>();
 
     private boolean mIsMultiplePrimaryBugreportTaken = false;
     private boolean mIsShuttingdown = false;
@@ -695,6 +698,37 @@ public class ActiveModeWarden {
      */
     public boolean unregisterSubsystemRestartCallback(ISubsystemRestartCallback callback) {
         return mRestartCallbacks.unregister(callback);
+    }
+
+    /**
+     * Add a listener to get network state change updates.
+     */
+    public boolean addWifiNetworkStateChangedListener(IWifiNetworkStateChangedListener listener) {
+        return mWifiNetworkStateChangedListeners.register(listener);
+    }
+
+    /**
+     * Remove a listener for getting network state change updates.
+     */
+    public boolean removeWifiNetworkStateChangedListener(
+            IWifiNetworkStateChangedListener listener) {
+        return mWifiNetworkStateChangedListeners.unregister(listener);
+    }
+
+    /**
+     * Report network state changes to registered listeners.
+     */
+    public void onNetworkStateChanged(int cmmRole, int state) {
+        int numCallbacks = mWifiNetworkStateChangedListeners.beginBroadcast();
+        for (int i = 0; i < numCallbacks; i++) {
+            try {
+                mWifiNetworkStateChangedListeners.getBroadcastItem(i)
+                        .onWifiNetworkStateChanged(cmmRole, state);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failure calling onWifiNetworkStateChanged" + e);
+            }
+        }
+        mWifiNetworkStateChangedListeners.finishBroadcast();
     }
 
     /** Wifi has been toggled. */

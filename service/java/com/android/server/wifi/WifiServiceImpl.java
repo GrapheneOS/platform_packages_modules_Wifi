@@ -115,6 +115,7 @@ import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
+import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
 import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
@@ -1379,6 +1380,45 @@ public class WifiServiceImpl extends BaseWifiService {
             if (!mActiveModeWarden.unregisterSubsystemRestartCallback(callback)) {
                 Log.e(TAG, "unregisterSubsystemRestartCallback: Failed to register callback");
             }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#addWifiNetworkStateChangedListener(
+     * Executor, WifiManager.WifiNetworkStateChangedListener)}
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public void addWifiNetworkStateChangedListener(IWifiNetworkStateChangedListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException();
+        }
+        enforceNetworkSettingsPermission();
+        if (mVerboseLoggingEnabled) {
+            mLog.info("registerSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
+        }
+        mWifiThreadRunner.post(() -> {
+            mActiveModeWarden.addWifiNetworkStateChangedListener(listener);
+        });
+    }
+
+    /**
+     * See {@link WifiManager#removeWifiNetworkStateChangedListener(
+     * WifiManager.WifiNetworkStateChangedListener)}
+     * @param listener
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public void removeWifiNetworkStateChangedListener(IWifiNetworkStateChangedListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException();
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("removeWifiNetworkStateChangedListener uid=%")
+                    .c(Binder.getCallingUid()).flush();
+        }
+        mWifiThreadRunner.post(() -> {
+            mActiveModeWarden.removeWifiNetworkStateChangedListener(listener);
         });
     }
 

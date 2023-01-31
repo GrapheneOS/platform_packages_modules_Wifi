@@ -24,6 +24,7 @@ import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.READ_WIFI_CREDENTIAL;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
 
+import android.Manifest;
 import android.annotation.CallbackExecutor;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
@@ -1991,6 +1992,8 @@ public class WifiManager {
             sLocalOnlyHotspotSoftApCallbackMap = new SparseArray();
     private static final SparseArray<ILocalOnlyConnectionStatusListener>
             sLocalOnlyConnectionStatusListenerMap = new SparseArray();
+    private static final SparseArray<IWifiNetworkStateChangedListener>
+            sOnWifiNetworkStateChangedListenerMap = new SparseArray<>();
 
     /**
      * Create a new WifiManager instance.
@@ -4556,6 +4559,197 @@ public class WifiManager {
                 throw e.rethrowFromSystemServer();
             } finally {
                 sActiveCountryCodeChangedCallbackMap.remove(callbackIdentifier);
+            }
+        }
+    }
+
+    /**
+     * Interface used to listen to changes in current network state.
+     * @hide
+     */
+    @SystemApi
+    public interface WifiNetworkStateChangedListener {
+        /** @hide */
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(prefix = {"WIFI_ROLE_CLIENT_"}, value = {
+                WIFI_ROLE_CLIENT_PRIMARY,
+                WIFI_ROLE_CLIENT_SECONDARY_INTERNET,
+                WIFI_ROLE_CLIENT_SECONDARY_LOCAL_ONLY
+        })
+        @interface WifiClientModeRole {}
+
+        /**
+         * A client mode role returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Represents the primary Client Mode Manager which is mostly used for internet, but could
+         * also be used for other use-cases such as local only connections.
+         **/
+        int WIFI_ROLE_CLIENT_PRIMARY = 1;
+        /**
+         * A client mode role returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Represents a Client Mode Manager dedicated for the secondary internet use-case.
+         **/
+        int WIFI_ROLE_CLIENT_SECONDARY_INTERNET = 2;
+        /**
+         * A client mode role returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Represents a Client Mode Manager dedicated for the local only connection use-case.
+         **/
+        int WIFI_ROLE_CLIENT_SECONDARY_LOCAL_ONLY = 3;
+
+        /** @hide */
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(prefix = {"WIFI_NETWORK_STATUS_"}, value = {
+                WIFI_NETWORK_STATUS_IDLE,
+                WIFI_NETWORK_STATUS_SCANNING,
+                WIFI_NETWORK_STATUS_CONNECTING,
+                WIFI_NETWORK_STATUS_AUTHENTICATING,
+                WIFI_NETWORK_STATUS_OBTAINING_IPADDR,
+                WIFI_NETWORK_STATUS_CONNECTED
+        })
+        @interface WifiNetworkState {}
+
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Supplicant is in uninitialized state.
+         **/
+        int WIFI_NETWORK_STATUS_IDLE = 1;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Supplicant is scanning.
+         **/
+        int WIFI_NETWORK_STATUS_SCANNING = 2;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * L2 connection is in progress.
+         **/
+        int WIFI_NETWORK_STATUS_CONNECTING = 3;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * L2 connection 4 way handshake.
+         **/
+        int WIFI_NETWORK_STATUS_AUTHENTICATING = 4;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * L2 connection complete. Obtaining IP address.
+         **/
+        int WIFI_NETWORK_STATUS_OBTAINING_IPADDR = 5;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * L3 connection is complete.
+         **/
+        int WIFI_NETWORK_STATUS_CONNECTED = 6;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * Network disconnected.
+         **/
+        int WIFI_NETWORK_STATUS_DISCONNECTED = 7;
+        /**
+         * A state returned by {@link #onWifiNetworkStateChanged(int, int)}.
+         * A pseudo-state that should normally never be seen.
+         **/
+        int WIFI_NETWORK_STATUS_FAILED = 8;
+
+
+        /**
+         * Provides network state changes per client mode role.
+         * @param cmmRole the role of the wifi client mode manager having the state change.
+         *                One of {@link WifiClientModeRole}.
+         * @param state the wifi network state specified by one of {@link WifiNetworkState}.
+         */
+        void onWifiNetworkStateChanged(@WifiClientModeRole int cmmRole,
+                @WifiNetworkState int state);
+    }
+
+    /**
+     * Helper class to support wifi network state changed listener.
+     */
+    private static class OnWifiNetworkStateChangedProxy
+            extends IWifiNetworkStateChangedListener.Stub {
+
+        @NonNull private Executor mExecutor;
+        @NonNull private WifiNetworkStateChangedListener mListener;
+
+        OnWifiNetworkStateChangedProxy(@NonNull Executor executor,
+                @NonNull WifiNetworkStateChangedListener listener) {
+            Objects.requireNonNull(executor);
+            Objects.requireNonNull(listener);
+            mExecutor = executor;
+            mListener = listener;
+        }
+
+        @Override
+        public void onWifiNetworkStateChanged(int cmmRole, int state) {
+            Log.i(TAG, "OnWifiNetworkStateChangedProxy: onWifiNetworkStateChanged: "
+                    + cmmRole + ", " + state);
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mListener.onWifiNetworkStateChanged(cmmRole, state));
+        }
+    }
+
+    /**
+     * Add a listener to listen to Wi-Fi network state changes on available client mode roles
+     * specified in {@link WifiNetworkStateChangedListener.WifiClientModeRole}.
+     * When wifi state changes such as connected/disconnect happens, results will be delivered via
+     * {@link WifiNetworkStateChangedListener#onWifiNetworkStateChanged(int, int)}.
+     *
+     * @param executor The Executor on which to execute the callbacks.
+     * @param listener listener for the network status updates.
+     * @throws SecurityException if the caller is missing required permissions.
+     * @throws IllegalArgumentException if incorrect input arguments are provided.
+     * @hide
+     */
+    @SystemApi
+    @RequiresPermission(Manifest.permission.NETWORK_SETTINGS)
+    public void addWifiNetworkStateChangedListener(@NonNull @CallbackExecutor Executor executor,
+            @NonNull WifiNetworkStateChangedListener listener) {
+        if (executor == null) throw new IllegalArgumentException("executor cannot be null");
+        if (listener == null) throw new IllegalArgumentException("listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, "addWifiNetworkStateChangedListener: listener=" + listener
+                    + ", executor=" + executor);
+        }
+        final int listenerIdentifier = System.identityHashCode(listener);
+        synchronized (sOnWifiNetworkStateChangedListenerMap) {
+            try {
+                IWifiNetworkStateChangedListener.Stub listenerProxy =
+                        new OnWifiNetworkStateChangedProxy(executor, listener);
+                sOnWifiNetworkStateChangedListenerMap.put(listenerIdentifier,
+                        listenerProxy);
+                mService.addWifiNetworkStateChangedListener(listenerProxy);
+            } catch (RemoteException e) {
+                sOnWifiNetworkStateChangedListenerMap.remove(listenerIdentifier);
+                throw e.rethrowFromSystemServer();
+            }
+        }
+    }
+
+    /**
+     * Remove a listener added using
+     * {@link #addWifiNetworkStateChangedListener(Executor, WifiNetworkStateChangedListener)}.
+     * @param listener the listener to be removed.
+     * @throws IllegalArgumentException if incorrect input arguments are provided.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    public void removeWifiNetworkStateChangedListener(
+            @NonNull WifiNetworkStateChangedListener listener) {
+        if (listener == null) throw new IllegalArgumentException("listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, "removeWifiNetworkStateChangedListener: listener=" + listener);
+        }
+        final int listenerIdentifier = System.identityHashCode(listener);
+        synchronized (sOnWifiNetworkStateChangedListenerMap) {
+            try {
+                if (!sOnWifiNetworkStateChangedListenerMap.contains(listenerIdentifier)) {
+                    Log.w(TAG, "Unknown external listener " + listenerIdentifier);
+                    return;
+                }
+                mService.removeWifiNetworkStateChangedListener(
+                        sOnWifiNetworkStateChangedListenerMap.get(listenerIdentifier));
+            } catch (RemoteException e) {
+                throw e.rethrowFromSystemServer();
+            } finally {
+                sOnWifiNetworkStateChangedListenerMap.remove(listenerIdentifier);
             }
         }
     }
