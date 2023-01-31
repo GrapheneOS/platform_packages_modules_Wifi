@@ -2960,6 +2960,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         if (isConfigValidAsGroup(config)) {
                             mAutonomousGroup = false;
                             mWifiNative.p2pStopFind();
+                            if (mVerboseLoggingEnabled) {
+                                logd("FAST_CONNECTION GC band freq: " + config.groupOwnerBand);
+                            }
                             if (mWifiNative.p2pGroupAdd(config, true)) {
                                 mWifiP2pMetrics.startConnectionEvent(
                                         P2pConnectionEvent.CONNECTION_FAST,
@@ -3148,6 +3151,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         boolean ret = false;
                         if (config != null) {
                             if (isConfigValidAsGroup(config)) {
+                                if (mVerboseLoggingEnabled) {
+                                    logd("FAST_CONNECTION GO band freq: " + config.groupOwnerBand);
+                                }
                                 mWifiP2pMetrics.startConnectionEvent(
                                         P2pConnectionEvent.CONNECTION_FAST,
                                         config, GroupEvent.GROUP_OWNER, uid);
