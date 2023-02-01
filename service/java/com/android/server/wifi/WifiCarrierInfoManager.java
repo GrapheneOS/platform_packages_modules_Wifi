@@ -36,6 +36,7 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiStringResourceWrapper;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.os.Build;
@@ -122,6 +123,10 @@ public class WifiCarrierInfoManager {
     @VisibleForTesting
     public static final String EXTRA_CARRIER_ID =
             "com.android.server.wifi.extra.CarrierNetwork.CARRIER_ID";
+
+    @VisibleForTesting
+    public static final String CONFIG_WIFI_OOB_PSEUDONYM_ENABLED =
+            "config_wifiOobPseudonymEnabled";
 
     // IMSI encryption method: RSA-OAEP with SHA-256 hash function
     private static final String IMSI_CIPHER_TRANSFORMATION =
@@ -212,6 +217,7 @@ public class WifiCarrierInfoManager {
     private boolean mUserDataLoaded = false;
     private boolean mIsLastUserApprovalUiDialog = false;
     private CarrierConfigManager mCarrierConfigManager;
+    private DeviceConfigFacade mDeviceConfigFacade;
     /**
      * The {@link Clock#getElapsedSinceBootMillis()} must be at least this value for us
      * to update/show the notification.
@@ -521,6 +527,7 @@ public class WifiCarrierInfoManager {
         mFrameworkFacade = frameworkFacade;
         mWifiMetrics = wifiMetrics;
         mNotificationManager = mWifiInjector.getWifiNotificationManager();
+        mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
         mClock = clock;
         // Register broadcast receiver for UI interactions.
         mIntentFilter = new IntentFilter();
@@ -2105,5 +2112,17 @@ public class WifiCarrierInfoManager {
             packages.addAll(mCarrierPrivilegedPackagesBySimSlot.valueAt(i));
         }
         return packages;
+    }
+
+    /**
+     * Checks if the OOB pseudonym feature is enabled for the specified carrier.
+     */
+    public boolean isOobPseudonymFeatureEnabled(int carrierId) {
+        if (!mDeviceConfigFacade.isOobPseudonymEnabled()) {
+            return false;
+        }
+        WifiStringResourceWrapper wifiStringResourceWrapper =
+                mContext.getStringResourceWrapper(getMatchingSubId(carrierId), carrierId);
+        return wifiStringResourceWrapper.getBoolean(CONFIG_WIFI_OOB_PSEUDONYM_ENABLED, false);
     }
 }

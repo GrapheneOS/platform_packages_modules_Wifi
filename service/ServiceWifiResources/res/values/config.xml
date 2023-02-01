@@ -915,6 +915,25 @@
     <!-- The world mode country code value definition in the wifi driver -->
     <string translatable="false" name="config_wifiDriverWorldModeCountryCode">00</string>
 
+    <!-- The value indicates if the OOB Pseudonym is Enabled, not override,
+         see config_wifiOobPseudonymEnabled_carrier_overrides. -->
+    <bool translatable="false" name="config_wifiOobPseudonymEnabled">false</bool>
+    <!-- Carrier specific override for enabling the OOB pseudonym feature, only boolean
+         values - true and false are valid input, see examples -->
+    <string-array translatable="false" name="config_wifiOobPseudonymEnabled_carrier_overrides">
+        <!-- example -->
+        <!-- <item><xliff:g id="carrier_id_prefix">:::1234:::</xliff:g>true</item> -->
+        <!-- <item><xliff:g id="carrier_id_prefix">:::5678:::</xliff:g>false</item> -->
+    </string-array>
+    <!-- The URL of entitlement server which is used to get the OOB pseudonym, not
+         override, see config_wifiOobPseudonymEntitlementServerUrl_carrier_overrides -->
+    <string translatable="false" name="config_wifiOobPseudonymEntitlementServerUrl"/>
+    <!-- Carrier specific override for the URL of entitlement server retrieving OOB pseudonym. -->
+    <string-array translatable="false" name="config_wifiOobPseudonymEntitlementServerUrl_carrier_overrides">
+        <!-- example -->
+        <!-- <item><xliff:g id="carrier_id_prefix">:::1234:::</xliff:g>https://example.com/oob</item> -->
+    </string-array>
+
     <!-- Indicates whether or not the AP WAN Link Status ANQP element is used to filter candidate
          networks. Note that even if enabled (overlay = true) that invalid elements (all zeros
          are still ignored).
