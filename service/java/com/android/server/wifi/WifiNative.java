@@ -30,6 +30,7 @@ import android.net.MacAddress;
 import android.net.TrafficStats;
 import android.net.apf.ApfCapabilities;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SoftApConfiguration;
@@ -3052,6 +3053,16 @@ public class WifiNative {
         mSupplicantStaIfaceHal.registerDppCallback(dppEventCallback);
     }
 
+    /**
+     * Check whether the Supplicant AIDL service is running at least the expected version.
+     *
+     * @param expectedVersion Version number to check.
+     * @return true if the AIDL service is available and >= the expected version, false otherwise.
+     */
+    public boolean isSupplicantAidlServiceVersionAtLeast(int expectedVersion) {
+        return mSupplicantStaIfaceHal.isAidlServiceVersionAtLeast(expectedVersion);
+    }
+
     /********************************************************
      * Vendor HAL operations
      ********************************************************/
@@ -4589,6 +4600,70 @@ public class WifiNative {
             return false;
         }
         return mSupplicantStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
+    /**
+     * Send a set of QoS SCS policy add requests to the AP.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @param policies List of policies that the caller is requesting to add.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
+            @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
+        return mSupplicantStaIfaceHal.addQosPolicyRequestForScs(ifaceName, policies);
+    }
+
+    /**
+     * Request the removal of specific QoS policies for SCS.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @param policyIds List of policy IDs for policies that should be removed.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
+            @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
+        return mSupplicantStaIfaceHal.removeQosPolicyForScs(ifaceName, policyIds);
+    }
+
+    /**
+     * Request the removal of all QoS policies for SCS.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
+            @NonNull String ifaceName) {
+        return mSupplicantStaIfaceHal.removeAllQosPoliciesForScs(ifaceName);
+    }
+
+    /**
+     * Register a callback to receive notifications for QoS SCS transactions.
+     * Callback should only be registered once.
+     *
+     * @param callback {@link SupplicantStaIfaceHal.QosScsResponseCallback} to register.
+     */
+    public void registerQosScsResponseCallback(
+            @NonNull SupplicantStaIfaceHal.QosScsResponseCallback callback) {
+        mSupplicantStaIfaceHal.registerQosScsResponseCallback(callback);
     }
 
     /**

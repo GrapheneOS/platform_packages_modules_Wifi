@@ -158,6 +158,12 @@ public final class QosPolicyParams implements Parcelable {
      */
     private final int mPolicyId;
 
+    /**
+     * Translated policy ID. Should only be set by the Wi-Fi service.
+     * @hide
+     */
+    private int mTranslatedPolicyId;
+
     // QoS DSCP marking. See {@link Builder#setDscp(int)} for more information.
     private final int mDscp;
 
@@ -243,12 +249,32 @@ public final class QosPolicyParams implements Parcelable {
     }
 
     /**
+     * Set the translated policy ID for this policy.
+     *
+     * Note: Translated policy IDs should only be set by the Wi-Fi service.
+     * @hide
+     */
+    public void setTranslatedPolicyId(int translatedPolicyId) {
+        mTranslatedPolicyId = translatedPolicyId;
+    }
+
+    /**
      * Get the ID for this policy.
      *
      * See {@link Builder#Builder(int, int)} for more information.
      */
     public int getPolicyId() {
         return mPolicyId;
+    }
+
+    /**
+     * Get the translated ID for this policy.
+     *
+     * See {@link #setTranslatedPolicyId} for more information.
+     * @hide
+     */
+    public int getTranslatedPolicyId() {
+        return mTranslatedPolicyId;
     }
 
 
