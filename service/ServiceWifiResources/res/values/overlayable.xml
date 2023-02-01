@@ -216,6 +216,8 @@
           <item type="bool" name="config_wifiSaeUpgradeOffloadEnabled" />
           <item type="bool" name="config_wifiOweUpgradeEnabled" />
           <item type="integer" name="config_wifiMaxNativeFailureSelfRecoveryPerHour" />
+          <item type="bool" name="config_wifiInterfaceAddedSelfRecoveryEnabled" />
+          <item type="string" name="config_wifiSelfRecoveryInterfaceName" />
           <item type="bool" name="config_wifiIgnoreOpenSavedNetworkWhenSecureSuggestionAvailable" />
           <item type="bool" name="config_wifiSoftapAcsIncludeDfs" />
           <item type="integer" name="config_wifiMovingPnoScanIntervalMillis" />
