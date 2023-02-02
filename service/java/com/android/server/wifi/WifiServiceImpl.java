@@ -7205,6 +7205,15 @@ public class WifiServiceImpl extends BaseWifiService {
                 .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
     }
 
+    private boolean isApplicationQosPolicyFeatureEnabled() {
+        // Both the experiment flag and overlay value must be enabled,
+        // and the HAL must support this feature.
+        return mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()
+                && mContext.getResources().getBoolean(
+                        R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled)
+                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(2);
+    }
+
     /**
      * See {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
      */
@@ -7214,7 +7223,7 @@ public class WifiServiceImpl extends BaseWifiService {
             @NonNull String packageName, @NonNull IIntegerListener listener) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
-        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+        } else if (!isApplicationQosPolicyFeatureEnabled()) {
             throw new UnsupportedOperationException("addQosPolicy is disabled on this device");
         }
 
@@ -7246,7 +7255,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public void removeQosPolicy(int policyId, @NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
-        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+        } else if (!isApplicationQosPolicyFeatureEnabled()) {
             Log.i(TAG, "removeQosPolicy is disabled on this device");
             return;
         }
@@ -7266,7 +7275,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public void removeAllQosPolicies(@NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
-        } else if (!mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()) {
+        } else if (!isApplicationQosPolicyFeatureEnabled()) {
             Log.i(TAG, "removeAllQosPolicies is disabled on this device");
             return;
         }
