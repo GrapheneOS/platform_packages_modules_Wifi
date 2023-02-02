@@ -22,6 +22,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.hardware.wifi.IWifiApIface;
+import android.hardware.wifi.IWifiChip.ChannelCategoryMask;
 import android.hardware.wifi.IWifiChip.ChipCapabilityMask;
 import android.hardware.wifi.IWifiChip.CoexRestriction;
 import android.hardware.wifi.IWifiChip.LatencyMode;
@@ -1073,6 +1074,34 @@ public class WifiChipAidlImpl implements IWifiChip {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiChip.triggerSubsystemRestart();
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * See comments for {@link IWifiChip#enableStaChannelForPeerNetwork(boolean, boolean)}
+     */
+    @Override
+    public boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel,
+            boolean enableDfsChannel) {
+        final String methodStr = "enableStaChannelForPeerNetwork";
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return false;
+                int halChannelCategoryEnableFlag = 0;
+                if (enableIndoorChannel) {
+                    halChannelCategoryEnableFlag |= ChannelCategoryMask.INDOOR_CHANNEL;
+                }
+                if (enableDfsChannel) {
+                    halChannelCategoryEnableFlag |= ChannelCategoryMask.DFS_CHANNEL;
+                }
+                mWifiChip.enableStaChannelForPeerNetwork(halChannelCategoryEnableFlag);
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
