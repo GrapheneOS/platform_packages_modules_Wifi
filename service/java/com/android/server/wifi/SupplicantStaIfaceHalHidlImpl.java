@@ -53,6 +53,7 @@ import android.hardware.wifi.supplicant.V1_4.LegacyMode;
 import android.hidl.manager.V1_0.IServiceManager;
 import android.hidl.manager.V1_0.IServiceNotification;
 import android.net.MacAddress;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations.WifiStandard;
@@ -3977,6 +3978,42 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
+     * See comments for {@link ISupplicantStaIfaceHal#addQosPolicyRequestForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
+            @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
+        Log.e(TAG, "addQosPolicyRequestForScs is not supported by the HIDL HAL");
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeQosPolicyForScs(String, List)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
+            @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
+        Log.e(TAG, "removeQosPolicyForScs is not supported by the HIDL HAL");
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
+     */
+    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
+            @NonNull String ifaceName) {
+        Log.e(TAG, "removeAllQosPoliciesForScs is not supported by the HIDL HAL");
+        return null;
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(
+     *                             SupplicantStaIfaceHal.QosScsResponseCallback)}
+     */
+    public void registerQosScsResponseCallback(
+            @NonNull SupplicantStaIfaceHal.QosScsResponseCallback callback) {
+        Log.e(TAG, "registerQosScsResponseCallback is not supported by the HIDL HAL");
+    }
+
+    /**
      * Generate DPP credential for network access
      *
      * @param ifaceName Name of the interface.
@@ -4000,29 +4037,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
      */
     public boolean setEapAnonymousIdentity(@NonNull String ifaceName, String anonymousIdentity,
             boolean updateToNativeService) {
-        synchronized (mLock) {
-            SupplicantStaNetworkHalHidlImpl networkHandle =
-                    checkSupplicantStaNetworkAndLogFailure(ifaceName, "setEapAnonymousIdentity");
-            if (networkHandle == null) return false;
-            if (anonymousIdentity == null) return false;
-            WifiConfiguration currentConfig = getCurrentNetworkLocalConfig(ifaceName);
-            if (currentConfig == null) return false;
-            if (!currentConfig.isEnterprise()) return false;
-
-            try {
-                if (updateToNativeService) {
-                    if (!networkHandle.setEapAnonymousIdentity(
-                            NativeUtil.stringToByteArrayList(anonymousIdentity))) {
-                        Log.w(TAG, "Cannot set EAP anonymous identity.");
-                        return false;
-                    }
-                }
-            } catch (IllegalArgumentException ex) {
-                return false;
-            }
-            // Update cached config after setting native data successfully.
-            currentConfig.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
-            return true;
-        }
+        Log.d(TAG, "setEapAnonymousIdentity is ignored for HIDL");
+        return false;
     }
 }

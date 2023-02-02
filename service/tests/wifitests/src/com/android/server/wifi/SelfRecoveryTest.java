@@ -51,6 +51,7 @@ public class SelfRecoveryTest extends WifiBaseTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock Clock mClock;
     @Mock WifiNative mWifiNative;
+    @Mock WifiGlobals mWifiGlobals;
     final ArgumentCaptor<HalDeviceManager.SubsystemRestartListener> mRestartListenerCaptor =
             ArgumentCaptor.forClass(HalDeviceManager.SubsystemRestartListener.class);
 
@@ -62,7 +63,9 @@ public class SelfRecoveryTest extends WifiBaseTest {
         mResources.setInteger(R.integer.config_wifiMaxNativeFailureSelfRecoveryPerHour,
                 DEFAULT_MAX_RECOVERY_PER_HOUR);
         when(mContext.getResources()).thenReturn(mResources);
-        mSelfRecovery = new SelfRecovery(mContext, mActiveModeWarden, mClock, mWifiNative);
+        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(false);
+        mSelfRecovery = new SelfRecovery(mContext, mActiveModeWarden, mClock, mWifiNative,
+                mWifiGlobals);
         verify(mWifiNative).registerSubsystemRestartListener(mRestartListenerCaptor.capture());
         doAnswer((invocation) -> {
             mRestartListenerCaptor.getValue().onSubsystemRestart();
@@ -282,5 +285,36 @@ public class SelfRecoveryTest extends WifiBaseTest {
         assertTrue(mSelfRecovery.isRecoveryInProgress());
         mSelfRecovery.onRecoveryCompleted();
         assertFalse(mSelfRecovery.isRecoveryInProgress());
+    }
+
+    /**
+     * Verifies that by default, recovery on added interface is disabled.
+     */
+    @Test
+    public void testStaIfaceAddedNoAction() {
+        mSelfRecovery.trigger(SelfRecovery.REASON_IFACE_ADDED);
+        verify(mWifiNative, never()).startSubsystemRestart();
+    }
+
+    /**
+     * Verifies that when the self recovery on interface added flag is enabled, a STA interface down
+     * event will not disable wifi.
+     */
+    @Test
+    public void testStaIfaceDownDoesNotDisableWifi() {
+        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(true);
+        mSelfRecovery.trigger(SelfRecovery.REASON_STA_IFACE_DOWN);
+        verify(mActiveModeWarden, never()).recoveryDisableWifi();
+    }
+
+    /**
+     * Verifies that when the self recovery on interface added flag is enabled, an interface added
+     * event will trigger recovery.
+     */
+    @Test
+    public void testStaIfaceAddedTriggersSelfRecovery() {
+        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(true);
+        mSelfRecovery.trigger(SelfRecovery.REASON_IFACE_ADDED);
+        verify(mWifiNative).startSubsystemRestart();
     }
 }

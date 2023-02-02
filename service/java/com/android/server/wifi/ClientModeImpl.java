@@ -35,6 +35,7 @@ import static com.android.server.wifi.proto.WifiStatsLog.WIFI_DISCONNECT_REPORTE
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.BroadcastOptions;
 import android.app.admin.SecurityLog;
@@ -2709,6 +2710,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mNetworkAgent != null) mNetworkAgent.sendLinkProperties(mLinkProperties);
     }
 
+    // TODO(b/193460475): Remove when tooling supports SystemApi to public API.
+    @SuppressLint("NewApi")
     private void sendRssiChangeBroadcast(final int newRssi) {
         mBatteryStatsManager.reportWifiRssiChanged(newRssi);
         WifiStatsLog.write(WifiStatsLog.WIFI_SIGNAL_STRENGTH_CHANGED,

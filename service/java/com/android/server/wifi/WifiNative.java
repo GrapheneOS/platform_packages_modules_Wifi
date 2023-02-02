@@ -30,6 +30,7 @@ import android.net.MacAddress;
 import android.net.TrafficStats;
 import android.net.apf.ApfCapabilities;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SoftApConfiguration;
@@ -124,6 +125,8 @@ public class WifiNative {
     private boolean mQosPolicyFeatureEnabled = false;
     private final Map<String, String> mWifiCondIfacesForBridgedAp = new ArrayMap<>();
     private MockWifiServiceUtil mMockWifiModem = null;
+    private InterfaceObserverInternal mInterfaceObserver;
+    private InterfaceEventCallback mInterfaceListener;
 
     public WifiNative(WifiVendorHal vendorHal,
                       SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
@@ -647,6 +650,24 @@ public class WifiNative {
         }
     }
 
+    /**
+     * Helper method to register a new {@link InterfaceObserverInternal}, if there is no previous
+     * observer in place and {@link WifiGlobals#isWifiInterfaceAddedSelfRecoveryEnabled()} is
+     * enabled.
+     */
+    private void registerInterfaceObserver() {
+        if (!mWifiInjector.getWifiGlobals().isWifiInterfaceAddedSelfRecoveryEnabled()) {
+            return;
+        }
+        if (mInterfaceObserver != null) {
+            Log.d(TAG, "Interface observer has previously been registered.");
+            return;
+        }
+        mInterfaceObserver = new InterfaceObserverInternal();
+        mNetdWrapper.registerObserver(mInterfaceObserver);
+        Log.d(TAG, "Registered new interface observer.");
+    }
+
     /** Helper method to register a network observer and return it */
     private boolean registerNetworkObserver(NetworkObserverInternal observer) {
         if (observer == null) return false;
@@ -865,6 +886,76 @@ public class WifiNative {
     }
 
     /**
+     * Listener for wifi interface events.
+     */
+    public interface InterfaceEventCallback {
+
+        /**
+         * Interface physical-layer link state has changed.
+         *
+         * @param ifaceName The interface.
+         * @param isLinkUp True if the physical link-layer connection signal is valid.
+         */
+        void onInterfaceLinkStateChanged(String ifaceName, boolean isLinkUp);
+
+        /**
+         * Interface has been added.
+         *
+         * @param ifaceName Name of the interface.
+         */
+        void onInterfaceAdded(String ifaceName);
+    }
+
+    /**
+     * Register a listener for wifi interface events.
+     *
+     * @param ifaceEventCallback Listener object.
+     */
+    public void setWifiNativeInterfaceEventCallback(InterfaceEventCallback ifaceEventCallback) {
+        mInterfaceListener = ifaceEventCallback;
+        Log.d(TAG, "setWifiNativeInterfaceEventCallback");
+    }
+
+    private class InterfaceObserverInternal implements NetdEventObserver {
+        private static final String TAG = "InterfaceObserverInternal";
+        private final String mSelfRecoveryInterfaceName = mContext.getResources().getString(
+                R.string.config_wifiSelfRecoveryInterfaceName);
+
+        @Override
+        public void interfaceLinkStateChanged(String ifaceName, boolean isLinkUp) {
+            if (!ifaceName.equals(mSelfRecoveryInterfaceName)) {
+                return;
+            }
+            Log.d(TAG, "Received interfaceLinkStateChanged, iface=" + ifaceName + " up="
+                    + isLinkUp);
+            if (mInterfaceListener != null) {
+                mInterfaceListener.onInterfaceLinkStateChanged(ifaceName, isLinkUp);
+            } else {
+                Log.e(TAG, "Received interfaceLinkStateChanged, interfaceListener=null");
+            }
+        }
+
+        @Override
+        public void interfaceStatusChanged(String iface, boolean up) {
+            // unused.
+        }
+
+        @Override
+        public void interfaceAdded(String ifaceName) {
+            if (!ifaceName.equals(mSelfRecoveryInterfaceName)) {
+                return;
+            }
+            Log.d(TAG, "Received interfaceAdded, iface=" + ifaceName);
+            if (mInterfaceListener != null) {
+                mInterfaceListener.onInterfaceAdded(ifaceName);
+            } else {
+                Log.e(TAG, "Received interfaceAdded, interfaceListener=null");
+            }
+        }
+
+    }
+
+    /**
      * Network observer to use for all interface up/down notifications.
      */
     private class NetworkObserverInternal implements NetdEventObserver {
@@ -918,6 +1009,11 @@ public class WifiNative {
         @Override
         public void interfaceStatusChanged(String ifaceName, boolean unusedIsLinkUp) {
             // unused currently. Look at note above.
+        }
+
+        @Override
+        public void interfaceAdded(String iface){
+            // unused currently.
         }
     }
 
@@ -1215,6 +1311,7 @@ public class WifiNative {
                 mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToWificond();
                 return null;
             }
+            registerInterfaceObserver();
             iface.networkObserver = new NetworkObserverInternal(iface.id);
             if (!registerNetworkObserver(iface.networkObserver)) {
                 Log.e(TAG, "Failed to register network observer for iface=" + iface.name);
@@ -2956,6 +3053,16 @@ public class WifiNative {
         mSupplicantStaIfaceHal.registerDppCallback(dppEventCallback);
     }
 
+    /**
+     * Check whether the Supplicant AIDL service is running at least the expected version.
+     *
+     * @param expectedVersion Version number to check.
+     * @return true if the AIDL service is available and >= the expected version, false otherwise.
+     */
+    public boolean isSupplicantAidlServiceVersionAtLeast(int expectedVersion) {
+        return mSupplicantStaIfaceHal.isAidlServiceVersionAtLeast(expectedVersion);
+    }
+
     /********************************************************
      * Vendor HAL operations
      ********************************************************/
@@ -4493,6 +4600,70 @@ public class WifiNative {
             return false;
         }
         return mSupplicantStaIfaceHal.removeAllQosPolicies(ifaceName);
+    }
+
+    /**
+     * Send a set of QoS SCS policy add requests to the AP.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @param policies List of policies that the caller is requesting to add.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> addQosPolicyRequestForScs(
+            @NonNull String ifaceName, @NonNull List<QosPolicyParams> policies) {
+        return mSupplicantStaIfaceHal.addQosPolicyRequestForScs(ifaceName, policies);
+    }
+
+    /**
+     * Request the removal of specific QoS policies for SCS.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @param policyIds List of policy IDs for policies that should be removed.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> removeQosPolicyForScs(
+            @NonNull String ifaceName, @NonNull List<Byte> policyIds) {
+        return mSupplicantStaIfaceHal.removeQosPolicyForScs(ifaceName, policyIds);
+    }
+
+    /**
+     * Request the removal of all QoS policies for SCS.
+     *
+     * Immediate response will indicate which policies were sent to the AP, and which were
+     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
+     * response will arrive later in the onQosPolicyResponseForScs callback.
+     *
+     * @param ifaceName Name of the interface.
+     * @return List of responses for each policy in the request, or null if an error occurred.
+     *         Status code will be one of
+     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
+     */
+    List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
+            @NonNull String ifaceName) {
+        return mSupplicantStaIfaceHal.removeAllQosPoliciesForScs(ifaceName);
+    }
+
+    /**
+     * Register a callback to receive notifications for QoS SCS transactions.
+     * Callback should only be registered once.
+     *
+     * @param callback {@link SupplicantStaIfaceHal.QosScsResponseCallback} to register.
+     */
+    public void registerQosScsResponseCallback(
+            @NonNull SupplicantStaIfaceHal.QosScsResponseCallback callback) {
+        mSupplicantStaIfaceHal.registerQosScsResponseCallback(callback);
     }
 
     /**

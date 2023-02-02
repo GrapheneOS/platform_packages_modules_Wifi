@@ -717,6 +717,13 @@
          cause the wifi stack to turn wifi off and wait for user input.
          Set to 0 to turn off recovery attempts and always turn off wifi on failures -->
     <integer translatable="false" name="config_wifiMaxNativeFailureSelfRecoveryPerHour">2</integer>
+
+    <!-- Enable self recovery when an interface is added. -->
+    <bool translatable="false" name="config_wifiInterfaceAddedSelfRecoveryEnabled">false</bool>
+
+    <!-- For which interface to enable self recovery. -->
+    <string translatable="false" name="config_wifiSelfRecoveryInterfaceName">wlan0</string>
+
     <!-- Ignore the open saved network if from carrier provisioning app, there is a same open suggestion and a secure suggestion from same carrier available -->
     <bool translatable="false" name="config_wifiIgnoreOpenSavedNetworkWhenSecureSuggestionAvailable">true</bool>
 
@@ -959,8 +966,10 @@
     <!-- Indicates the number of octets to mask for each BSSID in the SecurityLog output.
          The first N octets will each be replaced with 'xx' in the formatted BSSID string. -->
     <integer translatable="false" name="config_wifiNumMaskedBssidOctetsInSecurityLog">4</integer>
-    <!-- Indicates whether or not the network-centric QoS policy feature is enabled. -->
+    <!-- Indicates whether the network-centric QoS policy feature is enabled. -->
     <bool translatable="false" name="config_wifiNetworkCentricQosPolicyFeatureEnabled">false</bool>
+    <!-- Indicates whether the application-centric QoS policy feature is enabled. -->
+    <bool translatable="false" name="config_wifiApplicationCentricQosPolicyFeatureEnabled">false</bool>
 
     <!-- The world mode country code value definition in the wifi driver -->
     <string translatable="false" name="config_wifiDriverWorldModeCountryCode">00</string>
