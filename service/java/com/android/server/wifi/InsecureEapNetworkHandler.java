@@ -60,9 +60,7 @@ public class InsecureEapNetworkHandler {
     static final String EXTRA_PENDING_CERT_SSID =
             "com.android.server.wifi.ClientModeImpl.EXTRA_PENDING_CERT_SSID";
 
-    @VisibleForTesting
-    static final String NOTIFICATION_WAITING_TIMER_TAG =
-            "InsecureEapNetworkHandler Notification Waiting";
+    static final String TOFU_ANONYMOUS_IDENTITY = "anonymous";
 
     private final String mCaCertHelpLink;
     private final WifiContext mContext;
@@ -192,9 +190,21 @@ public class InsecureEapNetworkHandler {
                     || config.enterpriseConfig.getEapMethod() == WifiEnterpriseConfig.Eap.PEAP) {
                 config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.NONE);
                 config.enterpriseConfig.setIdentity(null);
+                if (TextUtils.isEmpty(config.enterpriseConfig.getAnonymousIdentity())) {
+                    /**
+                     * If anonymous identity was not provided, use "anonymous" to prevent any
+                     * untrusted server from tracking real user identities.
+                     */
+                    config.enterpriseConfig.setAnonymousIdentity(TOFU_ANONYMOUS_IDENTITY);
+                }
                 config.enterpriseConfig.setPassword(null);
             } else if (config.enterpriseConfig.getEapMethod() == WifiEnterpriseConfig.Eap.TLS) {
+                /**
+                 * Clear the user certificate and use an anonymous identity to prevent any
+                 * untrusted server from tracking real user identities.
+                 */
                 config.enterpriseConfig.setClientCertificateAlias(null);
+                config.enterpriseConfig.setIdentity(TOFU_ANONYMOUS_IDENTITY);
             }
         }
         mCurrentTofuConfig = config;
