@@ -22,6 +22,8 @@ import android.Manifest;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.wifi.IBooleanListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.AwareResources;
@@ -32,7 +34,6 @@ import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.IWifiAwareManager;
-import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.os.Binder;
@@ -251,13 +252,29 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     }
 
     @Override
-    public void getPairedDevices(String callingPackage, @NonNull
-            IWifiAwarePairedDevicesListener listener) {
+    public void getPairedDevices(String callingPackage, @NonNull IListListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
         enforceAccessPermission();
         mStateManager.getPairedDevices(callingPackage, listener);
+    }
+
+    @Override
+    public void setOpportunisticModeEnabled(String callingPackage, boolean enabled) {
+
+        enforceChangePermission();
+        mStateManager.setOpportunisticPackage(callingPackage, enabled);
+    }
+
+    @Override
+    public void isOpportunisticModeEnabled(String callingPackage,
+            @NonNull IBooleanListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        enforceAccessPermission();
+        mStateManager.isOpportunistic(callingPackage, listener);
     }
 
     @Override

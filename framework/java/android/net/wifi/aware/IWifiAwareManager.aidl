@@ -18,11 +18,12 @@ package android.net.wifi.aware;
 
 import android.app.PendingIntent;
 
+import android.net.wifi.IBooleanListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
-import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.Characteristics;
@@ -49,7 +50,9 @@ interface IWifiAwareManager
     void setAwareParams(in AwareParams parameters);
     void resetPairedDevices(in String callingPackage);
     void removePairedDevice(in String callingPackage, in String alias);
-    void getPairedDevices(in String callingPackage, in IWifiAwarePairedDevicesListener value);
+    void getPairedDevices(in String callingPackage, in IListListener value);
+    void setOpportunisticModeEnabled(in String callingPackage, boolean enable);
+    void isOpportunisticModeEnabled(in String callingPackage, in IBooleanListener value);
 
     // client API
     void connect(in IBinder binder, in String callingPackage, in String callingFeatureId,
