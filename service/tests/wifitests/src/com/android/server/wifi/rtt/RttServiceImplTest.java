@@ -47,6 +47,7 @@ import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.test.MockAnswerUtil;
 import android.app.test.TestAlarmManager;
+import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -462,7 +463,8 @@ public class RttServiceImplTest extends WifiBaseTest {
     @Test
     public void testRangingOnlyAwareAps() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
-        mExtras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, null);
+        mExtras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, mock(
+                AttributionSource.class));
         when(mockPermissionUtil.checkNearbyDevicesPermission(any(), eq(true), any()))
                 .thenReturn(true);
         RangingRequest request = new RangingRequest.Builder()
