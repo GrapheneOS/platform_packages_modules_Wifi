@@ -585,8 +585,10 @@ public class WifiCountryCode {
         Set<ActiveModeManager> amms = mAmmToReadyForChangeMap.keySet();
         boolean isConcreteClientModeManagerUpdated = false;
         boolean anyAmmConfigured = false;
-        boolean isAllCmmReady = isAllCmmReady();
-        if (!isAllCmmReady) {
+        final boolean isNeedToUpdateCCToSta = mContext.getResources()
+                .getBoolean(R.bool.config_wifiStaDynamicCountryCodeUpdateSupported)
+                || isAllCmmReady();
+        if (!isNeedToUpdateCCToSta) {
             Log.d(TAG, "skip update supplicant not ready yet");
             disconnectWifiToForceUpdateIfNeeded();
         }
@@ -594,7 +596,7 @@ public class WifiCountryCode {
         Log.d(TAG, "setCountryCodeNative: " + country + ", isClientModeOnly: " + isClientModeOnly
                 + "mDriverCountryCode: " + mDriverCountryCode);
         for (ActiveModeManager am : amms) {
-            if (isAllCmmReady && !isConcreteClientModeManagerUpdated
+            if (isNeedToUpdateCCToSta && !isConcreteClientModeManagerUpdated
                     && am instanceof ConcreteClientModeManager) {
                 // Set the country code using one of the active mode managers. Since
                 // country code is a chip level global setting, it can be set as long
