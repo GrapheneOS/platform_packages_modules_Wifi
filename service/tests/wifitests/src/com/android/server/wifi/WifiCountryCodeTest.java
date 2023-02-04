@@ -69,6 +69,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     private String mTelephonyCountryCode = "JP";
     private String mWorldModeCountryCode = "00";
     private boolean mRevertCountryCodeOnCellularLoss = true;
+    private boolean mStaDynamicCountryCodeUpdateSupported = false;
     // Default assume true since it was a design before R
     private boolean mDriverSupportedNl80211RegChangedEvent = false;
     private boolean mForcedSoftApRestateWhenCountryCodeChanged = false;
@@ -154,6 +155,8 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     private void createWifiCountryCode() {
         mResources.setBoolean(R.bool.config_wifi_revert_country_code_on_cellular_loss,
                 mRevertCountryCodeOnCellularLoss);
+        mResources.setBoolean(R.bool.config_wifiStaDynamicCountryCodeUpdateSupported,
+                mStaDynamicCountryCodeUpdateSupported);
         mResources.setBoolean(R.bool.config_wifiDriverSupportedNl80211RegChangedEvent,
                 mDriverSupportedNl80211RegChangedEvent);
         mResources.setBoolean(R.bool.config_wifiForcedSoftApRestartWhenCountryCodeChanged,
@@ -689,5 +692,20 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mWifiCountryCode.registerListener(mExternalChangeListener);
         mWifiCountryCode.setOverrideCountryCode(TEST_COUNTRY_CODE);
         verify(mExternalChangeListener).onCountryCodeChangePending(TEST_COUNTRY_CODE);
+    }
+
+    @Test
+    public void testCCIsUpdatedStaDynamicCountryCodeUpdateSupportedEvenIfCmmNotReady() {
+        mStaDynamicCountryCodeUpdateSupported = true;
+        createWifiCountryCode();
+        // Supplicant starts.
+        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
+        // Wifi get L2 connected.
+        mClientModeImplListenerCaptor.getValue().onConnectionStart(mClientModeManager);
+
+        // Telephony country code arrives when L2 connected (i.e. cmm is not ready).
+        // Verify Telephony country code is updated since overlay is true;
+        mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
+        assertEquals(mTelephonyCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
     }
 }
