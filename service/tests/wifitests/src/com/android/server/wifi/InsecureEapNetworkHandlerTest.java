@@ -16,6 +16,8 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.InsecureEapNetworkHandler.TOFU_ANONYMOUS_IDENTITY;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -430,6 +432,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 && config.enterpriseConfig.getPhase2Method() != WifiEnterpriseConfig.Phase2.NONE) {
             // Verify that the configuration contains an identity
             assertEquals(TEST_IDENTITY, config.enterpriseConfig.getIdentity());
+            assertTrue(TextUtils.isEmpty(config.enterpriseConfig.getAnonymousIdentity()));
             assertEquals(TEST_PASSWORD, config.enterpriseConfig.getPassword());
         }
         mInsecureEapNetworkHandler.prepareConnection(config);
@@ -440,6 +443,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 && config.enterpriseConfig.getPhase2Method() != WifiEnterpriseConfig.Phase2.NONE) {
             // Verify identities are cleared
             assertTrue(TextUtils.isEmpty(config.enterpriseConfig.getIdentity()));
+            assertEquals(TOFU_ANONYMOUS_IDENTITY, config.enterpriseConfig.getAnonymousIdentity());
             assertTrue(TextUtils.isEmpty(config.enterpriseConfig.getPassword()));
         }
 
