@@ -2595,6 +2595,21 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Test the EAPOL Ip Address Allocation configuration Parameters
+     */
+    @Test
+    public void testConfigureEapolIpAddressAllocationParamsSuccess() throws Exception {
+        doNothing().when(mISupplicantP2pIfaceMock).configureEapolIpAddressAllocationParams(
+                anyInt(), anyInt(), anyInt(), anyInt());
+        executeAndValidateInitializationSequence(false, false);
+
+        assertTrue(mDut.configureEapolIpAddressAllocationParams(0x0101A8C0,
+                0x00FFFFFF, 0x0501A8C0, 0x0801A8C0));
+        verify(mISupplicantP2pIfaceMock).configureEapolIpAddressAllocationParams(eq(0x0101A8C0),
+                eq(0x00FFFFFF), eq(0x0501A8C0), eq(0x0801A8C0));
+    }
+
+    /**
      * Calls initialize and addP2pInterface to mock the startup sequence.
      * The two arguments will each trigger a different failure in addP2pInterface
      * when set to true.
