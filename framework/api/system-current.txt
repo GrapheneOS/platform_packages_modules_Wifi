@@ -1047,9 +1047,12 @@ package android.net.wifi {
   public static class WifiScanner.ScanSettings implements android.os.Parcelable {
     ctor public WifiScanner.ScanSettings();
     method public int getRnrSetting();
+    method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorIes();
     method public boolean is6GhzPscOnlyEnabled();
     method public void set6GhzPscOnlyEnabled(boolean);
     method public void setRnrSetting(int);
+    method public void setVendorIes(@NonNull java.util.List<android.net.wifi.ScanResult.InformationElement>);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiScanner.ScanSettings> CREATOR;
     field public int band;
     field public android.net.wifi.WifiScanner.ChannelSpec[] channels;
     field @NonNull @RequiresPermission(android.Manifest.permission.NETWORK_STACK) public final java.util.List<android.net.wifi.WifiScanner.ScanSettings.HiddenNetwork> hiddenNetworks;

@@ -67,7 +67,7 @@
           <item type="integer" name="config_wifiFrameworkScoreGoodRssiThreshold6ghz" />
           <item type="integer" name="config_wifiFrameworkSoftApShutDownTimeoutMilliseconds" />
           <item type="integer" name="config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond" />
-          <item type="bool" name="config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging" />
+          <item type="bool" name="config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenPlugged" />
           <item type="array" name="config_wifiOobPseudonymEnabled_carrier_overrides" />
           <item type="array" name="config_wifiOobPseudonymEntitlementServerUrl_carrier_overrides" />
           <item type="bool" name="config_wifiSoftApDynamicCountryCodeUpdateSupported" />

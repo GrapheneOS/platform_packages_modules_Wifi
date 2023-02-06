@@ -33,6 +33,7 @@ import static com.android.server.wifi.ScanTestUtil.createSingleScanNativeSetting
 import static com.android.server.wifi.scanner.WifiScanningServiceImpl.WifiSingleScanStateMachine.CACHED_SCAN_RESULTS_MAX_AGE_IN_MILLIS;
 import static com.android.server.wifi.scanner.WifiScanningServiceImpl.WifiSingleScanStateMachine.EMERGENCY_SCAN_END_INDICATION_ALARM_TAG;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -107,6 +108,7 @@ import org.mockito.Spy;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -772,6 +774,61 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         assertEquals(WifiScanner.WIFI_RNR_NOT_NEEDED,
                 requestSettings.getRnrSetting());
         assertEquals(false, nativeSettings.enable6GhzRnr);
+        doSuccessfulSingleScan(requestSettings, nativeSettings,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_ALL, new int[0]));
+    }
+
+    /**
+     * Do a single scan with null vendor IEs, and verify getVendorIes() and nativeSettings.vendorIes
+     * returning correct values.
+     */
+    @Test
+    public void sendSingleScanRequestWithNullVendorIes() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        WifiScanner.ScanSettings requestSettings = createRequest(WifiScanner.WIFI_BAND_ALL, 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        WifiNative.ScanSettings nativeSettings = computeSingleScanNativeSettings(requestSettings);
+        assertEquals(0, requestSettings.getVendorIes().size());
+        assertEquals(null, nativeSettings.vendorIes);
+        doSuccessfulSingleScan(requestSettings, nativeSettings,
+                ScanResults.create(0, WifiScanner.WIFI_BAND_ALL, new int[0]));
+    }
+
+    /**
+     * Do a single scan with nonnull vendor IEs, and verify getVendorIes() and
+     * nativeSettings.vendorIes returning same values.
+     */
+    @Test
+    public void sendSingleScanRequestWithNonNullVendorIes() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        WifiScanner.ScanSettings requestSettings = createRequest(WifiScanner.WIFI_BAND_ALL, 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        List<ScanResult.InformationElement> vendorIesList = new ArrayList<>();
+        ScanResult.InformationElement vendorIe1 = new ScanResult.InformationElement(221, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, 0x11, 0x22, 0x33});
+        ScanResult.InformationElement vendorIe2 = new ScanResult.InformationElement(221, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, (byte) 0xaa, (byte) 0xbb, (byte) 0xcc});
+        vendorIesList.add(vendorIe1);
+        vendorIesList.add(vendorIe2);
+        requestSettings.setVendorIes(vendorIesList);
+
+        WifiNative.ScanSettings nativeSettings = computeSingleScanNativeSettings(requestSettings);
+        byte[] nativeSettingsVendorIes =
+                new byte[WifiScanner.WIFI_IE_HEAD_LEN + vendorIe1.bytes.length
+                        + WifiScanner.WIFI_IE_HEAD_LEN + vendorIe2.bytes.length];
+        int index = 0;
+        nativeSettingsVendorIes[index] = (byte) vendorIe1.id;
+        nativeSettingsVendorIes[index + 1] = (byte) vendorIe1.bytes.length;
+        System.arraycopy(vendorIe1.bytes, 0, nativeSettingsVendorIes,
+                index + WifiScanner.WIFI_IE_HEAD_LEN,
+                vendorIe1.bytes.length);
+        index += WifiScanner.WIFI_IE_HEAD_LEN + vendorIe1.bytes.length;
+        nativeSettingsVendorIes[index] = (byte) vendorIe2.id;
+        nativeSettingsVendorIes[index + 1] = (byte) vendorIe2.bytes.length;
+        System.arraycopy(vendorIe2.bytes, 0, nativeSettingsVendorIes,
+                index + WifiScanner.WIFI_IE_HEAD_LEN,
+                vendorIe2.bytes.length);
+        assertArrayEquals(nativeSettingsVendorIes, nativeSettings.vendorIes);
         doSuccessfulSingleScan(requestSettings, nativeSettings,
                 ScanResults.create(0, WifiScanner.WIFI_BAND_ALL, new int[0]));
     }
@@ -1671,6 +1728,129 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                 "results=" + results2.getRawScanResults().length);
         assertDumpContainsCallbackLog("singleScanResults",
                 "results=" + results3.getRawScanResults().length);
+    }
+
+    @Test
+    public void sendMultipleSingleScanRequestWithVendorIesWhilePreviousScanRunningAndMerge()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        ScanResults results2412 =
+                ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED, 2412, 2412, 2412);
+        ScanResults results2450 = ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED, 2450);
+        ScanResults results5175 = ScanResults.create(0, WifiScanner.WIFI_BAND_UNSPECIFIED, 5175);
+        ScanResults results1and3 =
+                ScanResults.merge(WifiScanner.WIFI_BAND_UNSPECIFIED, results2412, results2450);
+        ScanResults results2and4 =
+                ScanResults.merge(WifiScanner.WIFI_BAND_UNSPECIFIED, results2450, results5175);
+
+        WifiScanner.ScanSettings requestSettings1 = createRequest(channelsToSpec(2412, 2450), 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        requestSettings1.type = WifiScanner.SCAN_TYPE_LOW_LATENCY;
+        WorkSource workSource1 = new WorkSource(1121);
+        ScanResults results1 = results1and3;
+
+        WifiScanner.ScanSettings requestSettings2 = createRequest(channelsToSpec(2450, 5175), 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        requestSettings2.type = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
+        List<ScanResult.InformationElement> vendorIesList2 = new ArrayList<>();
+        ScanResult.InformationElement vendorIe21 = new ScanResult.InformationElement(221, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, 0x11, 0x22, 0x33});
+        ScanResult.InformationElement vendorIe22 = new ScanResult.InformationElement(221, 0,
+                new byte[255]);
+        vendorIesList2.add(vendorIe21);
+        vendorIesList2.add(vendorIe22);
+        requestSettings2.setVendorIes(vendorIesList2);
+        WorkSource workSource2 = new WorkSource(Binder.getCallingUid());
+        ScanResults results2 = results2and4;
+
+        WifiScanner.ScanSettings requestSettings3 = createRequest(channelsToSpec(2412), 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        requestSettings3.type = WifiScanner.SCAN_TYPE_LOW_POWER;
+        WorkSource workSource3 = new WorkSource(2292);
+        ScanResults results3 = results2412;
+
+        WifiScanner.ScanSettings requestSettings4 = createRequest(channelsToSpec(5175), 0,
+                0, 20, WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN);
+        requestSettings4.type = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
+        List<ScanResult.InformationElement> vendorIesList4 = new ArrayList<>();
+        ScanResult.InformationElement vendorIe41 = new ScanResult.InformationElement(221, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, (byte) 0xaa, (byte) 0xbb, (byte) 0xcc});
+        ScanResult.InformationElement vendorIe42 = new ScanResult.InformationElement(221, 0,
+                new byte[238]);
+        vendorIesList4.add(vendorIe41);
+        vendorIesList4.add(vendorIe42);
+        requestSettings4.setVendorIes(vendorIesList4);
+        WorkSource workSource4 = new WorkSource(Binder.getCallingUid());
+        ScanResults results4 = results5175;
+
+        startServiceAndLoadDriver();
+        when(mWifiScannerImpl0.startSingleScan(any(WifiNative.ScanSettings.class),
+                any(WifiNative.ScanEventHandler.class))).thenReturn(true);
+
+        TestClient client = new TestClient();
+        InOrder nativeOrder = inOrder(mWifiScannerImpl0);
+        client.sendSingleScanRequest(requestSettings1, workSource1);
+        mLooper.dispatchAll();
+        WifiNative.ScanEventHandler eventHandler1 = verifyStartSingleScan(nativeOrder,
+                computeSingleScanNativeSettings(requestSettings1));
+        client.verifySuccessfulResponse();
+        verify(mBatteryStats).reportWifiScanStartedFromSource(eq(workSource1));
+
+        // Queue scan 2 (will not run because previous is in progress)
+        client.sendSingleScanRequest(requestSettings2, null);
+        mLooper.dispatchAll();
+        client.verifySuccessfulResponse();
+
+        // Queue scan 3 (will be merged into the active scan)
+        client.sendSingleScanRequest(requestSettings3, workSource3);
+        mLooper.dispatchAll();
+        client.verifySuccessfulResponse();
+
+        // Queue scan 4 (will be merged into the pending scan)
+        client.sendSingleScanRequest(requestSettings4, null);
+        mLooper.dispatchAll();
+        client.verifySuccessfulResponse();
+
+        // dispatch scan 1 and 3 results
+        when(mWifiScannerImpl0.getLatestSingleScanResults()).thenReturn(results1and3.getScanData());
+        eventHandler1.onScanStatus(WifiNative.WIFI_SCAN_RESULTS_AVAILABLE);
+
+        mLooper.dispatchAll();
+        verifyMultipleSingleScanResults(client, results1, client, results3);
+        // only the requests know at the beginning of the scan get blamed
+        verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource1));
+        verify(mBatteryStats).reportWifiScanStartedFromSource(eq(workSource2));
+
+        // now that the first scan completed we expect the second and fourth ones to start
+        // vendorIes had been merged
+        vendorIesList2.add(vendorIe41);
+        requestSettings2.setVendorIes(vendorIesList2);
+        WifiNative.ScanEventHandler eventHandler2 = verifyStartSingleScan(nativeOrder,
+                computeSingleScanNativeSettings(requestSettings2));
+
+        // dispatch scan 2 and 4 results
+        when(mWifiScannerImpl0.getLatestSingleScanResults()).thenReturn(results2and4.getScanData());
+        eventHandler2.onScanStatus(WifiNative.WIFI_SCAN_RESULTS_AVAILABLE);
+
+        mLooper.dispatchAll();
+        verifyMultipleSingleScanResults(client, results2, client, results4);
+        verify(mWifiMetrics, times(4)).incrementOneshotScanCount();
+        verify(mWifiMetrics, times(2)).incrementScanReturnEntry(
+                WifiMetricsProto.WifiLog.SCAN_SUCCESS, 2);
+        verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource2));
+
+        assertDumpContainsRequestLog("addSingleScanRequest");
+        assertDumpContainsRequestLog("addSingleScanRequest");
+        assertDumpContainsRequestLog("addSingleScanRequest");
+        assertDumpContainsRequestLog("addSingleScanRequest");
+        assertDumpContainsCallbackLog("singleScanResults",
+                "results=" + results1.getRawScanResults().length);
+        assertDumpContainsCallbackLog("singleScanResults",
+                "results=" + results2.getRawScanResults().length);
+        assertDumpContainsCallbackLog("singleScanResults",
+                "results=" + results3.getRawScanResults().length);
+        assertDumpContainsCallbackLog("singleScanResults",
+                "results=" + results4.getRawScanResults().length);
     }
 
     /**

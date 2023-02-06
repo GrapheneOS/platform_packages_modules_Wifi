@@ -874,10 +874,10 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testScan() throws Exception {
-        // This test will not run if the device has SDK level S or later
+        // This test will NOT run if the device has SDK level S or later
         assumeFalse(SdkLevel.isAtLeastS());
         mWifiNative.scan(WIFI_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, SCAN_FREQ_SET,
-                SCAN_HIDDEN_NETWORK_SSID_SET, false);
+                SCAN_HIDDEN_NETWORK_SSID_SET, false, null);
         ArgumentCaptor<List<byte[]>> ssidSetCaptor = ArgumentCaptor.forClass(List.class);
         verify(mWificondControl).startScan(
                 eq(WIFI_IFACE_NAME), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
@@ -892,10 +892,12 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testScanWithBundle() throws Exception {
-        // This test will only run if the device has SDK level S and later.
-        assumeTrue(SdkLevel.isAtLeastS());
+        assumeTrue(SdkLevel.isAtLeastU());
+        byte[] vendorIes =
+                new byte[]{(byte) 0xdd, 0x7, 0x00, 0x50, (byte) 0xf2, 0x08, 0x11, 0x22, 0x33,
+                        (byte) 0xdd, 0x7, 0x00, 0x50, (byte) 0xf2, 0x08, 0x44, 0x55, 0x66};
         mWifiNative.scan(WIFI_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, SCAN_FREQ_SET,
-                SCAN_HIDDEN_NETWORK_SSID_SET, true);
+                SCAN_HIDDEN_NETWORK_SSID_SET, true, vendorIes);
         ArgumentCaptor<List<byte[]>> ssidSetCaptor = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
         if (SdkLevel.isAtLeastU()) {
@@ -911,6 +913,8 @@ public class WifiNativeTest extends WifiBaseTest {
         assertArrayEquals(ssidSet.toArray(), SCAN_HIDDEN_NETWORK_BYTE_SSID_SET.toArray());
         Bundle bundle = bundleCaptor.getValue();
         assertTrue(bundle.getBoolean(WifiNl80211Manager.SCANNING_PARAM_ENABLE_6GHZ_RNR));
+        assertArrayEquals(vendorIes,
+                bundle.getByteArray(WifiNl80211Manager.EXTRA_SCANNING_PARAM_VENDOR_IES));
     }
 
     /**
