@@ -1029,7 +1029,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertEquals(suggestionNetwork.networkId, wifiConfigCaptor.getValue().networkId);
         assertTrue(mWifiConfigManager
                 .removeNetwork(suggestionNetwork.networkId, TEST_CREATOR_UID, TEST_CREATOR_NAME));
-        verify(mWifiKeyStore, never()).removeKeys(any(), eq(false));
+        verify(mWifiKeyStore, never()).removeKeys(any());
     }
 
     /**
@@ -1289,7 +1289,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 passpointNetwork.networkId, Process.WIFI_UID, null));
 
         // Verify keys are not being removed.
-        verify(mWifiKeyStore, never()).removeKeys(any(WifiEnterpriseConfig.class), eq(false));
+        verify(mWifiKeyStore, never()).removeKeys(any(WifiEnterpriseConfig.class));
         verifyNetworkRemoveBroadcast();
         // Ensure that the write was not invoked for Passpoint network remove.
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
@@ -5799,7 +5799,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 configuration.networkId, TEST_CREATOR_UID, TEST_CREATOR_NAME));
 
         // Verify keys are not being removed.
-        verify(mWifiKeyStore, never()).removeKeys(any(WifiEnterpriseConfig.class), eq(false));
+        verify(mWifiKeyStore, never()).removeKeys(any(WifiEnterpriseConfig.class));
         verifyNetworkRemoveBroadcast();
         // Ensure that the write was not invoked for Passpoint network remove.
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
