@@ -291,6 +291,16 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
+    public void addWifiNetworkStateChangedListener(IWifiNetworkStateChangedListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeWifiNetworkStateChangedListener(IWifiNetworkStateChangedListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void restartWifiSubsystem() {
         throw new UnsupportedOperationException();
     }

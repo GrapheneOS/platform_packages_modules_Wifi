@@ -37,6 +37,7 @@ import android.net.wifi.ILocalOnlyConnectionStatusListener;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.IOnWifiActivityEnergyInfoListener;
 import android.net.wifi.IOnWifiDriverCountryCodeChangedListener;
+import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScanResultsCallback;
@@ -166,6 +167,10 @@ interface IWifiManager
 
     void unregisterDriverCountryCodeChangedListener(
             in IOnWifiDriverCountryCodeChangedListener listener);
+
+    void addWifiNetworkStateChangedListener(in IWifiNetworkStateChangedListener listener);
+
+    void removeWifiNetworkStateChangedListener(in IWifiNetworkStateChangedListener listener);
 
     String getCountryCode(in String packageName, in String featureId);
 
