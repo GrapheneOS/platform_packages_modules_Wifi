@@ -316,6 +316,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 .thenReturn(mAlarmManager.getAlarmManager());
         when(mContext.getResources()).thenReturn(mResources);
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
+        when(mContext.registerReceiver(any(), any())).thenReturn(new Intent());
 
         when(mResources.getInteger(R.integer.config_wifiFrameworkSoftApShutDownTimeoutMilliseconds))
                 .thenReturn((int) TEST_DEFAULT_SHUTDOWN_TIMEOUT_MILLIS);
@@ -402,7 +403,6 @@ public class SoftApManagerTest extends WifiBaseTest {
         SoftApManager newSoftApManager = new SoftApManager(
                 mContext, mLooper.getLooper(), mFrameworkFacade, mWifiNative, mWifiInjector,
                 mCoexManager,
-                mBatteryManager,
                 mInterfaceConflictManager,
                 mListener,
                 mCallback,
@@ -3529,10 +3529,10 @@ public class SoftApManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void testSchedulesTimeoutTimerWhenChargingChanged() throws Exception {
+    public void testSchedulesTimeoutTimerWhenPluggedChanged() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         when(mResources.getBoolean(R.bool
-                  .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging))
+                  .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenPlugged))
                 .thenReturn(true);
 
         SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
@@ -3553,10 +3553,10 @@ public class SoftApManagerTest extends WifiBaseTest {
                 mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_INTERFACE_NAME);
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
-                        filter.hasAction(Intent.ACTION_POWER_CONNECTED)
-                                && filter.hasAction(Intent.ACTION_POWER_DISCONNECTED)));
+                        filter.hasAction(Intent.ACTION_BATTERY_CHANGED)));
         mBroadcastReceiverCaptor.getValue().onReceive(mContext,
-                new Intent(Intent.ACTION_POWER_CONNECTED));
+                new Intent(Intent.ACTION_BATTERY_CHANGED)
+                    .putExtra(BatteryManager.EXTRA_PLUGGED, BatteryManager.BATTERY_PLUGGED_USB));
         mLooper.dispatchAll();
         // Verify whole SAP timer is canceled at this point
         verify(mAlarmManager.getAlarmManager(), never()).cancel(
@@ -3567,7 +3567,8 @@ public class SoftApManagerTest extends WifiBaseTest {
                 eq(mSoftApManager.mSoftApTimeoutMessageMap.get(TEST_SECOND_INSTANCE_NAME)));
 
         mBroadcastReceiverCaptor.getValue().onReceive(mContext,
-                new Intent(Intent.ACTION_POWER_DISCONNECTED));
+                new Intent(Intent.ACTION_BATTERY_CHANGED)
+                        .putExtra(BatteryManager.EXTRA_PLUGGED, 0));
         mLooper.dispatchAll();
         // Verify tethered instance timer is NOT re-scheduled (Keep 2 times)
         verify(mAlarmManager.getAlarmManager(), times(2)).setExact(anyInt(), anyLong(),

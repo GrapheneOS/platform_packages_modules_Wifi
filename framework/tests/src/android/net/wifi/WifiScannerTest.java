@@ -20,6 +20,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -613,5 +614,50 @@ public class WifiScannerTest {
         } catch (InterruptedException e) {
             fail("WifiScanner can't be initialized!" + e);
         }
+    }
+
+    /**
+     * Verify #setVendorIes with valid and invalid inputs
+     */
+    @Test
+    public void testSetVendorIes() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        WifiScanner.ScanSettings scanSettings = new WifiScanner.ScanSettings();
+        List<ScanResult.InformationElement> vendorIesList = new ArrayList<>();
+        ScanResult.InformationElement vendorIe1 = new ScanResult.InformationElement(221, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, 0x11, 0x22, 0x33});
+        ScanResult.InformationElement vendorIe2 = new ScanResult.InformationElement(255, 0,
+                new byte[]{0x00, 0x50, (byte) 0xf2, 0x08, (byte) 0xaa, (byte) 0xbb, (byte) 0xcc});
+        ScanResult.InformationElement vendorIe3 = new ScanResult.InformationElement(221, 0,
+                new byte[0]);
+        vendorIe3.bytes = null;
+        ScanResult.InformationElement vendorIe4 = new ScanResult.InformationElement(221, 0,
+                new byte[256]);
+        ScanResult.InformationElement vendorIe5 = new ScanResult.InformationElement(221, 0,
+                new byte[256]);
+
+        vendorIesList.add(vendorIe2);
+        assertThrows(IllegalArgumentException.class,
+                () -> scanSettings.setVendorIes(vendorIesList));
+
+        vendorIesList.remove(vendorIe2);
+        vendorIesList.add(vendorIe3);
+        assertThrows(IllegalArgumentException.class,
+                () -> scanSettings.setVendorIes(vendorIesList));
+
+        vendorIesList.remove(vendorIe3);
+        vendorIesList.add(vendorIe4);
+        assertThrows(IllegalArgumentException.class,
+                () -> scanSettings.setVendorIes(vendorIesList));
+
+        vendorIesList.add(vendorIe5);
+        assertThrows(IllegalArgumentException.class,
+                () -> scanSettings.setVendorIes(vendorIesList));
+
+        vendorIesList.remove(vendorIe4);
+        vendorIesList.remove(vendorIe5);
+        vendorIesList.add(vendorIe1);
+        scanSettings.setVendorIes(vendorIesList);
+        assertEquals(vendorIesList, scanSettings.getVendorIes());
     }
 }

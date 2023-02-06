@@ -527,6 +527,39 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     }
 
     /**
+     * Get merged vendor IE byte array from List
+     */
+    public static byte[] getVendorIesBytesFromVendorIesList(
+            List<ScanResult.InformationElement> vendorIesList) {
+        if (vendorIesList.size() == 0) return null;
+
+        int len = 0;
+        for (ScanResult.InformationElement ie : vendorIesList) {
+            if ((len + WifiScanner.WIFI_IE_HEAD_LEN + ie.bytes.length)
+                    > WifiScanner.WIFI_SCANNER_SETTINGS_VENDOR_ELEMENTS_MAX_LEN) {
+                Log.w(TAG, "Total vendor IE len is larger than max len. Current len:" + len);
+                break;
+            }
+            len += WifiScanner.WIFI_IE_HEAD_LEN + ie.bytes.length;
+        }
+
+        byte[] vendorIes = new byte[len];
+        int index = 0;
+        for (ScanResult.InformationElement ie : vendorIesList) {
+            if ((index + WifiScanner.WIFI_IE_HEAD_LEN + ie.bytes.length)
+                    > WifiScanner.WIFI_SCANNER_SETTINGS_VENDOR_ELEMENTS_MAX_LEN) {
+                break;
+            }
+            vendorIes[index] = (byte) ie.id;
+            vendorIes[index + 1] = (byte) ie.bytes.length;
+            System.arraycopy(ie.bytes, 0, vendorIes, index + WifiScanner.WIFI_IE_HEAD_LEN,
+                    ie.bytes.length);
+            index += WifiScanner.WIFI_IE_HEAD_LEN + ie.bytes.length;
+        }
+        return vendorIes;
+    }
+
+    /**
      * Enforce the necessary client permissions for WifiScanner.
      * If the client has NETWORK_STACK permission, then it can "always" send "any" request.
      * If the client has only LOCATION_HARDWARE permission, then it can
@@ -1328,6 +1361,18 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             return false;
         }
 
+        private void mergeVendorIes(List<ScanResult.InformationElement> existingVendorIes,
+                ScanSettings scanSettings) {
+            if (!SdkLevel.isAtLeastU()) {
+                return;
+            }
+            for (ScanResult.InformationElement ie : scanSettings.getVendorIes()) {
+                if (!existingVendorIes.contains(ie)) {
+                    existingVendorIes.add(ie);
+                }
+            }
+        }
+
         boolean activeScanSatisfies(ScanSettings settings) {
             if (mActiveScanSettings == null) {
                 return false;
@@ -1401,6 +1446,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             boolean are6GhzChannelsAvailable = available6GhzChannels.length > 0
                     && available6GhzChannels[0].length > 0;
             List<WifiNative.HiddenNetwork> hiddenNetworkList = new ArrayList<>();
+            List<ScanResult.InformationElement> vendorIesList = new ArrayList<>();
             for (RequestInfo<ScanSettings> entry : mPendingScans) {
                 settings.scanType = mergeScanTypes(settings.scanType, entry.settings.type);
                 if (are6GhzChannelsAvailable) {
@@ -1415,6 +1461,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     hiddenNetwork.ssid = srcNetwork.ssid;
                     hiddenNetworkList.add(hiddenNetwork);
                 }
+                mergeVendorIes(vendorIesList, entry.settings);
                 if ((entry.settings.reportEvents & WifiScanner.REPORT_EVENT_FULL_SCAN_RESULT)
                         != 0) {
                     bucketSettings.report_events |= WifiScanner.REPORT_EVENT_FULL_SCAN_RESULT;
@@ -1433,6 +1480,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     settings.hiddenNetworks[numHiddenNetworks++] = hiddenNetwork;
                 }
             }
+            settings.vendorIes = getVendorIesBytesFromVendorIesList(vendorIesList);
 
             channels.fillBucketSettings(bucketSettings, Integer.MAX_VALUE);
             settings.buckets = new WifiNative.BucketSettings[] {bucketSettings};
