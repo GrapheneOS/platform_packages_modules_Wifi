@@ -1989,7 +1989,7 @@ public class WifiManager {
      *
      * @return a list of network configurations in the form of a list
      * of {@link WifiConfiguration} objects.
-     * @throws {@link java.lang.SecurityException} if the caller is not allowed to call this API
+     * @throws SecurityException if the caller is not allowed to call this API
      */
     @RequiresPermission(ACCESS_WIFI_STATE)
     @NonNull
@@ -2065,7 +2065,7 @@ public class WifiManager {
      * @return The WifiConfiguration representation of the connected wifi network providing
      * internet, or null if wifi is not connected.
      *
-     * @throws {@link SecurityException} if caller does not have the required permissions
+     * @throws SecurityException if caller does not have the required permissions
      * @hide
      **/
     @SystemApi
@@ -2223,7 +2223,7 @@ public class WifiManager {
             MANAGE_WIFI_NETWORK_SELECTION
     })
     @SystemApi
-    public void getNetworkSelectionConfig(@NonNull Executor executor,
+    public void getNetworkSelectionConfig(@NonNull @CallbackExecutor Executor executor,
             @NonNull Consumer<WifiNetworkSelectionConfig> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
@@ -2580,10 +2580,10 @@ public class WifiManager {
      *            If the {@link WifiConfiguration} has an Http Proxy set
      *            the calling app must be System, or be provisioned as the Profile or Device Owner.
      * @return A {@link AddNetworkResult} Object.
-     * @throws {@link SecurityException} if the calling app is not a Device Owner (DO),
+     * @throws SecurityException if the calling app is not a Device Owner (DO),
      *                           Profile Owner (PO), system app, or a privileged app that has one of
      *                           the permissions required by this API.
-     * @throws {@link IllegalArgumentException} if the input configuration is null or if the
+     * @throws IllegalArgumentException if the input configuration is null or if the
      *            security type in input configuration is not supported.
      */
     @RequiresPermission(anyOf = {
@@ -3116,7 +3116,7 @@ public class WifiManager {
      *
      * @param networkSuggestions List of network suggestions provided by the app.
      * @return Status code for the operation. One of the STATUS_NETWORK_SUGGESTIONS_ values.
-     * @throws {@link SecurityException} if the caller is missing required permissions.
+     * @throws SecurityException if the caller is missing required permissions.
      * @see WifiNetworkSuggestion#equals(Object)
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
@@ -3372,7 +3372,7 @@ public class WifiManager {
      * be called by a Device Owner (DO) app.
      *
      * @return {@code true} if at least one network is removed, {@code false} otherwise
-     * @throws {@link java.lang.SecurityException} if the caller is not a Device Owner app
+     * @throws SecurityException if the caller is not a Device Owner app
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
     public boolean removeNonCallerConfiguredNetworks() {
@@ -4291,7 +4291,7 @@ public class WifiManager {
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @RequiresPermission(NEARBY_WIFI_DEVICES)
-    public void getChannelData(@NonNull Executor executor,
+    public void getChannelData(@NonNull @CallbackExecutor Executor executor,
             @NonNull Consumer<List<Bundle>> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
@@ -4613,7 +4613,7 @@ public class WifiManager {
      * @param enabled {@code true} to enable, {@code false} to disable.
      * @return {@code false} if the request cannot be satisfied; {@code true} indicates that wifi is
      *         either already in the requested state, or in progress toward the requested state.
-     * @throws  {@link java.lang.SecurityException} if the caller is missing required permissions.
+     * @throws  SecurityException if the caller is missing required permissions.
      *
      * @deprecated Starting with Build.VERSION_CODES#Q, applications are not allowed to
      * enable/disable Wi-Fi.
@@ -5316,7 +5316,7 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETUP_WIZARD,
             NEARBY_WIFI_DEVICES})
     public void startLocalOnlyHotspot(@NonNull SoftApConfiguration config,
-            @Nullable Executor executor,
+            @Nullable @CallbackExecutor Executor executor,
             @Nullable LocalOnlyHotspotCallback callback) {
         Objects.requireNonNull(config);
         startLocalOnlyHotspotInternal(config, executor, callback);
@@ -5332,7 +5332,7 @@ public class WifiManager {
      */
     private void startLocalOnlyHotspotInternal(
             @Nullable SoftApConfiguration config,
-            @Nullable Executor executor,
+            @Nullable @CallbackExecutor Executor executor,
             @Nullable LocalOnlyHotspotCallback callback) {
         if (executor == null) {
             executor = mContext.getMainExecutor();
@@ -5651,7 +5651,8 @@ public class WifiManager {
     @Nullable
     @SystemApi
     @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
-    public void queryLastConfiguredTetheredApPassphraseSinceBoot(@NonNull Executor executor,
+    public void queryLastConfiguredTetheredApPassphraseSinceBoot(
+            @NonNull @CallbackExecutor Executor executor,
             @NonNull Consumer<String> resultCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultCallback, "resultsCallback cannot be null");
@@ -6409,7 +6410,7 @@ public class WifiManager {
          */
         LocalOnlyHotspotCallbackProxy(
                 @NonNull WifiManager manager,
-                @NonNull Executor executor,
+                @NonNull @CallbackExecutor Executor executor,
                 @Nullable LocalOnlyHotspotCallback callback) {
             mWifiManager = new WeakReference<>(manager);
             mExecutor = executor;
@@ -6889,7 +6890,7 @@ public class WifiManager {
      * @throws SecurityException if the caller does not have permission.
      * @throws NullPointerException if the caller provided invalid inputs.
      */
-    public void queryAutojoinGlobal(@NonNull Executor executor,
+    public void queryAutojoinGlobal(@NonNull @CallbackExecutor Executor executor,
             @NonNull Consumer<Boolean> resultsCallback) {
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
@@ -9422,7 +9423,8 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             android.Manifest.permission.NETWORK_STACK,
             NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK})
-    public void getLastCallerInfoForApi(@ApiType int apiType, @NonNull Executor executor,
+    public void getLastCallerInfoForApi(@ApiType int apiType,
+            @NonNull @CallbackExecutor Executor executor,
             @NonNull BiConsumer<String, Boolean> resultsCallback) {
         if (executor == null) {
             throw new IllegalArgumentException("executor can't be null");
