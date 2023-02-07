@@ -197,6 +197,13 @@
           <item type="bool" name="config_wifiPnoRecencySortingEnabled" />
           <item type="integer" name="config_wifiMaxPnoSsidCount" />
           <item type="integer" name="config_wifiPnoWatchdogIntervalMs" />
+          <item type="bool" name="config_wifiSwPnoEnabled" />
+          <item type="integer" name="config_wifiSwPnoFastTimerMs" />
+          <item type="integer" name="config_wifiSwPnoFastTimerIterations" />
+          <item type="integer" name="config_wifiSwPnoSlowTimerMs" />
+          <item type="integer" name="config_wifiSwPnoSlowTimerIterations" />
+          <item type="integer" name="config_wifiSwPnoSlowTimerMargin" />
+          <item type="integer" name="config_wifiSwPnoMobilityStateTimerIterations" />
           <item type="bool" name="config_wifiSuspendOptimizationsEnabled" />
           <item type="bool" name="config_wifiHighMovementNetworkSelectionOptimizationEnabled" />
           <item type="bool" name="config_wifiScanOnCellularDataLossEnabled" />
