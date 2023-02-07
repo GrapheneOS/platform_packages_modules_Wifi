@@ -549,7 +549,7 @@ public class WifiConnectivityManager {
                 mWifiBlocklistMonitor.tryEnablingBlockedBssids(scanDetails);
         for (ScanDetail scanDetail : enabledDetails) {
             WifiConfiguration config = mConfigManager.getSavedNetworkForScanDetail(scanDetail);
-            if (config != null) {
+            if (config != null && config.getNetworkSelectionStatus().isNetworkTemporaryDisabled()) {
                 mConfigManager.updateNetworkSelectionStatus(config.networkId,
                         WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
             }

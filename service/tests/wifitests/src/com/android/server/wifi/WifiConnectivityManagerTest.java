@@ -3821,13 +3821,13 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void verifyBlocklistRefreshedAfterScanResults() {
         WifiConfiguration disabledConfig = WifiConfigurationTestUtil.createPskNetwork();
+        disabledConfig.getNetworkSelectionStatus().setNetworkSelectionStatus(
+                WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_TEMPORARY_DISABLED);
         List<ScanDetail> mockScanDetails = new ArrayList<>();
         mockScanDetails.add(mock(ScanDetail.class));
         when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockScanDetails);
         when(mWifiConfigManager.getSavedNetworkForScanDetail(any())).thenReturn(
                 disabledConfig);
-
-        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
 
         InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
         // Force a connectivity scan
@@ -3837,6 +3837,35 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         inOrder.verify(mWifiBlocklistMonitor).tryEnablingBlockedBssids(any());
         inOrder.verify(mWifiConfigManager).updateNetworkSelectionStatus(disabledConfig.networkId,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
+        inOrder.verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(anySet());
+    }
+
+    /**
+     *  Verify that a blocklisted BSSID becomes available only after
+     *  BSSID_BLOCKLIST_EXPIRE_TIME_MS, but will not re-enable a permanently disabled
+     *  WifiConfiguration.
+     */
+    @Test
+    public void verifyBlocklistRefreshedAfterScanResultsButIgnorePermanentlyDisabledConfigs() {
+        WifiConfiguration disabledConfig = WifiConfigurationTestUtil.createPskNetwork();
+        disabledConfig.getNetworkSelectionStatus().setNetworkSelectionStatus(
+                WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED);
+        List<ScanDetail> mockScanDetails = new ArrayList<>();
+        mockScanDetails.add(mock(ScanDetail.class));
+        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockScanDetails);
+        when(mWifiConfigManager.getSavedNetworkForScanDetail(any())).thenReturn(
+                disabledConfig);
+
+        InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
+        // Force a connectivity scan
+        inOrder.verify(mWifiBlocklistMonitor, never())
+                .updateAndGetBssidBlocklistForSsids(anySet());
+        mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
+        mLooper.dispatchAll();
+        inOrder.verify(mWifiBlocklistMonitor).tryEnablingBlockedBssids(any());
+        inOrder.verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
+                disabledConfig.networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
         inOrder.verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(anySet());
     }
