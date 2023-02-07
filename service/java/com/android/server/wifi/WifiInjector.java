@@ -1144,4 +1144,9 @@ public class WifiInjector {
     public BufferedReader createBufferedReader(String filename) throws FileNotFoundException {
         return new BufferedReader(new FileReader(filename));
     }
+
+    @NonNull
+    public WifiKeyStore getWifiKeyStore() {
+        return mWifiKeyStore;
+    }
 }
