@@ -1062,4 +1062,9 @@ public class WifiInjector {
     public LinkProbeManager getLinkProbeManager() {
         return mLinkProbeManager;
     }
+
+    @NonNull
+    public WifiKeyStore getWifiKeyStore() {
+        return mWifiKeyStore;
+    }
 }
