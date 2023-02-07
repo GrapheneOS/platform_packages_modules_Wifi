@@ -98,7 +98,6 @@ public class SoftApManager implements ActiveModeManager {
     private final ClientModeImplMonitor mCmiMonitor;
     private final ActiveModeWarden mActiveModeWarden;
     private final SoftApNotifier mSoftApNotifier;
-    private final BatteryManager mBatteryManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
 
     @VisibleForTesting
@@ -175,7 +174,7 @@ public class SoftApManager implements ActiveModeManager {
 
     private long mDefaultShutdownIdleInstanceInBridgedModeTimeoutMillis;
 
-    private final boolean mIsDisableShutDownBridgedModeIdleInstanceTimerWhenCharging;
+    private final boolean mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged;
 
     private static final SimpleDateFormat FORMATTER = new SimpleDateFormat("MM-dd HH:mm:ss.SSS");
 
@@ -197,7 +196,7 @@ public class SoftApManager implements ActiveModeManager {
     @NonNull
     private Set<Integer> mSafeChannelFrequencyList = new HashSet<>();
 
-    private boolean mIsCharging = false;
+    private boolean mIsPlugged = false;
 
     /**
      * A map stores shutdown timeouts for each Soft Ap instance.
@@ -339,7 +338,6 @@ public class SoftApManager implements ActiveModeManager {
             @NonNull FrameworkFacade framework,
             @NonNull WifiNative wifiNative,
             @NonNull CoexManager coexManager,
-            @NonNull BatteryManager batteryManager,
             @NonNull InterfaceConflictManager interfaceConflictManager,
             @NonNull Listener<SoftApManager> listener,
             @NonNull WifiServiceImpl.SoftApCallbackInternal callback,
@@ -360,7 +358,6 @@ public class SoftApManager implements ActiveModeManager {
         mSoftApNotifier = softApNotifier;
         mWifiNative = wifiNative;
         mCoexManager = coexManager;
-        mBatteryManager = batteryManager;
         mInterfaceConflictManager = interfaceConflictManager;
         if (SdkLevel.isAtLeastS()) {
             mCoexListener = new CoexListener() {
@@ -408,8 +405,7 @@ public class SoftApManager implements ActiveModeManager {
         mDefaultShutdownIdleInstanceInBridgedModeTimeoutMillis = mContext.getResources().getInteger(
                 R.integer
                 .config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond);
-
-        mIsDisableShutDownBridgedModeIdleInstanceTimerWhenCharging = mContext.getResources()
+        mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged = mContext.getResources()
                 .getBoolean(R.bool
                 .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging);
         mCmiMonitor = cmiMonitor;
@@ -893,7 +889,7 @@ public class SoftApManager implements ActiveModeManager {
         public static final int CMD_SAFE_CHANNEL_FREQUENCY_CHANGED = 14;
         public static final int CMD_HANDLE_WIFI_CONNECTED = 15;
         public static final int CMD_UPDATE_COUNTRY_CODE = 16;
-        public static final int CMD_CHARGING_STATE_CHANGED = 17;
+        public static final int CMD_PLUGGED_STATE_CHANGED = 17;
 
         private final State mActiveState = new ActiveState();
         private final State mIdleState = new IdleState();
@@ -1136,15 +1132,11 @@ public class SoftApManager implements ActiveModeManager {
         }
 
         private class StartedState extends State {
-            BroadcastReceiver mBatteryChargingReceiver = new BroadcastReceiver() {
+            BroadcastReceiver mBatteryPluggedReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    String action = intent.getAction();
-                    if (action.equals(Intent.ACTION_POWER_CONNECTED)) {
-                        sendMessage(CMD_CHARGING_STATE_CHANGED, 1);
-                    } else if (action.equals(Intent.ACTION_POWER_DISCONNECTED)) {
-                        sendMessage(CMD_CHARGING_STATE_CHANGED, 0);
-                    }
+                    sendMessage(CMD_PLUGGED_STATE_CHANGED,
+                            intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0));
                 }
             };
 
@@ -1213,12 +1205,12 @@ public class SoftApManager implements ActiveModeManager {
                 final boolean isTetheringInterface =
                         TextUtils.equals(mApInterfaceName, instance);
                 final boolean timeoutEnabled = isTetheringInterface ? mTimeoutEnabled
-                        : (mBridgedModeOpportunisticsShutdownTimeoutEnabled && !mIsCharging);
+                        : (mBridgedModeOpportunisticsShutdownTimeoutEnabled && !mIsPlugged);
                 final int clientNumber = isTetheringInterface
                         ? getConnectedClientList().size()
                         : mConnectedClientWithApInfoMap.get(instance).size();
                 Log.d(getTag(), "rescheduleTimeoutMessageIfNeeded " + instance + ", timeoutEnabled="
-                        + timeoutEnabled + ", isCharging" + mIsCharging + ", clientNumber="
+                        + timeoutEnabled + ", isPlugged=" + mIsPlugged + ", clientNumber="
                         + clientNumber);
                 if (!timeoutEnabled || clientNumber != 0) {
                     cancelTimeoutMessage(instance);
@@ -1492,12 +1484,10 @@ public class SoftApManager implements ActiveModeManager {
                 if (SdkLevel.isAtLeastS()) {
                     mCoexManager.registerCoexListener(mCoexListener);
                 }
-                if (mIsDisableShutDownBridgedModeIdleInstanceTimerWhenCharging) {
-                    IntentFilter filter = new IntentFilter();
-                    filter.addAction(Intent.ACTION_POWER_CONNECTED);
-                    filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-                    mContext.registerReceiver(mBatteryChargingReceiver, filter);
-                    mIsCharging = mBatteryManager.isCharging();
+                if (mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged) {
+                    Intent stickyIntent = mContext.registerReceiver(mBatteryPluggedReceiver,
+                            new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                    mIsPlugged = stickyIntent.getIntExtra(BatteryManager.EXTRA_STATUS, 0) != 0;
                 }
                 mSarManager.setSapWifiState(WifiManager.WIFI_AP_STATE_ENABLED);
                 Log.d(getTag(), "Resetting connected clients on start");
@@ -1535,8 +1525,8 @@ public class SoftApManager implements ActiveModeManager {
                     cancelTimeoutMessage(key);
                 }
                 mSoftApTimeoutMessageMap.clear();
-                if (mIsDisableShutDownBridgedModeIdleInstanceTimerWhenCharging) {
-                    mContext.unregisterReceiver(mBatteryChargingReceiver);
+                if (mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged) {
+                    mContext.unregisterReceiver(mBatteryPluggedReceiver);
                 }
                 // Need this here since we are exiting |Started| state and won't handle any
                 // future CMD_INTERFACE_STATUS_CHANGED events after this point
@@ -1827,10 +1817,10 @@ public class SoftApManager implements ActiveModeManager {
                                     : targetShutDownInstance);
                         }
                         break;
-                    case CMD_CHARGING_STATE_CHANGED:
-                        boolean newIsCharging = (message.arg1 != 0);
-                        if (mIsCharging != newIsCharging) {
-                            mIsCharging = newIsCharging;
+                    case CMD_PLUGGED_STATE_CHANGED:
+                        boolean newIsPlugged = (message.arg1 != 0);
+                        if (mIsPlugged != newIsPlugged) {
+                            mIsPlugged = newIsPlugged;
                             if (mCurrentSoftApInfoMap.size() == 2) {
                                 rescheduleBothBridgedInstancesTimeoutMessage();
                             }
