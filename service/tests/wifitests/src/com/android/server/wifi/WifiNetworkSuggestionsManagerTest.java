@@ -487,7 +487,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         new ArrayList<WifiNetworkSuggestion>() {{ add(removingSuggestion); }},
                         TEST_UID_1, TEST_PACKAGE_1));
         // Make sure remove the keyStore with the internal config
-        verify(mWifiKeyStore).removeKeys(networkSuggestion1.wifiConfiguration.enterpriseConfig);
+        verify(mWifiKeyStore).removeKeys(eq(networkSuggestion1.wifiConfiguration.enterpriseConfig),
+                eq(false));
         verify(mLruConnectionTracker).removeNetwork(any());
     }
 
