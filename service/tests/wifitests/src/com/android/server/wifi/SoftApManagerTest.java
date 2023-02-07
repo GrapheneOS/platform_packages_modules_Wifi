@@ -3532,7 +3532,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     public void testSchedulesTimeoutTimerWhenPluggedChanged() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         when(mResources.getBoolean(R.bool
-                  .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenPlugged))
+                  .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging))
                 .thenReturn(true);
 
         SoftApModeConfiguration apConfig = new SoftApModeConfiguration(

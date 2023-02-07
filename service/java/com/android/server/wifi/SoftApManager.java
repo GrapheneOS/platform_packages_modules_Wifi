@@ -410,7 +410,7 @@ public class SoftApManager implements ActiveModeManager {
                 .config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond);
         mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged = mContext.getResources()
                 .getBoolean(R.bool
-                .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenPlugged);
+                .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging);
         mCmiMonitor = cmiMonitor;
         mActiveModeWarden = activeModeWarden;
         mCmiMonitor.registerListener(mCmiListener);
