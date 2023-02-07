@@ -414,6 +414,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock DevicePolicyManager mDevicePolicyManager;
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiKeyStore mWifiKeyStore;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
 
@@ -565,6 +566,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mContext.getSystemService(DevicePolicyManager.class)).thenReturn(mDevicePolicyManager);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiInjector.getWifiKeyStore()).thenReturn(mWifiKeyStore);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -6127,7 +6129,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         final String fqdn = "example.com";
-        WifiConfiguration network = WifiConfigurationTestUtil.createOpenNetwork();
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.networkId = TEST_NETWORK_ID;
+        WifiConfiguration eapNetwork = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.TLS, WifiEnterpriseConfig.Phase2.NONE);
+        eapNetwork.networkId = TEST_NETWORK_ID + 1;
         PasspointConfiguration config = new PasspointConfiguration();
         HomeSp homeSp = new HomeSp();
         homeSp.setFqdn(fqdn);
@@ -6137,7 +6143,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         config.setCredential(credential);
 
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
-                .thenReturn(Arrays.asList(network));
+                .thenReturn(Arrays.asList(openNetwork, eapNetwork));
         when(mPasspointManager.getProviderConfigs(anyInt(), anyBoolean()))
                 .thenReturn(Arrays.asList(config));
 
@@ -6149,7 +6155,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiConfigManager).removeNetwork(
-                network.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+                openNetwork.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+        verify(mWifiConfigManager).removeNetwork(
+                eapNetwork.networkId, Binder.getCallingUid(), TEST_PACKAGE_NAME);
+        verify(mWifiKeyStore).removeKeys(eapNetwork.enterpriseConfig, true);
         verify(mPasspointManager).removeProvider(anyInt(), anyBoolean(), eq(config.getUniqueId()),
                 isNull());
         verify(mPasspointManager).clearAnqpRequestsAndFlushCache();
