@@ -267,6 +267,7 @@
           <item type="string" name="config_wifiBugreportDeepLink" />
           <item type="bool" name="config_wifiWaitForDestroyedListeners" />
 	  <item type="integer" name="config_wifiImsiProtectionNotificationDelaySeconds" />
+          <item type="bool" name="config_wifiNiapModeEnabled" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->

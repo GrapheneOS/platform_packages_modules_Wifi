@@ -1023,4 +1023,5 @@
     <!-- Indicates the number of seconds to delay the next IMSI protection notification after user
          dismiss the current one-->
     <integer translatable="false" name="config_wifiImsiProtectionNotificationDelaySeconds">300</integer>
+    <bool translatable="false" name="config_wifiNiapModeEnabled">false</bool>
 </resources>
