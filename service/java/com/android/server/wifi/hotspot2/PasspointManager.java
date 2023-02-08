@@ -1219,9 +1219,10 @@ public class PasspointManager {
      * Invoked when a Passpoint network was successfully connected based on the credentials
      * provided by the given Passpoint provider
      *
-     * @param uniqueId The unique identifier of the Passpointprofile
+     * @param uniqueId The unique identifier of the Passpoint profile.
+     * @param ssid The SSID of the connected Passpoint network.
      */
-    public void onPasspointNetworkConnected(String uniqueId) {
+    public void onPasspointNetworkConnected(String uniqueId, @Nullable String ssid) {
         PasspointProvider provider = mProviders.get(uniqueId);
         if (provider == null) {
             Log.e(TAG, "Passpoint network connected without provider: " + uniqueId);
@@ -1231,6 +1232,7 @@ public class PasspointManager {
             // First successful connection using this provider.
             provider.setHasEverConnected(true);
         }
+        provider.setMostRecentSsid(ssid);
     }
 
     /**

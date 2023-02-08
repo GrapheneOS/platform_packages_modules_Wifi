@@ -1876,8 +1876,9 @@ public class PasspointManagerTest extends WifiBaseTest {
         PasspointProvider provider =
                 addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME, TEST_PACKAGE, false, null);
         when(provider.getHasEverConnected()).thenReturn(false);
-        mManager.onPasspointNetworkConnected(provider.getConfig().getUniqueId());
+        mManager.onPasspointNetworkConnected(provider.getConfig().getUniqueId(), TEST_SSID);
         verify(provider).setHasEverConnected(eq(true));
+        verify(provider).setMostRecentSsid(eq(TEST_SSID));
     }
 
     /**
@@ -1892,7 +1893,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         PasspointProvider provider =
                 addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME, TEST_PACKAGE, false, null);
         when(provider.getHasEverConnected()).thenReturn(true);
-        mManager.onPasspointNetworkConnected(TEST_FQDN);
+        mManager.onPasspointNetworkConnected(TEST_FQDN, TEST_SSID);
         verify(provider, never()).setHasEverConnected(anyBoolean());
     }
 
