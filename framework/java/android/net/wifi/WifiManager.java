@@ -3848,6 +3848,11 @@ public class WifiManager {
      * @hide
      */
     public static final long WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS = 1L << 57;
+    /**
+     * Support for TID-To-Link Mapping negotiation.
+     * @hide
+     */
+    public static final long WIFI_FEATURE_T2LM_NEGOTIATION = 1L << 58;
 
     private long getSupportedFeatures() {
         try {
@@ -8508,6 +8513,13 @@ public class WifiManager {
      */
     public boolean isDualBandSimultaneousSupported() {
         return isFeatureSupported(WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS);
+    }
+
+    /**
+     * @return true if this device supports TID-To-Link Mapping Negotiation.
+     */
+    public boolean isTidToLinkMappingNegotiationSupported() {
+        return isFeatureSupported(WIFI_FEATURE_T2LM_NEGOTIATION);
     }
 
     /**

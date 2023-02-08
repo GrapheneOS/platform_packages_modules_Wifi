@@ -492,6 +492,7 @@ package android.net.wifi {
     method public boolean isStaConcurrencyForMultiInternetSupported();
     method public void isTdlsOperationCurrentlyAvailable(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Boolean>);
     method public boolean isTdlsSupported();
+    method public boolean isTidToLinkMappingNegotiationSupported();
     method public boolean isTlsMinimumVersionSupported();
     method public boolean isTlsV13Supported();
     method public boolean isTrustOnFirstUseSupported();
