@@ -297,17 +297,6 @@ public class SelfRecoveryTest extends WifiBaseTest {
     }
 
     /**
-     * Verifies that when the self recovery on interface added flag is enabled, a STA interface down
-     * event will not disable wifi.
-     */
-    @Test
-    public void testStaIfaceDownDoesNotDisableWifi() {
-        when(mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()).thenReturn(true);
-        mSelfRecovery.trigger(SelfRecovery.REASON_STA_IFACE_DOWN);
-        verify(mActiveModeWarden, never()).recoveryDisableWifi();
-    }
-
-    /**
      * Verifies that when the self recovery on interface added flag is enabled, an interface added
      * event will trigger recovery.
      */
