@@ -572,6 +572,7 @@ package android.net.wifi {
   public class WifiManager {
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicy(@NonNull android.net.wifi.QosPolicyParams, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
+    method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void addWifiNetworkStateChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addWifiVerboseLoggingStatusChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoin(int, boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoinPasspoint(@NonNull String, boolean);
@@ -626,6 +627,7 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void removeAppState(int, @NonNull String);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void removeOnWifiUsabilityStatsListener(@NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void removeQosPolicy(int);
+    method public void removeWifiNetworkStateChangedListener(@NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeWifiVerboseLoggingStatusChangedListener(@NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.RESTART_WIFI_SUBSYSTEM) public void restartWifiSubsystem();
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void restoreBackupData(@NonNull byte[]);
@@ -871,6 +873,21 @@ package android.net.wifi {
     method @Deprecated public default void onStart(int);
     method public default void onStart(@NonNull android.net.wifi.WifiConnectedSessionInfo);
     method public void onStop(int);
+  }
+
+  public static interface WifiManager.WifiNetworkStateChangedListener {
+    method public void onWifiNetworkStateChanged(int, int);
+    field public static final int WIFI_NETWORK_STATUS_AUTHENTICATING = 4; // 0x4
+    field public static final int WIFI_NETWORK_STATUS_CONNECTED = 6; // 0x6
+    field public static final int WIFI_NETWORK_STATUS_CONNECTING = 3; // 0x3
+    field public static final int WIFI_NETWORK_STATUS_DISCONNECTED = 7; // 0x7
+    field public static final int WIFI_NETWORK_STATUS_FAILED = 8; // 0x8
+    field public static final int WIFI_NETWORK_STATUS_IDLE = 1; // 0x1
+    field public static final int WIFI_NETWORK_STATUS_OBTAINING_IPADDR = 5; // 0x5
+    field public static final int WIFI_NETWORK_STATUS_SCANNING = 2; // 0x2
+    field public static final int WIFI_ROLE_CLIENT_PRIMARY = 1; // 0x1
+    field public static final int WIFI_ROLE_CLIENT_SECONDARY_INTERNET = 2; // 0x2
+    field public static final int WIFI_ROLE_CLIENT_SECONDARY_LOCAL_ONLY = 3; // 0x3
   }
 
   public static interface WifiManager.WifiVerboseLoggingStatusChangedListener {

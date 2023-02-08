@@ -157,6 +157,7 @@ import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
+import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
@@ -1559,6 +1560,29 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.unregisterSubsystemRestartCallback(mSubsystemRestartCallback);
         mLooper.dispatchAll();
         verify(mActiveModeWarden).unregisterSubsystemRestartCallback(mSubsystemRestartCallback);
+    }
+
+    @Test
+    public void testAddWifiNetworkStateChangedListener() throws Exception {
+        IWifiNetworkStateChangedListener testListener =
+                mock(IWifiNetworkStateChangedListener.class);
+
+        // Test success case
+        mWifiServiceImpl.addWifiNetworkStateChangedListener(testListener);
+        mLooper.dispatchAll();
+        verify(mActiveModeWarden).addWifiNetworkStateChangedListener(testListener);
+
+        // Expect exception for null listener
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.addWifiNetworkStateChangedListener(null));
+
+        // Expect exception when caller has no permission
+        doThrow(new SecurityException()).when(mContext)
+                .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                        eq("WifiService"));
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.addWifiNetworkStateChangedListener(testListener));
+        verify(mActiveModeWarden).addWifiNetworkStateChangedListener(testListener);
     }
 
     /**

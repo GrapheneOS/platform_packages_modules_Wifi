@@ -2986,6 +2986,25 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals("DisconnectedState", getCurrentState().getName());
     }
 
+    @Test
+    public void testTriggerWifiNetworkStateChangedListener() throws Exception {
+        InOrder inOrder = inOrder(mActiveModeWarden);
+        connect();
+        inOrder.verify(mActiveModeWarden).onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTING);
+        inOrder.verify(mActiveModeWarden).onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener
+                        .WIFI_NETWORK_STATUS_OBTAINING_IPADDR);
+        inOrder.verify(mActiveModeWarden).onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTED);
+        inOrder.verify(mActiveModeWarden, never()).onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_DISCONNECTED);
+    }
+
     /**
      * Verifies that WifiInfo is updated upon CMD_ASSOCIATED_BSSID event.
      */
@@ -3116,6 +3135,9 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void testReconnectCommandWhenDisconnected() throws Exception {
         // Connect to network with |TEST_BSSID_STR|, |sFreq|, and then disconnect.
         disconnect();
+        verify(mActiveModeWarden).onNetworkStateChanged(
+                WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY,
+                WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_DISCONNECTED);
 
         mCmi.reconnect(ClientModeImpl.WIFI_WORK_SOURCE);
         mLooper.dispatchAll();

@@ -23,7 +23,11 @@ import android.Manifest;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.wifi.IWifiScanner;
 import android.net.wifi.IWifiScannerListener;
 import android.net.wifi.ScanResult;
@@ -59,6 +63,7 @@ import com.android.internal.util.StateMachine;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ClientModeImpl;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiLocalServices;
 import com.android.server.wifi.WifiLog;
@@ -72,6 +77,7 @@ import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WorkSourceUtil;
+import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -599,6 +605,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     private static final int CMD_SCAN_FAILED = BASE + 10;
     private static final int CMD_PNO_NETWORK_FOUND = BASE + 11;
     private static final int CMD_PNO_SCAN_FAILED = BASE + 12;
+    private static final int CMD_SW_PNO_SCAN = BASE + 14;
+
 
     private final Context mContext;
     private final Looper mLooper;
@@ -626,6 +634,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     private final WifiNative mWifiNative;
     private final WifiManager mWifiManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
+    private final DeviceConfigFacade mDeviceConfigFacade;
 
     WifiScanningServiceImpl(Context context, Looper looper,
             WifiScannerImpl.WifiScannerImplFactory scannerImplFactory,
@@ -643,6 +652,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         mLog = wifiInjector.makeLog(TAG);
         mWifiPermissionsUtil = wifiInjector.getWifiPermissionsUtil();
         mWifiNative = wifiInjector.getWifiNative();
+        mDeviceConfigFacade = wifiInjector.getDeviceConfigFacade();
         // Wifi service is always started before other wifi services. So, there is no problem
         // obtaining WifiManager in the constructor here.
         mWifiManager = mContext.getSystemService(WifiManager.class);
@@ -2132,6 +2142,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         private final DefaultState mDefaultState = new DefaultState();
         private final StartedState mStartedState = new StartedState();
         private final HwPnoScanState mHwPnoScanState = new HwPnoScanState();
+        private final SwPnoScanState mSwPnoScanState = new SwPnoScanState();
         private final SingleScanState mSingleScanState = new SingleScanState();
         private InternalClientInfo mInternalClientInfo;
 
@@ -2153,6 +2164,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 addState(mStartedState, mDefaultState);
                     addState(mHwPnoScanState, mStartedState);
                         addState(mSingleScanState, mHwPnoScanState);
+                    addState(mSwPnoScanState, mStartedState);
             // CHECKSTYLE:ON IndentationCheck
 
             setInitialState(mDefaultState);
@@ -2160,7 +2172,6 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
         public void removePnoSettings(ClientInfo ci) {
             mActivePnoScans.removeAllForClient(ci);
-            transitionTo(mStartedState);
         }
 
         /**
@@ -2357,7 +2368,13 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                                 scanParams.pnoSettings.isConnected)) {
                             deferMessage(msg);
                             transitionTo(mHwPnoScanState);
+                        } else if (mContext.getResources().getBoolean(
+                                R.bool.config_wifiSwPnoEnabled)
+                                && mDeviceConfigFacade.isSoftwarePnoEnabled()) {
+                            deferMessage(msg);
+                            transitionTo(mSwPnoScanState);
                         } else {
+                            Log.w(TAG, "PNO is not available");
                             ClientInfo ci = mClients.get(scanParams.listener);
                             ci.replyFailed(WifiScanner.REASON_INVALID_REQUEST, "not supported");
                         }
@@ -2365,7 +2382,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     case WifiScanner.CMD_STOP_PNO_SCAN:
                         scanParams = (ScanParams) msg.obj;
                         ClientInfo ci = mClients.get(scanParams.listener);
-                        ci.replyFailed(WifiScanner.REASON_UNSPECIFIED, "no scan running");
+                        if (ci != null) {
+                            ci.cleanup();
+                        }
                         break;
                     default:
                         return NOT_HANDLED;
@@ -2412,6 +2431,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                             mWifiMetrics.getScanMetrics().logPnoScanEvent(
                                     WifiMetrics.ScanMetrics.PNO_SCAN_STATE_FAILED_TO_START);
                             ci.replyFailed(WifiScanner.REASON_INVALID_REQUEST, "bad request");
+                            ci.cleanup();
                             transitionTo(mStartedState);
                         }
                         break;
@@ -2446,6 +2466,324 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                                 WifiMetrics.ScanMetrics.PNO_SCAN_STATE_FAILED);
                         sendPnoScanFailedToAllAndClear(
                                 WifiScanner.REASON_UNSPECIFIED, "pno scan failed");
+                        transitionTo(mStartedState);
+                        break;
+                    default:
+                        return NOT_HANDLED;
+                }
+                return HANDLED;
+            }
+        }
+
+        class SwPnoScanState extends State {
+            private final AlarmManager mSwPnoAlarmManager;
+            private final SwPnoAlarmReceiver mSwPnoAlarmReceiver = new SwPnoAlarmReceiver();
+            @VisibleForTesting
+            public static final String SW_PNO_ALARM_INTENT_ACTION =
+                    "com.android.server.wifi.scanner.WifiPnoScanStateMachine.SwPnoScanState"
+                            + ".SW_PNO_ALARM";
+            PendingIntent mPendingIntentSwPno;
+            private final int mSwPnoTimerMarginMs;
+            @VisibleForTesting
+            public static final String SW_PNO_UPPER_BOUND_ALARM_INTENT_ACTION =
+                    "com.android.server.wifi.scanner.WifiPnoScanStateMachine.SwPnoScanState"
+                            + ".SW_PNO_UPPERBOUND_ALARM";
+            PendingIntent mPendingIntentSwPnoUpperBound;
+            private SwPnoScheduler mSwPnoScheduler = null;
+            private ScanParams mScanParams = null;
+            private ClientInfo mClientInfo = null;
+
+
+            private final class SwPnoScheduler {
+
+                private final class SwPnoScheduleInfo {
+                    /**
+                     * The timer is initially scheduled with an interval equal to mTimerBaseMs.
+                     * If mBackoff is true, at each iteration the interval will increase
+                     * proportionally to the elapsed iterations.
+                     * The schedule is repeated up to mMaxIterations iterations.
+                     */
+                    private final int mMaxIterations;
+                    private final int mTimerBaseMs;
+                    private final boolean mBackoff;
+                    /**
+                     * Whether the alarm should be exact or not.
+                     * Inexact alarms are delivered when the system thinks it is most efficient.
+                     */
+                    private final boolean mExact;
+
+
+                    SwPnoScheduleInfo(int maxIterations, boolean exact, int timerBaseMs,
+                            boolean backoff) {
+                        if (maxIterations < 1 || timerBaseMs < 1) {
+                            Log.wtf(TAG, "Invalid Sw PNO Schedule Info.");
+                            throw new IllegalArgumentException("Invalid Sw PNO Schedule Info");
+                        }
+                        this.mMaxIterations = maxIterations;
+                        this.mExact = exact;
+                        this.mTimerBaseMs = timerBaseMs;
+                        this.mBackoff = backoff;
+                    }
+                }
+                private List<SwPnoScheduleInfo> mSwPnoScheduleInfos = new ArrayList<>();
+                SwPnoScheduleInfo mCurrentSchedule;
+                Iterator<SwPnoScheduleInfo> mScheduleIterator;
+                int mIteration = 0;
+
+                /**
+                 * Append a new schedule info at the end of the schedule queue.
+                 * @param maxIterations Number of times the current schedule must be repeated
+                 * @param exact Whether the alarms are scheduled exactly or not
+                 * @param timerBaseMs Initial alarm interval
+                 * @param backoff Whether the interval should increase at each iteration or not
+                 */
+                void addSchedule(int maxIterations, boolean exact, int timerBaseMs,
+                        boolean backoff) {
+                    mSwPnoScheduleInfos.add(new SwPnoScheduleInfo(maxIterations, exact, timerBaseMs,
+                            backoff));
+                }
+
+                boolean start() {
+                    if (mSwPnoScheduleInfos.isEmpty()) {
+                        Log.wtf(TAG, "No SwPno Schedule Found");
+                        return false;
+                    }
+                    mScheduleIterator = mSwPnoScheduleInfos.iterator();
+                    mCurrentSchedule = mScheduleIterator.next();
+                    return true;
+                }
+
+                boolean next() {
+                    if (mCurrentSchedule.mMaxIterations > mIteration) {
+                        mIteration++;
+                        return true;
+                    } else if (mScheduleIterator.hasNext()) {
+                        mCurrentSchedule = mScheduleIterator.next();
+                        mIteration = 1;
+                        return true;
+                    }
+                    return false;
+                }
+
+                int getInterval() {
+                    int multiplier = mCurrentSchedule.mBackoff ? mIteration : 1;
+                    return mCurrentSchedule.mTimerBaseMs * multiplier;
+                }
+
+                boolean isExact() {
+                    return mCurrentSchedule.mExact;
+                }
+            }
+
+            private class SwPnoAlarmReceiver extends BroadcastReceiver {
+
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getAction().equals(SW_PNO_UPPER_BOUND_ALARM_INTENT_ACTION)) {
+                        mSwPnoAlarmManager.cancel(mPendingIntentSwPno);
+                    } else {
+                        mSwPnoAlarmManager.cancel(mPendingIntentSwPnoUpperBound);
+                    }
+                    Message msg = obtainMessage();
+                    msg.what = CMD_SW_PNO_SCAN;
+                    sendMessage(msg);
+                }
+            }
+
+            SwPnoScanState() {
+                Intent alarmIntent = new Intent(SW_PNO_ALARM_INTENT_ACTION).setPackage(
+                        mContext.getPackageName());
+                Intent alarmIntentUpperBound = new Intent(
+                        SW_PNO_UPPER_BOUND_ALARM_INTENT_ACTION).setPackage(
+                                mContext.getPackageName());
+                mSwPnoAlarmManager = mContext.getSystemService(AlarmManager.class);
+                mPendingIntentSwPno = PendingIntent.getBroadcast(mContext, /* requestCode */ 0,
+                        alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+                mPendingIntentSwPnoUpperBound = PendingIntent.getBroadcast(mContext,
+                        /* requestCode */ 1, alarmIntentUpperBound, PendingIntent.FLAG_IMMUTABLE);
+                mSwPnoTimerMarginMs = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoSlowTimerMargin);
+            }
+
+            @Override
+            public void enter() {
+                if (DBG) localLog("SwPnoScanState");
+                IntentFilter filter = new IntentFilter(SW_PNO_ALARM_INTENT_ACTION);
+                filter.addAction(SW_PNO_UPPER_BOUND_ALARM_INTENT_ACTION);
+                mContext.registerReceiver(mSwPnoAlarmReceiver, filter, null,
+                        getHandler());
+            }
+
+            @Override
+            public void exit() {
+                removeInternalClient();
+                mSwPnoAlarmManager.cancel(mPendingIntentSwPno);
+                mSwPnoAlarmManager.cancel(mPendingIntentSwPnoUpperBound);
+                mContext.unregisterReceiver(mSwPnoAlarmReceiver);
+                mScanParams = null;
+                mClientInfo = null;
+            }
+
+            boolean initializeSwPnoScheduleInfos(int mobilityIntervalMs) {
+                final int swPnoDefaultTimerFastMs = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoFastTimerMs);
+                final int swPnoDefaultTimerSlowMs = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoSlowTimerMs);
+                final int swPnoMobilityIterations = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoMobilityStateTimerIterations);
+                final int swPnoFastIterations = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoFastTimerIterations);
+                final int swPnoSlowIterations = mContext.getResources().getInteger(
+                        R.integer.config_wifiSwPnoSlowTimerIterations);
+
+                mSwPnoScheduler = new SwPnoScheduler();
+                try {
+                    mSwPnoScheduler.addSchedule(swPnoMobilityIterations,
+                            /* exact */ true, mobilityIntervalMs, /* backoff */ true);
+                    mSwPnoScheduler.addSchedule(swPnoFastIterations,
+                            /* exact */ true, swPnoDefaultTimerFastMs, /* backoff */ false);
+                    mSwPnoScheduler.addSchedule(swPnoSlowIterations,
+                            /* exact */ false, swPnoDefaultTimerSlowMs, /* backoff */ false);
+                } catch (IllegalArgumentException e) {
+                    return false;
+                }
+                return mSwPnoScheduler.start();
+            }
+
+            private void addSwPnoScanRequest(ClientInfo ci,
+                    ScanSettings scanSettings, PnoSettings pnoSettings) {
+                scanSettings.reportEvents |= WifiScanner.REPORT_EVENT_FULL_SCAN_RESULT
+                        | WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN;
+                addPnoScanRequest(ci, scanSettings, pnoSettings);
+            }
+
+            private void removeSwPnoScanRequest(ClientInfo ci) {
+                if (ci != null) {
+                    Pair<PnoSettings, ScanSettings> settings = removePnoScanRequest(ci);
+                    ci.cleanup();
+                    if (settings != null) {
+                        logScanRequest("removeSwPnoScanRequest", ci, null,
+                                settings.second, settings.first);
+                    }
+                }
+            }
+
+            private void schedulePnoTimer(boolean exact, int timeoutMs) {
+                Log.i(TAG, "Next SwPno scan in: " + timeoutMs);
+                if (exact) {
+                    mSwPnoAlarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            mClock.getElapsedSinceBootMillis() + timeoutMs,
+                            mPendingIntentSwPno);
+                } else {
+                    mSwPnoAlarmManager.setWindow(AlarmManager.ELAPSED_REALTIME,
+                            mClock.getElapsedSinceBootMillis() + timeoutMs,
+                            mSwPnoTimerMarginMs,
+                            mPendingIntentSwPno);
+
+                    mSwPnoAlarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            mClock.getElapsedSinceBootMillis() + timeoutMs
+                                    + mSwPnoTimerMarginMs, mPendingIntentSwPnoUpperBound);
+                }
+            }
+
+            private void handleSwPnoScan() {
+                if (mScanParams != null && mScanParams.settings != null && mClientInfo != null) {
+                    // The Internal ClientInfo is unregistered by
+                    // WifiSingleScanStateMachine#handleScanResults after each scan. We have
+                    // therefore to re-create or at least re-register the client before each scan.
+                    // For the first scan this is redundant.
+                    removeInternalClient();
+                    addInternalClient(mClientInfo);
+                    addSingleScanRequest(mScanParams.settings);
+                }
+            }
+
+            private void handleSwPnoSchedule() {
+                if (mSwPnoScheduler.next()) {
+                    schedulePnoTimer(mSwPnoScheduler.isExact(),
+                            mSwPnoScheduler.getInterval());
+                } else {
+                    // Nothing more to schedule, stopping SW PNO
+                    Message msg = obtainMessage();
+                    msg.what = WifiScanner.CMD_STOP_PNO_SCAN;
+                    sendMessage(msg);
+                }
+            }
+
+            @Override
+            public boolean processMessage(Message msg) {
+                switch (msg.what) {
+                    case WifiScanner.CMD_START_PNO_SCAN: {
+                        Log.i(TAG, "Starting Software PNO");
+                        ScanParams scanParams = (ScanParams) msg.obj;
+                        if (scanParams == null) {
+                            Log.wtf(TAG, "Received Start PNO request without parameters");
+                            transitionTo(mStartedState);
+                            return HANDLED;
+                        }
+
+                        ClientInfo clientInfo = mClients.get(scanParams.listener);
+                        if (clientInfo == null) {
+                            Log.wtf(TAG, "Received Start PNO request without ClientInfo");
+                            transitionTo(mStartedState);
+                            return HANDLED;
+                        }
+
+                        if (!mActivePnoScans.isEmpty()) {
+                            loge("Dropping scan request because there is already an active scan");
+                            clientInfo.replyFailed(WifiScanner.REASON_DUPLICATE_REQEUST,
+                                    "Failed to add a SW Pno Scan Request");
+                            return HANDLED;
+                        }
+
+                        if (scanParams.pnoSettings == null || scanParams.settings == null) {
+                            Log.e(TAG, "SwPno Invalid Scan Parameters");
+                            clientInfo.replyFailed(WifiScanner.REASON_INVALID_REQUEST,
+                                    "invalid settings");
+                            transitionTo(mStartedState);
+                            return HANDLED;
+                        }
+
+                        if (!initializeSwPnoScheduleInfos(scanParams.settings.periodInMs)) {
+                            clientInfo.replyFailed(WifiScanner.REASON_INVALID_REQUEST,
+                                    "Failed to initialize the Sw PNO Scheduler");
+                            transitionTo(mStartedState);
+                            return HANDLED;
+                        }
+
+                        addSwPnoScanRequest(clientInfo, scanParams.settings,
+                                scanParams.pnoSettings);
+                        clientInfo.replySucceeded();
+                        mClientInfo = clientInfo;
+                        mScanParams = scanParams;
+
+                        handleSwPnoScan();
+                        handleSwPnoSchedule();
+                        break;
+                    }
+                    case CMD_SW_PNO_SCAN:
+                        // The internal client is registered to mClients when the PNO scan is
+                        // started, and is deregistered when the scan is over. By verifying that
+                        // the internal client is not registered in mClients can be sure that no
+                        // other pno scans are in progress
+                        if (mClients.get(mInternalClientInfo.mListener) == null) {
+                            handleSwPnoScan();
+                            handleSwPnoSchedule();
+                        }
+                        break;
+                    case WifiScanner.CMD_STOP_PNO_SCAN: {
+                        Log.i(TAG, "Stopping Software PNO");
+                        if (mClientInfo != null) {
+                            removeSwPnoScanRequest(mClientInfo);
+                            transitionTo(mStartedState);
+                        }
+                        break;
+                    }
+                    case WifiScanner.CMD_OP_FAILED:
+                        sendPnoScanFailedToAllAndClear(
+                                WifiScanner.REASON_UNSPECIFIED, "scan failed");
                         transitionTo(mStartedState);
                         break;
                     default:
@@ -2569,6 +2907,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         private void removeHwPnoScanRequest(ClientInfo ci) {
             if (ci != null) {
                 Pair<PnoSettings, ScanSettings> settings = removePnoScanRequest(ci);
+                ci.cleanup();
                 if (settings != null) {
                     logScanRequest("removeHwPnoScanRequest", ci, null,
                             settings.second, settings.first);
