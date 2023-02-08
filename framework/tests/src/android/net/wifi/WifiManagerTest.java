@@ -4029,4 +4029,31 @@ public class WifiManagerTest {
                 () -> mWifiManager.getLinkLayerStatsPollingInterval(executor, null));
     }
 
+    /**
+     * Verify {@link WifiManager#setMloMode(int)} and {@link WifiManager#getMloMode()}.
+     */
+    @Test
+    public void testMloMode() throws RemoteException {
+        Consumer<Boolean> resultsSetCallback = mock(Consumer.class);
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        // Out of range values.
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiManager.setMloMode(-1, executor, resultsSetCallback));
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiManager.setMloMode(1000, executor, resultsSetCallback));
+        // Null executor/callback exception.
+        assertThrows("null executor should trigger exception", NullPointerException.class,
+                () -> mWifiManager.setMloMode(WifiManager.MLO_MODE_DEFAULT, null,
+                        resultsSetCallback));
+        assertThrows("null listener should trigger exception", NullPointerException.class,
+                () -> mWifiManager.setMloMode(WifiManager.MLO_MODE_DEFAULT, executor, null));
+        // Set and verify.
+        mWifiManager.setMloMode(WifiManager.MLO_MODE_LOW_POWER, executor, resultsSetCallback);
+        verify(mWifiService).setMloMode(eq(WifiManager.MLO_MODE_LOW_POWER),
+                any(IBooleanListener.Stub.class));
+        // Get and verify.
+        Consumer<Integer> resultsGetCallback = mock(Consumer.class);
+        mWifiManager.getMloMode(executor, resultsGetCallback);
+        verify(mWifiService).getMloMode(any(IIntegerListener.Stub.class));
+    }
 }

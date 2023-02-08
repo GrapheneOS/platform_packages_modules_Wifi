@@ -44,6 +44,7 @@ import android.hardware.wifi.WifiIfaceMode;
 import android.hardware.wifi.WifiRadioCombination;
 import android.hardware.wifi.WifiRadioCombinationMatrix;
 import android.hardware.wifi.WifiRadioConfiguration;
+import android.hardware.wifi.WifiStatusCode;
 import android.hardware.wifi.WifiUsableChannel;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.WifiAvailableChannel;
@@ -1619,5 +1620,47 @@ public class WifiChipAidlImpl implements IWifiChip {
 
     private void handleIllegalArgumentException(IllegalArgumentException e, String methodStr) {
         Log.e(TAG, methodStr + " failed with illegal argument exception: " + e);
+    }
+
+    /**
+     * See comments for {@link IWifiChip#setMloMode(int)}.
+     */
+    @Override
+    public @WifiStatusCode int setMloMode(@WifiManager.MloMode int mode) {
+        final String methodStr = "setMloMode";
+        @WifiStatusCode int errorCode = WifiStatusCode.ERROR_UNKNOWN;
+        synchronized (mLock) {
+            try {
+                if (checkIfaceAndLogFailure(methodStr)) {
+                    mWifiChip.setMloMode(frameworkToAidlMloMode(mode));
+                    errorCode = WifiStatusCode.SUCCESS;
+                }
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+                errorCode = e.errorCode;
+            } catch (IllegalArgumentException e) {
+                handleIllegalArgumentException(e, methodStr);
+                errorCode = WifiStatusCode.ERROR_INVALID_ARGS;
+            }
+            return errorCode;
+        }
+    }
+
+    private @android.hardware.wifi.IWifiChip.ChipMloMode int frameworkToAidlMloMode(
+            @WifiManager.MloMode int mode) {
+        switch(mode) {
+            case WifiManager.MLO_MODE_DEFAULT:
+                return android.hardware.wifi.IWifiChip.ChipMloMode.DEFAULT;
+            case WifiManager.MLO_MODE_LOW_LATENCY:
+                return android.hardware.wifi.IWifiChip.ChipMloMode.LOW_LATENCY;
+            case WifiManager.MLO_MODE_HIGH_THROUGHPUT:
+                return android.hardware.wifi.IWifiChip.ChipMloMode.HIGH_THROUGHPUT;
+            case WifiManager.MLO_MODE_LOW_POWER:
+                return android.hardware.wifi.IWifiChip.ChipMloMode.LOW_POWER;
+            default:
+                throw new IllegalArgumentException("frameworkToAidlMloMode: Invalid mode: " + mode);
+        }
     }
 }

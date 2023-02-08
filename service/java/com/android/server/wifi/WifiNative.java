@@ -26,6 +26,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPOR
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.hardware.wifi.WifiStatusCode;
 import android.net.MacAddress;
 import android.net.TrafficStats;
 import android.net.apf.ApfCapabilities;
@@ -127,6 +128,7 @@ public class WifiNative {
     private MockWifiServiceUtil mMockWifiModem = null;
     private InterfaceObserverInternal mInterfaceObserver;
     private InterfaceEventCallback mInterfaceListener;
+    private @WifiManager.MloMode int mCachedMloMode = WifiManager.MLO_MODE_DEFAULT;
 
     public WifiNative(WifiVendorHal vendorHal,
                       SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
@@ -4895,5 +4897,27 @@ public class WifiNative {
      */
     public boolean setDtimMultiplier(String ifaceName, int multiplier) {
         return mWifiVendorHal.setDtimMultiplier(ifaceName, multiplier);
+    }
+
+    /**
+     * Set Multi-Link Operation mode.
+     *
+     * @param mode Multi-Link Operation mode {@link android.net.wifi.WifiManager.MloMode}.
+     * @return {@link WifiStatusCode#SUCCESS} if success, otherwise error code.
+     */
+    public @WifiStatusCode int setMloMode(@WifiManager.MloMode int mode) {
+        @WifiStatusCode  int errorCode = mWifiVendorHal.setMloMode(mode);
+        // If set is success, cache it.
+        if (errorCode == WifiStatusCode.SUCCESS) mCachedMloMode = mode;
+        return errorCode;
+    }
+
+    /**
+     * Get Multi-Link Operation mode.
+     *
+     * @return Current Multi-Link Operation mode {@link android.net.wifi.WifiManager.MloMode}.
+     */
+    public @WifiManager.MloMode int getMloMode() {
+        return mCachedMloMode;
     }
 }

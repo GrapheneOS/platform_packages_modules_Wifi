@@ -20,8 +20,10 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.hardware.wifi.WifiStatusCode;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.util.Log;
 
@@ -856,5 +858,13 @@ public class WifiChip {
     public boolean triggerSubsystemRestart() {
         return validateAndCall("triggerSubsystemRestart", false,
                 () -> mWifiChip.triggerSubsystemRestart());
+    }
+
+    /**
+     * See comments for {@link IWifiChip#setMloMode(int)}.
+     */
+    public @WifiStatusCode int setMloMode(@WifiManager.MloMode int mode) {
+        return validateAndCall("setMloMode", WifiStatusCode.ERROR_NOT_STARTED,
+                () -> mWifiChip.setMloMode(mode));
     }
 }

@@ -126,6 +126,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.hardware.wifi.WifiStatusCode;
 import android.net.DhcpInfo;
 import android.net.DhcpOption;
 import android.net.DhcpResultsParcelable;
@@ -11078,5 +11079,67 @@ public class WifiServiceImplTest extends WifiBaseTest {
         IIntegerListener listener = mock(IIntegerListener.class);
         assertThrows(SecurityException.class,
                 () -> mWifiServiceImpl.getLinkLayerStatsPollingInterval(listener));
+    }
+
+    /**
+     * Verify {@link WifiServiceImpl#setMloMode(int)}.
+     */
+    @Test
+    public void testSetMloMode() throws RemoteException {
+        // Android U+ only.
+        assumeTrue(SdkLevel.isAtLeastU());
+        // Mock listener.
+        IBooleanListener listener = mock(IBooleanListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        // Verify permission.
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.setMloMode(WifiManager.MLO_MODE_DEFAULT, listener));
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                true);
+
+        // Verify setMloMode() success.
+        mWifiThreadRunner.prepareForAutoDispatch();
+        when(mWifiNative.setMloMode(eq(WifiManager.MLO_MODE_LOW_POWER))).thenReturn(
+                WifiStatusCode.SUCCESS);
+        mWifiServiceImpl.setMloMode(WifiManager.MLO_MODE_LOW_POWER, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        // Verify setMloMode() failure case.
+        mWifiThreadRunner.prepareForAutoDispatch();
+        mLooper.startAutoDispatch();
+        when(mWifiNative.setMloMode(eq(WifiManager.MLO_MODE_HIGH_THROUGHPUT))).thenReturn(
+                WifiStatusCode.ERROR_INVALID_ARGS);
+        mWifiServiceImpl.setMloMode(WifiManager.MLO_MODE_HIGH_THROUGHPUT, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
+    }
+
+    /**
+     * Verify {@link WifiServiceImpl#getMloMode()}.
+     */
+    @Test
+    public void testGetMloMode() throws RemoteException {
+        // Android U+ only.
+        assumeTrue(SdkLevel.isAtLeastU());
+        // Mock listener.
+        IIntegerListener listener = mock(IIntegerListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        // Verify permission.
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getMloMode(listener));
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                true);
+
+        // Verify getMloMode() success.
+        when(mWifiNative.getMloMode()).thenReturn(WifiManager.MLO_MODE_LOW_POWER);
+        mWifiServiceImpl.getMloMode(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(WifiManager.MLO_MODE_LOW_POWER);
     }
 }

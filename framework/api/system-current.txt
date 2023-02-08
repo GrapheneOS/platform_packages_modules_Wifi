@@ -590,6 +590,7 @@ package android.net.wifi {
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public java.util.Map<android.net.wifi.hotspot2.OsuProvider,android.net.wifi.hotspot2.PasspointConfiguration> getMatchingPasspointConfigsForOsuProviders(@NonNull java.util.Set<android.net.wifi.hotspot2.OsuProvider>);
     method @NonNull @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_WIFI_STATE}) public java.util.Map<android.net.wifi.WifiNetworkSuggestion,java.util.List<android.net.wifi.ScanResult>> getMatchingScanResults(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>, @Nullable java.util.List<android.net.wifi.ScanResult>);
     method public static int getMaxNumberOfPoliciesPerQosRequest();
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMloMode(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void getNetworkSelectionConfig(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<android.net.wifi.WifiNetworkSelectionConfig>);
     method @NonNull @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public java.util.Set<java.lang.String> getOemPrivilegedWifiAdminPackages();
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.READ_WIFI_CREDENTIAL}, conditional=true) public java.util.List<android.net.wifi.WifiConfiguration> getPrivilegedConfiguredNetworks();
@@ -640,6 +641,7 @@ package android.net.wifi {
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION}) public void setExternalPnoScanRequest(@NonNull java.util.List<android.net.wifi.WifiSsid>, @Nullable int[], @NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.PnoScanResultsCallback);
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void setLinkLayerStatsPollingInterval(@IntRange(from=0) int);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setMacRandomizationSettingPasspointEnabled(@NonNull String, boolean);
+    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void setMloMode(int, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Boolean>);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setNetworkSelectionConfig(@NonNull android.net.wifi.WifiNetworkSelectionConfig);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setOneShotScreenOnConnectivityScanDelayMillis(@IntRange(from=0) int);
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE) public void setOverrideCountryCode(@NonNull String);
@@ -753,6 +755,10 @@ package android.net.wifi {
     field public static final int IFACE_IP_MODE_LOCAL_ONLY = 2; // 0x2
     field public static final int IFACE_IP_MODE_TETHERED = 1; // 0x1
     field public static final int IFACE_IP_MODE_UNSPECIFIED = -1; // 0xffffffff
+    field public static final int MLO_MODE_DEFAULT = 0; // 0x0
+    field public static final int MLO_MODE_HIGH_THROUGHPUT = 2; // 0x2
+    field public static final int MLO_MODE_LOW_LATENCY = 1; // 0x1
+    field public static final int MLO_MODE_LOW_POWER = 3; // 0x3
     field public static final int PASSPOINT_HOME_NETWORK = 0; // 0x0
     field public static final int PASSPOINT_ROAMING_NETWORK = 1; // 0x1
     field public static final int QOS_REQUEST_STATUS_ALREADY_ACTIVE = 1; // 0x1
