@@ -2803,6 +2803,47 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendNetworkChangeBroadcastWithCurrentState();
     }
 
+    private int getNetworkStateListenerCmmRole() {
+        if (isPrimary()) {
+            return WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY;
+        }
+        if (isSecondaryInternet()) {
+            return WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_SECONDARY_INTERNET;
+        }
+        if (isLocalOnly()) {
+            return WifiManager.WifiNetworkStateChangedListener
+                    .WIFI_ROLE_CLIENT_SECONDARY_LOCAL_ONLY;
+        }
+        return -1;
+    }
+
+    private int convertDetailedStateToNetworkStateChangedCode(DetailedState detailedState) {
+        switch (detailedState) {
+            case IDLE:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_IDLE;
+            case SCANNING:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_SCANNING;
+            case CONNECTING:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTING;
+            case AUTHENTICATING:
+                return WifiManager.WifiNetworkStateChangedListener
+                        .WIFI_NETWORK_STATUS_AUTHENTICATING;
+            case OBTAINING_IPADDR:
+                return WifiManager.WifiNetworkStateChangedListener
+                        .WIFI_NETWORK_STATUS_OBTAINING_IPADDR;
+            case CONNECTED:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_CONNECTED;
+            case DISCONNECTED:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_DISCONNECTED;
+            case FAILED:
+                return WifiManager.WifiNetworkStateChangedListener.WIFI_NETWORK_STATUS_FAILED;
+            default:
+                // There are some DetailedState codes that are not being used in wifi, so ignore
+                // them.
+                return -1;
+        }
+    }
+
     private void sendNetworkChangeBroadcastWithCurrentState() {
         // copy into local variables to force lambda to capture by value and not reference, since
         // mNetworkAgentState is mutable and can change
@@ -2810,6 +2851,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mVerboseLoggingEnabled) {
             Log.d(getTag(), "Queueing broadcast=NETWORK_STATE_CHANGED_ACTION"
                     + " networkAgentState=" + networkAgentState);
+        }
+        int networkStateChangedCmmRole = getNetworkStateListenerCmmRole();
+        int networkStateChangedState = convertDetailedStateToNetworkStateChangedCode(
+                networkAgentState);
+        if (networkStateChangedCmmRole != -1 && networkStateChangedState != -1) {
+            mWifiInjector.getActiveModeWarden().onNetworkStateChanged(
+                    networkStateChangedCmmRole, networkStateChangedState);
         }
         mBroadcastQueue.queueOrSendBroadcast(
                 mClientModeManager,
@@ -3809,9 +3857,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (setMacSuccess) {
                 mWifiNative.removeNetworkCachedDataIfNeeded(config.networkId, newMac);
             }
-            Log.d(getTag(), "ConnectedMacRandomization SSID(" + config.getPrintableSsid()
-                    + "). setMacAddress(" + newMac.toString() + ") from "
-                    + currentMacString + " = " + setMacSuccess);
+            if (mVerboseLoggingEnabled) {
+                Log.d(getTag(), "ConnectedMacRandomization SSID(" + config.getPrintableSsid()
+                        + "). setMacAddress(" + newMac.toString() + ") from "
+                        + currentMacString + " = " + setMacSuccess);
+            }
         }
     }
 
@@ -4273,7 +4323,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     String currentMacAddress = mWifiNative.getMacAddress(mInterfaceName);
                     mWifiInfo.setMacAddress(currentMacAddress);
                     updateCurrentConnectionInfo();
-                    Log.i(getTag(), "Connecting with " + currentMacAddress + " as the mac address");
+                    if (mVerboseLoggingEnabled) {
+                        Log.i(getTag(), "Connecting with " + currentMacAddress
+                                + " as the mac address");
+                    }
 
                     mTargetWifiConfiguration = config;
                     mNetworkNotFoundEventCount = 0;
@@ -7793,7 +7846,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             return false;
         }
 
-        logi("Default Gateway MAC address of " + mLastBssid + " from routes is : " + gatewayMac);
+        if (mVerboseLoggingEnabled) {
+            logi("Default Gateway MAC address of " + mLastBssid + " from routes is : "
+                    + gatewayMac);
+        }
         if (!mWifiConfigManager.setNetworkDefaultGwMacAddress(mLastNetworkId, gatewayMac)) {
             logi("default gateway mac set failed for " + currentConfig.getKey() + " network");
             return false;

@@ -435,6 +435,10 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         when(mWifiConfigManager.getConfiguredNetwork(anyInt()))
                 .thenReturn(testConfig);
         when(mWifiInfo.getScore()).thenReturn(ConnectedScore.WIFI_TRANSITION_SCORE);
+        if (SdkLevel.isAtLeastS()) {
+            when(mWifiInfo.isPrimary()).thenReturn(true);
+        }
+        when(mActiveModeWarden.canRequestSecondaryTransientClientModeManager()).thenReturn(true);
 
         // verify the current network is sufficient
         assertTrue(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
@@ -444,10 +448,17 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         when(mWifiInfo.getScore()).thenReturn(ConnectedScore.WIFI_TRANSITION_SCORE - 1);
         assertFalse(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
 
-        // verify that when the external scorer is used, aosp score no longer affect network
-        // selection.
-        when(mWifiGlobals.isUsingExternalScorer()).thenReturn(true);
-        assertTrue(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
+        if (SdkLevel.isAtLeastS()) {
+            // verify the aosp scorer does not affect selection on secondary
+            when(mWifiInfo.isPrimary()).thenReturn(false);
+            assertTrue(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
+
+            // verify that when the external scorer is used, aosp score no longer affect network
+            // selection.
+            when(mWifiInfo.isPrimary()).thenReturn(true);
+            when(mWifiGlobals.isUsingExternalScorer()).thenReturn(true);
+            assertTrue(mWifiNetworkSelector.isNetworkSufficient(mWifiInfo));
+        }
     }
 
     /**
