@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.hal;
 
+import static android.net.wifi.WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
@@ -979,6 +981,7 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
         stats.links = new WifiLinkLayerStats.LinkSpecificStats[NUM_OF_LINKS];
         stats.links[DEFAULT_LINK] = new WifiLinkLayerStats.LinkSpecificStats();
         stats.links[DEFAULT_LINK].link_id = 0;
+        stats.links[DEFAULT_LINK].state = LINK_STATE_UNKNOWN;
         stats.links[DEFAULT_LINK].beacon_rx = iface.beaconRx;
         /* HIDL is using legacy single link layer stats. */
         stats.links[DEFAULT_LINK].radio_id = 0;

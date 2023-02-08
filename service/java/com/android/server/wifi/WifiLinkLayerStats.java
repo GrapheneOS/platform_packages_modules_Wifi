@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.net.wifi.WifiUsabilityStatsEntry.LinkState;
 import android.util.SparseArray;
 
 import java.util.Arrays;
@@ -42,6 +43,9 @@ public class WifiLinkLayerStats {
 
         /** Link identifier of the link */
         public int link_id;
+
+        /** Link state as {@link LinkState} */
+        public @LinkState int state;
 
         /** Identifier of the radio on which link is currently operating */
         public int radio_id;
