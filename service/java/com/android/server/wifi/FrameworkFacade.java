@@ -47,6 +47,8 @@ import android.telephony.CarrierConfigManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.wifi.resources.R;
+
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -164,6 +166,10 @@ public class FrameworkFacade {
      * Returns whether the device is in NIAP mode or not.
      */
     public boolean isNiapModeOn(Context context) {
+        boolean isNiapModeEnabled = context.getResources().getBoolean(
+                R.bool.config_wifiNiapModeEnabled);
+        if (isNiapModeEnabled) return true;
+
         DevicePolicyManager devicePolicyManager =
                 context.getSystemService(DevicePolicyManager.class);
         if (devicePolicyManager == null
