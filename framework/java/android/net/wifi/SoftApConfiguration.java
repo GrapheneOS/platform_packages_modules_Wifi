@@ -1288,7 +1288,10 @@ public final class SoftApConfiguration implements Parcelable {
          * Constructs a Builder initialized from an existing {@link SoftApConfiguration} instance.
          */
         public Builder(@NonNull SoftApConfiguration other) {
-            Objects.requireNonNull(other);
+            if (other == null) {
+                Log.e(TAG, "Cannot provide a null SoftApConfiguration");
+                return;
+            }
 
             mWifiSsid = other.mWifiSsid;
             mBssid = other.mBssid;

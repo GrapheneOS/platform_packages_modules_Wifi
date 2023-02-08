@@ -3053,8 +3053,11 @@ public class WifiConnectivityManager {
      */
     private void retrieveWifiScanner() {
         if (mScanner != null) return;
-        mScanner = Objects.requireNonNull(WifiLocalServices.getService(WifiScannerInternal.class),
-                "Got a null instance of WifiScanner!");
+        mScanner = WifiLocalServices.getService(WifiScannerInternal.class);
+        if (mScanner == null) {
+            Log.wtf(TAG, "Got a null instance of WifiScanner!");
+            return;
+        }
         // Register for all single scan results
         mScanner.registerScanListener(mInternalAllSingleScanListener);
     }
