@@ -1118,4 +1118,6 @@
          disable of power save to avoid the high latency when chip is in power save mode as part of
          handling the HAL API setLatencyMode(). -->
     <bool translatable="false" name ="config_wifiLowLatencyLockDisableChipPowerSave">true</bool>
+    <!-- Boolean indicating whether NIAP mode is enabled by default for Wi-Fi. -->
+    <bool translatable="false" name="config_wifiNiapModeEnabled">false</bool>
 </resources>
