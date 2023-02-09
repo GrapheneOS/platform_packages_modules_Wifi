@@ -63,7 +63,10 @@ android_test {
         "android.test.mock",
         // load the resources from the resources APK.
         "ServiceWifiResources",
+        "auto_value_annotations",
     ],
+
+    plugins: ["auto_value_plugin"],
 
     // these are needed for Extended Mockito
     jni_libs: [
