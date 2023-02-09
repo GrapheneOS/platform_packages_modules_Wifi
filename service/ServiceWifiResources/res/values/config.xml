@@ -619,6 +619,45 @@
     config_wifiPnoWatchdogIntervalMs in case PNO scan failed. (default = 20 minutes)-->
     <integer translatable="false" name="config_wifiPnoWatchdogIntervalMs">1200000</integer>
 
+    <!-- Enable the Software PNO feature. If Hardware PNO is not enabled, the device is in
+    standby and Wifi is disconnected, periodic scans are performed according to the
+    following schedule:
+    1) config_wifiSwPnoMobilityStateTimerIterations iterations with initial interval provided by
+    the mobility status (see config_wifiMovingPnoScanIntervalMillis and
+    config_wifiStationaryPnoScanIntervalMillis for the default values respectively for moving and
+    stationary devices). At each iteration the interval is increased proportionally to the elapsed
+    iterations. The device is awakened even if currently in doze/idle mode.
+    2) config_wifiSwPnoFastTimerIterations iterations with initial interval provided by
+    config_wifiSwPnoFastTimerMs. The device is awakened even if currently in doze/idle mode.
+    3) config_wifiSwPnoSlowTimerIterations iterations with initial provided by
+    config_wifiSwPnoSlowTimerMs and a window of config_wifiSwPnoSlowTimerMargin.
+    Inside such time window, the device is not awakened to perform the scan. If a wakeup happens for
+    other reasons, the scan might be performed as well in order to avoid subsequent awakening.
+    If no spontaneous awakening happens at the end of the time window, the device is awakened to
+    perform the scan.-->
+    <bool translatable="false" name="config_wifiSwPnoEnabled">true</bool>
+
+    <!-- When disconnected and Sw PNO scan is enabled, wake up to do a single scan every
+    config_wifiSwPnoFastTimerSec for config_wifiSwPnoFastTimerIterations iterations-->
+    <integer translatable="false" name="config_wifiSwPnoFastTimerMs">300000</integer>
+
+    <!-- Number of iterations of Sw PNO that uses mobility information as timer interval-->
+    <integer translatable="false" name="config_wifiSwPnoMobilityStateTimerIterations">2</integer>
+
+    <!-- Number of iterations of Sw PNO that uses config_wifiSwPnoFastTimerSec as timer interval-->
+    <integer translatable="false" name="config_wifiSwPnoFastTimerIterations">3</integer>
+
+    <!-- Number of iterations of Sw PNO that uses config_wifiSwPnoSlowTimerSec as timer interval.-->
+    <integer translatable="false" name="config_wifiSwPnoSlowTimerIterations">10</integer>
+
+    <!-- Timer interval for Sw PNO scans that happen after config_wifiSwPnoFastTimerIterations
+    iterations, if no network has been found-->
+    <integer translatable="false" name="config_wifiSwPnoSlowTimerMs">1200000</integer>
+
+    <!-- Maximum interval of time of which slow scans can be delayed due to alarms schedule
+    optimization and/or CPU being in sleep state-->
+    <integer translatable="false" name="config_wifiSwPnoSlowTimerMargin">600000</integer>
+
     <!-- Suspend optimization. -->
     <bool translatable="false" name="config_wifiSuspendOptimizationsEnabled">true</bool>
 
