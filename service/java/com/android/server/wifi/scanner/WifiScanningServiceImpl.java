@@ -88,6 +88,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class WifiScanningServiceImpl extends IWifiScanner.Stub {
@@ -103,6 +104,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
     private void localLog(String message) {
         mLocalLog.log(message);
+        if (isVerboseLoggingEnabled()) {
+            Log.i(TAG, message);
+        }
     }
 
     private void logw(String message) {
@@ -501,6 +505,19 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         });
     }
 
+    @Override
+    public void enableVerboseLogging(boolean enabled) {
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(Binder.getCallingUid())) {
+            return;
+        }
+        mVerboseLoggingEnabled.set(enabled);
+        localLog("enableVerboseLogging: uid=" + Binder.getCallingUid() + " enabled=" + enabled);
+    }
+
+    private boolean isVerboseLoggingEnabled() {
+        return mVerboseLoggingEnabled.get();
+    }
+
     private void enforceNetworkStack(int uid) {
         mContext.enforcePermission(
                 Manifest.permission.NETWORK_STACK,
@@ -635,6 +652,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     private final WifiManager mWifiManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final DeviceConfigFacade mDeviceConfigFacade;
+
+    private AtomicBoolean mVerboseLoggingEnabled = new AtomicBoolean(false);
 
     WifiScanningServiceImpl(Context context, Looper looper,
             WifiScannerImpl.WifiScannerImplFactory scannerImplFactory,
