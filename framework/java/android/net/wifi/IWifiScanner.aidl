@@ -62,4 +62,6 @@ interface IWifiScanner
             String packageName, String featureId);
 
     void stopPnoScan(in IWifiScannerListener listener, String packageName, String featureId);
+
+    void enableVerboseLogging(boolean enabled);
 }

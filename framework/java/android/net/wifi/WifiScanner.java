@@ -1509,6 +1509,20 @@ public class WifiScanner {
         }
     }
 
+    /**
+     * Enable verbose logging. For internal use by wifi framework only.
+     * @param enabled whether verbose logging is enabled
+     * @hide
+     */
+    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    public void enableVerboseLogging(boolean enabled) {
+        try {
+            mService.enableVerboseLogging(enabled);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     /** specifies information about an access point of interest */
     @Deprecated
     public static class BssidInfo {

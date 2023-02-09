@@ -5070,6 +5070,10 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiMulticastLockManager.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiInjector.enableVerboseLogging(mVerboseLoggingEnabled, halVerboseEnabled);
         mWifiInjector.getSarManager().enableVerboseLogging(mVerboseLoggingEnabled);
+        WifiScanner wifiScanner = mWifiInjector.getWifiScanner();
+        if (wifiScanner != null) {
+            wifiScanner.enableVerboseLogging(mVerboseLoggingEnabled);
+        }
         ApConfigUtil.enableVerboseLogging(mVerboseLoggingEnabled);
     }
 
