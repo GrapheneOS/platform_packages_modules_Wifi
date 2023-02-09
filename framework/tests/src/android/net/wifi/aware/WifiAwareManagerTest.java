@@ -1801,7 +1801,7 @@ public class WifiAwareManagerTest {
                 eq(pairId));
 
         // (4) Response to the request
-        publishSession.getValue().respondToPairingRequest(pairId, peerHandle, alias, password
+        publishSession.getValue().acceptPairingRequest(pairId, peerHandle, alias, password
         );
         inOrder.verify(mockAwareService).responseNanPairingSetupRequest(eq(clientId), eq(sessionId),
                 eq(peerId), eq(pairId), eq(password), eq(alias), eq(true));

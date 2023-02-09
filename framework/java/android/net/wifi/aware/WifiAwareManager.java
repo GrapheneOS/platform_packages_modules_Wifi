@@ -1208,7 +1208,7 @@ public class WifiAwareManager {
     /**
      * Reset all paired devices setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
+     * {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, String)}
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
     public void resetPairedDevices() {
@@ -1222,7 +1222,7 @@ public class WifiAwareManager {
     /**
      * Remove the target paired device setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
+     * {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, String)}
      * @param alias The alias set by the caller
      */
     @RequiresPermission(CHANGE_WIFI_STATE)

@@ -323,7 +323,7 @@ public class DiscoverySessionCallback {
      * @param alias      This is the paired device alias set by the caller.
      *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)}
      *                   or
-     *                   {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String,
+     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String,
      *                   String)}
      */
     public void onPairingSetupSucceeded(@NonNull PeerHandle peerHandle,
@@ -347,7 +347,7 @@ public class DiscoverySessionCallback {
      * @param alias      This is the paired device alias set by the caller.
      *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)}
      *                   or
-     *                   {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String,
+     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String,
      *                   String)}
      */
     public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle,

@@ -865,13 +865,13 @@ package android.net.wifi.aware {
   }
 
   public class DiscoverySession implements java.lang.AutoCloseable {
+    method public void acceptPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void close();
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierOpen(@NonNull android.net.wifi.aware.PeerHandle);
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPassphrase(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String);
     method public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int);
     method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void rejectPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle);
-    method public void respondToPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void sendMessage(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
   }
 
