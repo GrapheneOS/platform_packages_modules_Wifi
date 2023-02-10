@@ -31,6 +31,8 @@ import android.content.IntentFilter;
 import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.location.LocationManager;
 import android.net.MacAddress;
+import android.net.wifi.IBooleanListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
@@ -42,7 +44,6 @@ import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
-import android.net.wifi.aware.IWifiAwarePairedDevicesListener;
 import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PublishConfig;
@@ -63,6 +64,7 @@ import android.os.SystemClock;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.text.TextUtils;
+import android.util.ArraySet;
 import android.util.LocalLog;
 import android.util.Log;
 import android.util.Pair;
@@ -100,6 +102,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
@@ -403,6 +406,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public static final int PARAM_ON_IDLE_DISABLE_AWARE_DEFAULT = 1; // 0 = false, 1 = true
 
     private final Map<String, Integer> mSettableParameters = new HashMap<>();
+
+    private final Set<String> mOpportunisticSet = new ArraySet<>();
 
     /**
      * Interpreter of adb shell command 'adb shell wifiaware native_api ...'.
@@ -976,7 +981,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     /**
      * @see WifiAwareManager#getPairedDevices(Executor, Consumer)
      */
-    public void getPairedDevices(String callingPackage, IWifiAwarePairedDevicesListener listener) {
+    public void getPairedDevices(String callingPackage, IListListener listener) {
         mHandler.post(() -> {
                     try {
                         listener.onResult(mPairingConfigManager
@@ -986,6 +991,38 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
                 }
         );
+    }
+
+    /**
+     * @see WifiAwareManager#setOpportunisticModeEnabled(boolean)
+     */
+    public void setOpportunisticPackage(String ctxPkg, boolean enabled) {
+        mHandler.post(() -> {
+            if (enabled) {
+                mOpportunisticSet.add(ctxPkg);
+            } else {
+                mOpportunisticSet.remove(ctxPkg);
+            }
+            if (mClients.size() == 0) {
+                return;
+            }
+            if (!mWifiAwareNativeManager.replaceRequestorWs(createMergedRequestorWs())) {
+                Log.w(TAG, "Failed to replace requestorWs");
+            }
+        });
+    }
+
+    /**
+     * @see WifiAwareManager#isOpportunisticModeEnabled(Executor, Consumer)
+     */
+    public void isOpportunistic(String ctxPkg, IBooleanListener listener) {
+        mHandler.post(() -> {
+            try {
+                listener.onResult(mOpportunisticSet.contains(ctxPkg));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**
@@ -2450,18 +2487,19 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD);
                     boolean reEnableAware = msg.getData()
                             .getBoolean(MESSAGE_BUNDLE_KEY_RE_ENABLE_AWARE_FROM_OFFLOAD);
-                    WorkSource workSource;
-                    if (awareOffload) {
-                        workSource = new WorkSource(Process.WIFI_UID);
+                    int proceedWithOperation;
+
+                    if (awareOffload || mOpportunisticSet.contains(callingPackage)) {
+                        // As this is lowest priorty, should always execute, no dialog to ask user
+                        proceedWithOperation = InterfaceConflictManager.ICM_EXECUTE_COMMAND;
                     } else {
-                        workSource = new WorkSource(uid, callingPackage);
+                        proceedWithOperation =
+                                mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG,
+                                        msg, this, mWaitingState, mWaitState,
+                                        HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                                        new WorkSource(uid, callingPackage),
+                                        false /* bypassDialog */);
                     }
-                    int proceedWithOperation =
-                            mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG, msg,
-                                    this, mWaitingState, mWaitState,
-                                    HalDeviceManager.HDM_CREATE_IFACE_NAN,
-                                    workSource, false /* bypassDialog */
-                            );
 
                     if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                         // handling user rejection or possible conflict (pending command)
@@ -3372,7 +3410,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         if (mCurrentAwareConfiguration == null) {
             WorkSource workSource;
-            if (awareOffload) {
+            if (awareOffload || mOpportunisticSet.contains(callingPackage)) {
                 workSource = new WorkSource(Process.WIFI_UID);
             } else {
                 workSource = new WorkSource(uid, callingPackage);
@@ -4906,17 +4944,19 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG, "createMergedRequestorWs(): mClients=[" + mClients + "]");
         }
         WorkSource requestorWs = new WorkSource();
-        boolean isForAwareOffLoad = false;
+        boolean isOpportunistic = false;
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState clientState = mClients.valueAt(i);
-            if (clientState.isAwareOffload()) {
-                isForAwareOffLoad = true;
+            if (clientState.isAwareOffload()
+                    || mOpportunisticSet.contains(clientState.getCallingPackage())) {
+                isOpportunistic = true;
             } else {
                 requestorWs.add(
                         new WorkSource(clientState.getUid(), clientState.getCallingPackage()));
             }
         }
-        if (requestorWs.size() == 0 && isForAwareOffLoad) {
+        if (requestorWs.size() == 0 && isOpportunistic) {
+            // All clients are opportunistic, use Wifi UID
             return new WorkSource(Process.WIFI_UID);
         }
         return requestorWs;
