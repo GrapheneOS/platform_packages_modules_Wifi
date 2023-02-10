@@ -103,7 +103,30 @@ public interface ClientModeDefaults extends ClientMode {
         return false;
     }
 
-    default void enableTdls(String remoteMacAddress, boolean enable) { }
+    /** Enable TDLS session with remote MAC address */
+    default boolean enableTdls(String remoteMacAddress, boolean enable) {
+        return false;
+    }
+
+    /** Enable TDLS session with remote IP address */
+    default boolean enableTdlsWithRemoteIpAddress(String remoteIpAddress, boolean enable) {
+        return false;
+    }
+
+    /** Check if a TDLS session can be established */
+    default boolean isTdlsOperationCurrentlyAvailable() {
+        return false;
+    }
+
+    /** The maximum number of TDLS sessions supported by the device */
+    default int getMaxSupportedConcurrentTdlsSessions() {
+        return -1;
+    }
+
+    /** The number of Peer mac addresses configured in the device for establishing a TDLS session */
+    default int getNumberOfEnabledTdlsSessions() {
+        return 0;
+    }
 
     default void dumpIpClient(FileDescriptor fd, PrintWriter pw, String[] args) { }
 
