@@ -319,7 +319,7 @@ public class DiscoverySession implements AutoCloseable {
      *                        opportunistic pairing will be used.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void respondToPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
+    public void acceptPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
             @NonNull String peerDeviceAlias, @Nullable String password) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException();
