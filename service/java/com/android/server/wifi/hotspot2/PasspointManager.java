@@ -1216,6 +1216,26 @@ public class PasspointManager {
     }
 
     /**
+     * Returns the corresponding wifi configurations for all non-suggestion Passpoint profiles
+     * that include a recent SSID.
+     *
+     * @return List of {@link WifiConfiguration} converted from {@link PasspointProvider}.
+     */
+    public List<WifiConfiguration> getWifiConfigsForPasspointProfilesWithSsids() {
+        List<WifiConfiguration> configs = new ArrayList<>();
+        for (PasspointProvider provider : mProviders.values()) {
+            if (provider == null || provider.getMostRecentSsid() == null
+                    || provider.isFromSuggestion()) {
+                continue;
+            }
+            WifiConfiguration config = provider.getWifiConfig();
+            config.SSID = provider.getMostRecentSsid();
+            configs.add(config);
+        }
+        return configs;
+    }
+
+    /**
      * Invoked when a Passpoint network was successfully connected based on the credentials
      * provided by the given Passpoint provider
      *
