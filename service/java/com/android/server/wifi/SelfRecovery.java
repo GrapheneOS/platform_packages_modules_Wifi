@@ -187,8 +187,7 @@ public class SelfRecovery {
             Log.e(TAG, "Invalid trigger reason. Ignoring...");
             return;
         }
-        if (reason == REASON_STA_IFACE_DOWN
-                && !mWifiGlobals.isWifiInterfaceAddedSelfRecoveryEnabled()) {
+        if (reason == REASON_STA_IFACE_DOWN) {
             Log.e(TAG, "STA interface down, disable wifi");
             mActiveModeWarden.recoveryDisableWifi();
             mRecoveryState = STATE_DISABLE_WIFI;

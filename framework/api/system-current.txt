@@ -472,12 +472,6 @@ package android.net.wifi {
     field @Deprecated public boolean useExternalScores;
   }
 
-  @Deprecated public static class WifiConfiguration.KeyMgmt {
-    field @Deprecated public static final int WAPI_CERT = 14; // 0xe
-    field @Deprecated public static final int WAPI_PSK = 13; // 0xd
-    field @Deprecated public static final int WPA2_PSK = 4; // 0x4
-  }
-
   @Deprecated public static class WifiConfiguration.NetworkSelectionStatus {
     method @Deprecated public int getDisableReasonCounter(int);
     method @Deprecated public long getDisableTime();
