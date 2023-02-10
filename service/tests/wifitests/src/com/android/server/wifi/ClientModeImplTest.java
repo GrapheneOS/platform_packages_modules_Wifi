@@ -483,6 +483,10 @@ public class ClientModeImplTest extends WifiBaseTest {
     static final ApfCapabilities APF_CAP = new ApfCapabilities(1, 2, 3);
     static final long TEST_TX_BYTES = 6666;
     static final long TEST_RX_BYTES = 8888;
+    static final int TEST_MULTICAST_LOCK_MAX_DTIM_MULTIPLIER = 1;
+    static final int TEST_IPV6_ONLY_NETWORK_MAX_DTIM_MULTIPLIER = 2;
+    static final int TEST_IPV4_ONLY_NETWORK_MAX_DTIM_MULTIPLIER = 9;
+    static final int TEST_DUAL_STACK_NETWORK_MAX_DTIM_MULTIPLIER = 2;
 
     ClientModeImpl mCmi;
     HandlerThread mWifiCoreThread;
@@ -8080,7 +8084,6 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiScoreReport, times(2)).onRoleChanged(ROLE_CLIENT_PRIMARY);
     }
 
-
     @Test
     public void testPacketFilterOnRoleChangeOnSecondaryCmmWithSupportForNonPrimaryApf()
             throws Exception {
@@ -8108,6 +8111,63 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.onRoleChanged();
         // ignore (since it was already applied)
         verify(mWifiNative, times(1)).installPacketFilter(WIFI_IFACE_NAME, filter);
+    }
+
+    @Test
+    public void testSetMaxDtimMultiplier_IPv4OnlyNetwork() throws Exception {
+        connect();
+
+        mIpClientCallback.setMaxDtimMultiplier(TEST_IPV4_ONLY_NETWORK_MAX_DTIM_MULTIPLIER);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).setDtimMultiplier(WIFI_IFACE_NAME,
+                TEST_IPV4_ONLY_NETWORK_MAX_DTIM_MULTIPLIER);
+    }
+
+    @Test
+    public void testSetMaxDtimMultiplier_IPv6OnlyNetwork() throws Exception {
+        connect();
+
+        mIpClientCallback.setMaxDtimMultiplier(TEST_IPV6_ONLY_NETWORK_MAX_DTIM_MULTIPLIER);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).setDtimMultiplier(WIFI_IFACE_NAME,
+                TEST_IPV6_ONLY_NETWORK_MAX_DTIM_MULTIPLIER);
+    }
+
+    private void runSetMaxDtimMultiplierInDualStackTest() throws Exception {
+        connect();
+
+        mIpClientCallback.setMaxDtimMultiplier(TEST_DUAL_STACK_NETWORK_MAX_DTIM_MULTIPLIER);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).setDtimMultiplier(WIFI_IFACE_NAME,
+                TEST_DUAL_STACK_NETWORK_MAX_DTIM_MULTIPLIER);
+    }
+
+    @Test
+    public void testSetMaxDtimMultiplier_DualStackNetwork() throws Exception {
+        runSetMaxDtimMultiplierInDualStackTest();
+    }
+
+    @Test
+    public void testSetMaxDtimMultiplier_EnableMulticastLock() throws Exception {
+        runSetMaxDtimMultiplierInDualStackTest();
+        reset(mIpClient);
+
+        // simulate the multicast lock is held.
+        WifiMulticastLockManager.FilterController filterController =
+                mCmi.getMcastLockManagerFilterController();
+        filterController.startFilteringMulticastPackets();
+        verify(mIpClient).setMulticastFilter(eq(true));
+
+        reset(mWifiNative);
+
+        mIpClientCallback.setMaxDtimMultiplier(TEST_MULTICAST_LOCK_MAX_DTIM_MULTIPLIER);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).setDtimMultiplier(WIFI_IFACE_NAME,
+                TEST_MULTICAST_LOCK_MAX_DTIM_MULTIPLIER);
     }
 
     @Test
