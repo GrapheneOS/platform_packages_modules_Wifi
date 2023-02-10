@@ -1236,6 +1236,18 @@ public class PasspointManager {
     }
 
     /**
+     * Get the most recent SSID observed for the specified Passpoint profile.
+     *
+     * @param uniqueId The unique identifier of the Passpoint profile.
+     * @return The most recent SSID observed for this profile, or null.
+     */
+    public @Nullable String getMostRecentSsidForProfile(String uniqueId) {
+        PasspointProvider provider = mProviders.get(uniqueId);
+        if (provider == null) return null;
+        return provider.getMostRecentSsid();
+    }
+
+    /**
      * Invoked when a Passpoint network was successfully connected based on the credentials
      * provided by the given Passpoint provider
      *
