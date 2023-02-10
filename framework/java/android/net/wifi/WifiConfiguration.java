@@ -157,25 +157,20 @@ public class WifiConfiguration implements Parcelable {
         /**
          * WPA2 pre-shared key for use with soft access point
          * (requires {@code preSharedKey} to be specified).
-         * @hide
          */
-        @SystemApi
         public static final int WPA2_PSK = 4;
         /**
          * Hotspot 2.0 r2 OSEN:
-         * @hide
          */
         public static final int OSEN = 5;
 
         /**
          * IEEE 802.11r Fast BSS Transition with PSK authentication.
-         * @hide
          */
         public static final int FT_PSK = 6;
 
         /**
          * IEEE 802.11r Fast BSS Transition with EAP authentication.
-         * @hide
          */
         public static final int FT_EAP = 7;
 
@@ -196,38 +191,30 @@ public class WifiConfiguration implements Parcelable {
 
         /**
          * WPA pre-shared key with stronger SHA256-based algorithms.
-         * @hide
          */
         public static final int WPA_PSK_SHA256 = 11;
 
         /**
          * WPA using EAP authentication with stronger SHA256-based algorithms.
-         * @hide
          */
         public static final int WPA_EAP_SHA256 = 12;
 
         /**
          * WAPI pre-shared key (requires {@code preSharedKey} to be specified).
-         * @hide
          */
-        @SystemApi
         public static final int WAPI_PSK = 13;
 
         /**
          * WAPI certificate to be specified.
-         * @hide
          */
-        @SystemApi
         public static final int WAPI_CERT = 14;
 
         /**
         * IEEE 802.11ai FILS SK with SHA256
-         * @hide
         */
         public static final int FILS_SHA256 = 15;
         /**
          * IEEE 802.11ai FILS SK with SHA384:
-         * @hide
          */
         public static final int FILS_SHA384 = 16;
 
@@ -235,7 +222,6 @@ public class WifiConfiguration implements Parcelable {
          * Easy Connect - AKA Device Provisioning Protocol (DPP)
          * For more details, visit <a href="https://www.wi-fi.org/">https://www.wi-fi.org/</a> and
          * search for "Easy Connect" or "Device Provisioning Protocol specification".
-         * @hide
          */
         public static final int DPP = 17;
 

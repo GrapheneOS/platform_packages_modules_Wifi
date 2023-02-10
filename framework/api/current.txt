@@ -237,13 +237,24 @@ package android.net.wifi {
   }
 
   @Deprecated public static class WifiConfiguration.KeyMgmt {
+    field @Deprecated public static final int DPP = 17; // 0x11
+    field @Deprecated public static final int FILS_SHA256 = 15; // 0xf
+    field @Deprecated public static final int FILS_SHA384 = 16; // 0x10
+    field @Deprecated public static final int FT_EAP = 7; // 0x7
+    field @Deprecated public static final int FT_PSK = 6; // 0x6
     field @Deprecated public static final int IEEE8021X = 3; // 0x3
     field @Deprecated public static final int NONE = 0; // 0x0
+    field @Deprecated public static final int OSEN = 5; // 0x5
     field @Deprecated public static final int OWE = 9; // 0x9
     field @Deprecated public static final int SAE = 8; // 0x8
     field @Deprecated public static final int SUITE_B_192 = 10; // 0xa
+    field @Deprecated public static final int WAPI_CERT = 14; // 0xe
+    field @Deprecated public static final int WAPI_PSK = 13; // 0xd
+    field @Deprecated public static final int WPA2_PSK = 4; // 0x4
     field @Deprecated public static final int WPA_EAP = 2; // 0x2
+    field @Deprecated public static final int WPA_EAP_SHA256 = 12; // 0xc
     field @Deprecated public static final int WPA_PSK = 1; // 0x1
+    field @Deprecated public static final int WPA_PSK_SHA256 = 11; // 0xb
     field @Deprecated public static final String[] strings;
     field @Deprecated public static final String varName = "key_mgmt";
   }
