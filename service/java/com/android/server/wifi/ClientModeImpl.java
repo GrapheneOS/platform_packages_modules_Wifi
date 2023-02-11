@@ -467,6 +467,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     /* SIM is removed; reset any cached data for it */
     static final int CMD_RESET_SIM_NETWORKS                             = BASE + 101;
 
+    /**
+     * Update the OOB Pseudonym which is retrieved from the carrier's entitlement server for
+     * EAP-SIM/AKA/AKA' into supplicant.
+     */
+    static final int CMD_UPDATE_OOB_PSEUDONYM                               = BASE + 102;
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"RESET_SIM_REASON_"},
             value = {
@@ -650,6 +656,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     /** NETWORK_NOT_FOUND_EVENT event counter */
     private int mNetworkNotFoundEventCount = 0;
+
+    private final WifiPseudonymManager.PseudonymUpdatingListener mPseudonymUpdatingListener;
+
 
     /** Note that this constructor will also start() the StateMachine. */
     public ClientModeImpl(
@@ -854,6 +863,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mInsecureEapNetworkHandlerCallbacksImpl,
                 mInterfaceName,
                 getHandler());
+
+        mPseudonymUpdatingListener = this::updatePseudonymFromOob;
 
         final int threshold =  mContext.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
@@ -5233,6 +5244,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendMessage(CMD_NETWORK_STATUS, status);
     }
 
+    private void updatePseudonymFromOob(int carrierId, String pseudonym) {
+        sendMessage(CMD_UPDATE_OOB_PSEUDONYM, carrierId, 0, pseudonym);
+    }
+
     class ConnectingOrConnectedState extends RunnerState {
         ConnectingOrConnectedState(int threshold) {
             super(threshold, mWifiInjector.getWifiHandlerLocalLog());
@@ -5407,6 +5422,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     // We need to get the updated pseudonym from supplicant for EAP-SIM/AKA/AKA'
                     if (config.enterpriseConfig != null
                             && config.enterpriseConfig.isAuthenticationSimBased()) {
+                        if (mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                config.carrierId)) {
+                            if (mVerboseLoggingEnabled) {
+                                logd("add PseudonymUpdatingListener");
+                            }
+                            mWifiPseudonymManager.registerPseudonymUpdatingListener(
+                                    mPseudonymUpdatingListener);
+                        }
                         mLastSubId = mWifiCarrierInfoManager.getBestMatchSubscriptionId(config);
                         mLastSimBasedConnectionCarrierName =
                                 mWifiCarrierInfoManager.getCarrierNameForSubId(mLastSubId);
@@ -5478,6 +5501,31 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     updateLayer2Information();
                     updateCurrentConnectionInfo();
                     transitionTo(mL3ProvisioningState);
+                    break;
+                }
+                case CMD_UPDATE_OOB_PSEUDONYM: {
+                    WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                    if (config == null) {
+                        log("OOB pseudonym is updated, but no valid connected network.");
+                        break;
+                    }
+                    int updatingCarrierId = message.arg1;
+                    if (config.enterpriseConfig == null
+                            || !config.enterpriseConfig.isAuthenticationSimBased()
+                            || !mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                    config.carrierId)
+                            || updatingCarrierId != config.carrierId) {
+                        log("OOB pseudonym is not applied.");
+                        break;
+                    }
+                    if (SdkLevel.isAtLeastT()) {
+                        log("send OOB pseudonym to supplicant");
+                        String pseudonym = (String) message.obj;
+                        mWifiNative.setEapAnonymousIdentity(mInterfaceName,
+                                mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(
+                                        config, pseudonym),
+                                /*updateToNativeService=*/ true);
+                    }
                     break;
                 }
                 case WifiMonitor.SUP_REQUEST_SIM_AUTH: {
@@ -7153,6 +7201,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                     WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+
+            if (mDeviceConfigFacade.isOobPseudonymEnabled()) {
+                if (mVerboseLoggingEnabled) {
+                    logd("unregister PseudonymUpdatingListener");
+                }
+                // unregister it any way, if it was not registered, it's no OP.
+                mWifiPseudonymManager
+                        .unregisterPseudonymUpdatingListener(mPseudonymUpdatingListener);
+            }
         }
 
         @Override
