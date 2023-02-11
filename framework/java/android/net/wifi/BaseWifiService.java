@@ -993,13 +993,13 @@ public class BaseWifiService extends IWifiManager.Stub {
     }
 
     @Override
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
-            @NonNull String packageName, @NonNull IIntegerListener listener) {
+    public void addQosPolicies(@NonNull List<QosPolicyParams> policyParamsList,
+            @NonNull IBinder binder, @NonNull String packageName, @NonNull IListListener listener) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeQosPolicy(int policyId, @NonNull String packageName) {
+    public void removeQosPolicies(@NonNull int[] policyIdList, @NonNull String packageName) {
         throw new UnsupportedOperationException();
     }
 

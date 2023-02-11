@@ -214,6 +214,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -7384,13 +7385,30 @@ public class WifiServiceImpl extends BaseWifiService {
                 && mWifiNative.isSupplicantAidlServiceVersionAtLeast(2);
     }
 
+    private boolean policyIdsAreUnique(List<QosPolicyParams> policies) {
+        Set<Integer> policyIdSet = new HashSet<>();
+        for (QosPolicyParams policy : policies) {
+            policyIdSet.add(policy.getPolicyId());
+        }
+        return policyIdSet.size() == policies.size();
+    }
+
+    private boolean policyIdsAreUnique(int[] policyIds) {
+        Set<Integer> policyIdSet = new HashSet<>();
+        for (int policyId : policyIds) {
+            policyIdSet.add(policyId);
+        }
+        return policyIdSet.size() == policyIds.length;
+    }
+
     /**
-     * See {@link WifiManager#addQosPolicy(QosPolicyParams, Executor, Consumer)}.
+     * See {@link WifiManager#addQosPolicies(List, Executor, Consumer)}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams, @NonNull IBinder binder,
-            @NonNull String packageName, @NonNull IIntegerListener listener) {
+    public void addQosPolicies(@NonNull List<QosPolicyParams> policyParamsList,
+            @NonNull IBinder binder, @NonNull String packageName,
+            @NonNull IListListener listener) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!isApplicationQosPolicyFeatureEnabled()) {
@@ -7404,13 +7422,24 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new SecurityException("Uid=" + uid + " is not allowed to add QoS policies");
         }
 
-        Objects.requireNonNull(policyParams, "policyParams cannot be null");
+        Objects.requireNonNull(policyParamsList, "policyParamsList cannot be null");
         Objects.requireNonNull(binder, "binder cannot be null");
         Objects.requireNonNull(listener, "listener cannot be null");
 
+        if (policyParamsList.size() == 0
+                || policyParamsList.size() > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
+                || !policyIdsAreUnique(policyParamsList)) {
+            throw new IllegalArgumentException("policyParamsList is invalid");
+        }
+
         mWifiThreadRunner.post(() -> {
             try {
-                listener.onResult(WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
+                // TODO: Add an implementation for this API.
+                List<Integer> statusList = new ArrayList<>();
+                for (QosPolicyParams policy : policyParamsList) {
+                    statusList.add(WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN);
+                }
+                listener.onResult(statusList);
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
@@ -7418,11 +7447,11 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#removeQosPolicy(int)}.
+     * See {@link WifiManager#removeQosPolicies(int[])}.
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void removeQosPolicy(int policyId, @NonNull String packageName) {
+    public void removeQosPolicies(@NonNull int[] policyIdList, @NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!isApplicationQosPolicyFeatureEnabled()) {
@@ -7435,6 +7464,13 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
         }
+        Objects.requireNonNull(policyIdList, "policyIdList cannot be null");
+        if (policyIdList.length == 0
+                || policyIdList.length > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
+                || !policyIdsAreUnique(policyIdList)) {
+            throw new IllegalArgumentException("policyIdList is invalid");
+        }
+        // TODO: Add an implementation for this API.
     }
 
     /**
@@ -7455,5 +7491,6 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
         }
+        // TODO: Add an implementation for this API.
     }
 }
