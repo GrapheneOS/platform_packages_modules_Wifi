@@ -105,7 +105,7 @@ public class WifiNanIfaceHidlImplTest {
         mIsInterface12 = false;
 
         mDut = new MockableWifiNanIface(mIWifiNanIface);
-        CAP.supportedCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128
+        CAP.supportedDataPathCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128
                 | WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
     }
 

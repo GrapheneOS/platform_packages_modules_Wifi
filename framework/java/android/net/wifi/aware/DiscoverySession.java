@@ -17,6 +17,7 @@
 package android.net.wifi.aware;
 
 import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -278,12 +279,15 @@ public class DiscoverySession implements AutoCloseable {
      *                        events.
      * @param peerDeviceAlias The alias of paired device set by caller, will help caller to identify
      *                        the paired device.
+     * @param cipherSuite     The cipher suite to be used to encrypt the link.
      * @param password        The password used for the pairing setup. If set to empty or null,
      *                        opportunistic pairing will be used.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void initiatePairingRequest(@NonNull PeerHandle peerHandle,
-            @NonNull String peerDeviceAlias, @Nullable String password) {
+            @NonNull String peerDeviceAlias,
+            @Characteristics.WifiAwarePairingCipherSuites int cipherSuite,
+            @Nullable String password) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException();
         }
@@ -293,7 +297,7 @@ public class DiscoverySession implements AutoCloseable {
             return;
         }
         mgr.initiateNanPairingSetupRequest(mClientId, mSessionId, peerHandle, password,
-                peerDeviceAlias);
+                peerDeviceAlias, cipherSuite);
     }
 
     /**
@@ -315,12 +319,15 @@ public class DiscoverySession implements AutoCloseable {
      *                        events.
      * @param peerDeviceAlias The alias of paired device set by caller, will help caller to identify
      *                        the paired device.
+     * @param cipherSuite     The cipher suite to be used to encrypt the link.
      * @param password        The password is used for the pairing setup. If set to empty or null,
      *                        opportunistic pairing will be used.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void acceptPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
-            @NonNull String peerDeviceAlias, @Nullable String password) {
+            @NonNull String peerDeviceAlias,
+            @Characteristics.WifiAwarePairingCipherSuites int cipherSuite,
+            @Nullable String password) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException();
         }
@@ -330,7 +337,7 @@ public class DiscoverySession implements AutoCloseable {
             return;
         }
         mgr.responseNanPairingSetupRequest(mClientId, mSessionId, peerHandle, requestId, password,
-                peerDeviceAlias, true);
+                peerDeviceAlias, true, cipherSuite);
     }
 
     /**
@@ -360,7 +367,7 @@ public class DiscoverySession implements AutoCloseable {
             return;
         }
         mgr.responseNanPairingSetupRequest(mClientId, mSessionId, peerHandle, requestId, null,
-                null, false);
+                null, false, WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
     }
 
     /**

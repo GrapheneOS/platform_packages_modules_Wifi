@@ -65,7 +65,7 @@ public class WifiNanIfaceAidlImplTest {
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
         mDut = new WifiNanIfaceAidlImpl(mIWifiNanIfaceMock);
-        TEST_CAPABILITIES.supportedCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128
+        TEST_CAPABILITIES.supportedDataPathCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128
                 | WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
     }
 

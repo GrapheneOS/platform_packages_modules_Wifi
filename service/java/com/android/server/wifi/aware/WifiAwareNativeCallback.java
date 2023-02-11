@@ -294,6 +294,12 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     }
 
     @Override
+    public void notifyTerminatePairingResponse(short id, int status) {
+        mWifiAwareStateManager.onEndPairingResponse(id, status == NanStatusCode.SUCCESS,
+                status);
+    }
+
+    @Override
     public void eventClusterEvent(int eventType, byte[] addr) {
         incrementCbCount(CB_EV_CLUSTER);
         if (eventType == NanClusterEventType.DISCOVERY_MAC_ADDRESS_CHANGED) {
@@ -423,8 +429,10 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     }
 
     @Override
-    public void eventBootstrappingConfirm(int pairingId, boolean accept, int reason) {
-        mWifiAwareStateManager.onBootstrappingConfirmNotification(pairingId, accept, reason);
+    public void eventBootstrappingConfirm(int bootstrappingId, int responseCode, int reason,
+            int comebackDelay, byte[] cookie) {
+        mWifiAwareStateManager.onBootstrappingConfirmNotification(bootstrappingId, responseCode,
+                reason, comebackDelay, cookie);
     }
 
         /**
