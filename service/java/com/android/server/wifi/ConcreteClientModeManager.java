@@ -1469,8 +1469,28 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
-    public void enableTdls(String remoteMacAddress, boolean enable) {
-        getClientMode().enableTdls(remoteMacAddress, enable);
+    public boolean enableTdls(String remoteMacAddress, boolean enable) {
+        return getClientMode().enableTdls(remoteMacAddress, enable);
+    }
+
+    @Override
+    public boolean enableTdlsWithRemoteIpAddress(String remoteIpAddress, boolean enable) {
+        return getClientMode().enableTdlsWithRemoteIpAddress(remoteIpAddress, enable);
+    }
+
+    @Override
+    public boolean isTdlsOperationCurrentlyAvailable() {
+        return getClientMode().isTdlsOperationCurrentlyAvailable();
+    }
+
+    @Override
+    public int getMaxSupportedConcurrentTdlsSessions() {
+        return getClientMode().getMaxSupportedConcurrentTdlsSessions();
+    }
+
+    @Override
+    public int getNumberOfEnabledTdlsSessions() {
+        return getClientMode().getNumberOfEnabledTdlsSessions();
     }
 
     @Override

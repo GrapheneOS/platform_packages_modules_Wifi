@@ -138,6 +138,7 @@ import android.net.wifi.IActionListener;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.IDppCallback;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
@@ -305,6 +306,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     private static final String TEST_SSID = "Sid's Place";
     private static final String TEST_SSID_WITH_QUOTES = "\"" + TEST_SSID + "\"";
     private static final String TEST_BSSID = "01:02:03:04:05:06";
+    private static final String TEST_IP = "192.168.49.5";
     private static final String TEST_PACKAGE = "package";
     private static final int TEST_NETWORK_ID = 567;
     private static final WorkSource TEST_SETTINGS_WORKSOURCE = new WorkSource();
@@ -9111,6 +9113,85 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.enableTdlsWithMacAddress(TEST_BSSID, false);
         mLooper.dispatchAll();
         verify(mClientModeManager).enableTdls(TEST_BSSID, false);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS),
+                anyInt(), anyInt(), anyInt(), anyString(), eq(false));
+    }
+
+    @Test
+    public void testEnabledTdlsWithMacAddressCallback() throws RemoteException {
+        IBooleanListener listener = mock(IBooleanListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        when(mClientModeManager.enableTdls(TEST_BSSID, true)).thenReturn(true);
+        mWifiServiceImpl.enableTdlsWithRemoteMacAddress(TEST_BSSID, true, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        when(mClientModeManager.enableTdls(TEST_BSSID, false)).thenReturn(false);
+        mWifiServiceImpl.enableTdlsWithRemoteMacAddress(TEST_BSSID, false, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
+        verify(mLastCallerInfoManager)
+                .put(eq(WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS),
+                anyInt(), anyInt(), anyInt(), anyString(), eq(false));
+    }
+
+    @Test
+    public void testEnabledTdlsWithIpAddressCallback() throws RemoteException {
+        IBooleanListener listener = mock(IBooleanListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        when(mClientModeManager.enableTdlsWithRemoteIpAddress(TEST_IP, true))
+                .thenReturn(true);
+        mWifiServiceImpl.enableTdlsWithRemoteIpAddress(TEST_IP, true, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        when(mClientModeManager.enableTdlsWithRemoteIpAddress(TEST_IP, false))
+                .thenReturn(false);
+        mWifiServiceImpl.enableTdlsWithRemoteIpAddress(TEST_IP, false, listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
+        verify(mLastCallerInfoManager)
+                .put(eq(WifiManager.API_SET_TDLS_ENABLED),
+                        anyInt(), anyInt(), anyInt(), anyString(), eq(false));
+    }
+
+    @Test
+    public void testIsTdlsOperationCurrentlyAvailable() throws RemoteException {
+        IBooleanListener listener = mock(IBooleanListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        when(mClientModeManager.isTdlsOperationCurrentlyAvailable()).thenReturn(true);
+        mWifiServiceImpl.isTdlsOperationCurrentlyAvailable(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        when(mClientModeManager.isTdlsOperationCurrentlyAvailable()).thenReturn(false);
+        mWifiServiceImpl.isTdlsOperationCurrentlyAvailable(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
+    }
+
+    @Test
+    public void testGetMaxSupportedConcurrentTdlsSessions() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastU());
+        IIntegerListener listener = mock(IIntegerListener.class);
+
+        when(mClientModeManager.getMaxSupportedConcurrentTdlsSessions()).thenReturn(5);
+        mWifiServiceImpl.getMaxSupportedConcurrentTdlsSessions(listener);
+        mLooper.dispatchAll();
+        verify(listener).onResult(5);
+    }
+
+    @Test
+    public void testGetNumberOfEnabledTdlsSessions() throws RemoteException {
+        IIntegerListener listener = mock(IIntegerListener.class);
+
+        when(mClientModeManager.getNumberOfEnabledTdlsSessions()).thenReturn(3);
+        mWifiServiceImpl.getNumberOfEnabledTdlsSessions(listener);
+        mLooper.dispatchAll();
+        verify(listener).onResult(3);
     }
 
     /**

@@ -4893,9 +4893,40 @@ public class WifiServiceImpl extends BaseWifiService {
         TdlsTaskParams params = new TdlsTaskParams();
         params.mRemoteIpAddress = remoteAddress;
         params.mEnable = enable;
+        mLastCallerInfoManager.put(WifiManager.API_SET_TDLS_ENABLED, Process.myTid(),
+                Binder.getCallingUid(), Binder.getCallingPid(), "<unknown>", enable);
         new TdlsTask().execute(params);
     }
 
+    /**
+     * See {@link WifiManager#setTdlsEnabled(InetAddress, boolean, Executor, Consumer)}
+     */
+    @Override
+    public void enableTdlsWithRemoteIpAddress(String remoteAddress, boolean enable,
+            @NonNull IBooleanListener listener) {
+        if (remoteAddress == null) {
+            throw new NullPointerException("remoteAddress cannot be null");
+        }
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+
+        mLog.info("enableTdlsWithRemoteIpAddress uid=% enable=%")
+                .c(Binder.getCallingUid()).c(enable).flush();
+        mLastCallerInfoManager.put(WifiManager.API_SET_TDLS_ENABLED,
+                Process.myTid(), Binder.getCallingUid(), Binder.getCallingPid(), "<unknown>",
+                enable);
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(
+                        mActiveModeWarden.getPrimaryClientModeManager()
+                                .enableTdlsWithRemoteIpAddress(remoteAddress, enable));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
 
     @Override
     public void enableTdlsWithMacAddress(String remoteMacAddress, boolean enable) {
@@ -4906,9 +4937,104 @@ public class WifiServiceImpl extends BaseWifiService {
         if (remoteMacAddress == null) {
           throw new IllegalArgumentException("remoteMacAddress cannot be null");
         }
+        mLastCallerInfoManager.put(WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS,
+                Process.myTid(), Binder.getCallingUid(), Binder.getCallingPid(), "<unknown>",
+                enable);
         mWifiThreadRunner.post(() ->
                 mActiveModeWarden.getPrimaryClientModeManager().enableTdls(
                         remoteMacAddress, enable));
+    }
+
+    /**
+     * See {@link WifiManager#setTdlsEnabledWithMacAddress(String, boolean, Executor, Consumer)}
+     */
+    @Override
+    public void enableTdlsWithRemoteMacAddress(String remoteMacAddress, boolean enable,
+            @NonNull IBooleanListener listener) {
+        if (remoteMacAddress == null) {
+            throw new NullPointerException("remoteAddress cannot be null");
+        }
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+
+        mLog.info("enableTdlsWithRemoteMacAddress uid=% enable=%")
+                .c(Binder.getCallingUid()).c(enable).flush();
+        mLastCallerInfoManager.put(
+                WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS,
+                Process.myTid(), Binder.getCallingUid(), Binder.getCallingPid(), "<unknown>",
+                enable);
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(
+                        mActiveModeWarden.getPrimaryClientModeManager()
+                                .enableTdls(remoteMacAddress, enable));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#isTdlsOperationCurrentlyAvailable(Executor, Consumer)}
+     */
+    @Override
+    public void isTdlsOperationCurrentlyAvailable(@NonNull IBooleanListener listener) {
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(
+                        mActiveModeWarden.getPrimaryClientModeManager()
+                                .isTdlsOperationCurrentlyAvailable());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     *  See {@link WifiManager#getMaxSupportedConcurrentTdlsSessions(Executor, Consumer)}
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void getMaxSupportedConcurrentTdlsSessions(@NonNull IIntegerListener listener) {
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(
+                        mActiveModeWarden.getPrimaryClientModeManager()
+                                .getMaxSupportedConcurrentTdlsSessions());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     *  See {@link WifiManager#getNumberOfEnabledTdlsSessions(Executor, Consumer)}
+     */
+    @Override
+    public void getNumberOfEnabledTdlsSessions(@NonNull IIntegerListener listener) {
+        if (listener == null) {
+            throw new NullPointerException("listener should not be null");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(
+                        mActiveModeWarden.getPrimaryClientModeManager()
+                                .getNumberOfEnabledTdlsSessions());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**
@@ -5284,6 +5410,10 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiMulticastLockManager.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiInjector.enableVerboseLogging(mVerboseLoggingEnabled, halVerboseEnabled);
         mWifiInjector.getSarManager().enableVerboseLogging(mVerboseLoggingEnabled);
+        WifiScanner wifiScanner = mWifiInjector.getWifiScanner();
+        if (wifiScanner != null) {
+            wifiScanner.enableVerboseLogging(mVerboseLoggingEnabled);
+        }
         ApConfigUtil.enableVerboseLogging(mVerboseLoggingEnabled);
     }
 

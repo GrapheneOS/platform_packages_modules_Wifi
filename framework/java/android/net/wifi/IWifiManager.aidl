@@ -259,7 +259,17 @@ interface IWifiManager
 
     void enableTdls(String remoteIPAddress, boolean enable);
 
+    void enableTdlsWithRemoteIpAddress(String remoteIPAddress, boolean enable, in IBooleanListener listener);
+
     void enableTdlsWithMacAddress(String remoteMacAddress, boolean enable);
+
+    void enableTdlsWithRemoteMacAddress(String remoteMacAddress, boolean enable, in IBooleanListener listener);
+
+    void isTdlsOperationCurrentlyAvailable(in IBooleanListener listener);
+
+    void getMaxSupportedConcurrentTdlsSessions(in IIntegerListener callback);
+
+    void getNumberOfEnabledTdlsSessions(in IIntegerListener callback);
 
     String getCurrentNetworkWpsNfcConfigurationToken();
 

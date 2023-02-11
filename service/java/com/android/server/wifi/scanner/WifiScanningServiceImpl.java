@@ -88,6 +88,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class WifiScanningServiceImpl extends IWifiScanner.Stub {
@@ -103,6 +104,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
     private void localLog(String message) {
         mLocalLog.log(message);
+        if (isVerboseLoggingEnabled()) {
+            Log.i(TAG, message);
+        }
     }
 
     private void logw(String message) {
@@ -501,6 +505,19 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         });
     }
 
+    @Override
+    public void enableVerboseLogging(boolean enabled) {
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(Binder.getCallingUid())) {
+            return;
+        }
+        mVerboseLoggingEnabled.set(enabled);
+        localLog("enableVerboseLogging: uid=" + Binder.getCallingUid() + " enabled=" + enabled);
+    }
+
+    private boolean isVerboseLoggingEnabled() {
+        return mVerboseLoggingEnabled.get();
+    }
+
     private void enforceNetworkStack(int uid) {
         mContext.enforcePermission(
                 Manifest.permission.NETWORK_STACK,
@@ -635,6 +652,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     private final WifiManager mWifiManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final DeviceConfigFacade mDeviceConfigFacade;
+
+    private AtomicBoolean mVerboseLoggingEnabled = new AtomicBoolean(false);
 
     WifiScanningServiceImpl(Context context, Looper looper,
             WifiScannerImpl.WifiScannerImplFactory scannerImplFactory,
@@ -2319,6 +2338,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     case WifiScanner.CMD_STOP_PNO_SCAN:
                         ScanParams scanParams = (ScanParams) msg.obj;
                         ClientInfo ci = mClients.get(scanParams.listener);
+                        if (ci == null) {
+                            localLog("Pno ClientInfo is null in DefaultState");
+                            break;
+                        }
                         ci.replyFailed(WifiScanner.REASON_UNSPECIFIED, "not available");
                         break;
                     case CMD_PNO_NETWORK_FOUND:
@@ -2358,9 +2381,13 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                             loge("scan params null");
                             return HANDLED;
                         }
+                        ClientInfo ci = mClients.get(scanParams.listener);
+                        if (ci == null) {
+                            localLog("CMD_START_PNO_SCAN ClientInfo is null in StartedState");
+                            break;
+                        }
                         if (scanParams.pnoSettings == null || scanParams.settings == null) {
                             Log.e(TAG, "Failed to get parcelable params");
-                            ClientInfo ci = mClients.get(scanParams.listener);
                             ci.replyFailed(WifiScanner.REASON_INVALID_REQUEST, "bad parcel params");
                             return HANDLED;
                         }
@@ -2375,13 +2402,12 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                             transitionTo(mSwPnoScanState);
                         } else {
                             Log.w(TAG, "PNO is not available");
-                            ClientInfo ci = mClients.get(scanParams.listener);
                             ci.replyFailed(WifiScanner.REASON_INVALID_REQUEST, "not supported");
                         }
                         break;
                     case WifiScanner.CMD_STOP_PNO_SCAN:
                         scanParams = (ScanParams) msg.obj;
-                        ClientInfo ci = mClients.get(scanParams.listener);
+                        ci = mClients.get(scanParams.listener);
                         if (ci != null) {
                             ci.cleanup();
                         }
@@ -2411,10 +2437,14 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 switch (msg.what) {
                     case WifiScanner.CMD_START_PNO_SCAN:
                         ScanParams scanParams = (ScanParams) msg.obj;
-                        ClientInfo ci = mClients.get(scanParams.listener);
                         if (scanParams == null) {
                             loge("params null");
                             return HANDLED;
+                        }
+                        ClientInfo ci = mClients.get(scanParams.listener);
+                        if (ci == null) {
+                            localLog("CMD_START_PNO_SCAN ClientInfo is null in HwPnoScanState");
+                            break;
                         }
                         if (scanParams.pnoSettings == null || scanParams.settings == null) {
                             Log.e(TAG, "Failed to get parcelable params");
@@ -2993,6 +3023,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
          * Register this client to main client map.
          */
         public void register() {
+            if (isVerboseLoggingEnabled()) {
+                Log.i(TAG, "Registering listener= " + mListener + " uid=" + mUid
+                        + " packageName=" + mPackageName + " workSource=" + mWorkSource);
+            }
             mClients.put(mListener, this);
         }
 
@@ -3000,6 +3034,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
          * Unregister this client from main client map.
          */
         private void unregister() {
+            if (isVerboseLoggingEnabled()) {
+                Log.i(TAG, "Unregistering listener= " + mListener + " uid=" + mUid
+                        + " packageName=" + mPackageName + " workSource=" + mWorkSource);
+            }
             mClients.remove(mListener);
         }
 
@@ -3118,6 +3156,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     public void binderDied() {
                         mWifiThreadRunner.post(() -> {
                             if (DBG) localLog("binder died: client listener: " + listener);
+                            if (isVerboseLoggingEnabled()) {
+                                Log.i(TAG, "binder died: client listener: " + listener);
+                            }
                             cleanup();
                         });
                     }
