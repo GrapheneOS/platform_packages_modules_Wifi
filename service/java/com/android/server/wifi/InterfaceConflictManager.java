@@ -21,6 +21,7 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDG
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_NAN;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
+import static com.android.server.wifi.util.WorkSourceHelper.PRIORITY_INTERNAL;
 
 import android.annotation.IntDef;
 import android.content.BroadcastReceiver;
@@ -150,6 +151,20 @@ public class InterfaceConflictManager {
             return false;
         }
 
+        // Auto-approve dialog if we need to delete a disconnected P2P.
+        if (mUserApprovalNotRequireForDisconnectedP2p && !mIsP2pConnected
+                &&  existingCreateType == HDM_CREATE_IFACE_P2P) {
+            localLog(TAG
+                    + ": existing interface is p2p and it is not connected - proceeding");
+            return false;
+        }
+
+        // Auto-approve dialog if we need to delete a opportunistic Aware.
+        if (existingCreateType == HDM_CREATE_IFACE_NAN
+                && existingRequestorWsHelper.getRequestorWsPriority() == PRIORITY_INTERNAL) {
+            localLog(TAG + ": existing interface is NAN and it is opportunistic");
+            return false;
+        }
         // Check if every package in the WorkSource are exempt from user approval.
         if (!mUserApprovalExemptedPackages.isEmpty()) {
             boolean exemptFromUserApproval = true;
@@ -167,7 +182,7 @@ public class InterfaceConflictManager {
         // Check if priority level can get user approval.
         if (newRequestorWsHelper.getRequestorWsPriority() <= WorkSourceHelper.PRIORITY_BG
                 || existingRequestorWsHelper.getRequestorWsPriority()
-                == WorkSourceHelper.PRIORITY_INTERNAL) {
+                == PRIORITY_INTERNAL) {
             return false;
         }
         // Check if the conflicting interface types can get user approval.
@@ -329,14 +344,6 @@ public class InterfaceConflictManager {
             if (impact == null || impact.isEmpty()) {
                 localLog(tag
                         + ": Either can't create interface or can w/o sid-effects - proceeding");
-                return ICM_EXECUTE_COMMAND;
-            }
-
-            // Auto-approve dialog if we only need to delete a disconnected P2P.
-            if (mUserApprovalNotRequireForDisconnectedP2p && !mIsP2pConnected
-                    && impact.size() == 1 && impact.get(0).first == HDM_CREATE_IFACE_P2P) {
-                localLog(tag
-                        + ": existing inferface is p2p and it is not connected - proceeding");
                 return ICM_EXECUTE_COMMAND;
             }
 

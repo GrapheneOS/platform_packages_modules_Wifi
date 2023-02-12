@@ -60,6 +60,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
+import android.net.wifi.IBooleanListener;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
@@ -5376,6 +5377,69 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         validateInternalClientInfoCleanedUp(clientId2);
 
         verifyNoMoreInteractions(mockCallback1, mockCallback2, mMockNative);
+    }
+
+    @Test
+    public void testAwareWithOpportunisticMode() throws Exception {
+        final int clientId1 = 1005;
+        final int clusterLow = 5;
+        final int clusterHigh = 100;
+        final int masterPref = 111;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final int reason = NanStatusCode.INTERNAL_FAILURE;
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().setClusterLow(clusterLow)
+                .setClusterHigh(clusterHigh).setMasterPreference(masterPref)
+                .build();
+
+        IWifiAwareEventCallback mockCallback1 = mock(IWifiAwareEventCallback.class);
+        ArgumentCaptor<Short> transactionIdCapture = ArgumentCaptor.forClass(Short.class);
+        InOrder inOrder = inOrder(mockCallback1, mMockNative, mMockNativeManager);
+        mDut.setOpportunisticPackage(callingPackage, true);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).getCapabilities(transactionIdCapture.capture());
+        reset(mMockNativeManager);
+
+        // (1) connect Aware session
+        mDut.connect(clientId1, uid, pid, callingPackage, callingFeature, mockCallback1,
+                configRequest, false, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(Process.WIFI_UID));
+        inOrder.verify(mMockNative).enableAndConfigure(transactionIdCapture.capture(),
+                eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
+                anyInt(), anyInt());
+        short transactionId = transactionIdCapture.getValue();
+        mDut.onConfigSuccessResponse(transactionId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback1).onConnectSuccess(clientId1);
+
+        // (2) Verify attach status
+        IBooleanListener booleanListener = mock(IBooleanListener.class);
+        mDut.isOpportunistic(callingPackage, booleanListener);
+        mMockLooper.dispatchAll();
+        verify(booleanListener).onResult(true);
+        reset(booleanListener);
+
+        // (3) Change from opportunistic to normal
+        mDut.setOpportunisticPackage(callingPackage, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNativeManager).replaceRequestorWs(new WorkSource(uid, callingPackage));
+
+        // (6) Aware down - session should be terminated.
+        mDut.onAwareDownNotification(reason);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback1).onAttachTerminate();
+
+
+
+        validateInternalClientInfoCleanedUp(clientId1);
+
+        verifyNoMoreInteractions(mockCallback1, mMockNative);
     }
 }
 

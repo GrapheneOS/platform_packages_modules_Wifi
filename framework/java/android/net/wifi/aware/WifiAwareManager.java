@@ -36,6 +36,8 @@ import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
+import android.net.wifi.IBooleanListener;
+import android.net.wifi.IListListener;
 import android.net.wifi.WifiManager;
 import android.net.wifi.util.HexEncoding;
 import android.os.Binder;
@@ -1206,9 +1208,55 @@ public class WifiAwareManager {
     }
 
     /**
+     *  Set all Wi-Fi Aware sessions created by the calling app to be opportunistic. Opportunistic
+     *  Wi-Fi Aware sessions are considered low priority and may be torn down (the sessions or the
+     *  Aware interface) if there are resource conflicts.
+     *
+     * @param enabled True to configure all Wi-Fi Aware sessions by the calling app as
+     *                Opportunistic. False by default.
+     */
+    @RequiresPermission(CHANGE_WIFI_STATE)
+    public void setOpportunisticModeEnabled(boolean enabled) {
+        try {
+            mService.setOpportunisticModeEnabled(mContext.getOpPackageName(), enabled);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Indicate whether all Wi-Fi Aware sessions created by the calling app are opportunistic as
+     * defined and configured by {@link #setOpportunisticModeEnabled(boolean)}
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return boolean
+     */
+    @RequiresPermission(ACCESS_WIFI_STATE)
+    public void isOpportunisticModeEnabled(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+
+        try {
+            mService.isOpportunisticModeEnabled(mContext.getOpPackageName(),
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
      * Reset all paired devices setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
+     * {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, String)}
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
     public void resetPairedDevices() {
@@ -1222,7 +1270,7 @@ public class WifiAwareManager {
     /**
      * Remove the target paired device setup by the caller by
      * {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)} and
-     * {@link DiscoverySession#respondToPairingRequest(int, PeerHandle, String, String)}
+     * {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, String)}
      * @param alias The alias set by the caller
      */
     @RequiresPermission(CHANGE_WIFI_STATE)
@@ -1248,8 +1296,8 @@ public class WifiAwareManager {
         try {
             mService.getPairedDevices(
                     mContext.getOpPackageName(),
-                    new IWifiAwarePairedDevicesListener.Stub() {
-                        public void onResult(List<String> value) {
+                    new IListListener.Stub() {
+                        public void onResult(List value) {
                             Binder.clearCallingIdentity();
                             executor.execute(() -> resultsCallback.accept(value));
                         }

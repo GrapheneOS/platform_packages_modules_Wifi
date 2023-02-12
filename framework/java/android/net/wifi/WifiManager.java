@@ -1935,7 +1935,7 @@ public class WifiManager {
 
     /**
      * This policy is being tracked by the Wifi service.
-     * Indicates success for {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
+     * Indicates success for {@link #addQosPolicies(List, Executor, Consumer)}.
      * @hide
      */
     @SystemApi
@@ -1978,6 +1978,21 @@ public class WifiManager {
             QOS_REQUEST_STATUS_INVALID_PARAMETERS,
             QOS_REQUEST_STATUS_FAILURE_UNKNOWN})
     public @interface QosRequestStatus {}
+
+    /**
+     * Maximum number of policies that can be included in a QoS add/remove request.
+     */
+    private static final int MAX_POLICIES_PER_QOS_REQUEST = 16;
+
+    /**
+     * Get the maximum number of policies that can be included in a request to
+     * {@link #addQosPolicies(List, Executor, Consumer)} or {@link #removeQosPolicies(int[])}.
+     * @hide
+     */
+    @SystemApi
+    public static int getMaxNumberOfPoliciesPerQosRequest() {
+        return MAX_POLICIES_PER_QOS_REQUEST;
+    }
 
     /* Number of currently active WifiLocks and MulticastLocks */
     @UnsupportedAppUsage
@@ -11125,24 +11140,29 @@ public class WifiManager {
     }
 
     /**
-     * Add a new application-initiated QoS policy.
+     * Add a list of new application-initiated QoS policies.
      *
      * Note: Policies are managed using a policy ID, which can be retrieved using
      *       {@link QosPolicyParams#getPolicyId()}. This ID can be used when removing a policy via
-     *       {@link #removeQosPolicy(int)}. The caller is in charge of assigning and managing the
-     *       policy IDs for any requested policies.
+     *       {@link #removeQosPolicies(int[])}. The caller is in charge of assigning and managing
+     *       the policy IDs for any requested policies.
      *
      * Note: Policies with duplicate IDs are not allowed. To update an existing policy, first
-     *       remove it using {@link #removeQosPolicy(int)}, and then re-add it using this API.
+     *       remove it using {@link #removeQosPolicies(int[])}, and then re-add it using this API.
      *
-     * @param policyParams {@link QosPolicyParams} object describing the requested policy.
+     * @param policyParamsList List of {@link QosPolicyParams} objects describing the requested
+     *                         policies. Must have a maximum length of
+     *                         {@link #getMaxNumberOfPoliciesPerQosRequest()}.
      * @param executor The executor on which callback will be invoked.
-     * @param resultsCallback An asynchronous callback that will return an integer status code
-     *                        from {@link QosRequestStatus}.
+     * @param resultsCallback An asynchronous callback that will return a list of integer status
+     *                        codes from {@link QosRequestStatus}. Result list will be the same
+     *                        length as the input list, and each status code will correspond to
+     *                        the policy at that index in the input list.
      *
      * @throws SecurityException if caller does not have the required permissions.
-     * @throws NullPointerException if the caller provided invalid inputs.
+     * @throws NullPointerException if the caller provided a null input.
      * @throws UnsupportedOperationException if the feature is not enabled.
+     * @throws IllegalArgumentException if the input list is invalid.
      * @hide
      */
     @SystemApi
@@ -11151,16 +11171,17 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             MANAGE_WIFI_NETWORK_SELECTION
     })
-    public void addQosPolicy(@NonNull QosPolicyParams policyParams,
+    public void addQosPolicies(@NonNull List<QosPolicyParams> policyParamsList,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull Consumer<Integer> resultsCallback) {
+            @NonNull Consumer<List<Integer>> resultsCallback) {
+        Objects.requireNonNull(policyParamsList, "policyParamsList cannot be null");
         Objects.requireNonNull(executor, "executor cannot be null");
         Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
         try {
-            mService.addQosPolicy(policyParams, new Binder(), mContext.getOpPackageName(),
-                    new IIntegerListener.Stub() {
+            mService.addQosPolicies(policyParamsList, new Binder(), mContext.getOpPackageName(),
+                    new IListListener.Stub() {
                         @Override
-                        public void onResult(@QosRequestStatus int value) {
+                        public void onResult(List value) {
                             Binder.clearCallingIdentity();
                             executor.execute(() -> {
                                 resultsCallback.accept(value);
@@ -11173,14 +11194,17 @@ public class WifiManager {
     }
 
     /**
-     * Remove an existing application-initiated QoS policy, previously added via
-     * {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
+     * Remove a list of existing application-initiated QoS policies, previously added via
+     * {@link #addQosPolicies(List, Executor, Consumer)}.
      *
-     * Note: The policy is identified by its policy ID, which is assigned by the caller. The ID
+     * Note: Policies are identified by their policy IDs, which are assigned by the caller. The ID
      *       for a given policy can be retrieved using {@link QosPolicyParams#getPolicyId()}.
      *
-     * @param policyId ID of the policy to remove.
+     * @param policyIdList List of policy IDs corresponding to the policies to remove. Must have
+     *                     a maximum length of {@link #getMaxNumberOfPoliciesPerQosRequest()}.
      * @throws SecurityException if caller does not have the required permissions.
+     * @throws NullPointerException if the caller provided a null input.
+     * @throws IllegalArgumentException if the input list is invalid.
      * @hide
      */
     @SystemApi
@@ -11189,9 +11213,10 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             MANAGE_WIFI_NETWORK_SELECTION
     })
-    public void removeQosPolicy(int policyId) {
+    public void removeQosPolicies(@NonNull int[] policyIdList) {
+        Objects.requireNonNull(policyIdList, "policyIdList cannot be null");
         try {
-            mService.removeQosPolicy(policyId, mContext.getOpPackageName());
+            mService.removeQosPolicies(policyIdList, mContext.getOpPackageName());
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -11199,7 +11224,7 @@ public class WifiManager {
 
     /**
      * Remove all application-initiated QoS policies requested by this caller,
-     * previously added via {@link #addQosPolicy(QosPolicyParams, Executor, Consumer)}.
+     * previously added via {@link #addQosPolicies(List, Executor, Consumer)}.
      *
      * @throws SecurityException if caller does not have the required permissions.
      * @hide
