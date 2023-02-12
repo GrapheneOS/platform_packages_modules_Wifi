@@ -43,6 +43,9 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
     private static final String XML_TAG_UNMERGED_CARRIER_NETWORK_OFFLOAD_MAP =
             "UnmergedCarrierNetworkOffloadMap";
 
+    private static final String XML_TAG_AUTO_JOIN_FLIPPED_ON_OOB_PSEUDONYM_ENABLED =
+            "AutoJoinFlippedOnOobPseudonymEnabled";
+
     /**
      * Interface define the data source for the carrier IMSI protection exemption map store data.
      */
@@ -81,6 +84,18 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
                 Map<Integer, Boolean> subscriptionOffloadMap);
 
         /**
+         * Load the value which indicates if the auto-join flipping had been done if the OOB
+         * Pseudonym feature is enabled.
+         */
+        void setAutoJoinFlippedOnOobPseudonymEnabled(boolean autoJoinFlipped);
+
+        /**
+         * Retrieve the value which indicates if the auto-join flipping had been done if the OOB
+         * Pseudonym feature is enabled.
+         */
+        boolean getAutoJoinFlippedOnOobPseudonymEnabled();
+
+        /**
          * Clear internal data structure in preparation for user switch or initial store read.
          */
         void reset();
@@ -107,6 +122,8 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
                 integerMapToStringMap(mDataSource.toSerializeMergedCarrierNetworkOffloadMap()));
         XmlUtil.writeNextValue(out, XML_TAG_UNMERGED_CARRIER_NETWORK_OFFLOAD_MAP,
                 integerMapToStringMap(mDataSource.toSerializeUnmergedCarrierNetworkOffloadMap()));
+        XmlUtil.writeNextValue(out, XML_TAG_AUTO_JOIN_FLIPPED_ON_OOB_PSEUDONYM_ENABLED,
+                mDataSource.getAutoJoinFlippedOnOobPseudonymEnabled());
         mDataSource.serializeComplete();
     }
 
@@ -140,6 +157,11 @@ public class WifiCarrierInfoStoreManagerData implements WifiConfigStore.StoreDat
                     if (value instanceof Map) {
                         mDataSource.fromUnmergedCarrierNetworkOffloadMapDeserialized(
                                 stringMapToIntegerMap((Map<String, Boolean>) value));
+                    }
+                    break;
+                case XML_TAG_AUTO_JOIN_FLIPPED_ON_OOB_PSEUDONYM_ENABLED:
+                    if (value instanceof Boolean) {
+                        mDataSource.setAutoJoinFlippedOnOobPseudonymEnabled((Boolean) value);
                     }
                     break;
                 default:

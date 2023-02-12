@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -130,6 +131,7 @@ public class WifiCarrierInfoStoreManagerDataTest {
                 mMergedCarrierOffloadMap);
         when(mDataSource.toSerializeUnmergedCarrierNetworkOffloadMap())
                 .thenReturn(mUnmergedCarrierOffloadMap);
+        when(mDataSource.getAutoJoinFlippedOnOobPseudonymEnabled()).thenReturn(true);
 
         // Serialize/deserialize data.
         deserializeData(serializeData());
@@ -147,5 +149,6 @@ public class WifiCarrierInfoStoreManagerDataTest {
                 .fromUnmergedCarrierNetworkOffloadMapDeserialized(deserializedMap.capture());
         assertEquals(mUnmergedCarrierOffloadMap,
                 deserializedMap.getValue());
+        verify(mDataSource).setAutoJoinFlippedOnOobPseudonymEnabled(eq(true));
     }
 }

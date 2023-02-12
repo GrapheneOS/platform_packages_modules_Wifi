@@ -43,6 +43,7 @@ import org.mockito.MockitoSession;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Consumer;
 
 
 /**
@@ -52,6 +53,8 @@ import java.util.Set;
 public class DeviceConfigFacadeTest extends WifiBaseTest {
     @Mock Context mContext;
     @Mock WifiMetrics mWifiMetrics;
+    @Mock
+    Consumer<Boolean> mOobPseudonymFeatureFlagChangedListener;
 
     final ArgumentCaptor<OnPropertiesChangedListener> mOnPropertiesChangedListenerCaptor =
             ArgumentCaptor.forClass(OnPropertiesChangedListener.class);
@@ -59,7 +62,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
     private DeviceConfigFacade mDeviceConfigFacade;
     private TestLooper mLooper = new TestLooper();
     private MockitoSession mSession;
-
     /**
      * Setup the mocks and an instance of WifiConfigManager before each test.
      */
@@ -100,6 +102,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 mWifiMetrics);
         verify(() -> DeviceConfig.addOnPropertiesChangedListener(anyString(), any(),
                 mOnPropertiesChangedListenerCaptor.capture()));
+        mDeviceConfigFacade.setOobPseudonymFeatureFlagChangedListener(
+                mOobPseudonymFeatureFlagChangedListener);
     }
 
     /**
@@ -223,6 +227,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
+        mLooper.dispatchAll();
+        verify(mOobPseudonymFeatureFlagChangedListener, never()).accept(anyBoolean());
     }
 
     /**
@@ -424,5 +430,15 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(true, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
         assertEquals(true, mDeviceConfigFacade.isOobPseudonymEnabled());
+        mLooper.dispatchAll();
+        verify(mOobPseudonymFeatureFlagChangedListener).accept(true);
+
+        when(DeviceConfig.getBoolean(anyString(), eq("oob_pseudonym_enabled"),
+                anyBoolean())).thenReturn(false);
+        mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
+        mLooper.dispatchAll();
+
+        assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
+        verify(mOobPseudonymFeatureFlagChangedListener).accept(false);
     }
 }
