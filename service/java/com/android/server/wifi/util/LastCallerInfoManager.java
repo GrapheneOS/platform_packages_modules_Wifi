@@ -121,6 +121,10 @@ public class LastCallerInfoManager {
                 return "API_P2P_SET_CHANNELS";
             case WifiManager.API_WIFI_SCANNER_START_SCAN:
                 return "API_WIFI_SCANNER_START_SCAN";
+            case WifiManager.API_SET_TDLS_ENABLED:
+                return "API_SET_TDLS_ENABLED";
+            case WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS:
+                return "API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS";
             default:
                 return "Unknown";
         }
