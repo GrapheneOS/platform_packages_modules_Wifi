@@ -52,6 +52,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.WifiUsabilityStatsEntry;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.util.Log;
@@ -955,11 +956,24 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         }
     }
 
+    private static @WifiUsabilityStatsEntry.LinkState int halToFrameworkLinkState(
+            int powerState) {
+        switch(powerState) {
+            case StaLinkLayerLinkStats.StaLinkState.NOT_IN_USE:
+                return WifiUsabilityStatsEntry.LINK_STATE_NOT_IN_USE;
+            case StaLinkLayerLinkStats.StaLinkState.IN_USE:
+                return WifiUsabilityStatsEntry.LINK_STATE_IN_USE;
+            default:
+                return WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+        }
+    }
+
     private static void setIfaceStatsPerLinkFromAidl(WifiLinkLayerStats stats,
             StaLinkLayerLinkStats aidlStats, int linkIndex) {
         if (aidlStats == null) return;
         stats.links[linkIndex] = new WifiLinkLayerStats.LinkSpecificStats();
         stats.links[linkIndex].link_id = aidlStats.linkId;
+        stats.links[linkIndex].state = halToFrameworkLinkState(aidlStats.state);
         stats.links[linkIndex].radio_id = aidlStats.radioId;
         stats.links[linkIndex].frequencyMhz = aidlStats.frequencyMhz;
         stats.links[linkIndex].beacon_rx = aidlStats.beaconRx;

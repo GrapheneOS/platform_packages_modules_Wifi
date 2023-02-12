@@ -2469,10 +2469,15 @@ public class WifiManagerTest {
         radioStats[0] = new RadioStats(0, 10, 11, 12, 13, 14, 15, 16, 17, 18);
         radioStats[1] = new RadioStats(1, 20, 21, 22, 23, 24, 25, 26, 27, 28);
         SparseArray<LinkStats> linkStats = new SparseArray<>();
-        linkStats.put(0, new LinkStats(0, 0, -50, 300, 200, 188, 2, 2, 100, 300, 100,
-                contentionTimeStats, rateStats));
-        linkStats.put(1, new LinkStats(0, 0, -40, 860, 600, 388, 2, 2, 200, 400, 100,
-                contentionTimeStats, rateStats));
+        linkStats.put(0,
+                new LinkStats(0, WifiUsabilityStatsEntry.LINK_STATE_NOT_IN_USE, 0, -50, 300,
+                        200,
+                        188, 2, 2, 100, 300, 100,
+                        contentionTimeStats, rateStats));
+        linkStats.put(1,
+                new LinkStats(0, WifiUsabilityStatsEntry.LINK_STATE_IN_USE, 0, -40, 860, 600,
+                        388, 2, 2, 200, 400, 100,
+                        contentionTimeStats, rateStats));
         callbackCaptor.getValue().onWifiUsabilityStats(1, true,
                 new WifiUsabilityStatsEntry(System.currentTimeMillis(), -50, 100, 10, 0, 5, 5,
                         100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 1, 100, 10,
