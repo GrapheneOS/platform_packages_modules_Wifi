@@ -4166,9 +4166,21 @@ public class WifiConfiguration implements Parcelable {
                 config.mBssidAllowlist = in.readArrayList(MacAddress.class.getClassLoader());
                 config.mIsDppConfigurator = in.readBoolean();
                 config.mDppPrivateEcKey = in.createByteArray();
+                if (config.mDppPrivateEcKey == null) {
+                    config.mDppPrivateEcKey = new byte[0];
+                }
                 config.mDppConnector = in.createByteArray();
+                if (config.mDppConnector == null) {
+                    config.mDppConnector = new byte[0];
+                }
                 config.mDppCSignKey = in.createByteArray();
+                if (config.mDppCSignKey == null) {
+                    config.mDppCSignKey = new byte[0];
+                }
                 config.mDppNetAccessKey = in.createByteArray();
+                if (config.mDppNetAccessKey == null) {
+                    config.mDppNetAccessKey = new byte[0];
+                }
                 config.isCurrentlyConnected = in.readBoolean();
                 config.mHasPreSharedKeyChanged = in.readBoolean();
                 config.mEncryptedPreSharedKey = in.createByteArray();
