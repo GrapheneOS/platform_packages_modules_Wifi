@@ -6690,7 +6690,7 @@ public class WifiMetrics {
             // Mlolink or WifiInfo (non-MLO case).
             android.net.wifi.WifiUsabilityStatsEntry.LinkStats outStat =
                     new android.net.wifi.WifiUsabilityStatsEntry.LinkStats(inStat.link_id,
-                            inStat.radio_id,
+                            inStat.radio_id, inStat.state,
                             (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
                                     new MloLink()).getRssi() : info.getRssi(),
                             (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,

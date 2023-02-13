@@ -1111,6 +1111,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats getContentionTimeStats(int, int);
     method @Nullable public int[] getLinkIds();
     method public int getLinkSpeedMbps();
+    method public int getLinkState(int);
     method public int getProbeElapsedTimeSinceLastUpdateMillis();
     method public int getProbeMcsRateSinceLastUpdate();
     method public int getProbeStatusSinceLastUpdate();
@@ -1153,6 +1154,9 @@ package android.net.wifi {
     method public boolean isWifiScoringEnabled();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiUsabilityStatsEntry> CREATOR;
+    field public static final int LINK_STATE_IN_USE = 2; // 0x2
+    field public static final int LINK_STATE_NOT_IN_USE = 1; // 0x1
+    field public static final int LINK_STATE_UNKNOWN = 0; // 0x0
     field public static final int NUM_WME_ACCESS_CATEGORIES = 4; // 0x4
     field public static final int PROBE_STATUS_FAILURE = 3; // 0x3
     field public static final int PROBE_STATUS_NO_PROBE = 1; // 0x1

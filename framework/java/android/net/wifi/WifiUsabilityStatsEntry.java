@@ -45,7 +45,30 @@ import java.util.NoSuchElementException;
 public final class WifiUsabilityStatsEntry implements Parcelable {
     private static final String TAG = "WifiUsabilityStatsEntry";
 
-    /** {@hide} */
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"LINK_STATE_"}, value = {
+            LINK_STATE_UNKNOWN,
+            LINK_STATE_NOT_IN_USE,
+            LINK_STATE_IN_USE})
+    public @interface LinkState {}
+
+    /** Chip does not support reporting the state of the link. */
+    public static final int LINK_STATE_UNKNOWN = 0;
+    /**
+     * Link has not been in use since last report. It is placed in power save. All management,
+     * control and data frames for the MLO connection are carried over other links. In this state
+     * the link will not listen to beacons even in DTIM period and does not perform any
+     * GTK/IGTK/BIGTK updates but remains associated.
+     */
+    public static final int LINK_STATE_NOT_IN_USE = 1;
+    /**
+     * Link is in use. In presence of traffic, it is set to be power active. When the traffic
+     * stops, the link will go into power save mode and will listen for beacons every DTIM period.
+     */
+    public static final int LINK_STATE_IN_USE = 2;
+
+    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"PROBE_STATUS_"}, value = {
             PROBE_STATUS_UNKNOWN,
@@ -626,6 +649,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     public static final class LinkStats implements Parcelable {
         /** Link identifier (0 to 14) */
         private final int mLinkId;
+        /** Link state as listed {@link LinkState} */
+        private final @LinkState int mState;
         /** Radio identifier */
         private final int mRadioId;
         /** The RSSI (in dBm) at the sample time */
@@ -654,6 +679,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         /** @hide */
         public LinkStats() {
             mLinkId = MloLink.INVALID_MLO_LINK_ID;
+            mState = LINK_STATE_UNKNOWN;
             mRssi = WifiInfo.INVALID_RSSI;
             mRadioId = RadioStats.INVALID_RADIO_ID;
             mTxLinkSpeedMbps = WifiInfo.LINK_SPEED_UNKNOWN;
@@ -686,11 +712,12 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
          * @param contentionTimeStats         Data packet contention time statistics.
          * @param rateStats                   Rate information.
          */
-        public LinkStats(int linkId, int radioId, int rssi, int txLinkSpeedMpbs,
+        public LinkStats(int linkId, int state, int radioId, int rssi, int txLinkSpeedMpbs,
                 int rxLinkSpeedMpbs, long totalTxSuccess, long totalTxRetries, long totalTxBad,
                 long totalRxSuccess, long totalBeaconRx, int timeSliceDutyCycleInPercent,
                 ContentionTimeStats[] contentionTimeStats, RateStats[] rateStats) {
             this.mLinkId = linkId;
+            this.mState = state;
             this.mRadioId = radioId;
             this.mRssi = rssi;
             this.mTxLinkSpeedMbps = txLinkSpeedMpbs;
@@ -713,6 +740,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         @Override
         public void writeToParcel(@NonNull Parcel dest, int flags) {
             dest.writeInt(mLinkId);
+            dest.writeInt(mState);
             dest.writeInt(mRadioId);
             dest.writeInt(mRssi);
             dest.writeInt(mTxLinkSpeedMbps);
@@ -732,7 +760,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         public static final Creator<LinkStats> CREATOR =
                 new Creator<>() {
                     public LinkStats createFromParcel(Parcel in) {
-                        return new LinkStats(in.readInt(), in.readInt(), in.readInt(),
+                        return new LinkStats(in.readInt(), in.readInt(), in.readInt(), in.readInt(),
                                 in.readInt(), in.readInt(), in.readLong(), in.readLong(),
                                 in.readLong(), in.readLong(), in.readLong(), in.readInt(),
                                 in.createTypedArray(ContentionTimeStats.CREATOR),
@@ -887,6 +915,18 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             result[i] = mLinkStats.keyAt(i);
         }
         return result;
+    }
+
+    /**
+     * Get link state. Refer {@link LinkState}.
+     *
+     * @param linkId Identifier of the link.
+     * @return Link state.
+     * @throws NoSuchElementException if linkId is invalid.
+     */
+    public @LinkState int getLinkState(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mState;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /** Absolute milliseconds from device boot when these stats were sampled */
