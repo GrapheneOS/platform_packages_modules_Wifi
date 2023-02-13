@@ -9736,6 +9736,30 @@ public class WifiManager {
          * implemented and instantiated by framework.
          */
         void onSetScoreUpdateObserver(@NonNull ScoreUpdateObserver observerImpl);
+
+        /**
+         * Called by framework to indicate the user accepted a dialog to switch to a new network.
+         * @param sessionId The ID to indicate current Wi-Fi network connection obtained from
+         *                  {@link WifiConnectedNetworkScorer#onStart(int)}.
+         * @param targetNetworkId Network ID of the target network.
+         * @param targetBssid BSSID of the target network.
+         */
+        default void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            // No-op.
+        }
+
+        /**
+         * Called by framework to indicate the user rejected a dialog to switch to new network.
+         * @param sessionId The ID to indicate current Wi-Fi network connection obtained from
+         *                  {@link WifiConnectedNetworkScorer#onStart(int)}.
+         * @param targetNetworkId Network ID of the target network.
+         * @param targetBssid BSSID of the target network.
+         */
+        default void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            // No-op.
+        }
     }
 
 

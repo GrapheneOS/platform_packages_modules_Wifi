@@ -866,6 +866,8 @@ package android.net.wifi {
   }
 
   public static interface WifiManager.WifiConnectedNetworkScorer {
+    method public default void onNetworkSwitchAccepted(int, int, @NonNull String);
+    method public default void onNetworkSwitchRejected(int, int, @NonNull String);
     method public void onSetScoreUpdateObserver(@NonNull android.net.wifi.WifiManager.ScoreUpdateObserver);
     method @Deprecated public default void onStart(int);
     method public default void onStart(@NonNull android.net.wifi.WifiConnectedSessionInfo);
