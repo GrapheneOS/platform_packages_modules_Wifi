@@ -89,10 +89,14 @@ public class WifiUsabilityStatsEntryTest {
         radioStats[1] = new RadioStats(1, 20, 21, 22, 23, 24, 25, 26, 27, 28);
 
         SparseArray<WifiUsabilityStatsEntry.LinkStats> linkStats = new SparseArray<>();
-        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0, 0, -50, 300, 200, 188, 2, 2, 100,
+        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0,
+                WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN, 0, -50, 300, 200, 188, 2, 2,
+                100,
                 300, 100,
                 contentionTimeStats, rateStats));
-        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(1, 0, -40, 860, 600, 388, 2, 2, 200,
+        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(1,
+                WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN, 0, -40, 860, 600, 388, 2, 2,
+                200,
                 400, 100,
                 contentionTimeStats, rateStats));
 
@@ -140,10 +144,12 @@ public class WifiUsabilityStatsEntryTest {
         radioStats[0] = new RadioStats(0, 10, 11, 12, 13, 14, 15, 16, 17, 18);
         radioStats[1] = new RadioStats(1, 20, 21, 22, 23, 24, 25, 26, 27, 28);
         SparseArray<WifiUsabilityStatsEntry.LinkStats> linkStats = new SparseArray<>();
-        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(3, 0, -50, 300, 200, 188, 2, 2, 100,
+        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(3,
+                WifiUsabilityStatsEntry.LINK_STATE_IN_USE, 0, -50, 300, 200, 188, 2, 2, 100,
                 300, 100,
                 contentionTimeStats, rateStats));
-        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(8, 0, -40, 860, 600, 388, 2, 2, 200,
+        linkStats.put(1, new WifiUsabilityStatsEntry.LinkStats(8,
+                WifiUsabilityStatsEntry.LINK_STATE_IN_USE, 0, -40, 860, 600, 388, 2, 2, 200,
                 400, 100,
                 contentionTimeStats, rateStats));
 
@@ -481,7 +487,8 @@ public class WifiUsabilityStatsEntryTest {
     public void verifyInvalidLinkIdForGetApis() throws Exception {
 
         SparseArray<WifiUsabilityStatsEntry.LinkStats> linkStats = new SparseArray<>();
-        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0, 0, -50, 300, 200, 188, 2, 2, 100,
+        linkStats.put(0, new WifiUsabilityStatsEntry.LinkStats(0,
+                WifiUsabilityStatsEntry.LINK_STATE_IN_USE, 0, -50, 300, 200, 188, 2, 2, 100,
                 300, 100,
                 null, null));
 
@@ -490,6 +497,9 @@ public class WifiUsabilityStatsEntryTest {
                 32, null, null, null, 100, true,
                 true, true, 23, 24, 25, true, linkStats);
 
+        assertThrows("linkId is invalid - " + MloLink.INVALID_MLO_LINK_ID,
+                NoSuchElementException.class,
+                () -> usabilityStatsEntry.getLinkState(MloLink.INVALID_MLO_LINK_ID));
         assertThrows("linkId is invalid - " + MloLink.INVALID_MLO_LINK_ID,
                 NoSuchElementException.class,
                 () -> usabilityStatsEntry.getRssi(MloLink.INVALID_MLO_LINK_ID));
