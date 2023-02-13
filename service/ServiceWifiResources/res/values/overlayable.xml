@@ -230,6 +230,8 @@
           <item type="bool" name="config_wifiSoftapAcsIncludeDfs" />
           <item type="integer" name="config_wifiMovingPnoScanIntervalMillis" />
           <item type="integer" name="config_wifiStationaryPnoScanIntervalMillis" />
+          <item type="integer" name="config_wifiPnoScanIterations" />
+          <item type="integer" name="config_wifiPnoScanIntervalMultiplier" />
           <item type="integer" name="config_wifiDelayDisconnectOnImsLostMs" />
           <item type="bool" name="config_wifiMinConfirmationDurationSendNetworkScoreEnabled" />
           <item type="bool" name="config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled" />

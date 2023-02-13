@@ -2236,6 +2236,10 @@ public class WifiConnectivityManager {
         pnoSettings.min5GHzRssi = mScoringParams.getEntryRssi(ScanResult.BAND_5_GHZ_START_FREQ_MHZ);
         pnoSettings.min24GHzRssi = mScoringParams.getEntryRssi(
                 ScanResult.BAND_24_GHZ_START_FREQ_MHZ);
+        pnoSettings.scanIterations = mContext.getResources()
+                .getInteger(R.integer.config_wifiPnoScanIterations);
+        pnoSettings.scanIntervalMultiplier = mContext.getResources()
+                .getInteger(R.integer.config_wifiPnoScanIntervalMultiplier);
 
         // Initialize scan settings
         ScanSettings scanSettings = new ScanSettings();
