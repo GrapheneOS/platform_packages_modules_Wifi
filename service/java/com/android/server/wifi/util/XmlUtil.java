@@ -2046,7 +2046,10 @@ public class XmlUtil {
                 @NonNull SoftApConfiguration softApConfig,
                 WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
-            XmlUtil.writeNextValue(out, XML_TAG_WIFI_SSID, softApConfig.getWifiSsid().toString());
+            if (softApConfig.getWifiSsid() != null) {
+                XmlUtil.writeNextValue(out, XML_TAG_WIFI_SSID,
+                        softApConfig.getWifiSsid().toString());
+            }
             if (softApConfig.getBssid() != null) {
                 XmlUtil.writeNextValue(out, XML_TAG_BSSID, softApConfig.getBssid().toString());
             }
