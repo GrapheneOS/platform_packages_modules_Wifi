@@ -881,13 +881,13 @@ package android.net.wifi.aware {
   }
 
   public class DiscoverySession implements java.lang.AutoCloseable {
+    method public void acceptPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void close();
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierOpen(@NonNull android.net.wifi.aware.PeerHandle);
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPassphrase(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String);
     method public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int);
     method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void rejectPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle);
-    method public void respondToPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
     method public void sendMessage(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
   }
 
@@ -1040,9 +1040,11 @@ package android.net.wifi.aware {
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isAvailable();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isDeviceAttached();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isInstantCommunicationModeEnabled();
+    method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void isOpportunisticModeEnabled(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Boolean>);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isSetChannelOnDataPathSupported();
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public void removePairedDevice(@NonNull String);
     method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public void resetPairedDevices();
+    method @RequiresPermission(android.Manifest.permission.CHANGE_WIFI_STATE) public void setOpportunisticModeEnabled(boolean);
     field @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public static final String ACTION_WIFI_AWARE_RESOURCE_CHANGED = "android.net.wifi.aware.action.WIFI_AWARE_RESOURCE_CHANGED";
     field public static final String ACTION_WIFI_AWARE_STATE_CHANGED = "android.net.wifi.aware.action.WIFI_AWARE_STATE_CHANGED";
     field public static final String EXTRA_AWARE_RESOURCES = "android.net.wifi.aware.extra.AWARE_RESOURCES";

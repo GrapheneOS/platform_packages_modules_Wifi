@@ -441,9 +441,9 @@ interface IWifiManager
 
     int getMaxNumberOfChannelsPerRequest();
 
-    void addQosPolicy(in QosPolicyParams policyParams, in IBinder binder, String packageName, in IIntegerListener callback);
+    void addQosPolicies(in List<QosPolicyParams> policyParamsList, in IBinder binder, String packageName, in IListListener callback);
 
-    void removeQosPolicy(int policyId, String packageName);
+    void removeQosPolicies(in int[] policyIdList, String packageName);
 
     void removeAllQosPolicies(String packageName);
 }

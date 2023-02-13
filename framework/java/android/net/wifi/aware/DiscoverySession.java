@@ -319,7 +319,7 @@ public class DiscoverySession implements AutoCloseable {
      *                        opportunistic pairing will be used.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void respondToPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
+    public void acceptPairingRequest(int requestId, @NonNull PeerHandle peerHandle,
             @NonNull String peerDeviceAlias, @Nullable String password) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException();
@@ -408,13 +408,11 @@ public class DiscoverySession implements AutoCloseable {
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void suspend() {
         if (mTerminated) {
-            Log.w(TAG, "suspend: called on terminated session");
             throw new IllegalStateException("Suspend called on a terminated session.");
         }
 
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            Log.w(TAG, "suspend: called post GC on WifiAwareManager");
             throw new IllegalStateException("Failed to get WifiAwareManager.");
         }
 
@@ -440,13 +438,11 @@ public class DiscoverySession implements AutoCloseable {
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void resume() {
         if (mTerminated) {
-            Log.w(TAG, "resume: called on terminated session");
             throw new IllegalStateException("Resume called on a terminated session.");
         }
 
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            Log.w(TAG, "resume: called post GC on WifiAwareManager");
             throw new IllegalStateException("Failed to get WifiAwareManager.");
         }
 

@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -38,7 +39,9 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
+import android.net.wifi.IBooleanListener;
 import android.net.wifi.RttManager;
+import android.net.wifi.SynchronousExecutor;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
 import android.os.Handler;
@@ -63,6 +66,7 @@ import org.mockito.MockitoAnnotations;
 import java.net.Inet6Address;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Unit test harness for WifiAwareManager class.
@@ -1801,7 +1805,7 @@ public class WifiAwareManagerTest {
                 eq(pairId));
 
         // (4) Response to the request
-        publishSession.getValue().respondToPairingRequest(pairId, peerHandle, alias, password
+        publishSession.getValue().acceptPairingRequest(pairId, peerHandle, alias, password
         );
         inOrder.verify(mockAwareService).responseNanPairingSetupRequest(eq(clientId), eq(sessionId),
                 eq(peerId), eq(pairId), eq(password), eq(alias), eq(true));
@@ -1902,5 +1906,18 @@ public class WifiAwareManagerTest {
 
         verifyNoMoreInteractions(mockCallback, mockSessionCallback, mockAwareService,
                 mockSubscribeSession);
+    }
+
+    @Test
+    public void testSetOpportunisticMode() throws RemoteException {
+        mDut.setOpportunisticModeEnabled(true);
+        verify(mockAwareService).setOpportunisticModeEnabled(anyString(), eq(true));
+        Consumer<Boolean> resultsCallback = mock(Consumer.class);
+        ArgumentCaptor<IBooleanListener.Stub> captor = ArgumentCaptor
+                .forClass(IBooleanListener.Stub.class);
+        mDut.isOpportunisticModeEnabled(new SynchronousExecutor(), resultsCallback);
+        verify(mockAwareService).isOpportunisticModeEnabled(anyString(), captor.capture());
+        captor.getValue().onResult(true);
+        verify(resultsCallback).accept(true);
     }
 }
