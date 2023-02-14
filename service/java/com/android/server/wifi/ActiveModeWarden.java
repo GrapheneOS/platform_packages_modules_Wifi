@@ -720,6 +720,10 @@ public class ActiveModeWarden {
      */
     public void onNetworkStateChanged(int cmmRole, int state) {
         int numCallbacks = mWifiNetworkStateChangedListeners.beginBroadcast();
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Sending onWifiNetworkStateChanged cmmRole=" + cmmRole
+                    + " state=" + state);
+        }
         for (int i = 0; i < numCallbacks; i++) {
             try {
                 mWifiNetworkStateChangedListeners.getBroadcastItem(i)
