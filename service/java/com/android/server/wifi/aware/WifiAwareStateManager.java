@@ -32,6 +32,7 @@ import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.location.LocationManager;
 import android.net.MacAddress;
 import android.net.wifi.IBooleanListener;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
@@ -991,6 +992,39 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
                 }
         );
+    }
+
+    /**
+     * @see android.net.wifi.aware.WifiAwareSession#setMasterPreference(int)
+     */
+    public void setMasterPreference(int clientId, int masterPreference) {
+        mHandler.post(() -> {
+            WifiAwareClientState state = mClients.get(clientId);
+            if (state == null) {
+                Log.e(TAG, "client state is missing");
+                return;
+            }
+            state.getConfigRequest().mMasterPreference = masterPreference;
+            reconfigure();
+        });
+    }
+
+    /**
+     * @see android.net.wifi.aware.WifiAwareSession#getMasterPreference(Executor, Consumer)
+     */
+    public void getMasterPreference(int clientId, IIntegerListener listener) {
+        mHandler.post(() -> {
+            WifiAwareClientState state = mClients.get(clientId);
+            if (state == null) {
+                Log.e(TAG, "client state is missing");
+                return;
+            }
+            try {
+                listener.onResult(state.getConfigRequest().mMasterPreference);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
     }
 
     /**
@@ -3377,12 +3411,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 return false;
             }
-            try {
-                mLocalLog.log("Connect success for clientId:" + clientId);
-                callback.onConnectSuccess(clientId);
-            } catch (RemoteException e) {
-                Log.w(TAG, "connectLocal onConnectSuccess(): RemoteException (FYI): " + e);
-            }
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil, attributionSource,
@@ -3392,6 +3420,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
+            try {
+                mLocalLog.log("Connect success for clientId:" + clientId);
+                callback.onConnectSuccess(clientId);
+            } catch (RemoteException e) {
+                Log.w(TAG, "connectLocal onConnectSuccess(): RemoteException (FYI): " + e);
+            }
             if (!mWifiAwareNativeManager.replaceRequestorWs(createMergedRequestorWs())) {
                 Log.w(TAG, "Failed to replace requestorWs");
             }
@@ -3515,7 +3549,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             instantModeChannel = getAwareInstantCommunicationChannel(instantMode);
         }
 
-        return mWifiAwareNativeApi.enableAndConfigure(transactionId, mCurrentAwareConfiguration,
+        return mWifiAwareNativeApi.enableAndConfigure(transactionId, mergeConfigRequests(null),
                 notificationReqs, false, mPowerManager.isInteractive(),
                 mPowerManager.isDeviceIdleMode(), rangingEnabled,
                 enableInstantMode, instantModeChannel, mClusterIdInt);

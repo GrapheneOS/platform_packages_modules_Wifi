@@ -19,6 +19,7 @@ package android.net.wifi.aware;
 import android.app.PendingIntent;
 
 import android.net.wifi.IBooleanListener;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
@@ -59,6 +60,8 @@ interface IWifiAwareManager
             in IWifiAwareEventCallback callback, in ConfigRequest configRequest,
             boolean notifyOnIdentityChanged, in Bundle extras, boolean forAwareOffload);
     void disconnect(int clientId, in IBinder binder);
+    void setMasterPreference(int clientId, in IBinder binder, int mp);
+    void getMasterPreference(int clientId, in IBinder binder, in IIntegerListener listener);
 
     void publish(in String callingPackage, in String callingFeatureId, int clientId,
             in PublishConfig publishConfig, in IWifiAwareDiscoverySessionCallback callback,
