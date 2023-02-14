@@ -2918,21 +2918,30 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // initialize MLO Links
         MloLinksInfo info = new MloLinksInfo();
         MloLink[] links = new MloLink[3];
+        // link 0
         links[0] = new android.hardware.wifi.supplicant.MloLink();
         links[0].linkId = 1;
         links[0].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x01};
         links[0].tidsDownlinkMap = Byte.MAX_VALUE;
         links[0].tidsDownlinkMap = Byte.MIN_VALUE;
+        links[0].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x01};
+        links[0].frequencyMHz = 5160;
+        // link 1
         links[1] = new android.hardware.wifi.supplicant.MloLink();
         links[1].linkId = 2;
         links[1].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x02};
         links[1].tidsDownlinkMap =  1 << mDownlinkTid;
         links[1].tidsUplinkMap = 1 << mUplinkTid;
+        links[1].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x02};
+        links[1].frequencyMHz = 2437;
+        // link 2
         links[2] = new android.hardware.wifi.supplicant.MloLink();
         links[2].linkId = 3;
         links[2].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x03};
         links[2].tidsDownlinkMap = 0;
         links[2].tidsUplinkMap = 0;
+        links[2].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x03};
+        links[2].frequencyMHz = 6835;
         info.links = links;
         executeAndValidateInitializationSequence();
         // Mock MloLinksInfo as null.
@@ -2951,19 +2960,31 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Check all return values.
         assertNotNull(nativeInfo);
         assertEquals(nativeInfo.links.length, info.links.length);
+        // link 0
         assertEquals(nativeInfo.links[0].getLinkId(), info.links[0].linkId);
-        assertEquals(nativeInfo.links[0].getMacAddress(),
+        assertEquals(nativeInfo.links[0].getStaMacAddress(),
                 MacAddress.fromBytes(info.links[0].staLinkMacAddress));
         assertTrue(nativeInfo.links[0].isAnyTidMapped());
+        assertEquals(nativeInfo.links[0].getApMacAddress(),
+                MacAddress.fromBytes(info.links[0].apLinkMacAddress));
+        assertEquals(nativeInfo.links[0].getFrequencyMHz(), info.links[0].frequencyMHz);
+        // link 1
         assertEquals(nativeInfo.links[1].getLinkId(), info.links[1].linkId);
-        assertEquals(nativeInfo.links[1].getMacAddress(),
+        assertEquals(nativeInfo.links[1].getStaMacAddress(),
                 MacAddress.fromBytes(info.links[1].staLinkMacAddress));
         assertTrue(nativeInfo.links[1].isAnyTidMapped());
         assertTrue(nativeInfo.links[1].isTidMappedtoDownlink((byte) mDownlinkTid));
         assertTrue(nativeInfo.links[1].isTidMappedToUplink((byte) mUplinkTid));
+        assertEquals(nativeInfo.links[1].getApMacAddress(),
+                MacAddress.fromBytes(info.links[1].apLinkMacAddress));
+        assertEquals(nativeInfo.links[1].getFrequencyMHz(), info.links[1].frequencyMHz);
+        // link 2
         assertEquals(nativeInfo.links[2].getLinkId(), info.links[2].linkId);
-        assertEquals(nativeInfo.links[2].getMacAddress(),
+        assertEquals(nativeInfo.links[2].getStaMacAddress(),
                 MacAddress.fromBytes(info.links[2].staLinkMacAddress));
         assertFalse(nativeInfo.links[2].isAnyTidMapped());
+        assertEquals(nativeInfo.links[2].getApMacAddress(),
+                MacAddress.fromBytes(info.links[2].apLinkMacAddress));
+        assertEquals(nativeInfo.links[2].getFrequencyMHz(), info.links[2].frequencyMHz);
     }
 }

@@ -3030,13 +3030,22 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 WifiNative.ConnectionMloLinksInfo nativeInfo =
                         new WifiNative.ConnectionMloLinksInfo();
 
+                // The parameter 'apMldMacAddress' can come as null.
+                if (halInfo.apMldMacAddress != null) {
+                    nativeInfo.apMldMacAddress = MacAddress.fromBytes(halInfo.apMldMacAddress);
+                }
+                nativeInfo.apMloLinkId = halInfo.apMloLinkId;
                 nativeInfo.links = new WifiNative.ConnectionMloLink[halInfo.links.length];
 
                 for (int i = 0; i < halInfo.links.length; i++) {
+                    // The parameter 'apLinkMacAddress' can come as null.
                     nativeInfo.links[i] = new WifiNative.ConnectionMloLink(
                             halInfo.links[i].linkId,
                             MacAddress.fromBytes(halInfo.links[i].staLinkMacAddress),
-                            halInfo.links[i].tidsUplinkMap, halInfo.links[i].tidsDownlinkMap);
+                            (halInfo.links[i].apLinkMacAddress != null) ? MacAddress.fromBytes(
+                                    halInfo.links[i].apLinkMacAddress) : null,
+                            halInfo.links[i].tidsUplinkMap, halInfo.links[i].tidsDownlinkMap,
+                            halInfo.links[i].frequencyMHz);
                 }
                 return nativeInfo;
             } catch (RemoteException e) {
