@@ -491,20 +491,32 @@ public class ActiveModeWarden {
      * Register for mode change callbacks.
      */
     public void registerModeChangeCallback(@NonNull ModeChangeCallback callback) {
-        mCallbacks.add(Objects.requireNonNull(callback));
+        if (callback == null) {
+            Log.wtf(TAG, "Cannot register a null ModeChangeCallback");
+            return;
+        }
+        mCallbacks.add(callback);
     }
 
     /**
      * Unregister mode change callback.
      */
     public void unregisterModeChangeCallback(@NonNull ModeChangeCallback callback) {
-        mCallbacks.remove(Objects.requireNonNull(callback));
+        if (callback == null) {
+            Log.wtf(TAG, "Cannot unregister a null ModeChangeCallback");
+            return;
+        }
+        mCallbacks.remove(callback);
     }
 
     /** Register for primary ClientModeManager changed callbacks. */
     public void registerPrimaryClientModeManagerChangedCallback(
             @NonNull PrimaryClientModeManagerChangedCallback callback) {
-        mPrimaryChangedCallbacks.add(Objects.requireNonNull(callback));
+        if (callback == null) {
+            Log.wtf(TAG, "Cannot register a null PrimaryClientModeManagerChangedCallback");
+            return;
+        }
+        mPrimaryChangedCallbacks.add(callback);
         // If there is already a primary CMM when registering, send a callback with the info.
         ConcreteClientModeManager cm = getPrimaryClientModeManagerNullable();
         if (cm != null) callback.onChange(null, cm);
@@ -513,7 +525,11 @@ public class ActiveModeWarden {
     /** Unregister for primary ClientModeManager changed callbacks. */
     public void unregisterPrimaryClientModeManagerChangedCallback(
             @NonNull PrimaryClientModeManagerChangedCallback callback) {
-        mPrimaryChangedCallbacks.remove(Objects.requireNonNull(callback));
+        if (callback == null) {
+            Log.wtf(TAG, "Cannot unregister a null PrimaryClientModeManagerChangedCallback");
+            return;
+        }
+        mPrimaryChangedCallbacks.remove(callback);
     }
 
     /**
@@ -845,10 +861,18 @@ public class ActiveModeWarden {
             @NonNull ExternalClientModeManagerRequestListener listener,
             @NonNull WorkSource requestorWs, @NonNull String ssid, @NonNull String bssid,
             boolean didUserApprove) {
+        if (listener == null) {
+            Log.wtf(TAG, "Cannot provide a null ExternalClientModeManagerRequestListener");
+            return;
+        }
+        if (requestorWs == null) {
+            Log.wtf(TAG, "Cannot provide a null WorkSource");
+            return;
+        }
+
         mWifiController.sendMessage(
                 WifiController.CMD_REQUEST_ADDITIONAL_CLIENT_MODE_MANAGER,
-                new AdditionalClientModeManagerRequestInfo(
-                        Objects.requireNonNull(listener), Objects.requireNonNull(requestorWs),
+                new AdditionalClientModeManagerRequestInfo(listener, requestorWs,
                         ROLE_CLIENT_LOCAL_ONLY, ssid, bssid, didUserApprove));
     }
 
@@ -865,10 +889,17 @@ public class ActiveModeWarden {
     public void requestSecondaryLongLivedClientModeManager(
             @NonNull ExternalClientModeManagerRequestListener listener,
             @NonNull WorkSource requestorWs, @NonNull String ssid, @Nullable String bssid) {
+        if (listener == null) {
+            Log.wtf(TAG, "Cannot provide a null ExternalClientModeManagerRequestListener");
+            return;
+        }
+        if (requestorWs == null) {
+            Log.wtf(TAG, "Cannot provide a null WorkSource");
+            return;
+        }
         mWifiController.sendMessage(
                 WifiController.CMD_REQUEST_ADDITIONAL_CLIENT_MODE_MANAGER,
-                new AdditionalClientModeManagerRequestInfo(
-                        Objects.requireNonNull(listener), Objects.requireNonNull(requestorWs),
+                new AdditionalClientModeManagerRequestInfo(listener, requestorWs,
                         ROLE_CLIENT_SECONDARY_LONG_LIVED, ssid, bssid, false));
     }
 
@@ -887,10 +918,17 @@ public class ActiveModeWarden {
     public void requestSecondaryTransientClientModeManager(
             @NonNull ExternalClientModeManagerRequestListener listener,
             @NonNull WorkSource requestorWs, @NonNull String ssid, @Nullable String bssid) {
+        if (listener == null) {
+            Log.wtf(TAG, "Cannot provide a null ExternalClientModeManagerRequestListener");
+            return;
+        }
+        if (requestorWs == null) {
+            Log.wtf(TAG, "Cannot provide a null WorkSource");
+            return;
+        }
         mWifiController.sendMessage(
                 WifiController.CMD_REQUEST_ADDITIONAL_CLIENT_MODE_MANAGER,
-                new AdditionalClientModeManagerRequestInfo(
-                        Objects.requireNonNull(listener), Objects.requireNonNull(requestorWs),
+                new AdditionalClientModeManagerRequestInfo(listener, requestorWs,
                         ROLE_CLIENT_SECONDARY_TRANSIENT, ssid, bssid, false));
     }
 

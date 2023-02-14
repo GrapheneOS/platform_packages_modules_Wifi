@@ -18,9 +18,9 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
-
-import java.util.Objects;
+import android.util.Log;
 
 /**
  * Stores supplicant state change information passed from WifiMonitor to
@@ -28,11 +28,23 @@ import java.util.Objects;
  * are example state machines that handle it.
  */
 public class StateChangeResult {
+
+    private static final String TAG = "StateChangeResult";
     StateChangeResult(int networkId, @NonNull WifiSsid wifiSsid, @NonNull String bssid,
             SupplicantState state) {
+        if (wifiSsid == null) {
+            Log.wtf(TAG, "Null SSID provided");
+            this.wifiSsid = WifiSsid.fromBytes(null);
+        } else {
+            this.wifiSsid = wifiSsid;
+        }
+        if (bssid == null) {
+            Log.wtf(TAG, "Null BSSID provided");
+            this.bssid = WifiManager.ALL_ZEROS_MAC_ADDRESS.toString();
+        } else {
+            this.bssid = bssid;
+        }
         this.state = state;
-        this.wifiSsid = Objects.requireNonNull(wifiSsid);
-        this.bssid = Objects.requireNonNull(bssid);
         this.networkId = networkId;
     }
 
