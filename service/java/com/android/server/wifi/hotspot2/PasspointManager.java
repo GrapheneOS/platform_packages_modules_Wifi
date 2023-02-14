@@ -1216,12 +1216,45 @@ public class PasspointManager {
     }
 
     /**
+     * Returns the corresponding wifi configurations for all non-suggestion Passpoint profiles
+     * that include a recent SSID.
+     *
+     * @return List of {@link WifiConfiguration} converted from {@link PasspointProvider}.
+     */
+    public List<WifiConfiguration> getWifiConfigsForPasspointProfilesWithSsids() {
+        List<WifiConfiguration> configs = new ArrayList<>();
+        for (PasspointProvider provider : mProviders.values()) {
+            if (provider == null || provider.getMostRecentSsid() == null
+                    || provider.isFromSuggestion()) {
+                continue;
+            }
+            WifiConfiguration config = provider.getWifiConfig();
+            config.SSID = provider.getMostRecentSsid();
+            configs.add(config);
+        }
+        return configs;
+    }
+
+    /**
+     * Get the most recent SSID observed for the specified Passpoint profile.
+     *
+     * @param uniqueId The unique identifier of the Passpoint profile.
+     * @return The most recent SSID observed for this profile, or null.
+     */
+    public @Nullable String getMostRecentSsidForProfile(String uniqueId) {
+        PasspointProvider provider = mProviders.get(uniqueId);
+        if (provider == null) return null;
+        return provider.getMostRecentSsid();
+    }
+
+    /**
      * Invoked when a Passpoint network was successfully connected based on the credentials
      * provided by the given Passpoint provider
      *
-     * @param uniqueId The unique identifier of the Passpointprofile
+     * @param uniqueId The unique identifier of the Passpoint profile.
+     * @param ssid The SSID of the connected Passpoint network.
      */
-    public void onPasspointNetworkConnected(String uniqueId) {
+    public void onPasspointNetworkConnected(String uniqueId, @Nullable String ssid) {
         PasspointProvider provider = mProviders.get(uniqueId);
         if (provider == null) {
             Log.e(TAG, "Passpoint network connected without provider: " + uniqueId);
@@ -1231,6 +1264,7 @@ public class PasspointManager {
             // First successful connection using this provider.
             provider.setHasEverConnected(true);
         }
+        provider.setMostRecentSsid(ssid);
     }
 
     /**

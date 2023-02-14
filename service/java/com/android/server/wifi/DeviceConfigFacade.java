@@ -214,6 +214,7 @@ public class DeviceConfigFacade {
     private boolean mApplicationQosPolicyApiEnabled;
     private boolean mAdjustPollRssiIntervalEnabled;
     private boolean mSoftwarePnoEnabled;
+    private boolean mIncludePasspointSsidsInPnoScans;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -403,6 +404,8 @@ public class DeviceConfigFacade {
                 "adjust_poll_rssi_interval_enabled", false);
         mSoftwarePnoEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "software_pno_enabled", false);
+        mIncludePasspointSsidsInPnoScans = DeviceConfig.getBoolean(NAMESPACE,
+                "include_passpoint_ssids_in_pno_scans", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -881,5 +884,12 @@ public class DeviceConfigFacade {
      */
     public boolean isSoftwarePnoEnabled() {
         return mSoftwarePnoEnabled;
+    }
+
+    /**
+     * Gets the feature flag indicating whether Passpoint SSIDs should be included in PNO scans.
+     */
+    public boolean includePasspointSsidsInPnoScans() {
+        return mIncludePasspointSsidsInPnoScans;
     }
 }

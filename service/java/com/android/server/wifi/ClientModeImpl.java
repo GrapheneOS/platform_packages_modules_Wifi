@@ -4056,7 +4056,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiConfiguration currentNetwork = getConnectedWifiConfigurationInternal();
             if (currentNetwork != null && currentNetwork.isPasspoint()) {
                 mPasspointManager.onPasspointNetworkConnected(
-                        currentNetwork.getProfileKey());
+                        currentNetwork.getProfileKey(), currentNetwork.SSID);
             }
         }
     }
