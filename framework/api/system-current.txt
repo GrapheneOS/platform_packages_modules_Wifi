@@ -31,11 +31,11 @@ package android.net.wifi {
     method @Nullable public android.net.MacAddress getDestinationAddress();
     method @Nullable public int[] getDestinationPortRange();
     method public int getDirection();
-    method public int getDscp();
-    method public int getPolicyId();
+    method @IntRange(from=android.net.wifi.QosPolicyParams.DSCP_ANY, to=63) public int getDscp();
+    method @IntRange(from=1, to=255) public int getPolicyId();
     method public int getProtocol();
     method @Nullable public android.net.MacAddress getSourceAddress();
-    method public int getSourcePort();
+    method @IntRange(from=android.net.DscpPolicy.SOURCE_PORT_ANY, to=65535) public int getSourcePort();
     method public int getUserPriority();
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.QosPolicyParams> CREATOR;
     field public static final int DIRECTION_DOWNLINK = 1; // 0x1
@@ -57,14 +57,14 @@ package android.net.wifi {
   }
 
   public static final class QosPolicyParams.Builder {
-    ctor public QosPolicyParams.Builder(int, int);
+    ctor public QosPolicyParams.Builder(@IntRange(from=1, to=255) int, int);
     method @NonNull public android.net.wifi.QosPolicyParams build();
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationAddress(@NonNull android.net.MacAddress);
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPortRange(int, int);
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDscp(int);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPortRange(@IntRange(from=0, to=65535) int, @IntRange(from=0, to=65535) int);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDscp(@IntRange(from=android.net.wifi.QosPolicyParams.DSCP_ANY, to=63) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setProtocol(int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourceAddress(@NonNull android.net.MacAddress);
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourcePort(int);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourcePort(@IntRange(from=android.net.DscpPolicy.SOURCE_PORT_ANY, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setUserPriority(int);
   }
 

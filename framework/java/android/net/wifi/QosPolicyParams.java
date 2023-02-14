@@ -17,6 +17,7 @@
 package android.net.wifi;
 
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -263,6 +264,7 @@ public final class QosPolicyParams implements Parcelable {
      *
      * See {@link Builder#Builder(int, int)} for more information.
      */
+    @IntRange(from = 1, to = 255)
     public int getPolicyId() {
         return mPolicyId;
     }
@@ -285,6 +287,7 @@ public final class QosPolicyParams implements Parcelable {
      *
      * @return DSCP value, or {@link #DSCP_ANY} if not assigned.
      */
+    @IntRange(from = DSCP_ANY, to = 63)
     public int getDscp() {
         return mDscp;
     }
@@ -329,6 +332,7 @@ public final class QosPolicyParams implements Parcelable {
      *
      * @return source port, or {@link DscpPolicy#SOURCE_PORT_ANY} if not assigned.
      */
+    @IntRange(from = DscpPolicy.SOURCE_PORT_ANY, to = 65535)
     public int getSourcePort() {
         return mSrcPort;
     }
@@ -471,7 +475,7 @@ public final class QosPolicyParams implements Parcelable {
          *                 before sending the new one.
          * @param direction Whether this policy applies to the uplink or downlink direction.
          */
-        public Builder(int policyId, @Direction int direction) {
+        public Builder(@IntRange(from = 1, to = 255) int policyId, @Direction int direction) {
             mPolicyId = policyId;
             mDirection = direction;
         }
@@ -498,7 +502,7 @@ public final class QosPolicyParams implements Parcelable {
          * Specifies the DSCP value. For uplink requests, this value will be applied to packets
          * that match the classifier. For downlink requests, this will be part of the classifier.
          */
-        public @NonNull Builder setDscp(int value) {
+        public @NonNull Builder setDscp(@IntRange(from = DSCP_ANY, to = 63) int value) {
             mDscp = value;
             return this;
         }
@@ -515,7 +519,8 @@ public final class QosPolicyParams implements Parcelable {
         /**
          * Specifies that this policy matches packets with the provided source port.
          */
-        public @NonNull Builder setSourcePort(int value) {
+        public @NonNull Builder setSourcePort(
+                @IntRange(from = DscpPolicy.SOURCE_PORT_ANY, to = 65535) int value) {
             mSrcPort = value;
             return this;
         }
@@ -531,7 +536,9 @@ public final class QosPolicyParams implements Parcelable {
         /**
          * Specifies that this policy matches packets with the provided destination port range.
          */
-        public @NonNull Builder setDestinationPortRange(int start, int end) {
+        public @NonNull Builder setDestinationPortRange(
+                @IntRange(from = 0, to = 65535) int start,
+                @IntRange(from = 0, to = 65535) int end) {
             mDstPortRange = new int[]{start, end};
             return this;
         }
