@@ -1440,10 +1440,6 @@ package android.net.wifi.p2p {
     method public void onGroupInfoAvailable(android.net.wifi.p2p.WifiP2pGroup);
   }
 
-  public static interface WifiP2pManager.ListenStateListener {
-    method public void onListenStateAvailable(int);
-  }
-
   public static interface WifiP2pManager.NetworkInfoListener {
     method public void onNetworkInfoAvailable(@NonNull android.net.NetworkInfo);
   }
