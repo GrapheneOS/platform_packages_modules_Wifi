@@ -3727,6 +3727,12 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
 
         @Override
+        public String[] listAliases(String prefix) {
+            Log.i(TAG, "Alias list was requested");
+            return WifiKeystore.list(prefix);
+        }
+
+        @Override
         public String getInterfaceHash() {
             return INonStandardCertCallback.HASH;
         }
