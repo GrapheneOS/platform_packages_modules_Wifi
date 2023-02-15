@@ -63,6 +63,7 @@ public class WifiGlobals {
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
     private boolean mIsUsingExternalScorer = false;
+    private boolean mDisableUnwantedNetworkOnLowRssi = false;
 
     public WifiGlobals(Context context) {
         mContext = context;
@@ -107,6 +108,8 @@ public class WifiGlobals {
                 R.bool.config_wifiAdjustPollRssiIntervalEnabled);
         mWifiInterfaceAddedSelfRecoveryEnabled = mContext.getResources().getBoolean(
                 R.bool.config_wifiInterfaceAddedSelfRecoveryEnabled);
+        mDisableUnwantedNetworkOnLowRssi = mContext.getResources().getBoolean(
+                R.bool.config_wifiDisableUnwantedNetworkOnLowRssi);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -313,6 +316,13 @@ public class WifiGlobals {
         return mWifiInterfaceAddedSelfRecoveryEnabled;
     }
 
+    /**
+     * Get whether to temporarily disable a unwanted network that has low RSSI.
+     */
+    public boolean disableUnwantedNetworkOnLowRssi() {
+        return mDisableUnwantedNetworkOnLowRssi;
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -339,5 +349,6 @@ public class WifiGlobals {
         pw.println("mIsP2pMacRandomizationSupported" + mIsP2pMacRandomizationSupported);
         pw.println("mWifiInterfaceAddedSelfRecoveryEnabled="
                 + mWifiInterfaceAddedSelfRecoveryEnabled);
+        pw.println("mDisableUnwantedNetworkOnLowRssi=" + mDisableUnwantedNetworkOnLowRssi);
     }
 }

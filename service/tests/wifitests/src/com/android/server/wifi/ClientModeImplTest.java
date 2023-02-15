@@ -29,6 +29,7 @@ import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_NOT_METERED;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY;
+import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED;
 import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_SUCCESS;
 
@@ -5954,6 +5955,20 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
+    public void testUnwantedDisconnectTemporarilyDisableNetwork() throws Exception {
+        connect();
+        when(mWifiGlobals.disableUnwantedNetworkOnLowRssi()).thenReturn(true);
+        when(mWifiConfigManager.getLastSelectedNetwork()).thenReturn(-1);
+        mWifiInfo.setRssi(RSSI_THRESHOLD_MIN);
+        mCmi.sendMessage(CMD_UNWANTED_NETWORK,
+                ClientModeImpl.NETWORK_STATUS_UNWANTED_DISCONNECT);
+        mLooper.dispatchAll();
+
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(anyInt(),
+                eq(DISABLED_UNWANTED_LOW_RSSI));
     }
 
     /**
