@@ -218,6 +218,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         WifiInjector wifiInjector = mock(WifiInjector.class);
         when(wifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(wifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(wifiInjector.getDppManager()).thenReturn(mDppManager);
         lenient().when(WifiInjector.getInstance()).thenReturn(wifiInjector);
         when(mSsidTranslator.getAllPossibleOriginalSsids(any())).thenAnswer(
                 (Answer<List<WifiSsid>>) invocation -> Arrays.asList(invocation.getArgument(0),
@@ -322,6 +323,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock private WifiCountryCode mWifiCountryCode;
+    @Mock private DppManager mDppManager;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -5479,6 +5481,40 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         verify(mWifiNS).getCandidatesFromScan(any(), any(),
                 eq(expectedCmmStates), anyBoolean(), anyBoolean(), anyBoolean(), any(),
                 anyBoolean());
+    }
+
+    /**
+     * Verify that scan results are ignored when DPP is in progress and
+     * Connected MAC Randomization enabled.
+     */
+    @Test
+    public void testIgnoreScanResultWhenDppInProgress() {
+        // Enable MAC randomization and set DPP session in progress
+        when(mWifiGlobals.isConnectedMacRandomizationEnabled()).thenReturn(true);
+        when(mDppManager.isSessionInProgress()).thenReturn(true);
+
+        // Set WiFi to disconnected state to trigger scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+
+        // Verify there is no connection due to scan result being ignored
+        verify(mPrimaryClientModeManager, never()).startConnectToNetwork(
+                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
+
+        // Set DPP session to no longer in progress
+        when(mDppManager.isSessionInProgress()).thenReturn(false);
+
+        // Set WiFi to disconnected state to trigger scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+
+        // Verify a candidate is found this time.
+        verify(mPrimaryClientModeManager).startConnectToNetwork(
+                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
     }
 
     private void setWifiEnabled(boolean enable) {
