@@ -321,10 +321,9 @@ public class DiscoverySessionCallback {
      *
      * @param peerHandle The pairing peer handle.
      * @param alias      This is the paired device alias set by the caller.
-     *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)}
+     *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, int, String)}
      *                   or
-     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String,
-     *                   String)}
+     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, int, String)}
      */
     public void onPairingSetupSucceeded(@NonNull PeerHandle peerHandle,
             @NonNull String alias) {
@@ -345,10 +344,9 @@ public class DiscoverySessionCallback {
      *
      * @param peerHandle The pairing peer handle
      * @param alias      This is the paired device alias set by the caller.
-     *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, String)}
+     *                   {@link DiscoverySession#initiatePairingRequest(PeerHandle, String, int, String)}
      *                   or
-     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String,
-     *                   String)}
+     *                   {@link DiscoverySession#acceptPairingRequest(int, PeerHandle, String, int, String)}
      */
     public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle,
             @NonNull String alias){

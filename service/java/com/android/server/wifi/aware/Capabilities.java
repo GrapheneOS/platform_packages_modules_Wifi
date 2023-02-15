@@ -42,7 +42,8 @@ public class Capabilities {
     public int maxAppInfoLen;
     public int maxQueuedTransmitMessages;
     public int maxSubscribeInterfaceAddresses;
-    public int supportedCipherSuites;
+    public int supportedDataPathCipherSuites;
+    public int supportedPairingCipherSuites;
     public boolean isInstantCommunicationModeSupported;
     public boolean isNanPairingSupported;
     public boolean isSetClusterIdSupported;
@@ -58,7 +59,10 @@ public class Capabilities {
         bundle.putInt(Characteristics.KEY_MAX_SERVICE_SPECIFIC_INFO_LENGTH,
                 maxServiceSpecificInfoLen);
         bundle.putInt(Characteristics.KEY_MAX_MATCH_FILTER_LENGTH, maxMatchFilterLen);
-        bundle.putInt(Characteristics.KEY_SUPPORTED_CIPHER_SUITES, supportedCipherSuites);
+        bundle.putInt(Characteristics.KEY_SUPPORTED_DATA_PATH_CIPHER_SUITES,
+                supportedDataPathCipherSuites);
+        bundle.putInt(Characteristics.KEY_SUPPORTED_PAIRING_CIPHER_SUITES,
+                supportedPairingCipherSuites);
         bundle.putBoolean(Characteristics.KEY_IS_INSTANT_COMMUNICATION_MODE_SUPPORTED,
                 isInstantCommunicationModeSupported);
         bundle.putInt(Characteristics.KEY_MAX_NDP_NUMBER, maxNdpSessions);
@@ -85,7 +89,7 @@ public class Capabilities {
         j.put("maxAppInfoLen", maxAppInfoLen);
         j.put("maxQueuedTransmitMessages", maxQueuedTransmitMessages);
         j.put("maxSubscribeInterfaceAddresses", maxSubscribeInterfaceAddresses);
-        j.put("supportedCipherSuites", supportedCipherSuites);
+        j.put("supportedCipherSuites", supportedDataPathCipherSuites);
         j.put("isInstantCommunicationModeSupported", isInstantCommunicationModeSupported);
         j.put("isSetClusterIdSupported", isSetClusterIdSupported);
         j.put("isNanPairingSupported", isNanPairingSupported);
@@ -105,7 +109,7 @@ public class Capabilities {
                 + maxNdpSessions + ", maxAppInfoLen=" + maxAppInfoLen
                 + ", maxQueuedTransmitMessages=" + maxQueuedTransmitMessages
                 + ", maxSubscribeInterfaceAddresses=" + maxSubscribeInterfaceAddresses
-                + ", supportedCipherSuites=" + supportedCipherSuites
+                + ", supportedCipherSuites=" + supportedDataPathCipherSuites
                 + ", isInstantCommunicationModeSupport=" + isInstantCommunicationModeSupported
                 + ", isNanPairingSupported=" + isNanPairingSupported
                 + ", isSetClusterIdSupported=" + isSetClusterIdSupported

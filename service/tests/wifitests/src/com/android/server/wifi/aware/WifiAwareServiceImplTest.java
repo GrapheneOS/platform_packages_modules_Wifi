@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.aware;
 
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import static org.junit.Assert.assertEquals;
@@ -758,7 +760,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         cap.maxNdpSessions = 1;
         cap.maxAppInfoLen = 255;
         cap.maxQueuedTransmitMessages = 6;
-        cap.supportedCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
+        cap.supportedDataPathCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
+        cap.supportedPairingCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
         cap.isInstantCommunicationModeSupported = true;
         cap.isSuspensionSupported = true;
 
@@ -768,6 +771,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         assertEquals(characteristics.getMaxMatchFilterLength(), maxMatchFilter);
         assertEquals(characteristics.getSupportedCipherSuites(),
                 Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256);
+        assertEquals(characteristics.getSupportedPairingCipherSuites(),
+                Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
         assertEquals(characteristics.getNumberOfSupportedDataPaths(), 1);
         assertEquals(characteristics.getNumberOfSupportedDataInterfaces(), 1);
         assertEquals(characteristics.getNumberOfSupportedPublishSessions(), 2);
@@ -818,7 +823,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         String alias = "alias";
         int clientId = doConnect();
         assertThrows(IllegalArgumentException.class, () ->
-                mDut.initiateNanPairingSetupRequest(clientId, sessionId, peerId, password, alias));
+                mDut.initiateNanPairingSetupRequest(clientId, sessionId, peerId, password, alias,
+                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
     }
 
     @Test
@@ -831,7 +837,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         int clientId = doConnect();
         assertThrows(IllegalArgumentException.class, () ->
                 mDut.responseNanPairingSetupRequest(clientId, sessionId, peerId, pairId, password,
-                        alias, true));
+                        alias, true, WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
     }
 
     @Test
@@ -1033,7 +1039,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         cap.maxNdpSessions = 1;
         cap.maxAppInfoLen = 255;
         cap.maxQueuedTransmitMessages = 6;
-        cap.supportedCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
+        cap.supportedDataPathCipherSuites = Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
         cap.isInstantCommunicationModeSupported = false;
         cap.isNanPairingSupported = false;
         return cap.toPublicCharacteristics(deviceConfigFacade);

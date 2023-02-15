@@ -531,7 +531,7 @@ public class WifiNanIfaceCallbackHidlImpl extends IWifiNanIfaceEventCallback.Stu
                 capabilities.maxQueuedTransmitFollowupMsgs;
         frameworkCapabilities.maxSubscribeInterfaceAddresses =
                 capabilities.maxSubscribeInterfaceAddresses;
-        frameworkCapabilities.supportedCipherSuites = toPublicCipherSuites(
+        frameworkCapabilities.supportedDataPathCipherSuites = toPublicCipherSuites(
                 capabilities.supportedCipherSuites);
         frameworkCapabilities.isInstantCommunicationModeSupported = false;
         return frameworkCapabilities;
@@ -557,7 +557,7 @@ public class WifiNanIfaceCallbackHidlImpl extends IWifiNanIfaceEventCallback.Stu
                 capabilities.maxQueuedTransmitFollowupMsgs;
         frameworkCapabilities.maxSubscribeInterfaceAddresses =
                 capabilities.maxSubscribeInterfaceAddresses;
-        frameworkCapabilities.supportedCipherSuites = toPublicCipherSuites(
+        frameworkCapabilities.supportedDataPathCipherSuites = toPublicCipherSuites(
                 capabilities.supportedCipherSuites);
         frameworkCapabilities.isInstantCommunicationModeSupported =
                 capabilities.instantCommunicationModeSupportFlag;
