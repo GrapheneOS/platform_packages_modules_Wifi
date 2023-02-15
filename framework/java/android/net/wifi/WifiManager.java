@@ -4642,7 +4642,9 @@ public class WifiManager {
                 WIFI_NETWORK_STATUS_CONNECTING,
                 WIFI_NETWORK_STATUS_AUTHENTICATING,
                 WIFI_NETWORK_STATUS_OBTAINING_IPADDR,
-                WIFI_NETWORK_STATUS_CONNECTED
+                WIFI_NETWORK_STATUS_CONNECTED,
+                WIFI_NETWORK_STATUS_DISCONNECTED,
+                WIFI_NETWORK_STATUS_FAILED
         })
         @interface WifiNetworkState {}
 

@@ -2467,6 +2467,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY;
     }
 
+    private boolean isScanOnly() {
+        return mClientModeManager.getRole() == ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
+    }
+
     /** Check whether this connection is the secondary internet wifi connection. */
     private boolean isSecondaryInternet() {
         return mClientModeManager.getRole() == ROLE_CLIENT_SECONDARY_LONG_LIVED
@@ -2867,7 +2871,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private int getNetworkStateListenerCmmRole() {
-        if (isPrimary()) {
+        if (isPrimary() || isScanOnly()) {
+            // Wifi disconnect could be received in ScanOnlyMode when wifi scanning is enabled since
+            // the mode switch happens before the disconnect actually happens. Therefore, treat
+            // the scan only mode the same as primary since only the primary is allowed to change
+            // into scan only mode.
             return WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY;
         }
         if (isSecondaryInternet()) {
