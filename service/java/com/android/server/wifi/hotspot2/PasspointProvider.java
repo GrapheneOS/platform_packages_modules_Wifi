@@ -124,6 +124,7 @@ public class PasspointProvider {
     private String mAnonymousIdentity = null;
     private String mConnectChoice = null;
     private int mConnectChoiceRssi = 0;
+    private String mMostRecentSsid = null;
 
     // A map that maps SSIDs (String) to a pair of RCOI and a timestamp (both are Long) to be
     // used later when connecting to an RCOI-based Passpoint network.
@@ -1221,6 +1222,18 @@ public class PasspointProvider {
 
     public int getConnectChoiceRssi() {
         return mConnectChoiceRssi;
+    }
+
+    /**
+     * Set the most recent SSID observed for the Passpoint network.
+     */
+    public void setMostRecentSsid(@Nullable String ssid) {
+        if (ssid == null) return;
+        mMostRecentSsid = ssid;
+    }
+
+    public @Nullable String getMostRecentSsid() {
+        return mMostRecentSsid;
     }
 
     /**

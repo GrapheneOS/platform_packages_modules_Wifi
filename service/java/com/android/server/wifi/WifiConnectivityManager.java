@@ -2236,6 +2236,10 @@ public class WifiConnectivityManager {
         pnoSettings.min5GHzRssi = mScoringParams.getEntryRssi(ScanResult.BAND_5_GHZ_START_FREQ_MHZ);
         pnoSettings.min24GHzRssi = mScoringParams.getEntryRssi(
                 ScanResult.BAND_24_GHZ_START_FREQ_MHZ);
+        pnoSettings.scanIterations = mContext.getResources()
+                .getInteger(R.integer.config_wifiPnoScanIterations);
+        pnoSettings.scanIntervalMultiplier = mContext.getResources()
+                .getInteger(R.integer.config_wifiPnoScanIntervalMultiplier);
 
         // Initialize scan settings
         ScanSettings scanSettings = new ScanSettings();
@@ -2253,6 +2257,11 @@ public class WifiConnectivityManager {
     private @NonNull List<WifiConfiguration> getAllScanOptimizationNetworks() {
         List<WifiConfiguration> networks = mConfigManager.getSavedNetworks(-1);
         networks.addAll(mWifiNetworkSuggestionsManager.getAllScanOptimizationSuggestionNetworks());
+        if (mDeviceConfigFacade.includePasspointSsidsInPnoScans()) {
+            networks.addAll(mPasspointManager.getWifiConfigsForPasspointProfilesWithSsids());
+            networks.addAll(mWifiNetworkSuggestionsManager
+                    .getAllPasspointScanOptimizationSuggestionNetworks());
+        }
         // remove all saved but never connected, auto-join disabled, or network selection disabled
         // networks.
         networks.removeIf(config -> !config.allowAutojoin

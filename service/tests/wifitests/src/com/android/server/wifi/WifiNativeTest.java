@@ -177,6 +177,8 @@ public class WifiNativeTest extends WifiBaseTest {
             new WifiNative.PnoSettings() {{
                 isConnected = false;
                 periodInMs = 6000;
+                scanIterations = 3;
+                scanIntervalMultiplier = 3;
                 networkList = new WifiNative.PnoNetwork[2];
                 networkList[0] = new WifiNative.PnoNetwork();
                 networkList[1] = new WifiNative.PnoNetwork();

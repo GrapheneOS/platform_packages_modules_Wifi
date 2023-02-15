@@ -1349,6 +1349,25 @@ public class PasspointManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that {@link PasspointManager#getWifiConfigsForPasspointProfilesWithSsids()}
+     * only returns configs for providers that have been assigned a recent SSID.
+     */
+    @Test
+    public void testGetWifiConfigsForPasspointProfilesWithSsids() {
+        PasspointProvider provider1 = addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME,
+                TEST_PACKAGE, false, null);
+        PasspointProvider provider2 = addTestProvider(TEST_FQDN + 1, TEST_FRIENDLY_NAME,
+                TEST_PACKAGE, false, null);
+        when(provider2.getMostRecentSsid()).thenReturn(TEST_SSID); // assign a recent SSID
+
+        // Only entry should be for the provider that was assigned a recent SSID.
+        List<WifiConfiguration> configs = mManager.getWifiConfigsForPasspointProfilesWithSsids();
+        assertEquals(1, configs.size());
+        assertEquals(provider2.getConfig().getUniqueId(), configs.get(0).getPasspointUniqueId());
+        assertEquals(TEST_SSID, configs.get(0).SSID);
+    }
+
+    /**
      * Verify that an empty map will be returned when trying to get all matching FQDN for a {@code
      * null} {@link ScanResult}.
      */
@@ -1876,8 +1895,9 @@ public class PasspointManagerTest extends WifiBaseTest {
         PasspointProvider provider =
                 addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME, TEST_PACKAGE, false, null);
         when(provider.getHasEverConnected()).thenReturn(false);
-        mManager.onPasspointNetworkConnected(provider.getConfig().getUniqueId());
+        mManager.onPasspointNetworkConnected(provider.getConfig().getUniqueId(), TEST_SSID);
         verify(provider).setHasEverConnected(eq(true));
+        verify(provider).setMostRecentSsid(eq(TEST_SSID));
     }
 
     /**
@@ -1892,7 +1912,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         PasspointProvider provider =
                 addTestProvider(TEST_FQDN, TEST_FRIENDLY_NAME, TEST_PACKAGE, false, null);
         when(provider.getHasEverConnected()).thenReturn(true);
-        mManager.onPasspointNetworkConnected(TEST_FQDN);
+        mManager.onPasspointNetworkConnected(TEST_FQDN, TEST_SSID);
         verify(provider, never()).setHasEverConnected(anyBoolean());
     }
 

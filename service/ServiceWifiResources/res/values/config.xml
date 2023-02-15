@@ -785,6 +785,15 @@
          This scan is performed when screen is off and disconnected. -->
     <integer translatable="false" name="config_wifiStationaryPnoScanIntervalMillis">60000</integer>
 
+    <!-- Iterations for PNO scan. PNO will scan using the initial scan interval for this many
+         iterations.-->
+    <integer translatable="false" name="config_wifiPnoScanIterations">3</integer>
+
+    <!-- Interval Multiplier for PNO scan. After not finding any networks for
+         config_wifiPnoScanIterations, PNO will multiply the scan interval by the value
+         configured.-->
+    <integer translatable="false" name="config_wifiPnoScanIntervalMultiplier">3</integer>
+
     <!-- integer indicating additional disconnect delay (in ms) after IMS onLost() indication is received -->
     <integer translatable="false" name="config_wifiDelayDisconnectOnImsLostMs">0</integer>
 

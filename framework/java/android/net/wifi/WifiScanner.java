@@ -1137,6 +1137,10 @@ public class WifiScanner {
         public int min24GHzRssi;
         /** Minimum 6GHz RSSI for a BSSID to be considered */
         public int min6GHzRssi;
+        /** Iterations of Pno scan */
+        public int scanIterations;
+        /** Multiplier of Pno scan interval */
+        public int scanIntervalMultiplier;
         /** Pno Network filter list */
         public PnoNetwork[] networkList;
 
@@ -1151,6 +1155,8 @@ public class WifiScanner {
             dest.writeInt(min5GHzRssi);
             dest.writeInt(min24GHzRssi);
             dest.writeInt(min6GHzRssi);
+            dest.writeInt(scanIterations);
+            dest.writeInt(scanIntervalMultiplier);
             if (networkList != null) {
                 dest.writeInt(networkList.length);
                 for (int i = 0; i < networkList.length; i++) {
@@ -1173,6 +1179,8 @@ public class WifiScanner {
                         settings.min5GHzRssi = in.readInt();
                         settings.min24GHzRssi = in.readInt();
                         settings.min6GHzRssi = in.readInt();
+                        settings.scanIterations = in.readInt();
+                        settings.scanIntervalMultiplier = in.readInt();
                         int numNetworks = in.readInt();
                         settings.networkList = new PnoNetwork[numNetworks];
                         for (int i = 0; i < numNetworks; i++) {

@@ -262,6 +262,9 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 LOW_RSSI_NETWORK_RETRY_MAX_DELAY_SEC);
         resources.setBoolean(R.bool.config_wifiEnable6ghzPscScanning, true);
         resources.setBoolean(R.bool.config_wifiUseHalApiToDisableFwRoaming, true);
+        resources.setInteger(R.integer.config_wifiPnoScanIterations, EXPECTED_PNO_ITERATIONS);
+        resources.setInteger(R.integer.config_wifiPnoScanIntervalMultiplier,
+                EXPECTED_PNO_MULTIPLIER);
     }
 
     /**
@@ -386,6 +389,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     private static final int LOW_RSSI_NETWORK_RETRY_MAX_DELAY_SEC = 80;
     private static final int SCAN_TRIGGER_TIMES = 7;
     private static final long NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS = 3000; // 3 seconds
+    private static final int EXPECTED_PNO_ITERATIONS = 3;
+    private static final int EXPECTED_PNO_MULTIPLIER = 4;
     private static final int TEST_FREQUENCY_2G = 2412;
     private static final int TEST_FREQUENCY_5G = 5262;
 
@@ -4685,10 +4690,15 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         ArgumentCaptor<ScanSettings> scanSettingsCaptor = ArgumentCaptor.forClass(
                 ScanSettings.class);
+        ArgumentCaptor<PnoSettings> pnoSettingsCaptor = ArgumentCaptor.forClass(
+                PnoSettings.class);
         InOrder inOrder = inOrder(mWifiScanner);
 
-        inOrder.verify(mWifiScanner).startPnoScan(scanSettingsCaptor.capture(), any(), any());
+        inOrder.verify(mWifiScanner).startPnoScan(scanSettingsCaptor.capture(),
+                pnoSettingsCaptor.capture(), any());
         assertEquals(interval, scanSettingsCaptor.getValue().periodInMs);
+        assertEquals(EXPECTED_PNO_ITERATIONS, pnoSettingsCaptor.getValue().scanIterations);
+        assertEquals(EXPECTED_PNO_MULTIPLIER, pnoSettingsCaptor.getValue().scanIntervalMultiplier);
     }
 
     /**
