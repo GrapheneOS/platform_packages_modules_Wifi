@@ -46,6 +46,8 @@ import android.service.notification.StatusBarNotification;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -266,14 +268,20 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         mWifiConfiguration.SSID = SSID_1;
         WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
                 mEapFailureNotifier.onEapFailure(UNKNOWN_ERROR_CODE, mWifiConfiguration, true);
-        verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
-        ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
-        verify(mFrameworkFacade).getActivity(
-                eq(mContext), eq(0), intent.capture(),
-                eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-        assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
-        assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
-        assertEquals(mExpectedEapFailureConfig, failureConfig);
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
+            ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
+            verify(mFrameworkFacade).getActivity(
+                    eq(mContext), eq(0), intent.capture(),
+                    eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
+            assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+            assertEquals(mExpectedEapFailureConfig, failureConfig);
+        } else {
+            // unknown error codes should be ignored on pre-T devices.
+            verify(mWifiNotificationManager, never()).notify(anyInt(), any());
+            assertNull(failureConfig);
+        }
     }
 
     @Test
