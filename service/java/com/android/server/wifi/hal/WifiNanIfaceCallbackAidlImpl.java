@@ -45,6 +45,7 @@ import android.hardware.wifi.NanPairingRequestInd;
 import android.hardware.wifi.NanPairingRequestType;
 import android.hardware.wifi.NanStatus;
 import android.hardware.wifi.NanStatusCode;
+import android.hardware.wifi.NanSuspensionModeChangeInd;
 import android.hardware.wifi.NpkSecurityAssociation;
 import android.hardware.wifi.WifiChannelWidthInMhz;
 import android.net.MacAddress;
@@ -487,6 +488,11 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
         }
         mWifiNanIface.getFrameworkCallback().eventTransmitFollowup(
                 (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
+    }
+
+    @Override
+    public void eventSuspensionModeChanged(NanSuspensionModeChangeInd event) {
+        if (!checkFrameworkCallback()) return;
     }
 
     @Override
