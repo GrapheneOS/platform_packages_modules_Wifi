@@ -54,6 +54,7 @@ public class RssiMonitorTest extends WifiBaseTest {
     private static final int TEST_APP_RSSI_THRESHOLD_BREACH_HIGH = -50;
     private static final int TEST_POLL_INTERVAL_SHORT = 3000;
     private static final int TEST_POLL_INTERVAL_LONG = 9000;
+    private static final int TEST_POLL_INTERVAL_FIXED = 1000;
     private static final int[] TEST_APP_RSSI_THRESHOLDS = new int[] {-75};
     private static final String TEST_INTERFACE_NAME = "wlan0";
 
@@ -274,5 +275,62 @@ public class RssiMonitorTest extends WifiBaseTest {
         assertEquals(TEST_POLL_INTERVAL_SHORT, mWifiGlobals.getPollRssiIntervalMillis());
         verify(mWifiNative).startRssiMonitoring(eq(TEST_INTERFACE_NAME), eq(Byte.MAX_VALUE),
                 eq((byte) TEST_APP_RSSI_THRESHOLDS[0]), mRssiEventHandlerCaptor.capture());
+    }
+
+    /**
+     * Verify that the fixed link layer stats polling interval is set correctly by
+     * overridePollRssiInterval() when the feature of adjusting the polling interval
+     * is disabled
+     */
+    @Test
+    public void testOverridePollRssiIntervalAdjustIntervalDisabled() throws Exception {
+        when(mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled()).thenReturn(false);
+        mRssiMonitor.overridePollRssiInterval(TEST_POLL_INTERVAL_FIXED);
+        assertEquals(TEST_POLL_INTERVAL_FIXED, mWifiGlobals.getPollRssiIntervalMillis());
+        verify(mWifiNative, never()).startRssiMonitoring(eq(TEST_INTERFACE_NAME),
+                eq(Byte.MAX_VALUE), eq((byte) TEST_CLIENT_RSSI_THRESHOLD),
+                mRssiEventHandlerCaptor.capture());
+        mRssiMonitor.overridePollRssiInterval(0);
+        assertEquals(TEST_POLL_INTERVAL_SHORT, mWifiGlobals.getPollRssiIntervalMillis());
+    }
+
+    /**
+     * Verify that the fixed link layer stats polling interval is set correctly by
+     * overridePollRssiInterval() when the feature of adjusting the polling interval
+     * is enabled
+     */
+    @Test
+    public void testOverridePollRssiIntervalAdjustIntervalEnabled() throws Exception {
+        // Check if the interval changes to fixed when setting it while current interval is
+        // long interval and client mode RSSI monitor is enabled
+        setupClientMonitorHighRssiStationary();
+        mRssiMonitor.overridePollRssiInterval(TEST_POLL_INTERVAL_FIXED);
+        assertEquals(TEST_POLL_INTERVAL_FIXED, mWifiGlobals.getPollRssiIntervalMillis());
+        verify(mWifiNative, times(2)).startRssiMonitoring(
+                eq(TEST_INTERFACE_NAME), eq(Byte.MAX_VALUE),
+                eq((byte) TEST_APP_RSSI_THRESHOLDS[0]), mRssiEventHandlerCaptor.capture());
+        // Check if the interval stays fixed when updatePollRssiInterval() is called
+        mRssiMonitor.updatePollRssiInterval(WifiManager.DEVICE_MOBILITY_STATE_STATIONARY);
+        assertEquals(TEST_POLL_INTERVAL_FIXED, mWifiGlobals.getPollRssiIntervalMillis());
+        verify(mWifiNative).startRssiMonitoring(eq(TEST_INTERFACE_NAME),
+                eq(Byte.MAX_VALUE), eq((byte) TEST_CLIENT_RSSI_THRESHOLD),
+                mRssiEventHandlerCaptor.capture());
+        // Check if the interval stays fixed when setShortPollRssiInterval() is called
+        mRssiMonitor.setShortPollRssiInterval();
+        assertEquals(TEST_POLL_INTERVAL_FIXED, mWifiGlobals.getPollRssiIntervalMillis());
+        verify(mWifiNative, times(2)).startRssiMonitoring(
+                eq(TEST_INTERFACE_NAME), eq(Byte.MAX_VALUE),
+                eq((byte) TEST_APP_RSSI_THRESHOLDS[0]), mRssiEventHandlerCaptor.capture());
+        // Check if the interval changes back to short interval after setting it to automatic
+        // handling
+        mRssiMonitor.overridePollRssiInterval(0);
+        assertEquals(TEST_POLL_INTERVAL_SHORT, mWifiGlobals.getPollRssiIntervalMillis());
+        // Check if the interval changes to long interval when updatePollRssiInterval() is called
+        // for automatic handling, while the device is stationary and RSSI is high
+        mRssiMonitor.updatePollRssiInterval(WifiManager.DEVICE_MOBILITY_STATE_STATIONARY);
+        assertEquals(TEST_POLL_INTERVAL_LONG, mWifiGlobals.getPollRssiIntervalMillis());
+        verify(mWifiNative, times(2)).startRssiMonitoring(
+                eq(TEST_INTERFACE_NAME), eq(Byte.MAX_VALUE), eq((byte) TEST_CLIENT_RSSI_THRESHOLD),
+                mRssiEventHandlerCaptor.capture());
     }
 }

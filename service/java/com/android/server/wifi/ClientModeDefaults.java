@@ -70,6 +70,8 @@ public interface ClientModeDefaults extends ClientMode {
 
     default void onDeviceMobilityStateUpdated(@DeviceMobilityState int newState) { }
 
+    default void setLinkLayerStatsPollingInterval(int newIntervalMs) { }
+
     default boolean setWifiConnectedNetworkScorer(
             IBinder binder, IWifiConnectedNetworkScorer scorer) {
         // don't fail the public API when wifi is off.
