@@ -37,6 +37,7 @@ import android.net.MacAddress;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.wifi.IBooleanListener;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.WifiManager;
 import android.net.wifi.util.HexEncoding;
@@ -553,6 +554,37 @@ public class WifiAwareManager {
 
         try {
             mService.disconnect(clientId, binder);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /** @hide */
+    public void setMasterPreference(int clientId, Binder binder, int mp) {
+        if (VDBG) Log.v(TAG, "setMasterPreference()");
+
+        try {
+            mService.setMasterPreference(clientId, binder, mp);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void getMasterPreference(int clientId, Binder binder, @NonNull Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getMasterPreference(clientId, binder,
+                    new IIntegerListener.Stub() {
+                        public void onResult(int value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> resultsCallback.accept(value));
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

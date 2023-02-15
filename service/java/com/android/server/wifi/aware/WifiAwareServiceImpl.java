@@ -23,6 +23,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.wifi.IBooleanListener;
+import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.AwareParams;
@@ -389,6 +390,53 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
 
         mStateManager.disconnect(clientId);
     }
+
+    @Override
+    public void setMasterPreference(int clientId, IBinder binder, int mp) {
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (binder == null) {
+            throw new IllegalArgumentException("Binder must not be null");
+        }
+        if (!mWifiPermissionsUtil.checkConfigOverridePermission(uid)) {
+            throw new SecurityException("setMasterPreference requires "
+                    + "OVERRIDE_WIFI_CONFIG permission");
+        }
+
+        if (mp < 0) {
+            throw new IllegalArgumentException(
+                    "Master Preference specification must be non-negative");
+        }
+        if (mp == 1 || mp == 255 || mp > 255) {
+            throw new IllegalArgumentException("Master Preference specification must not "
+                    + "exceed 255 or use 1 or 255 (reserved values)");
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "setMasterPreference: uid=" + uid + ", clientId=" + clientId);
+        }
+
+        mStateManager.setMasterPreference(clientId, mp);
+    }
+
+    @Override
+    public void getMasterPreference(int clientId, IBinder binder, IIntegerListener listener) {
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (binder == null) {
+            throw new IllegalArgumentException("Binder must not be null");
+        }
+        if (!mWifiPermissionsUtil.checkConfigOverridePermission(uid)) {
+            throw new SecurityException("getMasterPreference requires "
+                    + "OVERRIDE_WIFI_CONFIG permission");
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "getMasterPreference: uid=" + uid + ", clientId=" + clientId);
+        }
+        mStateManager.getMasterPreference(clientId, listener);
+    }
+
 
     @Override
     public void terminateSession(int clientId, int sessionId) {
