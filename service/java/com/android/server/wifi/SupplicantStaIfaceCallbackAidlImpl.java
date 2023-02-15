@@ -48,6 +48,7 @@ import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
 import android.hardware.wifi.supplicant.MboAssocDisallowedReasonCode;
 import android.hardware.wifi.supplicant.MboCellularDataConnectionPrefValue;
 import android.hardware.wifi.supplicant.MboTransitionReasonCode;
+import android.hardware.wifi.supplicant.PmkSaCacheData;
 import android.hardware.wifi.supplicant.QosPolicyData;
 import android.hardware.wifi.supplicant.QosPolicyScsResponseStatus;
 import android.hardware.wifi.supplicant.QosPolicyScsResponseStatusCode;
@@ -609,6 +610,18 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
 
     @Override
     public void onPmkCacheAdded(long expirationTimeInSec, byte[] serializedEntry) {
+        handlePmkSaCacheAddedEvent(null, expirationTimeInSec, serializedEntry);
+    }
+
+    @Override
+    public void onPmkSaCacheAdded(PmkSaCacheData pmkSaData) {
+        // TODO(b/260042356) : Add PMKSA entry with BSSID as a key
+        handlePmkSaCacheAddedEvent(pmkSaData.bssid, pmkSaData.expirationTimeInSec,
+                pmkSaData.serializedEntry);
+    }
+
+    private void handlePmkSaCacheAddedEvent(byte[/* 6 */] bssid, long expirationTimeInSec,
+            byte[] serializedEntry) {
         WifiConfiguration curConfig = mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
         if (curConfig == null) {
             return;
