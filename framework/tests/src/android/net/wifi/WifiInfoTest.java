@@ -75,6 +75,7 @@ public class WifiInfoTest {
 
     private void addMloInfo(WifiInfo info) {
         info.setApMldMacAddress(MacAddress.fromString(AP_MLD_MAC_ADDRESS));
+        info.enableApTidToLinkMappingNegotiationSupport(true);
         List<MloLink> links = new ArrayList<>();
         MloLink link = new MloLink();
         link.setStaMacAddress(MacAddress.fromString(MLO_LINK_STA_MAC_ADDRESS));
@@ -91,6 +92,7 @@ public class WifiInfoTest {
     }
 
     private void assertMloNoRedaction(WifiInfo info) {
+        assertTrue(info.isApTidToLinkMappingNegotiationSupported());
         assertNotNull(info.getApMldMacAddress());
         assertEquals(AP_MLD_MAC_ADDRESS, info.getApMldMacAddress().toString());
         List<MloLink> links = info.getAffiliatedMloLinks();
@@ -512,6 +514,7 @@ public class WifiInfoTest {
         writeWifiInfo.setSubscriptionId(TEST_SUB_ID);
         writeWifiInfo.setIsPrimary(true);
         writeWifiInfo.setRestricted(true);
+        writeWifiInfo.enableApTidToLinkMappingNegotiationSupport(true);
 
         WifiInfo readWifiInfo = new WifiInfo(writeWifiInfo);
 
@@ -538,6 +541,7 @@ public class WifiInfoTest {
             assertEquals(TEST_SUB_ID, readWifiInfo.getSubscriptionId());
             assertTrue(readWifiInfo.isPrimary());
         }
+        assertTrue(readWifiInfo.isApTidToLinkMappingNegotiationSupported());
     }
 
     /**
@@ -566,6 +570,7 @@ public class WifiInfoTest {
         assertEquals(MloLink.INVALID_MLO_LINK_ID, wifiInfo.getApMloLinkId());
         assertNull(wifiInfo.getApMldMacAddress());
         assertEquals(0, wifiInfo.getAffiliatedMloLinks().size());
+        assertFalse(wifiInfo.isApTidToLinkMappingNegotiationSupported());
     }
 
     /**

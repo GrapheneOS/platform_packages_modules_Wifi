@@ -1496,6 +1496,9 @@ public class WifiChipAidlImpl implements IWifiChip {
         if (bitmapContains(halCaps, ChipCapabilityMask.WIGIG)) {
             frameworkCaps |= WifiManager.WIFI_FEATURE_INFRA_60G;
         }
+        if (bitmapContains(halCaps, ChipCapabilityMask.T2LM_NEGOTIATION)) {
+            frameworkCaps |= WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
+        }
         return frameworkCaps;
     }
 

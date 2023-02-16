@@ -3661,6 +3661,8 @@ public class WifiNative {
         public int maxNumberTxSpatialStreams;
         public int maxNumberRxSpatialStreams;
         public boolean is11bMode;
+        /** Indicates the AP support for TID-to-link mapping negotiation. */
+        public boolean apTidToLinkMapNegotiationSupported;
         ConnectionCapabilities() {
             wifiStandard = ScanResult.WIFI_STANDARD_UNKNOWN;
             channelBandwidth = ScanResult.CHANNEL_WIDTH_20MHZ;

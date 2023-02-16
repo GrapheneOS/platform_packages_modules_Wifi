@@ -51,6 +51,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_P2P;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT_TERMS_AND_CONDITIONS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_SCANNER;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SAE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
@@ -3906,6 +3907,16 @@ public class WifiManagerTest {
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(~WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS));
         assertFalse(mWifiManager.isDualBandSimultaneousSupported());
+    }
+    /*
+     * Verify call to {@link WifiManager#isTidToLinkMappingSupported()}
+     */
+    @Test
+    public void testIsTidToLinkMappingSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures()).thenReturn(WIFI_FEATURE_T2LM_NEGOTIATION);
+        assertTrue(mWifiManager.isTidToLinkMappingNegotiationSupported());
+        when(mWifiService.getSupportedFeatures()).thenReturn(~WIFI_FEATURE_T2LM_NEGOTIATION);
+        assertFalse(mWifiManager.isTidToLinkMappingNegotiationSupported());
     }
 
     /**
