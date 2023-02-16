@@ -4642,7 +4642,9 @@ public class WifiManager {
                 WIFI_NETWORK_STATUS_CONNECTING,
                 WIFI_NETWORK_STATUS_AUTHENTICATING,
                 WIFI_NETWORK_STATUS_OBTAINING_IPADDR,
-                WIFI_NETWORK_STATUS_CONNECTED
+                WIFI_NETWORK_STATUS_CONNECTED,
+                WIFI_NETWORK_STATUS_DISCONNECTED,
+                WIFI_NETWORK_STATUS_FAILED
         })
         @interface WifiNetworkState {}
 
@@ -9736,6 +9738,30 @@ public class WifiManager {
          * implemented and instantiated by framework.
          */
         void onSetScoreUpdateObserver(@NonNull ScoreUpdateObserver observerImpl);
+
+        /**
+         * Called by framework to indicate the user accepted a dialog to switch to a new network.
+         * @param sessionId The ID to indicate current Wi-Fi network connection obtained from
+         *                  {@link WifiConnectedNetworkScorer#onStart(int)}.
+         * @param targetNetworkId Network ID of the target network.
+         * @param targetBssid BSSID of the target network.
+         */
+        default void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            // No-op.
+        }
+
+        /**
+         * Called by framework to indicate the user rejected a dialog to switch to new network.
+         * @param sessionId The ID to indicate current Wi-Fi network connection obtained from
+         *                  {@link WifiConnectedNetworkScorer#onStart(int)}.
+         * @param targetNetworkId Network ID of the target network.
+         * @param targetBssid BSSID of the target network.
+         */
+        default void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            // No-op.
+        }
     }
 
 
@@ -11238,6 +11264,64 @@ public class WifiManager {
     public void removeAllQosPolicies() {
         try {
             mService.removeAllQosPolicies(mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Set the link layer stats polling interval, in milliseconds.
+     *
+     * @param intervalMs a non-negative integer, for the link layer stats polling interval
+     *                   in milliseconds.
+     *                   To set a fixed interval, use a positive value.
+     *                   For automatic handling of the interval, use value 0
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @throws IllegalArgumentException if input is invalid.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
+    public void setLinkLayerStatsPollingInterval(@IntRange (from = 0) int intervalMs) {
+        try {
+            mService.setLinkLayerStatsPollingInterval(intervalMs);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Get the link layer stats polling interval, in milliseconds.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return current
+     *                        link layer stats polling interval in milliseconds.
+     *
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION)
+    public void getLinkLayerStatsPollingInterval(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.getLinkLayerStatsPollingInterval(
+                    new IIntegerListener.Stub() {
+                        @Override
+                        public void onResult(int value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

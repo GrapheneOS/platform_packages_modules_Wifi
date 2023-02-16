@@ -176,6 +176,7 @@ public class WifiManagerTest {
             MacAddress.fromString("22:bb:cc:11:aa:ff")};
     private static final String TEST_SSID = "\"Test WiFi Networks\"";
     private static final byte[] TEST_OUI = new byte[]{0x01, 0x02, 0x03};
+    private static final int TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS = 1000;
 
     @Mock Context mContext;
     @Mock android.net.wifi.IWifiManager mWifiService;
@@ -4003,6 +4004,29 @@ public class WifiManagerTest {
                 nullable(String.class));
         mWifiManager.removeLocalOnlyConnectionFailureListener(mLocalOnlyConnectionFailureListener);
         verify(mWifiService).removeLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME));
+    }
+
+    /**
+     * Verify if the call for set / get link layer stats polling interval goes to WifiServiceImpl
+     */
+    @Test
+    public void testSetAndGetLinkLayerStatsPollingInterval() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mWifiManager.setLinkLayerStatsPollingInterval(TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS);
+        verify(mWifiService).setLinkLayerStatsPollingInterval(
+                eq(TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS));
+
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        Consumer<Integer> resultsCallback = mock(Consumer.class);
+        mWifiManager.getLinkLayerStatsPollingInterval(executor, resultsCallback);
+        verify(mWifiService).getLinkLayerStatsPollingInterval(any(IIntegerListener.class));
+
+        // null executor
+        assertThrows(NullPointerException.class,
+                () -> mWifiManager.getLinkLayerStatsPollingInterval(null, resultsCallback));
+        // null resultsCallback
+        assertThrows(NullPointerException.class,
+                () -> mWifiManager.getLinkLayerStatsPollingInterval(executor, null));
     }
 
 }

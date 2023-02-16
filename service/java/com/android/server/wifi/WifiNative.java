@@ -3725,16 +3725,21 @@ public class WifiNative {
      * Class to represent a connection MLO Link
      */
     public static class ConnectionMloLink {
-        private int mLinkId;
-        private MacAddress mStaMacAddress;
-        private BitSet mTidsUplinkMap;
-        private BitSet mTidsDownlinkMap;
+        private final int mLinkId;
+        private final MacAddress mStaMacAddress;
+        private final BitSet mTidsUplinkMap;
+        private final BitSet mTidsDownlinkMap;
+        private final MacAddress mApMacAddress;
+        private final int mFrequencyMHz;
 
-        ConnectionMloLink(int id, MacAddress mac, byte tidsUplink, byte tidsDownlink) {
+        ConnectionMloLink(int id, MacAddress staMacAddress, MacAddress apMacAddress,
+                byte tidsUplink, byte tidsDownlink, int frequencyMHz) {
             mLinkId = id;
-            mStaMacAddress = mac;
+            mStaMacAddress = staMacAddress;
+            mApMacAddress = apMacAddress;
             mTidsDownlinkMap = BitSet.valueOf(new byte[] { tidsDownlink });
             mTidsUplinkMap = BitSet.valueOf(new byte[] { tidsUplink });
+            mFrequencyMHz = frequencyMHz;
         };
 
         /**
@@ -3785,12 +3790,30 @@ public class WifiNative {
         }
 
         /**
-         * Get link address.
+         * Get link STA MAC address.
          *
          * @return link mac address.
          */
-        public MacAddress getMacAddress() {
+        public MacAddress getStaMacAddress() {
             return mStaMacAddress;
+        }
+
+        /**
+         * Get link AP MAC address.
+         *
+         * @return MAC address.
+         */
+        public MacAddress getApMacAddress() {
+            return mApMacAddress;
+        }
+
+        /**
+         * Get link frequency in MHz.
+         *
+         * @return frequency in Mhz.
+         */
+        public int getFrequencyMHz() {
+            return mFrequencyMHz;
         }
     }
 
@@ -3799,7 +3822,8 @@ public class WifiNative {
      */
     public static class ConnectionMloLinksInfo {
         public ConnectionMloLink[] links;
-
+        public MacAddress apMldMacAddress;
+        public int apMloLinkId;
         ConnectionMloLinksInfo() {
             // Nothing for now
         }

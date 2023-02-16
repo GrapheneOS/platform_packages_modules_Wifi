@@ -2467,6 +2467,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return mClientModeManager.getRole() == ROLE_CLIENT_PRIMARY;
     }
 
+    private boolean isScanOnly() {
+        return mClientModeManager.getRole() == ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
+    }
+
     /** Check whether this connection is the secondary internet wifi connection. */
     private boolean isSecondaryInternet() {
         return mClientModeManager.getRole() == ROLE_CLIENT_SECONDARY_LONG_LIVED
@@ -2867,7 +2871,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private int getNetworkStateListenerCmmRole() {
-        if (isPrimary()) {
+        if (isPrimary() || isScanOnly()) {
+            // Wifi disconnect could be received in ScanOnlyMode when wifi scanning is enabled since
+            // the mode switch happens before the disconnect actually happens. Therefore, treat
+            // the scan only mode the same as primary since only the primary is allowed to change
+            // into scan only mode.
             return WifiManager.WifiNetworkStateChangedListener.WIFI_ROLE_CLIENT_PRIMARY;
         }
         if (isSecondaryInternet()) {
@@ -3141,12 +3149,36 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void updateMloLinkAddrAndStates(@Nullable WifiNative.ConnectionMloLinksInfo info) {
         if (info == null) return;
-        for (int i = 0; i < info.links.length; i++) {
-            mWifiInfo.updateMloLinkStaAddress(info.links[i].getLinkId(),
-                    info.links[i].getMacAddress());
-            mWifiInfo.updateMloLinkState(info.links[i].getLinkId(),
-                    info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
-                            : MloLink.MLO_LINK_STATE_IDLE);
+        // At this stage, the expectation is that we already have MLO link information collected
+        // from scan detailed cache. If the MLO link information is empty, probably FW/driver roamed
+        // to a new AP which is not in scan detailed cache. Update MLO links with the details
+        // provided by the supplicant in ConnectionMloLinksInfo. The supplicant provides only the
+        // associated links.
+        if (mWifiInfo.getAffiliatedMloLinks().isEmpty()) {
+            mWifiInfo.setApMldMacAddress(info.apMldMacAddress);
+            mWifiInfo.setApMloLinkId(info.apMloLinkId);
+            List<MloLink> affiliatedMloLinks = new ArrayList<>();
+            for (int i = 0; i < info.links.length; i++) {
+                MloLink link = new MloLink();
+                link.setLinkId(info.links[i].getLinkId());
+                link.setStaMacAddress(info.links[i].getStaMacAddress());
+                link.setApMacAddress(info.links[i].getApMacAddress());
+                link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(
+                        info.links[i].getFrequencyMHz()));
+                link.setBand(ScanResult.toBand(info.links[i].getFrequencyMHz()));
+                link.setState(info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
+                        : MloLink.MLO_LINK_STATE_IDLE);
+                affiliatedMloLinks.add(link);
+            }
+            mWifiInfo.setAffiliatedMloLinks(affiliatedMloLinks);
+        } else {
+            for (int i = 0; i < info.links.length; i++) {
+                mWifiInfo.updateMloLinkStaAddress(info.links[i].getLinkId(),
+                        info.links[i].getStaMacAddress());
+                mWifiInfo.updateMloLinkState(info.links[i].getLinkId(),
+                        info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
+                                : MloLink.MLO_LINK_STATE_IDLE);
+            }
         }
     }
 
@@ -5076,6 +5108,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (isPrimary()) {
             mRssiMonitor.updatePollRssiInterval(newState);
         }
+    }
+
+    @Override
+    public void setLinkLayerStatsPollingInterval(int newIntervalMs) {
+        mRssiMonitor.overridePollRssiInterval(newIntervalMs);
     }
 
     private boolean isNewConnectionInProgress(@NonNull String disconnectingSsid) {

@@ -239,7 +239,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         Capabilities capabilities = new Capabilities();
         capabilities.maxNdiInterfaces = numNdis;
-        capabilities.supportedCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
+        capabilities.supportedDataPathCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
 
         ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
         ArgumentCaptor<String> interfaceName = ArgumentCaptor.forClass(String.class);
@@ -2201,7 +2201,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         Capabilities capabilities = new Capabilities();
         capabilities.maxNdiInterfaces = maxNdiInterfaces;
-        capabilities.supportedCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
+        capabilities.supportedDataPathCipherSuites = WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
         capabilities.maxNdpSessions = MAX_NDP_SESSION;
 
         if (startUpSequence) {

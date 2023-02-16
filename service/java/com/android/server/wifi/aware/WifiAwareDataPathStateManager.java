@@ -1541,7 +1541,7 @@ public class WifiAwareDataPathStateManager {
             // validate passphrase & PMK (if provided)
             if (ns.getWifiAwareDataPathSecurityConfig() != null
                     && (!ns.getWifiAwareDataPathSecurityConfig().isValid()
-                    || (mgr.getCapabilities().supportedCipherSuites
+                    || (mgr.getCapabilities().supportedDataPathCipherSuites
                     & ns.getWifiAwareDataPathSecurityConfig().getCipherSuite()) == 0)) {
                     Log.e(TAG, "processNetworkSpecifier: networkSpecifier=" + ns.toString()
                             + " -- invalid security config: ");
