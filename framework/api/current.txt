@@ -868,6 +868,7 @@ package android.net.wifi.aware {
     method @IntRange(from=1) public int getNumberOfSupportedPublishSessions();
     method @IntRange(from=1) public int getNumberOfSupportedSubscribeSessions();
     method public int getSupportedCipherSuites();
+    method public int getSupportedPairingCipherSuites();
     method public boolean isAwarePairingSupported();
     method public boolean isInstantCommunicationModeSupported();
     method public boolean isSuspensionSupported();
@@ -875,18 +876,20 @@ package android.net.wifi.aware {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.Characteristics> CREATOR;
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_128 = 4; // 0x4
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_256 = 8; // 0x8
+    field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128 = 16; // 0x10
+    field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256 = 32; // 0x20
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_SK_128 = 1; // 0x1
     field public static final int WIFI_AWARE_CIPHER_SUITE_NCS_SK_256 = 2; // 0x2
     field public static final int WIFI_AWARE_CIPHER_SUITE_NONE = 0; // 0x0
   }
 
   public class DiscoverySession implements java.lang.AutoCloseable {
-    method public void acceptPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
+    method public void acceptPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle, @NonNull String, int, @Nullable String);
     method public void close();
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierOpen(@NonNull android.net.wifi.aware.PeerHandle);
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPassphrase(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String);
     method public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int);
-    method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, @Nullable String);
+    method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, int, @Nullable String);
     method public void rejectPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle);
     method public void sendMessage(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
   }
@@ -1445,10 +1448,6 @@ package android.net.wifi.p2p {
 
   public static interface WifiP2pManager.GroupInfoListener {
     method public void onGroupInfoAvailable(android.net.wifi.p2p.WifiP2pGroup);
-  }
-
-  public static interface WifiP2pManager.ListenStateListener {
-    method public void onListenStateAvailable(int);
   }
 
   public static interface WifiP2pManager.NetworkInfoListener {

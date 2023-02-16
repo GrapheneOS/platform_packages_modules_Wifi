@@ -312,6 +312,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     private static final WorkSource TEST_SETTINGS_WORKSOURCE = new WorkSource();
     private static final int TEST_SUB_ID = 1;
     private static final byte[] TEST_OUI = new byte[]{0x01, 0x02, 0x03};
+    private static final int TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS = 1000;
 
     private SoftApInfo mTestSoftApInfo;
     private List<SoftApInfo> mTestSoftApInfoList;
@@ -11033,5 +11034,49 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
                         TEST_CAP, -70, 5805, 1024, 22, 33, 20, 0, 0, true));
         return scanResults;
+    }
+
+    /**
+     * Verify if set / get link layer stats polling interval works correctly
+     */
+    @Test
+    public void testSetAndGetLinkLayerStatsPollingInterval() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mWifiServiceImpl.setLinkLayerStatsPollingInterval(
+                TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS);
+        mLooper.dispatchAll();
+        verify(mClientModeManager).setLinkLayerStatsPollingInterval(
+                eq(TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS));
+
+        IIntegerListener listener = mock(IIntegerListener.class);
+        when(mWifiGlobals.getPollRssiIntervalMillis()).thenReturn(
+                TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS);
+        mWifiServiceImpl.getLinkLayerStatsPollingInterval(listener);
+        mLooper.dispatchAll();
+        verify(listener).onResult(TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS);
+    }
+
+    /**
+     * Test exceptions for set / get link layer stats polling interval
+     */
+    @Test
+    public void testSetAndGetLinkLayerStatsPollingIntervalThrowsExceptions() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        // Verify IllegalArgumentException for negative interval
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.setLinkLayerStatsPollingInterval(
+                        -TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS));
+        // Verify NullPointerException for null listener
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getLinkLayerStatsPollingInterval(null));
+        // Verify SecurityException when the caller does not have permission
+        when(mContext.checkCallingOrSelfPermission(android.Manifest.permission
+                .MANAGE_WIFI_NETWORK_SELECTION)).thenReturn(PackageManager.PERMISSION_DENIED);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.setLinkLayerStatsPollingInterval(
+                        TEST_LINK_LAYER_STATS_POLLING_INTERVAL_MS));
+        IIntegerListener listener = mock(IIntegerListener.class);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getLinkLayerStatsPollingInterval(listener));
     }
 }

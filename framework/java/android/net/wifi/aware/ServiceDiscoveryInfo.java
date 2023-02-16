@@ -106,7 +106,7 @@ public final class ServiceDiscoveryInfo {
      * Get the cipher suite type specified by the publish session to be used for data-path setup.
      * @return peerCipherSuite An integer represent the cipher suite used to encrypt the data-path.
      */
-    public @Characteristics.WifiAwareCipherSuites int getPeerCipherSuite() {
+    public @Characteristics.WifiAwareDataPathCipherSuites int getPeerCipherSuite() {
         return mPeerCipherSuite;
     }
 

@@ -17,7 +17,6 @@
 package com.android.server.wifi.aware;
 
 import android.util.Log;
-import android.util.Pair;
 
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
@@ -54,19 +53,23 @@ public class PairingConfigManager {
         public final int mAkm;
         public final byte[] mLocalNik;
 
+        public final int mCipherSuite;
+
         public PairingSecurityAssociationInfo(byte[] peerNik, byte[] localNik, byte[] npk,
-                int akm) {
+                int akm, int cipherSuite) {
             mPeerNik = peerNik;
             mNpk = npk;
             mAkm = akm;
             mLocalNik = localNik;
+            mCipherSuite = cipherSuite;
         }
     }
 
     private final Map<String, byte[]> mPackageNameToNikMap = new HashMap<>();
     private final Map<String, Set<String>> mPerAppPairedAliasMap = new HashMap<>();
     private final Map<String, byte[]> mAliasToNikMap = new HashMap<>();
-    private final Map<String, Pair<byte[], Integer>> mAliasToSecurityInfoMap = new HashMap<>();
+    private final Map<String, PairingSecurityAssociationInfo> mAliasToSecurityInfoMap =
+            new HashMap<>();
     public PairingConfigManager() {
     }
 
@@ -137,7 +140,7 @@ public class PairingConfigManager {
     /**
      * Get the cached security info fo the target alias.
      */
-    public Pair<byte[], Integer> getSecurityInfoPairedDevice(String alias) {
+    public PairingSecurityAssociationInfo getSecurityInfoPairedDevice(String alias) {
         return mAliasToSecurityInfoMap.get(alias);
     }
 
@@ -155,7 +158,7 @@ public class PairingConfigManager {
         }
         pairedDevices.add(alias);
         mAliasToNikMap.put(alias, info.mPeerNik);
-        mAliasToSecurityInfoMap.put(alias, new Pair<>(info.mNpk, info.mAkm));
+        mAliasToSecurityInfoMap.put(alias, info);
     }
 
     /**

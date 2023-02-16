@@ -31,6 +31,7 @@ import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
+import com.android.modules.utils.build.SdkLevel;
 
 /**
  * This class may be used to launch notifications when EAP failure occurs.
@@ -88,7 +89,7 @@ public class EapFailureNotifier {
                 config.carrierId == TelephonyManager.UNKNOWN_CARRIER_ID
                         ? mWifiCarrierInfoManager.getDefaultDataSimCarrierId() : config.carrierId);
         String errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_PREFIX + errorCode, config.SSID);
-        if (errorMessage == null) {
+        if (SdkLevel.isAtLeastT() && errorMessage == null) {
             // Use the generic error message if the code does not match any known code.
             errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE, config.SSID);
         }

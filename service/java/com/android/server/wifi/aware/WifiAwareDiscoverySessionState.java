@@ -420,7 +420,8 @@ public class WifiAwareDiscoverySessionState {
      * @return True if the request send succeed.
      */
     public boolean initiatePairing(short transactionId,
-            int peerId, String password, int requestType, byte[] nik, byte[] pmk, int akm) {
+            int peerId, String password, int requestType, byte[] nik, byte[] pmk, int akm,
+            int cipherSuite) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "initiatePairing: attempting to send pairing request to an address which"
@@ -439,7 +440,7 @@ public class WifiAwareDiscoverySessionState {
         boolean success = mWifiAwareNativeApi.initiatePairing(transactionId,
                 peerInfo.mInstanceId, peerInfo.mMac, nik,
                 mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm);
+                requestType, pmk, password, akm, cipherSuite);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;
@@ -471,7 +472,8 @@ public class WifiAwareDiscoverySessionState {
      * @return True if the request send succeed.
      */
     public boolean respondToPairingRequest(short transactionId, int peerId, int pairingId,
-            boolean accept, byte[] nik, int requestType, byte[] pmk, String password, int akm) {
+            boolean accept, byte[] nik, int requestType, byte[] pmk, String password, int akm,
+            int cipherSuite) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "respondToPairingRequest: attempting to response to message to an "
@@ -489,7 +491,7 @@ public class WifiAwareDiscoverySessionState {
 
         boolean success = mWifiAwareNativeApi.respondToPairingRequest(transactionId, pairingId,
                 accept, nik, mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm);
+                requestType, pmk, password, akm, cipherSuite);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;

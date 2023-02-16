@@ -8935,10 +8935,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
-        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
-                TEST_MLO_LINK_ADDR, Byte.MIN_VALUE, Byte.MAX_VALUE);
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 5160);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                Byte.MAX_VALUE, Byte.MIN_VALUE);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, 2437);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -9047,10 +9047,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
-        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
-                TEST_MLO_LINK_ADDR, (byte) 0xFF, (byte) 0xFF);
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                (byte) 0, (byte) 0);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0, (byte) 0, 5160);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -9058,8 +9058,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[1];
-        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID,
-                TEST_MLO_LINK_ADDR, (byte) 0xFF, (byte) 0xFF);
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 

@@ -17,6 +17,7 @@
 package android.net.wifi.aware;
 
 import static android.net.wifi.ScanResult.CHANNEL_WIDTH_80MHZ;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE;
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_IB;
 
@@ -1805,10 +1806,11 @@ public class WifiAwareManagerTest {
                 eq(pairId));
 
         // (4) Response to the request
-        publishSession.getValue().acceptPairingRequest(pairId, peerHandle, alias, password
-        );
+        publishSession.getValue().acceptPairingRequest(pairId, peerHandle, alias,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128, password);
         inOrder.verify(mockAwareService).responseNanPairingSetupRequest(eq(clientId), eq(sessionId),
-                eq(peerId), eq(pairId), eq(password), eq(alias), eq(true));
+                eq(peerId), eq(pairId), eq(password), eq(alias), eq(true),
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
 
         // (5) Pairing confirm received
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
@@ -1889,9 +1891,10 @@ public class WifiAwareManagerTest {
                 eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
 
         // (5) initiate pairing request
-        subscribeSession.getValue().initiatePairingRequest(peerHandle, alias, password);
+        subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128 , password);
         inOrder.verify(mockAwareService).initiateNanPairingSetupRequest(eq(clientId), eq(sessionId),
-                eq(peerId), eq(password), eq(alias));
+                eq(peerId), eq(password), eq(alias), eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
 
         // (6) Received confirm event
         sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);

@@ -1411,6 +1411,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
+    public void setLinkLayerStatsPollingInterval(int newIntervalMs) {
+        getClientMode().setLinkLayerStatsPollingInterval(newIntervalMs);
+    }
+
+    @Override
     public boolean setWifiConnectedNetworkScorer(
             IBinder binder, IWifiConnectedNetworkScorer scorer) {
         return getClientMode().setWifiConnectedNetworkScorer(binder, scorer);

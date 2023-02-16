@@ -42,6 +42,7 @@ public class RssiMonitor {
     private final DeviceConfigFacade mDeviceConfigFacade;
 
     private boolean mEnableClientRssiMonitor = false;
+    private boolean mIsPollRssiIntervalOverridden = false;
     private int[] mAppThresholds = {};
     private byte[] mRssiRanges = {};
 
@@ -135,8 +136,10 @@ public class RssiMonitor {
         mEnableClientRssiMonitor = false;
         mAppThresholds = new int[] {};
         mRssiRanges = new byte[] {};
-        int shortInterval = mWifiGlobals.getPollRssiShortIntervalMillis();
-        mWifiGlobals.setPollRssiIntervalMillis(shortInterval);
+        if (!mIsPollRssiIntervalOverridden) {
+            int shortInterval = mWifiGlobals.getPollRssiShortIntervalMillis();
+            mWifiGlobals.setPollRssiIntervalMillis(shortInterval);
+        }
         stopRssiMonitoringOffload();
     }
 
@@ -156,7 +159,8 @@ public class RssiMonitor {
      */
     public void updatePollRssiInterval(@DeviceMobilityState int state) {
         if (!mWifiGlobals.isAdjustPollRssiIntervalEnabled()
-                || !mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled()) {
+                || !mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled()
+                || mIsPollRssiIntervalOverridden) {
             return;
         }
         int curRssi = mWifiInfo.getRssi();
@@ -186,6 +190,9 @@ public class RssiMonitor {
      * Change the RSSI polling interval to the short interval and disable client mode RSSI monitor
      */
     public void setShortPollRssiInterval() {
+        if (mIsPollRssiIntervalOverridden) {
+            return;
+        }
         int shortInterval = mWifiGlobals.getPollRssiShortIntervalMillis();
         if (mWifiGlobals.getPollRssiIntervalMillis() == shortInterval) {
             return;
@@ -264,6 +271,40 @@ public class RssiMonitor {
             return mergedThresholds;
         } else {
             return appThresholds;
+        }
+    }
+
+    /**
+     * When link layer stats polling interval is overridden, set the fixed interval and disable
+     * client mode RSSI monitoring if it is enabled. When the polling interval is set to automatic
+     * handling, set the interval to the regular (short) interval, then the RSSI monitor will
+     * adjust the interval automatically
+     * @param newIntervalMs a non-negative integer, for the link layer stats polling interval
+     *                      in milliseconds.
+     *                      To set a fixed interval, use a positive value.
+     *                      For automatic handling of the interval, use value 0
+     */
+    public void overridePollRssiInterval(int newIntervalMs) {
+        if (mIsPollRssiIntervalOverridden && newIntervalMs == 0) {
+            setAutoPollRssiInterval();
+            return;
+        }
+        if (newIntervalMs > 0) {
+            setFixedPollRssiInterval(newIntervalMs);
+        }
+    }
+
+    private void setAutoPollRssiInterval() {
+        mIsPollRssiIntervalOverridden = false;
+        int regularInterval = mWifiGlobals.getPollRssiShortIntervalMillis();
+        mWifiGlobals.setPollRssiIntervalMillis(regularInterval);
+    }
+
+    private void setFixedPollRssiInterval(int newIntervalMs) {
+        mIsPollRssiIntervalOverridden = true;
+        mWifiGlobals.setPollRssiIntervalMillis(newIntervalMs);
+        if (mEnableClientRssiMonitor) {
+            disableClientRssiMonitorAndUpdateThresholds(mWifiInfo.getRssi());
         }
     }
 }
