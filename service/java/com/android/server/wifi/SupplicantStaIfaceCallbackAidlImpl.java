@@ -323,13 +323,20 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                         + curConfiguration.networkId + ".");
                 mStaIfaceHal.removePmkCacheEntry(curConfiguration.networkId);
             }
-            // Special handling for WPA3-Personal networks. If the password is
-            // incorrect, the AP will send association rejection, with status code 1
-            // (unspecified failure). In SAE networks, the password authentication
-            // is not related to the 4-way handshake. In this case, we will send an
-            // authentication failure event up.
             if (assocRejectInfo.statusCode
-                    == SupplicantStaIfaceHal.StaIfaceStatusCode.UNSPECIFIED_FAILURE) {
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL
+                    && WifiConfigurationUtil.isConfigForWepNetwork(curConfiguration)) {
+                mStaIfaceHal.logCallback("WEP incorrect password");
+                isWrongPwd = true;
+            } else if (assocRejectInfo.statusCode
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.UNSPECIFIED_FAILURE
+                    || assocRejectInfo.statusCode
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL) {
+                // Special handling for WPA3-Personal networks. If the password is
+                // incorrect, the AP will send association rejection, with status code 1
+                // (unspecified failure) or 15 (challenge fail). In SAE networks, the password
+                // authentication is not related to the 4-way handshake. In this case, we will
+                // send an authentication failure event up.
                 // Network Selection status is guaranteed to be initialized
                 SecurityParams params = curConfiguration.getNetworkSelectionStatus()
                         .getCandidateSecurityParams();
@@ -343,11 +350,6 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                         mStaIfaceHal.logCallback("SAE association rejection");
                     }
                 }
-            } else if (assocRejectInfo.statusCode
-                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL
-                    && WifiConfigurationUtil.isConfigForWepNetwork(curConfiguration)) {
-                mStaIfaceHal.logCallback("WEP incorrect password");
-                isWrongPwd = true;
             }
         }
 
