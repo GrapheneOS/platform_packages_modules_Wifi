@@ -2962,6 +2962,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 capOut.is11bMode = (cap.legacyMode == LegacyMode.B_MODE);
                 capOut.maxNumberTxSpatialStreams = cap.maxNumberTxSpatialStreams;
                 capOut.maxNumberRxSpatialStreams = cap.maxNumberRxSpatialStreams;
+                capOut.apTidToLinkMapNegotiationSupported = cap.apTidToLinkMapNegotiationSupported;
                 return capOut;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);

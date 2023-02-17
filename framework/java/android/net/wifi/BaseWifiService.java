@@ -1029,4 +1029,15 @@ public class BaseWifiService extends IWifiManager.Stub {
     public void getLinkLayerStatsPollingInterval(@NonNull IIntegerListener listener) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void setMloMode(@WifiManager.MloMode int mode, IBooleanListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getMloMode(IIntegerListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
 }

@@ -3191,6 +3191,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiInfo.setWifiStandard(mLastConnectionCapabilities.wifiStandard);
         mWifiInfo.setMaxSupportedTxLinkSpeedMbps(maxTxLinkSpeedMbps);
         mWifiInfo.setMaxSupportedRxLinkSpeedMbps(maxRxLinkSpeedMbps);
+        mWifiInfo.enableApTidToLinkMappingNegotiationSupport(
+                mLastConnectionCapabilities.apTidToLinkMapNegotiationSupported);
         mWifiMetrics.setConnectionMaxSupportedLinkSpeedMbps(mInterfaceName,
                 maxTxLinkSpeedMbps, maxRxLinkSpeedMbps);
         if (mLastConnectionCapabilities.wifiStandard == ScanResult.WIFI_STANDARD_11BE) {

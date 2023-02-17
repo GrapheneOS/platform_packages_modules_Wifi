@@ -572,6 +572,13 @@ public class WifiChipHidlImpl implements IWifiChip {
                 () -> triggerSubsystemRestartInternal(methodStr));
     }
 
+    /**
+     * See comments for {@link IWifiChip#setMloMode(int)}.
+     */
+    @Override
+    public @android.hardware.wifi.WifiStatusCode int setMloMode(@WifiManager.MloMode int mode) {
+        return android.hardware.wifi.WifiStatusCode.ERROR_NOT_SUPPORTED;
+    }
 
     // Internal Implementations
 

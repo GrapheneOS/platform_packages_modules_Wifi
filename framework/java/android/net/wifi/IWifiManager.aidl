@@ -450,4 +450,8 @@ interface IWifiManager
     void setLinkLayerStatsPollingInterval(int intervalMs);
 
     void getLinkLayerStatsPollingInterval(in IIntegerListener listener);
+
+    void setMloMode(int mode, in IBooleanListener listener);
+
+    void getMloMode(in IIntegerListener listener);
 }

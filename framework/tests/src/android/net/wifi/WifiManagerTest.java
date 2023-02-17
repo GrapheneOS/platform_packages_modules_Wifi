@@ -51,6 +51,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_P2P;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT_TERMS_AND_CONDITIONS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_SCANNER;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SAE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
@@ -3907,6 +3908,16 @@ public class WifiManagerTest {
                 .thenReturn(new Long(~WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS));
         assertFalse(mWifiManager.isDualBandSimultaneousSupported());
     }
+    /*
+     * Verify call to {@link WifiManager#isTidToLinkMappingSupported()}
+     */
+    @Test
+    public void testIsTidToLinkMappingSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures()).thenReturn(WIFI_FEATURE_T2LM_NEGOTIATION);
+        assertTrue(mWifiManager.isTidToLinkMappingNegotiationSupported());
+        when(mWifiService.getSupportedFeatures()).thenReturn(~WIFI_FEATURE_T2LM_NEGOTIATION);
+        assertFalse(mWifiManager.isTidToLinkMappingNegotiationSupported());
+    }
 
     /**
      * Verify call to
@@ -4029,4 +4040,31 @@ public class WifiManagerTest {
                 () -> mWifiManager.getLinkLayerStatsPollingInterval(executor, null));
     }
 
+    /**
+     * Verify {@link WifiManager#setMloMode(int)} and {@link WifiManager#getMloMode()}.
+     */
+    @Test
+    public void testMloMode() throws RemoteException {
+        Consumer<Boolean> resultsSetCallback = mock(Consumer.class);
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        // Out of range values.
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiManager.setMloMode(-1, executor, resultsSetCallback));
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiManager.setMloMode(1000, executor, resultsSetCallback));
+        // Null executor/callback exception.
+        assertThrows("null executor should trigger exception", NullPointerException.class,
+                () -> mWifiManager.setMloMode(WifiManager.MLO_MODE_DEFAULT, null,
+                        resultsSetCallback));
+        assertThrows("null listener should trigger exception", NullPointerException.class,
+                () -> mWifiManager.setMloMode(WifiManager.MLO_MODE_DEFAULT, executor, null));
+        // Set and verify.
+        mWifiManager.setMloMode(WifiManager.MLO_MODE_LOW_POWER, executor, resultsSetCallback);
+        verify(mWifiService).setMloMode(eq(WifiManager.MLO_MODE_LOW_POWER),
+                any(IBooleanListener.Stub.class));
+        // Get and verify.
+        Consumer<Integer> resultsGetCallback = mock(Consumer.class);
+        mWifiManager.getMloMode(executor, resultsGetCallback);
+        verify(mWifiService).getMloMode(any(IIntegerListener.Stub.class));
+    }
 }
