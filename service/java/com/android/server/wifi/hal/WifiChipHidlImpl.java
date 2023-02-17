@@ -580,6 +580,16 @@ public class WifiChipHidlImpl implements IWifiChip {
         return android.hardware.wifi.WifiStatusCode.ERROR_NOT_SUPPORTED;
     }
 
+    /**
+     * See comments for {@link IWifiChip#enableStaChannelForPeerNetwork(boolean, boolean)}
+     */
+    @Override
+    public boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel,
+            boolean enableDfsChannel) {
+        Log.d(TAG, "enableStaChannelForPeerNetwork() is not implemented in hidl.");
+        return false;
+    }
+
     // Internal Implementations
 
     private boolean configureChipInternal(String methodStr, int modeId) {

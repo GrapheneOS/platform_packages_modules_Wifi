@@ -446,4 +446,14 @@ public interface IWifiChip {
      * @return {@code true} if success, otherwise false.
      */
     @WifiStatusCode int setMloMode(@WifiManager.MloMode int mode);
+
+    /**
+     * Enable/disable the feature of allowing current STA-connected channel for WFA GO, SAP and
+     * Aware when the regulatory allows.
+     *
+     * @param enableIndoorChannel enable or disable indoor channel.
+     * @param enableDfsChannel    enable or disable DFS channel.
+     * @return true if successful, false otherwise.
+     */
+    boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel, boolean enableDfsChannel);
 }
