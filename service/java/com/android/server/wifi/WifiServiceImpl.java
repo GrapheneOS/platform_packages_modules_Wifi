@@ -78,6 +78,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
+import android.hardware.wifi.WifiStatusCode;
 import android.location.LocationManager;
 import android.net.DhcpInfo;
 import android.net.DhcpOption;
@@ -7525,6 +7526,63 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiThreadRunner.post(() -> {
             try {
                 listener.onResult(mWifiGlobals.getPollRssiIntervalMillis());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#setMloMode(int, Executor, Consumer)}
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void setMloMode(@WifiManager.MloMode int mode, @NonNull IBooleanListener listener) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + " is not allowed to set MLO mode");
+        }
+        // Argument check
+        Objects.requireNonNull(listener, "listener cannot be null");
+        if (mode < WifiManager.MLO_MODE_DEFAULT || mode > WifiManager.MLO_MODE_LOW_POWER) {
+            throw new IllegalArgumentException("invalid mode: " + mode);
+        }
+        // Set MLO mode and process error status.
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiNative.setMloMode(mode) == WifiStatusCode.SUCCESS);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#getMloMode(Executor, Consumer)}
+     */
+    @Override
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void getMloMode(IIntegerListener listener) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException("Uid=" + uid + " is not allowed to get MLO mode");
+        }
+        // Argument check
+        Objects.requireNonNull(listener, "listener cannot be null");
+        // Get MLO mode.
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiNative.getMloMode());
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }

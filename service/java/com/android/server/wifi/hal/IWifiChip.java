@@ -17,8 +17,10 @@
 package com.android.server.wifi.hal;
 
 import android.annotation.Nullable;
+import android.hardware.wifi.WifiStatusCode;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 
 import com.android.server.wifi.SarInfo;
@@ -435,4 +437,13 @@ public interface IWifiChip {
      * @return true if successful, false otherwise.
      */
     boolean triggerSubsystemRestart();
+
+    /**
+     * Set MLO mode for the chip. See {@link WifiManager#setMloMode(int, Executor, Consumer)} and
+     * {@link android.net.wifi.WifiManager.MloMode}.
+     *
+     * @param mode MLO mode {@link android.net.wifi.WifiManager.MloMode}
+     * @return {@code true} if success, otherwise false.
+     */
+    @WifiStatusCode int setMloMode(@WifiManager.MloMode int mode);
 }
