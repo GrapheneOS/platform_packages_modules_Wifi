@@ -1864,4 +1864,20 @@ public class WifiVendorHal {
             return mWifiChip.setMloMode(mode);
         }
     }
+
+    /**
+     * Enable/disable the feature of allowing current STA-connected channel for WFA GO, SAP and
+     * Aware when the regulatory allows.
+     *
+     * @param enableIndoorChannel enable or disable indoor channel.
+     * @param enableDfsChannel    enable or disable DFS channel.
+     * @return true if the operation succeeded, false if there is an error in Hal.
+     */
+    public boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel,
+            boolean enableDfsChannel) {
+        synchronized (sLock) {
+            if (mWifiChip == null) return false;
+            return mWifiChip.enableStaChannelForPeerNetwork(enableIndoorChannel, enableDfsChannel);
+        }
+    }
 }
