@@ -2803,4 +2803,28 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         }
         return true;
     }
+
+    /*
+     * Tests that the very first connection attempt failure due to Authentication timeout in PSK
+     * network is notified as wrong password error.
+     */
+    @Test
+    public void testPskNetworkAuthenticationTimeOutDueToWrongPasswordInFirstConnectAttempt()
+            throws Exception {
+        executeAndValidateInitializationSequence();
+        assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
+        mISupplicantStaIfaceCallback.onStateChanged(
+                StaIfaceCallbackState.ASSOCIATING,
+                NativeUtil.macAddressToByteArray(BSSID),
+                SUPPLICANT_NETWORK_ID,
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
+        mISupplicantStaIfaceCallback.onAuthenticationTimeout(
+                NativeUtil.macAddressToByteArray(BSSID));
+        verify(mWifiMonitor).broadcastAuthenticationFailureEvent(
+                eq(WLAN0_IFACE_NAME), eq(WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD), eq(-1),
+                eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(MacAddress.fromString(BSSID)));
+    }
 }

@@ -389,9 +389,25 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
     public void onAuthenticationTimeout(byte[/* 6 */] bssid) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onAuthenticationTimeout");
-            mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
-                    mCurrentSsid, MacAddress.fromBytes(bssid));
+            WifiConfiguration curConfiguration =
+                    mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
+            if (curConfiguration != null
+                    && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                    || WifiConfigurationUtil.isConfigForWapiPskNetwork(curConfiguration))
+                    && !curConfiguration.getNetworkSelectionStatus().hasEverConnected()) {
+                // Some AP implementations doesn't send de-authentication or dis-association
+                // frame after EAPOL failure. They keep retry EAPOL M1 frames. This leads to
+                // authentication timeout in supplicant. If this network was not connected before,
+                // the authentication timeout may be due to wrong password.
+                Log.d(TAG, "EAPOL H/S failed in first connect attempt. Possibly a wrong password");
+                mWifiMonitor.broadcastAuthenticationFailureEvent(
+                        mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                        mCurrentSsid, MacAddress.fromBytes(bssid));
+            } else {
+                mWifiMonitor.broadcastAuthenticationFailureEvent(
+                        mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
+                        mCurrentSsid, MacAddress.fromBytes(bssid));
+            }
         }
     }
 
