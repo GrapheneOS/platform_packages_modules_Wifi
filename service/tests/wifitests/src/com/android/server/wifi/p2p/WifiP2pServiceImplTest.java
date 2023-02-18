@@ -3856,6 +3856,50 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify WifiP2pManager.START_LISTEN_FAILED is returned when creating group.
+     */
+    @Test
+    public void testStartListenFailureWhenCreatingGroup() throws Exception {
+        // Move to group creating state
+        testConnectWithConfigValidAsGroupSuccess();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.START_LISTEN);
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.START_LISTEN_FAILED, message.what);
+        assertEquals(WifiP2pManager.BUSY, message.arg1);
+    }
+
+    /**
+     * Verify WifiP2pManager.STOP_LISTEN_SUCCEEDED is returned when native call to stop listen
+     * succeed in creating group.
+     */
+    @Test
+    public void testStopListenSuccessWhenNativeCallSucceedInCreatingGroup() throws Exception {
+        when(mWifiNative.p2pExtListen(eq(false), anyInt(), anyInt())).thenReturn(true);
+        // Move to group creating state
+        testConnectWithConfigValidAsGroupSuccess();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.STOP_LISTEN);
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.STOP_LISTEN_SUCCEEDED, message.what);
+    }
+
+    /**
+     * Verify WifiP2pManager.STOP_LISTEN_FAILED is returned when native call to stop listen
+     * fail in creating group.
+     */
+    @Test
+    public void testStopListenFailureWhenNativeCallFailInCreatingGroup() throws Exception {
+        when(mWifiNative.p2pExtListen(eq(false), anyInt(), anyInt())).thenReturn(false);
+        // Move to group creating state
+        testConnectWithConfigValidAsGroupSuccess();
+        sendSimpleMsg(mClientMessenger, WifiP2pManager.STOP_LISTEN);
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        Message message = mMessageCaptor.getValue();
+        assertEquals(WifiP2pManager.STOP_LISTEN_FAILED, message.what);
+    }
+
+    /**
      * Verify the caller sends WifiP2pManager.CANCEL_CONNECT.
      */
     @Test
