@@ -867,4 +867,14 @@ public class WifiChip {
         return validateAndCall("setMloMode", WifiStatusCode.ERROR_NOT_STARTED,
                 () -> mWifiChip.setMloMode(mode));
     }
+
+    /**
+     * See comments for {@link IWifiChip#enableStaChannelForPeerNetwork(boolean, boolean)}
+     */
+    public boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel,
+            boolean enableDfsChannel) {
+        return validateAndCall("enableStaChannelForPeerNetwork", false,
+                () -> mWifiChip.enableStaChannelForPeerNetwork(enableIndoorChannel,
+                        enableDfsChannel));
+    }
 }

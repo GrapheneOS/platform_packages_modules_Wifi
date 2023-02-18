@@ -342,4 +342,12 @@ public class WifiChipAidlImplTest {
         // Illegal value
         assertFalse(mDut.setMultiStaUseCase(5));
     }
+
+    @Test
+    public void testEnableStaChannelForPeerNetwork() throws Exception {
+        assertTrue(mDut.enableStaChannelForPeerNetwork(true, true));
+        int channelCategoryEnableFlag = IWifiChip.ChannelCategoryMask.INDOOR_CHANNEL
+                | IWifiChip.ChannelCategoryMask.DFS_CHANNEL;
+        verify(mIWifiChipMock).enableStaChannelForPeerNetwork(eq(channelCategoryEnableFlag));
+    }
 }

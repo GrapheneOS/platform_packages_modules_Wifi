@@ -1578,4 +1578,12 @@ public class WifiNativeTest extends WifiBaseTest {
         mWifiNative.isSoftApInstanceDiedHandlerSupported();
         verify(mHostapdHal).isSoftApInstanceDiedHandlerSupported();
     }
+
+    @Test
+    public void testEnableStaChannelForPeerNetworkWithOverride() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiEnableStaIndoorChannelForPeerNetwork, true);
+        mResources.setBoolean(R.bool.config_wifiEnableStaDfsChannelForPeerNetwork, true);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        verify(mWifiVendorHal).enableStaChannelForPeerNetwork(true, true);
+    }
 }
