@@ -161,6 +161,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mWifiVendorHal.replaceStaIfaceRequestorWs(any(), any())).thenReturn(true);
         when(mWifiVendorHal.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(
                 new ArrayList<>());
+        when(mWifiVendorHal.enableStaChannelForPeerNetwork(anyBoolean(), anyBoolean())).thenReturn(
+                true);
 
         when(mBuildProperties.isEngBuild()).thenReturn(false);
         when(mBuildProperties.isUserdebugBuild()).thenReturn(false);
@@ -581,6 +583,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
         mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
+        mInOrder.verify(mWifiVendorHal).enableStaChannelForPeerNetwork(anyBoolean(), anyBoolean());
     }
 
     private void validateSetupInterfaceForSoftAp(String ifaceName,
@@ -1524,6 +1527,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         mInOrder.verify(mWifiVendorHal).getSupportedFeatureSet(ifaceName);
         mInOrder.verify(mSupplicantStaIfaceHal).getWpaDriverFeatureSet(ifaceName);
         mInOrder.verify(mWifiVendorHal).getUsableChannels(anyInt(), anyInt(), anyInt());
+        mInOrder.verify(mWifiVendorHal).enableStaChannelForPeerNetwork(anyBoolean(), anyBoolean());
     }
 
     private void executeAndValidateTeardownClientInterfaceForScan(
