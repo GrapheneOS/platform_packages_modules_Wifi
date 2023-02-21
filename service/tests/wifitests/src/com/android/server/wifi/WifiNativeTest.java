@@ -984,6 +984,21 @@ public class WifiNativeTest extends WifiBaseTest {
 
     /**
      * Verifies that getScanResults() can parse NativeScanResult from wificond correctly,
+     */
+    @Test
+    public void testGetScanResultsWithInvalidSsidLength() {
+        // Mock the returned array of NativeScanResult.
+        List<NativeScanResult> mockScanResults = Arrays.asList(createMockNativeScanResult());
+        for (NativeScanResult scanResult : mockScanResults) {
+            scanResult.ssid = Arrays.copyOf(scanResult.ssid, 33);
+        }
+        when(mWificondControl.getScanResults(anyString(), anyInt())).thenReturn(mockScanResults);
+
+        assertEquals(0, mWifiNative.getScanResults(WIFI_IFACE_NAME).size());
+    }
+
+    /**
+     * Verifies that getScanResults() can parse NativeScanResult from wificond correctly,
      * when there is radio chain info.
      */
     @Test
