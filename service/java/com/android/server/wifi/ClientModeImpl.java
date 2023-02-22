@@ -555,6 +555,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @VisibleForTesting
     static final int CMD_ACCEPT_EAP_SERVER_CERTIFICATE                  = BASE + 301;
 
+    @VisibleForTesting
+    static final int CMD_REJECT_EAP_INSECURE_CONNECTION                 = BASE + 302;
+
     /* Tracks if suspend optimizations need to be disabled by DHCP,
      * screen or due to high perf mode.
      * When any of them needs to disable it, we keep the suspend optimizations
@@ -818,13 +821,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
 
                 @Override
-                public void onReject(String ssid) {
+                public void onReject(String ssid, boolean disconnectRequired) {
                     log("Reject Root CA cert for " + ssid);
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
+                            WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_REJECTED_BY_USER,
+                            disconnectRequired ? 1 : 0, ssid);
                 }
 
                 @Override
                 public void onError(String ssid) {
                     log("Insecure EAP network error for " + ssid);
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
+                            WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_EAP_FAILURE,
+                            0, ssid);
                 }};
         mInsecureEapNetworkHandler = new InsecureEapNetworkHandler(
                 mContext,
@@ -2403,6 +2412,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_IPCLIENT_CREATED";
             case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
                 return "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
+            case CMD_REJECT_EAP_INSECURE_CONNECTION:
+                return "CMD_REJECT_EAP_SERVER_CERTIFICATE";
             case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                 return "SUPPLICANT_STATE_CHANGE_EVENT";
             case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
@@ -4438,19 +4449,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                     }
                     setSelectedRcoiForPasspoint(config);
-                    if (mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration)) {
-                        /* If TOFU is not supported and the user did not approve to connect to an
-                           insecure network before, do not connect now and instead, display a dialog
-                           or a notification, and keep network disconnected to avoid sending the
-                           credentials.
-                         */
+
+                    // TOFU flow for devices that do not support this feature
+                    mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
+                    if (!isTrustOnFirstUseSupported()) {
                         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
-                        reportConnectionAttemptEnd(
-                                WifiMetrics.ConnectionEvent.FAILURE_CONNECT_NETWORK_FAILED,
-                                WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                                WifiMetricsProto.ConnectionEvent.DISCONNECTED_USER_APPROVAL_NEEDED);
-                        transitionTo(mDisconnectedState);
-                        break;
                     }
                     connectToNetwork(config);
                     break;
@@ -4690,6 +4693,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
+                case CMD_REJECT_EAP_INSECURE_CONNECTION:
                 case CMD_START_ROAM:
                 case CMD_IP_CONFIGURATION_SUCCESSFUL:
                 case CMD_IP_CONFIGURATION_LOST:
@@ -5507,6 +5511,18 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
+                case CMD_REJECT_EAP_INSECURE_CONNECTION: {
+                    log("Received CMD_REJECT_EAP_INSECURE_CONNECTION event");
+                    boolean disconnectRequired = message.arg2 == 1;
+
+                    // TOFU connections are not established until the user approves the certificate.
+                    // If TOFU is not supported and the network is already connected, this will
+                    // disconnect the network.
+                    if (disconnectRequired) {
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
+                    }
+                    break;
+                }
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
@@ -5888,9 +5904,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             (X509Certificate) message.obj)) {
                         Log.d(TAG, "Cannot set pending cert.");
                     }
-                    // Launch user approval upon receiving the server certificate
-                    if (certificateDepth == 0) {
-                        mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
+                    // Launch user approval upon receiving the server certificate and disconnect
+                    if (certificateDepth == 0 && mInsecureEapNetworkHandler
+                            .startUserApprovalIfNecessary(mIsUserSelected)) {
+                        // In the TOFU flow, the user approval dialog is now displayed and the
+                        // network remains disconnected and disabled until it is approved.
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
                     }
                     break;
                 default: {

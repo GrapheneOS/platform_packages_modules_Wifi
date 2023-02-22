@@ -227,8 +227,8 @@
 
     <!-- Legacy EAP network dialog and notification text on Pre-T devices. -->
     <string name="wifi_ca_cert_dialog_preT_title">Can\'t verify this network</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text">Connect anyway</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text">Don\'t connect</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text">Stay connected</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text">Disconnect now</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint">The network <xliff:g id="ssid">%1$s</xliff:g> is missing a certificate.</string>
     <string name="wifi_ca_cert_dialog_preT_message_link">Learn how to add certificates</string>
     <string name="wifi_ca_cert_notification_preT_title">Can\'t verify this network</string>
