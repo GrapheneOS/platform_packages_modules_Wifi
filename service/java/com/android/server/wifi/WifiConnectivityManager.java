@@ -2388,8 +2388,11 @@ public class WifiConnectivityManager {
     // Set up watchdog timer
     private void scheduleWatchdogTimer() {
         localLog("scheduleWatchdogTimer");
+        int alarmType = mContext.getResources().getBoolean(
+                R.bool.config_wifiPnoWatchdogCanWakeUp) ? AlarmManager.ELAPSED_REALTIME_WAKEUP
+                : AlarmManager.ELAPSED_REALTIME;
 
-        mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+        mAlarmManager.set(alarmType,
                             mClock.getElapsedSinceBootMillis() + mContext.getResources().getInteger(
                                     R.integer.config_wifiPnoWatchdogIntervalMs),
                             WATCHDOG_TIMER_TAG,
@@ -2796,7 +2799,9 @@ public class WifiConnectivityManager {
         // Reset BSSID of last connection attempt and kick off
         // the watchdog timer if entering disconnected state.
         if (mWifiState == WIFI_STATE_DISCONNECTED) {
-            scheduleWatchdogTimer();
+            if (!SdkLevel.isAtLeastU()) {
+                scheduleWatchdogTimer();
+            }
             // Switch to the disconnected scanning schedule
             setSingleScanningSchedule(mDisconnectedSingleScanScheduleSec);
             setSingleScanningType(mDisconnectedSingleScanType);
