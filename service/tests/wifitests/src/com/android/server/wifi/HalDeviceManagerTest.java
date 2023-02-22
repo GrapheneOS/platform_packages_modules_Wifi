@@ -194,6 +194,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 .thenReturn(mWaitForDestroyedListeners);
 
         mDut = new HalDeviceManagerSpy();
+        mDut.handleBootCompleted();
     }
 
     /**
