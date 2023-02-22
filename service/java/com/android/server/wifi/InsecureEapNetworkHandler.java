@@ -74,6 +74,7 @@ public class InsecureEapNetworkHandler {
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
     private final String mInterfaceName;
     private final Handler mHandler;
+    private final OnNetworkUpdateListener mOnNetworkUpdateListener;
 
     // The latest connecting configuration from the caller, it is updated on calling
     // prepareConnection() always. This is used to ensure that current TOFU config is aligned
@@ -139,6 +140,9 @@ public class InsecureEapNetworkHandler {
         mCallbacks = callbacks;
         mInterfaceName = interfaceName;
         mHandler = handler;
+
+        mOnNetworkUpdateListener = new OnNetworkUpdateListener();
+        mWifiConfigManager.addOnNetworkUpdateListener(mOnNetworkUpdateListener);
 
         mCaCertHelpLink = mContext.getString(R.string.config_wifiCertInstallationHelpLink);
     }
@@ -232,6 +236,7 @@ public class InsecureEapNetworkHandler {
         dismissDialogAndNotification();
         unregisterCertificateNotificationReceiver();
         clearInternalData();
+        mWifiConfigManager.removeOnNetworkUpdateListener(mOnNetworkUpdateListener);
     }
 
     /**
@@ -781,5 +786,21 @@ public class InsecureEapNetworkHandler {
          * @param ssid SSID of the network, it might be null.
          */
         public void onError(@Nullable String ssid) {}
+    }
+
+    /**
+     * Listener for config manager network config related events.
+     */
+    private class OnNetworkUpdateListener implements
+            WifiConfigManager.OnNetworkUpdateListener {
+        @Override
+        public void onNetworkRemoved(WifiConfiguration config) {
+            // Dismiss TOFU dialog if the network of the current Tofu config is removed.
+            if (config == null || mCurrentTofuConfig == null
+                    || mTofuAlertDialog == null
+                    || config.networkId != mCurrentTofuConfig.networkId) return;
+
+            dismissDialogAndNotification();
+        }
     }
 }
