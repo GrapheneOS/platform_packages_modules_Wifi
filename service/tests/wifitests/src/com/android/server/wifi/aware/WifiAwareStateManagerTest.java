@@ -3724,7 +3724,15 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertTrue(mDut.isDeviceAttached());
         inOrder.verify(mockCallback).onConnectSuccess(clientId);
 
-        // (3) power state change: DOZE
+        // (2) set the App to isIgnoringBatteryOptimizations to true and power state change: DOZE
+        when(mMockPowerManager.isIgnoringBatteryOptimizations(callingPackage)).thenReturn(true);
+        simulatePowerStateChangeDoze(true);
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isUsageEnabled());
+        inOrder.verify(mockCallback, never()).onAttachTerminate();
+
+        // (3) set the App to isIgnoringBatteryOptimizations to false and power state change: DOZE
+        when(mMockPowerManager.isIgnoringBatteryOptimizations(callingPackage)).thenReturn(false);
         simulatePowerStateChangeDoze(true);
         mMockLooper.dispatchAll();
         collector.checkThat("usage disabled", mDut.isUsageEnabled(), equalTo(false));
