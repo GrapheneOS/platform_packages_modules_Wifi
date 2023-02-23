@@ -485,7 +485,7 @@ public class WifiInjector {
                 mDeviceConfigFacade, mActiveModeWarden, mFrameworkFacade, mWifiGlobals,
                 mExternalPnoScanRequestManager, mSsidTranslator);
         mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden);
-        mCountryCode = new WifiCountryCode(mContext, mActiveModeWarden,
+        mCountryCode = new WifiCountryCode(mContext, mActiveModeWarden, mWifiP2pMetrics,
                 mCmiMonitor, mWifiNative, mSettingsConfigStore);
         mConnectionFailureNotifier = new ConnectionFailureNotifier(
                 mContext, mFrameworkFacade, mWifiConfigManager,

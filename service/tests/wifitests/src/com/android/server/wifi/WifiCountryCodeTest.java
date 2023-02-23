@@ -39,6 +39,7 @@ import android.telephony.ims.ImsMmTelManager;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -87,6 +88,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     @Mock SubscriptionManager mSubscriptionManager;
     @Mock SubscriptionInfo  mActiveSubscriptionInfo;
     @Mock ImsMmTelManager mImsMmTelManager;
+    @Mock WifiP2pMetrics mWifiP2pMetrics;
     private WifiCountryCode mWifiCountryCode;
     private List<ClientModeManager> mClientManagerList;
     private List<SubscriptionInfo> mSubscriptionInfoList = new ArrayList<>();
@@ -175,6 +177,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mWifiCountryCode = new WifiCountryCode(
                 mContext,
                 mActiveModeWarden,
+                mWifiP2pMetrics,
                 mClientModeImplMonitor,
                 mWifiNative,
                 mSettingsConfigStore);
@@ -198,6 +201,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mClientModeImplListenerCaptor.getValue().onConnectionStart(mClientModeManager);
         verify(mClientModeManager).setCountryCode(anyString());
         assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
+        verify(mWifiP2pMetrics).setIsCountryCodeWorldMode(false);
     }
 
     /**
@@ -309,6 +313,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         // Telephony country code won't be applied at this time.
         assertEquals("00", mWifiCountryCode.getCurrentDriverCountryCode());
+        verify(mWifiP2pMetrics).setIsCountryCodeWorldMode(true);
         // Wifi is not forced to disconnect
         verify(mClientModeManager, times(0)).disconnect();
 
@@ -320,6 +325,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         // Telephony country code won't be applied at this time.
         assertEquals("00", mWifiCountryCode.getCurrentDriverCountryCode());
+        verify(mWifiP2pMetrics).setIsCountryCodeWorldMode(true);
         // Wifi is not forced to disconnect
         verify(mClientModeManager, times(0)).disconnect();
 
