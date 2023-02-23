@@ -36,6 +36,7 @@ import android.util.Log;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.hotspot2.NetworkDetail;
+import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
@@ -70,6 +71,7 @@ public class WifiCountryCode {
     private final Context mContext;
     private final TelephonyManager mTelephonyManager;
     private final ActiveModeWarden mActiveModeWarden;
+    private final WifiP2pMetrics mWifiP2pMetrics;
     private final WifiNative mWifiNative;
     private final WifiSettingsConfigStore mSettingsConfigStore;
     private final Clock mClock;
@@ -207,6 +209,7 @@ public class WifiCountryCode {
     public WifiCountryCode(
             Context context,
             ActiveModeWarden activeModeWarden,
+            WifiP2pMetrics wifiP2pMetrics,
             ClientModeImplMonitor clientModeImplMonitor,
             WifiNative wifiNative,
             @NonNull WifiSettingsConfigStore settingsConfigStore,
@@ -215,6 +218,7 @@ public class WifiCountryCode {
         mContext = context;
         mTelephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         mActiveModeWarden = activeModeWarden;
+        mWifiP2pMetrics = wifiP2pMetrics;
         mWifiNative = wifiNative;
         mSettingsConfigStore = settingsConfigStore;
         mClock = clock;
@@ -774,10 +778,20 @@ public class WifiCountryCode {
         if (!SdkLevel.isAtLeastT() || !TextUtils.equals(mDriverCountryCode, country)) {
             mDriverCountryCodeUpdatedTimestamp = mClock.getWallClockMillis();
             mDriverCountryCode = country;
+            mWifiP2pMetrics.setIsCountryCodeWorldMode(isDriverCountryCodeWorldMode());
             notifyListener(country);
         }
     }
 
+    /**
+     * Method to check if current driver Country Code is in the world mode
+     */
+    private boolean isDriverCountryCodeWorldMode() {
+        if (mDriverCountryCode == null) {
+            return true;
+        }
+        return mDriverCountryCode.equalsIgnoreCase(mWorldModeCountryCode);
+    }
 
     /**
      * Notify the listeners. There are two kind of listeners
