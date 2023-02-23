@@ -317,13 +317,20 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                         + curConfiguration.networkId + ".");
                 mStaIfaceHal.removePmkCacheEntry(curConfiguration.networkId);
             }
-            // Special handling for WPA3-Personal networks. If the password is
-            // incorrect, the AP will send association rejection, with status code 1
-            // (unspecified failure). In SAE networks, the password authentication
-            // is not related to the 4-way handshake. In this case, we will send an
-            // authentication failure event up.
             if (assocRejectInfo.statusCode
-                    == SupplicantStaIfaceHal.StaIfaceStatusCode.UNSPECIFIED_FAILURE) {
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL
+                    && WifiConfigurationUtil.isConfigForWepNetwork(curConfiguration)) {
+                mStaIfaceHal.logCallback("WEP incorrect password");
+                isWrongPwd = true;
+            } else if (assocRejectInfo.statusCode
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.UNSPECIFIED_FAILURE
+                    || assocRejectInfo.statusCode
+                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL) {
+                // Special handling for WPA3-Personal networks. If the password is
+                // incorrect, the AP will send association rejection, with status code 1
+                // (unspecified failure) or 15 (challenge fail). In SAE networks, the password
+                // authentication is not related to the 4-way handshake. In this case, we will
+                // send an authentication failure event up.
                 // Network Selection status is guaranteed to be initialized
                 SecurityParams params = curConfiguration.getNetworkSelectionStatus()
                         .getCandidateSecurityParams();
@@ -337,11 +344,6 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                         mStaIfaceHal.logCallback("SAE association rejection");
                     }
                 }
-            } else if (assocRejectInfo.statusCode
-                    == SupplicantStaIfaceHal.StaIfaceStatusCode.CHALLENGE_FAIL
-                    && WifiConfigurationUtil.isConfigForWepNetwork(curConfiguration)) {
-                mStaIfaceHal.logCallback("WEP incorrect password");
-                isWrongPwd = true;
             }
         }
 
@@ -389,9 +391,25 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
     public void onAuthenticationTimeout(byte[/* 6 */] bssid) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onAuthenticationTimeout");
-            mWifiMonitor.broadcastAuthenticationFailureEvent(
-                    mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
-                    mCurrentSsid, MacAddress.fromBytes(bssid));
+            WifiConfiguration curConfiguration =
+                    mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
+            if (curConfiguration != null
+                    && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
+                    || WifiConfigurationUtil.isConfigForWapiPskNetwork(curConfiguration))
+                    && !curConfiguration.getNetworkSelectionStatus().hasEverConnected()) {
+                // Some AP implementations doesn't send de-authentication or dis-association
+                // frame after EAPOL failure. They keep retry EAPOL M1 frames. This leads to
+                // authentication timeout in supplicant. If this network was not connected before,
+                // the authentication timeout may be due to wrong password.
+                Log.d(TAG, "EAPOL H/S failed in first connect attempt. Possibly a wrong password");
+                mWifiMonitor.broadcastAuthenticationFailureEvent(
+                        mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
+                        mCurrentSsid, MacAddress.fromBytes(bssid));
+            } else {
+                mWifiMonitor.broadcastAuthenticationFailureEvent(
+                        mIfaceName, WifiManager.ERROR_AUTH_FAILURE_TIMEOUT, -1,
+                        mCurrentSsid, MacAddress.fromBytes(bssid));
+            }
         }
     }
 
