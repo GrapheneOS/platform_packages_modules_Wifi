@@ -32,6 +32,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
@@ -1933,6 +1934,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void watchdogBitePnoBadIncrementsMetrics() {
+        assumeFalse(SdkLevel.isAtLeastU());
         // Set screen to off
         setScreenState(false);
 
@@ -1957,6 +1959,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void watchdogBitePnoGoodIncrementsMetrics() {
+        assumeFalse(SdkLevel.isAtLeastU());
+
         // Qns returns no candidate after watchdog single scan.
         when(mWifiNS.selectNetwork(any())).thenReturn(null);
 
@@ -1978,6 +1982,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
     @Test
     public void testNetworkConnectionCancelWatchdogTimer() {
+        assumeFalse(SdkLevel.isAtLeastU());
+
         // Set screen to off
         setScreenState(false);
 
@@ -1994,6 +2000,59 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         // Verify the watchdog alarm has been canceled
         assertFalse(mAlarmManager.isPending(WifiConnectivityManager.WATCHDOG_TIMER_TAG));
+    }
+
+    /**
+     * Verify that the PNO Watchdog timer is not started in U+
+     */
+    @Test
+    public void testWatchdogTimerNotStartedInUPlus() {
+        assumeTrue(SdkLevel.isAtLeastU());
+
+        // Set screen to off
+        setScreenState(false);
+
+        // Set WiFi to disconnected state to trigger PNO scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+        // Verify the watchdog alarm has been set
+        assertFalse(mAlarmManager.isPending(WifiConnectivityManager.WATCHDOG_TIMER_TAG));
+    }
+
+    /**
+     * Verify whether the PNO Watchdog timer can wake the system up according to the config flag
+     */
+    @Test
+    public void testWatchdogTimerCanWakeUp() {
+        assumeFalse(SdkLevel.isAtLeastU());
+        mResources.setBoolean(R.bool.config_wifiPnoWatchdogCanWakeUp,
+                true);
+
+        // Set screen to off
+        setScreenState(false);
+
+        // Set WiFi to disconnected state to trigger PNO scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+        // Verify the watchdog alarm has been set
+        verify(mAlarmManager.getAlarmManager()).set(eq(AlarmManager.ELAPSED_REALTIME_WAKEUP),
+                anyLong(), anyString(), any(), any());
+
+        mResources.setBoolean(R.bool.config_wifiPnoWatchdogCanWakeUp,
+                false);
+
+        // Set WiFi to disconnected state to trigger PNO scan
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        mLooper.dispatchAll();
+        // Verify the watchdog alarm has been set
+        verify(mAlarmManager.getAlarmManager()).set(eq(AlarmManager.ELAPSED_REALTIME),
+                anyLong(), anyString(), any(), any());
     }
 
     /**
