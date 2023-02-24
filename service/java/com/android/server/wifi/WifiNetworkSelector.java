@@ -1073,7 +1073,9 @@ public class WifiNetworkSelector {
                                 WifiConfiguration.isMetered(currentNetwork, cmmState.wifiInfo)),
                         WifiConfiguration.isMetered(currentNetwork, cmmState.wifiInfo),
                         isFromCarrierOrPrivilegedApp(currentNetwork),
-                        predictedTputMbps);
+                        predictedTputMbps,
+                        (scanDetail != null) ? scanDetail.getScanResult().getApMldMacAddress()
+                                : null);
             }
         }
 
@@ -1105,7 +1107,8 @@ public class WifiNetworkSelector {
                                     calculateLastSelectionWeight(config.networkId, metered),
                                     metered,
                                     isFromCarrierOrPrivilegedApp(config),
-                                    predictThroughput(scanDetail));
+                                    predictThroughput(scanDetail),
+                                    scanDetail.getScanResult().getApMldMacAddress());
                             if (added) {
                                 mConnectableNetworks.add(Pair.create(scanDetail, config));
                                 mWifiConfigManager.updateScanDetailForNetwork(
@@ -1154,7 +1157,7 @@ public class WifiNetworkSelector {
                     0.0 /* lastSelectionWeightBetweenZeroAndOne */,
                     false /* isMetered */,
                     WifiNetworkSelector.isFromCarrierOrPrivilegedApp(config),
-                    predictThroughput(scanDetail));
+                    predictThroughput(scanDetail), scanDetail.getScanResult().getApMldMacAddress());
             if (!added) continue;
 
             mConnectableNetworks.add(Pair.create(scanDetail, config));
