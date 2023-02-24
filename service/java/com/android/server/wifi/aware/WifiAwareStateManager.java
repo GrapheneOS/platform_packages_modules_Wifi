@@ -646,7 +646,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
                 if (action.equals(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)) {
                     if (mSettableParameters.get(PARAM_ON_IDLE_DISABLE_AWARE) != 0) {
-                        if (mPowerManager.isDeviceIdleMode()) {
+                        if (mPowerManager.isDeviceIdleMode()
+                                && !isAnyCallerIgnoringBatteryOptimizations()) {
                             disableUsage(false);
                         } else {
                             enableUsage();
@@ -5228,6 +5229,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState clientState = mClients.valueAt(i);
             if (clientState.isAwareOffload()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isAnyCallerIgnoringBatteryOptimizations() {
+        for (int i = 0; i < mClients.size(); ++i) {
+            WifiAwareClientState clientState = mClients.valueAt(i);
+            if (mPowerManager.isIgnoringBatteryOptimizations(clientState.getCallingPackage())) {
                 return true;
             }
         }

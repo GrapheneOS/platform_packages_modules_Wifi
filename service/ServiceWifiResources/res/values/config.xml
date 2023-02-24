@@ -1129,4 +1129,8 @@
     <bool translatable="false" name ="config_wifiLowLatencyLockDisableChipPowerSave">true</bool>
     <!-- Boolean indicating whether NIAP mode is enabled by default for Wi-Fi. -->
     <bool translatable="false" name="config_wifiNiapModeEnabled">false</bool>
+    <!-- Boolean indicating whether the framework updates country from scan results when there is
+         no telephony country code and driver country code is 00.
+         This is applied only during the setup wizard -->
+    <bool translatable="false" name ="config_wifiUpdateCountryCodeFromScanResultSetupWizard">false</bool>
 </resources>
