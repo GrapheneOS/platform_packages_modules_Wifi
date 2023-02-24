@@ -320,6 +320,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiCarrierInfoManager mWifiCarrierInfoManager;
+    @Mock private WifiCountryCode mWifiCountryCode;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -602,7 +603,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 mLocalLog, mWifiScoreCard, mWifiBlocklistMonitor, mWifiChannelUtilization,
                 mPasspointManager, mMultiInternetManager, mDeviceConfigFacade, mActiveModeWarden,
                 mFacade, mWifiGlobals, mExternalPnoScanRequestManager, mSsidTranslator,
-                mWifiPermissionsUtil, mWifiCarrierInfoManager);
+                mWifiPermissionsUtil, mWifiCarrierInfoManager, mWifiCountryCode);
         mLooper.dispatchAll();
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
