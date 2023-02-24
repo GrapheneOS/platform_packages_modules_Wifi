@@ -645,6 +645,11 @@
     config_wifiPnoWatchdogIntervalMs in case PNO scan failed. (default = 20 minutes)-->
     <integer translatable="false" name="config_wifiPnoWatchdogIntervalMs">1200000</integer>
 
+    <!-- Indicates whether the PNO Watchdog timer can wakeup the system when expires in order to
+    perform a single scan.
+    If set to false, single scans will be triggered only when the system awakes for other reasons-->
+    <bool translatable="false" name="config_wifiPnoWatchdogCanWakeUp">false</bool>
+
     <!-- Enable the Software PNO feature. If Hardware PNO is not enabled, the device is in
     standby and Wifi is disconnected, periodic scans are performed according to the
     following schedule:

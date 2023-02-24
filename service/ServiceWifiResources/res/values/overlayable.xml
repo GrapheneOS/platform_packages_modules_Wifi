@@ -196,6 +196,7 @@
           <item type="bool" name="config_wifiPnoFrequencyCullingEnabled" />
           <item type="bool" name="config_wifiPnoRecencySortingEnabled" />
           <item type="integer" name="config_wifiMaxPnoSsidCount" />
+          <item type="bool" name="config_wifiPnoWatchdogCanWakeUp" />
           <item type="integer" name="config_wifiPnoWatchdogIntervalMs" />
           <item type="bool" name="config_wifiSwPnoEnabled" />
           <item type="integer" name="config_wifiSwPnoFastTimerMs" />
