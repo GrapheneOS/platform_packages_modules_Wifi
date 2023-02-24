@@ -42,7 +42,6 @@ import android.hardware.wifi.WifiDebugRingBufferFlags;
 import android.hardware.wifi.WifiDebugRingBufferStatus;
 import android.hardware.wifi.WifiIfaceMode;
 import android.hardware.wifi.WifiRadioCombination;
-import android.hardware.wifi.WifiRadioCombinationMatrix;
 import android.hardware.wifi.WifiRadioConfiguration;
 import android.hardware.wifi.WifiStatusCode;
 import android.hardware.wifi.WifiUsableChannel;
@@ -609,18 +608,17 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#getSupportedRadioCombinationsMatrix()}
+     * See comments for {@link IWifiChip#getSupportedRadioCombinations()}
      */
     @Override
     @Nullable
-    public WifiChip.WifiRadioCombinationMatrix getSupportedRadioCombinationsMatrix() {
-        final String methodStr = "getSupportedRadioCombinationsMatrix";
+    public List<WifiChip.WifiRadioCombination> getSupportedRadioCombinations() {
+        final String methodStr = "getSupportedRadioCombinations";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return null;
-                WifiRadioCombinationMatrix halMatrix =
-                        mWifiChip.getSupportedRadioCombinationsMatrix();
-                return halToFrameworkRadioCombinationMatrix(halMatrix);
+                WifiRadioCombination[] halCombos = mWifiChip.getSupportedRadioCombinations();
+                return halToFrameworkRadioCombinations(halCombos);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -1580,13 +1578,13 @@ public class WifiChipAidlImpl implements IWifiChip {
         return new WifiChip.ChipConcurrencyCombinationLimit(halLimit.maxIfaces, frameworkTypes);
     }
 
-    private static WifiChip.WifiRadioCombinationMatrix halToFrameworkRadioCombinationMatrix(
-            WifiRadioCombinationMatrix halMatrix) {
+    private static List<WifiChip.WifiRadioCombination> halToFrameworkRadioCombinations(
+            WifiRadioCombination[] halCombos) {
         List<WifiChip.WifiRadioCombination> frameworkCombos = new ArrayList<>();
-        for (WifiRadioCombination combo : halMatrix.radioCombinations) {
+        for (WifiRadioCombination combo : halCombos) {
             frameworkCombos.add(halToFrameworkRadioCombination(combo));
         }
-        return new WifiChip.WifiRadioCombinationMatrix(frameworkCombos);
+        return frameworkCombos;
     }
 
     private static WifiChip.WifiRadioCombination halToFrameworkRadioCombination(

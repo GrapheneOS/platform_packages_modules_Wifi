@@ -449,15 +449,15 @@ public class HalDeviceManager {
             WifiChipInfo info = getChipInfo(iface);
             if (info == null) return false;
             // If there is no radio combination information, cache it.
-            if (info.radioCombinationMatrix == null) {
+            if (info.radioCombinations == null) {
                 WifiChip chip = getChip(iface);
                 if (chip == null) return false;
 
-                info.radioCombinationMatrix = getChipSupportedRadioCombinationsMatrix(chip);
-                info.radioCombinationLookupTable = convertRadioCombinationMatrixToLookupTable(
-                        info.radioCombinationMatrix);
+                info.radioCombinations = getChipSupportedRadioCombinations(chip);
+                info.radioCombinationLookupTable = convertRadioCombinationsToLookupTable(
+                        info.radioCombinations);
                 if (mDbg) {
-                    Log.d(TAG, "radioCombinationMatrix=" + info.radioCombinationMatrix
+                    Log.d(TAG, "radioCombinations=" + info.radioCombinations
                             + "radioCombinationLookupTable=" + info.radioCombinationLookupTable);
                 }
             }
@@ -958,7 +958,7 @@ public class HalDeviceManager {
         // returned by WifiChip.getXxxIfaceNames.
         public WifiIfaceInfo[][] ifaces = new WifiIfaceInfo[CREATE_TYPES_BY_PRIORITY.length][];
         public long chipCapabilities;
-        public WifiChip.WifiRadioCombinationMatrix radioCombinationMatrix = null;
+        public List<WifiChip.WifiRadioCombination> radioCombinations = null;
         public SparseBooleanArray radioCombinationLookupTable = new SparseBooleanArray();
 
         @Override
@@ -2680,12 +2680,12 @@ public class HalDeviceManager {
         return -1;
     }
 
-    private static SparseBooleanArray convertRadioCombinationMatrixToLookupTable(
-            WifiChip.WifiRadioCombinationMatrix matrix) {
+    private static SparseBooleanArray convertRadioCombinationsToLookupTable(
+            List<WifiChip.WifiRadioCombination> combinations) {
         SparseBooleanArray lookupTable = new SparseBooleanArray();
-        if (matrix == null) return lookupTable;
+        if (combinations == null) return lookupTable;
 
-        for (WifiChip.WifiRadioCombination combination : matrix.radioCombinations) {
+        for (WifiChip.WifiRadioCombination combination : combinations) {
             int bandMask = 0;
             for (WifiChip.WifiRadioConfiguration config : combination.radioConfigurations) {
                 bandMask |= config.bandInfo;
@@ -2721,18 +2721,18 @@ public class HalDeviceManager {
     }
 
     /**
-     * Get the supported radio combination matrix.
+     * Get the supported radio combinations.
      *
      * This is called after creating an interface and need at least v1.6 HAL.
      *
      * @param wifiChip WifiChip
-     * @return Wifi radio combinmation matrix
+     * @return List of supported Wifi radio combinations
      */
-    private WifiChip.WifiRadioCombinationMatrix getChipSupportedRadioCombinationsMatrix(
+    private List<WifiChip.WifiRadioCombination> getChipSupportedRadioCombinations(
             @NonNull WifiChip wifiChip) {
         synchronized (mLock) {
             if (wifiChip == null) return null;
-            return wifiChip.getSupportedRadioCombinationsMatrix();
+            return wifiChip.getSupportedRadioCombinations();
         }
     }
 

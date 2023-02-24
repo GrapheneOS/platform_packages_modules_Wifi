@@ -278,22 +278,6 @@ public class WifiChip {
     }
 
     /**
-     * Wifi radio combinations matrix.
-     */
-    public static class WifiRadioCombinationMatrix {
-        public final List<WifiRadioCombination> radioCombinations;
-
-        public WifiRadioCombinationMatrix(List<WifiRadioCombination> inRadioCombinations) {
-            radioCombinations = inRadioCombinations;
-        }
-
-        @Override
-        public String toString() {
-            return "{radioCombinations=" + radioCombinations + "}";
-        }
-    }
-
-    /**
      * Information about the version of the driver and firmware running this chip.
      *
      * The information in these ASCII strings are vendor specific and does not
@@ -675,12 +659,12 @@ public class WifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#getSupportedRadioCombinationsMatrix()}
+     * See comments for {@link IWifiChip#getSupportedRadioCombinations()}
      */
     @Nullable
-    public WifiChip.WifiRadioCombinationMatrix getSupportedRadioCombinationsMatrix() {
-        return validateAndCall("getSupportedRadioCombinationsMatrix", null,
-                () -> mWifiChip.getSupportedRadioCombinationsMatrix());
+    public List<WifiChip.WifiRadioCombination> getSupportedRadioCombinations() {
+        return validateAndCall("getSupportedRadioCombinations", null,
+                () -> mWifiChip.getSupportedRadioCombinations());
     }
 
     /**

@@ -34,7 +34,6 @@ import android.hardware.wifi.V1_5.WifiIfaceMode;
 import android.hardware.wifi.V1_6.IfaceConcurrencyType;
 import android.hardware.wifi.V1_6.WifiAntennaMode;
 import android.hardware.wifi.V1_6.WifiRadioCombination;
-import android.hardware.wifi.V1_6.WifiRadioCombinationMatrix;
 import android.hardware.wifi.V1_6.WifiRadioConfiguration;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.WifiAvailableChannel;
@@ -353,14 +352,14 @@ public class WifiChipHidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#getSupportedRadioCombinationsMatrix()}
+     * See comments for {@link IWifiChip#getSupportedRadioCombinations()}
      */
     @Override
     @Nullable
-    public WifiChip.WifiRadioCombinationMatrix getSupportedRadioCombinationsMatrix() {
-        String methodStr = "getSupportedRadioCombinationsMatrix";
+    public List<WifiChip.WifiRadioCombination> getSupportedRadioCombinations() {
+        String methodStr = "getSupportedRadioCombinations";
         return validateAndCall(methodStr, null,
-                () -> getSupportedRadioCombinationsMatrixInternal(methodStr));
+                () -> getSupportedRadioCombinationsInternal(methodStr));
     }
 
     /**
@@ -990,19 +989,22 @@ public class WifiChipHidlImpl implements IWifiChip {
         return ifaceNameResp.value;
     }
 
-    private WifiChip.WifiRadioCombinationMatrix getSupportedRadioCombinationsMatrixInternal(
+    private List<WifiChip.WifiRadioCombination> getSupportedRadioCombinationsInternal(
             String methodStr) {
-        Mutable<WifiChip.WifiRadioCombinationMatrix> matrixResp = new Mutable<>();
+        Mutable<List<WifiChip.WifiRadioCombination>> radioComboResp = new Mutable<>();
         try {
             android.hardware.wifi.V1_6.IWifiChip chip16 = getWifiChipV1_6Mockable();
             if (chip16 == null) return null;
             chip16.getSupportedRadioCombinationsMatrix((status, matrix) -> {
-                matrixResp.value = halToFrameworkRadioCombinationMatrix(matrix);
+                if (matrix != null) {
+                    radioComboResp.value =
+                            halToFrameworkRadioCombinations(matrix.radioCombinations);
+                }
             });
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
         }
-        return matrixResp.value;
+        return radioComboResp.value;
     }
 
     private List<WifiAvailableChannel> getUsableChannelsInternal(String methodStr,
@@ -1894,13 +1896,13 @@ public class WifiChipHidlImpl implements IWifiChip {
         return flags;
     }
 
-    private static WifiChip.WifiRadioCombinationMatrix halToFrameworkRadioCombinationMatrix(
-            WifiRadioCombinationMatrix halMatrix) {
+    private static List<WifiChip.WifiRadioCombination> halToFrameworkRadioCombinations(
+            List<WifiRadioCombination> halCombos) {
         List<WifiChip.WifiRadioCombination> frameworkCombos = new ArrayList<>();
-        for (WifiRadioCombination combo : halMatrix.radioCombinations) {
+        for (WifiRadioCombination combo : halCombos) {
             frameworkCombos.add(halToFrameworkRadioCombination(combo));
         }
-        return new WifiChip.WifiRadioCombinationMatrix(frameworkCombos);
+        return frameworkCombos;
     }
 
     private static WifiChip.WifiRadioCombination halToFrameworkRadioCombination(
