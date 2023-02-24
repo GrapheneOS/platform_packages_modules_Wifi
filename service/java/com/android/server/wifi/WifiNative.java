@@ -1822,6 +1822,11 @@ public class WifiNative {
             List<NativeScanResult> nativeResults) {
         ArrayList<ScanDetail> results = new ArrayList<>();
         for (NativeScanResult result : nativeResults) {
+            if (result.getSsid().length > 32) {
+                Log.e(TAG, "Invalid SSID length (> 32 bytes): "
+                        + Arrays.toString(result.getSsid()));
+                continue;
+            }
             WifiSsid originalSsid = WifiSsid.fromBytes(result.getSsid());
             MacAddress bssidMac = result.getBssid();
             if (bssidMac == null) {
