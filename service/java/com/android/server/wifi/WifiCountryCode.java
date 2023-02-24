@@ -21,6 +21,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_DEFAULT_COUNT
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.os.SystemProperties;
 import android.telephony.SubscriptionInfo;
@@ -34,7 +35,9 @@ import android.util.ArrayMap;
 import android.util.Log;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -58,14 +61,21 @@ public class WifiCountryCode {
     private static final String BOOT_DEFAULT_WIFI_COUNTRY_CODE = "ro.boot.wificountrycode";
     private static final int PKT_COUNT_HIGH_PKT_PER_SEC = 16;
     private static final int DISCONNECT_WIFI_COUNT_MAX = 1;
+    static final int MIN_COUNTRY_CODE_COUNT_US = 3;
+    static final int MIN_COUNTRY_CODE_COUNT_OTHER = 2;
+    static final String COUNTRY_CODE_US = "US";
+    static final int MAX_DURATION_SINCE_LAST_UPDATE_TIME_MS = 500_000;
+    static final int MIN_SCAN_RSSI_DBM = -85;
     private final String mWorldModeCountryCode;
     private final Context mContext;
     private final TelephonyManager mTelephonyManager;
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiNative mWifiNative;
     private final WifiSettingsConfigStore mSettingsConfigStore;
+    private final Clock mClock;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
     private List<ChangeListener> mListeners = new ArrayList<>();
-    private boolean DBG = false;
+    private boolean mVerboseLoggingEnabled = false;
     /**
      * Map of active ClientModeManager instance to whether it is ready for country code change.
      *
@@ -84,9 +94,11 @@ public class WifiCountryCode {
     private String mTelephonyCountryCode = null;
     private String mOverrideCountryCode = null;
     private String mDriverCountryCode = null;
+    private String mFrameworkCountryCode = null;
     private String mLastReceivedActiveDriverCountryCode = null;
     private long mDriverCountryCodeUpdatedTimestamp = 0;
     private String mTelephonyCountryTimestamp = null;
+    private long mFrameworkCountryCodeUpdatedTimestamp = 0;
     private String mAllCmmReadyTimestamp = null;
     private int mDisconnectWifiToForceUpdateCount = 0;
 
@@ -197,12 +209,16 @@ public class WifiCountryCode {
             ActiveModeWarden activeModeWarden,
             ClientModeImplMonitor clientModeImplMonitor,
             WifiNative wifiNative,
-            @NonNull WifiSettingsConfigStore settingsConfigStore) {
+            @NonNull WifiSettingsConfigStore settingsConfigStore,
+            Clock clock,
+            WifiPermissionsUtil wifiPermissionsUtil) {
         mContext = context;
         mTelephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         mActiveModeWarden = activeModeWarden;
         mWifiNative = wifiNative;
         mSettingsConfigStore = settingsConfigStore;
+        mClock = clock;
+        mWifiPermissionsUtil = wifiPermissionsUtil;
 
         mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallbackInternal());
         clientModeImplMonitor.registerListener(new ClientModeListenerInternal());
@@ -279,7 +295,7 @@ public class WifiCountryCode {
      * Enable verbose logging for WifiCountryCode.
      */
     public void enableVerboseLogging(boolean verbose) {
-        DBG = verbose;
+        mVerboseLoggingEnabled = verbose;
     }
 
     private boolean isWifiCallingAvailable() {
@@ -344,7 +360,7 @@ public class WifiCountryCode {
     private void evaluateAllCmmStateAndApplyIfAllReady() {
         Log.d(TAG, "evaluateAllCmmStateAndApplyIfAllReady: " + mAmmToReadyForChangeMap);
         if (isAllCmmReady()) {
-            mAllCmmReadyTimestamp = FORMATTER.format(new Date(System.currentTimeMillis()));
+            mAllCmmReadyTimestamp = FORMATTER.format(new Date(mClock.getWallClockMillis()));
             // We are ready to set country code now.
             // We need to post pending country code request.
             initializeTelephonyCountryCodeIfNeeded();
@@ -382,7 +398,7 @@ public class WifiCountryCode {
 
     private void setTelephonyCountryCode(String countryCode) {
         Log.d(TAG, "Set telephony country code to: " + countryCode);
-        mTelephonyCountryTimestamp = FORMATTER.format(new Date(System.currentTimeMillis()));
+        mTelephonyCountryTimestamp = FORMATTER.format(new Date(mClock.getWallClockMillis()));
 
         // Empty country code.
         if (TextUtils.isEmpty(countryCode)) {
@@ -397,7 +413,7 @@ public class WifiCountryCode {
     }
 
     /**
-     * Handle country code change request.
+     * Handle telephony country code change request.
      * @param countryCode The country code intended to set.
      * This is supposed to be from Telephony service.
      * otherwise we think it is from other applications.
@@ -421,6 +437,91 @@ public class WifiCountryCode {
 
         updateCountryCode(false);
         return true;
+    }
+
+    /**
+     * Update country code from scan results right before the network connection
+     * Note the derived country code is used only if all following conditions are met
+     * 1) There is no telephony country code
+     * 2) The current driver country code is empty or equal to the worldwide code
+     * 3) Currently the device is disconnected
+     * 4) The setup wizard is running and the device overlay is enabled
+     * @param scanDetails Wifi scan results
+     * @param targetNetwork The configuration of target network
+     */
+    public void updateCountryCodeFromScanResults(@NonNull List<ScanDetail> scanDetails,
+            @NonNull WifiConfiguration targetNetwork) {
+        if (mTelephonyCountryCode != null) {
+            return;
+        }
+        if (mDriverCountryCode != null
+                && !mDriverCountryCode.equalsIgnoreCase(mWorldModeCountryCode)) {
+            return;
+        }
+        boolean isUpdateEnabledSetupWizard = mContext.getResources()
+                .getBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultSetupWizard);
+        boolean isSetupWizardRunning = mWifiPermissionsUtil.checkNetworkSetupWizardPermission(
+                targetNetwork.creatorUid) && targetNetwork.lastUpdated != 0
+                && (mClock.getWallClockMillis() < (MAX_DURATION_SINCE_LAST_UPDATE_TIME_MS
+                + targetNetwork.lastUpdated));
+
+        if (!isUpdateEnabledSetupWizard || !isSetupWizardRunning) {
+            return;
+        }
+
+        String countryCode = findCountryCodeFromScanResults(scanDetails);
+
+        if (countryCode == null) {
+            Log.i(TAG, "Skip framework CC update because it is empty");
+            return;
+        }
+
+        if (countryCode.equalsIgnoreCase(mFrameworkCountryCode)) {
+            return;
+        }
+
+        mFrameworkCountryCodeUpdatedTimestamp = mClock.getWallClockMillis();
+        mFrameworkCountryCode = countryCode;
+        if (mOverrideCountryCode != null) {
+            Log.d(TAG, "Skip framework CC update due to override country code set");
+            return;
+        }
+
+        updateCountryCode(false);
+    }
+
+    private String findCountryCodeFromScanResults(List<ScanDetail> scanDetails) {
+        String selectedCountryCode = null;
+        int count = 0;
+        for (ScanDetail scanDetail : scanDetails) {
+            NetworkDetail networkDetail = scanDetail.getNetworkDetail();
+            String countryCode = networkDetail.getCountryCode();
+            if (scanDetail.getScanResult().level < MIN_SCAN_RSSI_DBM) {
+                continue;
+            }
+            if (countryCode == null || TextUtils.isEmpty(countryCode)) {
+                continue;
+            }
+            if (selectedCountryCode == null) {
+                selectedCountryCode = countryCode;
+            }
+            if (!selectedCountryCode.equalsIgnoreCase(countryCode)) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "CC doesn't match");
+                }
+                return null;
+            }
+            count++;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, selectedCountryCode + " " + count);
+        }
+        if (count == 0) {
+            return null;
+        }
+        int min_count = selectedCountryCode.equalsIgnoreCase(COUNTRY_CODE_US)
+                ? MIN_COUNTRY_CODE_COUNT_US : MIN_COUNTRY_CODE_COUNT_OTHER;
+        return (count >= min_count) ? selectedCountryCode : null;
     }
 
     private void disconnectWifiToForceUpdateIfNeeded() {
@@ -531,6 +632,10 @@ public class WifiCountryCode {
         pw.println("mDriverCountryCodeUpdatedTimestamp: "
                 + (mDriverCountryCodeUpdatedTimestamp != 0
                 ? FORMATTER.format(new Date(mDriverCountryCodeUpdatedTimestamp)) : "N/A"));
+        pw.println("mFrameworkCountryCode: " + mFrameworkCountryCode);
+        pw.println("mFrameworkCountryCodeUpdatedTimestamp: "
+                + (mFrameworkCountryCodeUpdatedTimestamp != 0
+                ? FORMATTER.format(new Date(mFrameworkCountryCodeUpdatedTimestamp)) : "N/A"));
         pw.println("isDriverSupportedRegChangedEvent: "
                 + isDriverSupportedRegChangedEvent());
     }
@@ -578,6 +683,10 @@ public class WifiCountryCode {
             // when driver supported 802.11d.
             return mDriverCountryCode;
         }
+        if (mFrameworkCountryCode != null && (mDriverCountryCode == null
+                || mDriverCountryCode.equalsIgnoreCase(mWorldModeCountryCode))) {
+            return mFrameworkCountryCode;
+        }
         return mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE);
     }
 
@@ -594,7 +703,7 @@ public class WifiCountryCode {
         }
         boolean isCountryCodeChanged = !TextUtils.equals(mDriverCountryCode, country);
         Log.d(TAG, "setCountryCodeNative: " + country + ", isClientModeOnly: " + isClientModeOnly
-                + "mDriverCountryCode: " + mDriverCountryCode);
+                + " mDriverCountryCode: " + mDriverCountryCode);
         for (ActiveModeManager am : amms) {
             if (isNeedToUpdateCCToSta && !isConcreteClientModeManagerUpdated
                     && am instanceof ConcreteClientModeManager) {
@@ -663,7 +772,7 @@ public class WifiCountryCode {
 
     private void handleCountryCodeChanged(String country) {
         if (!SdkLevel.isAtLeastT() || !TextUtils.equals(mDriverCountryCode, country)) {
-            mDriverCountryCodeUpdatedTimestamp = System.currentTimeMillis();
+            mDriverCountryCodeUpdatedTimestamp = mClock.getWallClockMillis();
             mDriverCountryCode = country;
             notifyListener(country);
         }
