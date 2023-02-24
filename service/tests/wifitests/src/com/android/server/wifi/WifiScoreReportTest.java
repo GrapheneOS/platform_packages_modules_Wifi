@@ -1630,6 +1630,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
             assertEquals(60, ns.getLegacyInt());
             assertFalse(ns.isExiting());
             if (mIsPrimary) assertTrue(ns.isTransportPrimary());
+            verify(mWifiConnectivityManager).resetNetworkSwitchDialog();
         }
 
         mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(

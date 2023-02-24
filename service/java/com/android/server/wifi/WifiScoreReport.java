@@ -290,6 +290,9 @@ public class WifiScoreReport {
                         : ConnectedScore.WIFI_TRANSITION_SCORE - 1);
             }
             mWifiInfo.setUsable(mIsUsable);
+            if (mIsUsable) {
+                mWifiConnectivityManager.resetNetworkSwitchDialog();
+            }
         }
 
         @Override

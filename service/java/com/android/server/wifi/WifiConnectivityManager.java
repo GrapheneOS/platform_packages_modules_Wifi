@@ -16,9 +16,11 @@
 
 package com.android.server.wifi;
 
+import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
@@ -183,6 +185,7 @@ public class WifiConnectivityManager {
     private final ActiveModeWarden mActiveModeWarden;
     private final FrameworkFacade mFrameworkFacade;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
+    private final WifiDialogManager mWifiDialogManager;
 
     private WifiScannerInternal mScanner;
     private final MultiInternetManager mMultiInternetManager;
@@ -1282,7 +1285,8 @@ public class WifiConnectivityManager {
             @NonNull SsidTranslator ssidTranslator,
             WifiPermissionsUtil wifiPermissionsUtil,
             WifiCarrierInfoManager wifiCarrierInfoManager,
-            WifiCountryCode wifiCountryCode) {
+            WifiCountryCode wifiCountryCode,
+            @NonNull WifiDialogManager wifiDialogManager) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1312,6 +1316,7 @@ public class WifiConnectivityManager {
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiCountryCode = wifiCountryCode;
+        mWifiDialogManager = wifiDialogManager;
 
         // Listen for screen state change events.
         // TODO: We should probably add a shared broadcast receiver in the wifi stack which
@@ -1435,6 +1440,53 @@ public class WifiConnectivityManager {
                 && Objects.equals(targetBssid, connectedOrConnectingBssid);
     }
 
+    private boolean mUserRejectedNetworkSwitch = false;
+    private WifiDialogManager.DialogHandle mNetworkSwitchDialog = null;
+    private int mDialogCandidateNetId = INVALID_NETWORK_ID;
+
+    class NetworkSwitchDialogCallback implements WifiDialogManager.SimpleDialogCallback {
+        @NonNull Runnable mOnSwitchApprovedRunnable;
+        @NonNull Runnable mOnSwitchRejectedRunnable;
+
+        NetworkSwitchDialogCallback(@NonNull Runnable onSwitchApprovedRunnable,
+                @NonNull Runnable onSwitchRejectedRunnable) {
+            mOnSwitchApprovedRunnable = onSwitchApprovedRunnable;
+            mOnSwitchRejectedRunnable = onSwitchRejectedRunnable;
+        }
+
+        @Override
+        public void onPositiveButtonClicked() {
+            mOnSwitchApprovedRunnable.run();
+        }
+
+        @Override
+        public void onNegativeButtonClicked() {
+            mOnSwitchRejectedRunnable.run();
+        }
+
+        @Override
+        public void onNeutralButtonClicked() {
+            mOnSwitchRejectedRunnable.run();
+        }
+
+        @Override
+        public void onCancelled() {
+            mOnSwitchRejectedRunnable.run();
+        }
+    }
+
+    /**
+     * Dismisses any active network switch dialogs and resets the user's choice.
+     */
+    public void resetNetworkSwitchDialog() {
+        if (mNetworkSwitchDialog != null) {
+            mNetworkSwitchDialog.dismissDialog();
+        }
+        mNetworkSwitchDialog = null;
+        mDialogCandidateNetId = INVALID_NETWORK_ID;
+        mUserRejectedNetworkSwitch = false;
+    }
+
     /**
      * Trigger network connection for primary client mode manager using make before break.
      *
@@ -1444,7 +1496,7 @@ public class WifiConnectivityManager {
     private void connectToNetworkForPrimaryCmmUsingMbbIfAvailable(
             @NonNull WifiConfiguration candidate) {
         ClientModeManager primaryManager = mActiveModeWarden.getPrimaryClientModeManager();
-        connectToNetworkUsingCmm(
+        Runnable continueConnectionRunnable = () -> connectToNetworkUsingCmm(
                 primaryManager, candidate,
                 new ConnectHandler() {
                     @Override
@@ -1500,7 +1552,52 @@ public class WifiConnectivityManager {
                                 ROLE_CLIENT_SECONDARY_TRANSIENT);
                     }
                 });
+        WifiConfiguration connectedConfig = primaryManager.getConnectedWifiConfiguration();
+        if (connectedConfig == null || !connectedConfig.isUserSelected()
+                || connectedConfig.networkId == candidate.networkId
+                || !mContext.getResources().getBoolean(
+                R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork)) {
+            // Continue the connection if we don't need user confirmation for the network switch.
+            continueConnectionRunnable.run();
+            return;
+        }
 
+        // User confirmation for the network switch is required.
+        if (mUserRejectedNetworkSwitch) {
+            Log.i(TAG, "User rejected switching networks. Do not connect to candidate "
+                    + candidate.getProfileKey());
+            return;
+        }
+        if (candidate.networkId == mDialogCandidateNetId && mNetworkSwitchDialog != null) {
+            // Already showing a dialog for this candidate.
+            return;
+        }
+        Log.i(TAG, "Need user approval for connecting to candidate "
+                + candidate.getProfileKey());
+        resetNetworkSwitchDialog();
+        mNetworkSwitchDialog = mWifiDialogManager.createSimpleDialog(
+                mContext.getString(R.string.wifi_network_switch_dialog_title),
+                mContext.getString(R.string.wifi_network_switch_dialog_message,
+                        WifiInfo.removeDoubleQuotes(connectedConfig.SSID),
+                        WifiInfo.removeDoubleQuotes(candidate.SSID)),
+                mContext.getString(R.string.wifi_network_switch_dialog_positive_button),
+                mContext.getString(R.string.wifi_network_switch_dialog_negative_button),
+                /* neutralButtonText */ null,
+                new NetworkSwitchDialogCallback(
+                /* onSwitchApprovedRunnable */ () -> {
+                    resetNetworkSwitchDialog();
+                    continueConnectionRunnable.run();
+                },
+                /* onSwitchRejectedRunnable */ () -> {
+                    Log.i(TAG, "User rejected network switch to "
+                            + candidate.getProfileKey());
+                    mNetworkSwitchDialog = null;
+                    mDialogCandidateNetId = INVALID_NETWORK_ID;
+                    mUserRejectedNetworkSwitch = true;
+                }),
+                new WifiThreadRunner(mEventHandler));
+        mNetworkSwitchDialog.launchDialog();
+        mDialogCandidateNetId = candidate.networkId;
     }
 
     /**
@@ -2821,6 +2918,10 @@ public class WifiConnectivityManager {
             setSingleScanningSchedule(mDisconnectedSingleScanScheduleSec);
             setSingleScanningType(mDisconnectedSingleScanType);
             startConnectivityScan(SCAN_IMMEDIATELY);
+            ActiveModeManager.ClientRole role = clientModeManager.getRole();
+            if (role == ROLE_CLIENT_PRIMARY || role == ROLE_CLIENT_SCAN_ONLY) {
+                resetNetworkSwitchDialog();
+            }
         } else if (mWifiState == WIFI_STATE_CONNECTED) {
             cancelWatchdogScan();
             if (useSingleSavedNetworkSchedule()) {

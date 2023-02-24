@@ -161,6 +161,10 @@
     <integer translatable="false" name="config_wifiFrameworkScoreEntryRssiThreshold6ghz">-77</integer>
     <integer translatable="false" name="config_wifiFrameworkScoreLowRssiThreshold6ghz">-70</integer>
     <integer translatable="false" name="config_wifiFrameworkScoreGoodRssiThreshold6ghz">-57</integer>
+    <!-- boolean indicating whether or not to ask for user approval before switching away from a user-selected network -->
+    <bool translatable="false" name="config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork">false</bool>
+    <!-- boolean indicating whether or not to apply an unbeatable score boost for a recently user-selected network -->
+    <bool translatable="false" name="config_wifiThroughputScorerBoostForRecentlyUserSelectedNetwork">true</bool>
 
     <!-- Integer delay in milliseconds before shutting down soft AP when there
          are no connected devices. -->
