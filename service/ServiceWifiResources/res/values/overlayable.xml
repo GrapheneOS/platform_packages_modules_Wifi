@@ -310,6 +310,7 @@
           <item type="bool" name="config_wifiAwareOffloadingFirmwareHandlePriority" />
           <item type="bool" name="config_wifiLowLatencyLockDisableChipPowerSave" />
           <item type="bool" name="config_wifiNiapModeEnabled" />
+          <item type="bool" name="config_wifiUpdateCountryCodeFromScanResultSetupWizard" />
           <!-- Params from config.xml that can be overlayed -->
 
           <!-- Params from strings.xml that can be overlayed -->

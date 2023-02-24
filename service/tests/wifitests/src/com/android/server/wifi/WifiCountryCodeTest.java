@@ -29,6 +29,8 @@ import static org.mockito.Mockito.lenient;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.telephony.SubscriptionInfo;
@@ -39,6 +41,8 @@ import android.telephony.ims.ImsMmTelManager;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.hotspot2.NetworkDetail;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -64,7 +68,10 @@ public class WifiCountryCodeTest extends WifiBaseTest {
 
     private static final String TAG = "WifiCountryCodeTest";
     private static final String TEST_COUNTRY_CODE = "JP";
+    private static final String TEST_COUNTRY_CODE_2 = "CN";
     private static final int TEST_ACTIVE_SUBSCRIPTION_ID = 1;
+    private static final String SSID1 = "Network1";
+    private static final String TARGET_SSID1 = "\"" + SSID1 + "\"";
     private String mDefaultCountryCode = "US";
     private String mTelephonyCountryCode = "JP";
     private String mWorldModeCountryCode = "00";
@@ -88,6 +95,8 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     @Mock SubscriptionManager mSubscriptionManager;
     @Mock SubscriptionInfo  mActiveSubscriptionInfo;
     @Mock ImsMmTelManager mImsMmTelManager;
+    @Mock Clock mClock;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     private WifiCountryCode mWifiCountryCode;
     private List<ClientModeManager> mClientManagerList;
     private List<SubscriptionInfo> mSubscriptionInfoList = new ArrayList<>();
@@ -101,6 +110,17 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     private ArgumentCaptor<WifiCountryCode.ChangeListener> mChangeListenerCaptor;
     @Captor
     private ArgumentCaptor<String> mSetCountryCodeCaptor;
+    @Mock ScanDetail mScanDetail1;
+    @Mock ScanDetail mScanDetail2;
+    @Mock ScanDetail mScanDetail3;
+    @Mock NetworkDetail mNetworkDetail1;
+    @Mock NetworkDetail mNetworkDetail2;
+    @Mock NetworkDetail mNetworkDetail3;
+    @Mock ScanResult mScanResult1;
+    @Mock ScanResult mScanResult2;
+    @Mock ScanResult mScanResult3;
+    private List<ScanDetail> mScanDetails;
+    private WifiConfiguration mWifiConfig;
 
     /**
      * Setup test.
@@ -145,6 +165,9 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenReturn(false);
 
         createWifiCountryCode();
+        mScanDetails = setupScanDetails(TEST_COUNTRY_CODE);
+        mWifiConfig = WifiConfigurationTestUtil.createOpenNetwork(TARGET_SSID1);
+        setupWifiConfigLastUpdateTime();
     }
 
     @After
@@ -161,6 +184,8 @@ public class WifiCountryCodeTest extends WifiBaseTest {
                 mDriverSupportedNl80211RegChangedEvent);
         mResources.setBoolean(R.bool.config_wifiForcedSoftApRestartWhenCountryCodeChanged,
                 mForcedSoftApRestateWhenCountryCodeChanged);
+        mResources.setBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultSetupWizard, true);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(anyInt())).thenReturn(true);
         mResources.setString(R.string.config_wifiDriverWorldModeCountryCode, mWorldModeCountryCode);
         doAnswer((invocation) -> {
             if (SdkLevel.isAtLeastS()) {
@@ -180,7 +205,9 @@ public class WifiCountryCodeTest extends WifiBaseTest {
                 mActiveModeWarden,
                 mClientModeImplMonitor,
                 mWifiNative,
-                mSettingsConfigStore);
+                mSettingsConfigStore,
+                mClock,
+                mWifiPermissionsUtil);
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                     mModeChangeCallbackCaptor.capture());
         verify(mClientModeImplMonitor, atLeastOnce()).registerListener(
@@ -707,5 +734,94 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         // Verify Telephony country code is updated since overlay is true;
         mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
         assertEquals(mTelephonyCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
+    }
+
+
+    @Test
+    public void testUpdateountryCodeSetupWizardDisabled() {
+        mResources.setBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultSetupWizard, false);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+    }
+
+    @Test
+    public void testUpdateountryCodeSetupWizardEnabled() {
+        // Initially the config is not updated by setup wizard
+        mWifiConfig.lastUpdated = 0L;
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        // Scan result is not used
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+
+        // Then the config is updated by setup wizard
+        mWifiConfig.lastUpdated = 1000L;
+        when(mClock.getWallClockMillis()).thenReturn(5000L);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        // Scan result is used
+        assertEquals(TEST_COUNTRY_CODE, mWifiCountryCode.getCountryCode());
+
+        mWifiConfig.lastUpdated = 0L;
+        mScanDetails = setupScanDetails(TEST_COUNTRY_CODE_2);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        // Skip update because lastUpdated is 0
+        assertEquals(TEST_COUNTRY_CODE, mWifiCountryCode.getCountryCode());
+    }
+
+    @Test
+    public void testUpdateCountryCodeSetupWizardWithTelephonyCountryCode() {
+        when(mTelephonyManager.getNetworkCountryIso()).thenReturn(TEST_COUNTRY_CODE_2);
+
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        assertEquals(TEST_COUNTRY_CODE_2, mWifiCountryCode.getCountryCode());
+    }
+
+    @Test
+    public void testUpdateountryCodeSetupWizardMismatchScanResult() {
+        when(mNetworkDetail2.getCountryCode()).thenReturn(TEST_COUNTRY_CODE_2);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+    }
+
+    @Test
+    public void testUpdateountryCodeSetupWizardOneGoodScanResult() {
+        mScanResult2.level = WifiCountryCode.MIN_SCAN_RSSI_DBM - 1;
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+    }
+
+    @Test
+    public void testUpdateountryCodeSetupWizardTwoGoodScanResultUs() {
+        mScanDetails = setupScanDetails("US");
+        mDefaultCountryCode = "CA";
+        when(mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE)).thenReturn(mDefaultCountryCode);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails, mWifiConfig);
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+    }
+
+    private List<ScanDetail> setupScanDetails(String countryCode) {
+        List<ScanDetail> scanDetails = new ArrayList<>();
+        scanDetails.add(mScanDetail1);
+        scanDetails.add(mScanDetail2);
+        scanDetails.add(mScanDetail3);
+        when(mScanDetail1.getNetworkDetail()).thenReturn(mNetworkDetail1);
+        when(mScanDetail2.getNetworkDetail()).thenReturn(mNetworkDetail2);
+        when(mScanDetail3.getNetworkDetail()).thenReturn(mNetworkDetail3);
+        when(mScanDetail1.getScanResult()).thenReturn(mScanResult1);
+        when(mScanDetail2.getScanResult()).thenReturn(mScanResult2);
+        when(mScanDetail3.getScanResult()).thenReturn(mScanResult3);
+        mScanResult1.level = WifiCountryCode.MIN_SCAN_RSSI_DBM;
+        mScanResult2.level = WifiCountryCode.MIN_SCAN_RSSI_DBM;
+        mScanResult3.level = WifiCountryCode.MIN_SCAN_RSSI_DBM - 1;
+        when(mNetworkDetail1.getSSID()).thenReturn(SSID1);
+        when(mNetworkDetail2.getSSID()).thenReturn(SSID1);
+        when(mNetworkDetail3.getSSID()).thenReturn(SSID1);
+        when(mNetworkDetail1.getCountryCode()).thenReturn(countryCode);
+        when(mNetworkDetail2.getCountryCode()).thenReturn(countryCode);
+        when(mNetworkDetail3.getCountryCode()).thenReturn(countryCode);
+        return scanDetails;
+    }
+
+    private void setupWifiConfigLastUpdateTime() {
+        mWifiConfig.lastUpdated = 1000L;
+        when(mClock.getWallClockMillis()).thenReturn(5000L);
     }
 }
