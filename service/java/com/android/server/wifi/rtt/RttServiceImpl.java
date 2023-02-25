@@ -108,7 +108,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private WifiPermissionsUtil mWifiPermissionsUtil;
     private ActivityManager mActivityManager;
     private PowerManager mPowerManager;
-    private int mBackgroundProcessExecGapMs;
     private long mLastRequestTimestamp;
     private final BuildProperties mBuildProperties;
     private FrameworkFacade mFrameworkFacade;
@@ -341,9 +340,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     (key, newValue) -> enableVerboseLogging(newValue),
                     mRttServiceSynchronized.mHandler);
             enableVerboseLogging(settingsConfigStore.get(WIFI_VERBOSE_LOGGING_ENABLED));
-
-            mBackgroundProcessExecGapMs = mContext.getResources().getInteger(
-                    R.integer.config_wifiRttBackgroundExecGapMs);
 
             intentFilter = new IntentFilter();
             intentFilter.addAction(LocationManager.MODE_CHANGED_ACTION);
@@ -1035,8 +1031,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             // if all UIDs are in background then check timestamp since last execution and see if
             // any is permitted (infrequent enough)
             boolean allowExecution = false;
+            int backgroundProcessExecGapMs = mContext.getResources().getInteger(
+                    R.integer.config_wifiRttBackgroundExecGapMs);
             long mostRecentExecutionPermitted =
-                    mClock.getElapsedSinceBootMillis() - mBackgroundProcessExecGapMs;
+                    mClock.getElapsedSinceBootMillis() - backgroundProcessExecGapMs;
             if (allUidsInBackground) {
                 for (int i = 0; i < ws.size(); ++i) {
                     RttRequesterInfo info = mRttRequesterInfo.get(ws.getUid(i));

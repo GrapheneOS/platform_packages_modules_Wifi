@@ -161,6 +161,7 @@ import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
+import android.net.wifi.QosPolicyParams;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.SoftApCapability;
@@ -395,6 +396,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock WifiScoreCard mWifiScoreCard;
     @Mock WifiHealthMonitor mWifiHealthMonitor;
     @Mock PasspointManager mPasspointManager;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock IDppCallback mDppCallback;
     @Mock ILocalOnlyHotspotCallback mLohsCallback;
     @Mock ICoexCallback mCoexCallback;
@@ -444,6 +446,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock ScoringParams mScoringParams;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
+    @Captor ArgumentCaptor<List> mListCaptor;
 
     @Rule
     // For frameworks
@@ -539,6 +542,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWifiBlocklistMonitor()).thenReturn(mWifiBlocklistMonitor);
         when(mWifiInjector.getPasspointManager()).thenReturn(mPasspointManager);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager);
         when(mClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME);
         when(mWifiInjector.getWifiScoreCard()).thenReturn(mWifiScoreCard);
@@ -11035,6 +11039,136 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 new ScanResult(WifiSsid.fromUtf8Text(TEST_SSID), TEST_SSID, TEST_BSSID, 1234, 0,
                         TEST_CAP, -70, 5805, 1024, 22, 33, 20, 0, 0, true));
         return scanResults;
+    }
+
+    private void enableQosPolicyFeature() {
+        when(mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()).thenReturn(true);
+        when(mResources.getBoolean(
+                R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled))
+                .thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(eq(2))).thenReturn(true);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+    }
+
+    private List<QosPolicyParams> createQosPolicyParamsList(int size, boolean uniqueIds) {
+        List<QosPolicyParams> policyParamsList = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            int policyId = uniqueIds ? i + 2 : 5;
+            policyParamsList.add(new QosPolicyParams.Builder(
+                    policyId, QosPolicyParams.DIRECTION_DOWNLINK)
+                    .setUserPriority(QosPolicyParams.USER_PRIORITY_VIDEO_LOW)
+                    .build());
+        }
+        return policyParamsList;
+    }
+
+    /**
+     * Verify that addQosPolicies works correctly.
+     */
+    @Test
+    public void testAddQosPoliciesSuccess() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastU());
+        enableQosPolicyFeature();
+
+        List<QosPolicyParams> paramsList = createQosPolicyParamsList(5, true);
+        IBinder binder = mock(IBinder.class);
+        IListListener listener = mock(IListListener.class);
+        mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, listener);
+
+        // TODO: Update once the implementation exists.
+        mLooper.dispatchAll();
+        verify(listener).onResult(any());
+    }
+
+    /**
+     * Verify the expected error cases in addQosPolicies.
+     */
+    @Test
+    public void testAddQosPoliciesError() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastU());
+        enableQosPolicyFeature();
+        List<QosPolicyParams> paramsList = createQosPolicyParamsList(5, true);
+        IBinder binder = mock(IBinder.class);
+        IListListener listener = mock(IListListener.class);
+
+        // Feature disabled
+        when(mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()).thenReturn(false);
+        mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, listener);
+        enableQosPolicyFeature();
+
+        verify(listener).onResult(mListCaptor.capture());
+        List<Integer> statusList = mListCaptor.getValue();
+        for (Integer status : statusList) {
+            assertEquals(WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN, (int) status);
+        }
+
+        // Null argument
+        assertThrows(NullPointerException.class, () ->
+                mWifiServiceImpl.addQosPolicies(null, binder, TEST_PACKAGE_NAME, listener));
+        assertThrows(NullPointerException.class, () ->
+                mWifiServiceImpl.addQosPolicies(paramsList, null, TEST_PACKAGE_NAME, listener));
+        assertThrows(NullPointerException.class, () ->
+                mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, null));
+
+        // Invalid QoS policy params list
+        List<QosPolicyParams> emptyList = createQosPolicyParamsList(0, true);
+        List<QosPolicyParams> largeList = createQosPolicyParamsList(
+                WifiManager.getMaxNumberOfPoliciesPerQosRequest() + 1, true);
+        List<QosPolicyParams> duplicatePolicyList = createQosPolicyParamsList(5, false);
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.addQosPolicies(emptyList, binder, TEST_PACKAGE_NAME, listener));
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.addQosPolicies(largeList, binder, TEST_PACKAGE_NAME, listener));
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.addQosPolicies(
+                        duplicatePolicyList, binder, TEST_PACKAGE_NAME, listener));
+    }
+
+    /**
+     * Verify that removeQosPolicies works correctly.
+     */
+    @Test
+    public void testRemoveQosPoliciesSuccess() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastU());
+        enableQosPolicyFeature();
+        // TODO: Update once the implementation exists.
+        int[] policyIds = new int[]{1, 2, 3};
+        mWifiServiceImpl.removeQosPolicies(policyIds, TEST_PACKAGE_NAME);
+    }
+
+    /**
+     * Verify the expected error cases in removeQosPolicies.
+     */
+    @Test
+    public void testRemoveQosPoliciesError() {
+        assumeTrue(SdkLevel.isAtLeastU());
+        enableQosPolicyFeature();
+
+        // Invalid policy ID list
+        int[] emptyPolicyIdList = new int[0];
+        int[] largePolicyIdList = new int[WifiManager.getMaxNumberOfPoliciesPerQosRequest() + 1];
+        int[] duplicatePolicyIdList = new int[] {1, 2, 2};
+        assertThrows(NullPointerException.class, () ->
+                mWifiServiceImpl.removeQosPolicies(null, TEST_PACKAGE_NAME));
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.removeQosPolicies(emptyPolicyIdList, TEST_PACKAGE_NAME));
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.removeQosPolicies(largePolicyIdList, TEST_PACKAGE_NAME));
+        assertThrows(IllegalArgumentException.class, () ->
+                mWifiServiceImpl.removeQosPolicies(duplicatePolicyIdList, TEST_PACKAGE_NAME));
+    }
+
+    /**
+     * Verify that removeAllQosPolicies works correctly.
+     */
+    @Test
+    public void testRemoveAllQosPolicies() {
+        assumeTrue(SdkLevel.isAtLeastU());
+        enableQosPolicyFeature();
+        // TODO: Update once the implementation exists.
+        mWifiServiceImpl.removeAllQosPolicies(TEST_PACKAGE_NAME);
     }
 
     /**
