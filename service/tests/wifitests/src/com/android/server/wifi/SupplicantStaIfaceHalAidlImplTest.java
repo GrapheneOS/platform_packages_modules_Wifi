@@ -3011,4 +3011,17 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 eq(WLAN0_IFACE_NAME), eq(WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD), eq(-1),
                 eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(MacAddress.fromString(BSSID)));
     }
+
+    /**
+     * Tests the handling of BSS frequency changed event.
+     */
+    @Test
+    public void testBssFrequencyChangedCallback() throws Exception {
+        executeAndValidateInitializationSequence();
+        assertNotNull(mISupplicantStaIfaceCallback);
+
+        mISupplicantStaIfaceCallback.onBssFrequencyChanged(2412);
+        verify(mWifiMonitor).broadcastBssFrequencyChanged(
+                eq(WLAN0_IFACE_NAME), eq(2412));
+    }
 }

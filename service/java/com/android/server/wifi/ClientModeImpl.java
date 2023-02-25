@@ -901,6 +901,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiMonitor.AUXILIARY_SUPPLICANT_EVENT,
             WifiMonitor.QOS_POLICY_RESET_EVENT,
             WifiMonitor.QOS_POLICY_REQUEST_EVENT,
+            WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT,
     };
 
     private void registerForWifiMonitorEvents()  {
@@ -2307,6 +2308,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
                 sb.append(" ssid=" + msg.obj);
                 break;
+            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
+                sb.append(" frequency=" + msg.arg1);
+                break;
             default:
                 sb.append(" ");
                 sb.append(Integer.toString(msg.arg1));
@@ -2453,6 +2457,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "NETWORK_NOT_FOUND_EVENT";
             case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
                 return "TOFU_ROOT_CA_CERTIFICATE";
+            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
+                return "BSS_FREQUENCY_CHANGED_EVENT";
             case RunnerState.STATE_ENTER_CMD:
                 return "Enter";
             case RunnerState.STATE_EXIT_CMD:
@@ -6104,6 +6110,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
                     }
                     checkIfNeedDisconnectSecondaryWifi();
+                    break;
+                }
+                case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT: {
+                    int newFrequency = message.arg1;
+                    if (newFrequency > 0) {
+                        if (mWifiInfo.getFrequency() != newFrequency) {
+                            mWifiInfo.setFrequency(newFrequency);
+                            updateCurrentConnectionInfo();
+                            updateCapabilities();
+                        }
+                    }
                     break;
                 }
                 case CMD_ONESHOT_RSSI_POLL: {

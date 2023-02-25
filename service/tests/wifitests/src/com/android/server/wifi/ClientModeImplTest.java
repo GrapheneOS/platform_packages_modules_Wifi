@@ -9575,4 +9575,16 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(false));
         assertEquals(0, mCmi.getNumberOfEnabledTdlsSessions());
     }
+
+    /**
+     * Verify that the frequency will be updated on receiving BSS_FREQUENCY_CHANGED_EVENT event.
+     */
+    @Test
+    public void testBssFrequencyChangedUpdatesFrequency() throws Exception {
+        connect();
+        assertEquals(sFreq, mWifiInfo.getFrequency());
+        mCmi.sendMessage(WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, sFreq1);
+        mLooper.dispatchAll();
+        assertEquals(sFreq1, mWifiInfo.getFrequency());
+    }
 }

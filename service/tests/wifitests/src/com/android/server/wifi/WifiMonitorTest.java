@@ -858,4 +858,21 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(numPolicyRequests,
                 ((List<QosPolicyRequest>) messageCaptor.getValue().obj).size());
     }
+
+    /**
+     * Broadcast BSS frequency changed event test.
+     */
+    @Test
+    public void testBroadcastBssFrequencyChangedEvent() {
+        mWifiMonitor.registerHandler(
+                WLAN_IFACE_NAME, WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, mHandlerSpy);
+        mWifiMonitor.broadcastBssFrequencyChanged(WLAN_IFACE_NAME, 2412);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, messageCaptor.getValue().what);
+        int frequency = (int) messageCaptor.getValue().arg1;
+        assertEquals(2412, frequency);
+    }
 }

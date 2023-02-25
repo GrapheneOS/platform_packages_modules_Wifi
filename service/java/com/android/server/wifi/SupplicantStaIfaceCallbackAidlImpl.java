@@ -1322,11 +1322,19 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         }
     }
 
+    /**
+     * Used to indicate that the operating frequency has changed for this BSS.
+     * This event is triggered when STA switches the channel due to channel
+     * switch announcement from the connected access point.
+     *
+     * @param frequencyMhz New frequency in MHz.
+     */
     @Override
     public void onBssFrequencyChanged(int frequencyMhz)
             throws android.os.RemoteException {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onBssFrequencyChanged: frequency " + frequencyMhz);
+            mWifiMonitor.broadcastBssFrequencyChanged(mIfaceName, frequencyMhz);
         }
     }
 
