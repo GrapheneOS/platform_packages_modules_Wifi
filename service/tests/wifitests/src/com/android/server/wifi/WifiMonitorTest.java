@@ -542,7 +542,7 @@ public class WifiMonitorTest extends WifiBaseTest {
         String bssid = BSSID;
         SupplicantState newState = SupplicantState.ASSOCIATED;
         mWifiMonitor.broadcastSupplicantStateChangeEvent(
-                WLAN_IFACE_NAME, networkId, wifiSsid, bssid, newState);
+                WLAN_IFACE_NAME, networkId, wifiSsid, bssid, 2412, newState);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
@@ -552,6 +552,7 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(networkId, result.networkId);
         assertEquals(wifiSsid, result.wifiSsid);
         assertEquals(bssid, result.bssid);
+        assertEquals(2412, result.frequencyMhz);
         assertEquals(newState, result.state);
     }
 

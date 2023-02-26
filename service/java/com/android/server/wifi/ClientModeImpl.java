@@ -3004,6 +3004,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.setNetworkId(stateChangeResult.networkId);
             mWifiInfo.setBSSID(stateChangeResult.bssid);
             mWifiInfo.setSSID(stateChangeResult.wifiSsid);
+            if (stateChangeResult.frequencyMhz > 0) {
+                mWifiInfo.setFrequency(stateChangeResult.frequencyMhz);
+            }
             setMultiLinkInfo(stateChangeResult.bssid);
             if (state == SupplicantState.ASSOCIATED) {
                 updateWifiInfoLinkParamsAfterAssociation();

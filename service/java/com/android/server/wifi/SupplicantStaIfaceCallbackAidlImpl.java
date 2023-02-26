@@ -218,7 +218,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(
                     mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), wifiSsid,
-                    bssidStr, newSupplicantState);
+                    bssidStr, frequencyMhz, newSupplicantState);
         }
     }
 

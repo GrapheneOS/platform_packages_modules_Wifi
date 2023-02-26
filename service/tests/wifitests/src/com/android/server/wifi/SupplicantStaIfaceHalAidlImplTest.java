@@ -957,7 +957,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Can't compare WifiSsid instances because they lack an equals.
         verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(WifiConfiguration.INVALID_NETWORK_ID),
-                any(WifiSsid.class), eq(BSSID), eq(SupplicantState.INACTIVE));
+                any(WifiSsid.class), eq(BSSID), eq(0), eq(SupplicantState.INACTIVE));
     }
 
     /**
@@ -978,7 +978,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
-                any(WifiSsid.class), eq(BSSID), eq(SupplicantState.ASSOCIATED));
+                any(WifiSsid.class), eq(BSSID), eq(0), eq(SupplicantState.ASSOCIATED));
     }
 
     /**
@@ -1003,7 +1003,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(null));
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
-                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(0), eq(SupplicantState.COMPLETED));
     }
 
     /**
@@ -1029,6 +1029,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         stateChangeData.bssid = NativeUtil.macAddressToByteArray(BSSID);
         stateChangeData.keyMgmtMask = android.hardware.wifi.supplicant.KeyMgmtMask.WPA_PSK;
         stateChangeData.filsHlpSent = false;
+        stateChangeData.frequencyMhz = 2412;
         mISupplicantStaIfaceCallback.onSupplicantStateChanged(stateChangeData);
 
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastNetworkConnectionEvent(
@@ -1036,7 +1037,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(expectedAkmMask));
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
-                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(2412),
+                eq(SupplicantState.COMPLETED));
     }
 
     /**
@@ -2093,7 +2095,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         // Can't compare WifiSsid instances because they lack an equality operator.
         verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(WifiConfiguration.INVALID_NETWORK_ID),
-                any(WifiSsid.class), eq(BSSID), eq(SupplicantState.INACTIVE));
+                any(WifiSsid.class), eq(BSSID), eq(0), eq(SupplicantState.INACTIVE));
     }
 
     /**
@@ -2168,7 +2170,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(null));
         wifiMonitorInOrder.verify(mWifiMonitor).broadcastSupplicantStateChangeEvent(
                 eq(WLAN0_IFACE_NAME), eq(frameworkNetworkId),
-                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(SupplicantState.COMPLETED));
+                eq(TRANSLATED_SUPPLICANT_SSID), eq(BSSID), eq(0), eq(SupplicantState.COMPLETED));
     }
 
     /**

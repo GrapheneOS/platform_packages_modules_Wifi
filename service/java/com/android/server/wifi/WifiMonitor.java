@@ -627,13 +627,15 @@ public class WifiMonitor {
      * @param iface Name of iface on which this occurred.
      * @param networkId ID of the network in wpa_supplicant.
      * @param bssid BSSID of the access point.
+     * @param frequencyMhz Frequency of the connected channel in MHz
      * @param newSupplicantState New supplicant state.
      */
     public void broadcastSupplicantStateChangeEvent(String iface, int networkId, WifiSsid wifiSsid,
-                                                    String bssid,
+                                                    String bssid, int frequencyMhz,
                                                     SupplicantState newSupplicantState) {
         sendMessage(iface, SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(networkId, wifiSsid, bssid, newSupplicantState));
+                new StateChangeResult(networkId, wifiSsid, bssid, frequencyMhz,
+                        newSupplicantState));
     }
 
     /**
