@@ -816,6 +816,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mWifiInjector.getSsidTranslator().handleBootCompleted();
             mWifiInjector.getPasspointManager().handleBootCompleted();
             mWifiInjector.getInterfaceConflictManager().handleBootCompleted();
+            mWifiInjector.getHalDeviceManager().handleBootCompleted();
             // HW capabilities is ready after boot completion.
             if (!mWifiGlobals.isInsecureEnterpriseConfigurationAllowed()) {
                 mWifiConfigManager.updateTrustOnFirstUseFlag(isTrustOnFirstUseSupported());
