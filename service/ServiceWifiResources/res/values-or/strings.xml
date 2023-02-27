@@ -132,7 +132,7 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"ସର୍ଭର ନାମ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"ପ୍ରଦାନକାରୀର ନାମ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"ସଂସ୍ଥା:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"ଯୋଗାଯୋଗ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"କଣ୍ଟାକ୍ଟ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"ଦସ୍ତଖତ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"ନେଟୱାର୍କକୁ ଯାଞ୍ଚ କରିବା ଆବଶ୍ୟକ"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"ସଂଯୋଗ କରିବା ପୂର୍ବରୁ <xliff:g id="SSID">%1$s</xliff:g> ପାଇଁ ଥିବା ନେଟୱାର୍କ ବିବରଣୀର ସମୀକ୍ଷା କରନ୍ତୁ। ଜାରି ରଖିବାକୁ ଟାପ କରନ୍ତୁ।"</string>

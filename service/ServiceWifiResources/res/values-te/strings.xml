@@ -29,7 +29,7 @@
     <string name="notification_channel_network_available" msgid="8454366142428864948">"నెట్‌వర్క్ అందుబాటులో ఉంది"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"సూచించిన Wi‑Fi నెట్‌వర్క్‌లను అనుమతించాలా?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> సూచించిన నెట్‌వర్క్‌లు. పరికరం ఆటోమేటిక్‌గా కనెక్ట్ అవచ్చు."</string>
-    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించు"</string>
+    <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించండి"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"వద్దు"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi-Fiకి కనెక్ట్ చేయాలా?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"పరికర లొకేషన్‌ను ట్రాక్ చేయడానికి ఉపయోగపడే SIM IDని ఈ నెట్‌వర్క్‌లు అందుకుంటాయి"</string>
