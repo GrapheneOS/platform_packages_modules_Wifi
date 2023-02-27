@@ -48,6 +48,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.NativeUtil;
 
@@ -93,10 +94,12 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 }
             };
     private final WifiP2pMonitor mMonitor;
+    private final WifiInjector mWifiInjector;
     private ISupplicantP2pIfaceCallback mCallback = null;
 
-    public SupplicantP2pIfaceHalAidlImpl(WifiP2pMonitor monitor) {
+    public SupplicantP2pIfaceHalAidlImpl(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
         mMonitor = monitor;
+        mWifiInjector = wifiInjector;
     }
 
     /**

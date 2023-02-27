@@ -180,6 +180,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     private @Mock WifiMetrics mWifiMetrics;
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock SsidTranslator mSsidTranslator;
+    private @Mock WifiInjector mWifiInjector;
     private @Mock PmkCacheManager mPmkCacheManager;
 
     private @Captor ArgumentCaptor<List<SupplicantStaIfaceHal.QosPolicyRequest>>
@@ -199,7 +200,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         SupplicantStaIfaceHalSpy() {
             super(mContext, mWifiMonitor, mHandler, mClock, mWifiMetrics, mWifiGlobals,
-                    mSsidTranslator);
+                    mSsidTranslator, mWifiInjector);
             mStaNetwork = mSupplicantStaNetworkMock;
         }
 

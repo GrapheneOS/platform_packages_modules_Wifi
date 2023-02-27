@@ -65,6 +65,7 @@ import android.text.TextUtils;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NativeUtil;
 
 import org.junit.Before;
@@ -92,6 +93,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     private @Mock ISupplicantP2pIface mISupplicantP2pIfaceMock;
     private @Mock ISupplicantP2pNetwork mISupplicantP2pNetworkMock;
     private @Mock WifiP2pMonitor mWifiMonitor;
+    private @Mock WifiInjector mWifiInjector;
     private @Mock IBinder mServiceBinderMock;
 
     final String mIfaceName = "virtual_interface_name";
@@ -139,7 +141,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
 
     private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlImpl {
         SupplicantP2pIfaceHalSpy() {
-            super(mWifiMonitor);
+            super(mWifiMonitor, mWifiInjector);
         }
 
         @Override

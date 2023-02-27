@@ -156,6 +156,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private final WifiMetrics mWifiMetrics;
     private final WifiGlobals mWifiGlobals;
     private final SsidTranslator mSsidTranslator;
+    private final WifiInjector mWifiInjector;
     private CountDownLatch mWaitForDeathLatch;
     private INonStandardCertCallback mNonStandardCertCallback;
     private SupplicantStaIfaceHal.QosScsResponseCallback mQosScsResponseCallback;
@@ -183,7 +184,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
 
     public SupplicantStaIfaceHalAidlImpl(Context context, WifiMonitor monitor, Handler handler,
             Clock clock, WifiMetrics wifiMetrics, WifiGlobals wifiGlobals,
-            @NonNull SsidTranslator ssidTranslator) {
+            @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
         mContext = context;
         mWifiMonitor = monitor;
         mEventHandler = handler;
@@ -193,6 +194,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         mSsidTranslator = ssidTranslator;
         mSupplicantDeathRecipient = new SupplicantDeathRecipient();
         mPmkCacheManager = new PmkCacheManager(mClock, mEventHandler);
+        mWifiInjector = wifiInjector;
     }
 
     /**
