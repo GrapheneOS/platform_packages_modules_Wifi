@@ -2970,10 +2970,18 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (bssid == null) return;
         ScanDetailCache scanDetailCache = mWifiConfigManager.getScanDetailCacheForNetwork(
                 mWifiInfo.getNetworkId());
-        if (scanDetailCache == null) return;
-        ScanResult matchingScanResult = scanDetailCache.getScanResult(bssid);
-        if (matchingScanResult == null) return;
-        if (matchingScanResult.getApMldMacAddress() != null) {
+        ScanResult matchingScanResult = null;
+        if (scanDetailCache != null) {
+            matchingScanResult = scanDetailCache.getScanResult(bssid);
+        }
+        /**
+         * If FW roams to a new AP, the BSSID may not be in the scan detailed cache. Set Multi-Link
+         * info only if the BSSID is present in the scan detailed cache and AP is a Multi-Link
+         * Device. If not, clear Multi-Link info from WifiInfo. After association
+         * {@link ClientModeImpl#updateMloLinkAddrAndStates(ConnectionMloLinksInfo)} will update
+         * the Multi-Link info from supplicant if present.
+         */
+        if (matchingScanResult != null && matchingScanResult.getApMldMacAddress() != null) {
             mWifiInfo.setApMldMacAddress(matchingScanResult.getApMldMacAddress());
             mWifiInfo.setApMloLinkId(matchingScanResult.getApMloLinkId());
             mWifiInfo.setAffiliatedMloLinks(matchingScanResult.getAffiliatedMloLinks());
