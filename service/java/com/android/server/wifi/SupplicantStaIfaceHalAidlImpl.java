@@ -131,7 +131,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private boolean mVerboseLoggingEnabled = false;
     private boolean mVerboseHalLoggingEnabled = false;
     private boolean mServiceDeclared = false;
-    private int mServiceVersion;
+    private int mServiceVersion = -1;
 
     // Supplicant HAL interface objects
     private ISupplicant mISupplicant = null;
@@ -453,7 +453,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             Log.i(TAG, "Local Version: " + ISupplicant.VERSION);
 
             try {
-                mServiceVersion = mISupplicant.getInterfaceVersion();
+                getServiceVersion();
                 Log.i(TAG, "Remote Version: " + mServiceVersion);
                 IBinder serviceBinder = getServiceBinderMockable();
                 if (serviceBinder == null) {
@@ -467,6 +467,20 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
                 return false;
+            }
+        }
+    }
+
+    private void getServiceVersion() throws RemoteException {
+        synchronized (mLock) {
+            if (mISupplicant == null) return;
+            if (mServiceVersion == -1) {
+                int serviceVersion = mISupplicant.getInterfaceVersion();
+                mWifiInjector.getSettingsConfigStore().put(
+                        WifiSettingsConfigStore.SUPPLICANT_HAL_AIDL_SERVICE_VERSION,
+                        serviceVersion);
+                mServiceVersion = serviceVersion;
+                Log.i(TAG, "Remote service version was cached");
             }
         }
     }
