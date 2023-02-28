@@ -5811,6 +5811,30 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a WifiIsUnusableEvent isn't logged and the current list of usability stats
+     * entries are not labeled and saved when receiving an IP reachability failure message with
+     * non roam type but {@link isHandleRssiOrganicKernelFailuresEnabled} is enabled.
+     * @throws Exception
+     */
+    @Test
+    public void verifyIpReachabilityFailureMsgUpdatesWifiUsabilityMetrics_enableFlag()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+        assumeTrue(SdkLevel.isAtLeastU());
+        connect();
+
+        ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", ReachabilityLossReason.CONFIRM);
+        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mLooper.dispatchAll();
+        verify(mWifiMetrics, never()).logWifiIsUnusableEvent(WIFI_IFACE_NAME,
+                WifiIsUnusableEvent.TYPE_IP_REACHABILITY_LOST);
+        verify(mWifiMetrics, never()).addToWifiUsabilityStatsList(WIFI_IFACE_NAME,
+                WifiUsabilityStats.LABEL_BAD,
+                WifiUsabilityStats.TYPE_IP_REACHABILITY_LOST, -1);
+    }
+
+    /**
      * Tests that when {@link ClientModeImpl} receives a SUP_REQUEST_IDENTITY message, it responds
      * to the supplicant with the SIM identity.
      */
@@ -6768,6 +6792,46 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
 
+    private void doIpReachabilityFailureTest(int lossReason, boolean shouldWifiDisconnect)
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        connect();
+        expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
+        reset(mWifiNetworkAgent);
+
+        // Trigger ip reachability failure from cmd_confirm or organic kernel probe and ensure
+        // wifi never disconnects and eventually state machine transits to L3ProvisioningState
+        // on U and above, but wifi should still disconnect on previous platforms.
+        ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", lossReason);
+        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mLooper.dispatchAll();
+        if (!shouldWifiDisconnect) {
+            verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+            assertEquals("L3ProvisioningState", getCurrentState().getName());
+        } else {
+            verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+        }
+    }
+
+    @Test
+    public void testIpReachabilityFailureConfirm_enableHandleRssiOrganicKernelFailuresFlag()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+
+        doIpReachabilityFailureTest(ReachabilityLossReason.CONFIRM,
+                false /* shouldWifiDisconnect */);
+    }
+
+    @Test
+    public void testIpReachabilityFailureConfirm_disableHandleRssiOrganicKernelFailuresFlag()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(false);
+
+        doIpReachabilityFailureTest(ReachabilityLossReason.CONFIRM,
+                true /* shouldWifiDisconnect */);
+    }
+
     @Test
     public void testIpReachabilityFailureOrganicTriggersDisconnection() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
@@ -6781,6 +6845,24 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
+    public void testIpReachabilityFailureOrganic_enableHandleRssiOrganicKernelFailuresFlag()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+
+        doIpReachabilityFailureTest(ReachabilityLossReason.ORGANIC,
+                false /* shouldWifiDisconnect */);
+    }
+
+    @Test
+    public void testIpReachabilityFailureOrganic_disableHandleRssiOrganicKernelFailuresFlag()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(false);
+
+        doIpReachabilityFailureTest(ReachabilityLossReason.ORGANIC,
+                true /* shouldWifiDisconnect */);
     }
 
     @Test
