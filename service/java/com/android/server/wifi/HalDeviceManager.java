@@ -86,12 +86,12 @@ public class HalDeviceManager {
     @VisibleForTesting
     public static final int START_HAL_RETRY_TIMES = 3;
 
+    private final WifiContext mContext;
     private final Clock mClock;
     private final WifiInjector mWifiInjector;
     private final Handler mEventHandler;
     private WifiHal mWifiHal;
     private WifiDeathRecipient mIWifiDeathRecipient;
-    private boolean mWifiUserApprovalRequiredForD2dInterfacePriority;
     private boolean mIsConcurrencyComboLoadedFromDriver;
     private boolean mWaitForDestroyedListeners;
     private ArrayMap<WifiHal.WifiInterface, SoftApManager> mSoftApManagers = new ArrayMap<>();
@@ -137,10 +137,7 @@ public class HalDeviceManager {
     // public API
     public HalDeviceManager(WifiContext context, Clock clock, WifiInjector wifiInjector,
             Handler handler) {
-        Resources res = context.getResources();
-        mWifiUserApprovalRequiredForD2dInterfacePriority =
-                res.getBoolean(R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority);
-        mWaitForDestroyedListeners = res.getBoolean(R.bool.config_wifiWaitForDestroyedListeners);
+        mContext = context;
         mClock = clock;
         mWifiInjector = wifiInjector;
         mEventHandler = handler;
@@ -1914,9 +1911,6 @@ public class HalDeviceManager {
      * interface request from |existingRequestorWsPriority|.
      *
      * Rule:
-     *  - If |mWifiUserApprovalRequiredForD2dInterfacePriority| is true, AND
-     *    |newRequestorWsPriority| > PRIORITY_BG, AND |requestedCreateType| is
-     *    HDM_CREATE_IFACE_P2P or HDM_CREATE_IFACE_NAN, then YES
      *  - If |newRequestorWsPriority| > |existingRequestorWsPriority|, then YES.
      *  - If they are at the same priority level, then
      *      - If both are privileged and not for the same interface type, then YES.
@@ -2734,6 +2728,14 @@ public class HalDeviceManager {
             if (wifiChip == null) return null;
             return wifiChip.getSupportedRadioCombinationsMatrix();
         }
+    }
+
+    /**
+     * Initialization after boot completes to get boot-dependent resources.
+     */
+    public void handleBootCompleted() {
+        Resources res = mContext.getResources();
+        mWaitForDestroyedListeners = res.getBoolean(R.bool.config_wifiWaitForDestroyedListeners);
     }
 
     /**
