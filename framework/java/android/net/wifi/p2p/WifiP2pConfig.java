@@ -556,7 +556,7 @@ public class WifiP2pConfig implements Parcelable {
          * provisioning mode should be {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} or
          * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
          * <p>
-         * When joining a group as Group Client using {@link
+         * When joining a group as group client using {@link
          * WifiP2pManager#connect(WifiP2pManager.Channel, WifiP2pConfig,
          * WifiP2pManager.ActionListener)},
          * specifying {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} directs the system to
@@ -566,19 +566,23 @@ public class WifiP2pConfig implements Parcelable {
          * <p>
          *     Optional. {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP} by default.
          * <p>
-         * Use {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} to determine
-         * whether the device supports this feature for
-         * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}. If
-         * {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} returns
-         * {@code false} then {@link WifiP2pManager#connect(WifiP2pManager.Channel, WifiP2pConfig,
-         * WifiP2pManager.ActionListener)} method will throw {@link UnsupportedOperationException}
-         * when used with {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
+         *
+         * If {@link WifiP2pManager#isGroupOwnerIPv6LinkLocalAddressProvided()} is {@code true} and
+         * {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL} is used then the system will
+         * discover the group owner's IPv6 link-local address and broadcast it using the
+         * {@link WifiP2pManager#EXTRA_WIFI_P2P_INFO} extra of the
+         * {@link WifiP2pManager#WIFI_P2P_CONNECTION_CHANGED_ACTION} broadcast. Otherwise, if
+         * {@link WifiP2pManager#isGroupOwnerIPv6LinkLocalAddressProvided()} is
+         * {@code false} then the group owner's IPv6 link-local address is not discovered and it is
+         * the responsibility of the caller to obtain it in some other way, e.g. via out-of-band
+         * communication.
          *
          * @param groupClientIpProvisioningMode the IP provisioning mode of the group client.
          *             This should be one of {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP},
          *             {@link #GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
+         * @see WifiP2pManager#isGroupOwnerIPv6LinkLocalAddressProvided()
          */
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         @NonNull

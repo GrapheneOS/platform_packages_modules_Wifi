@@ -1342,8 +1342,8 @@ package android.net.wifi.p2p {
     method public static int getP2pMaxAllowedVendorElementsLengthBytes();
     method public android.net.wifi.p2p.WifiP2pManager.Channel initialize(android.content.Context, android.os.Looper, android.net.wifi.p2p.WifiP2pManager.ChannelListener);
     method public boolean isChannelConstrainedDiscoverySupported();
-    method public boolean isGroupClientIpv6LinkLocalProvisioningSupported();
     method public boolean isGroupClientRemovalSupported();
+    method public boolean isGroupOwnerIPv6LinkLocalAddressProvided();
     method public boolean isSetVendorElementsSupported();
     method public void removeClient(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void removeExternalApprover(@NonNull android.net.wifi.p2p.WifiP2pManager.Channel, @NonNull android.net.MacAddress, @Nullable android.net.wifi.p2p.WifiP2pManager.ActionListener);
