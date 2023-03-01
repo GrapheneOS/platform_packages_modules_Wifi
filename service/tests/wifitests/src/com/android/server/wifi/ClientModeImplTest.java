@@ -8318,7 +8318,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // FT/PSK scan, do not update linked networks
         ScanResult ftPskScan = new ScanResult();
         ftPskScan.capabilities = "FT/PSK";
-        when(mScanRequestProxy.getScanResult(any())).thenReturn(ftPskScan);
+        when(mScanDetailCache.getScanResult(any())).thenReturn(ftPskScan);
         mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
                 NetworkAgent.VALIDATION_STATUS_VALID, null /* captivePortalUrl */);
         mLooper.dispatchAll();
