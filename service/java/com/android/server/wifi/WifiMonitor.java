@@ -127,6 +127,9 @@ public class WifiMonitor {
     /* the AT_PERMANENT_ID_REQ denied indication for EAP-SIM/AKA/AKA' */
     public static final int PERMANENT_ID_REQ_DENIED_INDICATION = BASE + 78;
 
+    /* BSS frequency changed event (when STA switches the channel due to CSA) */
+    public static final int BSS_FREQUENCY_CHANGED_EVENT = BASE + 79;
+
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
     private static final int CONFIG_AUTH_FAILURE = 18;
@@ -624,13 +627,15 @@ public class WifiMonitor {
      * @param iface Name of iface on which this occurred.
      * @param networkId ID of the network in wpa_supplicant.
      * @param bssid BSSID of the access point.
+     * @param frequencyMhz Frequency of the connected channel in MHz
      * @param newSupplicantState New supplicant state.
      */
     public void broadcastSupplicantStateChangeEvent(String iface, int networkId, WifiSsid wifiSsid,
-                                                    String bssid,
+                                                    String bssid, int frequencyMhz,
                                                     SupplicantState newSupplicantState) {
         sendMessage(iface, SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(networkId, wifiSsid, bssid, newSupplicantState));
+                new StateChangeResult(networkId, wifiSsid, bssid, frequencyMhz,
+                        newSupplicantState));
     }
 
     /**
@@ -727,5 +732,17 @@ public class WifiMonitor {
     public void broadcastMloLinksInfoChanged(String iface,
             WifiMonitor.MloLinkInfoChangeReason reason) {
         sendMessage(iface, MLO_LINKS_INFO_CHANGED, reason);
+    }
+
+    /**
+     * Broadcast the BSS frequency changed event.
+     * This message is sent when STA switches the channel due to channel
+     * switch announcement from the connected access point.
+     *
+     * @param iface Name of the iface on which this occurred.
+     * @param frequencyMhz New frequency in MHz.
+     */
+    public void broadcastBssFrequencyChanged(String iface, int frequencyMhz) {
+        sendMessage(iface, BSS_FREQUENCY_CHANGED_EVENT, frequencyMhz);
     }
 }
