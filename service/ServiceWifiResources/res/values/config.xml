@@ -635,7 +635,7 @@
     other reasons, the scan might be performed as well in order to avoid subsequent awakening.
     If no spontaneous awakening happens at the end of the time window, the device is awakened to
     perform the scan.-->
-    <bool translatable="false" name="config_wifiSwPnoEnabled">true</bool>
+    <bool translatable="false" name="config_wifiSwPnoEnabled">false</bool>
 
     <!-- When disconnected and Sw PNO scan is enabled, wake up to do a single scan every
     config_wifiSwPnoFastTimerSec for config_wifiSwPnoFastTimerIterations iterations-->
