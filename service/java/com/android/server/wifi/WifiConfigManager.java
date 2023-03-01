@@ -1465,6 +1465,10 @@ public class WifiConfigManager {
             }
             Log.w(TAG, "Insecure Enterprise network " + config.SSID
                     + " configured by Settings/SUW");
+
+            // Implicit user approval, when creating an insecure connection which is allowed
+            // in the configuration of the device
+            newInternalConfig.enterpriseConfig.setUserApproveNoCaCert(true);
         }
 
         // Update the keys for saved enterprise networks. For Passpoint, the certificates
@@ -1517,11 +1521,6 @@ public class WifiConfigManager {
         if (hasCredentialChanged) {
             newInternalConfig.getNetworkSelectionStatus().setHasEverConnected(false);
             newInternalConfig.setHasPreSharedKeyChanged(true);
-        }
-
-        // Ensure that the user approve flag is set to false for a new network.
-        if (newNetwork && config.isEnterprise()) {
-            config.enterpriseConfig.setUserApproveNoCaCert(false);
         }
 
         // Add it to our internal map. This will replace any existing network configuration for
@@ -4197,7 +4196,7 @@ public class WifiConfigManager {
         try {
             if (newConfig.enterpriseConfig.isTrustOnFirstUseEnabled()) {
                 newConfig.enterpriseConfig.setCaCertificateForTrustOnFirstUse(caCert);
-                // setCaCertificate will mark that this CA certifiate should be removed on
+                // setCaCertificate will mark that this CA certificate should be removed on
                 // removing this configuration.
                 newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
             } else {
