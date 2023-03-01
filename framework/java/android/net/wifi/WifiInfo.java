@@ -146,6 +146,9 @@ public class WifiInfo implements TransportInfo, Parcelable {
     public static final int INVALID_RSSI = -127;
 
     /** @hide **/
+    public static final int UNKNOWN_FREQUENCY = -1;
+
+    /** @hide **/
     public static final int MIN_RSSI = -126;
 
     /** @hide **/
@@ -493,7 +496,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
         mSupplicantState = SupplicantState.UNINITIALIZED;
         mRssi = INVALID_RSSI;
         mLinkSpeed = LINK_SPEED_UNKNOWN;
-        mFrequency = -1;
+        mFrequency = UNKNOWN_FREQUENCY;
         mSubscriptionId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
         mSecurityType = -1;
         mIsPrimary = IS_PRIMARY_FALSE;
