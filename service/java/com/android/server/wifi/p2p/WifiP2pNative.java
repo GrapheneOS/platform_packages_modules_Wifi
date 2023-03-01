@@ -59,8 +59,6 @@ public class WifiP2pNative {
     private final WifiVendorHal mWifiVendorHal;
     private String mP2pIfaceName;
     private InterfaceDestroyedListenerInternal mInterfaceDestroyedListener;
-    // Cache the features and return it when P2P interface is not up.
-    private long mSupportedFeatures = -1L;
 
 
     // Internal callback registered to HalDeviceManager.
@@ -220,7 +218,6 @@ public class WifiP2pNative {
                 mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToSupplicant();
                 return null;
             }
-            getSupportedFeatures();
             Log.i(TAG, "P2P interface setup completed");
             return ifaceName;
         } else {
@@ -269,16 +266,15 @@ public class WifiP2pNative {
     /**
      * Get the supported features.
      *
-     * The features are stored once P2P interface is up so it can be used
-     * when P2P interface is down due to idle shutdown.
+     * The features can be retrieved regardless of whether the P2P interface is up.
+     *
+     * Note that the feature set may be incomplete if Supplicant has not been started
+     * on the device yet.
      *
      * @return bitmask defined by WifiP2pManager.FEATURE_*
      */
     public long getSupportedFeatures() {
-        if (-1L != mSupportedFeatures) return mSupportedFeatures;
-        mSupportedFeatures = mSupplicantP2pIfaceHal.getSupportedFeatures();
-        Log.i(TAG, "Retrieved supported features: " + mSupportedFeatures);
-        return mSupportedFeatures;
+        return mSupplicantP2pIfaceHal.getSupportedFeatures();
     }
 
     /**
@@ -879,16 +875,6 @@ public class WifiP2pNative {
      */
     public boolean setMacRandomization(boolean enable) {
         return mSupplicantP2pIfaceHal.setMacRandomization(enable);
-    }
-
-    /**
-     * Get the supported features
-     *
-     * @param ifaceName Name of the interface.
-     * @return bitmask defined by WifiManager.WIFI_FEATURE_*
-     */
-    public long getSupportedFeatureSet(@NonNull String ifaceName) {
-        return mWifiVendorHal.getSupportedFeatureSet(ifaceName);
     }
 
     /**
