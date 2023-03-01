@@ -3605,15 +3605,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     .showFailedToConnectDueToNoRandomizedMacSupportNotification(mTargetNetworkId);
         }
 
+        ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
+        int frequency = mWifiInfo.getFrequency();
+        if (frequency == WifiInfo.UNKNOWN_FREQUENCY && candidate != null) {
+            frequency = candidate.frequency;
+        }
         mWifiMetrics.endConnectionEvent(mInterfaceName, level2FailureCode,
-                connectivityFailureCode, level2FailureReason, mWifiInfo.getFrequency());
+                connectivityFailureCode, level2FailureReason, frequency);
         mWifiConnectivityManager.handleConnectionAttemptEnded(
                 mClientModeManager, level2FailureCode, level2FailureReason, bssid,
                 configuration);
         mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
         mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
                 level2FailureCode, configuration, getConnectedBssidInternal());
-        ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
         if (candidate != null
                 && !TextUtils.equals(candidate.BSSID, getConnectedBssidInternal())) {
             mWifiMetrics.incrementNumBssidDifferentSelectionBetweenFrameworkAndFirmware();
@@ -7537,7 +7541,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // populate the target security params to the internal configuration manually,
         // and then wifi info could retrieve this information.
         mWifiConfigManager.setNetworkCandidateScanResult(
-                config.networkId, null, 0, params);
+                config.networkId,
+                freshConfig == null ? null : freshConfig.getNetworkSelectionStatus().getCandidate(),
+                0, params);
     }
 
     /**
