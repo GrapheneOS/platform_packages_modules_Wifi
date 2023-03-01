@@ -2202,7 +2202,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Simulate the target network removal & the disconnect trigger.
         WifiConfiguration removedNetwork = new WifiConfiguration();
         removedNetwork.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removedNetwork);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkRemoved(removedNetwork);
+        }
         mLooper.dispatchAll();
 
         verify(mWifiNative).removeNetworkCachedData(FRAMEWORK_NETWORK_ID);
@@ -2884,7 +2887,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         // trigger removal callback to trigger disconnect.
         WifiConfiguration removedConfig = new WifiConfiguration();
         removedConfig.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removedConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkRemoved(removedConfig);
+        }
 
         reset(mWifiConfigManager);
 
@@ -5877,7 +5883,10 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiConfiguration removedNetwork = new WifiConfiguration();
         removedNetwork.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removedNetwork);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkRemoved(removedNetwork);
+        }
         mLooper.dispatchAll();
 
         verify(mWifiNative).removeNetworkCachedData(FRAMEWORK_NETWORK_ID);
@@ -5894,8 +5903,11 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiConfiguration disabledNetwork = new WifiConfiguration();
         disabledNetwork.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkPermanentlyDisabled(disabledNetwork,
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkPermanentlyDisabled(disabledNetwork,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD);
+        }
         mLooper.dispatchAll();
 
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
@@ -5947,8 +5959,11 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiConfiguration disabledNetwork = new WifiConfiguration();
         disabledNetwork.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkPermanentlyDisabled(disabledNetwork,
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkPermanentlyDisabled(disabledNetwork,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT);
+        }
         mLooper.dispatchAll();
 
         assertEquals("L3ConnectedState", getCurrentState().getName());
@@ -5964,8 +5979,11 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiConfiguration disabledNetwork = new WifiConfiguration();
         disabledNetwork.networkId = FRAMEWORK_NETWORK_ID;
-        mConfigUpdateListenerCaptor.getValue().onNetworkTemporarilyDisabled(disabledNetwork,
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkTemporarilyDisabled(disabledNetwork,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY);
+        }
         mLooper.dispatchAll();
 
         assertEquals("L3ConnectedState", getCurrentState().getName());
@@ -6397,7 +6415,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.meteredOverride = METERED_OVERRIDE_METERED;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
         verify(mWifiMetrics).logStaEvent(anyString(), eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
@@ -6419,7 +6440,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.meteredOverride = METERED_OVERRIDE_NOT_METERED;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
 
@@ -6449,7 +6473,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiInfo wifiInfo = mWifiInfo;
         wifiInfo.setMeteredHint(true);
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
@@ -6474,7 +6501,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiInfo wifiInfo = mWifiInfo;
         wifiInfo.setMeteredHint(false);
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
 
@@ -6503,7 +6533,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiInfo wifiInfo = mWifiInfo;
         wifiInfo.setMeteredHint(true);
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
 
@@ -6530,7 +6563,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiInfo wifiInfo = mWifiInfo;
         wifiInfo.setMeteredHint(false);
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
 
@@ -6628,7 +6664,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.meteredOverride = METERED_OVERRIDE_METERED;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         verify(mWifiNative).removeNetworkCachedData(eq(oldConfig.networkId));
     }
@@ -8043,7 +8082,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiNative.getCurrentNetworkSecurityParams(any())).thenReturn(
                 SecurityParams.createSecurityParamsBySecurityType(
                         WifiConfiguration.SECURITY_TYPE_PSK));
-        mConfigUpdateListenerCaptor.getValue().onNetworkRemoved(removeConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkRemoved(removeConfig);
+        }
         mLooper.dispatchAll();
 
         if (!isSecondary) {
@@ -8389,7 +8431,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.trusted = false;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
         verify(mWifiMetrics).logStaEvent(anyString(), eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
@@ -8412,7 +8457,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.trusted = true;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
 
@@ -8436,7 +8484,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.trusted = false;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
         verify(mWifiMetrics, never()).logStaEvent(anyString(), anyInt(), anyInt());
@@ -8459,7 +8510,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
         mConnectedNetwork.trusted = true;
 
-        mConfigUpdateListenerCaptor.getValue().onNetworkUpdated(mConnectedNetwork, oldConfig);
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig);
+        }
         mLooper.dispatchAll();
         assertEquals("L3ConnectedState", getCurrentState().getName());
         verifyNoMoreInteractions(mWifiNetworkAgent);

@@ -79,6 +79,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     private static final int ACTION_ACCEPT = 0;
     private static final int ACTION_REJECT = 1;
     private static final int ACTION_TAP = 2;
+    private static final int ACTION_FORGET = 3;
     private static final String WIFI_IFACE_NAME = "wlan-test-9";
     private static final int FRAMEWORK_NETWORK_ID = 2;
     private static final String TEST_SSID = "\"test_ssid\"";
@@ -97,6 +98,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     @Mock private WifiDialogManager.DialogHandle mTofuAlertDialog;
 
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
+    @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener>
+        mOnNetworkUpdateListenerCaptor;
 
     TestLooper mLooper;
     Handler mHandler;
@@ -462,6 +465,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                     eq(null),
                     eq(mHandler));
         }
+
+        verify(mWifiConfigManager).addOnNetworkUpdateListener(
+                mOnNetworkUpdateListenerCaptor.capture());
     }
 
     /**
@@ -506,6 +512,28 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockSelfSignedCert);
 
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
+                isUserSelected, needUserApproval, mockSelfSignedCert, mockSelfSignedCert);
+    }
+
+    /**
+     * Verify Trust On First Use flow with a self-signed CA cert.
+     * - This network is selected by a user.
+     * - Forget the connection.
+     */
+    @Test
+    public void verifyTrustOnFirstUseForgetWhenConnectByUserWithSelfSignedCaCert()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        X509Certificate mockSelfSignedCert = generateMockCert("self", "self", false);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockSelfSignedCert);
+
+        verifyTrustOnFirstUseFlow(config, ACTION_FORGET, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockSelfSignedCert, mockSelfSignedCert);
     }
 
@@ -737,6 +765,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 dialogCallbackCaptor.getValue().onPositiveButtonClicked();
             } else if (action == ACTION_REJECT) {
                 dialogCallbackCaptor.getValue().onNegativeButtonClicked();
+            } else if (action == ACTION_FORGET) {
+                mOnNetworkUpdateListenerCaptor.getValue().onNetworkRemoved(config);
             }
         } else {
             verify(mFrameworkFacade, never()).makeAlertDialogBuilder(any());
@@ -798,6 +828,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
                     any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any());
             verify(mTofuAlertDialog).launchDialog();
+        } else if (action == ACTION_FORGET) {
+            verify(mTofuAlertDialog).dismissDialog();
         }
         verify(mCallbacks, never()).onError(any());
     }
@@ -841,5 +873,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         BroadcastReceiver br = mBroadcastReceiverCaptor.getValue();
         mInsecureEapNetworkHandler.cleanup();
         verify(mContext).unregisterReceiver(br);
+        verify(mWifiConfigManager).removeOnNetworkUpdateListener(
+                mOnNetworkUpdateListenerCaptor.capture());
     }
 }
