@@ -31,7 +31,7 @@ public class StateChangeResult {
 
     private static final String TAG = "StateChangeResult";
     StateChangeResult(int networkId, @NonNull WifiSsid wifiSsid, @NonNull String bssid,
-            SupplicantState state) {
+            int frequencyMhz, SupplicantState state) {
         if (wifiSsid == null) {
             Log.wtf(TAG, "Null SSID provided");
             this.wifiSsid = WifiSsid.fromBytes(null);
@@ -46,11 +46,13 @@ public class StateChangeResult {
         }
         this.state = state;
         this.networkId = networkId;
+        this.frequencyMhz = frequencyMhz;
     }
 
     public final int networkId;
     @NonNull public final WifiSsid wifiSsid;
     @NonNull public final String bssid;
+    public final int frequencyMhz;
     public final SupplicantState state;
 
     @Override
@@ -59,6 +61,7 @@ public class StateChangeResult {
         sb.append(" ssid: ").append(wifiSsid);
         sb.append(" bssid: ").append(bssid);
         sb.append(" nid: ").append(networkId);
+        sb.append(" frequencyMhz: ").append(frequencyMhz);
         sb.append(" state: ").append(state);
         return sb.toString();
     }
