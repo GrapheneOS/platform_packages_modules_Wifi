@@ -199,7 +199,7 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(
                     mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), wifiSsid,
-                    bssidStr, newSupplicantState);
+                    bssidStr, 0, newSupplicantState);
         }
     }
 
