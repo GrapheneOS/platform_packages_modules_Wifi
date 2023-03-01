@@ -39,7 +39,7 @@
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"तपाईं जोडिनुभयो भने <xliff:g id="CARRIERNAME">%s</xliff:g> Wi‑Fi नेटवर्कहरूले तपाईंको SIM सँग सम्बद्ध अद्वित्तीय ID प्रयोग गर्न वा उक्त ID आदान प्रदान गर्न सक्छ। उक्त ID प्रयोग गरी तपाईंको डिभाइसको स्थान पहिल्याउन सकिन्छ।"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"जोड्नुहोस्"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"नजोड्नुहोस्"</string>
-    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi स्वतः सक्रिय हुनेछ"</string>
+    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi स्वतः अन हुने छ"</string>
     <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"तपाईं कुनै सुरक्षित गरिएको उच्च गुणस्तरीय नेटवर्कको नजिक हुनुभएको अवस्थामा"</string>
     <string name="wifi_wakeup_onboarding_action_disable" msgid="6209706680391785825">"फेरि सक्रिय नगर्नुहोला"</string>
     <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"Wi‑Fi स्वतः सक्रिय गरियो"</string>
