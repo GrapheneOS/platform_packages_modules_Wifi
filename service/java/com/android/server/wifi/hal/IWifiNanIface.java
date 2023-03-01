@@ -187,37 +187,39 @@ public interface IWifiNanIface {
      * @param channel            The channel on which to set up the data-path.
      * @param peer               The MAC address of the peer to create a connection with.
      * @param interfaceName      The interface on which to create the data connection.
-     * @param isOutOfBand Is the data-path out-of-band (i.e. without a corresponding Aware discovery
-     *                    session).
-     * @param appInfo Arbitrary binary blob transmitted to the peer.
-     * @param capabilities The capabilities of the firmware.
-     * @param securityConfig Security config to encrypt the data-path
+     * @param isOutOfBand        Is the data-path out-of-band (i.e. without a corresponding Aware
+     *                           discovery
+     *                           session).
+     * @param appInfo            Arbitrary binary blob transmitted to the peer.
+     * @param capabilities       The capabilities of the firmware.
+     * @param securityConfig     Security config to encrypt the data-path
      */
     boolean initiateDataPath(short transactionId, int peerId, int channelRequestType,
             int channel, MacAddress peer, String interfaceName,
             boolean isOutOfBand, byte[] appInfo, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig);
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId);
 
     /**
      * Responds to a data request from a peer. Security is provided by either PMK or Passphrase (not
      * both) - if both are null then an open (unencrypted) link is set up.
      *
-     * @param transactionId Transaction ID for the transaction - used in the async callback to
-     *                      match with the original request.
-     * @param accept Accept (true) or reject (false) the original call.
-     * @param ndpId The NDP (Aware data path) ID. Obtained from the request callback.
-     * @param interfaceName The interface on which the data path will be setup. Obtained from the
-     *                      request callback.
-     * @param appInfo Arbitrary binary blob transmitted to the peer.
-     * @param isOutOfBand Is the data-path out-of-band (i.e. without a corresponding Aware discovery
-     *                    session).
-     * @param capabilities The capabilities of the firmware.
+     * @param transactionId  Transaction ID for the transaction - used in the async callback to
+     *                       match with the original request.
+     * @param accept         Accept (true) or reject (false) the original call.
+     * @param ndpId          The NDP (Aware data path) ID. Obtained from the request callback.
+     * @param interfaceName  The interface on which the data path will be setup. Obtained from the
+     *                       request callback.
+     * @param appInfo        Arbitrary binary blob transmitted to the peer.
+     * @param isOutOfBand    Is the data-path out-of-band (i.e. without a corresponding Aware
+     *                       discovery
+     *                       session).
+     * @param capabilities   The capabilities of the firmware.
      * @param securityConfig Security config to encrypt the data-path
      */
     boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig);
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId);
 
     /**
      * Terminate an existing data-path (does not delete the interface).

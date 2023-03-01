@@ -498,7 +498,7 @@ public class WifiAwareDataPathStateManager {
                 NetworkInformationData.buildTlv(nnri.networkSpecifier.port,
                         nnri.networkSpecifier.transportProtocol),
                 nnri.networkSpecifier.isOutOfBand(),
-                nnri.networkSpecifier.getWifiAwareDataPathSecurityConfig());
+                nnri.networkSpecifier);
 
         return true;
     }
