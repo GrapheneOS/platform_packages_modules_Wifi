@@ -358,6 +358,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     // Track whether DISALLOW_WIFI_DIRECT user restriction has been set
     private boolean mIsP2pDisallowedByAdmin = false;
 
+    // Track the last p2p availability state that was broadcasted
+    private boolean mLastP2pState = false;
+
     private NetworkInfo.DetailedState mDetailedState;
 
     private boolean mTemporarilyDisconnectedWifi = false;
@@ -1211,6 +1214,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     sendMessage(DISABLE_P2P);
                 }
                 mIsP2pDisallowedByAdmin = newIsP2pDisallowedByAdmin;
+                checkAndSendP2pStateChangedBroadcast();
             }
         }
 
@@ -4504,7 +4508,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private void checkAndSendP2pStateChangedBroadcast() {
             Log.d(TAG, "Wifi enabled=" + mIsWifiEnabled + ", P2P disallowed by admin="
                     + mIsP2pDisallowedByAdmin);
-            sendP2pStateChangedBroadcast(isWifiP2pAvailable());
+            boolean wifiP2pAvailable = isWifiP2pAvailable();
+            if (mLastP2pState != wifiP2pAvailable) {
+                mLastP2pState = wifiP2pAvailable;
+                sendP2pStateChangedBroadcast(mLastP2pState);
+            }
         }
 
         private void sendP2pStateChangedBroadcast(boolean enabled) {
