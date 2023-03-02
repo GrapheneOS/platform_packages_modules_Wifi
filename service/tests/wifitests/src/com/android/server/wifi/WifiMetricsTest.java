@@ -2620,9 +2620,9 @@ public class WifiMetricsTest extends WifiBaseTest {
     private static final String   sBSSID = "01:02:03:04:05:06";
 
     private final StateChangeResult mStateDisconnected =
-            new StateChangeResult(0, sWifiSsid, sBSSID, SupplicantState.DISCONNECTED);
+            new StateChangeResult(0, sWifiSsid, sBSSID, 0, SupplicantState.DISCONNECTED);
     private final StateChangeResult mStateCompleted =
-            new StateChangeResult(0, sWifiSsid, sBSSID, SupplicantState.COMPLETED);
+            new StateChangeResult(0, sWifiSsid, sBSSID, 0, SupplicantState.COMPLETED);
     // Test bitmasks of supplicant state changes
     private final int mSupBm1 = WifiMetrics.supplicantStateToBit(mStateDisconnected.state);
     private final int mSupBm2 = WifiMetrics.supplicantStateToBit(mStateDisconnected.state)

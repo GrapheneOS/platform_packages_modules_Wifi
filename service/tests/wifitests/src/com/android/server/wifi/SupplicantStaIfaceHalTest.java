@@ -71,6 +71,7 @@ public class SupplicantStaIfaceHalTest {
     private @Mock WifiMetrics mWifiMetrics;
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock SsidTranslator mSsidTranslator;
+    private @Mock WifiInjector mWifiInjector;
 
     private static final String IFACE_NAME = "wlan0";
     private static final String BSSID = "fa:45:23:23:12:12";
@@ -93,7 +94,7 @@ public class SupplicantStaIfaceHalTest {
     private class SupplicantStaIfaceHalSpy extends SupplicantStaIfaceHal {
         SupplicantStaIfaceHalSpy() {
             super(mContext, mWifiMonitor, mFrameworkFacade,
-                    mHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator);
+                    mHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator, mWifiInjector);
         }
 
         @Override

@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.WifiGlobals;
+import com.android.server.wifi.WifiInjector;
 
 import java.util.List;
 import java.util.Set;
@@ -39,13 +40,16 @@ public class SupplicantP2pIfaceHal {
     private static boolean sHalVerboseLoggingEnabled = true;
     private final WifiP2pMonitor mMonitor;
     private final WifiGlobals mWifiGlobals;
+    private final WifiInjector mWifiInjector;
 
     // HAL interface object - might be implemented by HIDL or AIDL
     private ISupplicantP2pIfaceHal mP2pIfaceHal;
 
-    public SupplicantP2pIfaceHal(WifiP2pMonitor monitor, WifiGlobals wifiGlobals) {
+    public SupplicantP2pIfaceHal(WifiP2pMonitor monitor, WifiGlobals wifiGlobals,
+            WifiInjector wifiInjector) {
         mMonitor = monitor;
         mWifiGlobals = wifiGlobals;
+        mWifiInjector = wifiInjector;
         mP2pIfaceHal = createP2pIfaceHalMockable();
         if (mP2pIfaceHal == null) {
             Log.wtf(TAG, "Failed to get internal ISupplicantP2pIfaceHal instance.");
@@ -113,7 +117,7 @@ public class SupplicantP2pIfaceHal {
             // Prefer AIDL implementation if service is declared.
             if (SupplicantP2pIfaceHalAidlImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantP2pIfaceHal using AIDL implementation.");
-                return new SupplicantP2pIfaceHalAidlImpl(mMonitor);
+                return new SupplicantP2pIfaceHalAidlImpl(mMonitor, mWifiInjector);
 
             } else if (SupplicantP2pIfaceHalHidlImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantP2pIfaceHal using HIDL implementation.");

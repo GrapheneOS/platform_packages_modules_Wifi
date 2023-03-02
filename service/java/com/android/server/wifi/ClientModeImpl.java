@@ -555,6 +555,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @VisibleForTesting
     static final int CMD_ACCEPT_EAP_SERVER_CERTIFICATE                  = BASE + 301;
 
+    @VisibleForTesting
+    static final int CMD_REJECT_EAP_INSECURE_CONNECTION                 = BASE + 302;
+
     /* Tracks if suspend optimizations need to be disabled by DHCP,
      * screen or due to high perf mode.
      * When any of them needs to disable it, we keep the suspend optimizations
@@ -818,13 +821,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
 
                 @Override
-                public void onReject(String ssid) {
+                public void onReject(String ssid, boolean disconnectRequired) {
                     log("Reject Root CA cert for " + ssid);
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
+                            WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_REJECTED_BY_USER,
+                            disconnectRequired ? 1 : 0, ssid);
                 }
 
                 @Override
                 public void onError(String ssid) {
                     log("Insecure EAP network error for " + ssid);
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
+                            WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_EAP_FAILURE,
+                            0, ssid);
                 }};
         mInsecureEapNetworkHandler = new InsecureEapNetworkHandler(
                 mContext,
@@ -901,6 +910,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiMonitor.AUXILIARY_SUPPLICANT_EVENT,
             WifiMonitor.QOS_POLICY_RESET_EVENT,
             WifiMonitor.QOS_POLICY_REQUEST_EVENT,
+            WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT,
     };
 
     private void registerForWifiMonitorEvents()  {
@@ -2307,6 +2317,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
                 sb.append(" ssid=" + msg.obj);
                 break;
+            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
+                sb.append(" frequency=" + msg.arg1);
+                break;
             default:
                 sb.append(" ");
                 sb.append(Integer.toString(msg.arg1));
@@ -2403,6 +2416,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_IPCLIENT_CREATED";
             case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
                 return "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
+            case CMD_REJECT_EAP_INSECURE_CONNECTION:
+                return "CMD_REJECT_EAP_SERVER_CERTIFICATE";
             case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                 return "SUPPLICANT_STATE_CHANGE_EVENT";
             case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
@@ -2453,6 +2468,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "NETWORK_NOT_FOUND_EVENT";
             case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
                 return "TOFU_ROOT_CA_CERTIFICATE";
+            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
+                return "BSS_FREQUENCY_CHANGED_EVENT";
             case RunnerState.STATE_ENTER_CMD:
                 return "Enter";
             case RunnerState.STATE_EXIT_CMD:
@@ -3006,6 +3023,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.setNetworkId(stateChangeResult.networkId);
             mWifiInfo.setBSSID(stateChangeResult.bssid);
             mWifiInfo.setSSID(stateChangeResult.wifiSsid);
+            if (stateChangeResult.frequencyMhz > 0) {
+                mWifiInfo.setFrequency(stateChangeResult.frequencyMhz);
+            }
             setMultiLinkInfo(stateChangeResult.bssid);
             if (state == SupplicantState.ASSOCIATED) {
                 updateWifiInfoLinkParamsAfterAssociation();
@@ -3585,15 +3605,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     .showFailedToConnectDueToNoRandomizedMacSupportNotification(mTargetNetworkId);
         }
 
+        ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
+        int frequency = mWifiInfo.getFrequency();
+        if (frequency == WifiInfo.UNKNOWN_FREQUENCY && candidate != null) {
+            frequency = candidate.frequency;
+        }
         mWifiMetrics.endConnectionEvent(mInterfaceName, level2FailureCode,
-                connectivityFailureCode, level2FailureReason, mWifiInfo.getFrequency());
+                connectivityFailureCode, level2FailureReason, frequency);
         mWifiConnectivityManager.handleConnectionAttemptEnded(
                 mClientModeManager, level2FailureCode, level2FailureReason, bssid,
                 configuration);
         mNetworkFactory.handleConnectionAttemptEnded(level2FailureCode, configuration, bssid);
         mWifiNetworkSuggestionsManager.handleConnectionAttemptEnded(
                 level2FailureCode, configuration, getConnectedBssidInternal());
-        ScanResult candidate = configuration.getNetworkSelectionStatus().getCandidate();
         if (candidate != null
                 && !TextUtils.equals(candidate.BSSID, getConnectedBssidInternal())) {
             mWifiMetrics.incrementNumBssidDifferentSelectionBetweenFrameworkAndFirmware();
@@ -4446,19 +4470,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                     }
                     setSelectedRcoiForPasspoint(config);
-                    if (mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration)) {
-                        /* If TOFU is not supported and the user did not approve to connect to an
-                           insecure network before, do not connect now and instead, display a dialog
-                           or a notification, and keep network disconnected to avoid sending the
-                           credentials.
-                         */
+
+                    // TOFU flow for devices that do not support this feature
+                    mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
+                    if (!isTrustOnFirstUseSupported()) {
                         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
-                        reportConnectionAttemptEnd(
-                                WifiMetrics.ConnectionEvent.FAILURE_CONNECT_NETWORK_FAILED,
-                                WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                                WifiMetricsProto.ConnectionEvent.DISCONNECTED_USER_APPROVAL_NEEDED);
-                        transitionTo(mDisconnectedState);
-                        break;
                     }
                     connectToNetwork(config);
                     break;
@@ -4698,6 +4714,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
+                case CMD_REJECT_EAP_INSECURE_CONNECTION:
                 case CMD_START_ROAM:
                 case CMD_IP_CONFIGURATION_SUCCESSFUL:
                 case CMD_IP_CONFIGURATION_LOST:
@@ -5515,6 +5532,18 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
+                case CMD_REJECT_EAP_INSECURE_CONNECTION: {
+                    log("Received CMD_REJECT_EAP_INSECURE_CONNECTION event");
+                    boolean disconnectRequired = message.arg2 == 1;
+
+                    // TOFU connections are not established until the user approves the certificate.
+                    // If TOFU is not supported and the network is already connected, this will
+                    // disconnect the network.
+                    if (disconnectRequired) {
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
+                    }
+                    break;
+                }
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
@@ -5896,9 +5925,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             (X509Certificate) message.obj)) {
                         Log.d(TAG, "Cannot set pending cert.");
                     }
-                    // Launch user approval upon receiving the server certificate
-                    if (certificateDepth == 0) {
-                        mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
+                    // Launch user approval upon receiving the server certificate and disconnect
+                    if (certificateDepth == 0 && mInsecureEapNetworkHandler
+                            .startUserApprovalIfNecessary(mIsUserSelected)) {
+                        // In the TOFU flow, the user approval dialog is now displayed and the
+                        // network remains disconnected and disabled until it is approved.
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
                     }
                     break;
                 default: {
@@ -6112,6 +6144,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
                     }
                     checkIfNeedDisconnectSecondaryWifi();
+                    break;
+                }
+                case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT: {
+                    int newFrequency = message.arg1;
+                    if (newFrequency > 0) {
+                        if (mWifiInfo.getFrequency() != newFrequency) {
+                            mWifiInfo.setFrequency(newFrequency);
+                            updateCurrentConnectionInfo();
+                            updateCapabilities();
+                        }
+                    }
                     break;
                 }
                 case CMD_ONESHOT_RSSI_POLL: {
@@ -7498,7 +7541,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // populate the target security params to the internal configuration manually,
         // and then wifi info could retrieve this information.
         mWifiConfigManager.setNetworkCandidateScanResult(
-                config.networkId, null, 0, params);
+                config.networkId,
+                freshConfig == null ? null : freshConfig.getNetworkSelectionStatus().getCandidate(),
+                0, params);
     }
 
     /**
@@ -7989,9 +8034,22 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (!WifiConfigurationUtil.isConfigLinkable(tmpConfigForCurrentSecurityParams)) return;
 
         // Don't set SSID allowlist if we're connected to a network with Fast BSS Transition.
-        ScanResult scanResult = mScanRequestProxy.getScanResult(mLastBssid);
-        if (scanResult == null || scanResult.capabilities.contains("FT/PSK")
-                || scanResult.capabilities.contains("FT/SAE")) {
+        ScanDetailCache scanDetailCache = mWifiConfigManager.getScanDetailCacheForNetwork(
+                config.networkId);
+        if (scanDetailCache == null) {
+            Log.i(TAG, "Do not update linked networks - no ScanDetailCache found for netId: "
+                    + config.networkId);
+            return;
+        }
+        ScanResult matchingScanResult = scanDetailCache.getScanResult(mLastBssid);
+        if (matchingScanResult == null) {
+            Log.i(TAG, "Do not update linked networks - no matching ScanResult found for BSSID: "
+                    + mLastBssid);
+            return;
+        }
+        String caps = matchingScanResult.capabilities;
+        if (caps.contains("FT/PSK") || caps.contains("FT/SAE")) {
+            Log.i(TAG, "Do not update linked networks - current connection is FT-PSK/FT-SAE");
             return;
         }
 
