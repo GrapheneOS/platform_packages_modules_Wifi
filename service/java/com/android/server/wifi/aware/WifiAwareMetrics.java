@@ -21,15 +21,18 @@ import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB;
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB_ANY_PEER;
 
+import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
+import android.util.SparseLongArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.MetricsUtils;
 
@@ -67,6 +70,8 @@ public class WifiAwareMetrics {
     //   [60, 100)
     //   >= 100
     private static final int[] RANGING_LIMIT_METERS = { 10, 30, 60, 100 };
+
+    private static final int INVALID_SESSION_ID = -1;
 
     private final Object mLock = new Object();
     private final Clock mClock;
@@ -136,6 +141,7 @@ public class WifiAwareMetrics {
 
     private SparseIntArray mHistogramNdpDuration = new SparseIntArray();
     private SparseIntArray mHistogramNdpRequestType = new SparseIntArray();
+    private SparseLongArray mDiscoveryStartTimeMsMap = new SparseLongArray();
 
     public WifiAwareMetrics(Clock clock) {
         mClock = clock;
@@ -239,6 +245,8 @@ public class WifiAwareMetrics {
     public void recordAttachStatus(int status) {
         synchronized (mLock) {
             addNanHalStatusToHistogram(status, mAttachStatusData);
+            WifiStatsLog.write(WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED,
+                    convertNanStatusCodeToWifiStatsLogEnum(status));
         }
     }
 
@@ -356,6 +364,13 @@ public class WifiAwareMetrics {
      * created).
      */
     public void recordDiscoveryStatus(int uid, int status, boolean isPublish) {
+        recordDiscoveryStatus(uid, status, isPublish, INVALID_SESSION_ID);
+    }
+
+    /**
+     * Push information about a new discovery session status with pubSubId.
+     */
+    public void recordDiscoveryStatus(int uid, int status, boolean isPublish, int sessionId) {
         synchronized (mLock) {
             if (isPublish) {
                 addNanHalStatusToHistogram(status, mPublishStatusData);
@@ -365,6 +380,9 @@ public class WifiAwareMetrics {
 
             if (status == NanStatusCode.NO_RESOURCES_AVAILABLE) {
                 mAppsWithDiscoverySessionResourceFailure.add(uid);
+            }
+            if (sessionId != INVALID_SESSION_ID) {
+                mDiscoveryStartTimeMsMap.put(sessionId, mClock.getElapsedSinceBootMillis());
             }
         }
     }
@@ -466,7 +484,16 @@ public class WifiAwareMetrics {
      * a failure on any aborts the process and is recorded. A success on intermediate stages is
      * not recorded - only the final success.
      */
-    public void recordNdpStatus(int status, boolean isOutOfBand, long startTimestamp) {
+    public void recordNdpStatus(int status, boolean isOutOfBand, int role, long startTimestamp,
+            int sessionId) {
+        recordNdpStatus(status, isOutOfBand, role, startTimestamp, sessionId, 0);
+    }
+
+    /**
+     * Record the completion status of NDP negotiation with channelFreqMHz
+     */
+    public void recordNdpStatus(int status, boolean isOutOfBand, int role, long startTimestamp,
+            int sessionId, int channelFreqMHz) {
         synchronized (mLock) {
             if (isOutOfBand) {
                 addNanHalStatusToHistogram(status, mOutOfBandNdpStatusData);
@@ -474,8 +501,17 @@ public class WifiAwareMetrics {
                 addNanHalStatusToHistogram(status, mInBandNdpStatusData);
             }
 
+            long currentTimeMs = mClock.getElapsedSinceBootMillis();
+            long creationTime = currentTimeMs - startTimestamp;
+            int ndpLatencyMs = (int) Math.min(creationTime, Integer.MAX_VALUE);
+
+            long discoveryNdpLatencyMs = currentTimeMs - mDiscoveryStartTimeMsMap.get(sessionId, 0);
+            int discoveryNdpLatencyIntMs = (int) Math.min(discoveryNdpLatencyMs, Integer.MAX_VALUE);
+            WifiStatsLog.write(WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                    convertNdpRoleToWifiStatsLogEnum(role), isOutOfBand,
+                    convertNanStatusCodeToWifiStatsLogEnum(status),
+                    ndpLatencyMs, discoveryNdpLatencyIntMs, channelFreqMHz);
             if (status == NanStatusCode.SUCCESS) {
-                long creationTime = mClock.getElapsedSinceBootMillis() - startTimestamp;
                 MetricsUtils.addValueToLogHistogram(creationTime, mNdpCreationTimeDuration,
                         DURATION_LOG_HISTOGRAM);
                 mNdpCreationTimeMin = (mNdpCreationTimeMin == -1) ? creationTime : Math.min(
@@ -885,6 +921,58 @@ public class WifiAwareMetrics {
             default:
                 Log.e(TAG, "Unrecognized NanStatusCode: " + nanStatusCode);
                 return WifiMetricsProto.WifiAwareLog.UNKNOWN_HAL_STATUS;
+        }
+    }
+
+    /**
+     * Convert a NanStatusCode to a WifiStatsLog enum AwareStatus.
+     */
+    public static int convertNanStatusCodeToWifiStatsLogEnum(int nanStatusCode) {
+        switch (nanStatusCode) {
+            case NanStatusCode.SUCCESS:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS;
+            case NanStatusCode.INTERNAL_FAILURE:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INTERNAL_FAILURE;
+            case NanStatusCode.PROTOCOL_FAILURE:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_PROTOCOL_FAILURE;
+            case NanStatusCode.INVALID_SESSION_ID:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INVALID_SESSION_ID;
+            case NanStatusCode.NO_RESOURCES_AVAILABLE:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_NO_RESOURCES_AVAILABLE;
+            case NanStatusCode.INVALID_ARGS:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INVALID_ARGS;
+            case NanStatusCode.INVALID_PEER_ID:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INVALID_PEER_ID;
+            case NanStatusCode.INVALID_NDP_ID:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INVALID_NDP_ID;
+            case NanStatusCode.NAN_NOT_ALLOWED:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_NAN_NOT_ALLOWED;
+            case NanStatusCode.NO_OTA_ACK:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_NO_OTA_ACK;
+            case NanStatusCode.ALREADY_ENABLED:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_ALREADY_ENABLED;
+            case NanStatusCode.FOLLOWUP_TX_QUEUE_FULL:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_FOLLOWUP_TX_QUEUE_FULL;
+            case NanStatusCode.UNSUPPORTED_CONCURRENCY_NAN_DISABLED:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_UNSUPPORTED_CONCURRENCY;
+            default:
+                Log.d(TAG, "Unrecognized NanStatusCode: " + nanStatusCode);
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_GENERIC_FAILURE;
+        }
+    }
+
+    /**
+     * Convert a NanStatusCode to a WifiStatsLog enum AwareStatus.
+     */
+    public static int convertNdpRoleToWifiStatsLogEnum(int role) {
+        switch (role) {
+            case WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_INITIATOR:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_INITIATOR;
+            case WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_RESPONDER:
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER;
+            default:
+                Log.e(TAG, "Unrecognized role: " + role);
+                return WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_UNKNOWN;
         }
     }
 
