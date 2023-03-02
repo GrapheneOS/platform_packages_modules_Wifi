@@ -54,6 +54,7 @@ public class SupplicantStaIfaceHal {
     private final WifiMetrics mWifiMetrics;
     private final WifiGlobals mWifiGlobals;
     private final @NonNull SsidTranslator mSsidTranslator;
+    private final WifiInjector mWifiInjector;
 
     // HAL interface object - might be implemented by HIDL or AIDL
     private ISupplicantStaIfaceHal mStaIfaceHal;
@@ -819,7 +820,7 @@ public class SupplicantStaIfaceHal {
             FrameworkFacade frameworkFacade, Handler handler,
             Clock clock, WifiMetrics wifiMetrics,
             WifiGlobals wifiGlobals,
-            @NonNull SsidTranslator ssidTranslator) {
+            @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
         mContext = context;
         mWifiMonitor = monitor;
         mFrameworkFacade = frameworkFacade;
@@ -828,6 +829,7 @@ public class SupplicantStaIfaceHal {
         mWifiMetrics = wifiMetrics;
         mWifiGlobals = wifiGlobals;
         mSsidTranslator = ssidTranslator;
+        mWifiInjector = wifiInjector;
         mStaIfaceHal = createStaIfaceHalMockable();
         if (mStaIfaceHal == null) {
             Log.wtf(TAG, "Failed to get internal ISupplicantStaIfaceHal instance.");
@@ -890,7 +892,8 @@ public class SupplicantStaIfaceHal {
             if (SupplicantStaIfaceHalAidlImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantStaIfaceHal using AIDL implementation.");
                 return new SupplicantStaIfaceHalAidlImpl(mContext, mWifiMonitor,
-                        mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator);
+                        mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator,
+                        mWifiInjector);
 
             } else if (SupplicantStaIfaceHalHidlImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantStaIfaceHal using HIDL implementation.");

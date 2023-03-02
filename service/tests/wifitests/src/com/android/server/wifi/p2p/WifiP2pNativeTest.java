@@ -32,7 +32,6 @@ import static org.mockito.Mockito.withSettings;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
-import android.net.wifi.WifiManager;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -973,18 +972,6 @@ public class WifiP2pNativeTest extends WifiBaseTest {
                 .thenReturn(true);
         assertTrue(mWifiP2pNative.setMacRandomization(true));
         verify(mSupplicantP2pIfaceHalMock).setMacRandomization(eq(true));
-    }
-
-    /**
-     * Verifies getting supported feature set.
-     */
-    @Test
-    public void testGetSupportedFeatureSet() {
-        when(mWifiVendorHalMock.getSupportedFeatureSet(anyString()))
-                .thenReturn(WifiManager.WIFI_FEATURE_P2P_RAND_MAC);
-        assertEquals(WifiManager.WIFI_FEATURE_P2P_RAND_MAC,
-                mWifiP2pNative.getSupportedFeatureSet(TEST_IFACE));
-        verify(mWifiVendorHalMock).getSupportedFeatureSet(eq(TEST_IFACE));
     }
 
     /**
