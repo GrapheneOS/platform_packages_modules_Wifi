@@ -481,7 +481,7 @@ public class WifiInjector {
         mMultiInternetManager = new MultiInternetManager(mActiveModeWarden, mFrameworkFacade,
                 mContext, mCmiMonitor, mSettingsStore, wifiHandler, mClock);
         mExternalPnoScanRequestManager = new ExternalPnoScanRequestManager(wifiHandler, mContext);
-        mCountryCode = new WifiCountryCode(mContext, mActiveModeWarden,
+        mCountryCode = new WifiCountryCode(mContext, mActiveModeWarden, mWifiP2pMetrics,
                 mCmiMonitor, mWifiNative, mSettingsConfigStore, mClock, mWifiPermissionsUtil);
         mWifiConnectivityManager = new WifiConnectivityManager(
                 mContext, mScoringParams, mWifiConfigManager,
