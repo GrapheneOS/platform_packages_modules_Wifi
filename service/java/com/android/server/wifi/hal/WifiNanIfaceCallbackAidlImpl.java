@@ -308,7 +308,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
             Log.v(TAG, "notifyTerminatePairingResponse: id=" + id
                     + ", status=" + statusString(status));
         }
-        mWifiNanIface.getFrameworkCallback().notifyRespondToBootstrappingIndicationResponse(
+        mWifiNanIface.getFrameworkCallback().notifyTerminatePairingResponse(
                 (short) id, WifiNanIface.NanStatusCode.fromAidl(status.status));
     }
 
