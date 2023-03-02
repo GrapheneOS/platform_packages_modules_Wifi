@@ -23,10 +23,12 @@ import static com.android.server.wifi.aware.WifiAwareMetrics.addNanHalStatusToHi
 import static com.android.server.wifi.aware.WifiAwareMetrics.histogramToProtoArray;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import android.app.AppOpsManager;
 import android.content.Context;
+import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.util.LocalLog;
 import android.util.Log;
@@ -35,19 +37,24 @@ import android.util.SparseIntArray;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.MetricsUtils;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -68,6 +75,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
 
     private WifiAwareMetrics mDut;
     private LocalLog mLocalLog = new LocalLog(512);
+    private MockitoSession mSession;
 
     // Histogram definition: start[i] = b + p * m^i with s sub-buckets, i=0,...,n-1
 
@@ -110,6 +118,15 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
         setTime(0);
 
         mDut = new WifiAwareMetrics(mClock);
+        mSession = ExtendedMockito.mockitoSession()
+                .strictness(Strictness.LENIENT)
+                .mockStatic(WifiStatsLog.class)
+                .startMocking();
+    }
+
+    @After
+    public void tearDown() {
+        mSession.finishMocking();
     }
 
     /**
@@ -316,6 +333,15 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                 log.histogramAttachDurationMs.length, equalTo(2));
         validateProtoHistBucket("Duration[0]", log.histogramAttachDurationMs[0], 5, 6, 1);
         validateProtoHistBucket("Duration[1]", log.histogramAttachDurationMs[1], 10, 20, 1);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED,
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED__STATUS__ST_SUCCESS), times(5));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED,
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED__STATUS__ST_INTERNAL_FAILURE), times(2));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED,
+                WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED__STATUS__ST_GENERIC_FAILURE), times(1));
     }
 
     @Test
@@ -323,6 +349,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
         final int uid1 = 1005;
         final int uid2 = 1006;
         final int uid3 = 1007;
+        final int sessionId = 1;
         final SparseArray<WifiAwareClientState> clients = new SparseArray<>();
         WifiMetricsProto.WifiAwareLog log;
 
@@ -353,7 +380,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySession(uid1, clients);
-        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true);
+        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, sessionId);
 
         // uid1: publish session 2
         client1.addSession(
@@ -371,7 +398,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySession(uid1, clients);
-        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true);
+        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, sessionId);
 
         // uid3: publish session 3 with ranging
         client3.addSession(
@@ -389,7 +416,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySessionWithRanging(uid3, false, -1, -1, clients);
-        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, true);
+        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, true, sessionId);
 
         // uid2: subscribe session 1
         client2.addSession(
@@ -407,7 +434,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySession(uid2, clients);
-        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false);
+        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false, sessionId);
 
         // uid2: publish session 2
         client2.addSession(
@@ -425,7 +452,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySession(uid2, clients);
-        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false);
+        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false, sessionId);
 
         // uid3: subscribe session 3 with ranging: min
         client3.addSession(
@@ -443,7 +470,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 10, -1, clients);
-        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
+        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, sessionId);
 
         // uid3: subscribe session 3 with ranging: max
         client3.addSession(
@@ -461,7 +488,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, -1, 50, clients);
-        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
+        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, sessionId);
 
         // uid3: subscribe session 3 with ranging: minmax
         client3.addSession(
@@ -479,7 +506,7 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         mLocalLog,
                         /* pairingConfig= */ null));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 0, 110, clients);
-        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false);
+        mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, sessionId);
 
         // uid1: delete session 1
         setTime(10);
@@ -590,52 +617,71 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
         final String package2 = "com.test2";
         final String ndi0 = "aware_data0";
         final String ndi1 = "aware_data1";
+        final int[] sessionIds = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        final int role_init = WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_INITIATOR;
+        final int role_resp = WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_RESPONDER;
         Map<WifiAwareNetworkSpecifier, WifiAwareDataPathStateManager.AwareNetworkRequestInformation>
                 networkRequestCache = new HashMap<>();
         WifiMetricsProto.WifiAwareLog log;
 
-        setTime(5);
+        setTime(0);
+        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, sessionIds[0]);
 
+        setTime(5);
         // uid1: ndp (non-secure) on ndi0
         addNetworkInfoToCache(networkRequestCache, 10, uid1, package1, ndi0, null);
+
         mDut.recordNdpCreation(uid1, package1, networkRequestCache);
-        setTime(7); // 2ms creation time
-        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, 5);
+        setTime(7); // 2ms creation time, 7ms discovery + NDP latency
+        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, role_init, 5, sessionIds[0], 5120);
 
         // uid2: ndp (non-secure) on ndi0
+        setTime(5);
+        mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, sessionIds[1]);
+        setTime(7);
         WifiAwareNetworkSpecifier ns = addNetworkInfoToCache(networkRequestCache, 11, uid2,
                 package2, ndi0, null);
         mDut.recordNdpCreation(uid2, package2, networkRequestCache);
-        setTime(10); // 3 ms creation time
-        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, 7);
+        setTime(10); // 3 ms creation time, 5ms discovery + NDP latency
+        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, role_resp, 7, sessionIds[1], 2412);
 
         // uid2: ndp (secure) on ndi1 (OOB)
+        setTime(8);
+        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, true, sessionIds[2]);
+        setTime(10);
         addNetworkInfoToCache(networkRequestCache, 12, uid2, package2, ndi1,
                 "passphrase of some kind");
         mDut.recordNdpCreation(uid2, package2, networkRequestCache);
-        setTime(25); // 15 ms creation time
-        mDut.recordNdpStatus(NanStatusCode.SUCCESS, true, 10);
+        setTime(25); // 15 ms creation time, 17ms discovery + NDP latency
+        mDut.recordNdpStatus(NanStatusCode.SUCCESS, true, role_init, 10, sessionIds[2], 5180);
 
         // uid2: ndp (secure) on ndi0 (OOB)
+        setTime(20);
+        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, true, sessionIds[3]);
+        setTime(25);
         addNetworkInfoToCache(networkRequestCache, 13, uid2, package2, ndi0,
                 "super secret password");
         mDut.recordNdpCreation(uid2, package2, networkRequestCache);
         setTime(36); // 11 ms creation time
-        mDut.recordNdpStatus(NanStatusCode.SUCCESS, true, 25);
+        mDut.recordNdpStatus(NanStatusCode.SUCCESS, true, role_resp, 25, sessionIds[3], 2437);
 
         // uid2: delete the first NDP
         networkRequestCache.remove(ns);
 
         // uid2: ndp (non-secure) on ndi0
+        setTime(32);
+        mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, true, sessionIds[4]);
+        setTime(36);
         addNetworkInfoToCache(networkRequestCache, 14, uid2, package2, ndi0, null);
         mDut.recordNdpCreation(uid2, package2, networkRequestCache);
         setTime(37); // 1 ms creation time!
-        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, 36);
+        mDut.recordNdpStatus(NanStatusCode.SUCCESS, false, role_resp, 36, sessionIds[4], 5180);
 
         // a few error codes
-        mDut.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE, false, 0);
-        mDut.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE, false, 0);
-        mDut.recordNdpStatus(NanStatusCode.NO_RESOURCES_AVAILABLE, false, 0);
+        mDut.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE, false, role_resp, 0, sessionIds[5]);
+        mDut.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE, false, role_init, 0, sessionIds[6]);
+        mDut.recordNdpStatus(NanStatusCode.NO_RESOURCES_AVAILABLE, false, role_resp, 0,
+                sessionIds[7]);
 
         // and some durations
         setTime(150);
@@ -687,6 +733,46 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
 
         validateProtoHistBucket("Duration[0]", log.histogramNdpSessionDurationMs[0], 10, 20, 1);
         validateProtoHistBucket("Duration[1]", log.histogramNdpSessionDurationMs[1], 100, 200, 3);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_INITIATOR,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS,
+                2, 7, 5120));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS,
+                3, 5, 2412));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_INITIATOR,
+                true, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS,
+                15, 17, 5180));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER,
+                true, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS,
+                11, 16, 2437));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_SUCCESS,
+                1, 5, 5180));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INTERNAL_FAILURE,
+                37, 37, 0));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_INITIATOR,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_INTERNAL_FAILURE,
+                37, 37, 0));
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
+                WifiStatsLog.WIFI_AWARE_NDP_REPORTED__ROLE__ROLE_RESPONDER,
+                false, WifiStatsLog.WIFI_AWARE_NDP_REPORTED__STATUS__ST_NO_RESOURCES_AVAILABLE,
+                37, 37, 0));
     }
 
     /**
