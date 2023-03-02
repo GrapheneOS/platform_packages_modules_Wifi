@@ -48,6 +48,8 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.NativeUtil;
 
@@ -93,10 +95,13 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 }
             };
     private final WifiP2pMonitor mMonitor;
+    private final WifiInjector mWifiInjector;
     private ISupplicantP2pIfaceCallback mCallback = null;
+    private int mServiceVersion = -1;
 
-    public SupplicantP2pIfaceHalAidlImpl(WifiP2pMonitor monitor) {
+    public SupplicantP2pIfaceHalAidlImpl(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
         mMonitor = monitor;
+        mWifiInjector = wifiInjector;
     }
 
     /**
@@ -2438,6 +2443,14 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         }
     }
 
+    private int getCachedServiceVersion() {
+        if (mServiceVersion == -1) {
+            mServiceVersion = mWifiInjector.getSettingsConfigStore().get(
+                    WifiSettingsConfigStore.SUPPLICANT_HAL_AIDL_SERVICE_VERSION);
+        }
+        return mServiceVersion;
+    }
+
     /**
      * Get the supported features.
      *
@@ -2448,12 +2461,8 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         long result = WifiP2pManager.FEATURE_SET_VENDOR_ELEMENTS
                 | WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY
                 | WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL;
-        try {
-            if (mISupplicant.getInterfaceVersion() >= 2) {
-                result |= WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING;
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to get supplicant version", e);
+        if (getCachedServiceVersion() >= 2) {
+            result |= WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING;
         }
         return result;
     }

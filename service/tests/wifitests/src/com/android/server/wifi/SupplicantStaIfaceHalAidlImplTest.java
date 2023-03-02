@@ -180,7 +180,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     private @Mock WifiMetrics mWifiMetrics;
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock SsidTranslator mSsidTranslator;
+    private @Mock WifiInjector mWifiInjector;
     private @Mock PmkCacheManager mPmkCacheManager;
+    private @Mock WifiSettingsConfigStore mWifiSettingsConfigStore;
 
     private @Captor ArgumentCaptor<List<SupplicantStaIfaceHal.QosPolicyRequest>>
             mQosPolicyRequestListCaptor;
@@ -199,7 +201,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         SupplicantStaIfaceHalSpy() {
             super(mContext, mWifiMonitor, mHandler, mClock, mWifiMetrics, mWifiGlobals,
-                    mSsidTranslator);
+                    mSsidTranslator, mWifiInjector);
             mStaNetwork = mSupplicantStaNetworkMock;
         }
 
@@ -249,6 +251,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                     ssids.add(TRANSLATED_SUPPLICANT_SSID);
                     return ssids;
                 });
+        when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         mDut = new SupplicantStaIfaceHalSpy();
     }
 
@@ -3025,5 +3028,34 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         mISupplicantStaIfaceCallback.onBssFrequencyChanged(2412);
         verify(mWifiMonitor).broadcastBssFrequencyChanged(
                 eq(WLAN0_IFACE_NAME), eq(2412));
+    }
+
+    /*
+     * Test that the service version is cached on the first successful call to startDaemon.
+     */
+    @Test
+    public void testServiceVersionCaching() throws RemoteException {
+        mDut.initialize();
+        int serviceVersion = ISupplicant.VERSION;
+        assertFalse(mDut.isServiceVersionAtLeast(serviceVersion));
+
+        // Service version should not be cached on a remote exception.
+        doThrow(new RemoteException()).when(mISupplicantMock).getInterfaceVersion();
+        assertFalse(mDut.startDaemon());
+        verify(mISupplicantMock).getInterfaceVersion();
+        assertFalse(mDut.isServiceVersionAtLeast(serviceVersion));
+
+        // Service version should be cached if retrieved successfully.
+        reset(mISupplicantMock);
+        when(mISupplicantMock.getInterfaceVersion()).thenReturn(serviceVersion);
+        assertTrue(mDut.startDaemon());
+        verify(mISupplicantMock).getInterfaceVersion();
+        verify(mWifiSettingsConfigStore).put(any(), anyInt());
+        assertTrue(mDut.isServiceVersionAtLeast(serviceVersion));
+
+        // Interface version should not be retrieved again after it has been cached.
+        reset(mISupplicantMock);
+        assertTrue(mDut.startDaemon());
+        verify(mISupplicantMock, never()).getInterfaceVersion();
     }
 }
