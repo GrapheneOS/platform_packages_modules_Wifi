@@ -253,12 +253,10 @@ public interface IWifiChip {
     /**
      * Retrieve the list of all the possible radio combinations supported by this chip.
      *
-     * @return |WifiRadioCombinationMatrix| representation of all the possible radio combinations,
-     *         or null if an error occurred.
-     *
+     * @return List of all possible radio combinations, or null if an error occurred.
      */
     @Nullable
-    WifiChip.WifiRadioCombinationMatrix getSupportedRadioCombinationsMatrix();
+    List<WifiChip.WifiRadioCombination> getSupportedRadioCombinations();
 
     /**
      * Retrieve a list of usable Wifi channels for the specified band and operational modes.

@@ -37,6 +37,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 
 import com.android.server.wifi.WifiGlobals;
+import com.android.server.wifi.WifiInjector;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,7 @@ public class SupplicantP2pIfaceHalTest {
     private @Mock SupplicantP2pIfaceHalAidlImpl mP2pIfaceHalAidlMock;
     private @Mock WifiP2pMonitor mMonitor;
     private @Mock WifiGlobals mWifiGlobals;
+    private @Mock WifiInjector mWifiInjector;
 
     private static final String IFACE_NAME = "wlan0";
     private static final String BSSID = "fa:45:23:23:12:12";
@@ -70,7 +72,7 @@ public class SupplicantP2pIfaceHalTest {
 
     private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHal {
         SupplicantP2pIfaceHalSpy() {
-            super(mMonitor, mWifiGlobals);
+            super(mMonitor, mWifiGlobals, mWifiInjector);
         }
 
         @Override

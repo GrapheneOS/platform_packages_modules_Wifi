@@ -542,7 +542,7 @@ public class WifiMonitorTest extends WifiBaseTest {
         String bssid = BSSID;
         SupplicantState newState = SupplicantState.ASSOCIATED;
         mWifiMonitor.broadcastSupplicantStateChangeEvent(
-                WLAN_IFACE_NAME, networkId, wifiSsid, bssid, newState);
+                WLAN_IFACE_NAME, networkId, wifiSsid, bssid, 2412, newState);
         mLooper.dispatchAll();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
@@ -552,6 +552,7 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(networkId, result.networkId);
         assertEquals(wifiSsid, result.wifiSsid);
         assertEquals(bssid, result.bssid);
+        assertEquals(2412, result.frequencyMhz);
         assertEquals(newState, result.state);
     }
 
@@ -857,5 +858,22 @@ public class WifiMonitorTest extends WifiBaseTest {
         assertEquals(dialogToken, messageCaptor.getValue().arg1);
         assertEquals(numPolicyRequests,
                 ((List<QosPolicyRequest>) messageCaptor.getValue().obj).size());
+    }
+
+    /**
+     * Broadcast BSS frequency changed event test.
+     */
+    @Test
+    public void testBroadcastBssFrequencyChangedEvent() {
+        mWifiMonitor.registerHandler(
+                WLAN_IFACE_NAME, WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, mHandlerSpy);
+        mWifiMonitor.broadcastBssFrequencyChanged(WLAN_IFACE_NAME, 2412);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(mHandlerSpy).handleMessage(messageCaptor.capture());
+        assertEquals(WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, messageCaptor.getValue().what);
+        int frequency = (int) messageCaptor.getValue().arg1;
+        assertEquals(2412, frequency);
     }
 }
