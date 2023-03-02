@@ -191,6 +191,7 @@ public class WifiConfigurationTestUtil {
         if ((security & SECURITY_EAP_SUITE_B) != 0) {
             config.addSecurityParams(
                     WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT);
+            config.enterpriseConfig.setDomainSuffixMatch(TEST_DOM_SUBJECT_MATCH);
         }
 
         if ((security & SECURITY_WAPI_PSK) != 0) {
