@@ -161,8 +161,10 @@ public class PasspointManager {
                 Log.d(TAG, "ANQP response received from BSSID "
                         + Utils.macToString(bssid) + " - List of ANQP elements:");
                 int i = 0;
-                for (Constants.ANQPElementType type : anqpElements.keySet()) {
-                    Log.d(TAG, "#" + i++ + ": " + type);
+                if (anqpElements != null) {
+                    for (Constants.ANQPElementType type : anqpElements.keySet()) {
+                        Log.d(TAG, "#" + i++ + ": " + type);
+                    }
                 }
             }
             // Notify request manager for the completion of a request.

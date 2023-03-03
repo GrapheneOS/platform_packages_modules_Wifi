@@ -233,6 +233,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 mWifiPermissionsUtil, mPermissionsWrapperMock, new Clock(),
                 mock(NetdWrapper.class), mInterfaceConflictManager);
         mDut.startLate();
+        mDut.enableVerboseLogging(true, true);
         mMockLooper.dispatchAll();
         ArgumentCaptor<WifiManager.ActiveCountryCodeChangedCallback> callbackArgumentCaptor =
                 ArgumentCaptor.forClass(WifiManager.ActiveCountryCodeChangedCallback.class);
