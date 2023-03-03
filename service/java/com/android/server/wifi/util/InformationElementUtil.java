@@ -975,7 +975,9 @@ public class InformationElementUtil {
             while (ie.bytes.length >= startOffset + PER_STA_SUB_ELEMENT_MIN_LEN) {
                 int subElementId = ie.bytes[startOffset] & Constants.BYTE_MASK;
                 int subElementLen = ie.bytes[startOffset + 1] & Constants.BYTE_MASK;
-                if (ie.bytes.length < startOffset + subElementLen) {
+                // Expectation here is IE has enough length to parse and non-zero sub-element
+                // length.
+                if (ie.bytes.length < startOffset + subElementLen || subElementLen == 0) {
                     if (DBG) {
                         Log.w(TAG, "Invalid sub-element length: " + subElementLen);
                     }
