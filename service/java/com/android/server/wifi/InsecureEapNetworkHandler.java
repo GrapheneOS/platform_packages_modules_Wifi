@@ -31,17 +31,23 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.text.format.DateFormat;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
+import com.android.internal.util.HexDump;
 import com.android.server.wifi.util.CertificateSubjectInfo;
-import com.android.server.wifi.util.NativeUtil;
 import com.android.wifi.resources.R;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.StringJoiner;
 
 /** This class is used to handle insecure EAP networks. */
 public class InsecureEapNetworkHandler {
@@ -593,19 +599,16 @@ public class InsecureEapNetworkHandler {
                         R.string.wifi_ca_cert_dialog_message_organization_text,
                         mPendingServerCertSubjectInfo.organization));
             }
-            if (!TextUtils.isEmpty(mPendingServerCertSubjectInfo.email)) {
+            final Date expiration = mPendingServerCert.getNotAfter();
+            if (expiration != null) {
                 contentBuilder.append(mContext.getString(
-                        R.string.wifi_ca_cert_dialog_message_contact_text,
-                        mPendingServerCertSubjectInfo.email));
+                        R.string.wifi_ca_cert_dialog_message_expiration_text,
+                        DateFormat.getMediumDateFormat(mContext).format(expiration)));
             }
-            byte[] signature = mPendingServerCert.getSignature();
-            if (signature != null) {
-                String signatureString = NativeUtil.hexStringFromByteArray(signature);
-                if (signatureString.length() > 16) {
-                    signatureString = signatureString.substring(0, 16);
-                }
+            final String fingerprint = getDigest(mPendingServerCert, "SHA256");
+            if (!TextUtils.isEmpty(fingerprint)) {
                 contentBuilder.append(mContext.getString(
-                        R.string.wifi_ca_cert_dialog_message_signature_name_text, signatureString));
+                        R.string.wifi_ca_cert_dialog_message_signature_name_text, fingerprint));
             }
             message = contentBuilder.toString();
         } else {
@@ -784,6 +787,34 @@ public class InsecureEapNetworkHandler {
             return false;
         }
         return true;
+    }
+
+    @VisibleForTesting
+    static String getDigest(X509Certificate x509Certificate, String algorithm) {
+        if (x509Certificate == null) {
+            return "";
+        }
+        try {
+            byte[] bytes = x509Certificate.getEncoded();
+            MessageDigest md = MessageDigest.getInstance(algorithm);
+            byte[] digest = md.digest(bytes);
+            return fingerprint(digest);
+        } catch (CertificateEncodingException ignored) {
+            return "";
+        } catch (NoSuchAlgorithmException ignored) {
+            return "";
+        }
+    }
+
+    private static String fingerprint(byte[] bytes) {
+        if (bytes == null) {
+            return "";
+        }
+        StringJoiner sj = new StringJoiner(":");
+        for (byte b : bytes) {
+            sj.add(HexDump.toHexString(b));
+        }
+        return sj.toString();
     }
 
     /** The callbacks object to notify the consumer. */
