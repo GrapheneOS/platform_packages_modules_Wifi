@@ -1444,11 +1444,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void respondToDataPathRequest(boolean accept, int ndpId, String interfaceName,
             byte[] appInfo, boolean isOutOfBand,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareNetworkSpecifier networkSpecifier) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_RESPOND_TO_DATA_PATH_SETUP_REQUEST;
         msg.arg2 = ndpId;
-        msg.obj = securityConfig;
+        msg.obj = networkSpecifier;
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_ACCEPT_STATE, accept);
         msg.getData().putString(MESSAGE_BUNDLE_KEY_INTERFACE_NAME, interfaceName);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_APP_INFO, appInfo);
@@ -1760,7 +1760,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     /**
      * Response from firmware to
-     * {@link #respondToDataPathRequest(boolean, int, String, byte[], boolean, WifiAwareDataPathSecurityConfig)}
+     * {@link #respondToDataPathRequest(boolean, int, String, byte[], boolean, WifiAwareNetworkSpecifier)}
      */
     public void onRespondToDataPathSetupRequestResponse(short transactionId, boolean success,
             int reasonOnFailure) {
@@ -2836,15 +2836,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     Bundle data = msg.getData();
 
                     int ndpId = msg.arg2;
-                    WifiAwareDataPathSecurityConfig securityConfig =
-                            (WifiAwareDataPathSecurityConfig) msg.obj;
+                    WifiAwareNetworkSpecifier specifier =
+                            (WifiAwareNetworkSpecifier) msg.obj;
                     boolean accept = data.getBoolean(MESSAGE_BUNDLE_KEY_ACCEPT_STATE);
                     String interfaceName = data.getString(MESSAGE_BUNDLE_KEY_INTERFACE_NAME);
                     byte[] appInfo = data.getByteArray(MESSAGE_BUNDLE_KEY_APP_INFO);
                     boolean isOutOfBand = data.getBoolean(MESSAGE_BUNDLE_KEY_OOB);
 
                     waitForResponse = respondToDataPathRequestLocal(mCurrentTransactionId, accept,
-                            ndpId, interfaceName, appInfo, isOutOfBand, securityConfig);
+                            ndpId, interfaceName, appInfo, isOutOfBand, specifier);
 
                     break;
                 }
@@ -3924,10 +3924,27 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 + ", securityConfig=" + ((securityConfig == null) ? "" : securityConfig)
                 + ", isOutOfBand="
                 + isOutOfBand + ", appInfo=" + (appInfo == null ? "<null>" : "<non-null>"));
+        byte pubSubId = 0;
+        if (!isOutOfBand) {
+            WifiAwareClientState client = mClients.get(networkSpecifier.clientId);
+            if (client == null) {
+                Log.e(TAG, "initiateDataPathSetupLocal: no client exists for clientId="
+                        + networkSpecifier.clientId);
+                return false;
+            }
 
+            WifiAwareDiscoverySessionState session = client.getSession(networkSpecifier.sessionId);
+            if (session == null) {
+                Log.e(TAG, "initiateDataPathSetupLocal: no session exists for clientId="
+                        + networkSpecifier.clientId + ", sessionId=" + networkSpecifier.sessionId);
+                return false;
+            }
+            pubSubId = (byte) session.getPubSubId();
+        }
         boolean success = mWifiAwareNativeApi.initiateDataPath(transactionId, peerId,
                 channelRequestType, channel, peer, interfaceName, isOutOfBand,
-                appInfo, mCapabilities, networkSpecifier.getWifiAwareDataPathSecurityConfig());
+                appInfo, mCapabilities, networkSpecifier.getWifiAwareDataPathSecurityConfig(),
+                pubSubId);
         if (!success) {
             mDataPathMgr.onDataPathInitiateFail(networkSpecifier, NanStatusCode.INTERNAL_FAILURE);
         }
@@ -3937,14 +3954,33 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean respondToDataPathRequestLocal(short transactionId, boolean accept,
             int ndpId, String interfaceName, byte[] appInfo, boolean isOutOfBand,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareNetworkSpecifier networkSpecifier) {
+        WifiAwareDataPathSecurityConfig securityConfig = accept ? networkSpecifier
+                .getWifiAwareDataPathSecurityConfig() : null;
         mLocalLog.log("respondToDataPathRequestLocal(): transactionId=" + transactionId
                 + ", accept=" + accept + ", ndpId=" + ndpId + ", interfaceName=" + interfaceName
                 + ", securityConfig=" + securityConfig
                 + ", isOutOfBand=" + isOutOfBand
                 + ", appInfo=" + (appInfo == null ? "<null>" : "<non-null>"));
+        byte pubSubId = 0;
+        if (!isOutOfBand && accept) {
+            WifiAwareClientState client = mClients.get(networkSpecifier.clientId);
+            if (client == null) {
+                Log.e(TAG, "respondToDataPathRequestLocal: no client exists for clientId="
+                        + networkSpecifier.clientId);
+                return false;
+            }
+
+            WifiAwareDiscoverySessionState session = client.getSession(networkSpecifier.sessionId);
+            if (session == null) {
+                Log.e(TAG, "respondToDataPathRequestLocal: no session exists for clientId="
+                        + networkSpecifier.clientId + ", sessionId=" + networkSpecifier.sessionId);
+                return false;
+            }
+            pubSubId = (byte) session.getPubSubId();
+        }
         boolean success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
-                interfaceName, appInfo, isOutOfBand, mCapabilities, securityConfig);
+                interfaceName, appInfo, isOutOfBand, mCapabilities, securityConfig, pubSubId);
         if (!success) {
             mDataPathMgr.onRespondToDataPathRequest(ndpId, false, NanStatusCode.INTERNAL_FAILURE);
         } else {
