@@ -211,14 +211,13 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#initiateDataPath(short, int, int, int, MacAddress,
-     *                         String, boolean, byte[], Capabilities,
-     *                         WifiAwareDataPathSecurityConfig)}
+     * See comments for
+     * {@link IWifiNanIface#initiateDataPath(short, int, int, int, MacAddress, String, boolean, byte[], Capabilities, WifiAwareDataPathSecurityConfig, byte)}
      */
     public boolean initiateDataPath(short transactionId, int peerId, int channelRequestType,
             int channel, MacAddress peer, String interfaceName,
             boolean isOutOfBand, byte[] appInfo, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
         final String methodStr = "initiateDataPath";
         return validateAndCall(methodStr, false,
                 () -> initiateDataPathInternal(methodStr, transactionId, peerId, channelRequestType,
@@ -227,12 +226,12 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#respondToDataPathRequest(short, boolean, int, String,
-     *                         byte[], boolean, Capabilities, WifiAwareDataPathSecurityConfig)}
+     * See comments for
+     * {@link IWifiNanIface#respondToDataPathRequest(short, boolean, int, String, byte[], boolean, Capabilities, WifiAwareDataPathSecurityConfig, byte)}
      */
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
         final String methodStr = "respondToDataPathRequest";
         return validateAndCall(methodStr, false,
                 () -> respondToDataPathRequestInternal(methodStr, transactionId, accept, ndpId,
