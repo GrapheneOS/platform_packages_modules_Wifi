@@ -56,6 +56,7 @@ public class WifiP2pMetrics {
     private Clock mClock;
     private final Context mContext;
     private final Object mLock = new Object();
+    private boolean mIsCountryCodeWorldMode = true;
 
     /**
      * Metrics are stored within an instance of the WifiP2pStats proto during runtime,
@@ -234,6 +235,17 @@ public class WifiP2pMetrics {
                         sb.append("UNKNOWN DURING CONNECT");
                         break;
                 }
+
+                sb.append(", isCcWw=");
+                sb.append(event.isCountryCodeWorldMode);
+                sb.append(", band=");
+                sb.append(event.band);
+                sb.append(", freq=");
+                sb.append(event.frequencyMhz);
+                sb.append(", sta freq=");
+                sb.append(event.staFrequencyMhz);
+                sb.append(", uid=");
+                sb.append(event.uid);
                 sb.append(", connectivityLevelFailureCode=");
                 switch (event.connectivityLevelFailureCode) {
                     case P2pConnectionEvent.CLF_NONE:
@@ -268,7 +280,6 @@ public class WifiP2pMetrics {
                         sb.append("UNKNOWN");
                         break;
                 }
-
                 if (event == mCurrentConnectionEvent) {
                     sb.append(" CURRENTLY OPEN EVENT");
                 }
@@ -418,6 +429,8 @@ public class WifiP2pMetrics {
                     (mClock.getElapsedSinceBootMillis()
                     - mCurrentConnectionEventStartTime);
             mCurrentConnectionEvent.connectivityLevelFailureCode = failure;
+            mCurrentConnectionEvent.isCountryCodeWorldMode = mIsCountryCodeWorldMode;
+
             WifiStatsLog.write(WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,
                     convertConnectionType(mCurrentConnectionEvent.connectionType),
                     mCurrentConnectionEvent.durationTakenToConnectMillis,
@@ -427,9 +440,15 @@ public class WifiP2pMetrics {
                     convertBandStatsLog(mCurrentConnectionEvent.band),
                     mCurrentConnectionEvent.frequencyMhz,
                     mCurrentConnectionEvent.staFrequencyMhz,
-                    mCurrentConnectionEvent.uid);
+                    mCurrentConnectionEvent.uid,
+                    mIsCountryCodeWorldMode);
             mCurrentConnectionEvent = null;
         }
+    }
+
+   /** Sets if the Country Code is in world mode */
+    public void setIsCountryCodeWorldMode(boolean isCountryCodeWorldMode) {
+        mIsCountryCodeWorldMode = isCountryCodeWorldMode;
     }
 
     private int convertConnectionType(int connectionType) {
