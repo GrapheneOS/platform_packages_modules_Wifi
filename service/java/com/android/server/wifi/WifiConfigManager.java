@@ -500,8 +500,7 @@ public class WifiConfigManager {
     }
 
     private boolean shouldEnableNonPersistentRandomizationOnOpenNetwork(WifiConfiguration config) {
-        if (!mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids()
-                && !mContext.getResources().getBoolean(
+        if (!mContext.getResources().getBoolean(
                         R.bool.config_wifiAllowNonPersistentMacRandomizationOnOpenSsids)) {
             return false;
         }

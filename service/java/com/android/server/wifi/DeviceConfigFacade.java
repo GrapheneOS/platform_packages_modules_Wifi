@@ -202,7 +202,6 @@ public class DeviceConfigFacade {
     private int mMinConfirmationDurationSendLowScoreMs;
     private int mMinConfirmationDurationSendHighScoreMs;
     private int mRssiThresholdNotSendLowScoreToCsDbm;
-    private boolean mAllowNonPersistentMacRandomizationOnOpenSsids;
     private int mTrafficStatsThresholdMaxKbyte;
     private int mBandwidthEstimatorLargeTimeConstantSec;
     private boolean mInterfaceFailureBugreportEnabled;
@@ -379,8 +378,6 @@ public class DeviceConfigFacade {
         mRssiThresholdNotSendLowScoreToCsDbm = DeviceConfig.getInt(NAMESPACE,
                 "rssi_threshold_not_send_low_score_to_cs_dbm",
                 DEFAULT_RSSI_THRESHOLD_NOT_SEND_LOW_SCORE_TO_CS_DBM);
-        mAllowNonPersistentMacRandomizationOnOpenSsids = DeviceConfig.getBoolean(NAMESPACE,
-                "allow_enhanced_mac_randomization_on_open_ssids", false);
         mTrafficStatsThresholdMaxKbyte = DeviceConfig.getInt(NAMESPACE,
                 "traffic_stats_threshold_max_kbyte", DEFAULT_TRAFFIC_STATS_THRESHOLD_MAX_KB);
         mBandwidthEstimatorLargeTimeConstantSec = DeviceConfig.getInt(NAMESPACE,
@@ -798,13 +795,6 @@ public class DeviceConfigFacade {
      */
     public int getRssiThresholdNotSendLowScoreToCsDbm() {
         return mRssiThresholdNotSendLowScoreToCsDbm;
-    }
-
-    /**
-     * Gets whether non-persistent MAC randomization should be allowed on open networks.
-     */
-    public boolean allowNonPersistentMacRandomizationOnOpenSsids() {
-        return mAllowNonPersistentMacRandomizationOnOpenSsids;
     }
 
     /**
