@@ -20,6 +20,8 @@ import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MO
 import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -231,6 +233,28 @@ public class WifiP2pConfigTest {
     public void testBuildThrowIllegalStateExceptionWithOnlyPassphrase()
             throws Exception {
         WifiP2pConfig c = new WifiP2pConfig.Builder().setPassphrase("12345677").build();
+    }
+
+
+    /** Verify that a config by default has join existing group field set to false */
+    @Test
+    public void testBuildConfigWithJoinExistingGroupDefault() throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .build();
+        assertEquals(c.deviceAddress, DEVICE_ADDRESS);
+        assertFalse(c.isJoinExistingGroup());
+    }
+
+    /** Verify that a config with join existing group field can be built. */
+    @Test
+    public void testBuildConfigWithJoinExistingGroupSet() throws Exception {
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setJoinExistingGroup(true)
+                .build();
+        assertEquals(c.deviceAddress, DEVICE_ADDRESS);
+        assertTrue(c.isJoinExistingGroup());
     }
 
     @Test
