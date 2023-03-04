@@ -52,7 +52,6 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.CertificateSubjectInfo;
-import com.android.server.wifi.util.NativeUtil;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -85,6 +84,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     private static final String TEST_SSID = "\"test_ssid\"";
     private static final String TEST_IDENTITY = "userid";
     private static final String TEST_PASSWORD = "myPassWord!";
+    private static final String TEST_EXPECTED_SHA_256_SIGNATURE = "78:A6:27:31:03:D1:7C:39:A0:B6:12"
+            + ":6E:22:6C:EC:70:E3:33:37:F4:BC:6A:38:06:74:01:B5:4A:33:E7:8E:AD";
 
     @Mock WifiContext mContext;
     @Mock WifiConfigManager mWifiConfigManager;
@@ -136,7 +137,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         when(mContext.getString(eq(R.string.wifi_ca_cert_dialog_message_signature_name_text),
                 anyString()))
                 .thenAnswer((Answer<String>) invocation ->
-                        "Signature:\n" + invocation.getArguments()[1] + "\n\n");
+                        "SHA-256 Fingerprint:\n" + invocation.getArguments()[1] + "\n\n");
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mContext.getResources()).thenReturn(mResources);
         when(mWifiDialogManager.createLegacySimpleDialogWithUrl(
@@ -373,7 +374,11 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 + ",CN=" + subject
                 + ",1.2.840.113549.1.9.1=#1614" + String.valueOf(HexEncoding.encode(
                         (subject + "@email.com").getBytes(StandardCharsets.UTF_8))));
-
+        try {
+            when(mockCert.getEncoded()).thenReturn(new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+        } catch (Exception e) {
+            // nothing
+        }
         X500Principal mockIssuerX500Principal = mock(X500Principal.class);
         when(mockCert.getIssuerX500Principal()).thenReturn(mockIssuerX500Principal);
         when(mockIssuerX500Principal.getName()).thenReturn("C=TW,ST=Taiwan,L=Taipei"
@@ -853,13 +858,6 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             assertTrue("TOFU dialog message does not contain server cert organization",
                     message.contains(serverCertSubjectInfo.organization));
         }
-        if (!TextUtils.isEmpty(serverCertSubjectInfo.email)) {
-            assertTrue("TOFU dialog message does not contain server cert email",
-                    message.contains(serverCertSubjectInfo.email));
-        }
-        assertTrue("TOFU dialog message does not contain server cert signature",
-                message.contains(NativeUtil.hexStringFromByteArray(
-                        rootCaCert.getSignature()).substring(0, 16)));
     }
 
     @Test
@@ -875,5 +873,15 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         verify(mContext).unregisterReceiver(br);
         verify(mWifiConfigManager).removeOnNetworkUpdateListener(
                 mOnNetworkUpdateListenerCaptor.capture());
+    }
+
+    /**
+     * Verify the getDigest and fingerprint methods
+     */
+    @Test
+    public void verifyGetDigest() throws Exception {
+        X509Certificate mockServerCert = generateMockCert("server", "ca", false);
+        assertEquals(mInsecureEapNetworkHandler.getDigest(mockServerCert, "SHA256"),
+                TEST_EXPECTED_SHA_256_SIGNATURE);
     }
 }
