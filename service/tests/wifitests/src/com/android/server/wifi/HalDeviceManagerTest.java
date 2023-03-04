@@ -141,6 +141,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     private class HalDeviceManagerSpy extends HalDeviceManager {
         HalDeviceManagerSpy() {
             super(mContext, mClock, mWifiInjector, mHandler);
+            enableVerboseLogging(true);
         }
 
         @Override

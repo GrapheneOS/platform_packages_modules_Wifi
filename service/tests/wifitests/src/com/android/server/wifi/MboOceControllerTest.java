@@ -60,6 +60,7 @@ public class MboOceControllerTest extends WifiBaseTest {
                 .thenReturn(mClientModeManager);
 
         mMboOceController = new MboOceController(mTelephonyManager, mActiveModeWarden);
+        mMboOceController.enableVerboseLogging(true);
     }
 
     /**

@@ -211,6 +211,7 @@ public class WifiCountryCodeTest extends WifiBaseTest {
                 mSettingsConfigStore,
                 mClock,
                 mWifiPermissionsUtil);
+        mWifiCountryCode.enableVerboseLogging(true);
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                     mModeChangeCallbackCaptor.capture());
         verify(mClientModeImplMonitor, atLeastOnce()).registerListener(

@@ -330,6 +330,7 @@ public class WifiNativeTest extends WifiBaseTest {
                 mWifiVendorHal, mStaIfaceHal, mHostapdHal, mWificondControl,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
                 mHandler, mRandom, mBuildProperties, mWifiInjector);
+        mWifiNative.enableVerboseLogging(true, true);
         mWifiNative.initialize();
     }
 

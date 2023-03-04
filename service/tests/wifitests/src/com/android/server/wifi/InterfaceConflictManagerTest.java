@@ -135,6 +135,7 @@ public class InterfaceConflictManagerTest {
         mDut = new InterfaceConflictManager(mWifiInjector, mWifiContext, mFrameworkFacade, mHdm,
                 new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager,
                 mLocalLog);
+        mDut.enableVerboseLogging(true);
         mDut.handleBootCompleted();
     }
 

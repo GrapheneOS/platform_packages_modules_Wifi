@@ -75,6 +75,7 @@ public class MakeBeforeBreakManagerTest extends WifiBaseTest {
 
         mMbbManager = new MakeBeforeBreakManager(mActiveModeWarden, mFrameworkFacade, mContext,
                 mCmiMonitor, mBroadcastQueue, mWifiMetrics);
+        mMbbManager.setVerboseLoggingEnabled(true);
 
         verify(mActiveModeWarden).registerModeChangeCallback(mModeChangeCallbackCaptor.capture());
         verify(mCmiMonitor).registerListener(mCmiListenerCaptor.capture());
