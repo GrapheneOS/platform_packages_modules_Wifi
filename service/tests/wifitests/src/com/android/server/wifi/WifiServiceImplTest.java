@@ -51,6 +51,7 @@ import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
+import static android.os.Process.WIFI_UID;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
@@ -2985,7 +2986,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 mWifiServiceImpl.getConfiguredNetworks(TEST_PACKAGE, TEST_FEATURE_ID, false);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
-        verify(mWifiConfigManager).getSavedNetworks(eq(Process.WIFI_UID));
+        verify(mWifiConfigManager).getSavedNetworks(eq(WIFI_UID));
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
                 TEST_WIFI_CONFIGURATION_LIST, configs.getList());
     }
@@ -10747,7 +10748,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mHalDeviceManager.reportImpactToCreateIface(interfaceToCreateInternal, true, ws))
                 .thenReturn(null)
                 .thenReturn(Collections.emptyList())
-                .thenReturn(List.of(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_P2P, wsOther)));
+                .thenReturn(List.of(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_P2P, wsOther)))
+                .thenReturn(List.of(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                        new WorkSource(WIFI_UID))));
+        mWifiServiceImpl.reportCreateInterfaceImpact(TEST_PACKAGE_NAME, interfaceToCreate, true,
+                mockCallback);
         mWifiServiceImpl.reportCreateInterfaceImpact(TEST_PACKAGE_NAME, interfaceToCreate, true,
                 mockCallback);
         mWifiServiceImpl.reportCreateInterfaceImpact(TEST_PACKAGE_NAME, interfaceToCreate, true,
@@ -10755,9 +10760,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.reportCreateInterfaceImpact(TEST_PACKAGE_NAME, interfaceToCreate, true,
                 mockCallback);
         mLooper.dispatchAll();
-        verify(mHalDeviceManager, times(3)).reportImpactToCreateIface(
+        verify(mHalDeviceManager, times(4)).reportImpactToCreateIface(
                 interfaceToCreateInternal, true, ws);
-        verify(mockCallback, times(3)).onResults(boolCaptor.capture(), intArrayCaptor.capture(),
+        verify(mockCallback, times(4)).onResults(boolCaptor.capture(), intArrayCaptor.capture(),
                 stringArrayCaptor.capture());
         verify(mPackageManager).makeUidVisible(TEST_UID, OTHER_TEST_UID);
 
@@ -10771,12 +10776,20 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertEquals(0, intArrayCaptor.getAllValues().get(1).length);
         assertEquals(0, stringArrayCaptor.getAllValues().get(1).length);
 
-        // result 2: success with no side effects
+        // result 2: success with side effects
         assertTrue(boolCaptor.getAllValues().get(2));
         assertEquals(1, intArrayCaptor.getAllValues().get(2).length);
         assertEquals(WifiManager.WIFI_INTERFACE_TYPE_DIRECT,
                 intArrayCaptor.getAllValues().get(2)[0]);
         assertArrayEquals(packagesOther, stringArrayCaptor.getAllValues().get(2));
+
+        // result 2: success with side effects of empty packages
+        assertTrue(boolCaptor.getAllValues().get(3));
+        assertEquals(1, intArrayCaptor.getAllValues().get(3).length);
+        assertEquals(WifiManager.WIFI_INTERFACE_TYPE_AWARE,
+                intArrayCaptor.getAllValues().get(3)[0]);
+        assertEquals(1, stringArrayCaptor.getAllValues().get(3).length);
+        assertNull(stringArrayCaptor.getAllValues().get(3)[0]);
     }
 
     @Test

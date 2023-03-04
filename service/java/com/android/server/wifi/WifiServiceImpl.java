@@ -39,6 +39,7 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_AWARE;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static android.os.Process.WIFI_UID;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -3118,7 +3119,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         int targetConfigUid = Process.INVALID_UID; // don't expose any MAC addresses
         if (isPrivileged) {
-            targetConfigUid = Process.WIFI_UID; // expose all MAC addresses
+            targetConfigUid = WIFI_UID; // expose all MAC addresses
         } else if (isCarrierApp || isDeviceOrProfileOwner) {
             targetConfigUid = callingUid; // expose only those configs created by the calling App
         }
@@ -5158,7 +5159,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private void updateWifiMetrics() {
         mWifiThreadRunner.run(() -> {
             mWifiMetrics.updateSavedNetworks(
-                    mWifiConfigManager.getSavedNetworks(Process.WIFI_UID));
+                    mWifiConfigManager.getSavedNetworks(WIFI_UID));
             mActiveModeWarden.updateMetrics();
             mPasspointManager.updateMetrics();
         });
@@ -5467,7 +5468,7 @@ public class WifiServiceImpl extends BaseWifiService {
         // Delete all Wifi SSIDs
         mWifiThreadRunner.run(() -> {
             List<WifiConfiguration> networks = mWifiConfigManager
-                    .getSavedNetworks(Process.WIFI_UID);
+                    .getSavedNetworks(WIFI_UID);
             EventLog.writeEvent(0x534e4554, "231985227", -1,
                     "Remove certs for factory reset");
             for (WifiConfiguration network : networks) {
@@ -5479,7 +5480,7 @@ public class WifiServiceImpl extends BaseWifiService {
         });
         // Delete all Passpoint configurations
         List<PasspointConfiguration> configs = mWifiThreadRunner.call(
-                () -> mPasspointManager.getProviderConfigs(Process.WIFI_UID /* ignored */, true),
+                () -> mPasspointManager.getProviderConfigs(WIFI_UID /* ignored */, true),
                 Collections.emptyList());
         for (PasspointConfiguration config : configs) {
             removePasspointConfigurationInternal(null, config.getUniqueId());
@@ -7354,6 +7355,11 @@ public class WifiServiceImpl extends BaseWifiService {
                     int i = 0;
                     for (Pair<Integer, WorkSource> detail: details) {
                         interfaces[i] = hdmIfaceToWifiIfaceMap.get(detail.first);
+                        if (detail.second.size() == 1
+                                && detail.second.getUid(0) == WIFI_UID) {
+                            i++;
+                            continue;
+                        }
                         StringBuilder packages = new StringBuilder();
                         for (int j = 0; j < detail.second.size(); ++j) {
                             if (j != 0) packages.append(",");
