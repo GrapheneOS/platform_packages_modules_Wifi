@@ -308,6 +308,37 @@ public class WifiKeyStoreTest extends WifiBaseTest {
     }
 
     /**
+     * Test configuring WPA3-Enterprise in 192-bit mode for RSA 3072 correctly when CA and client
+     * certificates are of RSA 3072 type and the network is Suite-B.
+     */
+    @Test
+    public void testConfigureSuiteBRsa3072UserAndTofu() throws Exception {
+        // No Root CA certificates, but TOFU is on - Setting the suite-b mode by the user cert
+        when(mWifiEnterpriseConfig.getCaCertificateAliases())
+                .thenReturn(null);
+        when(mWifiEnterpriseConfig.getCaCertificate()).thenReturn(null);
+        when(mWifiEnterpriseConfig.getCaCertificates())
+                .thenReturn(null);
+        when(mWifiEnterpriseConfig.isTrustOnFirstUseEnabled()).thenReturn(true);
+
+        when(mWifiEnterpriseConfig.isEapMethodServerCertUsed()).thenReturn(true);
+        when(mWifiEnterpriseConfig.getClientPrivateKey())
+                .thenReturn(FakeKeys.CLIENT_SUITE_B_RSA3072_KEY);
+        when(mWifiEnterpriseConfig.getClientCertificate()).thenReturn(
+                FakeKeys.CLIENT_SUITE_B_RSA3072_CERT);
+        when(mWifiEnterpriseConfig.getClientCertificateChain())
+                .thenReturn(new X509Certificate[]{FakeKeys.CLIENT_SUITE_B_RSA3072_CERT});
+        when(mKeyStore.getCertificate(eq(USER_CERT_ALIAS))).thenReturn(
+                FakeKeys.CLIENT_SUITE_B_RSA3072_CERT);
+        WifiConfiguration savedNetwork = WifiConfigurationTestUtil.createEapSuiteBNetwork(
+                WifiConfiguration.SuiteBCipher.ECDHE_RSA);
+        savedNetwork.enterpriseConfig = mWifiEnterpriseConfig;
+        assertTrue(mWifiKeyStore.updateNetworkKeys(savedNetwork, null));
+        assertTrue(savedNetwork.allowedSuiteBCiphers.get(WifiConfiguration.SuiteBCipher.ECDHE_RSA));
+    }
+
+
+    /**
      * Test configuring WPA3-Enterprise in 192-bit mode for RSA 3072 fails when CA and client
      * certificates are not of the same type.
      */
