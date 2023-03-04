@@ -378,7 +378,7 @@ public class DiscoverySession implements AutoCloseable {
      * The peer will check if the method can be fulfilled by
      * {@link AwarePairingConfig.Builder#setBootstrappingMethods(int)}
      * When the Aware Bootstrapping setup finished, both side will receive
-     * {@link DiscoverySessionCallback#onBootstrappingSucceeded(PeerHandle, boolean, int)}
+     * {@link DiscoverySessionCallback#onBootstrappingSucceeded(PeerHandle, int)}
      * @param peerHandle The peer's handle for the pairing request. Must be a result of an
      * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
      * {@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.

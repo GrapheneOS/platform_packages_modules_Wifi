@@ -1172,7 +1172,7 @@ public class WifiAwareManager {
         public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
             if (accept) {
                 mHandler.post(() -> mOriginalCallback.onBootstrappingSucceeded(
-                        new PeerHandle(peerId), accept, method));
+                        new PeerHandle(peerId), method));
             } else {
                 mHandler.post(() -> mOriginalCallback.onBootstrappingFailed(
                         new PeerHandle(peerId)));
