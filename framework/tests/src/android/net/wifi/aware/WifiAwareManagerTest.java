@@ -1888,7 +1888,7 @@ public class WifiAwareManagerTest {
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
-                eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
 
         // (5) initiate pairing request
         subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
