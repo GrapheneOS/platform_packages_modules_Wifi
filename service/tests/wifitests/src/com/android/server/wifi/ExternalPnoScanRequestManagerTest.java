@@ -93,6 +93,7 @@ public class ExternalPnoScanRequestManagerTest extends WifiBaseTest {
         mLooper = new TestLooper();
         mExternalPnoScanRequestManager = new ExternalPnoScanRequestManager(
                 new Handler(mLooper.getLooper()), mContext);
+        mExternalPnoScanRequestManager.enableVerboseLogging(true);
     }
 
     @Test

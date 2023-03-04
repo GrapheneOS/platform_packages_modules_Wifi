@@ -305,6 +305,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         mWifiInjector, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore,
                         mWifiMetrics, mWifiCarrierInfoManager, mWifiKeyStore,
                         mLruConnectionTracker, mClock);
+        mWifiNetworkSuggestionsManager.enableVerboseLogging(true);
         mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any());
 
@@ -319,8 +320,6 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         verify(mWifiCarrierInfoManager).addImsiExemptionUserApprovalListener(
                 mUserApproveCarrierListenerArgumentCaptor.capture());
         verify(mWifiConfigManager).addOnNetworkUpdateListener(mNetworkListenerCaptor.capture());
-
-        mWifiNetworkSuggestionsManager.enableVerboseLogging(true);
     }
 
     @After
