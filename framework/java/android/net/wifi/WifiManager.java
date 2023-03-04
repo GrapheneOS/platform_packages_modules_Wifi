@@ -11201,8 +11201,11 @@ public class WifiManager {
                                 for (int i = 0; i < interfacesToDelete.length; ++i) {
                                     finalSet.add(
                                             new InterfaceCreationImpact(interfacesToDelete[i],
-                                                    new ArraySet<>(
-                                                            packagesForInterfaces[i].split(","))));
+                                                    packagesForInterfaces[i] == null
+                                                            ? Collections.emptySet()
+                                                            : new ArraySet<>(
+                                                                    packagesForInterfaces[i]
+                                                                            .split(","))));
                                 }
                             }
                             executor.execute(() -> resultCallback.accept(canCreate, finalSet));
