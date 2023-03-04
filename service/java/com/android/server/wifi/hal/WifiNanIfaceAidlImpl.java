@@ -386,22 +386,21 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#initiateDataPath(short, int, int, int, MacAddress,
-     *                         String, boolean, byte[], Capabilities,
-     *                         WifiAwareDataPathSecurityConfig)}
+     * See comments for
+     * {@link IWifiNanIface#initiateDataPath(short, int, int, int, MacAddress, String, boolean, byte[], Capabilities, WifiAwareDataPathSecurityConfig, byte)}
      */
     @Override
     public boolean initiateDataPath(short transactionId, int peerId, int channelRequestType,
             int channel, MacAddress peer, String interfaceName,
             boolean isOutOfBand, byte[] appInfo, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
         final String methodStr = "initiateDataPath";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 NanInitiateDataPathRequest req = createNanInitiateDataPathRequest(
                         peerId, channelRequestType, channel, peer, interfaceName, isOutOfBand,
-                        appInfo, securityConfig);
+                        appInfo, securityConfig, pubSubId);
                 mWifiNanIface.initiateDataPathRequest((char) transactionId, req);
                 return true;
             } catch (RemoteException e) {
@@ -414,13 +413,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#respondToDataPathRequest(short, boolean, int, String,
-     *                         byte[], boolean, Capabilities, WifiAwareDataPathSecurityConfig)}
+     * See comments for
+     * {@link IWifiNanIface#respondToDataPathRequest(short, boolean, int, String, byte[], boolean, Capabilities, WifiAwareDataPathSecurityConfig, byte)}
      */
     @Override
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
         final String methodStr = "respondToDataPathRequest";
         synchronized (mLock) {
             try {
@@ -428,7 +427,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                 NanRespondToDataPathIndicationRequest req =
                         createNanRespondToDataPathIndicationRequest(
                                 accept, ndpId, interfaceName, appInfo, isOutOfBand,
-                                securityConfig);
+                                securityConfig, pubSubId);
                 mWifiNanIface.respondToDataPathIndicationRequest((char) transactionId, req);
                 return true;
             } catch (RemoteException e) {
@@ -937,7 +936,8 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
     private static NanInitiateDataPathRequest createNanInitiateDataPathRequest(
             int peerId, int channelRequestType, int channel, MacAddress peer, String interfaceName,
-            boolean isOutOfBand, byte[] appInfo, WifiAwareDataPathSecurityConfig securityConfig) {
+            boolean isOutOfBand, byte[] appInfo, WifiAwareDataPathSecurityConfig securityConfig,
+            byte pubSubId) {
         NanInitiateDataPathRequest req = new NanInitiateDataPathRequest();
         req.peerId = peerId;
         req.peerDiscMacAddr = peer.toByteArray();
@@ -971,6 +971,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                     .getBytes(StandardCharsets.UTF_8);
         }
         req.appInfo = copyArray(appInfo);
+        req.discoverySessionId = pubSubId;
         return req;
     }
 
@@ -1040,7 +1041,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     private static NanRespondToDataPathIndicationRequest
             createNanRespondToDataPathIndicationRequest(boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand,
-            WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
         NanRespondToDataPathIndicationRequest req = new NanRespondToDataPathIndicationRequest();
         req.acceptRequest = accept;
         req.ndpInstanceId = ndpId;
@@ -1070,6 +1071,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                     .getBytes(StandardCharsets.UTF_8);
         }
         req.appInfo = copyArray(appInfo);
+        req.discoverySessionId = pubSubId;
         return req;
     }
 

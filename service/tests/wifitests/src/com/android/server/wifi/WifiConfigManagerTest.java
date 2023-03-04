@@ -2475,7 +2475,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testShouldUseNonPersistentRandomization_openNetworkNoCaptivePortal() {
-        when(mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids()).thenReturn(true);
+        mResources.setBoolean(R.bool.config_wifiAllowNonPersistentMacRandomizationOnOpenSsids,
+                true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
 
         // verify non-persistent randomization is not enabled because the config has never been
@@ -2484,31 +2485,6 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertFalse(mWifiConfigManager.shouldUseNonPersistentRandomization(config));
 
         config.getNetworkSelectionStatus().setHasEverConnected(true);
-        assertTrue(mWifiConfigManager.shouldUseNonPersistentRandomization(config));
-    }
-
-    /**
-     * Verify that non-persistent randomization on open networks could be turned on/off by 2 feature
-     * flags.
-     */
-    @Test
-    public void testShouldUseNonPersistentRandomization_openNetworkFeatureFlag() {
-        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
-        config.getNetworkSelectionStatus().setHasEverConnected(true);
-
-        // Test with both feature flags off, and expected no non-persistent randomization.
-        when(mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids()).thenReturn(false);
-        mResources.setBoolean(R.bool.config_wifiAllowNonPersistentMacRandomizationOnOpenSsids,
-                false);
-        assertFalse(mWifiConfigManager.shouldUseNonPersistentRandomization(config));
-
-        // Verify either feature flag turned on will enable non-persistent randomization.
-        when(mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids()).thenReturn(true);
-        assertTrue(mWifiConfigManager.shouldUseNonPersistentRandomization(config));
-
-        when(mDeviceConfigFacade.allowNonPersistentMacRandomizationOnOpenSsids()).thenReturn(false);
-        mResources.setBoolean(R.bool.config_wifiAllowNonPersistentMacRandomizationOnOpenSsids,
-                true);
         assertTrue(mWifiConfigManager.shouldUseNonPersistentRandomization(config));
     }
 
