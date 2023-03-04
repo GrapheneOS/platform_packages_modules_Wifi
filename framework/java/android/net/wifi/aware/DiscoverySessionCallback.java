@@ -367,10 +367,9 @@ public class DiscoverySessionCallback {
      * The follow-up out-of-band bootstrapping can start
      *
      * @param peerHandle The bootstrapping peer handle
-     * @param accept True if the bootstrapping method is accepted by the peer, false otherwise
-     * @param method The bootstrapping method accept by the peer
+     * @param method     The bootstrapping method accept by the peer
      */
-    public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle, boolean accept,
+    public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method){
 
     }
