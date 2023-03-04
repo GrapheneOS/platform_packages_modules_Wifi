@@ -209,13 +209,6 @@ public class InsecureEapNetworkHandler {
                     config.enterpriseConfig.setAnonymousIdentity(TOFU_ANONYMOUS_IDENTITY);
                 }
                 config.enterpriseConfig.setPassword(null);
-            } else if (config.enterpriseConfig.getEapMethod() == WifiEnterpriseConfig.Eap.TLS) {
-                /**
-                 * Clear the user certificate and use an anonymous identity to prevent any
-                 * untrusted server from tracking real user identities.
-                 */
-                config.enterpriseConfig.setClientCertificateAlias(null);
-                config.enterpriseConfig.setIdentity(TOFU_ANONYMOUS_IDENTITY);
             }
         }
         mCurrentTofuConfig = config;
