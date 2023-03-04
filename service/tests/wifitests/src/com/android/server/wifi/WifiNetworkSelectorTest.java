@@ -121,6 +121,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
                 mWifiChannelUtilization,
                 mWifiGlobals,
                 mScanRequestProxy);
+        mWifiNetworkSelector.enableVerboseLogging(true);
 
         mWifiNetworkSelector.registerNetworkNominator(mPlaceholderNominator);
         mPlaceholderNominator.setNominatorToSelectCandidate(true);
@@ -129,6 +130,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         mCompatibilityScorer = new CompatibilityScorer(mScoringParams);
         mScoreCardBasedScorer = new ScoreCardBasedScorer(mScoringParams);
         mThroughputScorer = new ThroughputScorer(mScoringParams);
+        mThroughputScorer.enableVerboseLogging(true);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiGlobals.getWifiLowConnectedScoreThresholdToTriggerScanForMbb()).thenReturn(

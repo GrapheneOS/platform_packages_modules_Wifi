@@ -282,6 +282,7 @@ public class PasspointManagerTest extends WifiBaseTest {
                 mWifiKeyStore, mClock, mObjectFactory, mWifiConfigManager,
                 mWifiConfigStore, mWifiSettingsStore, mWifiMetrics, mWifiCarrierInfoManager,
                 mMacAddressUtil, mWifiPermissionsUtil);
+        mManager.enableVerboseLogging(true);
         mManager.setPasspointNetworkNominateHelper(mPasspointNetworkNominateHelper);
         // Verify Passpoint is disabled on creation.
         assertFalse(mManager.isWifiPasspointEnabled());

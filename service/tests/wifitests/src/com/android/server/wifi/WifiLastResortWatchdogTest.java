@@ -108,6 +108,7 @@ public class WifiLastResortWatchdogTest extends WifiBaseTest {
         mLastResortWatchdog = new WifiLastResortWatchdog(mWifiInjector, mContext, mClock,
                 mWifiMetrics, mWifiDiagnostics, mLooper.getLooper(), mDeviceConfigFacade,
                 wifiThreadRunner, mWifiMonitor);
+        mLastResortWatchdog.enableVerboseLogging(true);
         mLastResortWatchdog.setBugReportProbability(1);
     }
 

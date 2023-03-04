@@ -220,6 +220,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mFrameworkFacade, mContext, mWifiConfigStore,
                 new Handler(mLooper.getLooper()), mWifiMetrics, mClock);
+        mWifiCarrierInfoManager.enableVerboseLogging(true);
         ArgumentCaptor<WifiCarrierInfoStoreManagerData.DataSource>
                 carrierInfoSourceArgumentCaptor =
                 ArgumentCaptor.forClass(WifiCarrierInfoStoreManagerData.DataSource.class);
