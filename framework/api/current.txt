@@ -898,7 +898,7 @@ package android.net.wifi.aware {
   public class DiscoverySessionCallback {
     ctor public DiscoverySessionCallback();
     method public void onBootstrappingFailed(@NonNull android.net.wifi.aware.PeerHandle);
-    method public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, boolean, int);
+    method public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, int);
     method public void onMessageReceived(android.net.wifi.aware.PeerHandle, byte[]);
     method public void onMessageSendFailed(int);
     method public void onMessageSendSucceeded(int);
