@@ -205,6 +205,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 mWifiPermissionsUtil, mPermissionsWrapperMock, mClock, mMockNetdWrapper,
                 mInterfaceConflictManager);
         mDut.startLate();
+        mDut.enableVerboseLogging(true, true);
         mMockLooper.dispatchAll();
 
         when(mMockNetworkInterface.configureAgentProperties(any(), any(), any())).thenReturn(true);

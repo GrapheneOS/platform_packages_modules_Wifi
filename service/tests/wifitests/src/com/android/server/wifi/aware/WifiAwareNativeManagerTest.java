@@ -69,14 +69,6 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
     private WifiStatus mStatusOk;
 
-    private class MockableWifiAwareNativeManager extends WifiAwareNativeManager {
-        MockableWifiAwareNativeManager(WifiAwareStateManager awareStateManager,
-                HalDeviceManager halDeviceManager,
-                WifiAwareNativeCallback wifiAwareNativeCallback) {
-            super(awareStateManager, halDeviceManager, wifiAwareNativeCallback);
-        }
-    }
-
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -86,8 +78,9 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
         when(mWifiNanIfaceMock.registerFrameworkCallback(any())).thenReturn(true);
 
-        mDut = new MockableWifiAwareNativeManager(mWifiAwareStateManagerMock,
+        mDut = new WifiAwareNativeManager(mWifiAwareStateManagerMock,
                 mHalDeviceManager, mWifiAwareNativeCallback);
+        mDut.enableVerboseLogging(true, true);
         mDut.start(mHandlerMock);
 
         mInOrder = inOrder(mWifiAwareStateManagerMock, mHalDeviceManager, mWifiNanIfaceMock);

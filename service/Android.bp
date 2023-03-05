@@ -72,6 +72,11 @@ java_library {
         "framework-tethering.stubs.module_lib",
         "unsupportedappusage",
         "app-compat-annotations",
+        "auto_value_annotations",
+    ],
+
+    plugins: [
+        "auto_value_plugin",
     ],
 
     static_libs: [
@@ -113,6 +118,7 @@ java_library {
         "netd-client",
         "networkstack-client",
         "net-utils-services-common",
+        "service-entitlement",
         "wifi-lite-protos",
         "wifi-nano-protos",
     ],
@@ -132,6 +138,11 @@ java_library {
     // need to include `libs` so that Soong doesn't complain about missing classes after jarjaring
     libs: [
         "framework-wifi.impl",
+        "auto_value_annotations",
+    ],
+
+    plugins: [
+        "auto_value_plugin",
     ],
 
     sdk_version: "system_server_current",

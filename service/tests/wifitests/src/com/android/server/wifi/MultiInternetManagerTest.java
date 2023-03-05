@@ -181,6 +181,7 @@ public class MultiInternetManagerTest extends WifiBaseTest {
 
         mMultiInternetManager = new MultiInternetManager(mActiveModeWarden, mFrameworkFacade,
                 mContext, mCmiMonitor, mSettingsStore, mTestHandler, mClock);
+        mMultiInternetManager.setVerboseLoggingEnabled(true);
 
         verify(mActiveModeWarden).registerModeChangeCallback(mModeChangeCallbackCaptor.capture());
         verify(mCmiMonitor).registerListener(mCmiListenerCaptor.capture());
