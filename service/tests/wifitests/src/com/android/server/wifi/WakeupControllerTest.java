@@ -186,6 +186,7 @@ public class WakeupControllerTest extends WifiBaseTest {
                 mWifiInjector,
                 mFrameworkFacade,
                 mClock, mActiveModeWarden);
+        mWakeupController.enableVerboseLogging(true);
 
         verify(mActiveModeWarden).registerPrimaryClientModeManagerChangedCallback(
                 mPrimaryChangedCaptor.capture());

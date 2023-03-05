@@ -56,13 +56,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Rule public ErrorCollector collector = new ErrorCollector();
 
-    private class MockableWifiAwareNativeApi extends WifiAwareNativeApi {
-        MockableWifiAwareNativeApi(WifiAwareNativeManager wifiAwareNativeManager) {
-            super(wifiAwareNativeManager);
-        }
-    }
-
-    private MockableWifiAwareNativeApi mDut;
+    private WifiAwareNativeApi mDut;
 
     /**
      * Initializes mocks.
@@ -71,7 +65,8 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiAwareNativeManagerMock.getWifiNanIface()).thenReturn(mWifiNanIfaceMock);
-        mDut = new MockableWifiAwareNativeApi(mWifiAwareNativeManagerMock);
+        mDut = new WifiAwareNativeApi(mWifiAwareNativeManagerMock);
+        mDut.enableVerboseLogging(true, true);
     }
 
     /**

@@ -155,6 +155,7 @@ public class ScanRequestProxyTest extends WifiBaseTest {
             new ScanRequestProxy(mContext, mAppOps, mActivityManager, mWifiInjector,
                     mWifiConfigManager, mWifiPermissionsUtil, mWifiMetrics, mClock,
                     new Handler(mLooper.getLooper()), mWifiSettingsConfigStore);
+        mScanRequestProxy.enableVerboseLogging(true);
         when(mScanResultsCallback.asBinder()).thenReturn(mBinder);
         when(mAnotherScanResultsCallback.asBinder()).thenReturn(mAnotherBinder);
     }
