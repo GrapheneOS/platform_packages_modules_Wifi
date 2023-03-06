@@ -3137,7 +3137,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mAwareMetrics.recordDiscoverySession(client.getUid(), mClients);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusType.SUCCESS,
-                    completedCommand.arg1 == COMMAND_TYPE_PUBLISH);
+                    completedCommand.arg1 == COMMAND_TYPE_PUBLISH, sessionId);
             sendAwareResourcesChangedBroadcast();
         } else if (completedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH
                 || completedCommand.arg1 == COMMAND_TYPE_UPDATE_SUBSCRIBE) {
