@@ -4256,6 +4256,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
 
                         byte[] goInterfaceMacAddress = mGroup.interfaceAddress;
+                        if (goInterfaceMacAddress == null) {
+                            setWifiP2pInfoOnGroupFormationWithInetAddress(null);
+                            sendP2pConnectionChangedBroadcast();
+                            break;
+                        }
+
                         byte[] goIpv6Address = MacAddress.fromBytes(goInterfaceMacAddress)
                                 .getLinkLocalIpv6FromEui48Mac().getAddress();
                         try {
