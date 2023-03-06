@@ -2808,7 +2808,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (SdkLevel.isAtLeastU()) {
             opts = BroadcastOptions.makeBasic()
                     .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
-                    .setDeferUntilActive(true)
+                    .setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_UNTIL_ACTIVE)
                     .toBundle();
         } else {
             opts = null;
