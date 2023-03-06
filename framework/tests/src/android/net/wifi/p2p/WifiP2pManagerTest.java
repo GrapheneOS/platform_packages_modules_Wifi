@@ -255,16 +255,16 @@ public class WifiP2pManagerTest {
     }
 
     /**
-     * Test {@link WifiP2pManager#isGroupClientIpv6LinkLocalProvisioningSupported()} works as
+     * Test {@link WifiP2pManager#isGroupOwnerIPv6LinkLocalAddressProvided()} works as
      * expected.
      */
     @Test
-    public void testIsGroupClientIpv6LinkLocalProvisioningSupported() throws Exception {
+    public void testIsGroupOwnerIPv6LinkLocalAddressProvided() throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         when(mP2pServiceMock.getSupportedFeatures()).thenReturn(0L);
-        assertFalse(mDut.isGroupClientIpv6LinkLocalProvisioningSupported());
+        assertFalse(mDut.isGroupOwnerIPv6LinkLocalAddressProvided());
         when(mP2pServiceMock.getSupportedFeatures()).thenReturn(
-                WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING);
-        assertTrue(mDut.isGroupClientIpv6LinkLocalProvisioningSupported());
+                WifiP2pManager.FEATURE_GROUP_OWNER_IPV6_LINK_LOCAL_ADDRESS_PROVIDED);
+        assertTrue(mDut.isGroupOwnerIPv6LinkLocalAddressProvided());
     }
 }
