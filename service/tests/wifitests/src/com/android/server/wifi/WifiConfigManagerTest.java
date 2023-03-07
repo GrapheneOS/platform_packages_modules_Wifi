@@ -7901,6 +7901,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
         config.enterpriseConfig.setCaPath(null);
         config.enterpriseConfig.setDomainSuffixMatch(null);
+        assertFalse(config.enterpriseConfig.isUserApproveNoCaCert());
 
         // Verify operation fails
         NetworkUpdateResult result = addNetworkToWifiConfigManager(config);
@@ -7911,7 +7912,11 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(mWifiGlobals.isInsecureEnterpriseConfigurationAllowed()).thenReturn(true);
 
         // Verify operation succeeds
-        assertTrue(addNetworkToWifiConfigManager(config).isSuccess());
+        NetworkUpdateResult res = addNetworkToWifiConfigManager(config);
+        assertTrue(res.isSuccess());
+        config = mWifiConfigManager.getConfiguredNetwork(res.getNetworkId());
+        assertNotNull(config);
+        assertTrue(config.enterpriseConfig.isUserApproveNoCaCert());
     }
 
     /**

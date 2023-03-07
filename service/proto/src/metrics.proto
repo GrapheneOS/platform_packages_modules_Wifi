@@ -1047,6 +1047,9 @@ message ConnectionEvent {
 
     // The reason code if a user rejects this connection.
     AUTH_FAILURE_REJECTED_BY_USER = 7;
+
+    // The reason code if an insecure Enterprise connection requires user's approval
+    DISCONNECTED_USER_APPROVAL_NEEDED = 8;
   }
 
   // Entity that recommended connecting to this network.

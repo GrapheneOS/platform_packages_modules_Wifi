@@ -35,7 +35,6 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
-import android.app.AlarmManager;
 import android.app.admin.SecurityLog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -580,7 +579,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     static final int CMD_ACCEPT_EAP_SERVER_CERTIFICATE                  = BASE + 301;
 
     @VisibleForTesting
-    static final int CMD_REJECT_EAP_SERVER_CERTIFICATE                  = BASE + 302;
+    static final int CMD_REJECT_EAP_INSECURE_CONNECTION                 = BASE + 302;
 
     /* Tracks if suspend optimizations need to be disabled by DHCP,
      * screen or due to high perf mode.
@@ -834,17 +833,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
 
                 @Override
-                public void onReject(String ssid) {
+                public void onReject(String ssid, boolean disconnectRequired) {
                     log("Reject Root CA cert for " + ssid);
-                    sendMessage(CMD_REJECT_EAP_SERVER_CERTIFICATE,
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
                             WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_REJECTED_BY_USER,
-                            0, ssid);
+                            disconnectRequired ? 1 : 0, ssid);
                 }
 
                 @Override
                 public void onError(String ssid) {
                     log("Insecure EAP network error for " + ssid);
-                    sendMessage(CMD_REJECT_EAP_SERVER_CERTIFICATE,
+                    sendMessage(CMD_REJECT_EAP_INSECURE_CONNECTION,
                             WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_EAP_FAILURE,
                             0, ssid);
                 }};
@@ -855,8 +854,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mFacade,
                 mNotificationManager,
                 mWifiInjector.getWifiDialogManager(),
-                mClock,
-                mContext.getSystemService(AlarmManager.class),
                 isTrustOnFirstUseSupported(),
                 mWifiGlobals.isInsecureEnterpriseConfigurationAllowed(),
                 mInsecureEapNetworkHandlerCallbacksImpl,
@@ -2352,7 +2349,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_UPDATE_LINKPROPERTIES";
             case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
                 return "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
-            case CMD_REJECT_EAP_SERVER_CERTIFICATE:
+            case CMD_REJECT_EAP_INSECURE_CONNECTION:
                 return "CMD_REJECT_EAP_SERVER_CERTIFICATE";
             case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                 return "SUPPLICANT_STATE_CHANGE_EVENT";
@@ -4153,8 +4150,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             break;
                         }
                     }
-                    mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
                     setSelectedRcoiForPasspoint(config);
+
+                    // TOFU flow for devices that do not support this feature
+                    mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
+                    if (!isTrustOnFirstUseSupported()) {
+                        mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
+                    }
                     connectToNetwork(config);
                     break;
                 }
@@ -4393,7 +4395,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
-                case CMD_REJECT_EAP_SERVER_CERTIFICATE:
+                case CMD_REJECT_EAP_INSECURE_CONNECTION:
                 case CMD_START_ROAM:
                 case CMD_START_RSSI_MONITORING_OFFLOAD:
                 case CMD_STOP_RSSI_MONITORING_OFFLOAD:
@@ -5203,6 +5205,18 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
+                case CMD_REJECT_EAP_INSECURE_CONNECTION: {
+                    log("Received CMD_REJECT_EAP_INSECURE_CONNECTION event");
+                    boolean disconnectRequired = message.arg2 == 1;
+
+                    // TOFU connections are not established until the user approves the certificate.
+                    // If TOFU is not supported and the network is already connected, this will
+                    // disconnect the network.
+                    if (disconnectRequired) {
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
+                    }
+                    break;
+                }
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
@@ -5567,10 +5581,18 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
                 case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
                     if (null == mTargetWifiConfiguration) break;
+                    int certificateDepth = message.arg2;
                     if (!mInsecureEapNetworkHandler.addPendingCertificate(
                             mTargetWifiConfiguration.SSID, message.arg2,
                             (X509Certificate) message.obj)) {
                         Log.d(TAG, "Cannot set pending cert.");
+                    }
+                    // Launch user approval upon receiving the server certificate and disconnect
+                    if (certificateDepth == 0 && mInsecureEapNetworkHandler
+                            .startUserApprovalIfNecessary(mIsUserSelected)) {
+                        // In the TOFU flow, the user approval dialog is now displayed and the
+                        // network remains disconnected and disabled until it is approved.
+                        sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
                     }
                     break;
                 default: {
@@ -6050,10 +6072,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     class L3ProvisioningState extends State {
         @Override
         public void enter() {
-            if (mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected)) {
-                return;
-            }
-
             startL3Provisioning();
         }
 
@@ -6071,31 +6089,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             WifiLastResortWatchdog.FAILURE_CODE_DHCP,
                             isConnected());
                     handleStatus = NOT_HANDLED;
-                    break;
-                }
-                case CMD_ACCEPT_EAP_SERVER_CERTIFICATE: {
-                    String ssid = (String) message.obj;
-                    if (mTargetWifiConfiguration == null
-                            || !mTargetWifiConfiguration.SSID.equals(ssid)) {
-                        break;
-                    }
-
-                    startL3Provisioning();
-                    break;
-                }
-                case CMD_REJECT_EAP_SERVER_CERTIFICATE: {
-                    String ssid = (String) message.obj;
-                    if (mTargetWifiConfiguration == null
-                            || !mTargetWifiConfiguration.SSID.equals(ssid)) {
-                        break;
-                    }
-
-                    int l2FailureReason = message.arg1;
-                    reportConnectionAttemptEnd(
-                            WifiMetrics.ConnectionEvent.FAILURE_NETWORK_DISCONNECTION,
-                            WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                            l2FailureReason);
-                    mWifiNative.disconnect(mInterfaceName);
                     break;
                 }
                 default: {
@@ -6608,8 +6601,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
-                    // Got a delayed approval for TOFU network, trigger a scan to
-                    // accelerate the auto-connection.
+                    // Got an approval for a TOFU network, trigger a scan to accelerate the
+                    // auto-connection.
+                    logd("User accepted TOFU provided certificate");
                     mWifiConnectivityManager.forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
                     break;
                 default: {

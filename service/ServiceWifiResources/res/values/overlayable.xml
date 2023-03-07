@@ -375,6 +375,7 @@
           <item type="string" name="wifi_ca_cert_dialog_message_server_name_text" />
           <item type="string" name="wifi_ca_cert_dialog_message_issuer_name_text" />
           <item type="string" name="wifi_ca_cert_dialog_message_organization_text" />
+          <item type="string" name="wifi_ca_cert_dialog_message_expiration_text" />
           <item type="string" name="wifi_ca_cert_dialog_message_contact_text" />
           <item type="string" name="wifi_ca_cert_dialog_message_signature_name_text" />
           <item type="string" name="wifi_ca_cert_notification_title" />
