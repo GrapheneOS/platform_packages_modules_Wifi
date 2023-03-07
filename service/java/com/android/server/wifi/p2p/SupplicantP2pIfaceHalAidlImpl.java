@@ -2462,7 +2462,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 | WifiP2pManager.FEATURE_FLEXIBLE_DISCOVERY
                 | WifiP2pManager.FEATURE_GROUP_CLIENT_REMOVAL;
         if (getCachedServiceVersion() >= 2) {
-            result |= WifiP2pManager.FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING;
+            result |= WifiP2pManager.FEATURE_GROUP_OWNER_IPV6_LINK_LOCAL_ADDRESS_PROVIDED;
         }
         return result;
     }

@@ -165,7 +165,7 @@ public class WifiP2pManager {
     /** @hide */
     public static final long FEATURE_GROUP_CLIENT_REMOVAL       = 1L << 2;
     /** @hide */
-    public static final long FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING = 1L << 3;
+    public static final long FEATURE_GROUP_OWNER_IPV6_LINK_LOCAL_ADDRESS_PROVIDED = 1L << 3;
 
     /**
      * Extra for transporting a WifiP2pConfig
@@ -1591,11 +1591,6 @@ public class WifiP2pManager {
         if (TextUtils.isEmpty(c.deviceAddress)) {
             throw new IllegalArgumentException("deviceAddress cannot be empty");
         }
-        if (c.getGroupClientIpProvisioningMode()
-                == WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL
-                && !isGroupClientIpv6LinkLocalProvisioningSupported()) {
-            throw new UnsupportedOperationException("IPv6 link-local provisioning not supported");
-        }
     }
 
     /**
@@ -2711,17 +2706,25 @@ public class WifiP2pManager {
     }
 
     /**
-     * Check if this device supports the IPv6 link-local provisioning for a group client.
+     * Checks whether this device, while being a group client, can discover and deliver the group
+     * owner's IPv6 link-local address.
      *
-     * Gates whether the
-     * {@link #connect(Channel, WifiP2pConfig, ActionListener)} method is functional on this device
-     * for {@link WifiP2pConfig#GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL}.
+     * <p>If this method returns {@code true} and
+     * {@link #connect(Channel, WifiP2pConfig, ActionListener)} method is called with
+     * {@link WifiP2pConfig} having
+     * {@link WifiP2pConfig#GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL} as the group client
+     * IP provisioning mode, then the group owner's IPv6 link-local address will be delivered in the
+     * group client via {@link #WIFI_P2P_CONNECTION_CHANGED_ACTION} broadcast intent (i.e, group
+     * owner address in {@link #EXTRA_WIFI_P2P_INFO}).
+     * If this method returns {@code false}, then IPv6 link-local addresses can still be used, but
+     * it is the responsibility of the caller to discover that address in other ways, e.g. using
+     * out-of-band communication.
      *
      * @return {@code true} if supported, {@code false} otherwise.
      */
-    public boolean isGroupClientIpv6LinkLocalProvisioningSupported() {
+    public boolean isGroupOwnerIPv6LinkLocalAddressProvided() {
         return SdkLevel.isAtLeastT()
-                && isFeatureSupported(FEATURE_GROUP_CLIENT_IPV6_LINK_LOCAL_IP_PROVISIONING);
+                && isFeatureSupported(FEATURE_GROUP_OWNER_IPV6_LINK_LOCAL_ADDRESS_PROVIDED);
     }
 
     /**
