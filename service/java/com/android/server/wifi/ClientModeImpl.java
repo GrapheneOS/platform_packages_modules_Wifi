@@ -2965,7 +2965,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     + " networkAgentState=" + networkAgentState);
         }
         //TODO(b/69974497) This should be non-sticky, but settings needs fixing first.
-        context.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
+        if (SdkLevel.isAtLeastU()) {
+            final Context userAllContext = context.createContextAsUser(
+                    UserHandle.ALL, 0 /* flags */);
+            final Bundle opts = BroadcastOptions.makeBasic()
+                    .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
+                    .setDeferUntilActive(true)
+                    .toBundle();
+            userAllContext.sendStickyBroadcast(intent, opts);
+        } else {
+            context.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
+        }
     }
 
     private static NetworkInfo makeNetworkInfo(DetailedState networkAgentState) {
