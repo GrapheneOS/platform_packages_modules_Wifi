@@ -94,6 +94,12 @@ rule com.google.protobuf.** com.android.wifi.x.@0
 rule com.android.internal.messages.SystemMessageProto* com.android.wifi.x.@0
 # use statically linked entitlement library
 rule com.android.libraries.entitlement.** com.android.wifi.x.@0
+# use statically linked com.google.common
+rule com.google.common.** com.android.wifi.x.@0
+# use statically linked com.google.thirdparty.publicsuffix
+rule com.google.thirdparty.publicsuffix.** com.android.wifi.x.@0
+# use statically linked javax.annotation
+rule javax.annotation.** com.android.wifi.x.@0
 # Use our statically linked PlatformProperties library
 rule android.sysprop.** com.android.wifi.x.@0
 # Use our statically linked HIDL stubs
