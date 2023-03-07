@@ -193,6 +193,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
+import org.mockito.verification.VerificationMode;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -366,6 +367,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         Handler handler = new Handler(mP2pThread.getLooper());
         when(p2pm.getP2pStateMachineMessenger()).thenReturn(new Messenger(handler));
 
+        mUserAllContext = mock(Context.class);
+        when(context.createContextAsUser(UserHandle.ALL, 0)).thenReturn(mUserAllContext);
+
         return context;
     }
 
@@ -487,6 +491,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     MockWifiMonitor mWifiMonitor;
     TestLooper mLooper;
     WifiContext mContext;
+    Context mUserAllContext;
     MockResources mResources;
     FrameworkFacade mFrameworkFacade;
     IpClientCallbacks mIpClientCallback;
@@ -1159,10 +1164,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         validateConnectionInfo();
 
         assertEquals("L3ProvisioningState", getCurrentState().getName());
-        verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTING)), any());
-        verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(OBTAINING_IPADDR)), any());
+        verifyNetworkStateChangedBroadcast(times(1),
+                new NetworkStateChangedIntentMatcher(CONNECTING));
+        verifyNetworkStateChangedBroadcast(times(1),
+                new NetworkStateChangedIntentMatcher(OBTAINING_IPADDR));
 
         if (wnmDataForTermsAndConditions != null) {
             mCmi.sendMessage(WifiMonitor.HS20_TERMS_AND_CONDITIONS_ACCEPTANCE_REQUIRED_EVENT,
@@ -1225,8 +1230,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
                 anyBoolean(), anyInt());
         verify(mWifiConfigManager).updateRandomizedMacExpireTime(any(), anyLong());
-        verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTED)), any());
+        verifyNetworkStateChangedBroadcast(times(1),
+                new NetworkStateChangedIntentMatcher(CONNECTED));
 
         // Anonymous Identity is not set.
         assertEquals("", mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
@@ -1240,6 +1245,37 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(90, wifiInfo.getMaxSupportedTxLinkSpeedMbps());
         verify(mWifiMetrics).noteFirstL3ConnectionAfterBoot(true);
         validateConnectionInfo();
+    }
+
+    private void verifyNetworkStateChangedBroadcast(VerificationMode mode,
+            ArgumentCaptor<Intent> intentCaptor) {
+        if (SdkLevel.isAtLeastU()) {
+            verify(mUserAllContext, mode).sendStickyBroadcast(intentCaptor.capture(), any());
+        } else {
+            verify(mContext, mode).sendStickyBroadcastAsUser(intentCaptor.capture(), any());
+        }
+    }
+
+    private void verifyNetworkStateChangedBroadcast(VerificationMode mode,
+            ArgumentMatcher<Intent> intentMatcher) {
+        if (SdkLevel.isAtLeastU()) {
+            verify(mUserAllContext, mode).sendStickyBroadcast(argThat(intentMatcher), any());
+        } else {
+            verify(mContext, mode).sendStickyBroadcastAsUser(argThat(intentMatcher), any());
+        }
+    }
+
+    private void inOrderVerifyNetworkStateChangedBroadcasts(
+            ArgumentMatcher<Intent>... intentMatchers) {
+        final InOrder inOrder = SdkLevel.isAtLeastU()
+                ? inOrder(mUserAllContext) : inOrder(mContext);
+        for (ArgumentMatcher<Intent> intentMatcher : intentMatchers) {
+            if (SdkLevel.isAtLeastU()) {
+                inOrder.verify(mUserAllContext).sendStickyBroadcast(argThat(intentMatcher), any());
+            } else {
+                inOrder.verify(mContext).sendStickyBroadcastAsUser(argThat(intentMatcher), any());
+            }
+        }
     }
 
     private void setupEapSimConnection() throws Exception {
@@ -2442,7 +2478,6 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testWrongPasswordWithNeverConnected() throws Exception {
-        InOrder inOrder = inOrder(mContext);
         initializeAndAddNetworkAndVerifySuccess();
 
         startConnectSuccess();
@@ -2475,12 +2510,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiMetrics).incrementNumOfCarrierWifiConnectionAuthFailure();
         // Verify broadcasts corresponding to supplicant ASSOCIATED, FOUR_WAY_HANDSHAKE, then
         // finally wrong password causing disconnect.
-        inOrder.verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTING)), any());
-        inOrder.verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(AUTHENTICATING)), any());
-        inOrder.verify(mContext).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(DISCONNECTED)), any());
+        inOrderVerifyNetworkStateChangedBroadcasts(
+                new NetworkStateChangedIntentMatcher(CONNECTING),
+                new NetworkStateChangedIntentMatcher(AUTHENTICATING),
+                new NetworkStateChangedIntentMatcher(DISCONNECTED));
         assertEquals("DisconnectedState", getCurrentState().getName());
     }
 
@@ -3038,8 +3071,18 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(TEST_BSSID_STR1, wifiInfo.getBSSID());
         assertEquals(sFreq1, wifiInfo.getFrequency());
         assertEquals(SupplicantState.COMPLETED, wifiInfo.getSupplicantState());
-        verify(mContext, times(2)).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTED)), any());
+        verifyNetworkStateChangedBroadcast(times(2),
+                new NetworkStateChangedIntentMatcher(CONNECTED));
+    }
+
+    private void callmethod(VerificationMode mode, ArgumentMatcher<Intent> intentMatcher) {
+        if (SdkLevel.isAtLeastU()) {
+            verify(mUserAllContext, mode).sendStickyBroadcast(
+                    argThat(intentMatcher), any());
+        } else {
+            verify(mContext, mode).sendStickyBroadcastAsUser(
+                    argThat(intentMatcher), any());
+        }
     }
 
     /**
@@ -6928,7 +6971,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // The last NETWORK_STATE_CHANGED_ACTION should be to mark the network connected.
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        verify(mContext, atLeastOnce()).sendStickyBroadcastAsUser(intentCaptor.capture(), any());
+
+        verifyNetworkStateChangedBroadcast(atLeastOnce(), intentCaptor);
         Intent intent = intentCaptor.getValue();
         assertNotNull(intent);
         assertEquals(WifiManager.NETWORK_STATE_CHANGED_ACTION, intent.getAction());
@@ -6937,6 +6981,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         reset(mContext);
         when(mContext.getResources()).thenReturn(mResources);
+        when(mContext.createContextAsUser(UserHandle.ALL, 0)).thenReturn(mUserAllContext);
 
         // send roam event
         mCmi.sendMessage(WifiMonitor.ASSOCIATED_BSSID_EVENT, 0, 0, TEST_BSSID_STR1);
@@ -6945,7 +6990,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                         SupplicantState.COMPLETED));
         mLooper.dispatchAll();
 
-        verify(mContext, atLeastOnce()).sendStickyBroadcastAsUser(intentCaptor.capture(), any());
+        verifyNetworkStateChangedBroadcast(atLeastOnce(), intentCaptor);
         intent = intentCaptor.getValue();
         assertNotNull(intent);
         assertEquals(WifiManager.NETWORK_STATE_CHANGED_ACTION, intent.getAction());
@@ -7183,8 +7228,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR1, false, null));
         mLooper.dispatchAll();
 
-        verify(mContext, times(2)).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTED)), any());
+        verifyNetworkStateChangedBroadcast(times(2),
+                new NetworkStateChangedIntentMatcher(CONNECTED));
     }
 
     @Test
@@ -7241,8 +7286,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         injectDhcpSuccess(dhcpResults);
         mLooper.dispatchAll();
 
-        verify(mContext, times(2)).sendStickyBroadcastAsUser(
-                argThat(new NetworkStateChangedIntentMatcher(CONNECTED)), any());
+        verifyNetworkStateChangedBroadcast(times(2),
+                new NetworkStateChangedIntentMatcher(CONNECTED));
     }
 
     /**
