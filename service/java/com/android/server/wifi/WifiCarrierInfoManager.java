@@ -582,6 +582,7 @@ public class WifiCarrierInfoManager {
         // Monitor for carrier config changes.
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
+        filter.addAction(TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -591,6 +592,28 @@ public class WifiCarrierInfoManager {
                         onCarrierConfigChanged(context);
                         if (mDeviceConfigFacade.isOobPseudonymEnabled()) {
                             tryResetAutoJoinOnOobPseudonymFlagChanged(/*isEnabled=*/ true);
+                        }
+                    });
+                } else if (TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED
+                        .equals(intent.getAction())) {
+                    int extraSubId = intent.getIntExtra(
+                            "subscription", SubscriptionManager.INVALID_SUBSCRIPTION_ID);
+                    if (extraSubId == SubscriptionManager.INVALID_SUBSCRIPTION_ID
+                            || mTelephonyManager.getActiveModemCount() < 2) {
+                        return;
+                    }
+                    mHandler.post(() -> {
+                        if (mActiveSubInfos == null || mActiveSubInfos.isEmpty()) {
+                            return;
+                        }
+                        for (SubscriptionInfo subInfo : mActiveSubInfos) {
+                            if (subInfo.getSubscriptionId() == extraSubId
+                                    && isOobPseudonymFeatureEnabled(subInfo.getCarrierId())
+                                    && isSimReady(subInfo.getSubscriptionId())) {
+                                mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(
+                                        subInfo.getCarrierId());
+                                return;
+                            }
                         }
                     });
                 }
