@@ -7885,11 +7885,13 @@ public class ClientModeImplTest extends WifiBaseTest {
                             SupplicantState.ASSOCIATED));
             mLooper.dispatchAll();
 
-            mCmi.sendMessage(WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
-                    FRAMEWORK_NETWORK_ID, 0, FakeKeys.CA_CERT0);
+            CertificateEventInfo certificateEventInfo =
+                    spy(new CertificateEventInfo(FakeKeys.CA_CERT0, "1234"));
+            mCmi.sendMessage(WifiMonitor.TOFU_CERTIFICATE_EVENT,
+                    FRAMEWORK_NETWORK_ID, 0, certificateEventInfo);
             mLooper.dispatchAll();
             verify(mInsecureEapNetworkHandler).addPendingCertificate(
-                    eq(eapTlsConfig.SSID), eq(0), eq(FakeKeys.CA_CERT0));
+                    eq(eapTlsConfig.SSID), eq(0), eq(certificateEventInfo));
 
             // Adding a certificate in depth 0 will cause a disconnection when TOFU is supported
             DisconnectEventInfo disconnectEventInfo =
@@ -7918,9 +7920,16 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastT());
         WifiConfiguration testConfig = setupTrustOnFirstUse(true, true, true);
 
-        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID);
+        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID,
+                testConfig.networkId);
         mLooper.dispatchAll();
-        verify(mWifiConnectivityManager).forceConnectivityScan(eq(ClientModeImpl.WIFI_WORK_SOURCE));
+        ArgumentCaptor<WifiConfiguration> wifiConfigurationArgumentCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+
+        // TOFU will first connect to get the certificates, and then connect once approved
+        verify(mWifiNative, times(2)).connectToNetwork(eq(WIFI_IFACE_NAME),
+                wifiConfigurationArgumentCaptor.capture());
+        assertEquals(testConfig.networkId, wifiConfigurationArgumentCaptor.getValue().networkId);
     }
 
     /**
@@ -7942,6 +7951,14 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(WifiMetricsProto.ConnectionEvent.HLF_NONE),
                 eq(WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN),
                 anyInt());
+        ArgumentCaptor<WifiConfiguration> wifiConfigurationArgumentCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+
+        // TOFU will connect only once to get the certificates, but will not proceed
+        verify(mWifiNative).connectToNetwork(eq(WIFI_IFACE_NAME),
+                wifiConfigurationArgumentCaptor.capture());
+        assertEquals(testConfig.networkId, wifiConfigurationArgumentCaptor.getValue().networkId);
+
     }
 
     /**
@@ -7976,9 +7993,16 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastT());
         WifiConfiguration testConfig = setupTrustOnFirstUse(true, true, false);
 
-        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID);
+        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID,
+                testConfig.networkId);
         mLooper.dispatchAll();
-        verify(mWifiConnectivityManager).forceConnectivityScan(eq(ClientModeImpl.WIFI_WORK_SOURCE));
+        ArgumentCaptor<WifiConfiguration> wifiConfigurationArgumentCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+
+        // TOFU will first connect to get the certificates, and then connect once approved
+        verify(mWifiNative, times(2)).connectToNetwork(eq(WIFI_IFACE_NAME),
+                wifiConfigurationArgumentCaptor.capture());
+        assertEquals(testConfig.networkId, wifiConfigurationArgumentCaptor.getValue().networkId);
     }
 
     /**
@@ -8001,6 +8025,13 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(WifiMetricsProto.ConnectionEvent.HLF_NONE),
                 eq(WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN),
                 anyInt());
+        ArgumentCaptor<WifiConfiguration> wifiConfigurationArgumentCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+
+        // TOFU will connect only once to get the certificates, but will not proceed
+        verify(mWifiNative).connectToNetwork(eq(WIFI_IFACE_NAME),
+                wifiConfigurationArgumentCaptor.capture());
+        assertEquals(testConfig.networkId, wifiConfigurationArgumentCaptor.getValue().networkId);
     }
 
     /**
@@ -8034,7 +8065,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeFalse(SdkLevel.isAtLeastT());
         WifiConfiguration testConfig = setupLegacyEapNetworkTest(true);
 
-        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID);
+        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID,
+                testConfig.networkId);
         mLooper.dispatchAll();
         verify(mWifiMetrics, never()).endConnectionEvent(
                 any(), anyInt(), anyInt(), anyInt(), anyInt());
@@ -8067,7 +8099,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeFalse(SdkLevel.isAtLeastT());
         WifiConfiguration testConfig = setupLegacyEapNetworkTest(false);
 
-        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID);
+        mCmi.mInsecureEapNetworkHandlerCallbacksImpl.onAccept(testConfig.SSID,
+                testConfig.networkId);
         mLooper.dispatchAll();
         verify(mWifiMetrics, never()).endConnectionEvent(
                 any(), anyInt(), anyInt(), anyInt(), anyInt());
