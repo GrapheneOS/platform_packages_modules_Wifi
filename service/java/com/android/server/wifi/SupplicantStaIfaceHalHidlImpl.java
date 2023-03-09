@@ -3996,15 +3996,6 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
-     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
-     */
-    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
-            @NonNull String ifaceName) {
-        Log.e(TAG, "removeAllQosPoliciesForScs is not supported by the HIDL HAL");
-        return null;
-    }
-
-    /**
      * See comments for {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(
      *                             SupplicantStaIfaceHal.QosScsResponseCallback)}
      */
