@@ -384,9 +384,18 @@ public class WifiNetworkFactory extends NetworkFactory {
                 // Remove the mode manager if the associated request is no longer active.
                 if (mActiveSpecificNetworkRequest == null
                         && mConnectedSpecificNetworkRequest == null) {
-                    Log.w(TAG, "Client mode manager request answer received with no active"
-                            + " requests");
+                    Log.w(TAG, "Client mode manager request answer received with no active and "
+                            + "connected requests, remove the manager");
                     mActiveModeWarden.removeClientModeManager(modeManager);
+                    return;
+                }
+                if (mActiveSpecificNetworkRequest == null) {
+                    Log.w(TAG, "Client mode manager request answer received with no active"
+                            + " requests, but has connected request. ");
+                    if (modeManager != mClientModeManager) {
+                        // If clientModeManager changes, teardown the current connection
+                        mActiveModeWarden.removeClientModeManager(modeManager);
+                    }
                     return;
                 }
                 if (modeManager != mClientModeManager) {
