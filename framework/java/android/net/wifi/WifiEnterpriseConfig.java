@@ -126,6 +126,11 @@ public class WifiEnterpriseConfig implements Parcelable {
     public static final String KEYSTORES_URI = "keystores://";
 
     /**
+     * String representing a SHA-256 certificate hash used for wpa_supplicant.
+     */
+    private static final String CERT_HASH_PREFIX = "hash://server/sha256/";
+
+    /**
      * String to set the engine value to when it should be enabled.
      * @hide
      */
@@ -704,6 +709,16 @@ public class WifiEnterpriseConfig implements Parcelable {
             e.printStackTrace();
             return alias;
         }
+    }
+
+    /**
+     * Set a server certificate hash instead of a CA certificate for a TOFU connection
+     *
+     * @param certHash Server certificate hash to match against in subsequent connections
+     * @hide
+     */
+    public void setServerCertificateHash(String certHash) {
+        setFieldValue(CA_CERT_KEY, certHash, CERT_HASH_PREFIX);
     }
 
     /**
