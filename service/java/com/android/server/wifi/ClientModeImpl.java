@@ -164,7 +164,6 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URL;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -426,6 +425,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final RestrictedWifiNetworkFactory mRestrictedWifiNetworkFactory;
     @VisibleForTesting
     InsecureEapNetworkHandler mInsecureEapNetworkHandler;
+    boolean mLeafCertSent;
     @VisibleForTesting
     InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks
             mInsecureEapNetworkHandlerCallbacksImpl;
@@ -829,9 +829,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mInsecureEapNetworkHandlerCallbacksImpl =
                 new InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks() {
                 @Override
-                public void onAccept(String ssid) {
+                public void onAccept(String ssid, int networkId) {
                     log("Accept Root CA cert for " + ssid);
-                    sendMessage(CMD_ACCEPT_EAP_SERVER_CERTIFICATE, ssid);
+                    sendMessage(CMD_ACCEPT_EAP_SERVER_CERTIFICATE, networkId);
                 }
 
                 @Override
@@ -905,7 +905,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiMonitor.MBO_OCE_BSS_TM_HANDLING_DONE,
             WifiMonitor.TRANSITION_DISABLE_INDICATION,
             WifiMonitor.NETWORK_NOT_FOUND_EVENT,
-            WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
+            WifiMonitor.TOFU_CERTIFICATE_EVENT,
             WifiMonitor.AUXILIARY_SUPPLICANT_EVENT,
             WifiMonitor.QOS_POLICY_RESET_EVENT,
             WifiMonitor.QOS_POLICY_REQUEST_EVENT,
@@ -2307,8 +2307,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "BLOCK_DISCOVERY";
             case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
                 return "NETWORK_NOT_FOUND_EVENT";
-            case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
-                return "TOFU_ROOT_CA_CERTIFICATE";
+            case WifiMonitor.TOFU_CERTIFICATE_EVENT:
+                return "TOFU_CERTIFICATE_EVENT";
             default:
                 return "what:" + what;
         }
@@ -4025,6 +4025,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
                     // TOFU flow for devices that do not support this feature
                     mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
+                    mLeafCertSent = false;
                     if (!isTrustOnFirstUseSupported()) {
                         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
                     }
@@ -4271,6 +4272,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
+                    // If TOFU is not supported, then we are already connected
+                    if (!isTrustOnFirstUseSupported()) break;
+                    // Got an approval for a TOFU network. Disconnect (if connected) and trigger
+                    // a connection to the new approved network.
+                    logd("User accepted TOFU provided certificate");
+                    startConnectToNetwork(message.arg1, Process.WIFI_UID, SUPPLICANT_BSSID_ANY);
+                    break;
                 case CMD_REJECT_EAP_INSECURE_CONNECTION:
                 case CMD_START_ROAM:
                 case CMD_START_RSSI_MONITORING_OFFLOAD:
@@ -5388,22 +5396,24 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     handleStatus = NOT_HANDLED;
                     break;
                 }
-                case WifiMonitor.TOFU_ROOT_CA_CERTIFICATE:
+                case WifiMonitor.TOFU_CERTIFICATE_EVENT: {
                     if (null == mTargetWifiConfiguration) break;
-                    int certificateDepth = message.arg2;
+                    final int certificateDepth = message.arg2;
+                    final CertificateEventInfo eventInfo = (CertificateEventInfo) message.obj;
                     if (!mInsecureEapNetworkHandler.addPendingCertificate(
-                            mTargetWifiConfiguration.SSID, message.arg2,
-                            (X509Certificate) message.obj)) {
+                            mTargetWifiConfiguration.SSID, certificateDepth, eventInfo)) {
                         Log.d(TAG, "Cannot set pending cert.");
                     }
                     // Launch user approval upon receiving the server certificate and disconnect
-                    if (certificateDepth == 0 && mInsecureEapNetworkHandler
+                    if (certificateDepth == 0 && !mLeafCertSent && mInsecureEapNetworkHandler
                             .startUserApprovalIfNecessary(mIsUserSelected)) {
                         // In the TOFU flow, the user approval dialog is now displayed and the
                         // network remains disconnected and disabled until it is approved.
                         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
+                        mLeafCertSent = true;
                     }
                     break;
+                }
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
@@ -6419,12 +6429,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     break;
                 }
-                case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
-                    // Got an approval for a TOFU network, trigger a scan to accelerate the
-                    // auto-connection.
-                    logd("User accepted TOFU provided certificate");
-                    mWifiConnectivityManager.forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
-                    break;
                 default: {
                     handleStatus = NOT_HANDLED;
                     break;
