@@ -1832,6 +1832,9 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(scanDetail.getScanResult()).thenReturn(scanResult);
         when(networkDetail.isMboSupported()).thenReturn(true);
         when(networkDetail.isOceSupported()).thenReturn(true);
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
 
         config.networkId = TEST_NETWORK_ID;
         mWifiMetrics.setNominatorForNetwork(TEST_NETWORK_ID,
@@ -1926,6 +1929,9 @@ public class WifiMetricsTest extends WifiBaseTest {
         ScanDetail scanDetail = mock(ScanDetail.class);
         when(scanDetail.getNetworkDetail()).thenReturn(networkDetail);
         when(scanDetail.getScanResult()).thenReturn(scanResult);
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
 
         config.networkId = TEST_NETWORK_ID;
         mWifiMetrics.setNominatorForNetwork(TEST_NETWORK_ID,
@@ -1984,6 +1990,10 @@ public class WifiMetricsTest extends WifiBaseTest {
                 mock(WifiConfiguration.NetworkSelectionStatus.class));
         when(mWifiBlocklistMonitor.updateAndGetNumBlockedBssidsForSsid(eq(config.SSID)))
                 .thenReturn(3);
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
+
         mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, config,
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_NONE);
         mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
@@ -2007,6 +2017,9 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(config.getNetworkSelectionStatus()).thenReturn(
                 mock(WifiConfiguration.NetworkSelectionStatus.class));
         when(config.isOpenNetwork()).thenReturn(true);
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(false);
         mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, config,
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_NONE);
         mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
@@ -2214,6 +2227,9 @@ public class WifiMetricsTest extends WifiBaseTest {
         config.allowedKeyManagement = new BitSet();
         when(config.getNetworkSelectionStatus()).thenReturn(
                 mock(WifiConfiguration.NetworkSelectionStatus.class));
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
 
         // First network is created by the user
         config.fromWifiNetworkSuggestion = false;
@@ -3441,6 +3457,9 @@ public class WifiMetricsTest extends WifiBaseTest {
         config.allowedKeyManagement = new BitSet();
         when(networkSelectionStat.getCandidate()).thenReturn(scanResult);
         when(config.getNetworkSelectionStatus()).thenReturn(networkSelectionStat);
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
         mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, config,
                 "TestNetwork", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE);
         if (completeConnectionEvent) {
@@ -3496,6 +3515,7 @@ public class WifiMetricsTest extends WifiBaseTest {
 
     private WifiConfiguration createComplexWifiConfig() {
         WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
         config.SSID = SSID;
         config.allowedKeyManagement = intToBitSet(TEST_ALLOWED_KEY_MANAGEMENT);
         config.allowedProtocols = intToBitSet(TEST_ALLOWED_PROTOCOLS);
