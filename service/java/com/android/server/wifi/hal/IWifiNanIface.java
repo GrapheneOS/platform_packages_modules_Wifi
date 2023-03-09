@@ -33,14 +33,6 @@ public interface IWifiNanIface {
     void enableVerboseLogging(boolean verbose);
 
     /**
-     * Get the underlying HIDL WifiNanIfaceObject.
-     * TODO: Remove this API. Will only be used temporarily until HalDeviceManager is refactored.
-     *
-     * @return HIDL IWifiNanIface object.
-     */
-    android.hardware.wifi.V1_0.IWifiNanIface getNanIface();
-
-    /**
      * Register a framework callback to receive notifications from the HAL.
      *
      * @param callback Instance of {@link WifiNanIface.Callback}.

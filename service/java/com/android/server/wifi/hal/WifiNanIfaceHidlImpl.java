@@ -82,15 +82,6 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     }
 
     /**
-     * See comments for {@link IWifiNanIface#getNanIface()}
-     *
-     * TODO: Remove this API. Will only be used temporarily until HalDeviceManager is refactored.
-     */
-    public android.hardware.wifi.V1_0.IWifiNanIface getNanIface() {
-        return mWifiNanIface;
-    }
-
-    /**
      * See comments for {@link IWifiNanIface#registerFrameworkCallback(WifiNanIface.Callback)}
      */
     public boolean registerFrameworkCallback(WifiNanIface.Callback callback) {
