@@ -1128,6 +1128,50 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
                 existingConfig, newConfig));
     }
 
+    /**
+     * Verifies that isConfigForEnterpriseNetwork() returns true for SECURITY_TYPE_EAP,
+     * SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT, SECURITY_TYPE_PASSPOINT_R1_R2 and
+     * SECURITY_TYPE_PASSPOINT_R3 WiFi configurations.
+     */
+    @Test
+    public void testisConfigForEnterpriseNetworkReturnTrue() {
+        WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP);
+        assertTrue(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE);
+        assertTrue(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT);
+        assertTrue(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PASSPOINT_R1_R2);
+        assertTrue(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PASSPOINT_R3);
+        assertTrue(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+    }
+
+    /**
+     * Verifies that isConfigForEnterpriseNetwork() returns false for SECURITY_TYPE_OPEN,
+     * SECURITY_TYPE_PSK, SECURITY_TYPE_OWE and SECURITY_TYPE_SAE WiFi configurations.
+     */
+    @Test
+    public void testisConfigForEnterpriseNetworkReturnFalse() {
+        WifiConfiguration config = new WifiConfiguration();
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
+        assertFalse(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        assertFalse(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_OWE);
+        assertFalse(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
+        assertFalse(WifiConfigurationUtil.isConfigForEnterpriseNetwork(config));
+    }
+
     private static class EnterpriseConfig {
         public String eap;
         public String phase2;

@@ -130,9 +130,20 @@ public class WifiConfigurationUtil {
 
     /**
      * Helper method to check if the provided |config| corresponds to a EAP network or not.
+     *
+     * Attention: This method returns true only for WiFi configuration with traditional EAP methods.
+     * It returns false for passpoint WiFi configuration. Please consider to use
+     * isConfigForEnterpriseNetwork() if necessary.
      */
     public static boolean isConfigForEapNetwork(WifiConfiguration config) {
         return config.isSecurityType(WifiConfiguration.SECURITY_TYPE_EAP);
+    }
+
+    /**
+     * Helper method to check if the provided |config| corresponds to an enterprise network or not.
+     */
+    public static boolean isConfigForEnterpriseNetwork(WifiConfiguration config) {
+        return config.getDefaultSecurityParams().isEnterpriseSecurityType();
     }
 
     /**
