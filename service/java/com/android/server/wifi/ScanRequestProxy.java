@@ -343,7 +343,7 @@ public class ScanRequestProxy {
                 .setDeliveryGroupMatchingKey(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION,
                         String.valueOf(scanSucceeded))
                 .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
-                .setDeferUntilActive(true)
+                .setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_UNTIL_ACTIVE)
                 .toBundle();
     }
 
