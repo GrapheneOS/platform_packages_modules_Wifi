@@ -134,10 +134,10 @@ public class WifiHal {
     @VisibleForTesting
     protected IWifiHal createWifiHalMockable(@NonNull Context context,
             @NonNull SsidTranslator ssidTranslator) {
-        if (WifiHalAidlImpl.serviceDeclared()) {
-            return new WifiHalAidlImpl(context, ssidTranslator);
-        } else if (WifiHalHidlImpl.serviceDeclared()) {
+        if (WifiHalHidlImpl.serviceDeclared()) {
             return new WifiHalHidlImpl(context, ssidTranslator);
+        } else if (WifiHalAidlImpl.serviceDeclared()) {
+            return new WifiHalAidlImpl(context, ssidTranslator);
         } else {
             Log.e(TAG, "No HIDL or AIDL service available for the Wifi Vendor HAL.");
             return null;
