@@ -214,6 +214,7 @@ public class DeviceConfigFacade {
     private boolean mAdjustPollRssiIntervalEnabled;
     private boolean mSoftwarePnoEnabled;
     private boolean mIncludePasspointSsidsInPnoScans;
+    private boolean mHandleRssiOrganicKernelFailuresEnabled;
 
     public DeviceConfigFacade(Context context, Handler handler, WifiMetrics wifiMetrics) {
         mContext = context;
@@ -403,6 +404,8 @@ public class DeviceConfigFacade {
                 "software_pno_enabled", false);
         mIncludePasspointSsidsInPnoScans = DeviceConfig.getBoolean(NAMESPACE,
                 "include_passpoint_ssids_in_pno_scans", false);
+        mHandleRssiOrganicKernelFailuresEnabled = DeviceConfig.getBoolean(NAMESPACE,
+                "handle_rssi_organic_kernel_failures_enabled", false);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
@@ -881,5 +884,13 @@ public class DeviceConfigFacade {
      */
     public boolean includePasspointSsidsInPnoScans() {
         return mIncludePasspointSsidsInPnoScans;
+    }
+
+    /**
+     * Gets the feature flag indicating whether handling IP reachability failures triggered from
+     * Wi-Fi RSSI polling or organic kernel probes the same as failure post roaming.
+     */
+    public boolean isHandleRssiOrganicKernelFailuresEnabled() {
+        return mHandleRssiOrganicKernelFailuresEnabled;
     }
 }
