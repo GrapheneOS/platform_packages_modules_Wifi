@@ -77,6 +77,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Notification.Builder mNotificationBuilder;
     private static final int KNOWN_ERROR_CODE = 32764;
     private static final int UNKNOWN_ERROR_CODE = 12345;
+    private static final int ERROR_CODE_IGNORE_ON_PRE_T = 32765;
     private static final String SSID_1 = "Carrier_AP_1";
     private static final String SSID_2 = "Carrier_AP_2";
     private static final String ERROR_MESSAGE = "Error Message";
@@ -103,6 +104,10 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 anyString())).thenReturn(ERROR_MESSAGE);
         when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE),
                 anyString())).thenReturn(ERROR_MESSAGE_UNKNOWN_ERROR_CODE);
+        when(mResourceWrapper.getString(eq(ERROR_MESSAGE_OVERLAY_PREFIX
+                        + ERROR_CODE_IGNORE_ON_PRE_T), anyString())).thenReturn(
+                                ERROR_MESSAGE + " : " + EapFailureNotifier
+                                        .ERROR_MESSAGE_IGNORE_ON_PRE_ANDROID_13);
         doAnswer(new MockAnswerUtil.AnswerWithArguments() {
             public int answer(String name, int defaultValue) {
                 return defaultValue;
@@ -328,5 +333,36 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
                 eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
         assertNull(failureConfig);
+    }
+
+    /**
+     * Verify that a special failure message causes the EAP failure to get ignored on pre-T devices.
+     */
+    @Test
+    public void testPreTDeviceIgnoreSpecialFailure() throws Exception {
+        when(mFrameworkFacade.makeNotificationBuilder(any(),
+                eq(WifiService.NOTIFICATION_NETWORK_ALERTS))).thenReturn(mNotificationBuilder);
+        StatusBarNotification[] activeNotifications = new StatusBarNotification[1];
+        activeNotifications[0] = new StatusBarNotification("android", "", 56, "", 0, 0, 0,
+                mNotification, android.os.Process.myUserHandle(), 0);
+        when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
+        mWifiConfiguration.SSID = SSID_1;
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(ERROR_CODE_IGNORE_ON_PRE_T, mWifiConfiguration,
+                        true);
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiNotificationManager).notify(eq(EapFailureNotifier.NOTIFICATION_ID), any());
+            ArgumentCaptor<Intent> intent = ArgumentCaptor.forClass(Intent.class);
+            verify(mFrameworkFacade).getActivity(
+                    eq(mContext), eq(0), intent.capture(),
+                    eq(PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            assertEquals(TEST_SETTINGS_PACKAGE, intent.getValue().getPackage());
+            assertEquals(Settings.ACTION_WIFI_SETTINGS, intent.getValue().getAction());
+            assertEquals(mExpectedEapFailureConfig, failureConfig);
+        } else {
+            // unknown error codes should be ignored on pre-T devices.
+            verify(mWifiNotificationManager, never()).notify(anyInt(), any());
+            assertNull(failureConfig);
+        }
     }
 }
