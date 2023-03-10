@@ -3798,9 +3798,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     /**
      * Process IP Reachability failures by recreating a new IpClient instance to refresh L3
-     * provisioning while attempting to keep L2 still connected.
+     * provisioning while keeping L2 still connected.
      *
-     * This method is invoked only upon receiving reachability failure post roaming so far.
+     * This method is invoked only upon receiving reachability failure post roaming or triggered
+     * from Wi-Fi RSSI polling or organic kernel probe.
      */
     private void processIpReachabilityFailure() {
         WifiConfiguration config = getConnectedWifiConfigurationInternal();
@@ -3867,7 +3868,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 break;
             case ReachabilityLossReason.CONFIRM:
             case ReachabilityLossReason.ORGANIC:
-                processLegacyIpReachabilityLost();
+                if (mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()) {
+                    processIpReachabilityFailure();
+                } else {
+                    processLegacyIpReachabilityLost();
+                }
                 break;
             default:
                 logd("Invalid failure reason " + lossInfo.reason + "from onIpReachabilityFailure");
