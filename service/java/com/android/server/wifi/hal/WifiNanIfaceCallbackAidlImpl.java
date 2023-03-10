@@ -493,6 +493,10 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public void eventSuspensionModeChanged(NanSuspensionModeChangeInd event) {
         if (!checkFrameworkCallback()) return;
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventSuspensionModeChanged: isSuspended=" + event.isSuspended);
+        }
+        mWifiNanIface.getFrameworkCallback().eventSuspensionModeChanged(event.isSuspended);
     }
 
     @Override

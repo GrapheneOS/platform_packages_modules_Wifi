@@ -75,8 +75,8 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     private static final int CB_EV_DATA_PATH_TERMINATED = 10;
     private static final int CB_EV_DATA_PATH_SCHED_UPDATE = 11;
 
-    private SparseIntArray mCallbackCounter = new SparseIntArray();
-    private SparseArray<List<WifiAwareChannelInfo>> mChannelInfoPerNdp = new SparseArray<>();
+    private final SparseIntArray mCallbackCounter = new SparseIntArray();
+    private final SparseArray<List<WifiAwareChannelInfo>> mChannelInfoPerNdp = new SparseArray<>();
 
     private void incrementCbCount(int callbackId) {
         mCallbackCounter.put(callbackId, mCallbackCounter.get(callbackId) + 1);
@@ -435,9 +435,14 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
                 reason, comebackDelay, cookie);
     }
 
-        /**
-         * Reset the channel info when Aware is down.
-         */
+    @Override
+    public void eventSuspensionModeChanged(boolean isSuspended) {
+        mWifiAwareStateManager.onSuspensionModeChangedNotification(isSuspended);
+    }
+
+    /**
+     * Reset the channel info when Aware is down.
+     */
     /* package */ void resetChannelInfo() {
         mChannelInfoPerNdp.clear();
     }
