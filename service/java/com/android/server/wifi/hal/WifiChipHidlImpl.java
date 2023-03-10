@@ -363,6 +363,13 @@ public class WifiChipHidlImpl implements IWifiChip {
     }
 
     /**
+     * See comments for {@link IWifiChip#getWifiChipCapabilities()}
+     */
+    public WifiChip.WifiChipCapabilities getWifiChipCapabilities() {
+        return null;
+    }
+
+    /**
      * See comments for {@link IWifiChip#getUsableChannels(int, int, int)}
      */
     @Override

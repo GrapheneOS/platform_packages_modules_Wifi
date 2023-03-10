@@ -38,6 +38,7 @@ import android.hardware.wifi.IfaceConcurrencyType;
 import android.hardware.wifi.IfaceType;
 import android.hardware.wifi.WifiAntennaMode;
 import android.hardware.wifi.WifiBand;
+import android.hardware.wifi.WifiChipCapabilities;
 import android.hardware.wifi.WifiDebugHostWakeReasonStats;
 import android.hardware.wifi.WifiDebugRingBufferFlags;
 import android.hardware.wifi.WifiDebugRingBufferStatus;
@@ -620,6 +621,25 @@ public class WifiChipAidlImpl implements IWifiChip {
                 if (!checkIfaceAndLogFailure(methodStr)) return null;
                 WifiRadioCombination[] halCombos = mWifiChip.getSupportedRadioCombinations();
                 return halToFrameworkRadioCombinations(halCombos);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * See comments for {@link IWifiChip#getWifiChipCapabilities()}
+     */
+    public WifiChip.WifiChipCapabilities getWifiChipCapabilities() {
+        final String methodStr = "getWifiChipCapabilities";
+        synchronized (mLock) {
+            try {
+                if (!checkIfaceAndLogFailure(methodStr)) return null;
+                WifiChipCapabilities halCapab = mWifiChip.getWifiChipCapabilities();
+                return halToFrameworkWifiChipCapabilities(halCapab);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -1614,6 +1634,12 @@ public class WifiChipAidlImpl implements IWifiChip {
             frameworkCombos.add(halToFrameworkRadioCombination(combo));
         }
         return frameworkCombos;
+    }
+
+    private static WifiChip.WifiChipCapabilities halToFrameworkWifiChipCapabilities(
+            WifiChipCapabilities halCapabilities) {
+        return new WifiChip.WifiChipCapabilities(halCapabilities.maxMloAssociationLinkCount,
+                halCapabilities.maxMloStrLinkCount, halCapabilities.maxConcurrentTdlsSessionCount);
     }
 
     private static WifiChip.WifiRadioCombination halToFrameworkRadioCombination(

@@ -278,6 +278,46 @@ public class WifiChip {
     }
 
     /**
+     * Wifi Chip capabilities.
+     */
+    public static class WifiChipCapabilities {
+        /**
+         * Maximum number of links supported by the chip for MLO association.
+         *
+         * Note: This is a static configuration of the chip.
+         */
+        public final int maxMloAssociationLinkCount;
+        /**
+         * Maximum number of STR links used in Multi-Link Operation. The maximum
+         * number of STR links used for MLO can be different from the number of
+         * radios supported by the chip.
+         *
+         * Note: This is a static configuration of the chip.
+         */
+        public final int maxMloStrLinkCount;
+        /**
+         * Maximum number of concurrent TDLS sessions that can be enabled
+         * by framework via
+         * {@link android.hardware.wifi.supplicant.ISupplicantStaIface#initiateTdlsSetup(byte[])}.
+         */
+        public final int maxConcurrentTdlsSessionCount;
+
+        public WifiChipCapabilities(int maxMloAssociationLinkCount, int maxMloStrLinkCount,
+                int maxConcurrentTdlsSessionCount) {
+            this.maxMloAssociationLinkCount = maxMloAssociationLinkCount;
+            this.maxMloStrLinkCount = maxMloStrLinkCount;
+            this.maxConcurrentTdlsSessionCount = maxConcurrentTdlsSessionCount;
+        }
+
+        @Override
+        public String toString() {
+            return "{maxMloAssociationLinkCount=" + maxMloAssociationLinkCount
+                    + ", maxMloStrLinkCount=" + maxMloStrLinkCount
+                    + ", maxConcurrentTdlsSessionCount=" + maxConcurrentTdlsSessionCount + "}";
+        }
+    }
+
+    /**
      * Information about the version of the driver and firmware running this chip.
      *
      * The information in these ASCII strings are vendor specific and does not
@@ -665,6 +705,15 @@ public class WifiChip {
     public List<WifiChip.WifiRadioCombination> getSupportedRadioCombinations() {
         return validateAndCall("getSupportedRadioCombinations", null,
                 () -> mWifiChip.getSupportedRadioCombinations());
+    }
+
+    /**
+     * See comments for {@link IWifiChip#getWifiChipCapabilities()}
+     */
+    @Nullable
+    public WifiChipCapabilities getWifiChipCapabilities() {
+        return validateAndCall("getWifiChipCapabilities", null,
+                () -> mWifiChip.getWifiChipCapabilities());
     }
 
     /**
