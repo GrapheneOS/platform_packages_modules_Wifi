@@ -2970,7 +2970,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     UserHandle.ALL, 0 /* flags */);
             final Bundle opts = BroadcastOptions.makeBasic()
                     .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
-                    .setDeferUntilActive(true)
+                    .setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_UNTIL_ACTIVE)
                     .toBundle();
             userAllContext.sendStickyBroadcast(intent, opts);
         } else {
