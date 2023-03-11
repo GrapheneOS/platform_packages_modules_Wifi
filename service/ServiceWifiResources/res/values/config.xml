@@ -616,6 +616,10 @@
     then count it as a failure with reason code REASON_ABNORMAL_DISCONNECT (default = 30 seconds) -->
     <integer translatable="false" name="config_wifiBssidBlocklistAbnormalDisconnectTimeWindowMs"> 30000 </integer>
 
+    <!-- Controls whether a wifi connection with RSSI lower than the sufficient RSSI will be
+    temporarily disabled when it is unwanted by core networking -->
+    <bool translatable="false" name="config_wifiDisableUnwantedNetworkOnLowRssi">false</bool>
+
     <!-- Indicates that hidden networks are to be scanned during scan only mode -->
     <bool translatable="false" name="config_wifiScanHiddenNetworksScanOnlyMode">false</bool>
 
