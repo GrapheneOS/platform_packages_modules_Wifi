@@ -469,16 +469,6 @@ public class WifiChipHidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#resetTxPowerScenario()}
-     */
-    @Override
-    public boolean resetTxPowerScenario() {
-        String methodStr = "resetTxPowerScenario";
-        return validateAndCall(methodStr, false,
-                () -> resetTxPowerScenarioInternal(methodStr));
-    }
-
-    /**
      * See comments for {@link IWifiChip#selectTxPowerScenario(SarInfo)}
      */
     @Override
@@ -1188,24 +1178,6 @@ public class WifiChipHidlImpl implements IWifiChip {
             handleRemoteException(e, methodStr);
         }
         return debugResp.value;
-    }
-
-    private boolean resetTxPowerScenarioInternal(String methodStr) {
-        try {
-            android.hardware.wifi.V1_1.IWifiChip chip11 = getWifiChipV1_1Mockable();
-            android.hardware.wifi.V1_2.IWifiChip chip12 = getWifiChipV1_2Mockable();
-            if (chip11 == null && chip12 == null) return false;
-            WifiStatus status;
-            if (chip12 != null) {
-                status = chip12.resetTxPowerScenario();
-            } else {
-                status = chip11.resetTxPowerScenario();
-            }
-            return isOk(status, methodStr);
-        } catch (RemoteException e) {
-            handleRemoteException(e, methodStr);
-            return false;
-        }
     }
 
     private boolean selectTxPowerScenarioInternal(String methodStr, SarInfo sarInfo) {
