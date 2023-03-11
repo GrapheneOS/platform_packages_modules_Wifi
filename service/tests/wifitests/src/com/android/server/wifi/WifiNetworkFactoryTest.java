@@ -472,6 +472,17 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mConnectivityManager).declareNetworkRequestUnfulfillable(eq(mNetworkRequest));
     }
 
+    @Test
+    public void testNetworkRequestFromGuestUserWithSpecifier() {
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        when(mWifiPermissionsUtil.isGuestUser()).thenReturn(true);
+        attachDefaultWifiNetworkSpecifierAndAppInfo(TEST_UID_1, false);
+
+        assertFalse(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+        mLooper.dispatchAll();
+        verify(mConnectivityManager).declareNetworkRequestUnfulfillable(eq(mNetworkRequest));
+    }
+
     /**
      * Validates handling of acceptNetwork with a network specifier from a foreground
      * app.
