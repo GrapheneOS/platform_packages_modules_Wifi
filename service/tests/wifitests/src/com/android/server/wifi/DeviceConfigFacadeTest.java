@@ -227,6 +227,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
         assertEquals(false, mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled());
         assertEquals(false, mDeviceConfigFacade.includePasspointSsidsInPnoScans());
+        assertEquals(false, mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled());
     }
 
     /**
@@ -367,6 +368,8 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 anyBoolean())).thenReturn(true);
         when(DeviceConfig.getBoolean(anyString(), eq("include_passpoint_ssids_in_pno_scans"),
                 anyBoolean())).thenReturn(true);
+        when(DeviceConfig.getBoolean(anyString(), eq("handle_rssi_organic_kernel_failures_enabled"),
+                anyBoolean())).thenReturn(true);
         mOnPropertiesChangedListenerCaptor.getValue().onPropertiesChanged(null);
 
         // Verifying fields are updated to the new values
@@ -439,5 +442,6 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
         assertEquals(true, mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled());
         assertEquals(true, mDeviceConfigFacade.includePasspointSsidsInPnoScans());
+        assertEquals(true, mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled());
     }
 }
