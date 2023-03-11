@@ -351,13 +351,6 @@ public interface IWifiChip {
     byte[] requestFirmwareDebugDump();
 
     /**
-     * Reset TX power levels.
-     *
-     * @return true if successful, false otherwise.
-     */
-    boolean resetTxPowerScenario();
-
-    /**
      * Select one of the preset TX power scenarios.
      *
      * @param sarInfo SarInfo to select the proper scenario.

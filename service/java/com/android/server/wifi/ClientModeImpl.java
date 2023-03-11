@@ -17,8 +17,10 @@
 package com.android.server.wifi;
 
 import static android.net.util.KeepalivePacketDataUtil.parseTcpKeepalivePacketData;
+import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY;
+import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA256;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA384;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TDLS;
@@ -488,7 +490,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     static final int CMD_START_CONNECT                                  = BASE + 143;
 
-    private static final int NETWORK_STATUS_UNWANTED_DISCONNECT         = 0;
+    @VisibleForTesting
+    public static final int NETWORK_STATUS_UNWANTED_DISCONNECT         = 0;
     private static final int NETWORK_STATUS_UNWANTED_VALIDATION_FAILED  = 1;
     @VisibleForTesting
     public static final int NETWORK_STATUS_UNWANTED_DISABLE_AUTOJOIN   = 2;
@@ -2970,7 +2973,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     UserHandle.ALL, 0 /* flags */);
             final Bundle opts = BroadcastOptions.makeBasic()
                     .setDeliveryGroupPolicy(BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT)
-                    .setDeferUntilActive(true)
+                    .setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_UNTIL_ACTIVE)
                     .toBundle();
             userAllContext.sendStickyBroadcast(intent, opts);
         } else {
@@ -6867,6 +6870,23 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             mWifiMetrics.incrementMakeBeforeBreakLingerCompletedCount(
                                     mClock.getElapsedSinceBootMillis()
                                             - mClientModeManager.getLastRoleChangeSinceBootMs());
+                        }
+                        WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                        if (mWifiGlobals.disableUnwantedNetworkOnLowRssi() && isPrimary()
+                                && config != null && !isRecentlySelectedByTheUser(config)
+                                && config.getNetworkSelectionStatus()
+                                .getNetworkSelectionDisableReason()
+                                    == DISABLED_NONE && mWifiInfo.getRssi() != WifiInfo.INVALID_RSSI
+                                && mWifiInfo.getRssi() < mScoringParams.getSufficientRssi(
+                                        mWifiInfo.getFrequency())) {
+                            if (mVerboseLoggingEnabled) {
+                                Log.i(getTag(), "CMD_UNWANTED_NETWORK update network "
+                                        + config.networkId + " with DISABLED_UNWANTED_LOW_RSSI "
+                                        + "under rssi:" + mWifiInfo.getRssi());
+                            }
+                            mWifiConfigManager.updateNetworkSelectionStatus(
+                                    config.networkId,
+                                    DISABLED_UNWANTED_LOW_RSSI);
                         }
                         mWifiNative.disconnect(mInterfaceName);
                     } else if (message.arg1 == NETWORK_STATUS_UNWANTED_DISABLE_AUTOJOIN

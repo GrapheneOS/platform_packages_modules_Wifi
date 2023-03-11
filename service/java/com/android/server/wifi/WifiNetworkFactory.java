@@ -384,9 +384,18 @@ public class WifiNetworkFactory extends NetworkFactory {
                 // Remove the mode manager if the associated request is no longer active.
                 if (mActiveSpecificNetworkRequest == null
                         && mConnectedSpecificNetworkRequest == null) {
-                    Log.w(TAG, "Client mode manager request answer received with no active"
-                            + " requests");
+                    Log.w(TAG, "Client mode manager request answer received with no active and "
+                            + "connected requests, remove the manager");
                     mActiveModeWarden.removeClientModeManager(modeManager);
+                    return;
+                }
+                if (mActiveSpecificNetworkRequest == null) {
+                    Log.w(TAG, "Client mode manager request answer received with no active"
+                            + " requests, but has connected request. ");
+                    if (modeManager != mClientModeManager) {
+                        // If clientModeManager changes, teardown the current connection
+                        mActiveModeWarden.removeClientModeManager(modeManager);
+                    }
                     return;
                 }
                 if (modeManager != mClientModeManager) {
@@ -765,6 +774,11 @@ public class WifiNetworkFactory extends NetworkFactory {
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
+            if (mWifiPermissionsUtil.isGuestUser()) {
+                Log.e(TAG, "network specifier from guest user, reject");
+                releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
+                return false;
+            }
             if (Objects.equals(mActiveSpecificNetworkRequest, networkRequest)
                     || Objects.equals(mConnectedSpecificNetworkRequest, networkRequest)) {
                 Log.e(TAG, "acceptRequest: Already processing the request " + networkRequest);
@@ -842,6 +856,11 @@ public class WifiNetworkFactory extends NetworkFactory {
             // Invalid request with wifi network specifier.
             if (!isRequestWithWifiNetworkSpecifierValid(networkRequest)) {
                 Log.e(TAG, "Invalid network specifier: " + ns + ". Rejecting");
+                releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
+                return;
+            }
+            if (mWifiPermissionsUtil.isGuestUser()) {
+                Log.e(TAG, "network specifier from guest user, reject");
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return;
             }
