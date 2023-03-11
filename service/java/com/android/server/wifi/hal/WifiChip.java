@@ -753,14 +753,6 @@ public class WifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#resetTxPowerScenario()}
-     */
-    public boolean resetTxPowerScenario() {
-        return validateAndCall("resetTxPowerScenario", false,
-                () -> mWifiChip.resetTxPowerScenario());
-    }
-
-    /**
      * See comments for {@link IWifiChip#selectTxPowerScenario(SarInfo)}
      */
     public boolean selectTxPowerScenario(SarInfo sarInfo) {
