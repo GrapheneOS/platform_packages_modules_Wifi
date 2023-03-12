@@ -1740,4 +1740,36 @@ public class WifiVendorHalTest extends WifiBaseTest {
             assertScanDataEqual(expected.get(i), actual.get(i));
         }
     }
+
+    /**
+     * Test case to validate Wi-Fi chip capabilities methods.
+     */
+    @Test
+    public void testGetChipCapabilities() throws Exception {
+        WifiChip.WifiChipCapabilities wifiChipCapabilities = new WifiChip.WifiChipCapabilities(3, 2,
+                -1);
+        assertTrue(mWifiVendorHal.startVendorHalSta());
+        // Positive test case.
+        when(mHalDeviceManager.getChip(any(WifiHal.WifiInterface.class))).thenReturn(mWifiChip);
+        when(mWifiChip.getId()).thenReturn(2);
+        when(mWifiChip.getWifiChipCapabilities()).thenReturn(wifiChipCapabilities);
+        assertEquals(2, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
+        assertEquals(3, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
+        // Call again few times to check caching.
+        for (int i = 0; i < 5; ++i) {
+            assertEquals(2, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
+            assertEquals(3, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
+        }
+        // Make sure only one call to chip.
+        verify(mWifiChip, times(1)).getWifiChipCapabilities();
+        // Negative test case: null capabilities
+        when(mWifiChip.getId()).thenReturn(1);
+        when(mWifiChip.getWifiChipCapabilities()).thenReturn(null);
+        assertEquals(-1, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
+        assertEquals(-1, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
+        // Negative test case: null chip
+        when(mHalDeviceManager.getChip(any(WifiHal.WifiInterface.class))).thenReturn(null);
+        assertEquals(-1, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
+        assertEquals(-1, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
+    }
 }

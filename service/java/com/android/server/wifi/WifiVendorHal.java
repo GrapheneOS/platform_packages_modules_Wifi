@@ -123,6 +123,20 @@ public class WifiVendorHal {
     // https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.5
     private final Handler mHalEventHandler;
 
+
+    /**
+     * Wi-Fi chip related info.
+     */
+    private static class WifiChipInfo {
+        public WifiChip.WifiChipCapabilities capabilities = null;
+        /**
+         * Add more chip specific parameters here. Basically it avoids frequent call to chip by
+         * caching it on {@link mCachedWifiChipInfos}.
+         */
+    }
+    /** A cache which maps chip id to {@link WifiChipInfo} */
+    private SparseArray<WifiChipInfo> mCachedWifiChipInfos = new SparseArray<>();
+
     public WifiVendorHal(Context context, HalDeviceManager halDeviceManager, Handler handler,
             WifiGlobals wifiGlobals,
             @NonNull SsidTranslator ssidTranslator) {
@@ -761,6 +775,57 @@ public class WifiVendorHal {
         enter("System feature set: %").c(featureSet).flush();
         return featureSet;
     }
+
+    /**
+     * Get maximum number of links supported by the chip for MLO association.
+     *
+     * @param ifaceName Name of the interface.
+     * @return maximum number of association links or -1 if error or not available.
+     */
+    public int getMaxMloAssociationLinkCount(String ifaceName) {
+        WifiChipInfo wifiChipInfo = getCachedWifiChipInfo(
+                ifaceName);
+        if (wifiChipInfo == null || wifiChipInfo.capabilities == null) return -1;
+        return wifiChipInfo.capabilities.maxMloAssociationLinkCount;
+    }
+
+    /**
+     * Get the maximum number of STR links used in Multi-Link Operation.
+     *
+     * @param ifaceName Name of the interface.
+     * @return maximum number of MLO STR links or -1 if error or not available.
+     */
+    public int getMaxMloStrLinkCount(String ifaceName) {
+        WifiChipInfo wifiChipInfo = getCachedWifiChipInfo(
+                ifaceName);
+        if (wifiChipInfo == null || wifiChipInfo.capabilities == null) return -1;
+        return wifiChipInfo.capabilities.maxMloStrLinkCount;
+    }
+
+    /**
+     * Get Chip specific cached info. If cache is empty, query the chip and create the cache.
+     *
+     * @param ifaceName Name of the interface
+     * @return the cached information.
+     */
+    private WifiChipInfo getCachedWifiChipInfo(String ifaceName) {
+        WifiStaIface iface = getStaIface(ifaceName);
+        if (iface == null) return null;
+
+        WifiChip chip = mHalDeviceManager.getChip(iface);
+        if (chip == null) return null;
+
+        if (!mCachedWifiChipInfos.contains(chip.getId())) {
+            mCachedWifiChipInfos.put(chip.getId(), new WifiChipInfo());
+        }
+        WifiChipInfo wifiChipInfo = mCachedWifiChipInfos.get(chip.getId());
+        if (wifiChipInfo.capabilities == null) {
+            wifiChipInfo.capabilities = chip.getWifiChipCapabilities();
+        }
+
+        return wifiChipInfo;
+    }
+
 
     /**
      * Get the supported features
