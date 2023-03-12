@@ -4933,4 +4933,46 @@ public class WifiNative {
     public @WifiManager.MloMode int getMloMode() {
         return mCachedMloMode;
     }
+
+    /**
+     * Get the maximum number of links supported by the chip for MLO association.
+     *
+     * e.g. if the chip supports eMLSR (Enhanced Multi-Link Single Radio) and STR (Simultaneous
+     * Transmit and Receive) with following capabilities,
+     * - Maximum MLO association link count = 3
+     * - Maximum MLO STR link count         = 2 See {@link WifiNative#getMaxMloStrLinkCount(String)}
+     * One of the possible configuration is - STR (2.4 , eMLSR(5, 6)), provided the radio
+     * combination of the chip supports it.
+     *
+     * Note: This is an input to MLO aware network scoring logic to predict maximum multi-link
+     * throughput.
+     *
+     * @param ifaceName Name of the interface.
+     * @return maximum number of association links or -1 if error or not available.
+     */
+    public int getMaxMloAssociationLinkCount(@NonNull String ifaceName) {
+        return mWifiVendorHal.getMaxMloAssociationLinkCount(ifaceName);
+    }
+
+    /**
+     * Get the maximum number of STR links used in Multi-Link Operation. The maximum number of STR
+     * links used for MLO can be different from the number of radios supported by the chip.
+     *
+     * e.g. if the chip supports eMLSR (Enhanced Multi-Link Single Radio) and STR (Simultaneous
+     * Transmit and Receive) with following capabilities,
+     * - Maximum MLO association link count = 3
+     *   See {@link WifiNative#getMaxMloAssociationLinkCount(String)}
+     * - Maximum MLO STR link count         = 2
+     * One of the possible configuration is - STR (2.4, eMLSR(5, 6)), provided the radio
+     * combination of the chip supports it.
+     *
+     * Note: This is an input to MLO aware network scoring logic to predict maximum multi-link
+     * throughput.
+     *
+     * @param ifaceName Name of the interface.
+     * @return maximum number of MLO STR links or -1 if error or not available.
+     */
+    public int getMaxMloStrLinkCount(@NonNull String ifaceName) {
+        return mWifiVendorHal.getMaxMloStrLinkCount(ifaceName);
+    }
 }
