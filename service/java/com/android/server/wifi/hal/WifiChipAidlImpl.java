@@ -854,26 +854,6 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#resetTxPowerScenario()}
-     */
-    @Override
-    public boolean resetTxPowerScenario() {
-        final String methodStr = "resetTxPowerScenario";
-        synchronized (mLock) {
-            try {
-                if (!checkIfaceAndLogFailure(methodStr)) return false;
-                mWifiChip.resetTxPowerScenario();
-                return true;
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            } catch (ServiceSpecificException e) {
-                handleServiceSpecificException(e, methodStr);
-            }
-            return false;
-        }
-    }
-
-    /**
      * See comments for {@link IWifiChip#selectTxPowerScenario(SarInfo)}
      */
     @Override
