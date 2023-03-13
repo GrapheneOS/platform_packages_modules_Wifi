@@ -2309,19 +2309,6 @@ public class SupplicantStaIfaceHal {
     }
 
     /**
-     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
-     */
-    public List<QosPolicyStatus> removeAllQosPoliciesForScs(
-            @NonNull String ifaceName) {
-        String methodStr = "removeAllQosPoliciesForScs";
-        if (mStaIfaceHal == null) {
-            handleNullHal(methodStr);
-            return null;
-        }
-        return mStaIfaceHal.removeAllQosPoliciesForScs(ifaceName);
-    }
-
-    /**
      * See comments for
      * {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(QosScsResponseCallback)}
      */
