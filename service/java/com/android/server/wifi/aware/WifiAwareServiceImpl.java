@@ -701,7 +701,8 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                     "initiateBootStrappingSetupRequest: sessionId=" + sessionId
                             + ", uid=" + uid + ", clientId=" + clientId + ", peerId=" + peerId);
         }
-        mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method);
+        mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method, 0,
+                null);
     }
 
     @Override
