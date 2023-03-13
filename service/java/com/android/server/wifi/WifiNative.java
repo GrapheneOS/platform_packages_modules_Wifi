@@ -4747,21 +4747,11 @@ public class WifiNative {
     }
 
     /**
-     *  Return the maximum number of TDLS sessions supported by the device.
+     *  Return the maximum number of concurrent TDLS sessions supported by the device.
      *  @return -1 if the information is not available on the device
      */
     public int getMaxSupportedConcurrentTdlsSessions(@NonNull String ifaceName) {
-        synchronized (mLock) {
-            Iface iface = mIfaceMgr.getIface(ifaceName);
-            if (iface == null) {
-                Log.e(TAG, "Failed to get the TDLS peer count, interface not found: "
-                        + ifaceName);
-                return -1;
-            }
-            // TODO b/262591976 call into HalDeviceManager and get the info from chip capabilities
-            // (IWifiChip#getWifiChipCapabilities()
-            return -1;
-        }
+        return mWifiVendorHal.getMaxSupportedConcurrentTdlsSessions(ifaceName);
     }
 
     /**
