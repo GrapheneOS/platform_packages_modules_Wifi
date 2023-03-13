@@ -3634,29 +3634,6 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
-     * See comments for {@link ISupplicantStaIfaceHal#removeAllQosPoliciesForScs(String)}
-     */
-    public List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
-            @NonNull String ifaceName) {
-        synchronized (mLock) {
-            final String methodStr = "removeAllQosPoliciesForScs";
-            ISupplicantStaIface iface = checkStaIfaceAndLogFailure(ifaceName, methodStr);
-            if (iface == null) {
-                return null;
-            }
-            try {
-                QosPolicyScsRequestStatus[] halStatusList = iface.removeAllQosPoliciesForScs();
-                return halToFrameworkQosPolicyScsRequestStatusList(halStatusList);
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            } catch (ServiceSpecificException e) {
-                handleServiceSpecificException(e, methodStr);
-            }
-            return null;
-        }
-    }
-
-    /**
      * See comments for {@link ISupplicantStaIfaceHal#registerQosScsResponseCallback(
      *                             SupplicantStaIfaceHal.QosScsResponseCallback)}
      */
