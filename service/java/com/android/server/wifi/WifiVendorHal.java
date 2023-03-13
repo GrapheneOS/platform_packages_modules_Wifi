@@ -803,6 +803,19 @@ public class WifiVendorHal {
     }
 
     /**
+     * Get the maximum number of concurrent TDLS sessions supported by the device.
+     *
+     * @param ifaceName Name of the interface.
+     * @return maximum number of concurrent TDLS sessions or -1 if error or not available.
+     */
+    public int getMaxSupportedConcurrentTdlsSessions(String ifaceName) {
+        WifiChipInfo wifiChipInfo = getCachedWifiChipInfo(
+                ifaceName);
+        if (wifiChipInfo == null || wifiChipInfo.capabilities == null) return -1;
+        return wifiChipInfo.capabilities.maxConcurrentTdlsSessionCount;
+    }
+
+    /**
      * Get Chip specific cached info. If cache is empty, query the chip and create the cache.
      *
      * @param ifaceName Name of the interface
