@@ -239,6 +239,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int NOTIFICATION_TYPE_ON_PAIRING_CONFIRM = 315;
     private static final int NOTIFICATION_TYPE_ON_BOOTSTRAPPING_REQUEST = 316;
     private static final int NOTIFICATION_TYPE_ON_BOOTSTRAPPING_CONFIRM = 317;
+    private static final int NOTIFICATION_TYPE_ON_SUSPENSION_MODE_CHANGED = 318;
 
     private static final SparseArray<String> sSmToString = MessageUtils.findMessageNames(
             new Class[]{WifiAwareStateManager.class},
@@ -301,6 +302,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD = "aware_offload";
     private static final String MESSAGE_BUNDLE_KEY_RE_ENABLE_AWARE_FROM_OFFLOAD =
             "aware_re_enable_from_offload";
+    private static final String MESSAGE_BUNDLE_KEY_SUSPENSION_MODE = "suspension_mode";
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -2055,7 +2057,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mSm.sendMessage(msg);
     }
 
-     /**
+    /**
      * Place a callback request on the state machine queue: bootstrapping confirm received.
      */
     public void onBootstrappingConfirmNotification(int bootstrappingId, int responseCode,
@@ -2066,6 +2068,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID, bootstrappingId);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT,
                 responseCode == NAN_BOOTSTRAPPING_ACCEPT);
+        mSm.sendMessage(msg);
+    }
+
+    /**
+     * Place a callback request on the state machine queue: suspension mode changed.
+     */
+    public void onSuspensionModeChangedNotification(boolean isSuspended) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
+        msg.arg1 = NOTIFICATION_TYPE_ON_SUSPENSION_MODE_CHANGED;
+        msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_SUSPENSION_MODE, isSuspended);
         mSm.sendMessage(msg);
     }
 
@@ -2502,6 +2514,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             timeout.cancel();
                         }
                     }
+                    break;
+                }
+                case NOTIFICATION_TYPE_ON_SUSPENSION_MODE_CHANGED: {
+                    Bundle data = msg.getData();
+                    boolean isSuspended = data.getBoolean(MESSAGE_BUNDLE_KEY_SUSPENSION_MODE);
+                    onSuspensionModeChangedLocal(isSuspended);
                     break;
                 }
                 default:
@@ -4594,9 +4612,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (session == null) {
             return;
         }
-        if (success) {
-            session.onResumeSuccess();
-        } else {
+        if (!success) {
             session.onResumeFail(reason);
         }
     }
@@ -4640,11 +4656,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
         if (!session.isSuspendable()) {
-            session.onResumeFail(WIFI_AWARE_SUSPEND_INVALID_SESSION);
+            session.onSuspendFail(WIFI_AWARE_SUSPEND_INVALID_SESSION);
             return false;
         }
         if (session.isSessionSuspended()) {
-            session.onResumeFail(WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST);
+            session.onSuspendFail(WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST);
             return false;
         }
 
@@ -4942,6 +4958,23 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG, "bootstrapping request reject, reason=" + reason);
         }
         return true;
+    }
+
+    private void onSuspensionModeChangedLocal(boolean isSuspended) {
+        if (isSuspended) return;
+
+        // Trigger resume success callback for all suspended sessions when device exits
+        // suspended mode.
+        for (int i = 0; i < mClients.size(); i++) {
+            WifiAwareClientState clientState = mClients.valueAt(i);
+            SparseArray<WifiAwareDiscoverySessionState> sessions = clientState.getSessions();
+            for (int j = 0; j < sessions.size(); j++) {
+                WifiAwareDiscoverySessionState session = sessions.valueAt(j);
+                if (session != null && session.isSessionSuspended()) {
+                    session.onResumeSuccess();
+                }
+            }
+        }
     }
 
     /*
