@@ -49,6 +49,9 @@ public class EapFailureNotifier {
     @VisibleForTesting
     static final String CONFIG_EAP_FAILURE_DISABLE_DURATION =
             "config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs";
+    // Special error message that results in the EAP failure code to get ignored on devices pre
+    // Android 13.
+    public static final String ERROR_MESSAGE_IGNORE_ON_PRE_ANDROID_13 = "IgnorePreAndroid13";
 
     private static final long CANCEL_TIMEOUT_MILLISECONDS = 5 * 60 * 1000;
     private final WifiContext mContext;
@@ -89,9 +92,14 @@ public class EapFailureNotifier {
                 config.carrierId == TelephonyManager.UNKNOWN_CARRIER_ID
                         ? mWifiCarrierInfoManager.getDefaultDataSimCarrierId() : config.carrierId);
         String errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_PREFIX + errorCode, config.SSID);
-        if (SdkLevel.isAtLeastT() && errorMessage == null) {
-            // Use the generic error message if the code does not match any known code.
-            errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE, config.SSID);
+        if (SdkLevel.isAtLeastT()) {
+            if (errorMessage == null) {
+                // Use the generic error message if the code does not match any known code.
+                errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE, config.SSID);
+            }
+        } else if (errorMessage != null
+                && errorMessage.contains(ERROR_MESSAGE_IGNORE_ON_PRE_ANDROID_13)) {
+            return null;
         }
         if (TextUtils.isEmpty(errorMessage)) return null;
         WifiBlocklistMonitor.CarrierSpecificEapFailureConfig eapFailureConfig =
