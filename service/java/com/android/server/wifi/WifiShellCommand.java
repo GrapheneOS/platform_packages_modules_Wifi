@@ -396,6 +396,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             mScoreUpdateObserver = observerImpl;
             mCountDownLatch.countDown();
         }
+        @Override
+        public void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, String targetBssid) {
+            Log.i(TAG, "onNetworkSwitchAccepted:"
+                    + " sessionId=" + sessionId
+                    + " targetNetworkId=" + targetNetworkId
+                    + " targetBssid=" + targetBssid);
+        }
+        @Override
+        public void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, String targetBssid) {
+            Log.i(TAG, "onNetworkSwitchRejected:"
+                    + " sessionId=" + sessionId
+                    + " targetNetworkId=" + targetNetworkId
+                    + " targetBssid=" + targetBssid);
+        }
 
         public Integer getSessionId() {
             return mSessionId;

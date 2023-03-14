@@ -1587,6 +1587,8 @@ public class WifiConnectivityManager {
                 /* onSwitchApprovedRunnable */ () -> {
                     resetNetworkSwitchDialog();
                     continueConnectionRunnable.run();
+                    primaryManager.onNetworkSwitchAccepted(candidate.networkId,
+                            candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
                 },
                 /* onSwitchRejectedRunnable */ () -> {
                     Log.i(TAG, "User rejected network switch to "
@@ -1594,6 +1596,8 @@ public class WifiConnectivityManager {
                     mNetworkSwitchDialog = null;
                     mDialogCandidateNetId = INVALID_NETWORK_ID;
                     mUserRejectedNetworkSwitch = true;
+                    primaryManager.onNetworkSwitchRejected(candidate.networkId,
+                            candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
                 }),
                 new WifiThreadRunner(mEventHandler));
         mNetworkSwitchDialog.launchDialog();

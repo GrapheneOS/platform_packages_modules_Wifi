@@ -496,6 +496,28 @@ public class WifiScoreReport {
             }
         }
 
+        public void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, String targetBssid) {
+            try {
+                mScorer.onNetworkSwitchAccepted(sessionId, targetNetworkId, targetBssid);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Unable to notify network switch accepted for Wifi connected network"
+                        + " scorer " + this, e);
+                revertToDefaultConnectedScorer();
+            }
+        }
+
+        public void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, String targetBssid) {
+            try {
+                mScorer.onNetworkSwitchRejected(sessionId, targetNetworkId, targetBssid);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Unable to notify network switch rejected for Wifi connected network"
+                        + " scorer " + this, e);
+                revertToDefaultConnectedScorer();
+            }
+        }
+
         public boolean isShellCommandScorer() {
             return mScorer instanceof WifiShellCommand.WifiScorer;
         }
@@ -935,6 +957,28 @@ public class WifiScoreReport {
         }
         mWifiConnectedNetworkScorerHolder.reset();
         revertToDefaultConnectedScorer();
+    }
+
+    /**
+     * Notify the connected network scorer of the user accepting a network switch.
+     */
+    public void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid) {
+        if (mWifiConnectedNetworkScorerHolder == null) {
+            return;
+        }
+        mWifiConnectedNetworkScorerHolder.onNetworkSwitchAccepted(
+                getCurrentSessionId(), targetNetworkId, targetBssid);
+    }
+
+    /**
+     * Notify the connected network scorer of the user rejecting a network switch.
+     */
+    public void onNetworkSwitchRejected(int targetNetworkId, String targetBssid) {
+        if (mWifiConnectedNetworkScorerHolder == null) {
+            return;
+        }
+        mWifiConnectedNetworkScorerHolder.onNetworkSwitchRejected(
+                getCurrentSessionId(), targetNetworkId, targetBssid);
     }
 
     /**

@@ -147,6 +147,14 @@ public class WifiScoreReportTest extends WifiBaseTest {
         @Override
         public void onSetScoreUpdateObserver(IScoreUpdateObserver observerImpl) {
         }
+        @Override
+        public void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, String targetBssid) {
+        }
+        @Override
+        public void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, String targetBssid) {
+        }
     }
 
     @Parameterized.Parameter(0)
