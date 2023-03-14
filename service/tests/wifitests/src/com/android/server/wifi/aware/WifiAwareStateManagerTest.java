@@ -4825,10 +4825,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (4) Initiate bootstrapping request
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
-                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
-                eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN));
+                eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull());
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
@@ -4979,6 +4980,128 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mPairingConfigManager, never())
                 .addPairedDeviceSecurityAssociation(eq(callingPackage), eq(alias),
                         any(PairingConfigManager.PairingSecurityAssociationInfo.class));
+
+
+        // (6) subscribe termination (from firmware - not app!)
+        mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false));
+
+        // (7) app terminates session
+        mDut.terminateSession(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+
+        validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
+
+        verifyNoMoreInteractions(mockSessionCallback, mMockNative, mAwareMetricsMock);
+    }
+
+    @Test
+    public void testBootstrappingComeBack() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        final int clientId = 2005;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final int reasonTerminate = NanStatusCode.SUCCESS;
+        final byte subscribeId = 15;
+        final int peerId = 20;
+        final int pairId = 1;
+        final int bootstrappingId = 101;
+        final byte[] peerMac = HexEncoding.decode("060708090A0B".toCharArray(), false);
+        final String alias = "alias";
+
+        AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
+                .setPairingConfig(pairingConfig).build();
+
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        IWifiAwareDiscoverySessionCallback mockSessionCallback = mock(
+                IWifiAwareDiscoverySessionCallback.class);
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        ArgumentCaptor<Integer> sessionId = ArgumentCaptor.forClass(Integer.class);
+        ArgumentCaptor<Integer> peerIdCaptor = ArgumentCaptor.forClass(Integer.class);
+        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative, mMockContext,
+                mPairingConfigManager);
+        InOrder inOrderM = inOrder(mAwareMetricsMock);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).getCapabilities(transactionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordEnableUsage();
+        when(mPairingConfigManager.getNikForCallingPackage(callingPackage)).thenReturn(mNik);
+
+        // (0) connect
+        mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
+                eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt(), anyInt());
+        mDut.onConfigSuccessResponse(transactionId.getValue());
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isDeviceAttached());
+        inOrder.verify(mockCallback).onConnectSuccess(clientId);
+        inOrderM.verify(mAwareMetricsMock).recordAttachSession(eq(uid), eq(false), any());
+
+        // (1) initial subscribe
+        mDut.subscribe(clientId, subscribeConfig, mockSessionCallback);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).subscribe(transactionId.capture(), eq((byte) 0),
+                eq(subscribeConfig), eq(mNik));
+
+        // (2) subscribe success
+        mDut.onSessionConfigSuccessResponse(transactionId.getValue(), false, subscribeId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionStarted(sessionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySession(eq(uid), any());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoveryStatus(eq(uid), eq(NanStatusCode.SUCCESS),
+                eq(false), anyInt());
+        validateCorrectAwareResourcesChangeBroadcast(inOrder);
+        assertEquals(2, mDut.getAvailableAwareResources().getAvailablePublishSessionsCount());
+        assertEquals(1, mDut.getAvailableAwareResources().getAvailableSubscribeSessionsCount());
+        assertEquals(0, mDut.getAvailableAwareResources().getAvailableDataPathsCount());
+
+        // (3) Match peer
+        mDut.onMatchNotification(subscribeId, peerId, peerMac, null, null, 0, 0, null, 0, null,
+                null, pairingConfig);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
+                isNull(), anyInt(), isNull(), isNull(), any());
+        // (3) Initiate bootstrapping request
+
+        mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
+                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null
+        );
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
+                eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull());
+        mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
+
+        // (4) Receive comeback respond, will send the request again with delay
+        mDut.onBootstrappingConfirmNotification(bootstrappingId,
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1, null);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback, never()).onBootstrappingVerificationConfirmed(
+                anyInt(), anyBoolean(), anyInt());
+
+        Thread.sleep(1000);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
+                eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull());
+        mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId + 1);
+
+        // (5) Receive comeback respond on the followup request, will consider reject and notify the
+        // app
+        mDut.onBootstrappingConfirmNotification(bootstrappingId + 1,
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1, null);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
+                peerIdCaptor.getValue(), false, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
 
         // (6) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
