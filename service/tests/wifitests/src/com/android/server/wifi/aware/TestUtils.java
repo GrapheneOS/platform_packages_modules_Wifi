@@ -146,7 +146,7 @@ public class TestUtils {
         }
 
         public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer,
-                int method) {
+                int method, byte[] cookie) {
             addTransactionId(transactionId);
             return true;
         }
