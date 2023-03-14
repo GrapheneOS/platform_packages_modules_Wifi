@@ -4691,23 +4691,6 @@ public class WifiNative {
     }
 
     /**
-     * Request the removal of all QoS policies for SCS.
-     *
-     * Immediate response will indicate which policies were sent to the AP, and which were
-     * rejected immediately by the supplicant. If any requests were sent to the AP, the AP's
-     * response will arrive later in the onQosPolicyResponseForScs callback.
-     *
-     * @param ifaceName Name of the interface.
-     * @return List of responses for each policy in the request, or null if an error occurred.
-     *         Status code will be one of
-     *         {@link SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode}.
-     */
-    List<SupplicantStaIfaceHal.QosPolicyStatus> removeAllQosPoliciesForScs(
-            @NonNull String ifaceName) {
-        return mSupplicantStaIfaceHal.removeAllQosPoliciesForScs(ifaceName);
-    }
-
-    /**
      * Register a callback to receive notifications for QoS SCS transactions.
      * Callback should only be registered once.
      *
@@ -4764,21 +4747,11 @@ public class WifiNative {
     }
 
     /**
-     *  Return the maximum number of TDLS sessions supported by the device.
+     *  Return the maximum number of concurrent TDLS sessions supported by the device.
      *  @return -1 if the information is not available on the device
      */
     public int getMaxSupportedConcurrentTdlsSessions(@NonNull String ifaceName) {
-        synchronized (mLock) {
-            Iface iface = mIfaceMgr.getIface(ifaceName);
-            if (iface == null) {
-                Log.e(TAG, "Failed to get the TDLS peer count, interface not found: "
-                        + ifaceName);
-                return -1;
-            }
-            // TODO b/262591976 call into HalDeviceManager and get the info from chip capabilities
-            // (IWifiChip#getWifiChipCapabilities()
-            return -1;
-        }
+        return mWifiVendorHal.getMaxSupportedConcurrentTdlsSessions(ifaceName);
     }
 
     /**

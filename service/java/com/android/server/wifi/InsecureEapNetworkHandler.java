@@ -519,12 +519,13 @@ public class InsecureEapNetworkHandler {
                         + ", CA cert = " + mPendingRootCaCert);
             }
         }
-        mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
+        int networkId = mCurrentTofuConfig.networkId;
+        mWifiConfigManager.updateNetworkSelectionStatus(networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
         dismissDialogAndNotification();
         clearInternalData();
 
-        if (null != mCallbacks) mCallbacks.onAccept(ssid);
+        if (null != mCallbacks) mCallbacks.onAccept(ssid, networkId);
     }
 
     @VisibleForTesting
@@ -816,8 +817,9 @@ public class InsecureEapNetworkHandler {
          * When a certificate is accepted, this callback is called.
          *
          * @param ssid SSID of the network.
+         * @param networkId  network ID
          */
-        public void onAccept(@NonNull String ssid) {}
+        public void onAccept(@NonNull String ssid, int networkId) {}
         /**
          * When a certificate is rejected, this callback is called.
          *

@@ -822,7 +822,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 verify(mWifiConfigManager, never()).updateCaCertificate(
                         anyInt(), any(), any());
             }
-            verify(mCallbacks).onAccept(eq(config.SSID));
+            verify(mCallbacks).onAccept(eq(config.SSID), eq(config.networkId));
         } else if (action == ACTION_REJECT) {
             verify(mWifiConfigManager, atLeastOnce())
                     .updateNetworkSelectionStatus(eq(config.networkId),
