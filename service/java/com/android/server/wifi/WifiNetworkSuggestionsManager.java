@@ -58,6 +58,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
+import android.util.EventLog;
 import android.util.Log;
 import android.util.Pair;
 
@@ -74,12 +75,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -1046,7 +1049,23 @@ public class WifiNetworkSuggestionsManager {
         }
         // Update the max size for this app.
         perAppInfo.maxSize = Math.max(perAppInfo.extNetworkSuggestions.size(), perAppInfo.maxSize);
-        saveToStore();
+        try {
+            saveToStore();
+        } catch (OutOfMemoryError e) {
+            Optional<PerAppInfo> appInfo = mActiveNetworkSuggestionsPerApp.values()
+                    .stream()
+                    .max(Comparator.comparingInt(a -> a.extNetworkSuggestions.size()));
+            if (appInfo.isPresent()) {
+                EventLog.writeEvent(0x534e4554, "245299920", appInfo.get().uid,
+                        "Trying to add large number of suggestion, num="
+                                + appInfo.get().extNetworkSuggestions.size());
+            } else {
+                Log.e(TAG, "serialize out of memory but no app has suggestion!");
+            }
+            // Remove the most recently added suggestions, which should cause the failure.
+            remove(networkSuggestions, uid, packageName, ACTION_REMOVE_SUGGESTION_DISCONNECT);
+            return WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_INTERNAL;
+        }
         mWifiMetrics.incrementNetworkSuggestionApiNumModification();
         mWifiMetrics.noteNetworkSuggestionApiListSizeHistogram(getAllMaxSizes());
         return WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS;
@@ -1117,6 +1136,8 @@ public class WifiNetworkSuggestionsManager {
 
             } else {
                 if (!wns.passpointConfiguration.validate()) {
+                    EventLog.writeEvent(0x534e4554, "245299920", uid,
+                            "Trying to add invalid passpoint suggestion");
                     return false;
                 }
                 if (!wns.passpointConfiguration.isMacRandomizationEnabled()) {

@@ -2086,7 +2086,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         verify(provider).uninstallCertsAndKeys();
         verify(mWifiConfigManager, never()).removePasspointConfiguredNetwork(
                 provider.getWifiConfig().getProfileKey());
-        verify(mWifiConfigManager).saveToStore(true);
+        verify(mWifiConfigManager, never()).saveToStore(true);
         verify(mWifiMetrics).incrementNumPasspointProviderUninstallation();
         verify(mWifiMetrics).incrementNumPasspointProviderUninstallSuccess();
         verify(mAppOpsManager, never()).stopWatchingMode(
@@ -2148,7 +2148,7 @@ public class PasspointManagerTest extends WifiBaseTest {
                 argThat((c) -> c.FQDN.equals(TEST_FQDN)), eq(TEST_CREATOR_UID), eq(TEST_PACKAGE),
                 eq(false));
         verify(mWifiConfigManager).allowAutojoin(TEST_NETWORK_ID, origWifiConfig.allowAutojoin);
-        verify(mWifiConfigManager).saveToStore(true);
+        verify(mWifiConfigManager, never()).saveToStore(true);
         verify(mWifiMetrics).incrementNumPasspointProviderInstallation();
         verify(mWifiMetrics).incrementNumPasspointProviderInstallSuccess();
         assertEquals(2, mSharedDataSource.getProviderIndex());
@@ -2167,7 +2167,7 @@ public class PasspointManagerTest extends WifiBaseTest {
                 eq(true), eq(mClock))).thenReturn(newProvider);
         assertTrue(mManager.addOrUpdateProvider(newConfig, TEST_CREATOR_UID, TEST_PACKAGE,
                 true, true));
-        verify(mWifiConfigManager).saveToStore(true);
+        verify(mWifiConfigManager, never()).saveToStore(true);
         verify(mWifiMetrics).incrementNumPasspointProviderInstallation();
         verify(mWifiMetrics).incrementNumPasspointProviderInstallSuccess();
 
@@ -2278,7 +2278,7 @@ public class PasspointManagerTest extends WifiBaseTest {
                 eq(true), eq(mClock))).thenReturn(newProvider);
         assertTrue(mManager.addOrUpdateProvider(newConfig, TEST_CREATOR_UID, TEST_PACKAGE1, true,
                 true));
-        verify(mWifiConfigManager).saveToStore(true);
+        verify(mWifiConfigManager, never()).saveToStore(true);
         verify(mWifiMetrics).incrementNumPasspointProviderInstallation();
         verify(mWifiMetrics).incrementNumPasspointProviderInstallSuccess();
 
