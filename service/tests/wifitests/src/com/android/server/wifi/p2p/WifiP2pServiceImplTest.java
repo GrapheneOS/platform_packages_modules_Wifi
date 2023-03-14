@@ -359,6 +359,18 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Simulate DISALLOW_WIFI_DIRECT user restriction change.
+     *
+     * @param isWifiDirectDisallowed whether user restriction is set.
+     */
+    private void simulateUserRestrictionChange(boolean isWifiDirectDisallowed) {
+        when(mBundle.getBoolean(UserManager.DISALLOW_WIFI_DIRECT))
+                .thenReturn(isWifiDirectDisallowed);
+        Intent intent = new Intent(UserManager.ACTION_USER_RESTRICTIONS_CHANGED);
+        mUserRestrictionReceiver.onReceive(mContext, intent);
+    }
+
+    /**
      * Simulate tethering flow is completed
      */
     private void simulateTetherReady() throws Exception {
@@ -1243,6 +1255,21 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         }
     }
 
+    private class P2pStateChangedIntentMatcher implements ArgumentMatcher<Intent> {
+        private final int mState;
+        P2pStateChangedIntentMatcher(int state) {
+            mState = state;
+        }
+        @Override
+        public boolean matches(Intent intent) {
+            if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION != intent.getAction()) {
+                return false;
+            }
+            return mState == intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE,
+                    WifiP2pManager.WIFI_P2P_STATE_DISABLED);
+        }
+    }
+
     /**
      * Set up the instance of WifiP2pServiceImpl for testing.
      *
@@ -1617,6 +1644,47 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendSimpleMsg(mClientMessenger, WifiP2pManager.DISCOVER_PEERS);
         verify(mWifiNative, times(1)).setupInterface(any(), any(), any());
         verify(mNetdWrapper, times(1)).setInterfaceUp(anyString());
+    }
+
+    /**
+     * Verify WIFI_P2P_STATE_CHANGED_ACTION broadcast sent when p2p availability changes
+     */
+    @Test
+    public void checkP2pStateChangedBroadcast() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        InOrder inOrder = inOrder(mContext);
+        forceP2pEnabled(mClient1);
+        inOrder.verify(mContext).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_ENABLED)), any());
+
+        // disabled broadcast sent when user restriction is set
+        simulateUserRestrictionChange(true);
+        mLooper.dispatchAll();
+        inOrder.verify(mContext).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_DISABLED)), any());
+
+        // no disabled broadcast sent when Wi-Fi is disabled since broadcast already sent
+        simulateWifiStateChange(false);
+        mLooper.dispatchAll();
+        inOrder.verify(mContext, never()).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_DISABLED)), any());
+
+        // no enabled broadcast sent when user restriction is removed since Wi-Fi is still disabled
+        simulateUserRestrictionChange(false);
+        mLooper.dispatchAll();
+        inOrder.verify(mContext, never()).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_ENABLED)), any());
+
+        // enabled broadcast sent when Wi-Fi is enabled
+        simulateWifiStateChange(true);
+        mLooper.dispatchAll();
+        inOrder.verify(mContext).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_ENABLED)), any());
     }
 
     /**
