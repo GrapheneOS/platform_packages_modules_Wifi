@@ -2122,7 +2122,6 @@ public class WifiConfiguration implements Parcelable {
         public static final int DISABLED_TRANSITION_DISABLE_INDICATION = 13;
         /**
          * This network is temporarily disabled because of unwanted network under sufficient rssi.
-         * @hide
          */
         public static final int DISABLED_UNWANTED_LOW_RSSI = 14;
         /**
