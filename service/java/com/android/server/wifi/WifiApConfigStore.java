@@ -74,6 +74,7 @@ public class WifiApConfigStore {
     @VisibleForTesting
     static final int PSK_SAE_ASCII_MAX_LEN = 63;
 
+    // Should only be accessed via synchronized methods.
     private SoftApConfiguration mPersistentWifiApConfig = null;
     private String mLastConfiguredPassphrase = null;
 
@@ -361,7 +362,8 @@ public class WifiApConfigStore {
         return convertedConfigBuilder.build();
     }
 
-    private void persistConfigAndTriggerBackupManagerProxy(SoftApConfiguration config) {
+    private synchronized void persistConfigAndTriggerBackupManagerProxy(
+            SoftApConfiguration config) {
         mPersistentWifiApConfig = config;
         if (!TextUtils.isEmpty(config.getPassphrase())) {
             mLastConfiguredPassphrase = config.getPassphrase();
