@@ -436,6 +436,21 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     }
 
     /**
+     * Test that we don't crash when we try to set the country code if the TelephonyService
+     * cannot be found. This is really only the case when instrumentation tests that run on the
+     * phone process are cleaned up.
+     */
+    @Test
+    public void setCountryCodeDoesNotCrashWhenTelephonyServiceNotFound() throws Exception {
+        when(mImsMmTelManager.isAvailable(anyInt(), anyInt())).thenThrow(new RuntimeException());
+        try {
+            mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
+        } catch (RuntimeException e) {
+            fail("Didn't catch RuntimeException from Telephony Service not being found!");
+        }
+    }
+
+    /**
      * Test if we can keep using the last known country code when phone is out of service, when
      * |config_wifi_revert_country_code_on_cellular_loss| is set to false;
      * Telephony service calls |setCountryCode| with an empty string when phone is out of service.
