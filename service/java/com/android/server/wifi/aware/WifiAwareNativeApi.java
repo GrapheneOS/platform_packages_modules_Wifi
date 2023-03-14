@@ -782,14 +782,17 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
 
     /**
      * Initiate a Bootstrapping request for this publish/subscribe session
+     *
      * @param transactionId Transaction ID for the transaction - used in the
      *                      async callback to match with the original request.
-     * @param peerId ID of the peer. Obtained through previous communication (a match indication).
-     * @param peer The MAC address of the peer to create a connection with.
-     * @param method proposed bootstrapping method
+     * @param peerId        ID of the peer. Obtained through previous communication (a match
+     *                      indication).
+     * @param peer          The MAC address of the peer to create a connection with.
+     * @param method        proposed bootstrapping method
      * @return True if the request send success
      */
-    public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer, int method) {
+    public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer, int method,
+            byte[] cookie) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "initiateBootstrapping: transactionId=" + transactionId
                     + ", peerId=" + peerId + ", method=" + method
@@ -805,7 +808,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
 
         try {
             MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiateBootstrapping(transactionId, peerId, peerMac, method);
+            return iface.initiateBootstrapping(transactionId, peerId, peerMac, method, cookie);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
             return false;

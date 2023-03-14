@@ -259,7 +259,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
 
     @Override
     public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method) {
+            int method, byte[] cookie) {
         return false;
     }
 
