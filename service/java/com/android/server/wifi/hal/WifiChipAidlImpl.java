@@ -23,8 +23,8 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.hardware.wifi.IWifiApIface;
 import android.hardware.wifi.IWifiChip.ChannelCategoryMask;
-import android.hardware.wifi.IWifiChip.ChipCapabilityMask;
 import android.hardware.wifi.IWifiChip.CoexRestriction;
+import android.hardware.wifi.IWifiChip.FeatureSetMask;
 import android.hardware.wifi.IWifiChip.LatencyMode;
 import android.hardware.wifi.IWifiChip.MultiStaUseCase;
 import android.hardware.wifi.IWifiChip.TxPowerScenario;
@@ -376,22 +376,22 @@ public class WifiChipAidlImpl implements IWifiChip {
     private WifiChip.Response<Long> getCapabilitiesInternal(String methodStr) {
         // getCapabilities uses the same logic in AIDL, regardless of whether the call
         // happens before or after any interfaces have been created.
-        WifiChip.Response<Long> capsResp = new WifiChip.Response<>(0L);
+        WifiChip.Response<Long> featuresResp = new WifiChip.Response<>(0L);
         synchronized (mLock) {
             try {
-                if (!checkIfaceAndLogFailure(methodStr)) return capsResp;
-                long halCaps = mWifiChip.getCapabilities();
-                capsResp.setValue(halToFrameworkChipCapabilityMask(halCaps));
-                capsResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
+                if (!checkIfaceAndLogFailure(methodStr)) return featuresResp;
+                long halFeatureSet = mWifiChip.getFeatureSet();
+                featuresResp.setValue(halToFrameworkChipFeatureSet(halFeatureSet));
+                featuresResp.setStatusCode(WifiHal.WIFI_STATUS_SUCCESS);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
-                capsResp.setStatusCode(WifiHal.WIFI_STATUS_ERROR_REMOTE_EXCEPTION);
+                featuresResp.setStatusCode(WifiHal.WIFI_STATUS_ERROR_REMOTE_EXCEPTION);
             } catch (ServiceSpecificException e) {
                 handleServiceSpecificException(e, methodStr);
                 // TODO: convert to framework status code once WifiHalAidlImpl exists
-                capsResp.setStatusCode(e.errorCode);
+                featuresResp.setStatusCode(e.errorCode);
             }
-            return capsResp;
+            return featuresResp;
         }
     }
 
@@ -1504,30 +1504,30 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     @VisibleForTesting
-    protected static long halToFrameworkChipCapabilityMask(long halCaps) {
-        long frameworkCaps = 0;
-        if (bitmapContains(halCaps, ChipCapabilityMask.SET_TX_POWER_LIMIT)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_TX_POWER_LIMIT;
+    protected static long halToFrameworkChipFeatureSet(long halFeatureSet) {
+        long features = 0;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.SET_TX_POWER_LIMIT)) {
+            features |= WifiManager.WIFI_FEATURE_TX_POWER_LIMIT;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.D2D_RTT)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_D2D_RTT;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.D2D_RTT)) {
+            features |= WifiManager.WIFI_FEATURE_D2D_RTT;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.D2AP_RTT)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_D2AP_RTT;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.D2AP_RTT)) {
+            features |= WifiManager.WIFI_FEATURE_D2AP_RTT;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.SET_LATENCY_MODE)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_LOW_LATENCY;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.SET_LATENCY_MODE)) {
+            features |= WifiManager.WIFI_FEATURE_LOW_LATENCY;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.P2P_RAND_MAC)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_P2P_RAND_MAC;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.P2P_RAND_MAC)) {
+            features |= WifiManager.WIFI_FEATURE_P2P_RAND_MAC;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.WIGIG)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_INFRA_60G;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.WIGIG)) {
+            features |= WifiManager.WIFI_FEATURE_INFRA_60G;
         }
-        if (bitmapContains(halCaps, ChipCapabilityMask.T2LM_NEGOTIATION)) {
-            frameworkCaps |= WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
+        if (bitmapContains(halFeatureSet, FeatureSetMask.T2LM_NEGOTIATION)) {
+            features |= WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
         }
-        return frameworkCaps;
+        return features;
     }
 
     private static int halToFrameworkWifiBand(int halBand) {
