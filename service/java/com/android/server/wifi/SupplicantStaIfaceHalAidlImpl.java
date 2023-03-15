@@ -1102,7 +1102,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                             network, ifaceName, mContext,
                             mWifiMonitor, mWifiGlobals,
                             getAdvancedCapabilities(ifaceName),
-                            getWpaDriverCapabilities(ifaceName));
+                            getWpaDriverFeatureSet(ifaceName));
             if (networkWrapper != null) {
                 networkWrapper.enableVerboseLogging(
                         mVerboseLoggingEnabled, mVerboseHalLoggingEnabled);
@@ -2598,6 +2598,10 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
+    /**
+     * Get the bitmask of supplicant/driver supported key management capabilities in
+     * AIDL KeyMgmtMask format.
+     */
     private int getKeyMgmtCapabilities(@NonNull String ifaceName) {
         synchronized (mLock) {
             final String methodStr = "getKeyMgmtCapabilities";
@@ -2691,6 +2695,10 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
+    /**
+     * Get the bitmask of supplicant/driver supported features in
+     * AIDL WpaDriverCapabilitiesMask format.
+     */
     private int getWpaDriverCapabilities(@NonNull String ifaceName) {
         synchronized (mLock) {
             final String methodStr = "getWpaDriverCapabilities";
