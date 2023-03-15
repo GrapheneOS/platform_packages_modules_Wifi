@@ -3298,4 +3298,93 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
             }
         }
     }
+
+    /**
+     * Test network selection falls back to legacy.
+     */
+    @Test
+    public void testNetworkSelectionLegacy() {
+        Set<List<Integer>> bandMatrix = Set.of(
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_6_GHZ)), new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ, WifiScanner.WIFI_BAND_6_GHZ)));
+
+        // STR not supported.
+        WifiConfiguration candidate;
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(-1, bandMatrix));
+        assertEquals("\"legacy\"", candidate.SSID);
+
+        // Max STR link count = 1.
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(1, bandMatrix));
+        assertEquals("\"legacy\"", candidate.SSID);
+
+        // No band matrix.
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(2, null));
+        assertEquals("\"legacy\"", candidate.SSID);
+
+        // Legacy AP is better than MLO.
+        CandidateParams.throughput_4 = 300;
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(2, bandMatrix));
+        assertEquals("\"legacy\"", candidate.SSID);
+        // Revert the throughput change.
+        CandidateParams.throughput_4 = 150;
+    }
+
+    /**
+     * Test Network selection with two MLO links.
+     *
+     * Test scenario:
+     * Band Supported: {{2.4}, {5}, {6}, {2.4, 5}, {2.4, 6}, {5, 6}}
+     * APs:            AP1 - {2.4 Ghz, 5 Ghz, 6 Ghz} , AP2 - 5 Ghz
+     * Max STR link count: 2 (dual-band)
+     */
+    @Test
+    public void testNetworkSelectionDualBand() {
+        Set<List<Integer>> bandMatrix = Set.of(
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_6_GHZ)), new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ, WifiScanner.WIFI_BAND_6_GHZ)));
+
+        WifiConfiguration candidate;
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(2, bandMatrix));
+        assertEquals("\"mlo\"", candidate.SSID);
+
+    }
+
+    /**
+     * Test Network selection with three MLO links.
+     *
+     * Test scenario:
+     * Band Supported: {{2.4}, {5}, {6}, {2.4, 5}, {2.4, 6}, {5, 6}, {2.4, 5, 6}}
+     * APs: AP1 - {2.4 Ghz, 5 Ghz, 6 Ghz} , AP2 - 5 Ghz
+     * Max STR link count: 3 (tri-band)
+     */
+    @Test
+    public void testNetworkSelectionTriBand() {
+        Set<List<Integer>> bandMatrix = Set.of(
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_6_GHZ)), new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ,
+                                WifiScanner.WIFI_BAND_6_GHZ)));
+        WifiConfiguration candidate;
+        candidate = mWifiNetworkSelector.selectNetwork(getWifiCandidates(3, bandMatrix));
+        assertEquals("\"mlo\"", candidate.SSID);
+    }
 }
