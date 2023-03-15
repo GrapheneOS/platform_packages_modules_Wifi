@@ -509,15 +509,16 @@ public class WifiAwareDiscoverySessionState {
 
     /**
      * Initiate an Aware bootstrapping request
+     *
      * @param transactionId Transaction ID for the transaction - used in the
-     *            async callback to match with the original request.
-     * @param peerId ID of the peer. Obtained through previous communication (a
-     *            match indication).
-     * @param method proposed bootstrapping method
+     *                      async callback to match with the original request.
+     * @param peerId        ID of the peer. Obtained through previous communication (a
+     *                      match indication).
+     * @param method        proposed bootstrapping method
      * @return True if the request send succeed.
      */
     public boolean initiateBootstrapping(short transactionId,
-            int peerId, int method) {
+            int peerId, int method, byte[] cookie) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "initiateBootstrapping: attempting to send pairing request to an address"
@@ -531,7 +532,7 @@ public class WifiAwareDiscoverySessionState {
         }
 
         boolean success = mWifiAwareNativeApi.initiateBootstrapping(transactionId,
-                peerInfo.mInstanceId, peerInfo.mMac, method);
+                peerInfo.mInstanceId, peerInfo.mMac, method, cookie);
         if (!success) {
             try {
                 mCallback.onBootstrappingVerificationConfirmed(peerId, false, method);
