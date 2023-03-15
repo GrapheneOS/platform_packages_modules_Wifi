@@ -1762,7 +1762,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onConfigSuccessResponse(transactionId.getValue());
         mMockLooper.dispatchAll();
 
-
         // (2) 2 matches : with and w/o range
         mDut.onMatchNotification(subscribeId, requestorId, peerMac, peerSsi.getBytes(),
                 peerMatchFilter.getBytes(), 0, 0, null, 0, null, null, null);
@@ -3768,7 +3767,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         simulateWifiStateChange(true);
         mMockLooper.dispatchAll();
 
-
         // (5) power state change: DOZE OFF
         simulatePowerStateChangeDoze(false);
         mMockLooper.dispatchAll();
@@ -3935,7 +3933,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mMockNativeManager).tryToGetAware(new WorkSource(Process.WIFI_UID));
         inOrder.verify(mMockNativeManager).releaseAware();
 
-
         mDut.enableUsage();
         mMockLooper.dispatchAll();
 
@@ -3963,7 +3960,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mMockNativeManager).releaseAware();
         assertFalse(mDut.isDeviceAttached());
         collector.checkThat("usage disabled", mDut.isUsageEnabled(), equalTo(false));
-
 
         // disable other gating feature -> no change
         simulatePowerStateChangeDoze(true);
@@ -4322,7 +4318,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.enableUsage();
         mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
                 configRequest, false, mExtras, false);
-
 
         // (4) Verify the command executed in the correct order
         // (4.1) verify the disable usage execution
@@ -4827,8 +4822,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), isNull(), any());
-        // (3) Initiate bootstrapping request
 
+        // (4) Initiate bootstrapping request
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
                 peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
         mMockLooper.dispatchAll();
@@ -4841,7 +4836,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
 
-        // (4) Initiate pairing setup request
+        // (5) Initiate pairing setup request
         mDut.initiateNanPairingSetupRequest(clientId, sessionId.getValue(), peerIdCaptor.getValue(),
                 null, alias, WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
         mMockLooper.dispatchAll();
@@ -4851,7 +4846,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
 
-        // (5) request send success and receive confirm
+        // (6) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
         mMockLooper.dispatchAll();
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
@@ -4865,14 +4860,13 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-
-        // (6) subscribe termination (from firmware - not app!)
+        // (7) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false));
 
-        // (7) app terminates session
+        // (8) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -4986,7 +4980,6 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 .addPairedDeviceSecurityAssociation(eq(callingPackage), eq(alias),
                         any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-
         // (6) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
@@ -4994,6 +4987,212 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false));
 
         // (7) app terminates session
+        mDut.terminateSession(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+
+        validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
+
+        verifyNoMoreInteractions(mockSessionCallback, mMockNative, mAwareMetricsMock);
+    }
+
+    @Test
+    public void testPublishWithSuspendResume() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        final int clientId = 2005;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final int reasonTerminate = NanStatusCode.SUCCESS;
+        final byte publishId = 15;
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        PublishConfig publishConfig = new PublishConfig.Builder().setSuspendable(true).build();
+
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        IWifiAwareDiscoverySessionCallback mockSessionCallback = mock(
+                IWifiAwareDiscoverySessionCallback.class);
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        ArgumentCaptor<Integer> sessionId = ArgumentCaptor.forClass(Integer.class);
+        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative, mMockContext);
+        InOrder inOrderM = inOrder(mAwareMetricsMock);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).getCapabilities(transactionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordEnableUsage();
+
+        // (0) connect
+        mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
+                eq(configRequest), eq(false), eq(true), eq(true), eq(false), eq(false), eq(false),
+                anyInt(), anyInt());
+        mDut.onConfigSuccessResponse(transactionId.getValue());
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isDeviceAttached());
+        inOrder.verify(mockCallback).onConnectSuccess(clientId);
+        inOrderM.verify(mAwareMetricsMock).recordAttachSession(eq(uid), eq(false), any());
+
+        // (1) initial publish
+        mDut.publish(clientId, publishConfig, mockSessionCallback);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).publish(transactionId.capture(), eq((byte) 0),
+                eq(publishConfig), isNull());
+
+        // (2) publish success
+        mDut.onSessionConfigSuccessResponse(transactionId.getValue(), true, publishId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionStarted(sessionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySession(eq(uid), any());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoveryStatus(eq(uid), eq(NanStatusCode.SUCCESS),
+                eq(true), anyInt());
+        validateCorrectAwareResourcesChangeBroadcast(inOrder);
+        assertEquals(1, mDut.getAvailableAwareResources().getAvailablePublishSessionsCount());
+        assertEquals(2, mDut.getAvailableAwareResources().getAvailableSubscribeSessionsCount());
+        assertEquals(0, mDut.getAvailableAwareResources().getAvailableDataPathsCount());
+
+        // (3) receive suspend request
+        mDut.suspend(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).suspendRequest(transactionId.capture(), eq(publishId));
+
+        // (4) notify suspend response succeed
+        mDut.onSuspendResponse(transactionId.getValue(), NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionSuspendSucceeded();
+
+        // (5) event suspension mode changed, device enters suspension
+        mDut.onSuspensionModeChangedNotification(true);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback, never()).onSessionSuspendSucceeded();
+
+        // (6) receive resume request
+        mDut.resume(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).resumeRequest(transactionId.capture(), eq(publishId));
+
+        // (7) notify resume response succeed
+        mDut.onResumeResponse(transactionId.getValue(), NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback, never()).onSessionResumeSucceeded();
+
+        // (8) event suspension mode changed, device exits suspension
+        mDut.onSuspensionModeChangedNotification(false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionResumeSucceeded();
+
+        // (9) publish termination (from firmware - not app!)
+        mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true));
+
+        // (10) app terminates session
+        mDut.terminateSession(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+
+        validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
+
+        verifyNoMoreInteractions(mockSessionCallback, mMockNative, mAwareMetricsMock);
+    }
+
+    @Test
+    public void testSubscribeWithSuspendResume() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastU());
+        final int clientId = 2005;
+        final int uid = 1000;
+        final int pid = 2000;
+        final String callingPackage = "com.google.somePackage";
+        final String callingFeature = "com.google.someFeature";
+        final int reasonTerminate = NanStatusCode.SUCCESS;
+        final byte subscribeId = 15;
+
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
+                .setSuspendable(true).build();
+
+        IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
+        IWifiAwareDiscoverySessionCallback mockSessionCallback = mock(
+                IWifiAwareDiscoverySessionCallback.class);
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        ArgumentCaptor<Integer> sessionId = ArgumentCaptor.forClass(Integer.class);
+        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative, mMockContext);
+        InOrder inOrderM = inOrder(mAwareMetricsMock);
+
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).getCapabilities(transactionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordEnableUsage();
+
+        // (0) connect
+        mDut.connect(clientId, uid, pid, callingPackage, callingFeature, mockCallback,
+                configRequest, false, mExtras, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(), eq(configRequest),
+                eq(false), eq(true), eq(true), eq(false), eq(false), eq(false), anyInt(), anyInt());
+        mDut.onConfigSuccessResponse(transactionId.getValue());
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isDeviceAttached());
+        inOrder.verify(mockCallback).onConnectSuccess(clientId);
+        inOrderM.verify(mAwareMetricsMock).recordAttachSession(eq(uid), eq(false), any());
+
+        // (1) initial subscribe
+        mDut.subscribe(clientId, subscribeConfig, mockSessionCallback);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).subscribe(transactionId.capture(), eq((byte) 0),
+                eq(subscribeConfig), isNull());
+
+        // (2) subscribe success
+        mDut.onSessionConfigSuccessResponse(transactionId.getValue(), false, subscribeId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionStarted(sessionId.capture());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySession(eq(uid), any());
+        inOrderM.verify(mAwareMetricsMock).recordDiscoveryStatus(eq(uid), eq(NanStatusCode.SUCCESS),
+                eq(false), anyInt());
+        validateCorrectAwareResourcesChangeBroadcast(inOrder);
+        assertEquals(2, mDut.getAvailableAwareResources().getAvailablePublishSessionsCount());
+        assertEquals(1, mDut.getAvailableAwareResources().getAvailableSubscribeSessionsCount());
+        assertEquals(0, mDut.getAvailableAwareResources().getAvailableDataPathsCount());
+
+        // (3) receive suspend request
+        mDut.suspend(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).suspendRequest(transactionId.capture(), eq(subscribeId));
+
+        // (4) notify suspend response succeed
+        mDut.onSuspendResponse(transactionId.getValue(), NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionSuspendSucceeded();
+
+        // (5) event suspension mode changed, device enters suspension
+        mDut.onSuspensionModeChangedNotification(true);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback, never()).onSessionSuspendSucceeded();
+
+        // (6) receive resume request
+        mDut.resume(clientId, sessionId.getValue());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative).resumeRequest(transactionId.capture(), eq(subscribeId));
+
+        // (7) notify resume response succeed
+        mDut.onResumeResponse(transactionId.getValue(), NanStatusCode.SUCCESS);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback, never()).onSessionResumeSucceeded();
+
+        // (8) event suspension mode changed, device exits suspension
+        mDut.onSuspensionModeChangedNotification(false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionResumeSucceeded();
+
+        // (9) subscribe termination (from firmware - not app!)
+        mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
+        inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false));
+
+        // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -5253,6 +5452,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         cap.maxAppInfoLen = 255;
         cap.maxQueuedTransmitMessages = 6;
         cap.isInstantCommunicationModeSupported = true;
+        cap.isSuspensionSupported = true;
         return cap;
     }
 
@@ -5325,7 +5525,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback1).onConnectFail(anyInt());
 
-        // (6) Aware down - session should be terminated.
+        // (4) Aware down - session should be terminated.
         mDut.onAwareDownNotification(reason);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback2).onAttachTerminate();
@@ -5405,7 +5605,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback1).onConnectFail(anyInt());
 
-        // (6) Aware down - session should be terminated.
+        // (4) Aware down - session should be terminated.
         mDut.onAwareDownNotification(reason);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback2).onAttachTerminate();
@@ -5467,12 +5667,10 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).replaceRequestorWs(new WorkSource(uid, callingPackage));
 
-        // (6) Aware down - session should be terminated.
+        // (4) Aware down - session should be terminated.
         mDut.onAwareDownNotification(reason);
         mMockLooper.dispatchAll();
         inOrder.verify(mockCallback1).onAttachTerminate();
-
-
 
         validateInternalClientInfoCleanedUp(clientId1);
 

@@ -48,7 +48,6 @@ import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -390,9 +389,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
     /**
      * Checks that WorkChains are preserved when merged WorkSources are created.
      */
-    @Ignore ("b/262126813")
     @Test
     public void createMergedworkSourceWithChainsShouldSucceed() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder, mWorkSource);
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder2,
                 mChainedWorkSource);
@@ -405,9 +405,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
     /**
      * A smoke test for acquiring, updating and releasing WifiLocks with chained WorkSources.
      */
-    @Ignore("b/262126813")
     @Test
     public void smokeTestLockLifecycleWithChainedWorkSource() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "", mBinder,
                 mChainedWorkSource);
 
@@ -555,9 +556,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
      * Test when acquiring two hi-perf locks, then releasing them.
      * WifiLockManager calls to disable/enable power save mechanism only once.
      */
-    @Ignore("b/262126813")
     @Test
     public void testHiPerfLockAcquireReleaseTwice() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         InOrder inOrder = inOrder(mClientModeManager);
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
@@ -774,9 +776,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
     /**
      * Test when forcing hi-perf mode, and aquire/release of hi-perf locks
      */
-    @Ignore("b/262126813")
     @Test
     public void testForceHiPerfAcqRelHiPerf() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
         InOrder inOrder = inOrder(mClientModeManager);
@@ -860,9 +863,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
      * Test if a foreground app acquires a low-latency lock, and screen is on,
      * then that lock becomes the strongest lock even with presence of other locks.
      */
-    @Ignore ("b/262126813")
     @Test
     public void testForegroundAppAcquireLowLatencyScreenOn() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         // Set screen on, and app foreground
         setScreenState(true);
         when(mActivityManager.getUidImportance(anyInt())).thenReturn(
@@ -1215,9 +1219,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
      * then, hi-perf is active when app is in background , while low-latency
      * is active when app is in foreground (and screen on).
      */
-    @Ignore ("b/262126813")
     @Test
     public void testLatencyHiPerfLocks() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         // Initially, set screen on, and app background
         setScreenState(true);
         when(mFrameworkFacade.isAppForeground(any(), anyInt())).thenReturn(false);
@@ -1265,9 +1270,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
      * Test when forcing low-latency mode, that it overrides apps requests
      * until it is no longer forced.
      */
-    @Ignore ("b/262126813")
     @Test
     public void testForceLowLatency() throws Exception {
+        // Test with High perf lock.
+        when(mDeviceConfigFacade.isHighPerfLockDeprecated()).thenReturn(false);
         when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
