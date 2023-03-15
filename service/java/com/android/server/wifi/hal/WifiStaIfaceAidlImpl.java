@@ -266,8 +266,8 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return 0L;
-                long halCaps = mWifiStaIface.getCapabilities();
-                return halToFrameworkStaIfaceCapability(halCaps);
+                long halFeatureSet = mWifiStaIface.getFeatureSet();
+                return halToFrameworkStaFeatureSet(halFeatureSet);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -881,54 +881,54 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
     }
 
     @VisibleForTesting
-    protected static long halToFrameworkStaIfaceCapability(long caps) {
+    protected static long halToFrameworkStaFeatureSet(long halFeatureSet) {
         long features = 0;
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.HOTSPOT)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.HOTSPOT)) {
             features |= WifiManager.WIFI_FEATURE_PASSPOINT;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.BACKGROUND_SCAN)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.BACKGROUND_SCAN)) {
             features |= WifiManager.WIFI_FEATURE_SCANNER;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.PNO)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.PNO)) {
             features |= WifiManager.WIFI_FEATURE_PNO;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.TDLS)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.TDLS)) {
             features |= WifiManager.WIFI_FEATURE_TDLS;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.TDLS_OFFCHANNEL)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.TDLS_OFFCHANNEL)) {
             features |= WifiManager.WIFI_FEATURE_TDLS_OFFCHANNEL;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.LINK_LAYER_STATS)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.LINK_LAYER_STATS)) {
             features |= WifiManager.WIFI_FEATURE_LINK_LAYER_STATS;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.RSSI_MONITOR)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.RSSI_MONITOR)) {
             features |= WifiManager.WIFI_FEATURE_RSSI_MONITOR;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.KEEP_ALIVE)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.KEEP_ALIVE)) {
             features |= WifiManager.WIFI_FEATURE_MKEEP_ALIVE;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.ND_OFFLOAD)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.ND_OFFLOAD)) {
             features |= WifiManager.WIFI_FEATURE_CONFIG_NDO;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.CONTROL_ROAMING)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.CONTROL_ROAMING)) {
             features |= WifiManager.WIFI_FEATURE_CONTROL_ROAMING;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.PROBE_IE_ALLOWLIST)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.PROBE_IE_ALLOWLIST)) {
             features |= WifiManager.WIFI_FEATURE_IE_WHITELIST;
         }
-        if (hasCapability(caps,
-                android.hardware.wifi.IWifiStaIface.StaIfaceCapabilityMask.SCAN_RAND)) {
+        if (hasCapability(halFeatureSet,
+                android.hardware.wifi.IWifiStaIface.FeatureSetMask.SCAN_RAND)) {
             features |= WifiManager.WIFI_FEATURE_SCAN_RAND;
         }
         return features;
