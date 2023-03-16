@@ -1661,6 +1661,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(openNetwork);
 
+        verify(mWifiBlocklistMonitor).clearBssidBlocklistForSsid(openNetwork.SSID);
         assertTrue(mWifiConfigManager.enableNetwork(
                 result.getNetworkId(), false, TEST_CREATOR_UID, TEST_CREATOR_NAME));
         WifiConfiguration retrievedNetwork =
@@ -1669,6 +1670,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(retrievedStatus.isNetworkEnabled());
         verifyUpdateNetworkStatus(retrievedNetwork, WifiConfiguration.Status.ENABLED);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        verify(mWifiBlocklistMonitor, times(2)).clearBssidBlocklistForSsid(openNetwork.SSID);
 
         // Now set it disabled.
         assertTrue(mWifiConfigManager.disableNetwork(
