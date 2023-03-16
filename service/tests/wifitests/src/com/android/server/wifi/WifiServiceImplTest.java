@@ -11072,6 +11072,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
             policyParamsList.add(new QosPolicyParams.Builder(
                     policyId, QosPolicyParams.DIRECTION_DOWNLINK)
                     .setUserPriority(QosPolicyParams.USER_PRIORITY_VIDEO_LOW)
+                    .setIpVersion(QosPolicyParams.IP_VERSION_4)
                     .build());
         }
         return policyParamsList;

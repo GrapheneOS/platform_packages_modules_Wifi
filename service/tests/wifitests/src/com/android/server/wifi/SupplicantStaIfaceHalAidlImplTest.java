@@ -2394,9 +2394,10 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 .setDestinationAddress(MacAddress.fromString("aa:bb:cc:dd:ee:ff"))
                 .setDscp(25)
                 .setUserPriority(QosPolicyParams.USER_PRIORITY_BACKGROUND_HIGH)
+                .setIpVersion(QosPolicyParams.IP_VERSION_4)
                 .setSourcePort(17)
                 .setProtocol(QosPolicyParams.PROTOCOL_TCP)
-                .setDestinationPortRange(10, 12)
+                .setDestinationPort(10)
                 .build();
         frameworkPolicy.setTranslatedPolicyId(translatedPolicyId);
         QosPolicyScsData halPolicy = SupplicantStaIfaceHalAidlImpl
