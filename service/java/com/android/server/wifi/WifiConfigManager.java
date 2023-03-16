@@ -2159,6 +2159,7 @@ public class WifiConfigManager {
                 networkId, WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE)) {
             return false;
         }
+        mWifiBlocklistMonitor.clearBssidBlocklistForSsid(config.SSID);
         saveToStore(true);
         return true;
     }

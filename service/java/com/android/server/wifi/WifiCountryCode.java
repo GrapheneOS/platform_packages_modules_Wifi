@@ -318,13 +318,15 @@ public class WifiCountryCode {
         }
         for (SubscriptionInfo subInfo : subInfoList) {
             int subscriptionId = subInfo.getSubscriptionId();
-            ImsMmTelManager imsMmTelManager = ImsMmTelManager.createForSubscriptionId(
-                    subscriptionId);
-            if (imsMmTelManager != null && imsMmTelManager.isAvailable(
-                    MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE,
-                    ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
-                Log.d(TAG, "WifiCalling is available on subId " + subscriptionId);
-                return true;
+            try {
+                if (ImsMmTelManager.createForSubscriptionId(subscriptionId).isAvailable(
+                        MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE,
+                        ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN)) {
+                    Log.d(TAG, "WifiCalling is available on subId " + subscriptionId);
+                    return true;
+                }
+            } catch (RuntimeException e) {
+                Log.d(TAG, "RuntimeException while checking if wifi calling is available: " + e);
             }
         }
         return false;

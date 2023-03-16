@@ -508,9 +508,10 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
     @Override
     public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method) {
+            int method, byte[] cookie) {
         String methodStr = "initiateNanBootstrappingRequest";
-        NanBootstrappingRequest request = createNanBootstrappingRequest(peerId, peer, method);
+        NanBootstrappingRequest request = createNanBootstrappingRequest(peerId, peer, method,
+                cookie);
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
@@ -588,12 +589,12 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     private static NanBootstrappingRequest createNanBootstrappingRequest(int peerId,
-            MacAddress peer, int method) {
+            MacAddress peer, int method, byte[] cookie) {
         NanBootstrappingRequest request = new NanBootstrappingRequest();
         request.peerId = peerId;
         request.peerDiscMacAddr = peer.toByteArray();
         request.requestBootstrappingMethod = method;
-        request.cookie = new byte[0];
+        request.cookie = copyArray(cookie);
         return request;
     }
 

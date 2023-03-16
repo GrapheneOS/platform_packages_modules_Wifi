@@ -1281,7 +1281,7 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         config.getNetworkSelectionStatus().setCandidateSecurityParams(
                 config.getDefaultSecurityParams());
         assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
-        // Should fallback to TLS v1.2
+        // Should set minimum TLS version to TLS v1.3
         verify(mISupplicantStaNetworkMock).setMinimumTlsVersionEapPhase1Param(TlsVersion.TLS_V1_3);
     }
 

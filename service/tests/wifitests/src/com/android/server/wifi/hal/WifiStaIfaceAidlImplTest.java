@@ -80,14 +80,14 @@ public class WifiStaIfaceAidlImplTest {
      */
     @Test
     public void testStaIfaceFeatureMaskTranslation() {
-        int caps = (
-                IWifiStaIface.StaIfaceCapabilityMask.BACKGROUND_SCAN
-                        | IWifiStaIface.StaIfaceCapabilityMask.LINK_LAYER_STATS
+        int halFeatures = (
+                IWifiStaIface.FeatureSetMask.BACKGROUND_SCAN
+                        | IWifiStaIface.FeatureSetMask.LINK_LAYER_STATS
         );
         long expected = (
                 WifiManager.WIFI_FEATURE_SCANNER
                         | WifiManager.WIFI_FEATURE_LINK_LAYER_STATS);
-        assertEquals(expected, mDut.halToFrameworkStaIfaceCapability(caps));
+        assertEquals(expected, mDut.halToFrameworkStaFeatureSet(halFeatures));
     }
 
     /**
