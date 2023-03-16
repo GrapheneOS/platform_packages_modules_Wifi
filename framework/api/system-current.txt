@@ -33,6 +33,7 @@ package android.net.wifi {
     method @Nullable public int[] getDestinationPortRange();
     method public int getDirection();
     method @IntRange(from=android.net.wifi.QosPolicyParams.DSCP_ANY, to=63) public int getDscp();
+    method @Nullable public byte[] getFlowLabel();
     method public int getIpVersion();
     method @IntRange(from=1, to=255) public int getPolicyId();
     method public int getProtocol();
@@ -69,6 +70,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPort(@IntRange(from=android.net.wifi.QosPolicyParams.DESTINATION_PORT_ANY, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPortRange(@IntRange(from=0, to=65535) int, @IntRange(from=0, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDscp(@IntRange(from=android.net.wifi.QosPolicyParams.DSCP_ANY, to=63) int);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setFlowLabel(@NonNull byte[]);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setIpVersion(int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setProtocol(int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourceAddress(@NonNull java.net.InetAddress);

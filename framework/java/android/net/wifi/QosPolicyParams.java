@@ -226,10 +226,13 @@ public final class QosPolicyParams implements Parcelable {
     // IP version. Only applicable to downlink requests.
     private final @IpVersion int mIpVersion;
 
+    // Flow label. Only applicable to downlink requests using IPv6.
+    private final @Nullable byte[] mFlowLabel;
+
     private QosPolicyParams(int policyId, int dscp, @UserPriority int userPriority,
             @Nullable InetAddress srcIp, @Nullable InetAddress dstIp, int srcPort,
             @Protocol int protocol, @Nullable int[] dstPortRange, @Direction int direction,
-            @IpVersion int ipVersion, int dstPort) {
+            @IpVersion int ipVersion, int dstPort, @Nullable byte[] flowLabel) {
         this.mPolicyId = policyId;
         this.mDscp = dscp;
         this.mUserPriority = userPriority;
@@ -241,6 +244,7 @@ public final class QosPolicyParams implements Parcelable {
         this.mDstPortRange = dstPortRange;
         this.mDirection = direction;
         this.mIpVersion = ipVersion;
+        this.mFlowLabel = flowLabel;
     }
 
     /**
@@ -320,6 +324,10 @@ public final class QosPolicyParams implements Parcelable {
                 Log.e(TAG, "Single destination port should not be set for uplink requests");
                 return false;
             }
+            if (mFlowLabel != null) {
+                Log.e(TAG, "Flow label should not be set for uplink requests");
+                return false;
+            }
         } else {
             if (mUserPriority == USER_PRIORITY_ANY) {
                 Log.e(TAG, "User priority must be provided for downlink requests");
@@ -332,6 +340,17 @@ public final class QosPolicyParams implements Parcelable {
             if (mDstPortRange != null) {
                 Log.e(TAG, "Destination port range should not be set for downlink requests");
                 return false;
+            }
+            if (mFlowLabel != null) {
+                if (mIpVersion != IP_VERSION_6) {
+                    Log.e(TAG, "Flow label can only be used with IP version 6");
+                    return false;
+                }
+                if (mFlowLabel.length != 3) {
+                    Log.e(TAG, "Flow label must be of size 3, provided size is "
+                            + mFlowLabel.length);
+                    return false;
+                }
             }
         }
         return true;
@@ -479,6 +498,17 @@ public final class QosPolicyParams implements Parcelable {
         return mIpVersion;
     }
 
+    /**
+     * Get the flow label for this policy.
+     *
+     * See {@link Builder#setFlowLabel(byte[])} for more information.
+     *
+     * @return flow label, or null if not assigned.
+     */
+    public @Nullable byte[] getFlowLabel() {
+        return mFlowLabel;
+    }
+
     @Override
     public boolean equals(@Nullable Object o) {
         if (this == o) return true;
@@ -494,13 +524,15 @@ public final class QosPolicyParams implements Parcelable {
                 && mDstPort == that.mDstPort
                 && Arrays.equals(mDstPortRange, that.mDstPortRange)
                 && mDirection == that.mDirection
-                && mIpVersion == that.mIpVersion;
+                && mIpVersion == that.mIpVersion
+                && mFlowLabel == that.mFlowLabel;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mPolicyId, mDscp, mUserPriority, mSrcIp, mDstIp, mSrcPort,
-                mProtocol, Arrays.hashCode(mDstPortRange), mDirection, mIpVersion, mDstPort);
+                mProtocol, Arrays.hashCode(mDstPortRange), mDirection, mIpVersion, mDstPort,
+                Arrays.hashCode(mFlowLabel));
     }
 
     @Override
@@ -515,7 +547,8 @@ public final class QosPolicyParams implements Parcelable {
                 + "dstPort=" + mDstPort + ", "
                 + "dstPortRange=" + Arrays.toString(mDstPortRange) + ", "
                 + "direction=" + mDirection
-                + "ipVersion=" + mIpVersion + "}";
+                + "ipVersion=" + mIpVersion
+                + "flowLabel=" + Arrays.toString(mFlowLabel) + "}";
     }
 
     /** @hide */
@@ -547,6 +580,7 @@ public final class QosPolicyParams implements Parcelable {
         dest.writeIntArray(mDstPortRange);
         dest.writeInt(mDirection);
         dest.writeInt(mIpVersion);
+        dest.writeByteArray(mFlowLabel);
     }
 
     /** @hide */
@@ -562,6 +596,7 @@ public final class QosPolicyParams implements Parcelable {
         this.mDstPortRange = in.createIntArray();
         this.mDirection = in.readInt();
         this.mIpVersion = in.readInt();
+        this.mFlowLabel = in.createByteArray();
     }
 
     public static final @NonNull Parcelable.Creator<QosPolicyParams> CREATOR =
@@ -592,6 +627,7 @@ public final class QosPolicyParams implements Parcelable {
         private int mDstPort = DESTINATION_PORT_ANY;
         private @Nullable int[] mDstPortRange;
         private @IpVersion int mIpVersion = IP_VERSION_ANY;
+        private byte[] mFlowLabel;
 
         /**
          * Constructor for {@link Builder}.
@@ -694,11 +730,22 @@ public final class QosPolicyParams implements Parcelable {
         }
 
         /**
+         * Specifies that this policy matches packets with the provided flow label.
+         * Only applicable to downlink requests using IPv6.
+         */
+        public @NonNull Builder setFlowLabel(@NonNull byte[] value) {
+            Objects.requireNonNull(value, "Flow label cannot be null");
+            mFlowLabel = value;
+            return this;
+        }
+
+        /**
          * Construct a QosPolicyParams object with the specified parameters.
          */
         public @NonNull QosPolicyParams build() {
             QosPolicyParams params = new QosPolicyParams(mPolicyId, mDscp, mUserPriority, mSrcIp,
-                    mDstIp, mSrcPort, mProtocol, mDstPortRange, mDirection, mIpVersion, mDstPort);
+                    mDstIp, mSrcPort, mProtocol, mDstPortRange, mDirection, mIpVersion, mDstPort,
+                    mFlowLabel);
             if (!params.validate()) {
                 throw new IllegalArgumentException("Provided parameters are invalid");
             }
