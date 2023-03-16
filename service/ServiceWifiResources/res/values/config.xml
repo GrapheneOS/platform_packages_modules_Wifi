@@ -906,6 +906,19 @@
     <integer translatable="false" name="config_wifiP2pExtListenPeriodMs">500</integer>
     <!-- Indicate how long p2p extended listen interval (in milliseconds) is. -->
     <integer translatable="false" name="config_wifiP2pExtListenIntervalMs">500</integer>
+    <!-- Whether to wait for Peer to restart invitation procedure when device receives invitation
+         response with status code "information is currently unavailable".
+         Defaults to false as existing implementations fall back to GO negotiation to avoid
+         connection failure with devices which doesn't support persistent re-invocation.
+         As per P2P specification, 3.1.5.3 "A P2P Device that receives an Invitation Request frame
+         to re-invoke a persistent Group and responds with a P2P Invitation Response frame with a
+         Status attribute with the Status Code field set to “Fail: information is currently
+         unavailable” shall restart the Invitation procedure by sending an Invitation Request
+         frame to the requesting P2P Device". So the device which invited the peer should wait for
+         the new request from Peer. But the current implementation is violating the specification by
+         restarting the negotiation. This was done long back to fix connection failure issues with
+         devices which doesn't support persistent re-invocation. -->
+    <bool translatable="false" name="config_p2pWaitForPeerInviteOnInviteStatusInfoUnavailable">false</bool>
 
     <!-- Integer threshold for max number of WifiConfigurations that can be saved on the device.
          A value of -1 indicates no limit. If a max number is specified, then under-used configs will
