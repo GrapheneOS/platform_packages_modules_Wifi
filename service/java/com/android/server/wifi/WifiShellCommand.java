@@ -1849,6 +1849,16 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             configuration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
         } else if (TextUtils.equals(type, "dpp")) {
             configuration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_DPP);
+        } else if (TextUtils.equals(type, "wep")) {
+            configuration.setSecurityParams(WifiConfiguration.SECURITY_TYPE_WEP);
+            String password = getNextArgRequired();
+            // WEP-40, WEP-104, and WEP-256
+            if ((password.length() == 10 || password.length() == 26 || password.length() == 58)
+                    && password.matches("[0-9A-Fa-f]*")) {
+                configuration.wepKeys[0] = password;
+            } else {
+                configuration.wepKeys[0] = '"' + password + '"';
+            }
         } else {
             throw new IllegalArgumentException("Unknown network type " + type);
         }
@@ -2578,17 +2588,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     }
 
     private void onHelpPrivileged(PrintWriter pw) {
-        pw.println("  connect-network <ssid> open|owe|wpa2|wpa3 [<passphrase>] [-x] [-m] [-d] "
-                + "[-b <bssid>] [-r auto|none|persistent|non_persistent]");
+        pw.println("  connect-network <ssid> open|owe|wpa2|wpa3|wep [<passphrase>] [-x] [-m] "
+                + "[-d] [-b <bssid>] [-r auto|none|persistent|non_persistent]");
         pw.println("    Connect to a network with provided params and add to saved networks list");
         pw.println("    <ssid> - SSID of the network");
-        pw.println("    open|owe|wpa2|wpa3 - Security type of the network.");
+        pw.println("    open|owe|wpa2|wpa3|wep - Security type of the network.");
         pw.println("        - Use 'open' or 'owe' for networks with no passphrase");
         pw.println("           - 'open' - Open networks (Most prevalent)");
         pw.println("           - 'owe' - Enhanced open networks");
-        pw.println("        - Use 'wpa2' or 'wpa3' for networks with passphrase");
+        pw.println("        - Use 'wpa2' or 'wpa3' or 'wep' for networks with passphrase");
         pw.println("           - 'wpa2' - WPA-2 PSK networks (Most prevalent)");
         pw.println("           - 'wpa3' - WPA-3 PSK networks");
+        pw.println("           - 'wep'  - WEP network. Passphrase should be bytes in hex or encoded"
+                + " into String using UTF-8");
         pw.println("    -x - Specifies the SSID as hex digits instead of plain text");
         pw.println("    -m - Mark the network metered.");
         pw.println("    -d - Mark the network autojoin disabled.");
@@ -2597,17 +2609,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -b <bssid> - Set specific BSSID.");
         pw.println("    -r auto|none|persistent|non_persistent - MAC randomization scheme for the"
                 + " network");
-        pw.println("  add-network <ssid> open|owe|wpa2|wpa3 [<passphrase>] [-x] [-m] [-d] "
+        pw.println("  add-network <ssid> open|owe|wpa2|wpa3|wep [<passphrase>] [-x] [-m] [-d] "
                 + "[-b <bssid>] [-r auto|none|persistent|non_persistent]");
         pw.println("    Add/update saved network with provided params");
         pw.println("    <ssid> - SSID of the network");
-        pw.println("    open|owe|wpa2|wpa3 - Security type of the network.");
+        pw.println("    open|owe|wpa2|wpa3|wep - Security type of the network.");
         pw.println("        - Use 'open' or 'owe' for networks with no passphrase");
         pw.println("           - 'open' - Open networks (Most prevalent)");
         pw.println("           - 'owe' - Enhanced open networks");
         pw.println("        - Use 'wpa2' or 'wpa3' for networks with passphrase");
         pw.println("           - 'wpa2' - WPA-2 PSK networks (Most prevalent)");
         pw.println("           - 'wpa3' - WPA-3 PSK networks");
+        pw.println("           - 'wep'  - WEP network. Passphrase should be bytes in hex or encoded"
+                + " into String using UTF-8");
         pw.println("    -x - Specifies the SSID as hex digits instead of plain text");
         pw.println("    -m - Mark the network metered.");
         pw.println("    -d - Mark the network autojoin disabled.");
