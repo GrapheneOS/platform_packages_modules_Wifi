@@ -263,6 +263,7 @@
           <item type="integer" name="config_wifiP2pDeviceNamePostfixNumDigits" />
           <item type="integer" name="config_wifiP2pExtListenPeriodMs" />
           <item type="integer" name="config_wifiP2pExtListenIntervalMs" />
+          <item type="bool" name="config_p2pWaitForPeerInviteOnInviteStatusInfoUnavailable" />
           <item type="integer" name="config_wifiMaxNumWifiConfigurations" />
           <item type="integer" name="config_wifiMaxNumWifiConfigurationsAddedByAllApps" />
           <item type="bool" name="config_wifiAllowInsecureEnterpriseConfigurationsForSettingsAndSUW" />
