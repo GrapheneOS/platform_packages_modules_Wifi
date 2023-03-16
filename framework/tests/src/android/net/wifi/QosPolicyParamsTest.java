@@ -17,7 +17,6 @@
 package android.net.wifi;
 
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -38,11 +37,12 @@ import org.junit.Test;
 public class QosPolicyParamsTest {
     private static final int TEST_POLICY_ID = 127;
     private static final int TEST_DIRECTION = QosPolicyParams.DIRECTION_DOWNLINK;
+    private static final int TEST_IP_VERSION = QosPolicyParams.IP_VERSION_4;
     private static final int TEST_DSCP = 7;
     private static final int TEST_USER_PRIORITY = QosPolicyParams.USER_PRIORITY_VIDEO_LOW;
     private static final int TEST_SOURCE_PORT = 15;
     private static final int TEST_PROTOCOL = QosPolicyParams.PROTOCOL_TCP;
-    private static final int[] TEST_DESTINATION_PORT_RANGE = new int[]{17, 20};
+    private static final int TEST_DESTINATION_PORT = 17;
     private static final MacAddress TEST_SOURCE_ADDRESS =
             MacAddress.fromString("aa:bb:cc:dd:ee:ff");
     private static final MacAddress TEST_DESTINATION_ADDRESS =
@@ -59,11 +59,11 @@ public class QosPolicyParamsTest {
     private QosPolicyParams createTestQosPolicyParams() {
         return new QosPolicyParams.Builder(TEST_POLICY_ID, TEST_DIRECTION)
                 .setUserPriority(TEST_USER_PRIORITY)
+                .setIpVersion(TEST_IP_VERSION)
                 .setDscp(TEST_DSCP)
                 .setSourcePort(TEST_SOURCE_PORT)
                 .setProtocol(TEST_PROTOCOL)
-                .setDestinationPortRange(
-                        TEST_DESTINATION_PORT_RANGE[0], TEST_DESTINATION_PORT_RANGE[1])
+                .setDestinationPort(TEST_DESTINATION_PORT)
                 .setSourceAddress(TEST_SOURCE_ADDRESS)
                 .setDestinationAddress(TEST_DESTINATION_ADDRESS)
                 .build();
@@ -75,11 +75,12 @@ public class QosPolicyParamsTest {
     private void verifyTestQosPolicyParams(QosPolicyParams params) {
         assertEquals(TEST_POLICY_ID, params.getPolicyId());
         assertEquals(TEST_DIRECTION, params.getDirection());
+        assertEquals(TEST_IP_VERSION, params.getIpVersion());
         assertEquals(TEST_USER_PRIORITY, params.getUserPriority());
         assertEquals(TEST_DSCP, params.getDscp());
         assertEquals(TEST_SOURCE_PORT, params.getSourcePort());
         assertEquals(TEST_PROTOCOL, params.getProtocol());
-        assertArrayEquals(TEST_DESTINATION_PORT_RANGE, params.getDestinationPortRange());
+        assertEquals(TEST_DESTINATION_PORT, params.getDestinationPort());
         assertTrue(TEST_SOURCE_ADDRESS.equals(params.getSourceAddress()));
         assertTrue(TEST_DESTINATION_ADDRESS.equals(params.getDestinationAddress()));
     }
@@ -92,6 +93,7 @@ public class QosPolicyParamsTest {
         QosPolicyParams params =
                 new QosPolicyParams.Builder(TEST_POLICY_ID, QosPolicyParams.DIRECTION_DOWNLINK)
                         .setUserPriority(TEST_USER_PRIORITY)
+                        .setIpVersion(TEST_IP_VERSION)
                         .build();
         assertEquals(QosPolicyParams.DSCP_ANY, params.getDscp());
         assertEquals(QosPolicyParams.PROTOCOL_ANY, params.getProtocol());
@@ -138,7 +140,7 @@ public class QosPolicyParamsTest {
     @Test
     public void testBuilderWithDirectionSpecificError() {
         assertThrows(IllegalArgumentException.class, () ->
-                // Policies for downlink are required to have a User Priority.
+                // Policies for downlink are required to have a User Priority and IP Version.
                 new QosPolicyParams.Builder(TEST_POLICY_ID, QosPolicyParams.DIRECTION_DOWNLINK)
                         .build());
     }
