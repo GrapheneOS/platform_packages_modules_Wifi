@@ -236,6 +236,8 @@ public class WifiP2pMetrics {
                         break;
                 }
 
+                sb.append(", inviteToNeg=");
+                sb.append(event.fallbackToNegotiationOnInviteStatusInfoUnavailable);
                 sb.append(", isCcWw=");
                 sb.append(event.isCountryCodeWorldMode);
                 sb.append(", band=");
@@ -441,9 +443,21 @@ public class WifiP2pMetrics {
                     mCurrentConnectionEvent.frequencyMhz,
                     mCurrentConnectionEvent.staFrequencyMhz,
                     mCurrentConnectionEvent.uid,
-                    mIsCountryCodeWorldMode);
+                    mIsCountryCodeWorldMode,
+                    mCurrentConnectionEvent.fallbackToNegotiationOnInviteStatusInfoUnavailable);
             mCurrentConnectionEvent = null;
         }
+    }
+
+    /**
+     * Fallback to GO negotiation if device receives invitation response status code -
+     * information is currently unavailable
+     */
+    public void setFallbackToNegotiationOnInviteStatusInfoUnavailable() {
+        if (mCurrentConnectionEvent == null) {
+            return;
+        }
+        mCurrentConnectionEvent.fallbackToNegotiationOnInviteStatusInfoUnavailable = true;
     }
 
    /** Sets if the Country Code is in world mode */
