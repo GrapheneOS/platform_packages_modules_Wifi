@@ -3061,6 +3061,10 @@ message P2pConnectionEvent {
 
   // if the country code is in the world mode
   optional bool is_country_code_world_mode = 11;
+
+  // fallback to negotiation if device receives invitation response status code "information is
+  // currently unavailable"
+  optional bool fallback_to_negotiation_on_invite_status_info_unavailable = 12;
 }
 
 // GroupEvent tracking group information from GroupStarted to GroupRemoved.
