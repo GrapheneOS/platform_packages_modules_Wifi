@@ -4235,6 +4235,7 @@ public class WifiMetricsTest extends WifiBaseTest {
         mWifiMetrics.enterDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
 
         mWifiMetrics.updateWifiUsabilityStatsEntries(TEST_IFACE_NAME, info, stats2);
+        assertEquals(stats2.beacon_rx, mWifiMetrics.getTotalBeaconRxCount());
         mWifiMetrics.addToWifiUsabilityStatsList(TEST_IFACE_NAME, WifiUsabilityStats.LABEL_BAD,
                 WifiUsabilityStats.TYPE_DATA_STALL_BAD_TX, -1);
 
