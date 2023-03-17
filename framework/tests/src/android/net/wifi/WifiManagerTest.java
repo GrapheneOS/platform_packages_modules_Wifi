@@ -3981,8 +3981,10 @@ public class WifiManagerTest {
         final int policyId = 2;
         final int direction = QosPolicyParams.DIRECTION_DOWNLINK;
         final int userPriority = QosPolicyParams.USER_PRIORITY_VIDEO_LOW;
+        final int ipVersion = QosPolicyParams.IP_VERSION_4;
         QosPolicyParams policyParams = new QosPolicyParams.Builder(policyId, direction)
                 .setUserPriority(userPriority)
+                .setIpVersion(ipVersion)
                 .build();
         SynchronousExecutor executor = mock(SynchronousExecutor.class);
         Consumer<List<Integer>> resultsCallback = mock(Consumer.class);

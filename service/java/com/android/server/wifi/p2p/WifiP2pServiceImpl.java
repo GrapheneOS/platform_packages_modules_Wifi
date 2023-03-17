@@ -3927,13 +3927,18 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 transitionTo(mProvisionDiscoveryState);
                             }
                         } else if (status == P2pStatus.INFORMATION_IS_CURRENTLY_UNAVAILABLE) {
-
+                            mSavedPeerConfig.netId = WifiP2pGroup.NETWORK_ID_PERSISTENT;
                             // Devices setting persistent_reconnect to 0 in wpa_supplicant
                             // always defer the invocation request and return
                             // "information is currently unavailable" error.
                             // So, try another way to connect for interoperability.
-                            mSavedPeerConfig.netId = WifiP2pGroup.NETWORK_ID_PERSISTENT;
-                            p2pConnectWithPinDisplay(mSavedPeerConfig, P2P_CONNECT_TRIGGER_OTHER);
+                            if (!mContext.getResources().getBoolean(R.bool
+                                    .config_p2pWaitForPeerInviteOnInviteStatusInfoUnavailable)) {
+                                mWifiP2pMetrics
+                                        .setFallbackToNegotiationOnInviteStatusInfoUnavailable();
+                                p2pConnectWithPinDisplay(mSavedPeerConfig,
+                                        P2P_CONNECT_TRIGGER_OTHER);
+                            }
                         } else if (status == P2pStatus.NO_COMMON_CHANNEL) {
                             transitionTo(mFrequencyConflictState);
                         } else {
