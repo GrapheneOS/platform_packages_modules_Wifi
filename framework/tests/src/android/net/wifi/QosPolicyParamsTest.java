@@ -23,13 +23,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import android.net.DscpPolicy;
-import android.net.MacAddress;
 import android.os.Parcel;
 
 import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import java.net.InetAddress;
 
 /**
  * Unit tests for {@link QosPolicyParams}.
@@ -43,14 +44,21 @@ public class QosPolicyParamsTest {
     private static final int TEST_SOURCE_PORT = 15;
     private static final int TEST_PROTOCOL = QosPolicyParams.PROTOCOL_TCP;
     private static final int TEST_DESTINATION_PORT = 17;
-    private static final MacAddress TEST_SOURCE_ADDRESS =
-            MacAddress.fromString("aa:bb:cc:dd:ee:ff");
-    private static final MacAddress TEST_DESTINATION_ADDRESS =
-            MacAddress.fromString("00:11:22:33:44:55");
+    private static final String TEST_SOURCE_ADDRESS = "127.0.0.1";
+    private static final String TEST_DESTINATION_ADDRESS = "127.0.0.2";
 
     @Before
     public void setUp() {
         assumeTrue(SdkLevel.isAtLeastU());
+    }
+
+    private InetAddress getInetAddress(String addr) {
+        try {
+            return InetAddress.getByName(addr);
+        } catch (Exception e) {
+            // Should not occur.
+            return null;
+        }
     }
 
     /**
@@ -64,8 +72,8 @@ public class QosPolicyParamsTest {
                 .setSourcePort(TEST_SOURCE_PORT)
                 .setProtocol(TEST_PROTOCOL)
                 .setDestinationPort(TEST_DESTINATION_PORT)
-                .setSourceAddress(TEST_SOURCE_ADDRESS)
-                .setDestinationAddress(TEST_DESTINATION_ADDRESS)
+                .setSourceAddress(getInetAddress(TEST_SOURCE_ADDRESS))
+                .setDestinationAddress(getInetAddress(TEST_DESTINATION_ADDRESS))
                 .build();
     }
 
@@ -81,8 +89,8 @@ public class QosPolicyParamsTest {
         assertEquals(TEST_SOURCE_PORT, params.getSourcePort());
         assertEquals(TEST_PROTOCOL, params.getProtocol());
         assertEquals(TEST_DESTINATION_PORT, params.getDestinationPort());
-        assertTrue(TEST_SOURCE_ADDRESS.equals(params.getSourceAddress()));
-        assertTrue(TEST_DESTINATION_ADDRESS.equals(params.getDestinationAddress()));
+        assertTrue(getInetAddress(TEST_SOURCE_ADDRESS).equals(params.getSourceAddress()));
+        assertTrue(getInetAddress(TEST_DESTINATION_ADDRESS).equals(params.getDestinationAddress()));
     }
 
     /**
