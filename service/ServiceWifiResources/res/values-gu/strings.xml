@@ -139,10 +139,8 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"સર્વરનું નામ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"રજૂકર્તાનું નામ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"સંસ્થા:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <!-- no translation found for wifi_ca_cert_dialog_message_expiration_text (1612917217606436217) -->
-    <skip />
-    <!-- no translation found for wifi_ca_cert_dialog_message_signature_name_text (8455163626514894233) -->
-    <skip />
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"પ્રમાણપત્રની સમયસમાપ્તિ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"SHA-256 ફિંગરપ્રિન્ટ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"સંપર્ક કરો:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"નેટવર્કની ચકાસણી થવી જરૂરી છે"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"કનેક્ટ કરતા પહેલાં <xliff:g id="SSID">%1$s</xliff:g>ના નેટવર્કની વિગતોનો રિવ્યૂ કરો. આગળ વધવા માટે ટૅપ કરો."</string>
