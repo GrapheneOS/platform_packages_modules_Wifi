@@ -30,10 +30,10 @@ import android.os.Handler;
 import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
-import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Handles device management through the HAL interface.
@@ -442,24 +443,47 @@ public class HalDeviceManager {
         }
     }
 
-    private boolean isDbsSupported(WifiHal.WifiInterface iface, int dbsMask) {
+    /**
+     * See {@link WifiNative#getSupportedBandCombinations(String)}.
+     */
+    public Set<List<Integer>> getSupportedBandCombinations(WifiHal.WifiInterface iface) {
         synchronized (mLock) {
-            WifiChipInfo info = getChipInfo(iface);
-            if (info == null) return false;
-            // If there is no radio combination information, cache it.
+            Set<List<Integer>> combinations = getCachedSupportedBandCombinations(iface);
+            if (combinations == null) return null;
+            return Collections.unmodifiableSet(combinations);
+        }
+    }
+
+    private Set<List<Integer>> getCachedSupportedBandCombinations(
+            WifiHal.WifiInterface iface) {
+        WifiChipInfo info = getChipInfo(iface);
+        if (info == null) return null;
+        // If there is no band combination information, cache it.
+        if (info.bandCombinations == null) {
             if (info.radioCombinations == null) {
                 WifiChip chip = getChip(iface);
-                if (chip == null) return false;
-
+                if (chip == null) return null;
                 info.radioCombinations = getChipSupportedRadioCombinations(chip);
-                info.radioCombinationLookupTable = convertRadioCombinationsToLookupTable(
-                        info.radioCombinations);
-                if (mDbg) {
-                    Log.d(TAG, "radioCombinations=" + info.radioCombinations
-                            + "radioCombinationLookupTable=" + info.radioCombinationLookupTable);
-                }
             }
-            return info.radioCombinationLookupTable.get(dbsMask);
+            info.bandCombinations = getChipSupportedBandCombinations(info.radioCombinations);
+            if (mDbg) {
+                Log.d(TAG, "radioCombinations=" + info.radioCombinations
+                        + " bandCombinations=" + info.bandCombinations);
+            }
+        }
+        return info.bandCombinations;
+    }
+
+    /**
+     * See {@link WifiNative#isBandCombinationSupported(String, List)}.
+     */
+    public boolean isBandCombinationSupported(WifiHal.WifiInterface iface,
+            @NonNull List<Integer> bands) {
+        synchronized (mLock) {
+            Set<List<Integer>> combinations = getCachedSupportedBandCombinations(iface);
+            if (combinations == null) return false;
+            // Lookup depends on the order of the bands. So sort it.
+            return combinations.contains(bands.stream().sorted().collect(Collectors.toList()));
         }
     }
 
@@ -470,7 +494,8 @@ public class HalDeviceManager {
      * @return true if supported; false, otherwise;
      */
     public boolean is24g5gDbsSupported(WifiHal.WifiInterface iface) {
-        return isDbsSupported(iface, DBS_24G_5G_MASK);
+        return isBandCombinationSupported(iface,
+                Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ));
     }
 
     /**
@@ -489,7 +514,8 @@ public class HalDeviceManager {
      * @return true if supported; false, otherwise;
      */
     public boolean is5g6gDbsSupported(WifiHal.WifiInterface iface) {
-        return isDbsSupported(iface, DBS_5G_6G_MASK);
+        return isBandCombinationSupported(iface,
+                Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ, WifiScanner.WIFI_BAND_6_GHZ));
     }
 
     /**
@@ -957,7 +983,8 @@ public class HalDeviceManager {
         public WifiIfaceInfo[][] ifaces = new WifiIfaceInfo[CREATE_TYPES_BY_PRIORITY.length][];
         public long chipCapabilities;
         public List<WifiChip.WifiRadioCombination> radioCombinations = null;
-        public SparseBooleanArray radioCombinationLookupTable = new SparseBooleanArray();
+        // A data structure for the faster band combination lookup.
+        public Set<List<Integer>> bandCombinations = null;
 
         @Override
         public String toString() {
@@ -965,7 +992,9 @@ public class HalDeviceManager {
             sb.append("{chipId=").append(chipId).append(", availableModes=").append(availableModes)
                     .append(", currentModeIdValid=").append(currentModeIdValid)
                     .append(", currentModeId=").append(currentModeId)
-                    .append(", chipCapabilities=").append(chipCapabilities);
+                    .append(", chipCapabilities=").append(chipCapabilities)
+                    .append(", radioCombinations=").append(radioCombinations)
+                    .append(", bandCombinations=").append(bandCombinations);
             for (int type: IFACE_TYPES_BY_PRIORITY) {
                 sb.append(", ifaces[" + type + "].length=").append(ifaces[type].length);
             }
@@ -2678,21 +2707,20 @@ public class HalDeviceManager {
         return -1;
     }
 
-    private static SparseBooleanArray convertRadioCombinationsToLookupTable(
+    private static Set<List<Integer>> getChipSupportedBandCombinations(
             List<WifiChip.WifiRadioCombination> combinations) {
-        SparseBooleanArray lookupTable = new SparseBooleanArray();
+        Set<List<Integer>> lookupTable = new ArraySet<>();
         if (combinations == null) return lookupTable;
-
+        // Add radio combinations to the lookup table.
         for (WifiChip.WifiRadioCombination combination : combinations) {
-            int bandMask = 0;
+            // Build list of bands.
+            List<Integer> bands = new ArrayList<>();
             for (WifiChip.WifiRadioConfiguration config : combination.radioConfigurations) {
-                bandMask |= config.bandInfo;
+                bands.add(config.bandInfo);
             }
-            if ((bandMask & DBS_24G_5G_MASK) == DBS_24G_5G_MASK) {
-                lookupTable.put(DBS_24G_5G_MASK, true);
-            } else if ((bandMask & DBS_5G_6G_MASK) == DBS_5G_6G_MASK) {
-                lookupTable.put(DBS_5G_6G_MASK, true);
-            }
+            // Sort the list of bands as hash code depends on the order and content of the list.
+            Collections.sort(bands);
+            lookupTable.add(Collections.unmodifiableList(bands));
         }
         return lookupTable;
     }

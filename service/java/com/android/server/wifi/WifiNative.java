@@ -4958,4 +4958,32 @@ public class WifiNative {
     public int getMaxMloStrLinkCount(@NonNull String ifaceName) {
         return mWifiVendorHal.getMaxMloStrLinkCount(ifaceName);
     }
+
+    /**
+     * Check the given band combination is supported simultaneously by the Wi-Fi chip.
+     *
+     * Note: This method is for checking simultaneous band operations and not for multichannel
+     * concurrent operation (MCC).
+     *
+     * @param ifaceName Name of the interface.
+     * @param bands A list of bands in the combination. See {@link WifiScanner.WifiBand}
+     * for the band enums. List of bands can be in any order.
+     * @return true if the provided band combination is supported by the chip, otherwise false.
+     */
+    public boolean isBandCombinationSupported(@NonNull String ifaceName, List<Integer> bands) {
+        return mWifiVendorHal.isBandCombinationSupported(ifaceName, bands);
+    }
+
+    /**
+     * Get the set of band combinations supported simultaneously by the Wi-Fi Chip.
+     *
+     * Note: This method returns simultaneous band operation combination and not multichannel
+     * concurrent operation (MCC) combination.
+     *
+     * @param ifaceName Name of the interface.
+     * @return An unmodifiable set of supported band combinations.
+     */
+    public Set<List<Integer>> getSupportedBandCombinations(@NonNull String ifaceName) {
+        return mWifiVendorHal.getSupportedBandCombinations(ifaceName);
+    }
 }
