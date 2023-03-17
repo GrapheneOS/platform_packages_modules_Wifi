@@ -522,8 +522,12 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     protected ISupplicant getSupplicantMockable() {
         synchronized (mLock) {
             try {
-                return ISupplicant.Stub.asInterface(
-                        ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+                if (SdkLevel.isAtLeastT()) {
+                    return ISupplicant.Stub.asInterface(
+                            ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+                } else {
+                    return null;
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Unable to get ISupplicant service, " + e);
                 return null;
@@ -3727,8 +3731,11 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private class NonStandardCertCallback extends INonStandardCertCallback.Stub {
         @Override
         public byte[] getBlob(String alias) {
-            Log.i(TAG, "Non-standard certificate requested");
-            byte[] blob = WifiKeystore.get(alias);
+            byte[] blob = null;
+            if (SdkLevel.isAtLeastU()) {
+                Log.i(TAG, "Non-standard certificate requested");
+                blob = WifiKeystore.get(alias);
+            }
             if (blob != null) {
                 return blob;
             } else {
@@ -3740,7 +3747,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         @Override
         public String[] listAliases(String prefix) {
             Log.i(TAG, "Alias list was requested");
-            return WifiKeystore.list(prefix);
+            return SdkLevel.isAtLeastU() ? WifiKeystore.list(prefix) : null;
         }
 
         @Override

@@ -672,6 +672,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO);
         when(mFrameworkFacade.getTxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_TX_BYTES);
         when(mFrameworkFacade.getRxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_RX_BYTES);
+        when(mFrameworkFacade.getTotalTxBytes()).thenReturn(TEST_TX_BYTES);
+        when(mFrameworkFacade.getTotalRxBytes()).thenReturn(TEST_RX_BYTES);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         doAnswer(inv -> {
             mIpClientCallback.onQuit();
