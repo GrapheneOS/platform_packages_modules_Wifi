@@ -40,6 +40,7 @@ import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
@@ -89,6 +90,7 @@ import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthRequestData;
 import com.android.server.wifi.WifiCarrierInfoManager.SimAuthResponseData;
+import com.android.server.wifi.entitlement.PseudonymInfo;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -107,6 +109,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -160,13 +164,15 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Mock Notification mNotification;
     @Mock WifiDialogManager mWifiDialogManager;
     @Mock WifiDialogManager.DialogHandle mDialogHandle;
-    @Mock WifiCarrierInfoManager.OnUserApproveCarrierListener mListener;
+    @Mock
+    WifiCarrierInfoManager.OnImsiProtectedOrUserApprovedListener mListener;
     @Mock WifiMetrics mWifiMetrics;
     @Mock WifiCarrierInfoManager.OnCarrierOffloadDisabledListener mOnCarrierOffloadDisabledListener;
     @Mock Clock mClock;
     @Mock WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock WifiStringResourceWrapper mWifiStringResourceWrapper;
+    @Mock WifiPseudonymManager mWifiPseudonymManager;
 
     private List<SubscriptionInfo> mSubInfoList;
     private long mCurrentTimeMills = 1000L;
@@ -180,6 +186,9 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     private ArgumentCaptor<SubscriptionManager.OnSubscriptionsChangedListener>
             mListenerArgumentCaptor = ArgumentCaptor.forClass(
                     SubscriptionManager.OnSubscriptionsChangedListener.class);
+
+    private Consumer<Boolean>
+            mOobPseudonymFeatureFlagChangedListener;
 
     @Before
     public void setUp() throws Exception {
@@ -219,7 +228,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn(mWifiStringResourceWrapper);
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mFrameworkFacade, mContext, mWifiConfigStore,
-                new Handler(mLooper.getLooper()), mWifiMetrics, mClock);
+                new Handler(mLooper.getLooper()), mWifiMetrics, mClock, mWifiPseudonymManager);
         mWifiCarrierInfoManager.enableVerboseLogging(true);
         ArgumentCaptor<WifiCarrierInfoStoreManagerData.DataSource>
                 carrierInfoSourceArgumentCaptor =
@@ -232,6 +241,9 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .capture());
         verify(mWifiInjector).makeImsiPrivacyProtectionExemptionStoreData(
                 imsiDataSourceArgumentCaptor.capture());
+        ArgumentCaptor<Consumer> oobCaptor = ArgumentCaptor.forClass(Consumer.class);
+        verify(mDeviceConfigFacade).setOobPseudonymFeatureFlagChangedListener(oobCaptor.capture());
+        mOobPseudonymFeatureFlagChangedListener = oobCaptor.getValue();
         mCarrierInfoDataSource = carrierInfoSourceArgumentCaptor.getValue();
         mImsiDataSource = imsiDataSourceArgumentCaptor.getValue();
         mImsiDataSource.fromDeserialized(new HashMap<>());
@@ -303,7 +315,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .thenReturn("blah");
         when(mResources.getInteger(eq(R.integer.config_wifiImsiProtectionNotificationDelaySeconds)))
                 .thenReturn(300);
-        mWifiCarrierInfoManager.addImsiExemptionUserApprovalListener(mListener);
+        mWifiCarrierInfoManager.addImsiProtectedOrUserApprovedListener(mListener);
         verify(mSubscriptionManager).addOnSubscriptionsChangedListener(any(),
                 mListenerArgumentCaptor.capture());
         mListenerArgumentCaptor.getValue().onSubscriptionsChanged();
@@ -371,6 +383,109 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
 
         assertTrue(mWifiCarrierInfoManager.requiresImsiEncryption(DATA_SUBID));
         assertFalse(mWifiCarrierInfoManager.requiresImsiEncryption(NON_DATA_SUBID));
+    }
+
+    @Test
+    public void receivedDefaultDataSubChangedIntent() throws Exception {
+        when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(true));
+        when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(false));
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+        WifiStringResourceWrapper nonDataResourceWrapper = mock(WifiStringResourceWrapper.class);
+        when(mContext.getStringResourceWrapper(eq(NON_DATA_SUBID), eq(NON_DATA_CARRIER_ID)))
+                .thenReturn(nonDataResourceWrapper);
+        when(nonDataResourceWrapper.getBoolean(
+                eq(WifiCarrierInfoManager.CONFIG_WIFI_OOB_PSEUDONYM_ENABLED), anyBoolean()))
+                .thenReturn(true);
+
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+        Intent intent = new Intent(TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
+        intent.putExtra("subscription", NON_DATA_SUBID);
+        receiver.getValue().onReceive(mContext, intent);
+
+        mLooper.dispatchAll();
+
+        verify(mWifiPseudonymManager).retrieveOobPseudonymIfNeeded(NON_DATA_CARRIER_ID);
+        verify(mWifiPseudonymManager, never()).retrieveOobPseudonymIfNeeded(DATA_CARRIER_ID);
+    }
+
+    /**
+     * Verify the auto-join may be restored if OOB pseudonym is enabled.
+     */
+    @Test
+    public void restoreAutoJoinForOobPseudonymEnabled() throws Exception {
+        when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(true));
+        when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(false));
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+        // enable OOB pseudonym for NON_DATA_SUBID
+        WifiStringResourceWrapper nonDataResourceWrapper = mock(WifiStringResourceWrapper.class);
+        when(mContext.getStringResourceWrapper(eq(NON_DATA_SUBID), eq(NON_DATA_CARRIER_ID)))
+                .thenReturn(nonDataResourceWrapper);
+        when(nonDataResourceWrapper.getBoolean(
+                eq(WifiCarrierInfoManager.CONFIG_WIFI_OOB_PSEUDONYM_ENABLED), anyBoolean()))
+                .thenReturn(true);
+        mOobPseudonymFeatureFlagChangedListener.accept(/*isFeatureEnabled=*/ true);
+        mLooper.dispatchAll();
+
+        verify(mListener).onImsiProtectedOrUserApprovalChanged(NON_DATA_CARRIER_ID, true);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
+        verify(mWifiConfigManager).saveToStore(true);
+        assertFalse(mWifiCarrierInfoManager.shouldFlipOnAutoJoinForOobPseudonym());
+
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+
+        receiver.getValue().onReceive(mContext,
+                new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
+        mLooper.dispatchAll();
+
+        assertFalse(mWifiCarrierInfoManager.shouldFlipOnAutoJoinForOobPseudonym());
+        // only called on Pseudonym feature enabled
+        verify(mListener, atMost(1))
+                .onImsiProtectedOrUserApprovalChanged(NON_DATA_CARRIER_ID, true);
+        verify(mWifiPseudonymManager, times(2)).retrieveOobPseudonymIfNeeded(NON_DATA_CARRIER_ID);
+    }
+
+    @Test
+    public void restoreAutoJoinForOobPseudonymDisabled() throws Exception {
+        when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(true));
+        when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(false));
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(false);
+        WifiStringResourceWrapper nonDataResourceWrapper = mock(WifiStringResourceWrapper.class);
+        when(mContext.getStringResourceWrapper(eq(NON_DATA_SUBID), eq(NON_DATA_CARRIER_ID)))
+                .thenReturn(nonDataResourceWrapper);
+        when(nonDataResourceWrapper.getBoolean(
+                eq(WifiCarrierInfoManager.CONFIG_WIFI_OOB_PSEUDONYM_ENABLED), anyBoolean()))
+                .thenReturn(true);
+
+        mOobPseudonymFeatureFlagChangedListener.accept(/*isFeatureEnabled=*/ false);
+        mLooper.dispatchAll();
+
+        verify(mListener).onImsiProtectedOrUserApprovalChanged(NON_DATA_CARRIER_ID, false);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
+        verify(mWifiConfigManager).saveToStore(true);
+
+        // do nothing for ACTION_CARRIER_CONFIG_CHANGED
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+
+        receiver.getValue().onReceive(mContext,
+                new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED));
+        mLooper.dispatchAll();
+        // only called on the previous event - feature disabled.
+        verify(mListener, atMost(1))
+                .onImsiProtectedOrUserApprovalChanged(eq(NON_DATA_CARRIER_ID), anyBoolean());
     }
 
     /**
@@ -445,10 +560,11 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that if the IMSI encryption is downloaded.
+     * Verify that if the IMSI encryption is downloaded and the OOB pseudonym
+     * retrieval is triggered.
      */
     @Test
-    public void availableOfImsiEncryptionInfoIsUpdated() {
+    public void availableOfImsiEncryptionInfoIsUpdatedAndOobPseudonymIsUpdated() {
         when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID))
                 .thenReturn(generateTestCarrierConfig(true));
         when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
@@ -472,12 +588,21 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
 
         when(mDataTelephonyManager.getCarrierInfoForImsiEncryption(TelephonyManager.KEY_TYPE_WLAN))
                 .thenReturn(mock(ImsiEncryptionInfo.class));
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+        WifiStringResourceWrapper nonDataResourceWrapper = mock(WifiStringResourceWrapper.class);
+        when(mContext.getStringResourceWrapper(eq(NON_DATA_SUBID), eq(NON_DATA_CARRIER_ID)))
+                .thenReturn(nonDataResourceWrapper);
+        when(nonDataResourceWrapper.getBoolean(
+                eq(WifiCarrierInfoManager.CONFIG_WIFI_OOB_PSEUDONYM_ENABLED), anyBoolean()))
+                .thenReturn(true);
 
         observer.onChange(false);
         mLooper.dispatchAll();
 
         assertTrue(mWifiCarrierInfoManager.requiresImsiEncryption(DATA_SUBID));
         assertTrue(mWifiCarrierInfoManager.isImsiEncryptionInfoAvailable(DATA_SUBID));
+        verify(mWifiPseudonymManager).retrieveOobPseudonymIfNeeded(NON_DATA_CARRIER_ID);
+        verify(mWifiPseudonymManager, never()).retrieveOobPseudonymIfNeeded(DATA_CARRIER_ID);
     }
 
     /**
@@ -632,6 +757,29 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         } finally {
             session.finishMocking();
         }
+    }
+
+    /**
+     * Verify that an expected identity is returned when using the OOB Pseudonym.
+     */
+    @Test
+    public void getEncryptedIdentityWithOobPseudonymEnabled() throws Exception {
+        String expectedPseudonym = "abc123=1";
+        final Pair<String, String> expectedIdentity = Pair.create(expectedPseudonym,
+                "");
+        WifiCarrierInfoManager spyTu = spy(mWifiCarrierInfoManager);
+        doReturn(true).when(spyTu).isOobPseudonymFeatureEnabled(DATA_CARRIER_ID);
+
+        WifiConfiguration config =
+                WifiConfigurationTestUtil.createEapNetwork(WifiEnterpriseConfig.Eap.AKA,
+                        WifiEnterpriseConfig.Phase2.NONE);
+        config.carrierId = DATA_CARRIER_ID;
+        PseudonymInfo pseudonymInfo = mock(PseudonymInfo.class);
+        when(pseudonymInfo.getPseudonym()).thenReturn(expectedPseudonym);
+        when(mWifiPseudonymManager.getValidPseudonymInfo(DATA_CARRIER_ID))
+                .thenReturn(Optional.of(pseudonymInfo));
+
+        assertEquals(expectedIdentity, spyTu.getSimIdentity(config));
     }
 
     /**
@@ -1249,6 +1397,24 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a SIM is matched with carrier ID, and OOB pseudonym is enabled,
+     * when the OOB pseudonym is not available, it should return null.
+     */
+    @Test
+    public void getMatchingImsiCarrierIdWithValidCarrierIdForOobPseudonymCheck() {
+        when(mDataTelephonyManager.getCarrierIdFromSimMccMnc()).thenReturn(DATA_CARRIER_ID);
+        when(mDataTelephonyManager.getSimCarrierId()).thenReturn(DATA_CARRIER_ID);
+        WifiCarrierInfoManager spyTu = spy(mWifiCarrierInfoManager);
+        doReturn(true).when(spyTu).isOobPseudonymFeatureEnabled(DATA_CARRIER_ID);
+        when(mWifiPseudonymManager.getValidPseudonymInfo(DATA_CARRIER_ID))
+                .thenReturn(Optional.empty());
+
+        assertNull(spyTu.getMatchingImsiBySubId(DATA_SUBID));
+
+        verify(mWifiPseudonymManager).retrievePseudonymOnFailureTimeoutExpired(DATA_CARRIER_ID);
+    }
+
+    /**
      * Verify that if there is SIM card whose carrier ID is the same as the input, the correct IMSI
      * and carrier ID would be returned.
      */
@@ -1427,6 +1593,31 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         doReturn(false).when(spyTu).isImsiEncryptionInfoAvailable(eq(DATA_SUBID));
 
         assertNull(spyTu.getMatchingImsiCarrierId(MATCH_PREFIX_IMSI));
+    }
+
+    /**
+     * Verify that a SIM is matched, and the OOB pseudonym is enabled, when the pseudonym info
+     * is not available, it should return null.
+     */
+    @Test
+    public void getMatchingImsiCarrierIdForOobPseudonymCheck() {
+        // data SIM is MNO.
+        when(mDataTelephonyManager.getCarrierIdFromSimMccMnc()).thenReturn(DATA_CARRIER_ID);
+        when(mDataTelephonyManager.getSimCarrierId()).thenReturn(DATA_CARRIER_ID);
+        // non data SIM does not match.
+        when(mNonDataTelephonyManager.getCarrierIdFromSimMccMnc()).thenReturn(NON_DATA_CARRIER_ID);
+        when(mNonDataTelephonyManager.getSimCarrierId()).thenReturn(NON_DATA_CARRIER_ID);
+        when(mNonDataTelephonyManager.getSubscriberId()).thenReturn(NO_MATCH_FULL_IMSI);
+        when(mNonDataTelephonyManager.getSimOperator())
+                .thenReturn(NO_MATCH_OPERATOR_NUMERIC);
+        WifiCarrierInfoManager spyTu = spy(mWifiCarrierInfoManager);
+        doReturn(true).when(spyTu).isOobPseudonymFeatureEnabled(DATA_CARRIER_ID);
+        when(mWifiPseudonymManager.getValidPseudonymInfo(DATA_CARRIER_ID))
+                .thenReturn(Optional.empty());
+
+        assertNull(spyTu.getMatchingImsiCarrierId(MATCH_PREFIX_IMSI));
+
+        verify(mWifiPseudonymManager).retrievePseudonymOnFailureTimeoutExpired(DATA_CARRIER_ID);
     }
 
     /**
@@ -1655,7 +1846,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
         mWifiCarrierInfoManager.setHasUserApprovedImsiPrivacyExemptionForCarrier(true,
                 DATA_CARRIER_ID);
-        verify(mListener).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener).onImsiProtectedOrUserApprovalChanged(DATA_CARRIER_ID, true);
         inOrder.verify(mWifiConfigManager).saveToStore(true);
         assertTrue(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
@@ -1690,7 +1881,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());
         assertTrue(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
-        verify(mListener).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener).onImsiProtectedOrUserApprovalChanged(DATA_CARRIER_ID, true);
         verify(mWifiMetrics).addUserApprovalCarrierUiReaction(
                 WifiCarrierInfoManager.ACTION_USER_ALLOWED_CARRIER, false);
     }
@@ -1720,7 +1911,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());
         assertFalse(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
-        verify(mListener, never()).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
         verify(mWifiMetrics).addUserApprovalCarrierUiReaction(
                 WifiCarrierInfoManager.ACTION_USER_DISALLOWED_CARRIER, false);
     }
@@ -1763,7 +1955,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertFalse(mCarrierInfoDataSource.hasNewDataToSerialize());
         assertFalse(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
-        verify(mListener, never()).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
     }
 
     @Test
@@ -1800,7 +1993,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());
         assertFalse(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
-        verify(mListener, never()).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
         verify(mWifiMetrics).addUserApprovalCarrierUiReaction(
                 WifiCarrierInfoManager.ACTION_USER_DISALLOWED_CARRIER, true);
     }
@@ -1848,7 +2042,8 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertFalse(mCarrierInfoDataSource.hasNewDataToSerialize());
         assertFalse(mWifiCarrierInfoManager
                 .hasUserApprovedImsiPrivacyExemptionForCarrier(DATA_CARRIER_ID));
-        verify(mListener, never()).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener, never())
+                .onImsiProtectedOrUserApprovalChanged(eq(DATA_CARRIER_ID), anyBoolean());
         verify(mWifiMetrics).addUserApprovalCarrierUiReaction(
                 WifiCarrierInfoManager.ACTION_USER_DISMISS, true);
     }
@@ -1885,7 +2080,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertEquals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS, intentCaptor.getValue().getAction());
         verify(mWifiConfigManager).saveToStore(true);
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());
-        verify(mListener).onUserAllowed(DATA_CARRIER_ID);
+        verify(mListener).onImsiProtectedOrUserApprovalChanged(DATA_CARRIER_ID, true);
         verify(mWifiMetrics).addUserApprovalCarrierUiReaction(
                 WifiCarrierInfoManager.ACTION_USER_ALLOWED_CARRIER, true);
     }
@@ -1952,6 +2147,18 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 eq(SystemMessage.NOTE_CARRIER_SUGGESTION_AVAILABLE),
                 eq(mNotification));
 
+    }
+
+    @Test
+    public void testImsiProtectionExemptionNotificationNotSentWhenOobPseudonymEnabled() {
+        // NON_DATA_SUBID enabled the OOB pseudonym.
+        when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(false));
+        mWifiCarrierInfoManager.sendImsiProtectionExemptionNotificationIfRequired(
+                NON_DATA_CARRIER_ID);
+        verify(mWifiNotificationManager, never()).notify(
+                eq(SystemMessage.NOTE_CARRIER_SUGGESTION_AVAILABLE),
+                eq(mNotification));
     }
 
     @Test

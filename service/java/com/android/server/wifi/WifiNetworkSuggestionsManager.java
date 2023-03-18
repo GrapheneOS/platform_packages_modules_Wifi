@@ -649,12 +649,12 @@ public class WifiNetworkSuggestionsManager {
         void onSuggestionsRemoved(@NonNull List<WifiNetworkSuggestion> removedSuggestions);
     }
 
-    private final class UserApproveCarrierListener implements
-            WifiCarrierInfoManager.OnUserApproveCarrierListener {
+    private final class ImsiProtectedOrUserApprovedListener implements
+            WifiCarrierInfoManager.OnImsiProtectedOrUserApprovedListener {
 
         @Override
-        public void onUserAllowed(int carrierId) {
-            restoreInitialAutojoinForCarrierId(carrierId);
+        public void onImsiProtectedOrUserApprovalChanged(int carrierId, boolean allowAutoJoin) {
+            restoreInitialAutojoinForCarrierId(carrierId, allowAutoJoin);
         }
     }
 
@@ -683,8 +683,8 @@ public class WifiNetworkSuggestionsManager {
         wifiConfigStore.registerStoreData(
                 wifiInjector.makeNetworkSuggestionStoreData(new NetworkSuggestionDataSource()));
 
-        mWifiCarrierInfoManager.addImsiExemptionUserApprovalListener(
-                new UserApproveCarrierListener());
+        mWifiCarrierInfoManager.addImsiProtectedOrUserApprovedListener(
+                new ImsiProtectedOrUserApprovedListener());
 
         // Register broadcast receiver for UI interactions.
         mIntentFilter = new IntentFilter();
@@ -1004,11 +1004,14 @@ public class WifiNetworkSuggestionsManager {
             // If network has no IMSI protection and user didn't approve exemption, make it initial
             // auto join disabled
             if (isSimBasedPhase1Suggestion(ewns)) {
+                int carrierIdFromSuggestion = getCarrierIdFromSuggestion(ewns);
                 int subId = mWifiCarrierInfoManager
-                        .getMatchingSubId(getCarrierIdFromSuggestion(ewns));
+                        .getMatchingSubId(carrierIdFromSuggestion);
                 if (!(mWifiCarrierInfoManager.requiresImsiEncryption(subId)
                         || mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(
-                        getCarrierIdFromSuggestion(ewns)))) {
+                                carrierIdFromSuggestion)
+                        || mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                carrierIdFromSuggestion))) {
                     ewns.isAutojoinEnabled = false;
                 }
             }
@@ -1510,20 +1513,28 @@ public class WifiNetworkSuggestionsManager {
     }
 
     /**
-     * When user approve the IMSI protection exemption for carrier, restore the initial auto join
-     * configure. If user already change it to enabled, keep that choice.
+     * When user approve the IMSI protection exemption for carrier or the IMSI protection is
+     * enabled, restore the initial auto join configure. If user already change it to enabled,
+     * keep that choice.
      */
-    private void restoreInitialAutojoinForCarrierId(int carrierId) {
+    private void restoreInitialAutojoinForCarrierId(int carrierId, boolean allowAutoJoin) {
         for (PerAppInfo appInfo : mActiveNetworkSuggestionsPerApp.values()) {
             for (ExtendedWifiNetworkSuggestion ewns : appInfo.extNetworkSuggestions.values()) {
                 if (!(isSimBasedPhase1Suggestion(ewns)
                         && getCarrierIdFromSuggestion(ewns) == carrierId)) {
                     continue;
                 }
+                if (ewns.isAutojoinEnabled == allowAutoJoin) {
+                    continue;
+                }
                 if (mVerboseLoggingEnabled) {
                     Log.v(TAG, "Restore auto-join for suggestion: " + ewns);
                 }
-                ewns.isAutojoinEnabled |= ewns.wns.isInitialAutoJoinEnabled;
+                if (allowAutoJoin) {
+                    ewns.isAutojoinEnabled |= ewns.wns.isInitialAutoJoinEnabled;
+                } else {
+                    ewns.isAutojoinEnabled = false;
+                }
                 // Restore passpoint provider auto join.
                 if (ewns.wns.passpointConfiguration != null) {
                     mWifiInjector.getPasspointManager()
