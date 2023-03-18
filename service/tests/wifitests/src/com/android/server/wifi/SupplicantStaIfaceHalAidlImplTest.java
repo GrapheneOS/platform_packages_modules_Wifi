@@ -132,6 +132,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Answer;
 
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -2390,8 +2391,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         byte translatedPolicyId = 15;
         QosPolicyParams frameworkPolicy = new QosPolicyParams.Builder(
                 5 /* policyId */, QosPolicyParams.DIRECTION_DOWNLINK)
-                .setSourceAddress(MacAddress.fromString("00:11:22:33:44:55"))
-                .setDestinationAddress(MacAddress.fromString("aa:bb:cc:dd:ee:ff"))
+                .setSourceAddress(InetAddress.getByName("127.0.0.1"))
+                .setDestinationAddress(InetAddress.getByName("127.0.0.2"))
                 .setDscp(25)
                 .setUserPriority(QosPolicyParams.USER_PRIORITY_BACKGROUND_HIGH)
                 .setIpVersion(QosPolicyParams.IP_VERSION_4)
@@ -2522,12 +2523,12 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         if (frameworkPolicy.getSourceAddress() != null) {
             assertNotEquals(0, paramsMask & QosPolicyClassifierParamsMask.SRC_IP);
-            assertArrayEquals(frameworkPolicy.getSourceAddress().toByteArray(),
+            assertArrayEquals(frameworkPolicy.getSourceAddress().getAddress(),
                     classifierParams.srcIp);
         }
         if (frameworkPolicy.getDestinationAddress() != null) {
             assertNotEquals(0, paramsMask & QosPolicyClassifierParamsMask.DST_IP);
-            assertArrayEquals(frameworkPolicy.getDestinationAddress().toByteArray(),
+            assertArrayEquals(frameworkPolicy.getDestinationAddress().getAddress(),
                     classifierParams.dstIp);
         }
         if (frameworkPolicy.getSourcePort() != DscpPolicy.SOURCE_PORT_ANY) {
