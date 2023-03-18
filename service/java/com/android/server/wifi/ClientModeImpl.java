@@ -616,6 +616,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
 
+    private final WifiPseudonymManager mWifiPseudonymManager;
+
     private final OnNetworkUpdateListener mOnNetworkUpdateListener;
 
     private final OnCarrierOffloadDisabledListener mOnCarrierOffloadDisabledListener;
@@ -693,6 +695,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             @NonNull SupplicantStateTracker supplicantStateTracker,
             @NonNull MboOceController mboOceController,
             @NonNull WifiCarrierInfoManager wifiCarrierInfoManager,
+            @NonNull WifiPseudonymManager wifiPseudonymManager,
             @NonNull EapFailureNotifier eapFailureNotifier,
             @NonNull SimRequiredNotifier simRequiredNotifier,
             @NonNull WifiScoreReport wifiScoreReport,
@@ -723,6 +726,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mLinkProbeManager = linkProbeManager;
         mMboOceController = mboOceController;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
+        mWifiPseudonymManager = wifiPseudonymManager;
         mBroadcastQueue = broadcastQueue;
         mNetworkAgentState = DetailedState.DISCONNECTED;
 
@@ -3505,8 +3509,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void reportConnectionAttemptStart(
             WifiConfiguration config, String targetBSSID, int roamType) {
+        boolean isOobPseudonymEnabled = false;
+        if (config.enterpriseConfig != null && config.enterpriseConfig.isAuthenticationSimBased()
+                && mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(config.carrierId)) {
+            isOobPseudonymEnabled = true;
+        }
         int overlapWithLastConnectionMs =
-                mWifiMetrics.startConnectionEvent(mInterfaceName, config, targetBSSID, roamType);
+                mWifiMetrics.startConnectionEvent(
+                        mInterfaceName, config, targetBSSID, roamType, isOobPseudonymEnabled);
         if (mDeviceConfigFacade.isOverlappingConnectionBugreportEnabled()
                 && overlapWithLastConnectionMs
                 > mDeviceConfigFacade.getOverlappingConnectionDurationThresholdMs()) {
@@ -5053,6 +5063,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case WifiEnterpriseConfig.Eap.AKA_PRIME:
                     if (errorCode == WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED) {
                         mWifiCarrierInfoManager.resetCarrierKeysForImsiEncryption(targetedNetwork);
+                    } else {
+                        int carrierId = targetedNetwork.carrierId;
+                        if (mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(carrierId)) {
+                            mWifiPseudonymManager.retrieveOobPseudonymWithRateLimit(carrierId);
+                        }
                     }
                     break;
 
@@ -5428,6 +5443,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             }
                             // Save the pseudonym only if it is a real one
                             config.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
+                            int carrierId = config.carrierId;
+                            if (mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                    carrierId)) {
+                                mWifiPseudonymManager.setInBandPseudonym(carrierId,
+                                        anonymousIdentity);
+                            }
                         } else {
                             // Clear any stored pseudonyms
                             config.enterpriseConfig.setAnonymousIdentity(null);

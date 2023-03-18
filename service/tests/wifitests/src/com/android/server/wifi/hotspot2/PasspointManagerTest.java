@@ -96,6 +96,7 @@ import com.android.server.wifi.WifiKeyStore;
 import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiNetworkSuggestionsManager;
+import com.android.server.wifi.WifiPseudonymManager;
 import com.android.server.wifi.WifiSettingsStore;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
 import com.android.server.wifi.hotspot2.anqp.Constants.ANQPElementType;
@@ -275,7 +276,8 @@ public class PasspointManagerTest extends WifiBaseTest {
         mHandler = new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128));
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mock(FrameworkFacade.class),
-                mock(WifiContext.class), mWifiConfigStore, mHandler, mWifiMetrics, mClock);
+                mock(WifiContext.class), mWifiConfigStore, mHandler, mWifiMetrics, mClock,
+                mock(WifiPseudonymManager.class));
         verify(mSubscriptionManager).addOnSubscriptionsChangedListener(any(),
                 mSubscriptionsCaptor.capture());
         mManager = new PasspointManager(mContext, mWifiInjector, mHandler, mWifiNative,
