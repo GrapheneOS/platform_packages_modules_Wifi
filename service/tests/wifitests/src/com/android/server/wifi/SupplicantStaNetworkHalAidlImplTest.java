@@ -1229,6 +1229,58 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         assertTrue(Arrays.equals(TEST_SELECTED_RCOI_BYTE_ARRAY, mSupplicantVariables.selectedRcoi));
     }
 
+    @Test
+    public void testSetStrictConservativePeerModeToNonEapSimConfiguration() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil
+                .createEapNetwork(WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.AKA);
+        config.enterpriseConfig.setStrictConservativePeerMode(true);
+        when(mISupplicantStaNetworkMock.getInterfaceVersion()).thenReturn(2);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        verify(mISupplicantStaNetworkMock, never()).setStrictConservativePeerMode(anyBoolean());
+    }
+
+    @Test
+    public void testStrictConservativePeerModeIsSupported() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil
+                .createEapNetwork(WifiEnterpriseConfig.Eap.AKA, WifiEnterpriseConfig.Phase2.NONE);
+        config.enterpriseConfig.setStrictConservativePeerMode(true);
+        when(mISupplicantStaNetworkMock.getInterfaceVersion()).thenReturn(2);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        verify(mISupplicantStaNetworkMock).setStrictConservativePeerMode(eq(true));
+    }
+
+    @Test
+    public void testStrictConservativePeerModeIsNotSupported() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil
+                .createEapNetwork(WifiEnterpriseConfig.Eap.AKA, WifiEnterpriseConfig.Phase2.NONE);
+        config.enterpriseConfig.setStrictConservativePeerMode(true);
+        when(mISupplicantStaNetworkMock.getInterfaceVersion()).thenReturn(1);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        verify(mISupplicantStaNetworkMock, never()).setStrictConservativePeerMode(anyBoolean());
+    }
+
+    @Test
+    public void testStrictConservativePeerModeNeverSetFalse() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil
+                .createEapNetwork(WifiEnterpriseConfig.Eap.AKA, WifiEnterpriseConfig.Phase2.NONE);
+        config.enterpriseConfig.setStrictConservativePeerMode(false);
+        when(mISupplicantStaNetworkMock.getInterfaceVersion()).thenReturn(2);
+        // Assume that the default params is used for this test.
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+        verify(mISupplicantStaNetworkMock, never()).setStrictConservativePeerMode(anyBoolean());
+    }
+
     /**
      * Tests setting TLS minimum version API with AIDL v1
      */
