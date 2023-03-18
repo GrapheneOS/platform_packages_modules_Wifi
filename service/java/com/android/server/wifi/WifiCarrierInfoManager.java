@@ -228,7 +228,10 @@ public class WifiCarrierInfoManager {
      */
     private long mNotificationUpdateTime = 0L;
 
-    private static class SimInfo {
+    /**
+     * The SIM information of IMSI, MCCMNC, carrier ID etc.
+     */
+    public static class SimInfo {
         public final String imsi;
         public final String mccMnc;
         public final int carrierIdFromSimMccMnc;
@@ -2020,7 +2023,13 @@ public class WifiCarrierInfoManager {
         mNotificationUpdateTime = 0;
     }
 
-    private SimInfo getSimInfo(int subId) {
+    /**
+     * Get the SimInfo for the target subId.
+     *
+     * @param subId The subscriber ID for which to get the SIM info.
+     * @return SimInfo The SimInfo for the target subId.
+     */
+    public SimInfo getSimInfo(int subId) {
         SimInfo simInfo = mSubIdToSimInfoSparseArray.get(subId);
         // If mccmnc is not available, try to get it again.
         if (simInfo != null && simInfo.mccMnc != null && !simInfo.mccMnc.isEmpty()) {
