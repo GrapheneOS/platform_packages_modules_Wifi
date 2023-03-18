@@ -1306,6 +1306,39 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals("L3ProvisioningState", getCurrentState().getName());
     }
 
+    @Test
+    public void testUpdatingOobPseudonymToSupplicant() throws Exception {
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+
+        ArgumentCaptor<WifiPseudonymManager.PseudonymUpdatingListener> listenerCaptor =
+                ArgumentCaptor.forClass(WifiPseudonymManager.PseudonymUpdatingListener.class);
+        setupEapSimConnection();
+        verify(mWifiPseudonymManager).registerPseudonymUpdatingListener(listenerCaptor.capture());
+        String expectedPseudonym = "abc-123";
+        String expectedDecoratedPseudonym = "abc-123@wlan.mnc456.mcc123.3gppnetwork.org";
+        when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(any(), eq(expectedPseudonym)))
+                .thenReturn(expectedDecoratedPseudonym);
+        listenerCaptor.getValue().onUpdated(CARRIER_ID_1, expectedPseudonym);
+        mLooper.dispatchAll();
+
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiNative).setEapAnonymousIdentity(
+                    anyString(), eq(expectedDecoratedPseudonym), eq(true));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(
+                    anyString(), anyString(), anyBoolean());
+        }
+
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT,
+                new DisconnectEventInfo(mConnectedNetwork.SSID, TEST_BSSID_STR, 0, false));
+        mLooper.dispatchAll();
+
+        assertEquals("DisconnectedState", getCurrentState().getName());
+        verify(mWifiPseudonymManager)
+                .unregisterPseudonymUpdatingListener(eq(listenerCaptor.getValue()));
+    }
+
     /**
      * Test when a roam occurs simultaneously with another connection attempt.
      * The roam's NETWORK_CONNECTION_EVENT should be ignored, only the new network's
