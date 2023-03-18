@@ -279,6 +279,22 @@ public final class WifiPseudonymManager {
     }
 
     /**
+     * If the OOB Pseudonym feature supports the WifiConfiguration, enable the
+     * strict conservative peer mode.
+     */
+    public void enableStrictConservativePeerModeIfSupported(
+            @NonNull WifiConfiguration wifiConfiguration) {
+        if (wifiConfiguration.enterpriseConfig == null) {
+            return;
+        }
+        if (wifiConfiguration.enterpriseConfig.isAuthenticationSimBased()
+                && mWifiInjector.getWifiCarrierInfoManager()
+                        .isOobPseudonymFeatureEnabled(wifiConfiguration.carrierId)) {
+            wifiConfiguration.enterpriseConfig.setStrictConservativePeerMode(true);
+        }
+    }
+
+    /**
      * Set in-band pseudonym with the existing PseudonymInfo's TTL. When an in-band pseudonym is
      * received, there should already be an existing pseudonym(in-band or OOB).
      *
