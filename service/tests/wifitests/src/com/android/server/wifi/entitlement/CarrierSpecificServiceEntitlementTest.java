@@ -19,12 +19,16 @@ package com.android.server.wifi.entitlement;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.when;
+import static com.android.server.wifi.entitlement.CarrierSpecificServiceEntitlement.REASON_NON_TRANSIENT_FAILURE;
 import static com.android.server.wifi.entitlement.RequestFactory.MESSAGE_ID_3GPP_AUTHENTICATION;
 import static com.android.server.wifi.entitlement.RequestFactory.MESSAGE_ID_GET_IMSI_PSEUDONYM;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
+
+import android.os.Handler;
+import android.os.test.TestLooper;
 
 import androidx.test.filters.SmallTest;
 
@@ -43,10 +47,14 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
+
+import java.net.MalformedURLException;
 
 /**
  * Unit tests for {@link CarrierSpecificServiceEntitlement}.
@@ -65,14 +73,23 @@ public class CarrierSpecificServiceEntitlementTest {
     private static final int REFRESH_INTERVAL = 48;
     private static final String AKA_TOKEN = "aka_token";
     private static final String SERVER_URL = "https://server_url";
+    private static final int CARRIER_ID = 1;
     @Mock
     private EapAkaHelper mEapAkaHelper;
     @Mock
     EapAkaHelper.EapAkaResponse  mEapAkaResponse;
     @Mock
     private RequestFactory mRequestFactory;
+
+    @Mock
+    private CarrierSpecificServiceEntitlement.Callback mCallback;
     MockitoSession mMockingSession = null;
     private CarrierSpecificServiceEntitlement mEntitlement;
+    @Captor
+    ArgumentCaptor<PseudonymInfo> mPseudonymInfoArgumentCaptor;
+    @Captor
+    ArgumentCaptor<Integer> mCarrierIdArgumentCaptor;
+    private final TestLooper mTestLooper = new TestLooper();
 
     @Before
     public void setUp() throws Exception {
@@ -90,8 +107,8 @@ public class CarrierSpecificServiceEntitlementTest {
 
     @Test
     public void getImsiPseudonymSuccess()
-            throws TransientException, JSONException, NonTransientException,
-            ServiceEntitlementException {
+            throws MalformedURLException, TransientException, ServiceEntitlementException,
+            JSONException {
         when(mEapAkaHelper.getEapAkaResponse(any())).thenReturn(mEapAkaResponse);
         when(mEapAkaResponse.response()).thenReturn("response");
         when(mRequestFactory.createAuthRequest()).thenReturn(new JSONArray());
@@ -101,23 +118,33 @@ public class CarrierSpecificServiceEntitlementTest {
                 .thenReturn(getAuthHttpResponse(), getGetImsiPseudonymHttpResponse());
 
         mEntitlement = new CarrierSpecificServiceEntitlement(IMSI, mRequestFactory, mEapAkaHelper,
-                SERVER_URL);
-        PseudonymInfo pseudonymInfo = mEntitlement.getImsiPseudonym().get();
+                SERVER_URL, new Handler(mTestLooper.getLooper()));
+        mEntitlement.getImsiPseudonym(CARRIER_ID, new Handler(mTestLooper.getLooper()), mCallback);
+        mTestLooper.dispatchAll();
+        verify(mCallback).onSuccess(mCarrierIdArgumentCaptor.capture(),
+                mPseudonymInfoArgumentCaptor.capture());
+
+        assertEquals(CARRIER_ID, (int) mCarrierIdArgumentCaptor.getValue());
+        PseudonymInfo pseudonymInfo = mPseudonymInfoArgumentCaptor.getValue();
         assertEquals(IMSI_PSEUDONYM, pseudonymInfo.getPseudonym());
         assertEquals(REFRESH_INTERVAL * HOUR_IN_MILLIS, pseudonymInfo.getTtlInMillis());
     }
 
     @Test
     public void getImsiPseudonymFail()
-            throws TransientException, JSONException, NonTransientException,
+            throws MalformedURLException, TransientException, JSONException,
             ServiceEntitlementException {
         when(mEapAkaHelper.getEapAkaResponse(any())).thenReturn(mEapAkaResponse);
         when(mEapAkaResponse.response()).thenReturn("response");
         when(mRequestFactory.createAuthRequest()).thenReturn(new JSONArray());
         when(HttpClient.request(any())).thenReturn(getAuthFailedHttpResponse());
         mEntitlement = new CarrierSpecificServiceEntitlement(IMSI, mRequestFactory, mEapAkaHelper,
-                SERVER_URL);
-        assertThrows(NonTransientException.class, () -> mEntitlement.getImsiPseudonym());
+                SERVER_URL, new Handler(mTestLooper.getLooper()));
+        mEntitlement.getImsiPseudonym(CARRIER_ID, new Handler(mTestLooper.getLooper()), mCallback);
+        mTestLooper.dispatchAll();
+        verify(mCallback).onFailure(CARRIER_ID, REASON_NON_TRANSIENT_FAILURE,
+                "com.android.server.wifi.entitlement.NonTransientException: Something"
+                + " wrong when getting authentication challenge! authResponseCode=1006");
     }
 
     private HttpResponse getAuthHttpResponse() throws JSONException {
