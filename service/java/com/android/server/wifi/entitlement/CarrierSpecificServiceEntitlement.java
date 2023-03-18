@@ -18,14 +18,17 @@ package com.android.server.wifi.entitlement;
 
 import static com.android.libraries.entitlement.EapAkaHelper.EapAkaResponse;
 
+import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.content.Context;
+import android.os.Handler;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.libraries.entitlement.EapAkaHelper;
 import com.android.libraries.entitlement.ServiceEntitlementException;
+import com.android.modules.utils.BackgroundThread;
 import com.android.server.wifi.entitlement.http.HttpClient;
 import com.android.server.wifi.entitlement.http.HttpConstants.RequestMethod;
 import com.android.server.wifi.entitlement.http.HttpRequest;
@@ -36,6 +39,8 @@ import com.android.server.wifi.entitlement.response.Response;
 
 import com.google.common.net.HttpHeaders;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;
@@ -44,6 +49,22 @@ import java.util.Optional;
  * Implements the protocol to get IMSI pseudonym from service entitlement server.
  */
 public class CarrierSpecificServiceEntitlement {
+    public static final int REASON_HTTPS_CONNECTION_FAILURE = 0;
+    public static final int REASON_TRANSIENT_FAILURE = 1;
+    public static final int REASON_NON_TRANSIENT_FAILURE = 2;
+    public static final String[] FAILURE_REASON_NAME = {
+            "HTTP connection failure",
+            "Transient failure",
+            "Non-transient failure",
+    };
+    @IntDef(prefix = { "REASON_" }, value = {
+            REASON_HTTPS_CONNECTION_FAILURE,
+            REASON_TRANSIENT_FAILURE,
+            REASON_NON_TRANSIENT_FAILURE,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface FailureReasonCode {}
+
     private static final String MIME_TYPE_JSON = "application/json";
     private static final String ENCODING_GZIP = "gzip";
     private static final int CONNECT_TIMEOUT_SECS = 30;
@@ -52,36 +73,32 @@ public class CarrierSpecificServiceEntitlement {
     private final HttpRequest.Builder mHttpRequestBuilder;
     private final EapAkaHelper mEapAkaHelper;
     private final String mImsi;
+    private final Handler mBackgroundHandler;
 
     private String mAkaTokenCache;
 
     public CarrierSpecificServiceEntitlement(@NonNull Context context, int subId,
-            @NonNull String serverUrl) throws NonTransientException {
+            @NonNull String serverUrl) throws MalformedURLException {
         this(context.getSystemService(TelephonyManager.class).createForSubscriptionId(subId),
-                EapAkaHelper.getInstance(context, subId),
-                serverUrl);
+                EapAkaHelper.getInstance(context, subId), serverUrl);
     }
 
     private CarrierSpecificServiceEntitlement(@NonNull TelephonyManager telephonyManager,
             @NonNull EapAkaHelper eapAkaHelper, @NonNull String serverUrl)
-            throws NonTransientException {
+            throws MalformedURLException {
         this(telephonyManager.getSubscriberId(), new RequestFactory(telephonyManager), eapAkaHelper,
-                serverUrl);
+                serverUrl, BackgroundThread.getHandler());
     }
 
     @VisibleForTesting
     CarrierSpecificServiceEntitlement(@NonNull String imsi,
             @NonNull RequestFactory requestFactory,
             @NonNull EapAkaHelper eapAkaHelper,
-            @NonNull String serverUrl) throws NonTransientException {
-        URL url;
-        try {
-            url = new URL(serverUrl);
-        } catch (MalformedURLException e) {
-            throw new NonTransientException("The server URL is malformed.");
-        }
+            @NonNull String serverUrl,
+            @NonNull Handler backgroundHandler) throws MalformedURLException {
+        URL url = new URL(serverUrl);
         if (!TextUtils.equals(url.getProtocol(), "https")) {
-            throw new NonTransientException("The server URL must use HTTPS protocol");
+            throw new MalformedURLException("The server URL must use HTTPS protocol");
         }
         mImsi = imsi;
         mRequestFactory = requestFactory;
@@ -93,8 +110,40 @@ public class CarrierSpecificServiceEntitlement {
                 .addRequestProperty(HttpHeaders.ACCEPT, MIME_TYPE_JSON)
                 .setTimeoutInSec(CONNECT_TIMEOUT_SECS);
         mEapAkaHelper = eapAkaHelper;
+        mBackgroundHandler = backgroundHandler;
     }
 
+    /**
+     * Retrieve the OOB IMSI pseudonym from the entitlement server in the BackgroundThread.
+     *
+     * @param callbackHandler The handler used to run the callback.
+     * @param callback The callback which will be called when the pseudonym is retrieved from
+     *                server.
+     */
+    public void getImsiPseudonym(int carrierId, @NonNull Handler callbackHandler,
+            @NonNull Callback callback) {
+        mBackgroundHandler.post(() -> {
+            try {
+                Optional<PseudonymInfo> optionalPseudonymInfo = getImsiPseudonym();
+                if (optionalPseudonymInfo.isPresent()) {
+                    callbackHandler.post(() -> callback.onSuccess(carrierId,
+                            optionalPseudonymInfo.get()));
+                } else {
+                    callbackHandler.post(() -> callback.onFailure(carrierId,
+                            REASON_NON_TRANSIENT_FAILURE, "No valid pseudonym is received"));
+                }
+            } catch (ServiceEntitlementException e) {
+                callbackHandler.post(() -> callback.onFailure(carrierId,
+                        REASON_HTTPS_CONNECTION_FAILURE, e.toString()));
+            } catch (TransientException e) {
+                callbackHandler.post(() -> callback.onFailure(carrierId, REASON_TRANSIENT_FAILURE,
+                        e.toString()));
+            } catch (NonTransientException e) {
+                callbackHandler.post(() -> callback.onFailure(carrierId,
+                        REASON_NON_TRANSIENT_FAILURE, e.toString()));
+            }
+        });
+    }
 
     /**
      * Retrieve the OOB IMSI pseudonym from the entitlement server.
@@ -102,8 +151,9 @@ public class CarrierSpecificServiceEntitlement {
      * server's temporary problem etc.
      * @throws NonTransientException if a non-transient failure, like failure to get challenge
      * response or authentication failure from server etc.
+     * @throws ServiceEntitlementException if there is any HTTPS connection failure.
      */
-    public Optional<PseudonymInfo> getImsiPseudonym() throws
+    private Optional<PseudonymInfo> getImsiPseudonym() throws
             TransientException, NonTransientException, ServiceEntitlementException {
         String eapAkaChallenge = null;
         if (TextUtils.isEmpty(mAkaTokenCache)) {
@@ -138,9 +188,13 @@ public class CarrierSpecificServiceEntitlement {
                 }
                 break;
             case Response.RESPONSE_CODE_AKA_CHALLENGE:
+                if (mAkaTokenCache == null) {
+                    throw new TransientException("Something is wrong in the server side.");
+                }
                 // clear AKA token to trigger full authentication next time
                 mAkaTokenCache = null;
-                throw new TransientException("AKA Challenge requested! Do full authentication!");
+                // TODO(b/274167498): Optimize the handling of expired AKA token
+                return getImsiPseudonym();
             case Response.RESPONSE_CODE_AKA_AUTH_FAILED:
                 throw new NonTransientException("Authentication failed!");
             case Response.RESPONSE_CODE_INVALID_REQUEST:
@@ -206,6 +260,27 @@ public class CarrierSpecificServiceEntitlement {
                                 + authResponseCode);
         }
         return challengeResponse.getEapAkaChallenge();
+    }
+
+    /**
+     * Callback which will be called after OOB pseudonym retrieval.
+     */
+    public interface Callback {
+
+        /**
+         * Indicates an OOB pseudonym have been retrieved successfully.
+         * @param carrierId The target carrier ID of the retrieved OOB pseudonym.
+         * @param pseudonymInfo The retrieved OOB pseudonym info.
+         */
+        void onSuccess(int carrierId, PseudonymInfo pseudonymInfo);
+
+        /**
+         * Indicate a failure happens when to retrieve the OOB pseudonym.
+         * @param carrierId The target carrier ID of the retrieval failure.
+         * @param reasonCode The failure reason code
+         * @param description The description of the failure.
+         */
+        void onFailure(int carrierId, @FailureReasonCode int reasonCode, String description);
     }
 }
 
