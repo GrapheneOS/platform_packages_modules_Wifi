@@ -385,6 +385,33 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         assertFalse(mWifiCarrierInfoManager.requiresImsiEncryption(NON_DATA_SUBID));
     }
 
+    @Test
+    public void receivedDefaultDataSubChangedIntent() throws Exception {
+        when(mCarrierConfigManager.getConfigForSubId(DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(true));
+        when(mCarrierConfigManager.getConfigForSubId(NON_DATA_SUBID))
+                .thenReturn(generateTestCarrierConfig(false));
+        ArgumentCaptor<BroadcastReceiver> receiver =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+        WifiStringResourceWrapper nonDataResourceWrapper = mock(WifiStringResourceWrapper.class);
+        when(mContext.getStringResourceWrapper(eq(NON_DATA_SUBID), eq(NON_DATA_CARRIER_ID)))
+                .thenReturn(nonDataResourceWrapper);
+        when(nonDataResourceWrapper.getBoolean(
+                eq(WifiCarrierInfoManager.CONFIG_WIFI_OOB_PSEUDONYM_ENABLED), anyBoolean()))
+                .thenReturn(true);
+
+        verify(mContext).registerReceiver(receiver.capture(), any(IntentFilter.class));
+        Intent intent = new Intent(TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
+        intent.putExtra("subscription", NON_DATA_SUBID);
+        receiver.getValue().onReceive(mContext, intent);
+
+        mLooper.dispatchAll();
+
+        verify(mWifiPseudonymManager).retrieveOobPseudonymIfNeeded(NON_DATA_CARRIER_ID);
+        verify(mWifiPseudonymManager, never()).retrieveOobPseudonymIfNeeded(DATA_CARRIER_ID);
+    }
+
     /**
      * Verify the auto-join may be restored if OOB pseudonym is enabled.
      */
