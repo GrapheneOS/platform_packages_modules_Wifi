@@ -295,6 +295,7 @@ public class WifiMetrics {
     private IntCounter mPasspointDeauthImminentScope = new IntCounter();
     private IntCounter mRecentFailureAssociationStatus = new IntCounter();
     private boolean mFirstConnectionAfterBoot = true;
+    private long mLastTotalBeaconRx = 0;
 
     /**
      * Metrics are stored within an instance of the WifiLog proto during runtime,
@@ -6411,6 +6412,7 @@ public class WifiMetrics {
                 wifiUsabilityStatsEntry.totalCcaBusyFreqTimeMs = statsMap.ccaBusyTimeMs;
             }
             wifiUsabilityStatsEntry.totalBeaconRx = stats.beacon_rx;
+            mLastTotalBeaconRx = stats.beacon_rx;
             wifiUsabilityStatsEntry.timeSliceDutyCycleInPercent = stats.timeSliceDutyCycleInPercent;
 
             boolean isSameBssidAndFreq = mLastBssid == null || mLastFrequency == -1
@@ -8067,11 +8069,7 @@ public class WifiMetrics {
      * Get total beacon receive count
      */
     public long getTotalBeaconRxCount() {
-        if (mWifiUsabilityStatsEntriesList.isEmpty()) {
-            return -1;
-        } else {
-            return mWifiUsabilityStatsEntriesList.getLast().totalBeaconRx;
-        }
+        return mLastTotalBeaconRx;
     }
 
     /** Note whether Wifi was enabled at boot time. */
