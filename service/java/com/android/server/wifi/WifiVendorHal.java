@@ -1958,4 +1958,27 @@ public class WifiVendorHal {
             return mWifiChip.enableStaChannelForPeerNetwork(enableIndoorChannel, enableDfsChannel);
         }
     }
+
+    /**
+     * See {@link WifiNative#isBandCombinationSupported(String, List)}.
+     */
+    public boolean isBandCombinationSupported(@NonNull String ifaceName,
+            @NonNull List<Integer> bands) {
+        synchronized (sLock) {
+            WifiStaIface iface = getStaIface(ifaceName);
+            if (iface == null) return false;
+            return mHalDeviceManager.isBandCombinationSupported(iface, bands);
+        }
+    }
+
+    /**
+     * See {@link WifiNative#getSupportedBandCombinations(String)}.
+     */
+    public Set<List<Integer>> getSupportedBandCombinations(String ifaceName) {
+        synchronized (sLock) {
+            WifiStaIface iface = getStaIface(ifaceName);
+            if (iface == null) return null;
+            return mHalDeviceManager.getSupportedBandCombinations(iface);
+        }
+    }
 }
