@@ -2896,11 +2896,11 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
 
         if (params.getSourceAddress() != null) {
             paramsMask |= QosPolicyClassifierParamsMask.SRC_IP;
-            classifierParams.srcIp = params.getSourceAddress().toByteArray();
+            classifierParams.srcIp = params.getSourceAddress().getAddress();
         }
         if (params.getDestinationAddress() != null) {
             paramsMask |= QosPolicyClassifierParamsMask.DST_IP;
-            classifierParams.dstIp = params.getDestinationAddress().toByteArray();
+            classifierParams.dstIp = params.getDestinationAddress().getAddress();
         }
         if (params.getSourcePort() != DscpPolicy.SOURCE_PORT_ANY) {
             paramsMask |= QosPolicyClassifierParamsMask.SRC_PORT;
