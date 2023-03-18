@@ -1004,11 +1004,14 @@ public class WifiNetworkSuggestionsManager {
             // If network has no IMSI protection and user didn't approve exemption, make it initial
             // auto join disabled
             if (isSimBasedPhase1Suggestion(ewns)) {
+                int carrierIdFromSuggestion = getCarrierIdFromSuggestion(ewns);
                 int subId = mWifiCarrierInfoManager
-                        .getMatchingSubId(getCarrierIdFromSuggestion(ewns));
+                        .getMatchingSubId(carrierIdFromSuggestion);
                 if (!(mWifiCarrierInfoManager.requiresImsiEncryption(subId)
                         || mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(
-                        getCarrierIdFromSuggestion(ewns)))) {
+                                carrierIdFromSuggestion)
+                        || mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                carrierIdFromSuggestion))) {
                     ewns.isAutojoinEnabled = false;
                 }
             }

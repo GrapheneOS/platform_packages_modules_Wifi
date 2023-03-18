@@ -4179,6 +4179,51 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void testAutoJoinIsNotChangedWhenOobPseudonymIsEnabled() {
+        when(mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(TEST_PACKAGE_1))
+                .thenReturn(TEST_CARRIER_ID);
+        when(mWifiCarrierInfoManager.getMatchingSubId(TEST_CARRIER_ID)).thenReturn(TEST_SUBID);
+        when(mWifiCarrierInfoManager.getCarrierNameForSubId(TEST_SUBID))
+                .thenReturn(TEST_CARRIER_NAME);
+        when(mWifiCarrierInfoManager.requiresImsiEncryption(TEST_SUBID)).thenReturn(false);
+        when(mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(TEST_CARRIER_ID))
+                .thenReturn(false);
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(TEST_CARRIER_ID))
+                .thenReturn(true);
+        when(mPasspointManager.addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(),
+                anyBoolean(), eq(false))).thenReturn(true);
+
+        WifiConfiguration eapSimConfig = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        PasspointConfiguration passpointConfiguration =
+                createTestConfigWithSimCredential(TEST_FQDN, TEST_IMSI, TEST_REALM);
+        WifiConfiguration placeholderConfig = createPlaceholderConfigForPasspoint(TEST_FQDN,
+                passpointConfiguration.getUniqueId());
+        placeholderConfig.setPasspointUniqueId(passpointConfiguration.getUniqueId());
+        WifiNetworkSuggestion networkSuggestion = createWifiNetworkSuggestion(
+                eapSimConfig, null, true, false, true, true, DEFAULT_PRIORITY_GROUP);
+        WifiNetworkSuggestion passpointSuggestion = createWifiNetworkSuggestion(
+                placeholderConfig, passpointConfiguration, true, false, true, true,
+                DEFAULT_PRIORITY_GROUP);
+        List<WifiNetworkSuggestion> networkSuggestionList =
+                Arrays.asList(networkSuggestion, passpointSuggestion);
+
+
+        assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
+                mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
+                        TEST_PACKAGE_1, TEST_FEATURE));
+
+        verifyNoMoreInteractions(mWifiNotificationManager);
+        Set<ExtendedWifiNetworkSuggestion> matchedSuggestions = mWifiNetworkSuggestionsManager
+                .getNetworkSuggestionsForScanDetail(createScanDetailForNetwork(eapSimConfig));
+        verify(mWifiCarrierInfoManager)
+                .sendImsiProtectionExemptionNotificationIfRequired(TEST_CARRIER_ID);
+        for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
+            assertTrue(ewns.isAutojoinEnabled);
+        }
+    }
+
+    @Test
     public void testNotSendImsiProtectionNotificationOnPeapNetwork() {
         when(mWifiCarrierInfoManager.getCarrierIdForPackageWithCarrierPrivileges(TEST_PACKAGE_1))
                 .thenReturn(TEST_CARRIER_ID);

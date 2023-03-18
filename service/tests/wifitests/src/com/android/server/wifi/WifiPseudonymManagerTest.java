@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -133,9 +134,11 @@ public class WifiPseudonymManagerTest {
     public void retrievePseudonymOnFailureTimeoutExpiredSchedule() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
-        when(mClock.getWallClockMillis()).thenReturn(Instant.now().toEpochMilli());
+        long nowTime = Instant.now().toEpochMilli();
+        when(mClock.getWallClockMillis()).thenReturn(nowTime);
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
         mWifiPseudonymManager.mLastFailureTimestampArray.put(CARRIER_ID,
-                Instant.now().toEpochMilli() - Duration.ofDays(7).toMillis());
+                nowTime - Duration.ofDays(7).toMillis());
         mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(CARRIER_ID);
         assertTrue(mTestLooper.isIdle());
         Message message = mTestLooper.nextMessage();
@@ -148,6 +151,7 @@ public class WifiPseudonymManagerTest {
     public void retrievePseudonymOnFailureTimeoutExpiredNotSchedule() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
         mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(CARRIER_ID);
         assertFalse(mTestLooper.isIdle());
     }
@@ -177,68 +181,76 @@ public class WifiPseudonymManagerTest {
     }
 
     @Test
-    public void updateWifiConfigurationExpiredPseudonymFalse() {
+    public void updateWifiConfigurationWithExpiredPseudonym() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
+        mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
+        mWifiConfiguration.carrierId = CARRIER_ID;
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
+        when(mEnterpriseConfig.isAuthenticationSimBased()).thenReturn(true);
         setAnExpiredPseudonym(mWifiPseudonymManager);
-        assertFalse(mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration));
+
+        mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration);
+
+        verify(mWifiCarrierInfoManager, never()).decoratePseudonymWith3GppRealm(any(), anyString());
     }
 
     @Test
-    public void updateWifiConfigurationPasspointTrue() {
+    public void updateWifiConfigurationPasspointWithValidPseudonym() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
-
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
+        when(mEnterpriseConfig.isAuthenticationSimBased()).thenReturn(true);
         when(mWifiConfiguration.isPasspoint()).thenReturn(true);
-
         // Make sure that there is one PseudonymInfo in WifiPseudonymManager
         mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
                 new PseudonymInfo(PSEUDONYM, IMSI));
         when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(mWifiConfiguration, PSEUDONYM))
                 .thenReturn(DECORATED_PSEUDONYM);
-
         when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
                 .thenReturn(mNetworkUpdateResult);
-
         when(mEnterpriseConfig.getAnonymousIdentity()).thenReturn(ANONYMOUS_IDENTITY + "@");
-        assertTrue(mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration));
-        verify(mEnterpriseConfig).setAnonymousIdentity(any());
+
+        mWifiPseudonymManager.updateWifiConfiguration(
+                mWifiConfiguration);
+
+        verify(mEnterpriseConfig).setAnonymousIdentity(DECORATED_PSEUDONYM);
         verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt());
         verify(mPasspointManager).setAnonymousIdentity(any());
         verify(mWifiNetworkSuggestionsManager, never()).setAnonymousIdentity(any());
     }
 
     @Test
-    public void updateWifiConfigurationNonPasspointNetworkSuggesetionTrue() {
+    public void updateWifiConfigurationNonPasspointNetworkSuggesetionWithValidPseudonym() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
-
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
         mWifiConfiguration.fromWifiNetworkSuggestion = true;
         when(mWifiConfiguration.isPasspoint()).thenReturn(false);
-
         // Make sure that there is one PseudonymInfo in WifiPseudonymManager
         mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
                 new PseudonymInfo(PSEUDONYM, IMSI));
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
+        when(mEnterpriseConfig.isAuthenticationSimBased()).thenReturn(true);
         when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(mWifiConfiguration, PSEUDONYM))
                 .thenReturn(DECORATED_PSEUDONYM);
-
         when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
                 .thenReturn(mNetworkUpdateResult);
-
         when(mEnterpriseConfig.getAnonymousIdentity()).thenReturn(ANONYMOUS_IDENTITY + "@");
-        assertTrue(mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration));
-        verify(mEnterpriseConfig).setAnonymousIdentity(any());
+        mWifiPseudonymManager.updateWifiConfiguration(
+                mWifiConfiguration);
+
+        verify(mEnterpriseConfig).setAnonymousIdentity(DECORATED_PSEUDONYM);
         verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt());
         verify(mPasspointManager, never()).setAnonymousIdentity(any());
         verify(mWifiNetworkSuggestionsManager).setAnonymousIdentity(any());
     }
 
     @Test
-    public void updateWifiConfigurationNonPasspointNotNetworkSuggestionTrue() {
+    public void updateWifiConfigurationNonPasspointNotNetworkSuggestion() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
 
@@ -250,22 +262,25 @@ public class WifiPseudonymManagerTest {
         // Make sure that there is one PseudonymInfo in WifiPseudonymManager
         mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
                 new PseudonymInfo(PSEUDONYM, IMSI));
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
+        when(mEnterpriseConfig.isAuthenticationSimBased()).thenReturn(true);
         when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(mWifiConfiguration, PSEUDONYM))
                 .thenReturn(DECORATED_PSEUDONYM);
-
         when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
                 .thenReturn(mNetworkUpdateResult);
-
         when(mEnterpriseConfig.getAnonymousIdentity()).thenReturn(ANONYMOUS_IDENTITY + "@");
-        assertTrue(mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration));
-        verify(mEnterpriseConfig).setAnonymousIdentity(any());
+
+        mWifiPseudonymManager.updateWifiConfiguration(
+                mWifiConfiguration);
+
+        verify(mEnterpriseConfig).setAnonymousIdentity(DECORATED_PSEUDONYM);
         verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt());
         verify(mPasspointManager, never()).setAnonymousIdentity(any());
         verify(mWifiNetworkSuggestionsManager, never()).setAnonymousIdentity(any());
     }
 
     @Test
-    public void updateWifiConfigurationNoNeedToUpdateTrue() {
+    public void updateWifiConfigurationNoNeedToUpdate() {
         mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
                 mTestLooper.getLooper());
 
@@ -275,14 +290,17 @@ public class WifiPseudonymManagerTest {
         // Make sure that there is one PseudonymInfo in WifiPseudonymManager
         mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
                 new PseudonymInfo(PSEUDONYM, IMSI));
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
+        when(mEnterpriseConfig.isAuthenticationSimBased()).thenReturn(true);
         when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(mWifiConfiguration, PSEUDONYM))
                 .thenReturn(DECORATED_PSEUDONYM);
-
         when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
                 .thenReturn(mNetworkUpdateResult);
-
         when(mEnterpriseConfig.getAnonymousIdentity()).thenReturn(DECORATED_PSEUDONYM);
-        assertTrue(mWifiPseudonymManager.updateWifiConfiguration(mWifiConfiguration));
+
+        mWifiPseudonymManager.updateWifiConfiguration(
+                mWifiConfiguration);
+
         verify(mEnterpriseConfig, never()).setAnonymousIdentity(any());
     }
 
