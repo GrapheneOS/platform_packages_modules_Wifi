@@ -127,6 +127,8 @@ public final class WifiPseudonymManager {
     @VisibleForTesting
     final CarrierSpecificServiceEntitlement.Callback mRetrieveCallback =
             new RetrieveCallback();
+    private final Set<PseudonymUpdatingListener> mPseudonymUpdatingListeners =
+            new ArraySet<>();
 
     WifiPseudonymManager(@NonNull WifiContext wifiContext, @NonNull WifiInjector wifiInjector,
             @NonNull Clock clock, @NonNull Looper wifiLooper) {
@@ -214,6 +216,20 @@ public final class WifiPseudonymManager {
                 && (mClock.getWallClockMillis() - timeStamp >= SEVEN_DAYS_IN_MILLIS)) {
             scheduleToRetrieveDelayed(carrierId, 0);
         }
+    }
+
+    /**
+     * Registers a {@link PseudonymUpdatingListener}.
+     */
+    public void registerPseudonymUpdatingListener(PseudonymUpdatingListener listener) {
+        mPseudonymUpdatingListeners.add(listener);
+    }
+
+    /**
+     * Unregisters the {@link PseudonymUpdatingListener}.
+     */
+    public void unregisterPseudonymUpdatingListener(PseudonymUpdatingListener listener) {
+        mPseudonymUpdatingListeners.remove(listener);
     }
 
     /**
@@ -460,6 +476,9 @@ public final class WifiPseudonymManager {
             vlogd("RetrieveCallback: OOB pseudonym is retrieved!!! for carrierId " + carrierId
                     + ": " + pseudonymInfo);
             setPseudonymAndScheduleRefresh(carrierId, pseudonymInfo);
+            for (PseudonymUpdatingListener listener : mPseudonymUpdatingListeners) {
+                listener.onUpdated(carrierId, pseudonymInfo.getPseudonym());
+            }
             mLastFailureTimestampArray.put(carrierId, 0);
             mRetryTimesArrayForConnectionError.put(carrierId, 0);
             mRetryTimesArrayForServerError.put(carrierId, 0);
@@ -512,5 +531,13 @@ public final class WifiPseudonymManager {
                     + interval + " milliseconds");
             scheduleToRetrieveDelayed(carrierId, interval);
         }
+    }
+
+    /**
+     * Listener to be notified the OOB pseudonym updating.
+     */
+    public interface PseudonymUpdatingListener {
+        /** Notifies the pseudonym is updated. */
+        void onUpdated(int carrierId, String pseudonym);
     }
 }
