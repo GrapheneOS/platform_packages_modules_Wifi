@@ -741,6 +741,14 @@ public class SupplicantStaNetworkHalAidlImpl {
                         + eapConfig.getPhase2Method());
                 return false;
             }
+            if (eapConfig.isAuthenticationSimBased()
+                    && eapConfig.getEapMethod() != WifiEnterpriseConfig.Eap.PEAP
+                    && eapConfig.getStrictConservativePeerMode()) {
+                if (!enableStrictConservativePeerMode()) {
+                    Log.w(TAG, "failed or not support to set strict conservative peer mode.");
+                }
+                // don't return false, as the mode is optional.
+            }
             String eapParam = null;
             /** EAP Identity */
             eapParam = eapConfig.getFieldValue(WifiEnterpriseConfig.IDENTITY_KEY);
@@ -3702,6 +3710,28 @@ public class SupplicantStaNetworkHalAidlImpl {
             }
             try {
                 mISupplicantStaNetwork.setMinimumTlsVersionEapPhase1Param(aidlTlsVersion);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
+    private boolean enableStrictConservativePeerMode() {
+        synchronized (mLock) {
+            final String methodStr = "setStrictConservativePeerMode";
+            if (!checkStaNetworkAndLogFailure(methodStr)) {
+                return false;
+            }
+            // check AIDL version
+            try {
+                if (mISupplicantStaNetwork.getInterfaceVersion() < 2) {
+                    return false;
+                }
+                mISupplicantStaNetwork.setStrictConservativePeerMode(true);
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);

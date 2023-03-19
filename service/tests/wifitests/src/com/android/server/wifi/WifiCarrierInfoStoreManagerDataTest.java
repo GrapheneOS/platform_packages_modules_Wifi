@@ -132,6 +132,7 @@ public class WifiCarrierInfoStoreManagerDataTest {
                 mMergedCarrierOffloadMap);
         when(mDataSource.getCarrierNetworkOffloadMap(false))
                 .thenReturn(mUnmergedCarrierOffloadMap);
+        when(mDataSource.getAutoJoinFlippedOnOobPseudonymEnabled()).thenReturn(true);
 
         // Serialize/deserialize data.
         deserializeData(serializeData());
@@ -148,5 +149,6 @@ public class WifiCarrierInfoStoreManagerDataTest {
                 .setCarrierNetworkOffloadMap(deserializedMap.capture(), eq(false));
         assertEquals(mUnmergedCarrierOffloadMap,
                 deserializedMap.getValue());
+        verify(mDataSource).setAutoJoinFlippedOnOobPseudonymEnabled(eq(true));
     }
 }

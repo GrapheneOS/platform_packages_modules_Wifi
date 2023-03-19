@@ -564,6 +564,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
     @Mock Uri mMockUri;
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
+    @Mock WifiPseudonymManager mWifiPseudonymManager;
     @Mock WifiNotificationManager mWifiNotificationManager;
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
     @Mock ScanResult mScanResult;
@@ -774,8 +775,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mWifiLockManager, mFrameworkFacade, mLooper.getLooper(),
                 mWifiNative, mWrongPasswordNotifier, mWifiTrafficPoller, mLinkProbeManager,
                 1, mBatteryStatsManager, mSupplicantStateTracker, mMboOceController,
-                mWifiCarrierInfoManager, mEapFailureNotifier, mSimRequiredNotifier,
-                mWifiScoreReport, mWifiP2pConnection, mWifiGlobals,
+                mWifiCarrierInfoManager, mWifiPseudonymManager, mEapFailureNotifier,
+                mSimRequiredNotifier, mWifiScoreReport, mWifiP2pConnection, mWifiGlobals,
                 WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor,
                 mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
                 mSettingsConfigStore, false, mWifiNotificationManager);
@@ -1305,6 +1306,39 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals("L3ProvisioningState", getCurrentState().getName());
     }
 
+    @Test
+    public void testUpdatingOobPseudonymToSupplicant() throws Exception {
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+
+        ArgumentCaptor<WifiPseudonymManager.PseudonymUpdatingListener> listenerCaptor =
+                ArgumentCaptor.forClass(WifiPseudonymManager.PseudonymUpdatingListener.class);
+        setupEapSimConnection();
+        verify(mWifiPseudonymManager).registerPseudonymUpdatingListener(listenerCaptor.capture());
+        String expectedPseudonym = "abc-123";
+        String expectedDecoratedPseudonym = "abc-123@wlan.mnc456.mcc123.3gppnetwork.org";
+        when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(any(), eq(expectedPseudonym)))
+                .thenReturn(expectedDecoratedPseudonym);
+        listenerCaptor.getValue().onUpdated(CARRIER_ID_1, expectedPseudonym);
+        mLooper.dispatchAll();
+
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiNative).setEapAnonymousIdentity(
+                    anyString(), eq(expectedDecoratedPseudonym), eq(true));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(
+                    anyString(), anyString(), anyBoolean());
+        }
+
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT,
+                new DisconnectEventInfo(mConnectedNetwork.SSID, TEST_BSSID_STR, 0, false));
+        mLooper.dispatchAll();
+
+        assertEquals("DisconnectedState", getCurrentState().getName());
+        verify(mWifiPseudonymManager)
+                .unregisterPseudonymUpdatingListener(eq(listenerCaptor.getValue()));
+    }
+
     /**
      * Test when a roam occurs simultaneously with another connection attempt.
      * The roam's NETWORK_CONNECTION_EVENT should be ignored, only the new network's
@@ -1403,6 +1437,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testResetSimWhenConnectedSimRemoved() throws Exception {
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
         setupEapSimConnection();
         doReturn(false).when(mWifiCarrierInfoManager).isSimReady(eq(DATA_SUBID));
         mCmi.sendMessage(ClientModeImpl.CMD_RESET_SIM_NETWORKS,
@@ -1411,6 +1446,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mSimRequiredNotifier).showSimRequiredNotification(any(), any());
         verify(mWifiNative, times(2)).removeAllNetworks(WIFI_IFACE_NAME);
+        verify(mWifiMetrics).startConnectionEvent(
+                anyString(), any(), anyString(), anyInt(), eq(true));
     }
 
     /**
@@ -1681,6 +1718,59 @@ public class ClientModeImplTest extends WifiBaseTest {
         // this change.
         verify(mWifiConfigManager).addOrUpdateNetwork(any(), anyInt());
         verify(mWifiNetworkSuggestionsManager).setAnonymousIdentity(any());
+    }
+
+    /**
+     * For EAP SIM network, the In-band pseudonym from supplicant should override the OOB
+     * pseudonym if the OOB Pseudonym feature is enabled.
+     */
+    @Test
+    public void testUpdatePseudonymAsInBandPseudonymWhenConnectionIsEstablished()
+            throws Exception {
+        mConnectedNetwork = spy(WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE));
+        String initialOobPseudonym = "1234abcg@wlan.mnc456.mcc123.3gppnetwork.org";
+        mConnectedNetwork.enterpriseConfig.setAnonymousIdentity(initialOobPseudonym);
+        mConnectedNetwork.fromWifiNetworkSuggestion = true;
+        String pseudonymFromSupplicant = "83bcca9384fca@wlan.mnc456.mcc123.3gppnetwork.org";
+
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
+        when(mWifiCarrierInfoManager.getBestMatchSubscriptionId(any(WifiConfiguration.class)))
+                .thenReturn(DATA_SUBID);
+        when(mWifiCarrierInfoManager.isSimReady(DATA_SUBID)).thenReturn(true);
+
+        triggerConnect();
+
+        // CMD_START_CONNECT doesn't change the anonymous identity.
+        assertEquals(initialOobPseudonym,
+                mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
+
+        when(mWifiConfigManager.getScanDetailCacheForNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(mScanDetailCache);
+        when(mScanDetailCache.getScanDetail(TEST_BSSID_STR)).thenReturn(
+                getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq));
+        when(mScanDetailCache.getScanResult(TEST_BSSID_STR)).thenReturn(
+                getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
+        when(mWifiNative.getEapAnonymousIdentity(anyString()))
+                .thenReturn(pseudonymFromSupplicant);
+
+        WifiSsid wifiSsid = WifiSsid.fromBytes(
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, wifiSsid, TEST_BSSID_STR, false, null));
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).getEapAnonymousIdentity(any());
+        if (SdkLevel.isAtLeastT()) {
+            // No decorated pseudonum, only update the cached data.
+            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonymFromSupplicant),
+                    eq(false));
+        } else {
+            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
+        }
+        verify(mWifiPseudonymManager).setInBandPseudonym(anyInt(), eq(pseudonymFromSupplicant));
+        assertEquals(pseudonymFromSupplicant,
+                mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
     }
 
     /**
@@ -2526,7 +2616,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testEapSimErrorVendorSpecific() throws Exception {
-        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt()))
+        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean()))
                 .thenReturn(80000);
         initializeAndAddNetworkAndVerifySuccess();
 
@@ -2550,6 +2640,38 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mEapFailureNotifier).onEapFailure(
                 WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED, config, true);
         verify(mWifiCarrierInfoManager).resetCarrierKeysForImsiEncryption(any());
+        verify(mDeviceConfigFacade).isAbnormalConnectionFailureBugreportEnabled();
+        verify(mWifiScoreCard).detectAbnormalConnectionFailure(anyString());
+        verify(mWifiDiagnostics, times(2)).takeBugReport(anyString(), anyString());
+    }
+
+    @Test
+    public void testEapAkaRetrieveOobPseudonymTriggeredByAuthenticationFailure() throws Exception {
+        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean()))
+                .thenReturn(80000);
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
+        initializeAndAddNetworkAndVerifySuccess();
+
+        startConnectSuccess();
+
+        WifiConfiguration config = new WifiConfiguration();
+        config.SSID = TEST_SSID;
+        config.getNetworkSelectionStatus().setHasEverConnected(true);
+        config.allowedKeyManagement.set(KeyMgmt.IEEE8021X);
+        config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.AKA);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(config);
+        when(mWifiScoreCard.detectAbnormalConnectionFailure(anyString()))
+                .thenReturn(WifiHealthMonitor.REASON_AUTH_FAILURE);
+
+        mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
+                new AuthenticationFailureEventInfo(TEST_SSID, MacAddress.fromString(TEST_BSSID_STR),
+                        WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE,
+                        -1));
+        mLooper.dispatchAll();
+
+        verify(mEapFailureNotifier).onEapFailure(
+                -1, config, true);
+        verify(mWifiPseudonymManager).retrieveOobPseudonymWithRateLimit(anyInt());
         verify(mDeviceConfigFacade).isAbnormalConnectionFailureBugreportEnabled();
         verify(mWifiScoreCard).detectAbnormalConnectionFailure(anyString());
         verify(mWifiDiagnostics, times(2)).takeBugReport(anyString(), anyString());
@@ -5217,6 +5339,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 .thenReturn(Set.of(TEST_UID));
         when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
                 .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
+        when(mWifiConnectivityManager.hasMultiInternetConnection()).thenReturn(true);
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
         ArgumentCaptor<NetworkCapabilities> networkCapabilitiesCaptor =
@@ -5269,6 +5392,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiNetworkFactory.getSpecificNetworkRequestUidAndPackageName(any(), any()))
                 .thenReturn(Pair.create(TEST_UID, OP_PACKAGE_NAME));
         when(mWifiNetworkFactory.shouldHaveInternetCapabilities()).thenReturn(true);
+        when(mWifiConnectivityManager.hasMultiInternetConnection()).thenReturn(true);
         // Simulate the first connection.
         connectWithValidInitRssi(-42);
         ArgumentCaptor<NetworkCapabilities> networkCapabilitiesCaptor =

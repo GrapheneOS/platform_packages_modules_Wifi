@@ -64,6 +64,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.entitlement.PseudonymInfo;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -79,6 +80,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -180,6 +182,7 @@ public class WifiCarrierInfoManager {
     private final WifiNotificationManager mNotificationManager;
     private final WifiMetrics mWifiMetrics;
     private final Clock mClock;
+    private final WifiPseudonymManager mWifiPseudonymManager;
     /**
      * Cached Map of <subscription ID, CarrierConfig PersistableBundle> since retrieving the
      * PersistableBundle from CarrierConfigManager is somewhat expensive as it has hundreds of
@@ -201,8 +204,8 @@ public class WifiCarrierInfoManager {
     private SparseBooleanArray mMergedCarrierNetworkOffloadMap = new SparseBooleanArray();
     @GuardedBy("mCarrierNetworkOffloadMapLock")
     private SparseBooleanArray mUnmergedCarrierNetworkOffloadMap = new SparseBooleanArray();
-    private final List<OnUserApproveCarrierListener> mOnUserApproveCarrierListeners =
-            new ArrayList<>();
+    private final List<OnImsiProtectedOrUserApprovedListener>
+            mOnImsiProtectedOrUserApprovedListeners = new ArrayList<>();
     private final SparseBooleanArray mUserDataEnabled = new SparseBooleanArray();
     private final List<UserDataEnabledChangedListener>  mUserDataEnabledListenerList =
             new ArrayList<>();
@@ -227,8 +230,16 @@ public class WifiCarrierInfoManager {
      * to update/show the notification.
      */
     private long mNotificationUpdateTime = 0L;
+    /**
+     * When the OOB feature is enabled, the auto-join bit in {@link WifiConfiguration} should be
+     * flipped on, and it should only be done once, this field indicated the flip had been done.
+     */
+    private volatile boolean mAutoJoinFlippedOnOobPseudonymEnabled = false;
 
-    private static class SimInfo {
+    /**
+     * The SIM information of IMSI, MCCMNC, carrier ID etc.
+     */
+    public static class SimInfo {
         public final String imsi;
         public final String mccMnc;
         public final int carrierIdFromSimMccMnc;
@@ -299,14 +310,16 @@ public class WifiCarrierInfoManager {
     }
 
     /**
-     * Interface for other modules to listen to the user approve IMSI protection exemption.
+     * Interface for other modules to listen to the status of IMSI protection, approved by user
+     * or protected by a new IMSI protection feature.
      */
-    public interface OnUserApproveCarrierListener {
+    public interface OnImsiProtectedOrUserApprovedListener {
 
         /**
-         * Invoke when user approve the IMSI protection exemption.
+         * Invoke when user approve the IMSI protection exemption
+         * or the IMSI protection feature is enabled.
          */
-        void onUserAllowed(int carrierId);
+        void onImsiProtectedOrUserApprovalChanged(int carrierId, boolean allowAutoJoin);
     }
 
     /**
@@ -349,6 +362,24 @@ public class WifiCarrierInfoManager {
                     mUnmergedCarrierNetworkOffloadMap = carrierOffloadMap;
                 }
             }
+        }
+
+        @Override
+        public void setAutoJoinFlippedOnOobPseudonymEnabled(boolean autoJoinFlipped) {
+            mAutoJoinFlippedOnOobPseudonymEnabled = autoJoinFlipped;
+            // user data loaded
+            if (!mAutoJoinFlippedOnOobPseudonymEnabled) {
+                mHandler.post(() -> {
+                    if (mDeviceConfigFacade.isOobPseudonymEnabled()) {
+                        tryResetAutoJoinOnOobPseudonymFlagChanged(true);
+                    }
+                });
+            }
+        }
+
+        @Override
+        public boolean getAutoJoinFlippedOnOobPseudonymEnabled() {
+            return mAutoJoinFlippedOnOobPseudonymEnabled;
         }
 
         @Override
@@ -519,7 +550,8 @@ public class WifiCarrierInfoManager {
             @NonNull WifiConfigStore configStore,
             @NonNull Handler handler,
             @NonNull WifiMetrics wifiMetrics,
-            @NonNull Clock clock) {
+            @NonNull Clock clock,
+            @NonNull WifiPseudonymManager wifiPseudonymManager) {
         mTelephonyManager = telephonyManager;
         mContext = context;
         mWifiInjector = wifiInjector;
@@ -530,6 +562,7 @@ public class WifiCarrierInfoManager {
         mNotificationManager = mWifiInjector.getWifiNotificationManager();
         mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
         mClock = clock;
+        mWifiPseudonymManager = wifiPseudonymManager;
         // Register broadcast receiver for UI interactions.
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION);
@@ -550,12 +583,40 @@ public class WifiCarrierInfoManager {
         // Monitor for carrier config changes.
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
+        filter.addAction(TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED
                         .equals(intent.getAction())) {
-                    mHandler.post(() -> onCarrierConfigChanged(context));
+                    mHandler.post(() -> {
+                        onCarrierConfigChanged(context);
+                        if (mDeviceConfigFacade.isOobPseudonymEnabled()) {
+                            tryResetAutoJoinOnOobPseudonymFlagChanged(/*isEnabled=*/ true);
+                        }
+                    });
+                } else if (TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED
+                        .equals(intent.getAction())) {
+                    int extraSubId = intent.getIntExtra(
+                            "subscription", SubscriptionManager.INVALID_SUBSCRIPTION_ID);
+                    if (extraSubId == SubscriptionManager.INVALID_SUBSCRIPTION_ID
+                            || mTelephonyManager.getActiveModemCount() < 2) {
+                        return;
+                    }
+                    mHandler.post(() -> {
+                        if (mActiveSubInfos == null || mActiveSubInfos.isEmpty()) {
+                            return;
+                        }
+                        for (SubscriptionInfo subInfo : mActiveSubInfos) {
+                            if (subInfo.getSubscriptionId() == extraSubId
+                                    && isOobPseudonymFeatureEnabled(subInfo.getCarrierId())
+                                    && isSimReady(subInfo.getSubscriptionId())) {
+                                mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(
+                                        subInfo.getCarrierId());
+                                return;
+                            }
+                        }
+                    });
                 }
             }
         }, filter);
@@ -564,12 +625,25 @@ public class WifiCarrierInfoManager {
                 new ContentObserver(handler) {
                     @Override
                     public void onChange(boolean selfChange) {
-                        mHandler.post(() -> onCarrierConfigChanged(context));
+                        mHandler.post(() -> {
+                            onCarrierConfigChanged(context);
+                            if (mDeviceConfigFacade.isOobPseudonymEnabled()) {
+                                tryResetAutoJoinOnOobPseudonymFlagChanged(/*isEnabled=*/ true);
+                            }
+                        });
                     }
                 });
         if (SdkLevel.isAtLeastT()) {
             mCarrierPrivilegeCallbacks = new ArrayList<>();
         }
+
+
+        mDeviceConfigFacade.setOobPseudonymFeatureFlagChangedListener(isOobPseudonymEnabled -> {
+            // when feature is disabled, it is handled on the fly only once.
+            // run on WifiThread
+            tryResetAutoJoinOnOobPseudonymFlagChanged(isOobPseudonymEnabled);
+            onCarrierConfigChanged(context);
+        });
     }
 
     /**
@@ -673,6 +747,45 @@ public class WifiCarrierInfoManager {
     }
 
     /**
+     * If the OOB Pseudonym is disabled, it should only be called once when the feature is turned to
+     * 'disable' from 'enable' on the fly.
+     */
+    private void tryResetAutoJoinOnOobPseudonymFlagChanged(boolean isEnabled) {
+        if (!mUserDataLoaded) {
+            return;
+        }
+
+        if (mActiveSubInfos == null || mActiveSubInfos.isEmpty()) {
+            return;
+        }
+        boolean allowAutoJoin = false;
+        if (isEnabled) {
+            if (!shouldFlipOnAutoJoinForOobPseudonym()) {
+                return;
+            }
+            // one-off operation, disable it anyway.
+            disableFlipOnAutoJoinForOobPseudonym();
+            mNotificationManager.cancel(SystemMessage.NOTE_CARRIER_SUGGESTION_AVAILABLE);
+            allowAutoJoin = true;
+        } else {
+            enableFlipOnAutoJoinForOobPseudonym();
+        }
+
+        for (SubscriptionInfo subInfo : mActiveSubInfos) {
+            Log.d(TAG, "may reset auto-join for current SIM: "
+                    + subInfo.getCarrierId());
+            if (!isOobPseudonymFeatureEnabledInResource(subInfo.getCarrierId())) {
+                continue;
+            }
+            for (OnImsiProtectedOrUserApprovedListener listener :
+                    mOnImsiProtectedOrUserApprovedListeners) {
+                listener.onImsiProtectedOrUserApprovalChanged(
+                        subInfo.getCarrierId(), allowAutoJoin);
+            }
+        }
+    }
+
+    /**
      * Updates the IMSI encryption information and clears cached CarrierConfig data.
      */
     private void onCarrierConfigChanged(Context context) {
@@ -699,6 +812,9 @@ public class WifiCarrierInfoManager {
                     }
                 } catch (IllegalArgumentException e) {
                     vlogd("IMSI encryption info is not available.");
+                }
+                if (isOobPseudonymFeatureEnabled(subInfo.getCarrierId()) && isSimReady(subId)) {
+                    mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(subInfo.getCarrierId());
                 }
             }
             PersistableBundle bundleOld = cachedCarrierConfigPerSubIdOld.get(subId);
@@ -848,6 +964,15 @@ public class WifiCarrierInfoManager {
         SimInfo simInfo = getSimInfo(subId);
         if (simInfo == null) {
             return null;
+        }
+
+        if (isOobPseudonymFeatureEnabled(config.carrierId)) {
+            Optional<PseudonymInfo> pseudonymInfo =
+                    mWifiPseudonymManager.getValidPseudonymInfo(config.carrierId);
+            if (pseudonymInfo.isEmpty()) {
+                return null;
+            }
+            return Pair.create(pseudonymInfo.get().getPseudonym(), "");
         }
 
         String identity = buildIdentity(getSimMethodForConfig(config), simInfo.imsi,
@@ -1529,11 +1654,22 @@ public class WifiCarrierInfoManager {
                 return null;
             }
             SimInfo simInfo = getSimInfo(subId);
-            if (simInfo != null) {
-                return simInfo.imsi;
+            if (simInfo == null) {
+                vlogd("no active SIM card to match the carrier ID.");
+                return null;
             }
+            if (isOobPseudonymFeatureEnabled(simInfo.simCarrierId)) {
+                if (mWifiPseudonymManager.getValidPseudonymInfo(simInfo.simCarrierId).isEmpty()) {
+                    vlogd("valid pseudonym is not available.");
+                    // matching only when the network is seen.
+                    mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(
+                            simInfo.simCarrierId);
+                    return null;
+                }
+            }
+            return simInfo.imsi;
         }
-        vlogd("no active SIM card to match the carrier ID.");
+
         return null;
     }
 
@@ -1569,6 +1705,15 @@ public class WifiCarrierInfoManager {
             if (requiresImsiEncryption(subId) && !isImsiEncryptionInfoAvailable(subId)) {
                 vlogd("required IMSI encryption information is not available.");
                 continue;
+            }
+            int carrierId = subInfo.getCarrierId();
+            if (isOobPseudonymFeatureEnabled(carrierId)) {
+                if (mWifiPseudonymManager.getValidPseudonymInfo(carrierId).isEmpty()) {
+                    vlogd("valid pseudonym is not available.");
+                    // matching only when the network is seen.
+                    mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(carrierId);
+                    continue;
+                }
             }
             SimInfo simInfo = getSimInfo(subId);
             if (simInfo == null) {
@@ -1622,6 +1767,8 @@ public class WifiCarrierInfoManager {
         pw.println("mSubIdToSimInfoSparseArray=" + mSubIdToSimInfoSparseArray);
         pw.println("mActiveSubInfos=" + mActiveSubInfos);
         pw.println("mCachedCarrierConfigPerSubId=" + mCachedCarrierConfigPerSubId);
+        pw.println("mCarrierAutoJoinResetCheckedForOobPseudonym="
+                + mAutoJoinFlippedOnOobPseudonymEnabled);
         pw.println("mCarrierPrivilegedPackagesBySimSlot=[ ");
         for (int i = 0; i < mCarrierPrivilegedPackagesBySimSlot.size(); i++) {
             pw.println(mCarrierPrivilegedPackagesBySimSlot.valueAt(i));
@@ -1706,9 +1853,9 @@ public class WifiCarrierInfoManager {
     /**
      * Add a listener to monitor user approval IMSI protection exemption.
      */
-    public void addImsiExemptionUserApprovalListener(
-            OnUserApproveCarrierListener listener) {
-        mOnUserApproveCarrierListeners.add(listener);
+    public void addImsiProtectedOrUserApprovedListener(
+            OnImsiProtectedOrUserApprovedListener listener) {
+        mOnImsiProtectedOrUserApprovedListeners.add(listener);
     }
 
     /**
@@ -1753,8 +1900,9 @@ public class WifiCarrierInfoManager {
         mImsiPrivacyProtectionExemptionMap.put(carrierId, approved);
         // If user approved the exemption restore to initial auto join configure.
         if (approved) {
-            for (OnUserApproveCarrierListener listener : mOnUserApproveCarrierListeners) {
-                listener.onUserAllowed(carrierId);
+            for (OnImsiProtectedOrUserApprovedListener listener :
+                    mOnImsiProtectedOrUserApprovedListeners) {
+                listener.onImsiProtectedOrUserApprovalChanged(carrierId, /*allowAutoJoin=*/ true);
             }
         }
         saveToStore();
@@ -1871,6 +2019,9 @@ public class WifiCarrierInfoManager {
             return;
         }
         if (requiresImsiEncryption(subId)) {
+            return;
+        }
+        if (isOobPseudonymFeatureEnabled(carrierId)) {
             return;
         }
         if (mImsiPrivacyProtectionExemptionMap.containsKey(carrierId)) {
@@ -2020,7 +2171,13 @@ public class WifiCarrierInfoManager {
         mNotificationUpdateTime = 0;
     }
 
-    private SimInfo getSimInfo(int subId) {
+    /**
+     * Get the SimInfo for the target subId.
+     *
+     * @param subId The subscriber ID for which to get the SIM info.
+     * @return SimInfo The SimInfo for the target subId.
+     */
+    public SimInfo getSimInfo(int subId) {
         SimInfo simInfo = mSubIdToSimInfoSparseArray.get(subId);
         // If mccmnc is not available, try to get it again.
         if (simInfo != null && simInfo.mccMnc != null && !simInfo.mccMnc.isEmpty()) {
@@ -2131,8 +2288,39 @@ public class WifiCarrierInfoManager {
         if (!mDeviceConfigFacade.isOobPseudonymEnabled()) {
             return false;
         }
+        boolean ret = isOobPseudonymFeatureEnabledInResource(carrierId);
+        vlogd("isOobPseudonymFeatureEnabled() = " + ret);
+        return ret;
+    }
+
+    private boolean isOobPseudonymFeatureEnabledInResource(int carrierId) {
         WifiStringResourceWrapper wifiStringResourceWrapper =
                 mContext.getStringResourceWrapper(getMatchingSubId(carrierId), carrierId);
-        return wifiStringResourceWrapper.getBoolean(CONFIG_WIFI_OOB_PSEUDONYM_ENABLED, false);
+        return wifiStringResourceWrapper.getBoolean(CONFIG_WIFI_OOB_PSEUDONYM_ENABLED,
+                false);
+    }
+
+    /**
+     * Checks if the auto-join of carrier wifi had been reset when the OOB
+     * pseudonym feature is enabled.
+     */
+    @VisibleForTesting
+    boolean shouldFlipOnAutoJoinForOobPseudonym() {
+        return mDeviceConfigFacade.isOobPseudonymEnabled()
+                && !mAutoJoinFlippedOnOobPseudonymEnabled;
+    }
+
+    /**
+     * Persists the bit to disable the auto-join reset for OOB pseudonym, the reset should be
+     * done 1 time.
+     */
+    private void disableFlipOnAutoJoinForOobPseudonym() {
+        mAutoJoinFlippedOnOobPseudonymEnabled = true;
+        saveToStore();
+    }
+
+    private void enableFlipOnAutoJoinForOobPseudonym() {
+        mAutoJoinFlippedOnOobPseudonymEnabled = false;
+        saveToStore();
     }
 }

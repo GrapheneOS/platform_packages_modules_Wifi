@@ -200,6 +200,15 @@ public class WifiEnterpriseConfigTest {
     }
 
     @Test
+    public void testSetStrictConservativePeerMode() {
+        assertFalse(mEnterpriseConfig.getStrictConservativePeerMode());
+
+        mEnterpriseConfig.setStrictConservativePeerMode(true);
+
+        assertTrue(mEnterpriseConfig.getStrictConservativePeerMode());
+    }
+
+    @Test
     public void testLoadMultipleCaCertificates() {
         final String alias0 = "single_alias 0";
         final String alias1 = "single_alias 1";
