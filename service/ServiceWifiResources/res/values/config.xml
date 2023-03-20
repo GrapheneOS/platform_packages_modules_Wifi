@@ -727,7 +727,7 @@
     milliseconds when device is connected and screen is on. The long interval is to reduce
     power consumption of link layer stats polling. This value should be greater than the regular
     interval -->
-    <integer translatable="false" name="config_wifiPollRssiLongIntervalMilliseconds">9000</integer>
+    <integer translatable="false" name="config_wifiPollRssiLongIntervalMilliseconds">6000</integer>
 
     <!-- RSSI threshold in dBm to decide the RSSI and link layer stats polling interval, and also
     for the client mode RSSI monitor. When the polling is enabled, if the device is stationary
