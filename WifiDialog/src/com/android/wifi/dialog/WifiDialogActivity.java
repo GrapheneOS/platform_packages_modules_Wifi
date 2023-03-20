@@ -19,7 +19,10 @@ package com.android.wifi.dialog;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.icu.text.MessageFormat;
@@ -33,6 +36,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.text.Editable;
@@ -145,9 +149,32 @@ public class WifiDialogActivity extends Activity  {
         return mWifiManager;
     }
 
+    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction() != Intent.ACTION_CLOSE_SYSTEM_DIALOGS) {
+                return;
+            }
+            PowerManager powerManager = context.getSystemService(PowerManager.class);
+            if (powerManager == null) {
+                return;
+            }
+            if (!powerManager.isInteractive()) {
+                // Ignore screen off case.
+                return;
+            }
+            // Cancel all dialogs for ACTION_CLOSE_SYSTEM_DIALOGS (e.g. Home button pressed).
+            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+                mActiveDialogsPerId.get(i).cancel();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        registerReceiver(mBroadcastReceiver, new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS),
+                RECEIVER_NOT_EXPORTED);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         mIsVerboseLoggingEnabled = getWifiManager().isVerboseLoggingEnabled();
@@ -227,24 +254,32 @@ public class WifiDialogActivity extends Activity  {
     @Override
     protected void onStop() {
         super.onStop();
-
-        if (isChangingConfigurations()) {
-            // If we're stopping due to a configuration change, dismiss all the dialogs without
-            // removing it from mLaunchIntentsPerId to prevent window leaking. The dialogs will be
-            // recreated from mLaunchIntentsPerId in onStart().
-            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                Dialog dialog = mActiveDialogsPerId.valueAt(i);
-                // Set the dismiss listener to null to prevent removing the Intent from
-                // mLaunchIntentsPerId.
-                dialog.setOnDismissListener(null);
-                dialog.dismiss();
-            }
-            mActiveDialogsPerId.clear();
-            for (int i = 0; i < mActiveCountDownTimersPerId.size(); i++) {
-                mActiveCountDownTimersPerId.valueAt(i).cancel();
-            }
-            mActiveCountDownTimersPerId.clear();
+        if (!isChangingConfigurations()) {
+            return;
         }
+        // If we're stopping due to a configuration change, dismiss all the dialogs without
+        // removing it from mLaunchIntentsPerId to prevent window leaking. The dialogs will be
+        // recreated from mLaunchIntentsPerId in onStart().
+        for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+            Dialog dialog = mActiveDialogsPerId.valueAt(i);
+            // Set the dismiss listener to null to prevent removing the Intent from
+            // mLaunchIntentsPerId.
+            dialog.setOnDismissListener(null);
+            dialog.dismiss();
+        }
+        mActiveDialogsPerId.clear();
+        for (int i = 0; i < mActiveCountDownTimersPerId.size(); i++) {
+            mActiveCountDownTimersPerId.valueAt(i).cancel();
+        }
+        mActiveCountDownTimersPerId.clear();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mBroadcastReceiver);
+        // We don't expect to be destroyed while dialogs are still up, but make sure to cancel them
+        // just in case.
         for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
             mActiveDialogsPerId.get(i).cancel();
         }
@@ -343,6 +378,7 @@ public class WifiDialogActivity extends Activity  {
         if (mGravity != Gravity.NO_GRAVITY) {
             dialog.getWindow().setGravity(mGravity);
         }
+        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG);
         mActiveDialogsPerId.put(dialogId, dialog);
         long timeoutMs = intent.getLongExtra(WifiManager.EXTRA_DIALOG_TIMEOUT_MS, 0);
         if (timeoutMs > 0) {
