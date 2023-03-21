@@ -131,18 +131,6 @@ public class QosPolicyParamsTest {
     }
 
     /**
-     * Tests that the Builder throws an exception if a null Mac Address is set.
-     */
-    @Test
-    public void testBuilderWithNullMacAddress() {
-        assertThrows(NullPointerException.class, () ->
-                new QosPolicyParams.Builder(TEST_POLICY_ID, QosPolicyParams.DIRECTION_DOWNLINK)
-                        .setUserPriority(TEST_USER_PRIORITY)
-                        .setSourceAddress(null)
-                        .build());
-    }
-
-    /**
      * Tests that the Builder throws an exception if a direction-specific error is found.
      */
     @Test
