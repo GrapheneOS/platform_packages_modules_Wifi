@@ -873,7 +873,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         dest.writeInt(mCellularSignalStrengthDbm);
         dest.writeInt(mCellularSignalStrengthDb);
         dest.writeBoolean(mIsSameRegisteredCell);
-        dest.writeTypedSparseArray(mLinkStats, flags);
+        dest.writeSparseArray(mLinkStats);
     }
 
     /** Implement the Parcelable interface */
@@ -894,7 +894,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
                     in.createTypedArray(RadioStats.CREATOR),
                     in.readInt(), in.readBoolean(), in.readBoolean(),
                     in.readBoolean(), in.readInt(), in.readInt(),
-                    in.readInt(), in.readBoolean(), in.createTypedSparseArray(LinkStats.CREATOR)
+                    in.readInt(), in.readBoolean(),
+                    in.readSparseArray(LinkStats.class.getClassLoader())
             );
         }
 
