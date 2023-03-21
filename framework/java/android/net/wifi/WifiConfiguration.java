@@ -3296,6 +3296,7 @@ public class WifiConfiguration implements Parcelable {
                 .append(" SubscriptionId: ").append(this.subscriptionId)
                 .append(" SubscriptionGroup: ").append(this.mSubscriptionGroup)
                 .append(" Currently Connected: ").append(this.isCurrentlyConnected)
+                .append(" User Selected: ").append(this.mIsUserSelected)
                 .append('\n');
 
 
@@ -3983,6 +3984,7 @@ public class WifiConfiguration implements Parcelable {
             mDppCSignKey = source.mDppCSignKey.clone();
             mDppNetAccessKey = source.mDppNetAccessKey.clone();
             isCurrentlyConnected = source.isCurrentlyConnected;
+            mIsUserSelected = source.mIsUserSelected;
             mHasPreSharedKeyChanged = source.hasPreSharedKeyChanged();
             mEncryptedPreSharedKey = source.mEncryptedPreSharedKey != null
                     ? source.mEncryptedPreSharedKey.clone() : new byte[0];
@@ -4081,6 +4083,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeByteArray(mDppCSignKey);
         dest.writeByteArray(mDppNetAccessKey);
         dest.writeBoolean(isCurrentlyConnected);
+        dest.writeBoolean(mIsUserSelected);
         dest.writeBoolean(mHasPreSharedKeyChanged);
         dest.writeByteArray(mEncryptedPreSharedKey);
         dest.writeByteArray(mEncryptedPreSharedKeyIv);
@@ -4191,6 +4194,7 @@ public class WifiConfiguration implements Parcelable {
                     config.mDppNetAccessKey = new byte[0];
                 }
                 config.isCurrentlyConnected = in.readBoolean();
+                config.mIsUserSelected = in.readBoolean();
                 config.mHasPreSharedKeyChanged = in.readBoolean();
                 config.mEncryptedPreSharedKey = in.createByteArray();
                 if (config.mEncryptedPreSharedKey == null) {
@@ -4248,6 +4252,24 @@ public class WifiConfiguration implements Parcelable {
      * @hide
      */
     public boolean isCurrentlyConnected = false;
+
+    private boolean mIsUserSelected = false;
+
+    /**
+     * Sets whether the network is connected by user selection or not.
+     * @hide
+     */
+    public boolean setIsUserSelected(boolean isUserSelected) {
+        return mIsUserSelected = isUserSelected;
+    }
+
+    /**
+     * Whether the network is connected by user selection or not.
+     * @hide
+     */
+    public boolean isUserSelected() {
+        return mIsUserSelected;
+    }
 
     /**
      * Whether the key mgmt indicates if the WifiConfiguration needs a preSharedKey or not.
