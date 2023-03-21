@@ -117,6 +117,7 @@ public class WifiConfigurationTest {
         config.carrierId = 1189;
         config.restricted = true;
         config.isCurrentlyConnected = true;
+        config.setIsUserSelected(true);
         config.setSubscriptionGroup(ParcelUuid.fromString("0000110B-0000-1000-8000-00805F9B34FB"));
         config.getNetworkSelectionStatus().setDisableTime(12333);
         config.getNetworkSelectionStatus().setDisableEndTime(45666);
@@ -147,6 +148,7 @@ public class WifiConfigurationTest {
         assertEquals(config.getSubscriptionGroup(), reconfig.getSubscriptionGroup());
         assertTrue(reconfig.restricted);
         assertTrue(reconfig.isCurrentlyConnected);
+        assertTrue(reconfig.isUserSelected());
         assertEquals(config.getBssidAllowlist(), reconfig.getBssidAllowlist());
         assertEquals(
                 SecurityParams.createSecurityParamsBySecurityType(
@@ -182,6 +184,7 @@ public class WifiConfigurationTest {
         config.carrierId = 1189;
         config.restricted = true;
         config.isCurrentlyConnected = true;
+        config.setIsUserSelected(true);
 
         WifiConfiguration reconfig = new WifiConfiguration(config);
 
@@ -198,6 +201,7 @@ public class WifiConfigurationTest {
         assertEquals(config.subscriptionId, reconfig.subscriptionId);
         assertTrue(reconfig.restricted);
         assertTrue(reconfig.isCurrentlyConnected);
+        assertTrue(reconfig.isUserSelected());
     }
 
     @Test
