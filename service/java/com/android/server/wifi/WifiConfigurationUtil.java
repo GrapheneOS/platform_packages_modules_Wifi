@@ -315,6 +315,10 @@ public class WifiConfigurationUtil {
             if (newEnterpriseConfig.getOcsp() != existingEnterpriseConfig.getOcsp()) {
                 return true;
             }
+            if (!TextUtils.equals(newEnterpriseConfig.getDomainSuffixMatch(),
+                    existingEnterpriseConfig.getDomainSuffixMatch())) {
+                return true;
+            }
         } else {
             // One of the configs may have an enterpriseConfig
             if (existingEnterpriseConfig != null || newEnterpriseConfig != null) {

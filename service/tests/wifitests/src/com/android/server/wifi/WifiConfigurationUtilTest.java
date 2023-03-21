@@ -1228,6 +1228,21 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Verify WifiEnterpriseConfig Domain changes are detected.
+     */
+    @Test
+    public void testDomainNameChangesDetected() {
+        EnterpriseConfig eapConfig1 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TLS);
+        eapConfig1.enterpriseConfig.setDomainSuffixMatch("wlan.android.com");
+
+        EnterpriseConfig eapConfig2 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TTLS);
+        eapConfig1.enterpriseConfig.setDomainSuffixMatch("wifi.android.com");
+
+        assertTrue(WifiConfigurationUtil.hasEnterpriseConfigChanged(eapConfig1.enterpriseConfig,
+                eapConfig2.enterpriseConfig));
+    }
+
+    /**
      * Verify WifiEnterpriseConfig subject match changes are detected.
      */
     @Test
