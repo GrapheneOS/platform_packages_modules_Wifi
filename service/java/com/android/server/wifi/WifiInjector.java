@@ -417,7 +417,7 @@ public class WifiInjector {
         mWifiNetworkSelector = new WifiNetworkSelector(mContext, mWifiScoreCard, mScoringParams,
                 mWifiConfigManager, mClock, mConnectivityLocalLog, mWifiMetrics, this,
                 mThroughputPredictor, mWifiChannelUtilizationScan, mWifiGlobals,
-                mScanRequestProxy);
+                mScanRequestProxy, mWifiNative);
         CompatibilityScorer compatibilityScorer = new CompatibilityScorer(mScoringParams);
         mWifiNetworkSelector.registerCandidateScorer(compatibilityScorer);
         ScoreCardBasedScorer scoreCardBasedScorer = new ScoreCardBasedScorer(mScoringParams);
