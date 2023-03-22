@@ -21,7 +21,7 @@ import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
-import android.compat.Compatibility;
+import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
 import android.net.MacAddress;
@@ -901,7 +901,7 @@ public final class SoftApConfiguration implements Parcelable {
      */
     @SystemApi
     public long getShutdownTimeoutMillis() {
-        if (!Compatibility.isChangeEnabled(
+        if (!CompatChanges.isChangeEnabled(
                 REMOVE_ZERO_FOR_TIMEOUT_SETTING) && mShutdownTimeoutMillis == DEFAULT_TIMEOUT) {
             // For legacy application, return 0 when setting is DEFAULT_TIMEOUT.
             return 0;
@@ -1341,14 +1341,14 @@ public final class SoftApConfiguration implements Parcelable {
             }
 
             // mMacRandomizationSetting supported from S.
-            if (SdkLevel.isAtLeastS() && Compatibility.isChangeEnabled(
+            if (SdkLevel.isAtLeastS() && CompatChanges.isChangeEnabled(
                     FORCE_MUTUAL_EXCLUSIVE_BSSID_MAC_RAMDONIZATION_SETTING)
                     && mBssid != null && mMacRandomizationSetting != RANDOMIZATION_NONE) {
                 throw new IllegalArgumentException("A BSSID had configured but MAC randomization"
                         + " setting is not NONE");
             }
 
-            if (!Compatibility.isChangeEnabled(
+            if (!CompatChanges.isChangeEnabled(
                     REMOVE_ZERO_FOR_TIMEOUT_SETTING) && mShutdownTimeoutMillis == DEFAULT_TIMEOUT) {
                 mShutdownTimeoutMillis = 0; // Use 0 for legacy app.
             }
@@ -1827,7 +1827,7 @@ public final class SoftApConfiguration implements Parcelable {
          */
         @NonNull
         public Builder setShutdownTimeoutMillis(@IntRange(from = -1) long timeoutMillis) {
-            if (Compatibility.isChangeEnabled(
+            if (CompatChanges.isChangeEnabled(
                     REMOVE_ZERO_FOR_TIMEOUT_SETTING) && timeoutMillis < 1) {
                 if (timeoutMillis != DEFAULT_TIMEOUT) {
                     throw new IllegalArgumentException("Invalid timeout value: " + timeoutMillis);

@@ -22,7 +22,7 @@ import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_SAE;
 import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION;
 
 import android.annotation.NonNull;
-import android.compat.Compatibility;
+import android.app.compat.CompatChanges;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -305,7 +305,7 @@ public class WifiApConfigStore {
         if (mContext.getResources().getBoolean(
                 R.bool.config_wifiSoftapResetAutoShutdownTimerConfig)
                 && config.getShutdownTimeoutMillis() > 0) {
-            if (Compatibility.isChangeEnabled(
+            if (CompatChanges.isChangeEnabled(
                     SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)) {
                 configBuilder.setShutdownTimeoutMillis(SoftApConfiguration.DEFAULT_TIMEOUT);
             } else {

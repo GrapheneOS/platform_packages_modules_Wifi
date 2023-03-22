@@ -25,7 +25,7 @@ import static com.android.server.wifi.util.ApConfigUtil.SUCCESS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.compat.Compatibility;
+import android.app.compat.CompatChanges;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -313,7 +313,7 @@ public class SoftApManager implements ActiveModeManager {
         // Compatibility check is used for unit test only since the SoftApManager is created by
         // the unit test thread (not the system_server) when running unit test. In other cases,
         // the SoftApManager would run in system server(i.e. always bypasses the app compat check).
-        if (Compatibility.isChangeEnabled(SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)
+        if (CompatChanges.isChangeEnabled(SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)
                 && newShutdownTimeoutMillis == 0) {
             newShutdownTimeoutMillis = SoftApConfiguration.DEFAULT_TIMEOUT;
         }
