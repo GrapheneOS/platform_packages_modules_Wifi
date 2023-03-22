@@ -229,7 +229,11 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
     }
 
     private int calculateThroughputBonusScore(Candidate candidate) {
-        int throughput = candidate.getPredictedThroughputMbps();
+        int throughput =
+                candidate.isMultiLinkCapable() && (candidate.getPredictedMultiLinkThroughputMbps()
+                        > candidate.getPredictedThroughputMbps())
+                        ? candidate.getPredictedMultiLinkThroughputMbps()
+                        : candidate.getPredictedThroughputMbps();
         int throughputUpTo800Mbps = Math.min(800, throughput);
         int throughputMoreThan800Mbps = Math.max(0, throughput - 800);
 
