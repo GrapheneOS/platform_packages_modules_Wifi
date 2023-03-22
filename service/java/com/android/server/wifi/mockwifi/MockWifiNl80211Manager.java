@@ -22,6 +22,7 @@ import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiMonitor;
 
 import java.util.HashSet;
@@ -42,12 +43,14 @@ public class MockWifiNl80211Manager {
             WifiMonitor wifiMonitor) {
         mContext = context;
         mWifiMonitor = wifiMonitor;
-        mMockWifiNl80211Manager = new WifiNl80211Manager(mContext, wificondBinder);
-        for (String ifaceName : mWifiMonitor.getMonitoredIfaceNames()) {
-            Log.i(TAG, "Mock setupInterfaceForClientMode for iface: " + ifaceName);
-            mMockWifiNl80211Manager.setupInterfaceForClientMode(ifaceName, Runnable::run,
-                    new NormalScanEventCallback(ifaceName),
-                    new PnoScanEventCallback(ifaceName));
+        if (SdkLevel.isAtLeastU()) {
+            mMockWifiNl80211Manager = new WifiNl80211Manager(mContext, wificondBinder);
+            for (String ifaceName : mWifiMonitor.getMonitoredIfaceNames()) {
+                Log.i(TAG, "Mock setupInterfaceForClientMode for iface: " + ifaceName);
+                mMockWifiNl80211Manager.setupInterfaceForClientMode(ifaceName, Runnable::run,
+                        new NormalScanEventCallback(ifaceName),
+                        new PnoScanEventCallback(ifaceName));
+            }
         }
     }
 

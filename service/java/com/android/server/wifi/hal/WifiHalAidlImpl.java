@@ -365,8 +365,12 @@ public class WifiHalAidlImpl implements IWifiHal {
     @VisibleForTesting
     protected android.hardware.wifi.IWifi getWifiServiceMockable() {
         try {
-            return android.hardware.wifi.IWifi.Stub.asInterface(
-                    ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+            if (SdkLevel.isAtLeastU()) {
+                return android.hardware.wifi.IWifi.Stub.asInterface(
+                        ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+            } else {
+                return null;
+            }
         } catch (Exception e) {
             Log.e(TAG, "Unable to get IWifi service, " + e);
             return null;
