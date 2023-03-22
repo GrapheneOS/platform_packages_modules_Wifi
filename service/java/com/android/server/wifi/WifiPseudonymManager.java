@@ -420,6 +420,13 @@ public final class WifiPseudonymManager {
              */
             mWifiHandler.removeMessages(mCarrierId);
 
+            if (!mWifiInjector.getWifiCarrierInfoManager()
+                    .isOobPseudonymFeatureEnabled(mCarrierId)) {
+                vlogd("do nothing, OOB Pseudonym feature is not enabled for carrier: "
+                        + mCarrierId);
+                return;
+            }
+
             int subId = mWifiInjector.getWifiCarrierInfoManager().getMatchingSubId(mCarrierId);
             if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
                 Log.e(TAG, "RetrieveRunnable: " + mCarrierId + ": subId is invalid. Exit.");

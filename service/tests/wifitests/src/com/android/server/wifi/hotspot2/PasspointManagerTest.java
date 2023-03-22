@@ -81,6 +81,7 @@ import android.util.Pair;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.FakeKeys;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.MacAddressUtil;
@@ -220,6 +221,7 @@ public class PasspointManagerTest extends WifiBaseTest {
     @Mock WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     @Mock MacAddressUtil mMacAddressUtil;
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
 
     Handler mHandler;
     TestLooper mLooper;
@@ -245,6 +247,7 @@ public class PasspointManagerTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mObjectFactory.makeAnqpCache(mClock)).thenReturn(mAnqpCache);
         when(mObjectFactory.makeANQPRequestManager(any(), eq(mClock)))
                 .thenReturn(mAnqpRequestManager);
