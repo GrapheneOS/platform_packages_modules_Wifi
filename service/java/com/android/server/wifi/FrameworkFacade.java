@@ -47,6 +47,7 @@ import android.telephony.CarrierConfigManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.wifi.resources.R;
 
 import java.util.List;
@@ -239,11 +240,11 @@ public class FrameworkFacade {
     }
 
     public long getTxBytes(String iface) {
-        return TrafficStats.getTxBytes(iface);
+        return SdkLevel.isAtLeastS() ? TrafficStats.getTxBytes(iface) : 0;
     }
 
     public long getRxBytes(String iface) {
-        return TrafficStats.getRxBytes(iface);
+        return SdkLevel.isAtLeastS() ? TrafficStats.getRxBytes(iface) : 0;
     }
 
     /**
@@ -389,6 +390,9 @@ public class FrameworkFacade {
      * Returns grant string for a given KeyChain alias or null if key not granted.
      */
     public String getWifiKeyGrantAsUser(Context context, UserHandle user, String alias) {
+        if (!SdkLevel.isAtLeastS()) {
+            return null;
+        }
         return KeyChain.getWifiKeyGrantAsUser(context, user, alias);
     }
 
