@@ -2883,7 +2883,7 @@ public class SupplicantStaIfaceHalHidlImpl implements ISupplicantStaIfaceHal {
         String macAddressStr = getMacAddress(ifaceName);
         try {
             if (!mPmkCacheManager.add(MacAddress.fromString(macAddressStr),
-                    networkId, expirationTimeInSec, serializedEntry)) {
+                    networkId, null, expirationTimeInSec, serializedEntry)) {
                 Log.w(TAG, "Cannot add PMK cache for " + ifaceName);
             }
         } catch (IllegalArgumentException ex) {

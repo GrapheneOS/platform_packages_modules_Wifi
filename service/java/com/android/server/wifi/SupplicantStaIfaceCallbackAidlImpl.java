@@ -633,7 +633,6 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
 
     @Override
     public void onPmkSaCacheAdded(PmkSaCacheData pmkSaData) {
-        // TODO(b/260042356) : Add PMKSA entry with BSSID as a key
         handlePmkSaCacheAddedEvent(pmkSaData.bssid, pmkSaData.expirationTimeInSec,
                 pmkSaData.serializedEntry);
     }
@@ -651,10 +650,10 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             return;
         }
 
-        mStaIfaceHal.addPmkCacheEntry(mIfaceName, curConfig.networkId, expirationTimeInSec,
+        mStaIfaceHal.addPmkCacheEntry(mIfaceName, curConfig.networkId, bssid, expirationTimeInSec,
                 NativeUtil.byteArrayToArrayList(serializedEntry));
         mStaIfaceHal.logCallback(
-                "onPmkCacheAdded: update pmk cache for config id "
+                "handlePmkSaCacheAddedEvent: update pmk cache for config id "
                         + curConfig.networkId + " on " + mIfaceName);
     }
 
