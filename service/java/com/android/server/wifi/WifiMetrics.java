@@ -1922,7 +1922,7 @@ public class WifiMetrics {
                 } else if (WifiConfigurationUtil.isConfigForPskNetwork(config)) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_WPA2;
-                } else if (WifiConfigurationUtil.isConfigForEapNetwork(config)) {
+                } else if (WifiConfigurationUtil.isConfigForEnterpriseNetwork(config)) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_EAP;
                 } else if (WifiConfigurationUtil.isConfigForOweNetwork(config)) {

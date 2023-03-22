@@ -302,7 +302,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                             mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
                             mCurrentSsid, MacAddress.fromBytes(bssid));
                 } else if (mStateBeforeDisconnect == StaIfaceCallbackState.ASSOCIATED
-                        && WifiConfigurationUtil.isConfigForEapNetwork(curConfiguration)) {
+                        && WifiConfigurationUtil.isConfigForEnterpriseNetwork(curConfiguration)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
                             mIfaceName, WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, -1,
                             mCurrentSsid, MacAddress.fromBytes(bssid));
