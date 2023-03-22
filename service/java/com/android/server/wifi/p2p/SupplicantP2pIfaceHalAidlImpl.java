@@ -309,8 +309,12 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     protected ISupplicant getSupplicantMockable() {
         synchronized (mLock) {
             try {
-                return ISupplicant.Stub.asInterface(
-                        ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+                if (SdkLevel.isAtLeastT()) {
+                    return ISupplicant.Stub.asInterface(
+                            ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+                } else {
+                    return null;
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Unable to get ISupplicant service, " + e);
                 return null;

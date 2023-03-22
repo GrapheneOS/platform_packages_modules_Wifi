@@ -18,7 +18,7 @@ package com.android.server.wifi.util;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.compat.Compatibility;
+import android.app.compat.CompatChanges;
 import android.net.InetAddresses;
 import android.net.IpConfiguration;
 import android.net.IpConfiguration.IpAssignment;
@@ -2210,7 +2210,7 @@ public class XmlUtil {
                                     shutDownMillis = (long) value;
                                 }
                                 if (shutDownMillis == 0
-                                        && Compatibility.isChangeEnabled(
+                                        && CompatChanges.isChangeEnabled(
                                         SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)) {
                                     shutDownMillis = SoftApConfiguration.DEFAULT_TIMEOUT;
                                 }
