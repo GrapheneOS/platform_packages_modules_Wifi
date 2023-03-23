@@ -17,9 +17,12 @@
 package com.android.server.wifi;
 
 import static android.Manifest.permission.NETWORK_SETTINGS;
+import static android.app.BroadcastOptions.DEFERRAL_POLICY_UNTIL_ACTIVE;
+import static android.app.BroadcastOptions.DELIVERY_GROUP_POLICY_MOST_RECENT;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
+import android.app.BroadcastOptions;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -40,6 +43,7 @@ import android.net.wifi.WifiStringResourceWrapper;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.os.PersistableBundle;
@@ -448,7 +452,16 @@ public class WifiCarrierInfoManager {
                         case NOTIFICATION_USER_CLICKED_INTENT_ACTION:
                             sendImsiPrivacyConfirmationDialog(carrierName, carrierId);
                             // Collapse the notification bar
-                            mContext.sendBroadcast(new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+                            Bundle options = null;
+                            if (SdkLevel.isAtLeastU()) {
+                                options = BroadcastOptions.makeBasic()
+                                        .setDeliveryGroupPolicy(DELIVERY_GROUP_POLICY_MOST_RECENT)
+                                        .setDeferralPolicy(DEFERRAL_POLICY_UNTIL_ACTIVE)
+                                        .toBundle();
+                            }
+                            final Intent broadcast = new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                                    .addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+                            mContext.sendBroadcast(broadcast, null, options);
                             break;
                         case NOTIFICATION_USER_DISMISSED_INTENT_ACTION:
                             handleUserDismissAction();
