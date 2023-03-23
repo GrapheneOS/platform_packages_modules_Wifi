@@ -2447,7 +2447,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequenceV1_3();
         assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
 
-        verify(mPmkCacheManager, never()).add(any(), anyInt(), anyLong(), any());
+        verify(mPmkCacheManager, never()).add(any(), anyInt(), any(), anyLong(), any());
         verify(mSupplicantStaNetworkMock, never()).setPmkCache(any(ArrayList.class));
         verify(mISupplicantStaIfaceCallbackV13, never()).onPmkCacheAdded(
                 anyLong(), any(ArrayList.class));
