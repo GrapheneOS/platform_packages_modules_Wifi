@@ -8605,11 +8605,13 @@ public class ClientModeImplTest extends WifiBaseTest {
                             SupplicantState.ASSOCIATED));
             mLooper.dispatchAll();
 
-            mCmi.sendMessage(WifiMonitor.TOFU_ROOT_CA_CERTIFICATE,
-                    FRAMEWORK_NETWORK_ID, 0, FakeKeys.CA_CERT0);
+            CertificateEventInfo certificateEventInfo =
+                    spy(new CertificateEventInfo(FakeKeys.CA_CERT0, "1234"));
+            mCmi.sendMessage(WifiMonitor.TOFU_CERTIFICATE_EVENT,
+                    FRAMEWORK_NETWORK_ID, 0, certificateEventInfo);
             mLooper.dispatchAll();
             verify(mInsecureEapNetworkHandler).addPendingCertificate(
-                    eq(eapTlsConfig.SSID), eq(0), eq(FakeKeys.CA_CERT0));
+                    eq(eapTlsConfig.SSID), eq(0), eq(certificateEventInfo));
 
             // Adding a certificate in depth 0 will cause a disconnection when TOFU is supported
             DisconnectEventInfo disconnectEventInfo =
