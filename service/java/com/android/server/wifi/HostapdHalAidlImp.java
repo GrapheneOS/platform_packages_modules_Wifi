@@ -475,8 +475,11 @@ public class HostapdHalAidlImp implements IHostapdHal {
     @VisibleForTesting
     protected IHostapd getHostapdMockable() {
         synchronized (mLock) {
-            return IHostapd.Stub.asInterface(
-                    ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+            if (SdkLevel.isAtLeastT()) {
+                return IHostapd.Stub.asInterface(
+                        ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
+            }
+            return null;
         }
     }
 

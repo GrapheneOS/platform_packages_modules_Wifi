@@ -26,6 +26,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPOR
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.hardware.wifi.WifiStatusCode;
 import android.net.MacAddress;
 import android.net.TrafficStats;
@@ -196,6 +197,7 @@ public class WifiNative {
         }
     }
 
+    @SuppressLint("NewApi")
     private static class CountryCodeChangeListenerInternal implements
             WifiNl80211Manager.CountryCodeChangedListener {
         private WifiCountryCode.ChangeListener mListener;

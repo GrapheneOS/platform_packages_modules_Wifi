@@ -16,7 +16,7 @@
 
 package com.android.server.wifi;
 
-import android.compat.Compatibility;
+import android.app.compat.CompatChanges;
 import android.content.Context;
 import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
@@ -215,7 +215,7 @@ public class SoftApBackupRestore {
                 } else {
                     shutDownMillis = Long.valueOf(in.readInt());
                 }
-                if (shutDownMillis == 0 && Compatibility.isChangeEnabled(
+                if (shutDownMillis == 0 && CompatChanges.isChangeEnabled(
                         SoftApConfiguration.REMOVE_ZERO_FOR_TIMEOUT_SETTING)) {
                     shutDownMillis = SoftApConfiguration.DEFAULT_TIMEOUT;
                 }
