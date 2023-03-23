@@ -147,6 +147,14 @@ public class WifiScoreReportTest extends WifiBaseTest {
         @Override
         public void onSetScoreUpdateObserver(IScoreUpdateObserver observerImpl) {
         }
+        @Override
+        public void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, String targetBssid) {
+        }
+        @Override
+        public void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, String targetBssid) {
+        }
     }
 
     @Parameterized.Parameter(0)
@@ -1630,6 +1638,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
             assertEquals(60, ns.getLegacyInt());
             assertFalse(ns.isExiting());
             if (mIsPrimary) assertTrue(ns.isTransportPrimary());
+            verify(mWifiConnectivityManager).resetNetworkSwitchDialog();
         }
 
         mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(

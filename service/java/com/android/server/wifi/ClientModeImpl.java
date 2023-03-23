@@ -7929,6 +7929,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     @Override
+    public void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid) {
+        mWifiScoreReport.onNetworkSwitchAccepted(targetNetworkId, targetBssid);
+    }
+
+    @Override
+    public void onNetworkSwitchRejected(int targetNetworkId, String targetBssid) {
+        mWifiScoreReport.onNetworkSwitchRejected(targetNetworkId, targetBssid);
+    }
+
+    @Override
     public void sendMessageToClientModeImpl(Message msg) {
         sendMessage(msg);
     }
