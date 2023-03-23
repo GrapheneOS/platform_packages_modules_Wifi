@@ -30,6 +30,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     private int mNetworkConfigId = -1;
     private boolean mIsOpenNetwork;
     private boolean mIsCurrentNetwork;
+    private boolean mIsUserSelected;
     private boolean mIsCurrentBssid;
     private boolean mIsPasspoint;
     private boolean mIsEphemeral;
@@ -61,6 +62,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
         mNetworkConfigId = candidate.getNetworkConfigId();
         mIsOpenNetwork = candidate.isOpenNetwork();
         mIsCurrentNetwork = candidate.isCurrentNetwork();
+        mIsUserSelected = candidate.isUserSelected();
         mIsCurrentBssid = candidate.isCurrentBssid();
         mIsPasspoint = candidate.isPasspoint();
         mIsEphemeral = candidate.isEphemeral();
@@ -237,6 +239,11 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     @Override
     public boolean isCurrentNetwork() {
         return mIsCurrentNetwork;
+    }
+
+    @Override
+    public boolean isUserSelected() {
+        return mIsUserSelected;
     }
 
     public ConcreteCandidate setCurrentBssid(boolean isCurrentBssid) {

@@ -1427,6 +1427,16 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
+    public void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid) {
+        getClientMode().onNetworkSwitchAccepted(targetNetworkId, targetBssid);
+    }
+
+    @Override
+    public void onNetworkSwitchRejected(int targetNetworkId, String targetBssid) {
+        getClientMode().onNetworkSwitchRejected(targetNetworkId, targetBssid);
+    }
+
+    @Override
     public void resetSimAuthNetworks(@ClientModeImpl.ResetSimReason int resetReason) {
         getClientMode().resetSimAuthNetworks(resetReason);
     }

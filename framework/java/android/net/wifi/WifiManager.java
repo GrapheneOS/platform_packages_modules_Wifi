@@ -10014,6 +10014,33 @@ public class WifiManager {
             mExecutor.execute(() -> mScorer.onSetScoreUpdateObserver(
                     new ScoreUpdateObserverProxy(observerImpl)));
         }
+
+        @Override
+        public void onNetworkSwitchAccepted(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiConnectedNetworkScorer: onNetworkSwitchAccepted:"
+                        + " sessionId=" + sessionId
+                        + " targetNetworkId=" + targetNetworkId
+                        + " targetBssid=" + targetBssid);
+            }
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mScorer.onNetworkSwitchAccepted(
+                    sessionId, targetNetworkId, targetBssid));
+        }
+        @Override
+        public void onNetworkSwitchRejected(
+                int sessionId, int targetNetworkId, @NonNull String targetBssid) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiConnectedNetworkScorer: onNetworkSwitchRejected:"
+                                + " sessionId=" + sessionId
+                                + " targetNetworkId=" + targetNetworkId
+                                + " targetBssid=" + targetBssid);
+            }
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mScorer.onNetworkSwitchRejected(
+                    sessionId, targetNetworkId, targetBssid));
+        }
     }
 
     /**
