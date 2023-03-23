@@ -672,6 +672,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 WifiManager.WIFI_FREQUENCY_BAND_AUTO);
         when(mFrameworkFacade.getTxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_TX_BYTES);
         when(mFrameworkFacade.getRxBytes(eq(WIFI_IFACE_NAME))).thenReturn(TEST_RX_BYTES);
+        when(mFrameworkFacade.getTotalTxBytes()).thenReturn(TEST_TX_BYTES);
+        when(mFrameworkFacade.getTotalRxBytes()).thenReturn(TEST_RX_BYTES);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         doAnswer(inv -> {
             mIpClientCallback.onQuit();
@@ -1230,7 +1232,7 @@ public class ClientModeImplTest extends WifiBaseTest {
             });
         // Ensure the connection stats for the network is updated.
         verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
-                anyBoolean(), anyInt());
+                anyBoolean(), anyBoolean(), anyInt());
         verify(mWifiConfigManager).updateRandomizedMacExpireTime(any(), anyLong());
         verifyNetworkStateChangedBroadcast(times(1),
                 new NetworkStateChangedIntentMatcher(CONNECTED));
@@ -2864,7 +2866,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Test
     public void setHasEverConnectedTrueOnConnect() throws Exception {
         connect();
-        verify(mWifiConfigManager, atLeastOnce()).updateNetworkAfterConnect(eq(0), eq(false),
+        verify(mWifiConfigManager, atLeastOnce()).updateNetworkAfterConnect(eq(0), eq(true),
+                eq(false),
                 anyInt());
     }
 
@@ -2877,7 +2880,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Test
     public void connectionFailureDoesNotSetHasEverConnectedTrue() throws Exception {
         testDhcpFailure();
-        verify(mWifiConfigManager, never()).updateNetworkAfterConnect(eq(0), eq(false), anyInt());
+        verify(mWifiConfigManager, never())
+                .updateNetworkAfterConnect(eq(0), eq(true), eq(false), anyInt());
     }
 
     @Test
@@ -5116,7 +5120,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         connect();
         verify(mWifiBlocklistMonitor).handleBssidConnectionSuccess(TEST_BSSID_STR, TEST_SSID);
-        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID), eq(false),
+        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
+                eq(false), eq(false),
                 anyInt());
     }
 
@@ -5129,7 +5134,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         connect();
         verify(mWifiBlocklistMonitor).handleBssidConnectionSuccess(TEST_BSSID_STR, TEST_SSID);
-        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID), eq(false),
+        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
+                eq(true), eq(false),
                 anyInt());
     }
 
@@ -5143,7 +5149,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mTestNetworkParams.hasEverConnected = true;
         connect();
         verify(mWifiBlocklistMonitor).handleBssidConnectionSuccess(TEST_BSSID_STR, TEST_SSID);
-        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID), eq(true),
+        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
+                eq(true), eq(true),
                 anyInt());
     }
 
@@ -5157,7 +5164,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mConnectedNetwork.ephemeral = true;
         connect();
         verify(mWifiBlocklistMonitor).handleBssidConnectionSuccess(TEST_BSSID_STR, TEST_SSID);
-        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID), eq(true),
+        verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
+                eq(true), eq(true),
                 anyInt());
     }
 

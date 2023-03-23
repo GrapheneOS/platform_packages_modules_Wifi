@@ -971,19 +971,22 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void logEventIfManagedNetwork(@Nullable WifiConfiguration config,
             @SupplicantEventCode int eventCode, MacAddress bssid, String reasonString) {
-        if (!SdkLevel.isAtLeastT() || config == null
-                || !mWifiPermissionsUtil.isAdmin(config.creatorUid, config.creatorName)) {
+        if (config == null || !mWifiPermissionsUtil
+                .isAdmin(config.creatorUid, config.creatorName)) {
             return;
         }
 
-        int numRedactedOctets = mContext.getResources()
-                .getInteger(R.integer.config_wifiNumMaskedBssidOctetsInSecurityLog);
-        String redactedBssid = ScanResultUtil.redactBssid(bssid, numRedactedOctets);
-        if (eventCode == SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED) {
-            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_DISCONNECTION, redactedBssid, reasonString);
-        } else {
-            SecurityLog.writeEvent(SecurityLog.TAG_WIFI_CONNECTION, redactedBssid,
-                    SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode), reasonString);
+        if (SdkLevel.isAtLeastT()) {
+            int numRedactedOctets = mContext.getResources()
+                    .getInteger(R.integer.config_wifiNumMaskedBssidOctetsInSecurityLog);
+            String redactedBssid = ScanResultUtil.redactBssid(bssid, numRedactedOctets);
+            if (eventCode == SupplicantStaIfaceHal.SUPPLICANT_EVENT_DISCONNECTED) {
+                SecurityLog.writeEvent(SecurityLog.TAG_WIFI_DISCONNECTION, redactedBssid,
+                        reasonString);
+            } else {
+                SecurityLog.writeEvent(SecurityLog.TAG_WIFI_CONNECTION, redactedBssid,
+                        SupplicantStaIfaceHal.supplicantEventCodeToString(eventCode), reasonString);
+            }
         }
     }
 
@@ -1767,7 +1770,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiConfigManager.removeOnNetworkUpdateListener(mOnNetworkUpdateListener);
         mWifiCarrierInfoManager
                 .removeOnCarrierOffloadDisabledListener(mOnCarrierOffloadDisabledListener);
-        if (mVcnPolicyChangeListener != null) {
+        if (mVcnPolicyChangeListener != null && SdkLevel.isAtLeastS()) {
             mVcnManager.removeVcnNetworkPolicyChangeListener(mVcnPolicyChangeListener);
             mVcnPolicyChangeListener = null;
         }
@@ -3940,7 +3943,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mVcnManager == null && SdkLevel.isAtLeastS()) {
             mVcnManager = mContext.getSystemService(VcnManager.class);
         }
-        if (mVcnManager != null && mVcnPolicyChangeListener == null) {
+        if (mVcnManager != null && mVcnPolicyChangeListener == null && SdkLevel.isAtLeastS()) {
             mVcnPolicyChangeListener = new WifiVcnNetworkPolicyChangeListener();
             mVcnManager.addVcnNetworkPolicyChangeListener(new HandlerExecutor(getHandler()),
                     mVcnPolicyChangeListener);
@@ -4177,7 +4180,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     || config.isEphemeral())
                     && mWifiPermissionsUtil.checkNetworkSettingsPermission(config.lastConnectUid);
             mWifiConfigManager.updateNetworkAfterConnect(mLastNetworkId,
-                    shouldSetUserConnectChoice, mWifiInfo.getRssi());
+                    mIsUserSelected, shouldSetUserConnectChoice, mWifiInfo.getRssi());
             // Notify PasspointManager of Passpoint network connected event.
             WifiConfiguration currentNetwork = getConnectedWifiConfigurationInternal();
             if (currentNetwork != null && currentNetwork.isPasspoint()) {
@@ -4958,7 +4961,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         updateLinkBandwidth(builder);
         final NetworkCapabilities networkCapabilities = builder.build();
-        if (mVcnManager == null || !currentWifiConfiguration.carrierMerged) {
+        if (mVcnManager == null || !currentWifiConfiguration.carrierMerged
+                || !SdkLevel.isAtLeastS()) {
             return networkCapabilities;
         }
         final VcnNetworkPolicyResult vcnNetworkPolicy =
@@ -6484,8 +6488,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
          */
         private WifiLinkLayerStats updateLinkLayerStatsRssiDataStallScoreReport() {
             // Get Info and continue polling
-            long txBytes = mFacade.getTxBytes(mInterfaceName);
-            long rxBytes = mFacade.getRxBytes(mInterfaceName);
+            long txBytes;
+            long rxBytes;
+            if (SdkLevel.isAtLeastS()) {
+                txBytes = mFacade.getTxBytes(mInterfaceName);
+                rxBytes = mFacade.getRxBytes(mInterfaceName);
+            } else {
+                txBytes = mFacade.getTotalTxBytes() - mFacade.getMobileTxBytes();
+                rxBytes = mFacade.getTotalRxBytes() - mFacade.getMobileRxBytes();
+            }
             WifiLinkLayerStats stats = updateLinkLayerStatsRssiSpeedFrequencyCapabilities(txBytes,
                     rxBytes);
             mWifiMetrics.updateWifiUsabilityStatsEntries(mInterfaceName, mWifiInfo, stats);
@@ -8084,6 +8095,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      * WifiNetworkAgent. These policies are used to restart Networks or update their
      * NetworkCapabilities.
      */
+    @SuppressLint("NewApi")
     private class WifiVcnNetworkPolicyChangeListener
             implements VcnManager.VcnNetworkPolicyChangeListener {
         @Override
