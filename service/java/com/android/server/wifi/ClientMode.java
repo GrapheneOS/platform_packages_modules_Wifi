@@ -96,6 +96,16 @@ public interface ClientMode {
 
     void clearWifiConnectedNetworkScorer();
 
+    /**
+     * Notify the connected network scorer of the user accepting a network switch.
+     */
+    void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid);
+
+    /**
+     * Notify the connected network scorer of the user rejecting a network switch.
+     */
+    void onNetworkSwitchRejected(int targetNetworkId, String targetBssid);
+
     void resetSimAuthNetworks(@ClientModeImpl.ResetSimReason int resetReason);
 
     /**

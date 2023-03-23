@@ -143,6 +143,10 @@ public class WifiCandidates {
          */
         double getLastSelectionWeight();
         /**
+         * Returns true if the network was selected by the user.
+         */
+        boolean isUserSelected();
+        /**
          * Gets the scan RSSI.
          */
         int getScanRssi();
@@ -211,6 +215,7 @@ public class WifiCandidates {
         private final int mChannelWidth;
         private final double mLastSelectionWeight;
         private final WifiScoreCard.PerBssid mPerBssid; // For accessing the scorecard entry
+        private final boolean mIsUserSelected;
         private final boolean mIsCurrentNetwork;
         private final boolean mIsCurrentBssid;
         private final boolean mIsMetered;
@@ -236,6 +241,7 @@ public class WifiCandidates {
                 int frequency,
                 int channelWidth,
                 double lastSelectionWeight,
+                boolean isUserSelected,
                 boolean isCurrentNetwork,
                 boolean isCurrentBssid,
                 boolean isMetered,
@@ -249,6 +255,7 @@ public class WifiCandidates {
             this.mChannelWidth = channelWidth;
             this.mPerBssid = perBssid;
             this.mLastSelectionWeight = lastSelectionWeight;
+            this.mIsUserSelected = isUserSelected;
             this.mIsCurrentNetwork = isCurrentNetwork;
             this.mIsCurrentBssid = isCurrentBssid;
             this.mIsMetered = isMetered;
@@ -347,6 +354,11 @@ public class WifiCandidates {
         @Override
         public double getLastSelectionWeight() {
             return mLastSelectionWeight;
+        }
+
+        @Override
+        public boolean isUserSelected() {
+            return mIsUserSelected;
         }
 
         @Override
@@ -665,6 +677,7 @@ public class WifiCandidates {
                 frequency,
                 channelWidth,
                 Math.min(Math.max(lastSelectionWeightBetweenZeroAndOne, 0.0), 1.0),
+                config.isUserSelected(),
                 config.networkId == mCurrentNetworkId,
                 key.bssid.equals(mCurrentBssid),
                 isMetered,
