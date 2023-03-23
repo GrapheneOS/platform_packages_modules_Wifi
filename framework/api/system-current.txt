@@ -66,14 +66,14 @@ package android.net.wifi {
   public static final class QosPolicyParams.Builder {
     ctor public QosPolicyParams.Builder(@IntRange(from=1, to=255) int, int);
     method @NonNull public android.net.wifi.QosPolicyParams build();
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationAddress(@NonNull java.net.InetAddress);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationAddress(@Nullable java.net.InetAddress);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPort(@IntRange(from=android.net.wifi.QosPolicyParams.DESTINATION_PORT_ANY, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDestinationPortRange(@IntRange(from=0, to=65535) int, @IntRange(from=0, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setDscp(@IntRange(from=android.net.wifi.QosPolicyParams.DSCP_ANY, to=63) int);
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setFlowLabel(@NonNull byte[]);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setFlowLabel(@Nullable byte[]);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setIpVersion(int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setProtocol(int);
-    method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourceAddress(@NonNull java.net.InetAddress);
+    method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourceAddress(@Nullable java.net.InetAddress);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setSourcePort(@IntRange(from=android.net.DscpPolicy.SOURCE_PORT_ANY, to=65535) int);
     method @NonNull public android.net.wifi.QosPolicyParams.Builder setUserPriority(int);
   }
