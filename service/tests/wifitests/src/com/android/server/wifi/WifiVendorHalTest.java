@@ -1748,11 +1748,12 @@ public class WifiVendorHalTest extends WifiBaseTest {
     public void testGetChipCapabilities() throws Exception {
         WifiChip.WifiChipCapabilities wifiChipCapabilities = new WifiChip.WifiChipCapabilities(3, 2,
                 5);
-        assertTrue(mWifiVendorHal.startVendorHalSta());
-        // Positive test case.
         when(mHalDeviceManager.getChip(any(WifiHal.WifiInterface.class))).thenReturn(mWifiChip);
         when(mWifiChip.getId()).thenReturn(2);
         when(mWifiChip.getWifiChipCapabilities()).thenReturn(wifiChipCapabilities);
+        // Start vendor hal and create sta interface.
+        assertTrue(mWifiVendorHal.startVendorHalSta());
+        // Positive test case.
         assertEquals(2, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
         assertEquals(3, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
         assertEquals(5, mWifiVendorHal.getMaxSupportedConcurrentTdlsSessions(TEST_IFACE_NAME));
