@@ -62,6 +62,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.os.BuildCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -255,6 +256,13 @@ public class WifiDialogActivity extends Activity  {
     protected void onStop() {
         super.onStop();
         if (!isChangingConfigurations()) {
+            if (!BuildCompat.isAtLeastU()) {
+                // Before U, we don't have INTERNAL_SYSTEM_WINDOW permission to always show at the
+                // top, so close all dialogs when we're not visible anymore.
+                for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+                    mActiveDialogsPerId.get(i).cancel();
+                }
+            }
             return;
         }
         // If we're stopping due to a configuration change, dismiss all the dialogs without
@@ -378,7 +386,9 @@ public class WifiDialogActivity extends Activity  {
         if (mGravity != Gravity.NO_GRAVITY) {
             dialog.getWindow().setGravity(mGravity);
         }
-        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG);
+        if (BuildCompat.isAtLeastU()) {
+            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG);
+        }
         mActiveDialogsPerId.put(dialogId, dialog);
         long timeoutMs = intent.getLongExtra(WifiManager.EXTRA_DIALOG_TIMEOUT_MS, 0);
         if (timeoutMs > 0) {
