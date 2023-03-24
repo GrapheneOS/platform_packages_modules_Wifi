@@ -2492,14 +2492,14 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    protected void addPmkCacheEntry(
-            String ifaceName, int networkId,
+    protected void addPmkCacheEntry(String ifaceName, int networkId, byte[/* 6 */] bssid,
             long expirationTimeInSec, ArrayList<Byte> serializedEntry) {
         synchronized (mLock) {
             String macAddressStr = getMacAddress(ifaceName);
             try {
-                if (!mPmkCacheManager.add(MacAddress.fromString(macAddressStr),
-                        networkId, expirationTimeInSec, serializedEntry)) {
+                MacAddress bssAddr = bssid != null ? MacAddress.fromBytes(bssid) : null;
+                if (!mPmkCacheManager.add(MacAddress.fromString(macAddressStr), networkId,
+                        bssAddr, expirationTimeInSec, serializedEntry)) {
                     Log.w(TAG, "Cannot add PMK cache for " + ifaceName);
                 }
             } catch (IllegalArgumentException ex) {

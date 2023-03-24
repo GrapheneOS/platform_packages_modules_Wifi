@@ -296,6 +296,13 @@ public class WifiCountryCode {
     }
 
     /**
+     * Unregister Country code changed listener.
+     */
+    public void unregisterListener(@NonNull ChangeListener listener) {
+        mListeners.remove(listener);
+    }
+
+    /**
      * Enable verbose logging for WifiCountryCode.
      */
     public void enableVerboseLogging(boolean verbose) {

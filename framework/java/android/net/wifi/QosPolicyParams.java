@@ -649,8 +649,7 @@ public final class QosPolicyParams implements Parcelable {
         /**
          * Specifies that this policy matches packets with the provided source IP address.
          */
-        public @NonNull Builder setSourceAddress(@NonNull InetAddress value) {
-            Objects.requireNonNull(value, "Source IP address cannot be null");
+        public @NonNull Builder setSourceAddress(@Nullable InetAddress value) {
             mSrcIp = value;
             return this;
         }
@@ -658,8 +657,7 @@ public final class QosPolicyParams implements Parcelable {
         /**
          * Specifies that this policy matches packets with the provided destination IP address.
          */
-        public @NonNull Builder setDestinationAddress(@NonNull InetAddress value) {
-            Objects.requireNonNull(value, "Destination IP address cannot be null");
+        public @NonNull Builder setDestinationAddress(@Nullable InetAddress value) {
             mDstIp = value;
             return this;
         }
@@ -733,8 +731,7 @@ public final class QosPolicyParams implements Parcelable {
          * Specifies that this policy matches packets with the provided flow label.
          * Only applicable to downlink requests using IPv6.
          */
-        public @NonNull Builder setFlowLabel(@NonNull byte[] value) {
-            Objects.requireNonNull(value, "Flow label cannot be null");
+        public @NonNull Builder setFlowLabel(@Nullable byte[] value) {
             mFlowLabel = value;
             return this;
         }
