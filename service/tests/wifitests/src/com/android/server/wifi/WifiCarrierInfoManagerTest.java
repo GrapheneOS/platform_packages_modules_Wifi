@@ -1987,7 +1987,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onNegativeButtonClicked();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        verify(mContext).sendBroadcast(intentCaptor.capture());
+        verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
         assertEquals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS, intentCaptor.getValue().getAction());
         verify(mWifiConfigManager).saveToStore(true);
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());
@@ -2027,7 +2027,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onCancelled();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        verify(mContext).sendBroadcast(intentCaptor.capture());
+        verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
         assertEquals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS, intentCaptor.getValue().getAction());
 
         // As user dismissed the notification, there will be a certain time to delay the next
@@ -2076,7 +2076,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                 any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onPositiveButtonClicked();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        verify(mContext).sendBroadcast(intentCaptor.capture());
+        verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
         assertEquals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS, intentCaptor.getValue().getAction());
         verify(mWifiConfigManager).saveToStore(true);
         assertTrue(mCarrierInfoDataSource.hasNewDataToSerialize());

@@ -3170,7 +3170,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
          */
         List<String> affiliatedBssids = new ArrayList<>();
         for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
-            if (!Objects.equals(mWifiInfo.getBSSID(), link.getApMacAddress().toString())) {
+            if (link.getApMacAddress() != null && !Objects.equals(mWifiInfo.getBSSID(),
+                    link.getApMacAddress().toString())) {
                 affiliatedBssids.add(link.getApMacAddress().toString());
             }
         }
@@ -7926,6 +7927,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @Override
     public void clearWifiConnectedNetworkScorer() {
         mWifiScoreReport.clearWifiConnectedNetworkScorer();
+    }
+
+    @Override
+    public void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid) {
+        mWifiScoreReport.onNetworkSwitchAccepted(targetNetworkId, targetBssid);
+    }
+
+    @Override
+    public void onNetworkSwitchRejected(int targetNetworkId, String targetBssid) {
+        mWifiScoreReport.onNetworkSwitchRejected(targetNetworkId, targetBssid);
     }
 
     @Override
