@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 import static org.junit.Assume.assumeTrue;
 
@@ -169,5 +170,32 @@ public class ApplicationQosPolicyTrackingTableTest {
         mDut.removePolicies(policyIds, TEST_UID);
         statusList = mDut.addPolicies(policyList, TEST_UID);
         verifyStatusList(statusList, WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
+    }
+
+    /**
+     * Tests the {@link ApplicationQosPolicyTrackingTable#filterUntrackedPolicies(List, int)}
+     * method.
+     */
+    @Test
+    public void testFilterUntrackedPolicies() {
+        List<QosPolicyParams> policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START);
+        List<Integer> statusList = mDut.addPolicies(policyList, TEST_UID);
+        verifyStatusList(statusList, WifiManager.QOS_REQUEST_STATUS_TRACKING);
+
+        // Successful case.
+        List<QosPolicyParams> filteredPolicyList =
+                mDut.filterUntrackedPolicies(policyList, TEST_UID);
+        assertTrue(policyList.equals(filteredPolicyList));
+
+        // Policies belong to a different UID.
+        filteredPolicyList = mDut.filterUntrackedPolicies(policyList, TEST_UID + 1);
+        assertTrue(filteredPolicyList.isEmpty());
+
+        // Policies are not in the table.
+        policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START + NUM_VIRTUAL_POLICY_IDS);
+        filteredPolicyList = mDut.filterUntrackedPolicies(policyList, TEST_UID);
+        assertTrue(filteredPolicyList.isEmpty());
     }
 }

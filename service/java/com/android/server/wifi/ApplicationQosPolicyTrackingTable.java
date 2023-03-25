@@ -123,4 +123,23 @@ public class ApplicationQosPolicyTrackingTable {
             mPolicyHashToPolicyMap.remove(policyHash);
         }
     }
+
+    /**
+     * Given a list of policies, filter out any polices that are not tracked by the table.
+     *
+     * @param policyList List of policies to filter.
+     * @param uid UID of the requesting application.
+     * @return Filtered list of policies, containing only the policies that are in the table.
+     */
+    public List<QosPolicyParams> filterUntrackedPolicies(
+            List<QosPolicyParams> policyList, int uid) {
+        List<QosPolicyParams> trackedPolicies = new ArrayList<>();
+        for (QosPolicyParams policy : policyList) {
+            long policyHash = combinePolicyIdAndUid(policy.getPolicyId(), uid);
+            if (mPolicyHashToPolicyMap.containsKey(policyHash)) {
+                trackedPolicies.add(policy);
+            }
+        }
+        return trackedPolicies;
+    }
 }
