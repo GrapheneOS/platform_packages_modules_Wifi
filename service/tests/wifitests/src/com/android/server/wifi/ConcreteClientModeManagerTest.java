@@ -1550,6 +1550,12 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         mClientModeManager.setWifiConnectedNetworkScorer(iBinder, iScorer);
         verify(mClientModeImpl, times(2)).setWifiConnectedNetworkScorer(iBinder, iScorer);
+
+        mClientModeManager.onNetworkSwitchAccepted(1, "macAddress");
+        verify(mClientModeImpl).onNetworkSwitchAccepted(1, "macAddress");
+
+        mClientModeManager.onNetworkSwitchRejected(1, "macAddress");
+        verify(mClientModeImpl).onNetworkSwitchRejected(1, "macAddress");
     }
 
     @Test

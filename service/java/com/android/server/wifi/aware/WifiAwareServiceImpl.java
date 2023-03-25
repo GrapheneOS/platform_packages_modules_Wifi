@@ -244,6 +244,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     @Override
     public void resetPairedDevices(String callingPackage) {
         int uid = getMockableCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
         mStateManager.resetPairedDevices(callingPackage);
     }
@@ -251,6 +252,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     @Override
     public void removePairedDevice(String callingPackage, String alias) {
         int uid = getMockableCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
         mStateManager.removePairedDevice(callingPackage, alias);
     }
@@ -260,13 +262,16 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
+        int uid = getMockableCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceAccessPermission();
         mStateManager.getPairedDevices(callingPackage, listener);
     }
 
     @Override
     public void setOpportunisticModeEnabled(String callingPackage, boolean enabled) {
-
+        int uid = getMockableCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
         mStateManager.setOpportunisticPackage(callingPackage, enabled);
     }
@@ -277,6 +282,8 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
+        int uid = getMockableCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceAccessPermission();
         mStateManager.isOpportunistic(callingPackage, listener);
     }
