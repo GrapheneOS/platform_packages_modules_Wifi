@@ -105,7 +105,6 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -119,6 +118,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Unit tests for {@link com.android.server.wifi.WifiConfigManager}.
@@ -7707,8 +7708,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
 
         X509Certificate mockServerCert = mock(X509Certificate.class);
-        Principal mockSubjectDn = mock(Principal.class);
-        when(mockServerCert.getSubjectDN()).thenReturn(mockSubjectDn);
+        X500Principal mockSubjectDn = mock(X500Principal.class);
+        when(mockServerCert.getSubjectX500Principal()).thenReturn(mockSubjectDn);
         when(mockSubjectDn.getName()).thenReturn(
                 "C=TW,ST=Taiwan,L=Taipei,O=Google,CN=mockServerCert");
 
@@ -7733,9 +7734,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE), true);
 
         X509Certificate mockServerCert = mock(X509Certificate.class);
-        Principal mockSubjectDn = mock(Principal.class);
-        when(mockServerCert.getSubjectDN()).thenReturn(mockSubjectDn);
-        when(mockSubjectDn.getName()).thenReturn(
+        X500Principal mockSubjectPrincipal = mock(X500Principal.class);
+        when(mockServerCert.getSubjectX500Principal()).thenReturn(mockSubjectPrincipal);
+        when(mockSubjectPrincipal.getName()).thenReturn(
                 "C=TW,ST=Taiwan,L=Taipei,O=Google,CN=mockServerCert");
         List<List<?>> altNames = new ArrayList<>();
         // DNS name 1 with type 2
@@ -7789,9 +7790,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         // No valid subject
         X509Certificate mockServerCert = mock(X509Certificate.class);
-        Principal mockSubjectDn = mock(Principal.class);
-        when(mockServerCert.getSubjectDN()).thenReturn(mockSubjectDn);
-        when(mockSubjectDn.getName()).thenReturn("");
+        X500Principal mockSubjectPrincipal = mock(X500Principal.class);
+        when(mockServerCert.getSubjectX500Principal()).thenReturn(mockSubjectPrincipal);
+        when(mockSubjectPrincipal.getName()).thenReturn("");
         assertFalse(mWifiConfigManager.updateCaCertificate(eapPeapNetId, FakeKeys.CA_CERT0,
                 mockServerCert));
     }
