@@ -4190,7 +4190,7 @@ public class WifiConfigManager {
             return false;
         }
         CertificateSubjectInfo serverCertInfo = CertificateSubjectInfo.parse(
-                serverCert.getSubjectDN().getName());
+                serverCert.getSubjectX500Principal().getName());
         if (null == serverCertInfo) {
             Log.e(TAG, "Invalid Server CA cert subject");
             return false;
