@@ -392,16 +392,18 @@ public class WifiConnectivityManager {
 
         List<WifiCandidates.Candidate> secondaryCmmCandidates;
         if (mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed()) {
-            // Any candidate has different band with primary will be considered.
-            // As a BSSID can not exist in both bands it will not choose the same BSSID as primary.
+            // Only allow the candidates have different band with primary and not belong to
+            // MLO affiliated links.
             secondaryCmmCandidates = candidates.stream().filter(
-                    c -> ScanResult.toBand(c.getFrequency()) != primaryBand)
-                .collect(Collectors.toList());
+                    c -> ScanResult.toBand(c.getFrequency()) != primaryBand
+                            && !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid)).collect(
+                    Collectors.toList());
         } else {
             // Only allow the candidates have the same SSID as the primary.
             secondaryCmmCandidates = candidates.stream().filter(c -> {
                 return ScanResult.toBand(c.getFrequency()) != primaryBand
-                        && TextUtils.equals(c.getKey().matchInfo.networkSsid, primaryInfo.getSSID())
+                        && !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid) && TextUtils.equals(
+                        c.getKey().matchInfo.networkSsid, primaryInfo.getSSID())
                         && c.getKey().networkId == primaryInfo.getNetworkId()
                         && c.getKey().securityType == primaryInfo.getCurrentSecurityType();
             }).collect(Collectors.toList());
