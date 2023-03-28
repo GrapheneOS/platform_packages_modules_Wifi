@@ -27,12 +27,14 @@ import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiApIfaceTest {
+public class WifiApIfaceTest extends WifiBaseTest {
     // HAL mocks
     @Mock android.hardware.wifi.V1_0.IWifiApIface mIWifiApIfaceHidlMock;
     @Mock android.hardware.wifi.IWifiApIface mIWifiApIfaceAidlMock;

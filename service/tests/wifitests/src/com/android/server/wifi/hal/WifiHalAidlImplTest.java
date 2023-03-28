@@ -35,6 +35,7 @@ import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiHalAidlImplTest {
+public class WifiHalAidlImplTest extends WifiBaseTest {
     private WifiHalAidlImpl mDut;
 
     @Mock private IWifi mIWifiMock;

@@ -33,6 +33,8 @@ import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.net.MacAddress;
 import android.os.RemoteException;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -40,7 +42,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 
-public class WifiApIfaceHidlImplTest {
+public class WifiApIfaceHidlImplTest extends WifiBaseTest {
     private static final String TEST_IFACE_NAME = "wlan1";
     private static final MacAddress TEST_MAC_ADDRESS = MacAddress.fromString("ee:33:a2:94:10:92");
 

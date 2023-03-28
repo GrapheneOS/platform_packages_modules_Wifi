@@ -56,7 +56,7 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class QosPolicyRequestHandlerTest {
+public class QosPolicyRequestHandlerTest extends WifiBaseTest{
     private static final String TEST_IFACE_NAME = "mockWlan";
     private static final byte[] TEST_INET_ADDR = {127, 0, 0, 1};
     private static final int QOS_REQUEST_DIALOG_TOKEN = 124;

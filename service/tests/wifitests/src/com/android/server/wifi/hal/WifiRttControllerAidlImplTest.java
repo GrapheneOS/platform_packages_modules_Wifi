@@ -42,6 +42,7 @@ import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.ResponderConfig;
 
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.rtt.RttTestUtils;
 
 import org.hamcrest.core.IsNull;
@@ -56,7 +57,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WifiRttControllerAidlImplTest {
+public class WifiRttControllerAidlImplTest extends WifiBaseTest {
     private WifiRttControllerAidlImpl mDut;
     @Mock private IWifiRttController mIWifiRttControllerMock;
     @Mock private WifiRttController.RttControllerRangingResultsCallback mRangingResultsCallbackMock;
