@@ -28,13 +28,14 @@ import android.annotation.NonNull;
 import android.content.Context;
 
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiHalTest {
+public class WifiHalTest extends WifiBaseTest {
     // Framework HIDL/AIDL implementation mocks
     @Mock WifiHalHidlImpl mWifiHalHidlImplMock;
     @Mock WifiHalAidlImpl mWifiHalAidlImplMock;

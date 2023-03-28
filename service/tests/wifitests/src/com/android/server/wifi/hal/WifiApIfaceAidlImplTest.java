@@ -27,12 +27,14 @@ import android.hardware.wifi.WifiStatusCode;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiApIfaceAidlImplTest {
+public class WifiApIfaceAidlImplTest extends WifiBaseTest {
     private WifiApIfaceAidlImpl mDut;
     @Mock private IWifiApIface mIWifiApIfaceMock;
 
