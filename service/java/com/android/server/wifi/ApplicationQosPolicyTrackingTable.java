@@ -153,6 +153,29 @@ public class ApplicationQosPolicyTrackingTable {
     }
 
     /**
+     * Translate a list of physical policy IDs to virtual.
+     *
+     * Method should be considered best-effort. Any policies in the batch
+     * that are not found will be silently excluded from the returned list.
+     *
+     * @param policyIds List of policy IDs to translate.
+     * @param uid UID of the requesting application.
+     * @return List of virtual policy IDs.
+     */
+    public List<Integer> translatePolicyIds(List<Integer> policyIds, int uid) {
+        List<Integer> virtualPolicyIds = new ArrayList<>();
+        for (int policyId : policyIds) {
+            long policyHash = combinePolicyIdAndUid(policyId, uid);
+            QosPolicyParams policy = mPolicyHashToPolicyMap.get(policyHash);
+            if (policy == null) {
+                continue;
+            }
+            virtualPolicyIds.add(policy.getTranslatedPolicyId());
+        }
+        return virtualPolicyIds;
+    }
+
+    /**
      * Dump information about the internal state.
      *
      * @param pw PrintWriter to write the dump to.

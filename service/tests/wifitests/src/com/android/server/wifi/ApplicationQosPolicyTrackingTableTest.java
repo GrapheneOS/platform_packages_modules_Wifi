@@ -67,6 +67,14 @@ public class ApplicationQosPolicyTrackingTableTest {
         return policyIds;
     }
 
+    private List<Integer> getVirtualPolicyIdsFromPolicyList(List<QosPolicyParams> policyList) {
+        List<Integer> policyIds = new ArrayList<>();
+        for (QosPolicyParams policy : policyList) {
+            policyIds.add(policy.getTranslatedPolicyId());
+        }
+        return policyIds;
+    }
+
     private void verifyStatusList(List<Integer> statusList,
             @WifiManager.QosRequestStatus int expectedStatus) {
         for (int status : statusList) {
@@ -197,5 +205,42 @@ public class ApplicationQosPolicyTrackingTableTest {
                 NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START + NUM_VIRTUAL_POLICY_IDS);
         filteredPolicyList = mDut.filterUntrackedPolicies(policyList, TEST_UID);
         assertTrue(filteredPolicyList.isEmpty());
+    }
+
+    /**
+     * Tests that policy IDs can be translated successfully to virtual IDs.
+     */
+    @Test
+    public void testTranslatePolicyIdsSuccess() {
+        List<QosPolicyParams> policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START);
+        mDut.addPolicies(policyList, TEST_UID);
+
+        List<Integer> policyIds = getPolicyIdsFromPolicyList(policyList);
+        List<Integer> expectedVirtualPolicyIds = getVirtualPolicyIdsFromPolicyList(policyList);
+        List<Integer> virtualPolicyIds = mDut.translatePolicyIds(policyIds, TEST_UID);
+        assertTrue(expectedVirtualPolicyIds.equals(virtualPolicyIds));
+    }
+
+    /**
+     * Tests that invalid policy IDs are not translated to virtual IDs.
+     */
+    @Test
+    public void testTranslatePolicyIdsFail_invalidPolicies() {
+        List<QosPolicyParams> policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START);
+        mDut.addPolicies(policyList, TEST_UID);
+        List<Integer> policyIds = getPolicyIdsFromPolicyList(policyList);
+
+        // Policies belong to a different UID.
+        List<Integer> virtualPolicyIds = mDut.translatePolicyIds(policyIds, TEST_UID + 1);
+        assertTrue(virtualPolicyIds.isEmpty());
+
+        // Non-existent policy IDs.
+        for (int i = 0; i < policyIds.size(); i++) {
+            policyIds.set(i, policyIds.get(i) + NUM_VIRTUAL_POLICY_IDS);
+        }
+        virtualPolicyIds = mDut.translatePolicyIds(policyIds, TEST_UID);
+        assertTrue(virtualPolicyIds.isEmpty());
     }
 }

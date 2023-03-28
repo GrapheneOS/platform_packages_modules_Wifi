@@ -71,19 +71,25 @@ public class ApplicationQosPolicyRequestHandler {
     private @interface RequestType {}
 
     private static class QueuedRequest {
+        // Initial state.
         public final @RequestType int requestType;
         public final @Nullable List<QosPolicyParams> policiesToAdd;
+        public final @Nullable List<Integer> policyIdsToRemove;
         public final @NonNull ApplicationCallback callback;
         public final int requesterUid;
 
+        // Set during processing.
         public boolean processedOnAnyIface;
         public @Nullable List<Integer> initialStatusList;
+        public @Nullable List<Byte> virtualPolicyIdsToRemove;
 
         QueuedRequest(@RequestType int inRequestType,
                 @Nullable List<QosPolicyParams> inPoliciesToAdd,
+                @Nullable List<Integer> inPolicyIdsToRemove,
                 @Nullable IListListener inListener, int inRequesterUid) {
             requestType = inRequestType;
             policiesToAdd = inPoliciesToAdd;
+            policyIdsToRemove = inPolicyIdsToRemove;
             callback = new ApplicationCallback(inListener);
             requesterUid = inRequesterUid;
             processedOnAnyIface = false;
@@ -93,10 +99,12 @@ public class ApplicationQosPolicyRequestHandler {
         public String toString() {
             return "{requestType: " + requestType + ", "
                     + "policiesToAdd: " + policiesToAdd + ", "
+                    + "policyIdsToRemove: " + policyIdsToRemove + ", "
                     + "callback: " + callback + ", "
                     + "requesterUid: " + requesterUid + ", "
                     + "processedOnAnyIface: " + processedOnAnyIface + ", "
-                    + "initialStatusList: " + initialStatusList + "}";
+                    + "initialStatusList: " + initialStatusList + ", "
+                    + "virtualPolicyIdsToRemove: " + virtualPolicyIdsToRemove + "}";
         }
     }
 
@@ -221,7 +229,19 @@ public class ApplicationQosPolicyRequestHandler {
      */
     public void queueAddRequest(@NonNull List<QosPolicyParams> policies,
             @NonNull IListListener listener, int uid) {
-        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_ADD, policies, listener, uid);
+        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_ADD, policies, null, listener, uid);
+        queueRequestOnAllIfaces(request);
+        processNextRequestOnAllIfacesIfPossible();
+    }
+
+    /**
+     * Request to remove a list of existing QoS policies.
+     *
+     * @param policyIds List of integer policy IDs.
+     * @param uid UID of the requesting application.
+     */
+    public void queueRemoveRequest(@NonNull List<Integer> policyIds, int uid) {
+        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_REMOVE, null, policyIds, null, uid);
         queueRequestOnAllIfaces(request);
         processNextRequestOnAllIfacesIfPossible();
     }
@@ -236,8 +256,7 @@ public class ApplicationQosPolicyRequestHandler {
             return;
         }
 
-        // Pre-process add requests by adding policies to the tracking table
-        // and assigning virtual policy IDs.
+        // Pre-process each request before queueing.
         if (request.requestType == REQUEST_TYPE_ADD) {
             List<Integer> statusList = mPolicyTrackingTable.addPolicies(
                     request.policiesToAdd, request.requesterUid);
@@ -250,6 +269,20 @@ public class ApplicationQosPolicyRequestHandler {
                 return;
             }
             request.initialStatusList = statusList;
+        } else if (request.requestType == REQUEST_TYPE_REMOVE) {
+            List<Integer> virtualPolicyIds = mPolicyTrackingTable.translatePolicyIds(
+                    request.policyIdsToRemove, request.requesterUid);
+            if (virtualPolicyIds.isEmpty()) {
+                // None of these policies are being tracked by the table.
+                return;
+            }
+            mPolicyTrackingTable.removePolicies(request.policyIdsToRemove, request.requesterUid);
+
+            List<Byte> virtualPolicyIdBytes = new ArrayList<>();
+            for (int policyId : virtualPolicyIds) {
+                virtualPolicyIdBytes.add((byte) policyId);
+            }
+            request.virtualPolicyIdsToRemove = virtualPolicyIdBytes;
         }
 
         for (ClientModeManager cmm : clientModeManagers) {
@@ -280,8 +313,10 @@ public class ApplicationQosPolicyRequestHandler {
         mPerIfaceRequestQueue.get(ifaceName).remove(0);
         if (request.requestType == REQUEST_TYPE_ADD) {
             processAddRequest(ifaceName, request);
+        } else if (request.requestType == REQUEST_TYPE_REMOVE) {
+            processRemoveRequest(ifaceName, request);
         }
-        // TODO: Handle remove and removeAll requests.
+        // TODO: Handle removeAll requests.
     }
 
     /**
@@ -323,14 +358,6 @@ public class ApplicationQosPolicyRequestHandler {
             return;
         }
 
-        // Policies that were sent to the AP expect a response from the callback.
-        List<Byte> policiesAwaitingCallback = new ArrayList<>();
-        for (SupplicantStaIfaceHal.QosPolicyStatus status : halStatusList) {
-            if (status.statusCode == SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT) {
-                policiesAwaitingCallback.add((byte) status.policyId);
-            }
-        }
-
         // Send the status list to the requesting application.
         // Should only be done the first time that a request is processed.
         if (!previouslyProcessed) {
@@ -339,11 +366,46 @@ public class ApplicationQosPolicyRequestHandler {
             request.callback.sendResult(statusList);
         }
 
+        // Policies that were sent to the AP expect a response from the callback.
+        List<Byte> policiesAwaitingCallback = getPoliciesAwaitingCallback(halStatusList);
         if (policiesAwaitingCallback.isEmpty()) {
             processNextRequestIfPossible(ifaceName);
         } else {
             mPendingCallbacks.put(ifaceName, new CallbackParams(policiesAwaitingCallback));
         }
+    }
+
+    private void processRemoveRequest(String ifaceName, QueuedRequest request) {
+        List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList =
+                mWifiNative.removeQosPolicyForScs(ifaceName, request.virtualPolicyIdsToRemove);
+        if (halStatusList == null) {
+            processNextRequestIfPossible(ifaceName);
+            return;
+        }
+
+        // Policies that were sent to the AP expect a response from the callback.
+        List<Byte> policiesAwaitingCallback = getPoliciesAwaitingCallback(halStatusList);
+        if (policiesAwaitingCallback.isEmpty()) {
+            processNextRequestIfPossible(ifaceName);
+        } else {
+            mPendingCallbacks.put(ifaceName, new CallbackParams(policiesAwaitingCallback));
+        }
+    }
+
+    /**
+     * Get the list of policy IDs that are expected in the AP callback.
+     *
+     * Any policies that were sent to the AP will appear in the list.
+     */
+    private static List<Byte> getPoliciesAwaitingCallback(
+            List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
+        List<Byte> policiesAwaitingCallback = new ArrayList<>();
+        for (SupplicantStaIfaceHal.QosPolicyStatus status : halStatusList) {
+            if (status.statusCode == SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT) {
+                policiesAwaitingCallback.add((byte) status.policyId);
+            }
+        }
+        return policiesAwaitingCallback;
     }
 
     private static @WifiManager.QosRequestStatus int halToWifiManagerSyncStatus(
