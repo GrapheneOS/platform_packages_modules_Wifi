@@ -15,6 +15,8 @@
  */
 package com.android.server.wifi.p2p;
 
+import static com.android.net.module.util.Inet4AddressUtils.intToInet4AddressHTL;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
+import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
 import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
 import android.hardware.wifi.supplicant.P2pProvDiscStatusCode;
 import android.hardware.wifi.supplicant.P2pStatusCode;
@@ -412,6 +415,9 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
         String fakeSsidString = "0123";
         HashSet<String> passwords = new HashSet<>();
         byte[] fakeMacAddress = new byte[] {0x40, 0x41, 0x42, 0x43, 0x44, 0x45};
+        int ipAddressClient = 0xc831a8c0;
+        int ipAddressGo = 0x0131a8c0;
+        int ipAddressMask = 0x00ffffff;
 
         doAnswer(new AnswerWithArguments() {
             public void answer(String iface, WifiP2pGroup group) {
@@ -423,19 +429,33 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
                 assertEquals(group.getInterface(), fakeName);
                 assertEquals(group.getNetworkName(), fakeSsidString);
                 assertEquals(group.interfaceAddress, fakeMacAddress);
+                if (!group.isGroupOwner()) {
+                    assertEquals(group.p2pClientEapolIpInfo.mIpAddressClient,
+                            intToInet4AddressHTL(ipAddressClient));
+                    assertEquals(group.p2pClientEapolIpInfo.mIpAddressGo,
+                            intToInet4AddressHTL(ipAddressGo));
+                    assertEquals(group.p2pClientEapolIpInfo.mIpAddressMask,
+                            intToInet4AddressHTL(ipAddressMask));
+                }
             }
         }).when(mMonitor).broadcastP2pGroupStarted(
                 anyString(), any(WifiP2pGroup.class));
 
         P2pGroupStartedEventParams params1 = new P2pGroupStartedEventParams();
         params1.groupInterfaceName = fakeName;
-        params1.isGroupOwner = true;
+        params1.isGroupOwner = false;
         params1.ssid = fakeSsidBytesList;
         params1.frequencyMHz = 1;
         params1.passphrase = fakePassphrase;
         params1.goDeviceAddress = mDeviceAddress1Bytes;
         params1.goInterfaceAddress = fakeMacAddress;
         params1.isPersistent = true;
+        params1.isP2pClientEapolIpAddressInfoPresent = true;
+        params1.p2pClientIpInfo = new P2pClientEapolIpAddressInfo();
+        params1.p2pClientIpInfo.ipAddressClient = ipAddressClient;
+        params1.p2pClientIpInfo.ipAddressGo = ipAddressGo;
+        params1.p2pClientIpInfo.ipAddressMask = ipAddressMask;
+
         mDut.onGroupStartedWithParams(params1);
         assertTrue(passwords.contains(fakePassphrase));
 
