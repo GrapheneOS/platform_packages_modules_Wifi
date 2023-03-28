@@ -70,7 +70,7 @@ import java.util.Collections;
  * Unit test harness for InterfaceConflictManager.
  */
 @SmallTest
-public class InterfaceConflictManagerTest {
+public class InterfaceConflictManagerTest extends WifiBaseTest{
     private TestLooper mTestLooper;
     private InterfaceConflictManager mDut;
 

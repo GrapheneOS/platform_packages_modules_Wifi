@@ -29,13 +29,14 @@ import android.annotation.NonNull;
 import android.content.Context;
 
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiChipTest {
+public class WifiChipTest extends WifiBaseTest {
     // HAL mocks
     @Mock android.hardware.wifi.V1_0.IWifiChip mIWifiChipHidlMock;
     @Mock android.hardware.wifi.IWifiChip mIWifiChipAidlMock;
