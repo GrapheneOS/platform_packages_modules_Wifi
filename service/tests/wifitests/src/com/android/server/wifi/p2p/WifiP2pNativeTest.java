@@ -1041,4 +1041,18 @@ public class WifiP2pNativeTest extends WifiBaseTest {
         when(mHalDeviceManagerMock.is5g6gDbsSupportedOnP2pIface(any())).thenReturn(false);
         assertFalse(mWifiP2pNative.is5g6gDbsSupported());
     }
+
+    /**
+     * Test the EAPOL IpAddress Allocation configuration Parameters
+     */
+    @Test
+    public void testConfigureEapolIpAddressAllocationParamsSuccess() throws Exception {
+        when(mSupplicantP2pIfaceHalMock.configureEapolIpAddressAllocationParams(
+                anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+
+        assertTrue(mWifiP2pNative.configureEapolIpAddressAllocationParams(0x0101A8C0,
+                0x00FFFFFF, 0x0501A8C0, 0x0801A8C0));
+        verify(mSupplicantP2pIfaceHalMock).configureEapolIpAddressAllocationParams(eq(0x0101A8C0),
+                eq(0x00FFFFFF), eq(0x0501A8C0), eq(0x0801A8C0));
+    }
 }

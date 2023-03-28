@@ -792,4 +792,18 @@ public class SupplicantP2pIfaceHalTest {
         assertTrue(mDut.removeClient(BSSID, true));
         verify(mP2pIfaceHalAidlMock).removeClient(eq(BSSID), eq(true));
     }
+
+    /**
+     * Test that configureEapolIpAddressAllocationParams succeeds
+     */
+    @Test
+    public void testConfigureEapolIpAddressAllocationParamsSuccess() {
+        initializeWithAidlImpl(true);
+        when(mP2pIfaceHalAidlMock.configureEapolIpAddressAllocationParams(
+                anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+        assertTrue(mDut.configureEapolIpAddressAllocationParams(0x0101A8C0,
+                0x00FFFFFF, 0x0501A8C0, 0x0801A8C0));
+        verify(mP2pIfaceHalAidlMock).configureEapolIpAddressAllocationParams(eq(0x0101A8C0),
+                eq(0x00FFFFFF), eq(0x0501A8C0), eq(0x0801A8C0));
+    }
 }
