@@ -58,7 +58,7 @@ import java.util.Map;
  * which service (HIDL or AIDL) is available. Test the initialization logic and
  * verify that calls to all public methods are forwarded to the actual implementation.
  */
-public class SupplicantStaIfaceHalTest {
+public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     private SupplicantStaIfaceHalSpy mDut;
     private @Mock SupplicantStaIfaceHalHidlImpl mStaIfaceHalHidlMock;
     private @Mock SupplicantStaIfaceHalAidlImpl mStaIfaceHalAidlMock;

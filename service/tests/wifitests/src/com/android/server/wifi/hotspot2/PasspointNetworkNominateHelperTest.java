@@ -52,6 +52,7 @@ import androidx.test.filters.SmallTest;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.NetworkUpdateResult;
 import com.android.server.wifi.ScanDetail;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiCarrierInfoManager;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiConfigurationTestUtil;
@@ -77,7 +78,7 @@ import java.util.Map;
  * Unit tests for {@link PasspointNetworkNominateHelper}.
  */
 @SmallTest
-public class PasspointNetworkNominateHelperTest {
+public class PasspointNetworkNominateHelperTest extends WifiBaseTest {
     // TODO(b/140763176): should extend WifiBaseTest, but if it does then it fails with NPE
     private static final int TEST_NETWORK_ID = 1;
     private static final int TEST_NETWORK_ID2 = 2;

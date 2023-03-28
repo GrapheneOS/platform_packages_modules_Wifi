@@ -44,6 +44,7 @@ import android.os.ServiceSpecificException;
 
 import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
 
@@ -56,7 +57,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 import java.util.Random;
 
-public class WifiChipAidlImplTest {
+public class WifiChipAidlImplTest extends WifiBaseTest {
     private WifiChipAidlImpl mDut;
     @Mock private IWifiChip mIWifiChipMock;
     @Mock private Context mContextMock;

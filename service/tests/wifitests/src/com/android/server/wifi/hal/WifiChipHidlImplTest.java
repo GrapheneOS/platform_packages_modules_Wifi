@@ -51,6 +51,7 @@ import android.os.RemoteException;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SarInfo;
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
 import com.android.wifi.resources.R;
@@ -65,7 +66,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class WifiChipHidlImplTest {
+public class WifiChipHidlImplTest extends WifiBaseTest {
     private static final String TEST_IFACE_NAME = "wlan0";
 
     private WifiChipHidlImpl mDut;

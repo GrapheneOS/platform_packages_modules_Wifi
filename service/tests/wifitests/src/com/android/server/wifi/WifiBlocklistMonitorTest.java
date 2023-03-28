@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
  * Unit tests for {@link com.android.server.wifi.WifiBlocklistMonitor}.
  */
 @SmallTest
-public class WifiBlocklistMonitorTest {
+public class WifiBlocklistMonitorTest extends WifiBaseTest {
     private static final int TEST_NUM_MAX_FIRMWARE_SUPPORT_BSSIDS = 3;
     private static final int TEST_NUM_MAX_FIRMWARE_SUPPORT_SSIDS = 3;
     private static final String TEST_SSID_1 = "\"TestSSID1\"";

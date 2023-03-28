@@ -27,6 +27,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -37,7 +39,7 @@ import java.io.InputStream;
  * Unit tests for {@link StreamUtils}.
  */
 @SmallTest
-public class StreamUtilsTest {
+public class StreamUtilsTest extends WifiBaseTest {
     @Test
     public void inputStreamToString() throws Exception {
         String expectedString = "expected";
