@@ -19,6 +19,8 @@ package com.android.server.wifi.p2p;
 import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP;
 import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL;
 
+import static com.android.net.module.util.Inet4AddressUtils.inet4AddressToIntHTL;
+import static com.android.net.module.util.Inet4AddressUtils.netmaskToPrefixLength;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_DEVICE_NAME;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_PENDING_FACTORY_RESET;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
@@ -41,10 +43,12 @@ import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.DhcpResultsParcelable;
 import android.net.InetAddresses;
+import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.MacAddress;
 import android.net.NetworkInfo;
 import android.net.NetworkStack;
+import android.net.StaticIpConfiguration;
 import android.net.TetheringInterface;
 import android.net.TetheringManager;
 import android.net.TetheringManager.TetheringEventCallback;
@@ -415,6 +419,20 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
     private boolean mIsBootComplete;
 
+    // Constants for configuring P2P GO IP Address Allocation in EAPOL-Key Frames (4-Way Handshake)
+    // when device overlay config_wifiP2pGoIpAddressAllocationInEapolFrames is set to True
+    @VisibleForTesting
+    static final String GO_EAPOL_IP_ADDRESS = "192.168.49.1";
+    @VisibleForTesting
+    static final String GO_EAPOL_IP_SUBNET_MASK = "255.255.255.0";
+    // The default P2P GO IP address range reserved for IP assignment in EAPOL frame
+    // when device overlay config_wifiP2pGoEapolIpAddressRangeStart and
+    // config_wifiP2pGoEapolIpAddressRangeEnd is not configured in device overlay.
+    @VisibleForTesting
+    static final String GO_EAPOL_IP_RANGE_DEFAULT_START_ADDRESS = "192.168.49.128";
+    @VisibleForTesting
+    static final String GO_EAPOL_IP_RANGE_DEFAULT_END_ADDRESS = "192.168.49.254";
+
     /**
      * Error code definition.
      * see the Table.8 in the WiFi Direct specification for the detail.
@@ -730,23 +748,53 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     }
 
     private void startIpClient(String ifname, Handler smHandler,
-            int groupClientIpProvisioningMode) {
+            int groupClientIpProvisioningMode,
+            WifiP2pGroup.P2pGroupClientEapolIpAddressData p2pClientEapolIpInfo) {
         stopIpClient();
         mIpClientStartIndex++;
         IpClientUtil.makeIpClient(mContext, ifname, new IpClientCallbacksImpl(
-                mIpClientStartIndex, smHandler, groupClientIpProvisioningMode));
+                mIpClientStartIndex, smHandler, groupClientIpProvisioningMode,
+                p2pClientEapolIpInfo));
+    }
+
+    private StaticIpConfiguration makeStaticIpConfigurationFromEapolIpAddressInfo(
+            WifiP2pGroup.P2pGroupClientEapolIpAddressData p2pClientEapolIpInfo) {
+        try {
+            final Inet4Address addressGo = p2pClientEapolIpInfo.mIpAddressGo;
+            final Inet4Address addressClient = p2pClientEapolIpInfo.mIpAddressClient;
+            final Inet4Address addressMask = p2pClientEapolIpInfo.mIpAddressMask;
+            final LinkAddress linkAddressClient = new LinkAddress(addressClient,
+                    netmaskToPrefixLength(addressMask));
+
+            final StaticIpConfiguration staticIpConfig = new StaticIpConfiguration.Builder()
+                    .setIpAddress(linkAddressClient)
+                    .setGateway(addressGo).build();
+            if (mVerboseLoggingEnabled) {
+                Log.i(TAG, "IP Addresses obtained via EAPOL H/S - CLIENT: "
+                        + addressClient.getHostAddress()
+                        + ", GO: " + addressGo.getHostAddress() + " MASK: "
+                        + addressMask.getHostAddress());
+            }
+            return staticIpConfig;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to build EAPOL static IP configuration: " + e);
+            return null;
+        }
     }
 
     private class IpClientCallbacksImpl extends IpClientCallbacks {
         private final int mStartIndex;
         private final Handler mHandler;
         private final int mGroupClientIpProvisioningMode;
+        private WifiP2pGroup.P2pGroupClientEapolIpAddressData mP2pClientEapolIpInfo;
 
         private IpClientCallbacksImpl(int startIndex, Handler handler,
-                int groupClientIpProvisioningMode) {
+                int groupClientIpProvisioningMode,
+                WifiP2pGroup.P2pGroupClientEapolIpAddressData p2pClientEapolIpInfo) {
             mStartIndex = startIndex;
             mHandler = handler;
             mGroupClientIpProvisioningMode = groupClientIpProvisioningMode;
+            mP2pClientEapolIpInfo = p2pClientEapolIpInfo;
         }
 
         @Override
@@ -758,7 +806,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 }
                 mIpClient = ipClient;
 
-                ProvisioningConfiguration config;
+                ProvisioningConfiguration config = null;
                 switch (mGroupClientIpProvisioningMode) {
                     case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL:
                         config = new ProvisioningConfiguration.Builder()
@@ -771,11 +819,25 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     case GROUP_CLIENT_IP_PROVISIONING_MODE_IPV4_DHCP:
                     default:
                         // DHCP IPV4 by default.
-                        config = new ProvisioningConfiguration.Builder()
-                                .withoutIpReachabilityMonitor()
-                                .withPreDhcpAction(30 * 1000)
-                                .withProvisioningTimeoutMs(36 * 1000)
-                                .build();
+                        if (mP2pClientEapolIpInfo != null) {
+                            // Start provisioning with IP address received via EAPOL-Key exchange
+                            final StaticIpConfiguration staticIpConfig =
+                                    makeStaticIpConfigurationFromEapolIpAddressInfo(
+                                            mP2pClientEapolIpInfo);
+                            if (staticIpConfig != null) {
+                                config = new ProvisioningConfiguration.Builder()
+                                        .withoutIpReachabilityMonitor()
+                                        .withStaticConfiguration(staticIpConfig).build();
+                            }
+                        }
+                        if (config == null) {
+                            // start DHCP provisioning
+                            config = new ProvisioningConfiguration.Builder()
+                                    .withoutIpReachabilityMonitor()
+                                    .withPreDhcpAction(30 * 1000)
+                                    .withProvisioningTimeoutMs(36 * 1000)
+                                    .build();
+                        }
                 }
 
                 try {
@@ -3838,7 +3900,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
                         mWifiNative.setP2pGroupIdle(mGroup.getInterface(), GROUP_IDLE_TIME_S);
                         startIpClient(mGroup.getInterface(), getHandler(),
-                                mSavedPeerConfig.getGroupClientIpProvisioningMode());
+                                mSavedPeerConfig.getGroupClientIpProvisioningMode(),
+                                mGroup.p2pClientEapolIpInfo);
                         WifiP2pDevice groupOwner = mGroup.getOwner();
                         WifiP2pDevice peer = mPeers.get(groupOwner.deviceAddress);
                         if (peer != null) {
@@ -5790,6 +5853,47 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             return mWifiNative.setWfdR2DeviceInfo(wfdInfo.getR2DeviceInfoHex());
         }
 
+        private void configureEapolIpAddressAllocationParamsIfEnabled() {
+            if (!mContext.getResources()
+                    .getBoolean(R.bool.config_wifiP2pGoIpAddressAllocationInEapolFrames)) {
+                return;
+            }
+            try {
+                String ipAddressStart = mContext.getResources()
+                        .getString(R.string.config_wifiP2pGoEapolIpAddressRangeStart);
+                String ipAddressEnd = mContext.getResources()
+                        .getString(R.string.config_wifiP2pGoEapolIpAddressRangeEnd);
+                if (TextUtils.isEmpty(ipAddressStart) || TextUtils.isEmpty(ipAddressEnd)) {
+                    ipAddressStart = GO_EAPOL_IP_RANGE_DEFAULT_START_ADDRESS;
+                    ipAddressEnd = GO_EAPOL_IP_RANGE_DEFAULT_END_ADDRESS;
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.i(TAG, "EAPOL IP addresses range start: " + ipAddressStart
+                            + ", End: " + ipAddressEnd);
+                }
+
+                // Convert the IP from string format to int
+                InetAddress ipAddressGo = InetAddresses
+                        .parseNumericAddress(GO_EAPOL_IP_ADDRESS);
+                InetAddress subnetMask = InetAddresses.parseNumericAddress(
+                        GO_EAPOL_IP_SUBNET_MASK);
+                InetAddress ipAddressRangeStart =
+                        InetAddresses.parseNumericAddress(ipAddressStart);
+                InetAddress ipAddressRangeEnd =
+                        InetAddresses.parseNumericAddress(ipAddressEnd);
+                if (!mWifiNative.configureEapolIpAddressAllocationParams(
+                        inet4AddressToIntHTL((Inet4Address) ipAddressGo),
+                        inet4AddressToIntHTL((Inet4Address) subnetMask),
+                        inet4AddressToIntHTL((Inet4Address) ipAddressRangeStart),
+                        inet4AddressToIntHTL((Inet4Address) ipAddressRangeEnd))) {
+                    loge("Failed to configure EAPOL IP address params in the native service");
+                }
+            } catch (Exception e) {
+                loge("Failed to configure EAPOL IP address params " + e);
+            }
+
+        }
+
         private void initializeP2pSettings() {
             mThisDevice.deviceName = getPersistedDeviceName();
             mThisDevice.primaryDeviceType = mContext.getResources().getString(
@@ -5805,7 +5909,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             mThisDevice.deviceAddress = mWifiNative.p2pGetDeviceAddress();
             updateThisDevice(WifiP2pDevice.AVAILABLE);
-            if (mVerboseLoggingEnabled) logd("DeviceAddress: " + mThisDevice.deviceAddress);
             mWifiNative.p2pFlush();
             mWifiNative.p2pServiceFlush();
             mServiceTransactionId = 0;
@@ -5816,7 +5919,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
 
             updatePersistentNetworks(RELOAD);
+
+            configureEapolIpAddressAllocationParamsIfEnabled();
+
             enableVerboseLogging(mSettingsConfigStore.get(WIFI_VERBOSE_LOGGING_ENABLED));
+            if (mVerboseLoggingEnabled) {
+                logd("Initialized p2p settings - DeviceAddress: "
+                        + mThisDevice.deviceAddress);
+            }
         }
 
         private void updateThisDevice(int status) {
