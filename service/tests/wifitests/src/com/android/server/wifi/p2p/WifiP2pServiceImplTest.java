@@ -22,6 +22,7 @@ import static android.net.NetworkInfo.DetailedState.IDLE;
 import static android.net.wifi.WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
+import static com.android.net.module.util.Inet4AddressUtils.inet4AddressToIntHTL;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_DEVICE_NAME;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_PENDING_FACTORY_RESET;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
@@ -158,6 +159,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.Spy;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
@@ -1321,6 +1323,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 .thenReturn(P2P_EXT_LISTEN_INTERVAL_MS);
         when(mResources.getBoolean(R.bool
                 .config_p2pWaitForPeerInviteOnInviteStatusInfoUnavailable)).thenReturn(false);
+        when(mResources.getBoolean(R.bool
+                .config_wifiP2pGoIpAddressAllocationInEapolFrames)).thenReturn(false);
         when(mResources.getConfiguration()).thenReturn(mConfiguration);
         when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
         when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
@@ -7369,7 +7373,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     /**
      * Verify that p2p connect with Join existing group is set
      */
-    private void verifyP2pConnectWithJoinExistingGroupSet() throws Exception {
+    @Test
+    public void verifyP2pConnectWithJoinExistingGroupSet() throws Exception {
         forceP2pEnabled(mClient1);
         mockEnterProvisionDiscoveryState(mTestWifiP2pJoinExistingGroupConfig);
 
@@ -7384,5 +7389,40 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mWifiNative).p2pConnect(configCaptor.capture(), eq(true));
         WifiP2pConfig config = configCaptor.getValue();
         assertTrue(config.isJoinExistingGroup());
+    }
+
+    /**
+     * Verify that EAPOL IP Address allocation parameters are set
+     */
+    @Test
+    public void checkConfigureEapolIpAddressAllocationParams() throws Exception {
+        when(mResources.getBoolean(R.bool
+                .config_wifiP2pGoIpAddressAllocationInEapolFrames)).thenReturn(true);
+        forceP2pEnabled(mClient1);
+        InetAddress ipAddressGo = InetAddresses.parseNumericAddress(
+                WifiP2pServiceImpl.GO_EAPOL_IP_ADDRESS);
+        InetAddress subnetMask = InetAddresses.parseNumericAddress(
+                WifiP2pServiceImpl.GO_EAPOL_IP_SUBNET_MASK);
+        InetAddress ipAddressRangeStart = InetAddresses.parseNumericAddress(
+                WifiP2pServiceImpl.GO_EAPOL_IP_RANGE_DEFAULT_START_ADDRESS);
+        InetAddress ipAddressRangeEnd = InetAddresses.parseNumericAddress(
+                WifiP2pServiceImpl.GO_EAPOL_IP_RANGE_DEFAULT_END_ADDRESS);
+        verify(mWifiNative).configureEapolIpAddressAllocationParams(
+                eq(inet4AddressToIntHTL((Inet4Address) ipAddressGo)),
+                eq(inet4AddressToIntHTL((Inet4Address) subnetMask)),
+                eq(inet4AddressToIntHTL((Inet4Address) ipAddressRangeStart)),
+                eq(inet4AddressToIntHTL((Inet4Address) ipAddressRangeEnd)));
+    }
+
+    /**
+     * Verify that EAPOL IP Address allocation parameters are not configured when the feature is not
+     * enabled via overlay configuration item.
+     */
+    @Test
+    public void testConfigureEapolIpAddressAllocationParamsWhenConfigOverlayDisabled()
+            throws Exception {
+        forceP2pEnabled(mClient1);
+        verify(mWifiNative, never()).configureEapolIpAddressAllocationParams(anyInt(),
+                anyInt(), anyInt(), anyInt());
     }
 }
