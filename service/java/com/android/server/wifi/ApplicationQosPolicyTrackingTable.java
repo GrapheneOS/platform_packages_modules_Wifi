@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import android.net.wifi.QosPolicyParams;
 import android.net.wifi.WifiManager;
 
+import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,6 +64,14 @@ public class ApplicationQosPolicyTrackingTable {
     private static long combinePolicyIdAndUid(int policyId, int uid) {
         long shiftedPolicyId = Integer.toUnsignedLong(policyId) << 32;
         return shiftedPolicyId | Integer.toUnsignedLong(uid);
+    }
+
+    private static int getPolicyIdFromCombinedLong(long combined) {
+        return (int) (combined >> 32);
+    }
+
+    private static int getUidFromCombinedLong(long combined) {
+        return (int) (combined & 0xFFFFFFFF);
     }
 
     /**
@@ -141,5 +150,30 @@ public class ApplicationQosPolicyTrackingTable {
             }
         }
         return trackedPolicies;
+    }
+
+    /**
+     * Dump information about the internal state.
+     *
+     * @param pw PrintWriter to write the dump to.
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of ApplicationQosPolicyTrackingTable");
+        int numAvailableVirtualPolicyIds = mAvailableVirtualPolicyIds.size();
+        int numTrackedPolicies = mPolicyHashToPolicyMap.size();
+        pw.println("Total table size: " + (numAvailableVirtualPolicyIds + numTrackedPolicies));
+        pw.println("Num available virtual policy IDs: " + numAvailableVirtualPolicyIds);
+        pw.println("Num tracked policies: " + numTrackedPolicies);
+        pw.println();
+
+        pw.println("Available virtual policy IDs: " + mAvailableVirtualPolicyIds);
+        pw.println("Tracked policies:");
+        for (Map.Entry<Long, QosPolicyParams> entry : mPolicyHashToPolicyMap.entrySet()) {
+            long policyHash = entry.getKey();
+            pw.println("  Policy ID: " + getPolicyIdFromCombinedLong(policyHash));
+            pw.println("  Requester UID: " + getUidFromCombinedLong(policyHash));
+            pw.println(entry.getValue());
+        }
+        pw.println();
     }
 }

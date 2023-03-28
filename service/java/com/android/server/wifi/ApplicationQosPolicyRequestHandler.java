@@ -29,6 +29,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -87,6 +88,16 @@ public class ApplicationQosPolicyRequestHandler {
             requesterUid = inRequesterUid;
             processedOnAnyIface = false;
         }
+
+        @Override
+        public String toString() {
+            return "{requestType: " + requestType + ", "
+                    + "policiesToAdd: " + policiesToAdd + ", "
+                    + "callback: " + callback + ", "
+                    + "requesterUid: " + requesterUid + ", "
+                    + "processedOnAnyIface: " + processedOnAnyIface + ", "
+                    + "initialStatusList: " + initialStatusList + "}";
+        }
     }
 
     /**
@@ -124,6 +135,11 @@ public class ApplicationQosPolicyRequestHandler {
             }
             sendResult(statusList);
         }
+
+        @Override
+        public String toString() {
+            return mListener != null ? mListener.toString() : "null";
+        }
     }
 
     /**
@@ -144,6 +160,11 @@ public class ApplicationQosPolicyRequestHandler {
             }
             Collections.sort(resultPolicyIds);
             return policyIds.equals(resultPolicyIds);
+        }
+
+        @Override
+        public String toString() {
+            return "{policyIds: " + policyIds + "}";
         }
     }
 
@@ -394,5 +415,18 @@ public class ApplicationQosPolicyRequestHandler {
             mPolicyTrackingTable.removePolicies(rejectedPolicies, uid);
         }
         return statusList;
+    }
+
+    /**
+     * Dump information about the internal state.
+     *
+     * @param pw PrintWriter to write the dump to.
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of ApplicationQosPolicyRequestHandler");
+        pw.println("mPerIfaceRequestQueue: " + mPerIfaceRequestQueue);
+        pw.println("mPendingCallbacks: " + mPendingCallbacks);
+        pw.println();
+        mPolicyTrackingTable.dump(pw);
     }
 }
