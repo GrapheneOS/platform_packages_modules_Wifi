@@ -53,7 +53,7 @@ import java.util.Optional;
  * Unit tests for {@link WifiPseudonymManager}.
  */
 @SmallTest
-public class WifiPseudonymManagerTest {
+public class WifiPseudonymManagerTest extends WifiBaseTest {
     private static final int CARRIER_ID = 1;
     private static final int WRONG_CARRIER_ID = 99;
     private static final String PSEUDONYM = "pseudonym";

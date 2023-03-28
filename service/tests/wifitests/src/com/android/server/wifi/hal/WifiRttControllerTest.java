@@ -22,12 +22,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiRttControllerTest {
+public class WifiRttControllerTest extends WifiBaseTest {
     // HAL mocks
     @Mock android.hardware.wifi.V1_0.IWifiRttController mIWifiRttControllerHidlMock;
     @Mock android.hardware.wifi.IWifiRttController mIWifiRttControllerAidlMock;

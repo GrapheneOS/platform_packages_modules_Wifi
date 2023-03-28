@@ -43,6 +43,7 @@ import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.os.RemoteException;
 import android.util.Pair;
 
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.aware.Capabilities;
 
 import org.junit.Before;
@@ -53,7 +54,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiNanIfaceAidlImplTest {
+public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
     private static final Capabilities TEST_CAPABILITIES = new Capabilities();
 
     private WifiNanIfaceAidlImpl mDut;

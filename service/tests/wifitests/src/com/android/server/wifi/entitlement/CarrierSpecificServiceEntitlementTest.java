@@ -35,6 +35,7 @@ import androidx.test.filters.SmallTest;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.libraries.entitlement.EapAkaHelper;
 import com.android.libraries.entitlement.ServiceEntitlementException;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.entitlement.http.HttpClient;
 import com.android.server.wifi.entitlement.http.HttpRequest;
 import com.android.server.wifi.entitlement.http.HttpResponse;
@@ -60,7 +61,7 @@ import java.net.MalformedURLException;
  * Unit tests for {@link CarrierSpecificServiceEntitlement}.
  */
 @SmallTest
-public class CarrierSpecificServiceEntitlementTest {
+public class CarrierSpecificServiceEntitlementTest extends WifiBaseTest {
     private static final String JSON_KEY_MESSAGE_ID = "message-id";
     private static final String JSON_KEY_RESPONSE_CODE = "response-code";
     private static final String JSON_KEY_EAP_AKA_CHALLENGE = "aka-challenge";

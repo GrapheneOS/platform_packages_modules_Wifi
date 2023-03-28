@@ -36,6 +36,7 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
 
@@ -53,7 +54,7 @@ import java.util.List;
  * which service (HIDL or AIDL) is available. Test the initialization logic and
  * verify that calls to all public methods are forwarded to the actual implementation.
  */
-public class SupplicantP2pIfaceHalTest {
+public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     private SupplicantP2pIfaceHalSpy mDut;
     private @Mock SupplicantP2pIfaceHalHidlImpl mP2pIfaceHalHidlMock;
     private @Mock SupplicantP2pIfaceHalAidlImpl mP2pIfaceHalAidlMock;

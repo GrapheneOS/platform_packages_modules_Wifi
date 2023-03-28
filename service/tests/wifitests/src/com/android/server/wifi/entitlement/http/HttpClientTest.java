@@ -32,6 +32,7 @@ import android.net.Network;
 import androidx.test.filters.SmallTest;
 
 import com.android.libraries.entitlement.ServiceEntitlementException;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.entitlement.http.FakeURLStreamHandler.FakeHttpsURLConnection;
 import com.android.server.wifi.entitlement.http.FakeURLStreamHandler.FakeResponse;
 import com.android.server.wifi.entitlement.http.HttpConstants.ContentType;
@@ -57,7 +58,7 @@ import java.util.Map;
  * Unit tests for {@link HttpClient}.
  */
 @SmallTest
-public class HttpClientTest {
+public class HttpClientTest extends WifiBaseTest {
     private static final String TEST_URL = "https://test.url";
     private static final String TEST_RESPONSE_BODY = "TEST_RESPONSE_BODY";
     private static final String CONTENT_TYPE_STRING_JSON = "application/json";
