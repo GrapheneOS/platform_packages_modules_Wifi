@@ -1159,4 +1159,20 @@
          no telephony country code and driver country code is 00.
          This is applied only during the setup wizard -->
     <bool translatable="false" name ="config_wifiUpdateCountryCodeFromScanResultSetupWizard">false</bool>
+    <!-- IP address configurations required for P2P GO to assign IP address in EAPOL frame.
+         Refer - Wi-Fi P2P Technical Specification v1.7 - Section  4.2.8 IP Address Allocation
+         in EAPOL-Key Frames (4-Way Handshake) for more details.
+         To enable this feature, configure below three items,
+         1. config_tether_enable_legacy_wifi_p2p_dedicated_ip in tethering module overlay file,
+            i.e.,  in packages/modules/Connectivity/Tethering/res/values/config.xml
+         2. config_p2p_leases_subnet_prefix_length in tethering module overlay config file,
+            i.e., in packages/modules/Connectivity/Tethering/res/values/config.xml
+         3. Set config_wifiP2pGoIpAddressAllocationInEapolFrames to true in wifi overlay file -->
+    <!-- Boolean indicating whether IP address allocation in EAPOL is enabled by default in Wi-Fi.
+         The GO fixed IP address is set to 192.168.49.1 and subnet mask to 255.255.255.0 -->
+    <bool translatable="false" name ="config_wifiP2pGoIpAddressAllocationInEapolFrames">false</bool>
+    <!-- The optional P2P GO IP address range reserved for IP assignment in EAPOL frame. If not
+         configured, the default range is 192.168.49.128 to 192.168.49.254 -->
+    <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeStart"/>
+    <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeEnd"/>
 </resources>

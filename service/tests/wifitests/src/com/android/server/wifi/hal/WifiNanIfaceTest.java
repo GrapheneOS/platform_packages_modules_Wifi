@@ -21,12 +21,14 @@ import static junit.framework.Assert.assertNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.android.server.wifi.WifiBaseTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WifiNanIfaceTest {
+public class WifiNanIfaceTest extends WifiBaseTest {
     // HAL mocks
     @Mock android.hardware.wifi.V1_0.IWifiNanIface mIWifiNanIfaceHidlMock;
     @Mock android.hardware.wifi.IWifiNanIface mIWifiNanIfaceAidlMock;

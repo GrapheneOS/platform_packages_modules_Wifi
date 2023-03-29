@@ -43,7 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WifiCarrierInfoStoreManagerDataTest {
+public class WifiCarrierInfoStoreManagerDataTest extends WifiBaseTest {
     private static final int TEST_CARRIER_ID = 1911;
     private static final int TEST_SUB_ID = 3;
 
