@@ -364,6 +364,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private boolean mIsLocationModeEnabled;
 
     private WifiNetworkSelectionConfig mNetworkSelectionConfig;
+    private ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
 
     /**
      * The wrapper of SoftApCallback is used in WifiService internally.
@@ -539,6 +540,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiTetheringDisallowed = false;
         mMultiInternetManager = mWifiInjector.getMultiInternetManager();
         mDeviceConfigFacade = mWifiInjector.getDeviceConfigFacade();
+        mApplicationQosPolicyRequestHandler = mWifiInjector.getApplicationQosPolicyRequestHandler();
     }
 
     /**
@@ -7490,8 +7492,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
 
         mWifiThreadRunner.post(() -> {
-            // TODO: Add an implementation for this API.
-            rejectAllQosPolicies(policyParamsList, listener);
+            mApplicationQosPolicyRequestHandler.queueAddRequest(policyParamsList, listener, uid);
         });
     }
 
@@ -7500,7 +7501,7 @@ public class WifiServiceImpl extends BaseWifiService {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void removeQosPolicies(@NonNull int[] policyIdList, @NonNull String packageName) {
+    public void removeQosPolicies(@NonNull int[] policyIds, @NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
         } else if (!isApplicationQosPolicyFeatureEnabled()) {
@@ -7513,13 +7514,17 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
         }
-        Objects.requireNonNull(policyIdList, "policyIdList cannot be null");
-        if (policyIdList.length == 0
-                || policyIdList.length > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
-                || !policyIdsAreUnique(policyIdList)) {
+        Objects.requireNonNull(policyIds, "policyIdList cannot be null");
+        if (policyIds.length == 0
+                || policyIds.length > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
+                || !policyIdsAreUnique(policyIds)) {
             throw new IllegalArgumentException("policyIdList is invalid");
         }
-        // TODO: Add an implementation for this API.
+
+        List<Integer> policyIdList = Arrays.stream(policyIds).boxed().toList();
+        mWifiThreadRunner.post(() -> {
+            mApplicationQosPolicyRequestHandler.queueRemoveRequest(policyIdList, uid);
+        });
     }
 
     /**
@@ -7540,7 +7545,10 @@ public class WifiServiceImpl extends BaseWifiService {
                 && !mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
             throw new SecurityException("Uid=" + uid + " is not allowed to remove QoS policies");
         }
-        // TODO: Add an implementation for this API.
+
+        mWifiThreadRunner.post(() -> {
+            mApplicationQosPolicyRequestHandler.queueRemoveAllRequest(uid);
+        });
     }
 
     /**
