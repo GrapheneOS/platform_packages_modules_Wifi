@@ -36,6 +36,7 @@ public class ApplicationQosPolicyTrackingTable {
     // Mapping between a policy hash and a policy object.
     // See combinePolicyIdAndUid() for more information about the policy hash format.
     private Map<Long, QosPolicyParams> mPolicyHashToPolicyMap = new HashMap<>();
+    private Map<Integer, List<Long>> mUidToPolicyHashesMap = new HashMap<>();
 
     public ApplicationQosPolicyTrackingTable(int minVirtualPolicyId, int maxVirtualPolicyId) {
         for (int i = minVirtualPolicyId; i <= maxVirtualPolicyId; i++) {
@@ -107,6 +108,10 @@ public class ApplicationQosPolicyTrackingTable {
             int virtualPolicyId = mAvailableVirtualPolicyIds.remove();
             policy.setTranslatedPolicyId(virtualPolicyId);
             mPolicyHashToPolicyMap.put(policyHash, policy);
+            if (!mUidToPolicyHashesMap.containsKey(uid)) {
+                mUidToPolicyHashesMap.put(uid, new ArrayList<>());
+            }
+            mUidToPolicyHashesMap.get(uid).add(policyHash);
         }
         return statusList;
     }
@@ -130,6 +135,10 @@ public class ApplicationQosPolicyTrackingTable {
             int virtualPolicyId = policy.getTranslatedPolicyId();
             mAvailableVirtualPolicyIds.add(virtualPolicyId);
             mPolicyHashToPolicyMap.remove(policyHash);
+            mUidToPolicyHashesMap.get(uid).remove(Long.valueOf(policyHash));
+            if (mUidToPolicyHashesMap.get(uid).isEmpty()) {
+                mUidToPolicyHashesMap.remove(uid);
+            }
         }
     }
 
@@ -173,6 +182,23 @@ public class ApplicationQosPolicyTrackingTable {
             virtualPolicyIds.add(policy.getTranslatedPolicyId());
         }
         return virtualPolicyIds;
+    }
+
+    /**
+     * Retrieve the IDs for all policies owned by this requester.
+     *
+     * @param uid UID of the requesting application.
+     * @return List of policy IDs.
+     */
+    public List<Integer> getAllPolicyIdsOwnedByUid(int uid) {
+        List<Integer> policyIds = new ArrayList<>();
+        List<Long> policyHashes = mUidToPolicyHashesMap.get(uid);
+        if (policyHashes == null) return policyIds;
+        for (long policyHash : policyHashes) {
+            int policyId = getPolicyIdFromCombinedLong(policyHash);
+            policyIds.add(policyId);
+        }
+        return policyIds;
     }
 
     /**

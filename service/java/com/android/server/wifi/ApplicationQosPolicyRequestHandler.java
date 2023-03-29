@@ -48,6 +48,8 @@ public class ApplicationQosPolicyRequestHandler {
     // while the HAL expects a byte policyId in the range [-128, 127].
     private static final int HAL_POLICY_ID_MIN = Byte.MIN_VALUE;
     private static final int HAL_POLICY_ID_MAX = Byte.MAX_VALUE;
+    private static final int MAX_POLICIES_PER_TRANSACTION =
+            WifiManager.getMaxNumberOfPoliciesPerQosRequest();
 
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiNative mWifiNative;
@@ -60,12 +62,10 @@ public class ApplicationQosPolicyRequestHandler {
 
     private static final int REQUEST_TYPE_ADD = 0;
     private static final int REQUEST_TYPE_REMOVE = 1;
-    private static final int REQUEST_TYPE_REMOVE_ALL = 2;
 
     @IntDef(prefix = { "REQUEST_TYPE_" }, value = {
             REQUEST_TYPE_ADD,
             REQUEST_TYPE_REMOVE,
-            REQUEST_TYPE_REMOVE_ALL
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface RequestType {}
@@ -246,6 +246,30 @@ public class ApplicationQosPolicyRequestHandler {
         processNextRequestOnAllIfacesIfPossible();
     }
 
+    /**
+     * Request to remove all policies owned by this requester.
+     *
+     * @param uid UID of the requesting application.
+     */
+    public void queueRemoveAllRequest(int uid) {
+        List<Integer> ownedPolicies = mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(uid);
+        if (ownedPolicies.isEmpty()) return;
+
+        // Divide ownedPolicies into batches of size MAX_POLICIES_PER_TRANSACTION.
+        int startIndex = 0;
+        int endIndex = Math.min(ownedPolicies.size(), MAX_POLICIES_PER_TRANSACTION);
+        while (startIndex < endIndex) {
+            QueuedRequest request = new QueuedRequest(
+                    REQUEST_TYPE_REMOVE, null, ownedPolicies.subList(startIndex, endIndex),
+                    null, uid);
+            queueRequestOnAllIfaces(request);
+
+            startIndex += MAX_POLICIES_PER_TRANSACTION;
+            endIndex = Math.min(ownedPolicies.size(), endIndex + MAX_POLICIES_PER_TRANSACTION);
+        }
+        processNextRequestOnAllIfacesIfPossible();
+    }
+
     private void queueRequestOnAllIfaces(QueuedRequest request) {
         List<ClientModeManager> clientModeManagers =
                 mActiveModeWarden.getInternetConnectivityClientModeManagers();
@@ -316,7 +340,6 @@ public class ApplicationQosPolicyRequestHandler {
         } else if (request.requestType == REQUEST_TYPE_REMOVE) {
             processRemoveRequest(ifaceName, request);
         }
-        // TODO: Handle removeAll requests.
     }
 
     /**

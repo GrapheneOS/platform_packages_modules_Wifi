@@ -72,6 +72,8 @@ public class ApplicationQosPolicyRequestHandlerTest {
     @Captor ArgumentCaptor<List<Integer>> mApplicationCallbackResultCaptor;
     @Captor ArgumentCaptor<List<QosPolicyParams>> mPolicyListCaptor;
     @Captor ArgumentCaptor<List<Integer>> mPolicyIdListCaptor;
+    @Captor ArgumentCaptor<List<Byte>> mPolicyIdByteListCaptor;
+
     private List<String> mApCallbackReceivedIfaces;
 
     private class ApplicationQosPolicyRequestHandlerSpy extends ApplicationQosPolicyRequestHandler {
@@ -243,9 +245,10 @@ public class ApplicationQosPolicyRequestHandlerTest {
         assertTrue(expectedStatusList.equals(applicationStatusList));
     }
 
-    private void verifyApplicationCallback(List<Integer> expectedStatusList) throws Exception {
-        verify(mIListListener, times(1)).onResult(mApplicationCallbackResultCaptor.capture());
-        assertTrue(expectedStatusList.equals(mApplicationCallbackResultCaptor.getValue()));
+    private void assignVirtualPolicyIds(List<QosPolicyParams> policyList) {
+        for (QosPolicyParams policy : policyList) {
+            policy.setTranslatedPolicyId(policy.getPolicyId());
+        }
     }
 
     private List<Integer> getPolicyIdsFromPolicyList(List<QosPolicyParams> policyList) {
@@ -505,5 +508,36 @@ public class ApplicationQosPolicyRequestHandlerTest {
         // Policies rejected by the HAL should be removed from the tracking table.
         verify(mPolicyTrackingTable).removePolicies(mPolicyIdListCaptor.capture(), eq(TEST_UID));
         assertEquals(2, mPolicyIdListCaptor.getValue().size());
+    }
+
+    /**
+     * Tests that if the requester owns a large number of policies, then a removeAll request
+     * is divided correctly into several individual remove transactions.
+     */
+    @Test
+    public void testLargeRemoveAllRequest() {
+        int numOwnedPolicies = 18;
+        List<QosPolicyParams> policyList =
+                createDownlinkPolicyList(numOwnedPolicies, TEST_POLICY_ID_START);
+        List<Integer> ownedPolicyIds = getPolicyIdsFromPolicyList(policyList);
+        assignVirtualPolicyIds(policyList);
+
+        when(mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(anyInt())).thenReturn(ownedPolicyIds);
+        when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
+                .thenReturn(Arrays.asList(mClientModeManager0));
+
+        // Expect that the request is divided into two batches of size 16 and 2, respectively.
+        mDut.queueRemoveAllRequest(TEST_UID);
+        verify(mWifiNative).removeQosPolicyForScs(
+                eq(TEST_IFACE_NAME_0), mPolicyIdByteListCaptor.capture());
+        assertEquals(16, mPolicyIdByteListCaptor.getValue().size());
+
+        // Trigger AP callback to start processing next request.
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_0, policyList.subList(0, 16),
+                SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
+
+        verify(mWifiNative, times(2)).removeQosPolicyForScs(
+                eq(TEST_IFACE_NAME_0), mPolicyIdByteListCaptor.capture());
+        assertEquals(2, mPolicyIdByteListCaptor.getValue().size());
     }
 }

@@ -243,4 +243,23 @@ public class ApplicationQosPolicyTrackingTableTest {
         virtualPolicyIds = mDut.translatePolicyIds(policyIds, TEST_UID);
         assertTrue(virtualPolicyIds.isEmpty());
     }
+
+    /**
+     * Tests that {@link ApplicationQosPolicyTrackingTable#getAllPolicyIdsOwnedByUid(int)}
+     * returns the expected policy IDs.
+     */
+    @Test
+    public void testGetAllPolicyIdsOwnedByUid() {
+        List<QosPolicyParams> policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS, TEST_PHYSICAL_POLICY_ID_START);
+        List<Integer> expectedPolicyIds = getPolicyIdsFromPolicyList(policyList);
+        mDut.addPolicies(policyList, TEST_UID);
+
+        List<Integer> retrievedPolicyIds = mDut.getAllPolicyIdsOwnedByUid(TEST_UID);
+        assertTrue(expectedPolicyIds.equals(retrievedPolicyIds));
+
+        // Non-existent UID should return an empty policy ID list.
+        retrievedPolicyIds = mDut.getAllPolicyIdsOwnedByUid(TEST_UID + 1);
+        assertTrue(retrievedPolicyIds.isEmpty());
+    }
 }
