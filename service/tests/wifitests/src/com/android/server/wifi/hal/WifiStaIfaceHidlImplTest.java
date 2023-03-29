@@ -54,6 +54,7 @@ import android.net.wifi.WifiManager;
 import android.os.RemoteException;
 
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiLinkLayerStats;
 import com.android.server.wifi.WifiLoggerHal;
 import com.android.server.wifi.WifiNative;
@@ -71,7 +72,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-public class WifiStaIfaceHidlImplTest {
+public class WifiStaIfaceHidlImplTest extends WifiBaseTest {
     private static final int[] TEST_FREQUENCIES = {2412, 2417, 2422, 2427, 2432, 2437};
     private static final MacAddress TEST_MAC_ADDRESS = MacAddress.fromString("ee:33:a2:94:10:92");
 

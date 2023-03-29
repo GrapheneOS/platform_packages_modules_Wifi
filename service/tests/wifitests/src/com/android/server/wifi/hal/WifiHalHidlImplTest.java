@@ -39,6 +39,7 @@ import android.os.IHwBinder;
 import android.os.RemoteException;
 
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.WifiBaseTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class WifiHalHidlImplTest {
+public class WifiHalHidlImplTest extends WifiBaseTest {
     private WifiHalSpy mDut;
     private WifiStatus mStatusSuccess;
 

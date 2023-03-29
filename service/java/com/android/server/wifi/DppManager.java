@@ -661,9 +661,12 @@ public class DppManager {
     private void onSuccessConfigReceived(WifiConfiguration newWifiConfiguration,
             boolean connStatusRequested) {
         try {
+            if (mDppRequestInfo == null) {
+                Log.e(TAG, "onSuccessConfigReceived event without a request information object");
+                return;
+            }
             logd("onSuccessConfigReceived: connection status requested: " + connStatusRequested);
-
-            if (mDppRequestInfo != null && mDppRequestInfo.isGeneratingSelfConfiguration) {
+            if (mDppRequestInfo.isGeneratingSelfConfiguration) {
                 WifiConfiguration existingWifiConfig = mWifiConfigManager
                         .getConfiguredNetworkWithoutMasking(mDppRequestInfo.networkId);
 
@@ -693,7 +696,7 @@ public class DppManager {
                 }
                 // Done with self configuration. reset flag.
                 mDppRequestInfo.isGeneratingSelfConfiguration = false;
-            } else if (mDppRequestInfo != null) {
+            } else {
                 long now = mClock.getElapsedSinceBootMillis();
                 mDppMetrics.updateDppOperationTime((int) (now - mDppRequestInfo.startTime));
 
@@ -715,8 +718,6 @@ public class DppManager {
                     mDppRequestInfo.callback.onFailure(EasyConnectStatusCallback
                             .EASY_CONNECT_EVENT_FAILURE_CONFIGURATION, null, null, new int[0]);
                 }
-            } else {
-                Log.e(TAG, "Unexpected null Wi-Fi configuration object");
             }
         } catch (RemoteException e) {
             Log.e(TAG, "Callback failure");

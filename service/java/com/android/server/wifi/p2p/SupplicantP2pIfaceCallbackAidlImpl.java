@@ -16,8 +16,11 @@
 
 package com.android.server.wifi.p2p;
 
+import static com.android.net.module.util.Inet4AddressUtils.intToInet4AddressHTL;
+
 import android.annotation.NonNull;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
+import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
 import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
 import android.hardware.wifi.supplicant.P2pProvDiscStatusCode;
 import android.hardware.wifi.supplicant.P2pStatusCode;
@@ -255,7 +258,7 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
             int frequency, byte[] psk, String passphrase, byte[] goDeviceAddress,
             boolean isPersistent) {
         onGroupStarted(groupIfName, isGroupOwner, ssid, frequency, psk, passphrase, goDeviceAddress,
-                isPersistent, /* goInterfaceAddress */ null);
+                isPersistent, /* goInterfaceAddress */ null, /*p2pClientIpInfo */ null);
     }
 
     /**
@@ -269,12 +272,15 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
                 groupStartedEventParams.isGroupOwner, groupStartedEventParams.ssid,
                 groupStartedEventParams.frequencyMHz, groupStartedEventParams.psk,
                 groupStartedEventParams.passphrase, groupStartedEventParams.goDeviceAddress,
-                groupStartedEventParams.isPersistent, groupStartedEventParams.goInterfaceAddress);
+                groupStartedEventParams.isPersistent, groupStartedEventParams.goInterfaceAddress,
+                groupStartedEventParams.isP2pClientEapolIpAddressInfoPresent
+                        ? groupStartedEventParams.p2pClientIpInfo : null);
     }
 
     private void onGroupStarted(String groupIfName, boolean isGroupOwner, byte[] ssid,
             int frequency, byte[] psk, String passphrase, byte[] goDeviceAddress,
-            boolean isPersistent, byte[] goInterfaceAddress) {
+            boolean isPersistent, byte[] goInterfaceAddress,
+            P2pClientEapolIpAddressInfo p2pClientIpInfo) {
         if (groupIfName == null) {
             Log.e(TAG, "Missing group interface name.");
             return;
@@ -316,6 +322,20 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
         group.interfaceAddress = goInterfaceAddress;
 
         group.setOwner(owner);
+        if (!isGroupOwner && p2pClientIpInfo != null) {
+            try {
+                group.p2pClientEapolIpInfo =
+                        new WifiP2pGroup.P2pGroupClientEapolIpAddressData(
+                                intToInet4AddressHTL(p2pClientIpInfo.ipAddressClient),
+                                intToInet4AddressHTL(p2pClientIpInfo.ipAddressGo),
+                                intToInet4AddressHTL(p2pClientIpInfo.ipAddressMask));
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to fetch group client EAPOL IP address " + e);
+                group.p2pClientEapolIpInfo = null;
+            }
+        } else {
+            group.p2pClientEapolIpInfo = null;
+        }
         mMonitor.broadcastP2pGroupStarted(mInterface, group);
     }
 
