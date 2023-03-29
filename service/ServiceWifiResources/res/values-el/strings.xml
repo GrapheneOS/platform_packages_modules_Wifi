@@ -139,10 +139,8 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Όνομα διακομιστή:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Όνομα εκδότη:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Οργανισμός:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <!-- no translation found for wifi_ca_cert_dialog_message_expiration_text (1612917217606436217) -->
-    <skip />
-    <!-- no translation found for wifi_ca_cert_dialog_message_signature_name_text (8455163626514894233) -->
-    <skip />
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"Λήξη πιστοποιητικού:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"Αποτύπωμα SHA-256:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Επαφή:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Απαιτείται επαλήθευση του δικτύου."</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Ελέγξτε τις λεπτομέρειες του δικτύου <xliff:g id="SSID">%1$s</xliff:g> πριν από τη σύνδεση. Πατήστε για συνέχεια."</string>
@@ -170,4 +168,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Μη διαθέσιμο δίκτυο"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Το <xliff:g id="SSID">%1$s</xliff:g> έχει απενεργοποιηθεί από τον διαχειριστή σας."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Κλείσιμο"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Εναλλαγή δικτύων Wi‑Fi;"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Το <xliff:g id="SSID_0">%1$s</xliff:g> φαίνεται ότι δεν είναι συνδεδεμένο στο διαδίκτυο. Εναλλαγή σε <xliff:g id="SSID_1">%2$s</xliff:g>;"</string>
+    <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Εναλλαγή"</string>
+    <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Να μην γίνει εναλλαγή"</string>
 </resources>
