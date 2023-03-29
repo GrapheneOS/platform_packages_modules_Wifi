@@ -149,7 +149,7 @@
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"잘못된 서버 인증 체인입니다."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"확인"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"이 네트워크를 확인할 수 없음"</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"최신 정보 받아 보기"</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"연결 상태 유지"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"지금 연결 해제"</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint" msgid="5682518783200852031">"<xliff:g id="SSID">%1$s</xliff:g> 네트워크에 인증서가 없습니다."</string>
     <string name="wifi_ca_cert_dialog_preT_message_link" msgid="6325483132538546884">"인증서 추가 방법 알아보기"</string>
