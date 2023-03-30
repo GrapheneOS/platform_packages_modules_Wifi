@@ -19,6 +19,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.wifi.dialog">
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
     <queries>
         <intent>
             <action android:name="com.android.server.wifi.intent.action.SERVICE_WIFI_RESOURCES_APK" />
