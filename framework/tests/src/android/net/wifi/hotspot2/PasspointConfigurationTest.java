@@ -741,5 +741,12 @@ public class PasspointConfigurationTest {
         homeSp.setRoamingConsortiumOis(ois);
         assertFalse(homeSp.validate());
         homeSp.setRoamingConsortiumOis(null);
+        // ServiceFriendlyNames exceed the limit
+        HashMap<String, String> friendlyNames = new HashMap<>();
+        for (int i = 0; i < MAX_NUMBER_OF_ENTRIES + 1; i++) {
+            friendlyNames.put(String.valueOf(i), String.valueOf(i));
+        }
+        passpointConfiguration.setServiceFriendlyNames(friendlyNames);
+        assertFalse(passpointConfiguration.validate());
     }
 }
