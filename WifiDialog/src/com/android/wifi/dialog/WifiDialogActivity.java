@@ -700,6 +700,10 @@ public class WifiDialogActivity extends Activity  {
                     }
                 }
             });
+        } else {
+            dialog.setOnShowListener(dialogShow -> {
+                dialog.getButton(Dialog.BUTTON_NEGATIVE).requestFocus();
+            });
         }
         if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_TYPE_APPLIANCE)
                 == Configuration.UI_MODE_TYPE_APPLIANCE) {
