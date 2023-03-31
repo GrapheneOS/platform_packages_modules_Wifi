@@ -1520,6 +1520,7 @@ public class WifiConfigManager {
         if (hasCredentialChanged) {
             newInternalConfig.getNetworkSelectionStatus().setHasEverConnected(false);
             newInternalConfig.setHasPreSharedKeyChanged(true);
+            Log.i(TAG, "Credential changed for netId=" + newInternalConfig.networkId);
         }
 
         // Add it to our internal map. This will replace any existing network configuration for
