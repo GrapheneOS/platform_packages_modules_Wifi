@@ -1202,10 +1202,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         @Override
         public void onNetworkUpdated(WifiConfiguration newConfig, WifiConfiguration oldConfig) {
-            // Clear invalid cached data.
-            mWifiNative.removeNetworkCachedData(oldConfig.networkId);
 
             if (WifiConfigurationUtil.hasCredentialChanged(oldConfig, newConfig)) {
+                // Clear invalid cached data.
+                mWifiNative.removeNetworkCachedData(oldConfig.networkId);
                 mWifiBlocklistMonitor.handleNetworkRemoved(newConfig.SSID);
             }
 
