@@ -105,6 +105,7 @@ public class InsecureEapNetworkHandler {
     private List<X509Certificate> mServerCertChain = new ArrayList<>();
     private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
     private boolean mIsCertNotificationReceiverRegistered = false;
+    private String mServerCertHash = null;
 
     BroadcastReceiver mCertNotificationReceiver = new BroadcastReceiver() {
         @Override
@@ -240,19 +241,20 @@ public class InsecureEapNetworkHandler {
      * @param ssid the target network SSID.
      * @param depth the depth of this cert. The Root CA should be 0 or
      *        a positive number, and the server cert is 0.
-     * @param cert a certificate from the server.
+     * @param certInfo a certificate info object from the server.
      * @return true if the cert is cached; otherwise, false.
      */
     public boolean addPendingCertificate(@NonNull String ssid, int depth,
-            @NonNull X509Certificate cert) {
+            @NonNull CertificateEventInfo certInfo) {
         String configProfileKey = mCurrentTofuConfig != null
                 ? mCurrentTofuConfig.getProfileKey() : "null";
-        Log.d(TAG, "setPendingCertificate: " + "ssid=" + ssid + " depth=" + depth
+        Log.d(TAG, "addPendingCertificate: " + "ssid=" + ssid + " depth=" + depth
+                + " certHash=" + (certInfo == null ? "<none>" : certInfo.getCertHash())
                 + " current config=" + configProfileKey);
         if (TextUtils.isEmpty(ssid)) return false;
         if (null == mCurrentTofuConfig) return false;
         if (!TextUtils.equals(ssid, mCurrentTofuConfig.SSID)) return false;
-        if (null == cert) return false;
+        if (null == certInfo) return false;
         if (depth < 0) return false;
 
         // If TOFU is not supported return immediately, although this should not happen since
@@ -273,35 +275,36 @@ public class InsecureEapNetworkHandler {
             putNetworkOnHold();
         }
 
-        if (!mServerCertChain.contains(cert)) {
-            mServerCertChain.add(cert);
+        if (!mServerCertChain.contains(certInfo.getCert())) {
+            mServerCertChain.add(certInfo.getCert());
         }
 
         // 0 is the tail, i.e. the server cert.
         if (depth == 0 && null == mPendingServerCert) {
-            mPendingServerCert = cert;
+            mPendingServerCert = certInfo.getCert();
             Log.d(TAG, "Pending server certificate: " + mPendingServerCert);
             mPendingServerCertSubjectInfo = CertificateSubjectInfo.parse(
-                    cert.getSubjectX500Principal().getName());
+                    certInfo.getCert().getSubjectX500Principal().getName());
             if (null == mPendingServerCertSubjectInfo) {
                 Log.e(TAG, "CA cert has no valid subject.");
                 return false;
             }
             mPendingServerCertIssuerInfo = CertificateSubjectInfo.parse(
-                    cert.getIssuerX500Principal().getName());
+                    certInfo.getCert().getIssuerX500Principal().getName());
             if (null == mPendingServerCertIssuerInfo) {
                 Log.e(TAG, "CA cert has no valid issuer.");
                 return false;
             }
+            mServerCertHash = certInfo.getCertHash();
         }
 
         // Root or intermediate cert.
         if (depth < mPendingRootCaCertDepth) {
-            Log.d(TAG, "Ignore intermediate cert." + cert);
+            Log.d(TAG, "Ignore intermediate cert." + certInfo.getCert());
             return true;
         }
         mPendingRootCaCertDepth = depth;
-        mPendingRootCaCert = cert;
+        mPendingRootCaCert = certInfo.getCert();
         Log.d(TAG, "Pending Root CA certificate: " + mPendingRootCaCert);
         return true;
     }
@@ -446,20 +449,41 @@ public class InsecureEapNetworkHandler {
     }
 
     private boolean isServerCertChainValid() {
-        if (mServerCertChain.size() == 0) return false;
-
+        int depth = mServerCertChain.size();
+        Log.d(TAG, "Checking certificate chain with a total depth of " + depth + ":");
+        if (depth == 0) {
+            Log.e(TAG, "No certificate chain provided by the server.");
+            return false;
+        }
         X509Certificate parentCert = null;
         for (X509Certificate cert: mServerCertChain) {
             String subject = cert.getSubjectX500Principal().getName();
             String issuer = cert.getIssuerX500Principal().getName();
             boolean isCa = cert.getBasicConstraints() >= 0;
-            Log.d(TAG, "Subject: " + subject + ", Issuer: " + issuer + ", isCA: " + isCa);
+            Log.d(TAG, "Subject: " + subject + ", Issuer: " + issuer + ", isCA: " + isCa
+                    + ", depth: " + (depth - 1));
 
             if (parentCert == null) {
-                // The root cert, it should be a CA cert or a self-signed cert.
+                // Special handling for a cert chain of size 1
+                if (mServerCertChain.size() == 1) {
+                    // The only valid case for TLS is a self-signed Root CA
+                    if (!isCa || !subject.equals(issuer)) {
+                        // A misconfigured cert chain, use server certificate pinning instead
+                        Log.d(TAG, "Misconfigured cert chain, use server cert pinning");
+                        break;
+                    }
+                    Log.d(TAG, "Found a valid Root CA cert, reset current cert hash value");
+                    mServerCertHash = null;
+                    break;
+                }
+                // The root cert must be a CA cert or a self-signed cert.
                 if (!isCa && !subject.equals(issuer)) {
-                    Log.e(TAG, "The root cert is not a CA cert or a self-signed cert.");
+                    Log.e(TAG, "The Root cert is not a CA cert or a self-signed cert.");
                     return false;
+                }
+                if (subject.equals(issuer)) {
+                    Log.d(TAG, "Found a valid Root CA cert, reset current cert hash value");
+                    mServerCertHash = null;
                 }
             } else {
                 // The issuer of intermediate cert of the leaf cert should be
@@ -470,6 +494,10 @@ public class InsecureEapNetworkHandler {
                 }
             }
             parentCert = cert;
+            depth--;
+        }
+        if (mServerCertHash != null) {
+            Log.i(TAG, "Using server certificate pinning");
         }
         return true;
     }
@@ -512,7 +540,8 @@ public class InsecureEapNetworkHandler {
                 return;
             }
             if (!mWifiConfigManager.updateCaCertificate(
-                    mCurrentTofuConfig.networkId, mPendingRootCaCert, mPendingServerCert)) {
+                    mCurrentTofuConfig.networkId, mPendingRootCaCert, mPendingServerCert,
+                    mServerCertHash)) {
                 // The user approved this network,
                 // keep the connection regardless of the result.
                 Log.e(TAG, "Cannot update CA cert to network " + mCurrentTofuConfig.getProfileKey()
@@ -746,6 +775,7 @@ public class InsecureEapNetworkHandler {
         mPendingServerCertSubjectInfo = null;
         mPendingServerCertIssuerInfo = null;
         mCurrentTofuConfig = null;
+        mServerCertHash = null;
     }
 
     private void clearNativeData() {
