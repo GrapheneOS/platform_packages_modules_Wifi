@@ -2487,7 +2487,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
                 return "NETWORK_NOT_FOUND_EVENT";
             case WifiMonitor.TOFU_CERTIFICATE_EVENT:
-                return "TOFU_ROOT_CA_CERTIFICATE";
+                return "TOFU_CERTIFICATE_EVENT";
             case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
                 return "BSS_FREQUENCY_CHANGED_EVENT";
             case RunnerState.STATE_ENTER_CMD:
