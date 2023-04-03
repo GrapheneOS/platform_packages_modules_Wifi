@@ -1085,6 +1085,12 @@ public class DppManager {
 
                 mHandler.post(() -> {
                     dppRequestInfo.isGeneratingSelfConfiguration = false;
+                    // Clean up supplicant resource
+                    if (mDppRequestInfo.authRole == DPP_AUTH_ROLE_INITIATOR) {
+                        if (!mWifiNative.stopDppInitiator(mClientIfaceName)) {
+                            Log.e(TAG, "Failed to stop DPP Initiator");
+                        }
+                    }
                     cleanupDppResources();
                 });
             }
