@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -384,9 +385,14 @@ public class WifiInfoTest {
 
         WifiInfo writeWifiInfo = new WifiInfo();
         writeWifiInfo.setIsPrimary(true);
+        writeWifiInfo.setRequestingPackageName(TEST_PACKAGE_NAME);
+        writeWifiInfo.setIsPrimary(true);
+        assertTrue(writeWifiInfo.isPrimary());
 
         WifiInfo redactedWifiInfo =
                 writeWifiInfo.makeCopy(NetworkCapabilities.REDACT_FOR_NETWORK_SETTINGS);
+        assertNull(redactedWifiInfo.getRequestingPackageName());
+        assertThrows(SecurityException.class, () -> redactedWifiInfo.isPrimary());
 
         Parcel parcel = Parcel.obtain();
         redactedWifiInfo.writeToParcel(parcel, 0);

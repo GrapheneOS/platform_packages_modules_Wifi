@@ -604,8 +604,8 @@ public class WifiInfo implements TransportInfo, Parcelable {
             mOemPaid = source.mOemPaid;
             mOemPrivate = source.mOemPrivate;
             mCarrierMerged = source.mCarrierMerged;
-            mRequestingPackageName =
-                    source.mRequestingPackageName;
+            mRequestingPackageName = shouldRedactNetworkSettingsFields(redactions) ? null
+                    : source.mRequestingPackageName;
             mOsuAp = source.mOsuAp;
             mFqdn = shouldRedactLocationSensitiveFields(redactions)
                     ? null : source.mFqdn;
