@@ -1157,7 +1157,7 @@
     <bool translatable="false" name="config_wifiNiapModeEnabled">false</bool>
     <!-- Boolean indicating whether the framework updates country from scan results when there is
          no telephony country code and driver country code is 00.
-         This is applied only during the setup wizard -->
+         This is applied only during the setup wizard. -->
     <bool translatable="false" name ="config_wifiUpdateCountryCodeFromScanResultSetupWizard">false</bool>
     <!-- IP address configurations required for P2P GO to assign IP address in EAPOL frame.
          Refer - Wi-Fi P2P Technical Specification v1.7 - Section  4.2.8 IP Address Allocation
@@ -1175,4 +1175,9 @@
          configured, the default range is 192.168.49.128 to 192.168.49.254 -->
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeStart"/>
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeEnd"/>
+    <!-- Boolean indicating whether the framework updates country from scan results when there is
+         no telephony country code. This is applied to all generic cases and might require the
+         regulatory approval (for example, FCC pre-approval is required according to "594280 D01
+         Software Configuration Control v02r01").-->
+    <bool translatable="false" name ="config_wifiUpdateCountryCodeFromScanResultGeneric">false</bool>
 </resources>
