@@ -356,6 +356,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     private static final String CANDIDATE_BSSID_2 = "6c:f3:7f:ae:8d:f3";
     private static final String CANDIDATE_BSSID_3 = "6c:f3:7f:ae:8c:f4";
     private static final String CANDIDATE_BSSID_4 = "6c:f3:7f:ae:8c:f5";
+    private static final String CANDIDATE_BSSID_5 = "6c:f3:7f:ae:8c:f6";
     private static final String INVALID_SCAN_RESULT_BSSID = "6c:f3:7f:ae:8c:f4";
     private static final int TEST_FREQUENCY = 2420;
     private static final long CURRENT_SYSTEM_TIME_MS = 1000;
@@ -1509,6 +1510,23 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     public void multiInternetSecondaryConnectionRequestSucceedsWithMultiApAllowed() {
         setupMocksForMultiInternetTests(false);
         testMultiInternetSecondaryConnectionRequest(false, true, true, CANDIDATE_BSSID_2);
+    }
+
+    @Test
+    public void multiInternetSecondaryConnectionRequestSucceedsWithMultiApAllowedAndPrimaryMlo() {
+        setupMocksForMultiInternetTests(false);
+        // Add a new candidate (CANDIDATE_BSSID_5) in same band as primary candidate
+        // (CANDIDATE_BSSID). Add at the index 0, as setupMockSecondaryNetworkSelect() returns the
+        // first network match.
+        mCandidateList.add(0,
+                getTestWifiCandidate(CANDIDATE_NETWORK_ID_2, CANDIDATE_SSID_2, CANDIDATE_BSSID_5,
+                        -40, TEST_FREQUENCY));
+        // Enable Multi-Link operation (MLO) for primary.
+        when(mPrimaryClientModeManager.isMlo()).thenReturn(true);
+        when(mPrimaryClientModeManager.isAffiliatedLinkBssid(
+                MacAddress.fromString(CANDIDATE_BSSID))).thenReturn(true);
+        // Test secondary STA selects candidate in the same band.
+        testMultiInternetSecondaryConnectionRequest(false, true, true, CANDIDATE_BSSID_5);
     }
 
     @Test

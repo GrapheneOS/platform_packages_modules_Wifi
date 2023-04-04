@@ -5056,6 +5056,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return false;
     }
 
+    /**
+     * Check if the connection is MLO (Multi-Link Operation).
+     * @return true if connection is MLO, otherwise false.
+     */
+    public boolean isMlo() {
+        return !mWifiInfo.getAssociatedMloLinks().isEmpty();
+    }
 
     private void updateCapabilities(WifiConfiguration currentWifiConfiguration) {
         updateCapabilities(getCapabilities(currentWifiConfiguration, getConnectedBssidInternal()));

@@ -1697,4 +1697,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
     public boolean isAffiliatedLinkBssid(MacAddress bssid) {
         return getClientMode().isAffiliatedLinkBssid(bssid);
     }
+
+    @Override
+    public boolean isMlo() {
+        return getClientMode().isMlo();
+    }
 }
