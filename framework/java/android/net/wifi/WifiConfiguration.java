@@ -606,7 +606,6 @@ public class WifiConfiguration implements Parcelable {
         }
         // Clear existing data.
         mSecurityParamsList.clear();
-
         allowedKeyManagement = (BitSet) givenAllowedKeyManagement.clone();
         convertLegacyFieldsToSecurityParamsIfNeeded();
     }
@@ -699,7 +698,8 @@ public class WifiConfiguration implements Parcelable {
     }
 
     private boolean isWpa3EnterpriseConfiguration() {
-        if (!allowedKeyManagement.get(KeyMgmt.WPA_EAP)
+        if (!allowedKeyManagement.get(KeyMgmt.WPA_EAP_SHA256)
+                && !allowedKeyManagement.get(KeyMgmt.WPA_EAP)
                 && !allowedKeyManagement.get(KeyMgmt.IEEE8021X)) {
             return false;
         }
@@ -719,7 +719,6 @@ public class WifiConfiguration implements Parcelable {
      */
     public void convertLegacyFieldsToSecurityParamsIfNeeded() {
         if (!mSecurityParamsList.isEmpty()) return;
-
         if (allowedKeyManagement.get(KeyMgmt.WAPI_CERT)) {
             setSecurityParams(SECURITY_TYPE_WAPI_CERT);
         } else if (allowedKeyManagement.get(KeyMgmt.WAPI_PSK)) {
@@ -734,9 +733,11 @@ public class WifiConfiguration implements Parcelable {
             setSecurityParams(SECURITY_TYPE_SAE);
         } else if (allowedKeyManagement.get(KeyMgmt.OSEN)) {
             setSecurityParams(SECURITY_TYPE_OSEN);
-        } else if (allowedKeyManagement.get(KeyMgmt.WPA2_PSK)) {
+        } else if (allowedKeyManagement.get(KeyMgmt.WPA2_PSK)
+                || allowedKeyManagement.get(KeyMgmt.WPA_PSK_SHA256)) {
             setSecurityParams(SECURITY_TYPE_PSK);
-        } else if (allowedKeyManagement.get(KeyMgmt.WPA_EAP)) {
+        } else if (allowedKeyManagement.get(KeyMgmt.WPA_EAP)
+                || allowedKeyManagement.get(KeyMgmt.WPA_EAP_SHA256)) {
             if (isWpa3EnterpriseConfiguration()) {
                 setSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE);
             } else {
