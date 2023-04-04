@@ -279,8 +279,13 @@ public class WifiConfigurationUtil {
                 return true;
             }
             if (existingEnterpriseConfig.isAuthenticationSimBased()) {
-                // The anonymous identity will be decorated with 3gpp realm in the service.
-                if (!TextUtils.equals(existingEnterpriseConfig.getAnonymousIdentity(),
+                // On Pre-T devices consider it as a credential change so that the network
+                // configuration is reloaded in wpa_supplicant during reconnection. This is to
+                // ensure that the updated anonymous identity is sent to wpa_supplicant. On newer
+                // releases the anonymous identity is updated immediately after connection
+                // completion event.
+                if (!SdkLevel.isAtLeastT()
+                        && !TextUtils.equals(existingEnterpriseConfig.getAnonymousIdentity(),
                         newEnterpriseConfig.getAnonymousIdentity())) {
                     return true;
                 }
