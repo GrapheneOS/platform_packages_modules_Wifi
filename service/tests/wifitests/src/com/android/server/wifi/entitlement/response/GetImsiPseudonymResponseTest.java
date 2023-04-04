@@ -34,6 +34,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 
+import java.time.Duration;
+
 /**
  * Unit tests for {@link ChallengeResponse}.
  */
@@ -42,11 +44,12 @@ public class GetImsiPseudonymResponseTest {
     private static final String AKA_TOKEN = "aka_token";
     private static final String IMSI_PSEUDONYM = "imsi_pseudonym";
     private static final int REFRESH_INTERVAL = 48;
+    private static final long DEFAULT_PSEUDONYM_TTL_IN_MILLIS = Duration.ofDays(2).toMillis();
     private static final int INVALID_MESSAGE_ID = -1;
     private static final String IMSI = "imsi";
 
     @Test
-    public void responseBodyCorrect() throws JSONException {
+    public void responseBodyCorrectWithRefreshInterval() throws JSONException {
         JSONObject body1 = (new JSONObject()).put(Response.JSON_KEY_MESSAGE_ID,
                         MESSAGE_ID_3GPP_AUTHENTICATION)
                 .put(Response.JSON_KEY_RESPONSE_CODE, Response.RESPONSE_CODE_REQUEST_SUCCESSFUL)
@@ -66,6 +69,29 @@ public class GetImsiPseudonymResponseTest {
         PseudonymInfo pseudonymInfo = response.toPseudonymInfo(IMSI).get();
         assertEquals(IMSI_PSEUDONYM, pseudonymInfo.getPseudonym());
         assertEquals(REFRESH_INTERVAL * HOUR_IN_MILLIS, pseudonymInfo.getTtlInMillis());
+        assertEquals(IMSI, pseudonymInfo.getImsi());
+    }
+
+    @Test
+    public void responseBodyCorrectWithoutRefreshInterval() throws JSONException {
+        JSONObject body1 = (new JSONObject()).put(Response.JSON_KEY_MESSAGE_ID,
+                        MESSAGE_ID_3GPP_AUTHENTICATION)
+                .put(Response.JSON_KEY_RESPONSE_CODE, Response.RESPONSE_CODE_REQUEST_SUCCESSFUL)
+                .put(GetImsiPseudonymResponse.JSON_KEY_AKA_TOKEN, AKA_TOKEN);
+        JSONObject body2 = (new JSONObject()).put(Response.JSON_KEY_MESSAGE_ID,
+                        MESSAGE_ID_GET_IMSI_PSEUDONYM)
+                .put(Response.JSON_KEY_RESPONSE_CODE, Response.RESPONSE_CODE_REQUEST_SUCCESSFUL)
+                .put(GetImsiPseudonymResponse.JSON_KEY_IMSI_PSEUDONYM, IMSI_PSEUDONYM);
+        JSONArray bodyArray = (new JSONArray()).put(body1).put(body2);
+
+        GetImsiPseudonymResponse response = new GetImsiPseudonymResponse(bodyArray.toString());
+        assertEquals(Response.RESPONSE_CODE_REQUEST_SUCCESSFUL, response.getAuthResponseCode());
+        assertEquals(AKA_TOKEN, response.getAkaToken());
+        assertEquals(Response.RESPONSE_CODE_REQUEST_SUCCESSFUL,
+                response.getGetImsiPseudonymResponseCode());
+        PseudonymInfo pseudonymInfo = response.toPseudonymInfo(IMSI).get();
+        assertEquals(IMSI_PSEUDONYM, pseudonymInfo.getPseudonym());
+        assertEquals(DEFAULT_PSEUDONYM_TTL_IN_MILLIS, pseudonymInfo.getTtlInMillis());
         assertEquals(IMSI, pseudonymInfo.getImsi());
     }
 
