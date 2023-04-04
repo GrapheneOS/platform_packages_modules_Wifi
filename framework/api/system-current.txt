@@ -1151,10 +1151,12 @@ package android.net.wifi {
     method public long getTotalBeaconRx();
     method public long getTotalBeaconRx(int);
     method public long getTotalCcaBusyFreqTimeMillis();
+    method public long getTotalCcaBusyFreqTimeMillis(int);
     method public long getTotalHotspot2ScanTimeMillis();
     method public long getTotalNanScanTimeMillis();
     method public long getTotalPnoScanTimeMillis();
     method public long getTotalRadioOnFreqTimeMillis();
+    method public long getTotalRadioOnFreqTimeMillis(int);
     method public long getTotalRadioOnTimeMillis();
     method public long getTotalRadioRxTimeMillis();
     method public long getTotalRadioTxTimeMillis();

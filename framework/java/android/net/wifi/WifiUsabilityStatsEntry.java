@@ -1166,7 +1166,6 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
      * @param linkId Identifier of the link.
      * @return total time CCA is on busy status for the link in ms.
      * @throws NoSuchElementException if linkId is invalid.
-     * @hide
      */
     public long getTotalCcaBusyFreqTimeMillis(int linkId) {
         if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalCcaBusyFreqTimeMillis;
@@ -1188,7 +1187,6 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
      * @param linkId Identifier of the link.
      * @return The total radio on time for the link in ms.
      * @throws NoSuchElementException if linkId is invalid.
-     * @hide
      */
     public long getTotalRadioOnFreqTimeMillis(int linkId) {
         if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalRadioOnFreqTimeMillis;
