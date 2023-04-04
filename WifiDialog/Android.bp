@@ -28,7 +28,6 @@ android_app {
     static_libs: [
         "androidx.appcompat_appcompat",
     ],
-    resource_dirs: [],
     srcs: ["src/**/*.java"],
     sdk_version: "module_current",
 
