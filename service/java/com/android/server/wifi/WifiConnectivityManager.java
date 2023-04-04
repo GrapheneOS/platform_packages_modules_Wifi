@@ -1449,7 +1449,8 @@ public class WifiConnectivityManager {
                 && Objects.equals(targetBssid, connectedOrConnectingBssid);
     }
 
-    private boolean mUserRejectedNetworkSwitch = false;
+    private boolean mNetworkSwitchDialogRejected = false;
+    private long mTimeToReenableNetworkSwitchDialogsMs = 0;
     private WifiDialogManager.DialogHandle mNetworkSwitchDialog = null;
     private int mDialogCandidateNetId = INVALID_NETWORK_ID;
 
@@ -1485,15 +1486,32 @@ public class WifiConnectivityManager {
     }
 
     /**
-     * Dismisses any active network switch dialogs and resets the user's choice.
+     * Dismisses any active network switch dialogs.
      */
-    public void resetNetworkSwitchDialog() {
+    private void dismissNetworkSwitchDialog() {
         if (mNetworkSwitchDialog != null) {
             mNetworkSwitchDialog.dismissDialog();
         }
         mNetworkSwitchDialog = null;
         mDialogCandidateNetId = INVALID_NETWORK_ID;
-        mUserRejectedNetworkSwitch = false;
+    }
+
+    /**
+     * Resets the network switch dialog state.
+     */
+    private void resetNetworkSwitchDialog() {
+        dismissNetworkSwitchDialog();
+        mNetworkSwitchDialogRejected = false;
+        mTimeToReenableNetworkSwitchDialogsMs = 0;
+    }
+
+    /**
+     * Rejects any active network switch dialogs and disables them from appearing again for the
+     * current connection for the specified duration.
+     */
+    public void disableNetworkSwitchDialog(int durationMs) {
+        dismissNetworkSwitchDialog();
+        mTimeToReenableNetworkSwitchDialogsMs = mClock.getElapsedSinceBootMillis() + durationMs;
     }
 
     /**
@@ -1572,8 +1590,13 @@ public class WifiConnectivityManager {
         }
 
         // User confirmation for the network switch is required.
-        if (mUserRejectedNetworkSwitch) {
+        if (mNetworkSwitchDialogRejected) {
             Log.i(TAG, "User rejected switching networks. Do not connect to candidate "
+                    + candidate.getProfileKey());
+            return;
+        }
+        if (mClock.getElapsedSinceBootMillis() < mTimeToReenableNetworkSwitchDialogsMs) {
+            Log.i(TAG, "Network switching dialog temporarily disabled. Do not connect to candidate "
                     + candidate.getProfileKey());
             return;
         }
@@ -1602,9 +1625,7 @@ public class WifiConnectivityManager {
                 /* onSwitchRejectedRunnable */ () -> {
                     Log.i(TAG, "User rejected network switch to "
                             + candidate.getProfileKey());
-                    mNetworkSwitchDialog = null;
-                    mDialogCandidateNetId = INVALID_NETWORK_ID;
-                    mUserRejectedNetworkSwitch = true;
+                    mNetworkSwitchDialogRejected = true;
                     primaryManager.onNetworkSwitchRejected(candidate.networkId,
                             candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
                 }),
