@@ -198,7 +198,6 @@ public class WifiMetricsTest extends WifiBaseTest {
     @Mock PowerManager mPowerManager;
     @Mock WifiMonitor mWifiMonitor;
     @Mock ActiveModeWarden mActiveModeWarden;
-    @Mock TelephonyManager mTelephonyManager;
 
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
     @Captor ArgumentCaptor<ActiveModeWarden.ModeChangeCallback> mModeChangeCallbackArgumentCaptor;
@@ -214,8 +213,6 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
         when(mPowerManager.isInteractive()).thenReturn(true);
-        when(mTelephonyManager.getNetworkCountryIso()).thenReturn("US");
-        when(mContext.getSystemService(TelephonyManager.class)).thenReturn(mTelephonyManager);
         mWifiMetrics = new WifiMetrics(mContext, mFacade, mClock, mTestLooper.getLooper(),
                 new WifiAwareMetrics(mClock), new RttMetrics(mClock), mWifiPowerMetrics,
                 mWifiP2pMetrics, mDppMetrics, mWifiMonitor);
@@ -3263,45 +3260,6 @@ public class WifiMetricsTest extends WifiBaseTest {
 
         verifyHist(mDecodedProto.observed80211McSupportingApsInScanHistogram, 3,
                 a(0, 2, WifiMetrics.MAX_TOTAL_80211MC_APS_BUCKET), a(1, 2, 1));
-    }
-
-    /**
-     * Test that country code stats are collected correctly
-     */
-    @Test
-    public void testCountryCodeStats() throws Exception {
-        ScanDetail mockScanDetailUs = mock(ScanDetail.class);
-        ScanDetail mockScanDetailNonUs = mock(ScanDetail.class);
-        NetworkDetail mockNetworkDetailUs = mock(NetworkDetail.class);
-        NetworkDetail mockNetworkDetailNonUs = mock(NetworkDetail.class);
-        when(mockNetworkDetailUs.getCountryCode()).thenReturn("US");
-        when(mockNetworkDetailNonUs.getCountryCode()).thenReturn("CA");
-        ScanResult mockScanResult = mock(ScanResult.class);
-        mockScanResult.capabilities = "";
-        when(mockScanDetailUs.getScanResult()).thenReturn(mockScanResult);
-        when(mockScanDetailNonUs.getScanResult()).thenReturn(mockScanResult);
-        when(mockScanDetailUs.getNetworkDetail()).thenReturn(mockNetworkDetailUs);
-        when(mockScanDetailNonUs.getNetworkDetail()).thenReturn(mockNetworkDetailNonUs);
-        List<ScanDetail> scan = new ArrayList<ScanDetail>();
-
-        for (int i = 0; i < (WifiMetrics.MAX_COUNTRY_CODE_COUNT + 1); i++) {
-            scan.add(mockScanDetailUs);
-        }
-        mWifiMetrics.incrementAvailableNetworksHistograms(scan, true);
-        when(mTelephonyManager.getNetworkCountryIso()).thenReturn("CA");
-        mWifiMetrics.incrementAvailableNetworksHistograms(scan, true);
-        scan.add(mockScanDetailNonUs);
-        mWifiMetrics.incrementAvailableNetworksHistograms(scan, true);
-
-        dumpProtoAndDeserialize();
-
-        Int32Count[] expectedCountryCodeScanHistogram = {
-                buildInt32Count(WifiMetrics.COUNTRY_CODE_CONFLICT_WIFI_SCAN_TELEPHONY, 1),
-                buildInt32Count(WifiMetrics.COUNTRY_CODE_CONFLICT_WIFI_SCAN, 1),
-                buildInt32Count(WifiMetrics.MAX_COUNTRY_CODE_COUNT, 1),
-        };
-        assertKeyCountsEqual(expectedCountryCodeScanHistogram,
-                mDecodedProto.countryCodeScanHistogram);
     }
 
 
