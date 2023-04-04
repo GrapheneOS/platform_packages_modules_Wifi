@@ -6871,12 +6871,13 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that network cached data is cleared on updating a network.
+     * Verify that network cached data is cleared on changing the credential.
      */
     @Test
-    public void testNetworkCachedDataIsClearedOnUpdatingNetwork() throws Exception {
+    public void testNetworkCachedDataIsClearedOnChangingTheCredential() throws Exception {
+        mConnectedNetwork = spy(WifiConfigurationTestUtil.createPasspointNetwork());
         WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
-        mConnectedNetwork.meteredOverride = METERED_OVERRIDE_METERED;
+        mConnectedNetwork.enterpriseConfig.setPassword("fakePassword");
 
         for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
                 .getAllValues()) {
