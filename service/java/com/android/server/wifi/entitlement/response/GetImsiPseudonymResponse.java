@@ -87,11 +87,13 @@ public class GetImsiPseudonymResponse extends Response {
         boolean success =
                 (mAuthResponseCode == RESPONSE_CODE_REQUEST_SUCCESSFUL)
                         && (mGetImsiPseudonymResponseCode == RESPONSE_CODE_REQUEST_SUCCESSFUL);
-        if (success && (mImsiPseudonym != null) && (mImsiPseudonym.length() <= EAP_MTU)
-                && (mRefreshInterval > 0)) {
-            pseudonymInfo =
-                    new PseudonymInfo(mImsiPseudonym, imsi,
-                            mRefreshInterval * HOUR_IN_MILLIS);
+        if (success && (mImsiPseudonym != null) && (mImsiPseudonym.length() <= EAP_MTU)) {
+            if (mRefreshInterval <= 0) {
+                pseudonymInfo = new PseudonymInfo(mImsiPseudonym, imsi);
+            } else {
+                pseudonymInfo = new PseudonymInfo(mImsiPseudonym, imsi,
+                        mRefreshInterval * HOUR_IN_MILLIS);
+            }
         }
         return Optional.ofNullable(pseudonymInfo);
     }
