@@ -6702,6 +6702,8 @@ public class WifiMetrics {
         // Fill per link stats.
         for (WifiLinkLayerStats.LinkSpecificStats inStat : stats.links) {
             if (inStat == null) break;
+            WifiLinkLayerStats.ChannelStats channelStatsMap = stats.channelStatsMap.get(
+                    inStat.frequencyMhz);
             // Note: RSSI, Tx & Rx link speed are derived from signal poll stats which is updated in
             // Mlolink or WifiInfo (non-MLO case).
             android.net.wifi.WifiUsabilityStatsEntry.LinkStats outStat =
@@ -6721,8 +6723,10 @@ public class WifiMetrics {
                                     + inStat.lostmpdu_vi,
                             inStat.rxmpdu_be + inStat.rxmpdu_bk + inStat.rxmpdu_vo
                                     + inStat.rxmpdu_vi,
-                            inStat.beacon_rx,
-                            inStat.timeSliceDutyCycleInPercent, convertContentionTimeStats(stats),
+                            inStat.beacon_rx, inStat.timeSliceDutyCycleInPercent,
+                            (channelStatsMap != null) ? channelStatsMap.ccaBusyTimeMs : 0 ,
+                            (channelStatsMap != null) ? channelStatsMap.radioOnTimeMs : 0,
+                            convertContentionTimeStats(stats),
                             convertRateStats(stats));
             linkStats.put(inStat.link_id, outStat);
         }
