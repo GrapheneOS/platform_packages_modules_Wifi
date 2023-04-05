@@ -11271,6 +11271,10 @@ public class WifiManager {
      * Note: Policies with duplicate IDs are not allowed. To update an existing policy, first
      *       remove it using {@link #removeQosPolicies(int[])}, and then re-add it using this API.
      *
+     * Note: All policies in a single request must have the same {@link QosPolicyParams.Direction}.
+     *
+     * Note: Currently, only the {@link QosPolicyParams#DIRECTION_DOWNLINK} direction is supported.
+     *
      * @param policyParamsList List of {@link QosPolicyParams} objects describing the requested
      *                         policies. Must have a maximum length of
      *                         {@link #getMaxNumberOfPoliciesPerQosRequest()}.

@@ -546,8 +546,8 @@ public final class QosPolicyParams implements Parcelable {
                 + "protocol=" + mProtocol + ", "
                 + "dstPort=" + mDstPort + ", "
                 + "dstPortRange=" + Arrays.toString(mDstPortRange) + ", "
-                + "direction=" + mDirection
-                + "ipVersion=" + mIpVersion
+                + "direction=" + mDirection + ", "
+                + "ipVersion=" + mIpVersion + ", "
                 + "flowLabel=" + Arrays.toString(mFlowLabel) + "}";
     }
 
