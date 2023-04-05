@@ -7429,6 +7429,16 @@ public class WifiServiceImpl extends BaseWifiService {
         return policyIdSet.size() == policyIds.length;
     }
 
+    private boolean policiesHaveDirection(List<QosPolicyParams> policyList,
+            @QosPolicyParams.Direction int direction) {
+        for (QosPolicyParams policy : policyList) {
+            if (policy.getDirection() != direction) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void rejectAllQosPolicies(
             List<QosPolicyParams> policyParamsList, IListListener listener) {
         try {
@@ -7471,9 +7481,11 @@ public class WifiServiceImpl extends BaseWifiService {
             return;
         }
 
+        // Only downlink policies are currently supported.
         if (policyParamsList.size() == 0
                 || policyParamsList.size() > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
-                || !policyIdsAreUnique(policyParamsList)) {
+                || !policyIdsAreUnique(policyParamsList)
+                || !policiesHaveDirection(policyParamsList, QosPolicyParams.DIRECTION_DOWNLINK)) {
             throw new IllegalArgumentException("policyParamsList is invalid");
         }
 

@@ -29,6 +29,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -43,39 +44,67 @@ import java.util.Map;
 public class ApplicationQosPolicyRequestHandler {
     private static final String TAG = "ApplicationQosPolicyRequestHandler";
 
+    // QosPolicyParams objects contain an integer policyId in the range [1, 255],
+    // while the HAL expects a byte policyId in the range [-128, 127].
+    private static final int HAL_POLICY_ID_MIN = Byte.MIN_VALUE;
+    private static final int HAL_POLICY_ID_MAX = Byte.MAX_VALUE;
+    private static final int MAX_POLICIES_PER_TRANSACTION =
+            WifiManager.getMaxNumberOfPoliciesPerQosRequest();
+
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiNative mWifiNative;
     private final Handler mHandler;
     private final ApCallback mApCallback;
+    private final ApplicationQosPolicyTrackingTable mPolicyTrackingTable;
 
     private Map<String, List<QueuedRequest>> mPerIfaceRequestQueue;
     private Map<String, CallbackParams> mPendingCallbacks;
 
     private static final int REQUEST_TYPE_ADD = 0;
     private static final int REQUEST_TYPE_REMOVE = 1;
-    private static final int REQUEST_TYPE_REMOVE_ALL = 2;
 
     @IntDef(prefix = { "REQUEST_TYPE_" }, value = {
             REQUEST_TYPE_ADD,
             REQUEST_TYPE_REMOVE,
-            REQUEST_TYPE_REMOVE_ALL
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface RequestType {}
 
     private static class QueuedRequest {
+        // Initial state.
         public final @RequestType int requestType;
         public final @Nullable List<QosPolicyParams> policiesToAdd;
+        public final @Nullable List<Integer> policyIdsToRemove;
         public final @NonNull ApplicationCallback callback;
+        public final int requesterUid;
+
+        // Set during processing.
         public boolean processedOnAnyIface;
+        public @Nullable List<Integer> initialStatusList;
+        public @Nullable List<Byte> virtualPolicyIdsToRemove;
 
         QueuedRequest(@RequestType int inRequestType,
                 @Nullable List<QosPolicyParams> inPoliciesToAdd,
-                @Nullable IListListener inListener) {
+                @Nullable List<Integer> inPolicyIdsToRemove,
+                @Nullable IListListener inListener, int inRequesterUid) {
             requestType = inRequestType;
             policiesToAdd = inPoliciesToAdd;
+            policyIdsToRemove = inPolicyIdsToRemove;
             callback = new ApplicationCallback(inListener);
+            requesterUid = inRequesterUid;
             processedOnAnyIface = false;
+        }
+
+        @Override
+        public String toString() {
+            return "{requestType: " + requestType + ", "
+                    + "policiesToAdd: " + policiesToAdd + ", "
+                    + "policyIdsToRemove: " + policyIdsToRemove + ", "
+                    + "callback: " + callback + ", "
+                    + "requesterUid: " + requesterUid + ", "
+                    + "processedOnAnyIface: " + processedOnAnyIface + ", "
+                    + "initialStatusList: " + initialStatusList + ", "
+                    + "virtualPolicyIdsToRemove: " + virtualPolicyIdsToRemove + "}";
         }
     }
 
@@ -114,6 +143,11 @@ public class ApplicationQosPolicyRequestHandler {
             }
             sendResult(statusList);
         }
+
+        @Override
+        public String toString() {
+            return mListener != null ? mListener.toString() : "null";
+        }
     }
 
     /**
@@ -134,6 +168,11 @@ public class ApplicationQosPolicyRequestHandler {
             }
             Collections.sort(resultPolicyIds);
             return policyIds.equals(resultPolicyIds);
+        }
+
+        @Override
+        public String toString() {
+            return "{policyIds: " + policyIds + "}";
         }
     }
 
@@ -167,7 +206,12 @@ public class ApplicationQosPolicyRequestHandler {
         mPerIfaceRequestQueue = new HashMap<>();
         mPendingCallbacks = new HashMap<>();
         mApCallback = new ApCallback();
+        mPolicyTrackingTable = createPolicyTrackingTableMockable();
         mWifiNative.registerQosScsResponseCallback(mApCallback);
+    }
+
+    protected ApplicationQosPolicyTrackingTable createPolicyTrackingTableMockable() {
+        return new ApplicationQosPolicyTrackingTable(HAL_POLICY_ID_MIN, HAL_POLICY_ID_MAX);
     }
 
     @VisibleForTesting
@@ -181,11 +225,48 @@ public class ApplicationQosPolicyRequestHandler {
      *
      * @param policies List of {@link QosPolicyParams} objects representing the policies.
      * @param listener Listener to call when the operation is complete.
+     * @param uid UID of the requesting application.
      */
     public void queueAddRequest(@NonNull List<QosPolicyParams> policies,
-            @NonNull IListListener listener) {
-        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_ADD, policies, listener);
+            @NonNull IListListener listener, int uid) {
+        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_ADD, policies, null, listener, uid);
         queueRequestOnAllIfaces(request);
+        processNextRequestOnAllIfacesIfPossible();
+    }
+
+    /**
+     * Request to remove a list of existing QoS policies.
+     *
+     * @param policyIds List of integer policy IDs.
+     * @param uid UID of the requesting application.
+     */
+    public void queueRemoveRequest(@NonNull List<Integer> policyIds, int uid) {
+        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_REMOVE, null, policyIds, null, uid);
+        queueRequestOnAllIfaces(request);
+        processNextRequestOnAllIfacesIfPossible();
+    }
+
+    /**
+     * Request to remove all policies owned by this requester.
+     *
+     * @param uid UID of the requesting application.
+     */
+    public void queueRemoveAllRequest(int uid) {
+        List<Integer> ownedPolicies = mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(uid);
+        if (ownedPolicies.isEmpty()) return;
+
+        // Divide ownedPolicies into batches of size MAX_POLICIES_PER_TRANSACTION.
+        int startIndex = 0;
+        int endIndex = Math.min(ownedPolicies.size(), MAX_POLICIES_PER_TRANSACTION);
+        while (startIndex < endIndex) {
+            QueuedRequest request = new QueuedRequest(
+                    REQUEST_TYPE_REMOVE, null, ownedPolicies.subList(startIndex, endIndex),
+                    null, uid);
+            queueRequestOnAllIfaces(request);
+
+            startIndex += MAX_POLICIES_PER_TRANSACTION;
+            endIndex = Math.min(ownedPolicies.size(), endIndex + MAX_POLICIES_PER_TRANSACTION);
+        }
         processNextRequestOnAllIfacesIfPossible();
     }
 
@@ -199,8 +280,34 @@ public class ApplicationQosPolicyRequestHandler {
             return;
         }
 
-        // Pre-process this request before queueing.
-        assignVirtualPolicyIds(request.policiesToAdd);
+        // Pre-process each request before queueing.
+        if (request.requestType == REQUEST_TYPE_ADD) {
+            List<Integer> statusList = mPolicyTrackingTable.addPolicies(
+                    request.policiesToAdd, request.requesterUid);
+            List<QosPolicyParams> acceptedPolicies =
+                    filterPoliciesByStatusList(request.policiesToAdd, statusList);
+            if (acceptedPolicies.isEmpty()) {
+                // Tracking table rejected all policies in the request. Table may be full,
+                // or all policies are already being tracked.
+                request.callback.sendResult(statusList);
+                return;
+            }
+            request.initialStatusList = statusList;
+        } else if (request.requestType == REQUEST_TYPE_REMOVE) {
+            List<Integer> virtualPolicyIds = mPolicyTrackingTable.translatePolicyIds(
+                    request.policyIdsToRemove, request.requesterUid);
+            if (virtualPolicyIds.isEmpty()) {
+                // None of these policies are being tracked by the table.
+                return;
+            }
+            mPolicyTrackingTable.removePolicies(request.policyIdsToRemove, request.requesterUid);
+
+            List<Byte> virtualPolicyIdBytes = new ArrayList<>();
+            for (int policyId : virtualPolicyIds) {
+                virtualPolicyIdBytes.add((byte) policyId);
+            }
+            request.virtualPolicyIdsToRemove = virtualPolicyIdBytes;
+        }
 
         for (ClientModeManager cmm : clientModeManagers) {
             String ifaceName = cmm.getInterfaceName();
@@ -230,39 +337,60 @@ public class ApplicationQosPolicyRequestHandler {
         mPerIfaceRequestQueue.get(ifaceName).remove(0);
         if (request.requestType == REQUEST_TYPE_ADD) {
             processAddRequest(ifaceName, request);
+        } else if (request.requestType == REQUEST_TYPE_REMOVE) {
+            processRemoveRequest(ifaceName, request);
         }
-        // TODO: Handle remove and removeAll requests.
+    }
+
+    /**
+     * Filter out policies that do not have status code
+     * {@link WifiManager#QOS_REQUEST_STATUS_TRACKING}.
+     */
+    private List<QosPolicyParams> filterPoliciesByStatusList(List<QosPolicyParams> policyList,
+            List<Integer> statusList) {
+        List<QosPolicyParams> filteredPolicies = new ArrayList<>();
+        for (int i = 0; i < statusList.size(); i++) {
+            if (statusList.get(i) == WifiManager.QOS_REQUEST_STATUS_TRACKING) {
+                filteredPolicies.add(policyList.get(i));
+            }
+        }
+        return filteredPolicies;
     }
 
     private void processAddRequest(String ifaceName, QueuedRequest request) {
         boolean previouslyProcessed = request.processedOnAnyIface;
         request.processedOnAnyIface = true;
 
+        // Filter out policies that were already in the table during pre-processing.
+        List<Integer> statusList = new ArrayList(request.initialStatusList);
+        List<QosPolicyParams> policyList = filterPoliciesByStatusList(
+                request.policiesToAdd, request.initialStatusList);
+
+        // Filter out policies that were removed from the table in processSynchronousHalResponse().
+        policyList = mPolicyTrackingTable.filterUntrackedPolicies(policyList, request.requesterUid);
+
         List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList =
-                mWifiNative.addQosPolicyRequestForScs(ifaceName, request.policiesToAdd);
+                mWifiNative.addQosPolicyRequestForScs(ifaceName, policyList);
         if (halStatusList == null) {
-            request.callback.sendResult(request.policiesToAdd.size(),
-                    WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN);
+            if (!previouslyProcessed) {
+                statusList = handleHalPolicyAddError(
+                        statusList, request.policiesToAdd, request.requesterUid);
+                request.callback.sendResult(statusList);
+            }
             processNextRequestIfPossible(ifaceName);
             return;
-        }
-
-        // Policies that were sent to the AP expect a response from the callback.
-        List<Byte> policiesAwaitingCallback = new ArrayList<>();
-        List<Integer> statusList = new ArrayList<>();
-        for (SupplicantStaIfaceHal.QosPolicyStatus status : halStatusList) {
-            statusList.add(halToWifiManagerSyncStatus(status.statusCode));
-            if (status.statusCode == SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT) {
-                policiesAwaitingCallback.add((byte) status.policyId);
-            }
         }
 
         // Send the status list to the requesting application.
         // Should only be done the first time that a request is processed.
         if (!previouslyProcessed) {
+            statusList = processSynchronousHalResponse(
+                    statusList, halStatusList, request.policiesToAdd, request.requesterUid);
             request.callback.sendResult(statusList);
         }
 
+        // Policies that were sent to the AP expect a response from the callback.
+        List<Byte> policiesAwaitingCallback = getPoliciesAwaitingCallback(halStatusList);
         if (policiesAwaitingCallback.isEmpty()) {
             processNextRequestIfPossible(ifaceName);
         } else {
@@ -270,14 +398,37 @@ public class ApplicationQosPolicyRequestHandler {
         }
     }
 
-    private List<QosPolicyParams> assignVirtualPolicyIds(List<QosPolicyParams> policies) {
-        // QosPolicyParams objects contain an integer policyId in the range [1, 255],
-        // while the HAL expects a byte in the range [-128, 127].
-        // TODO: Implement a mapping table to assign the policy ids.
-        for (QosPolicyParams policy : policies) {
-            policy.setTranslatedPolicyId(policy.getPolicyId() - 128);
+    private void processRemoveRequest(String ifaceName, QueuedRequest request) {
+        List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList =
+                mWifiNative.removeQosPolicyForScs(ifaceName, request.virtualPolicyIdsToRemove);
+        if (halStatusList == null) {
+            processNextRequestIfPossible(ifaceName);
+            return;
         }
-        return policies;
+
+        // Policies that were sent to the AP expect a response from the callback.
+        List<Byte> policiesAwaitingCallback = getPoliciesAwaitingCallback(halStatusList);
+        if (policiesAwaitingCallback.isEmpty()) {
+            processNextRequestIfPossible(ifaceName);
+        } else {
+            mPendingCallbacks.put(ifaceName, new CallbackParams(policiesAwaitingCallback));
+        }
+    }
+
+    /**
+     * Get the list of policy IDs that are expected in the AP callback.
+     *
+     * Any policies that were sent to the AP will appear in the list.
+     */
+    private static List<Byte> getPoliciesAwaitingCallback(
+            List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
+        List<Byte> policiesAwaitingCallback = new ArrayList<>();
+        for (SupplicantStaIfaceHal.QosPolicyStatus status : halStatusList) {
+            if (status.statusCode == SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT) {
+                policiesAwaitingCallback.add((byte) status.policyId);
+            }
+        }
+        return policiesAwaitingCallback;
     }
 
     private static @WifiManager.QosRequestStatus int halToWifiManagerSyncStatus(
@@ -292,5 +443,75 @@ public class ApplicationQosPolicyRequestHandler {
             default:
                 return WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN;
         }
+    }
+
+    /**
+     * Handle the case where {@link WifiNative#addQosPolicyRequestForScs(String, List)} fails.
+     *
+     * For any policy that was sent to the HAL, assign the proper error code and
+     * remove that policy from the tracking table.
+     */
+    private List<Integer> handleHalPolicyAddError(List<Integer> statusList,
+            List<QosPolicyParams> policyList, int uid) {
+        List<Integer> rejectedPolicies = new ArrayList<>();
+        for (int i = 0; i < statusList.size(); i++) {
+            if (statusList.get(i) != WifiManager.QOS_REQUEST_STATUS_TRACKING) {
+                // Policy was assigned an error code by the tracking table
+                // and was not sent to the HAL.
+                continue;
+            }
+            statusList.set(i, WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN);
+            rejectedPolicies.add(policyList.get(i).getPolicyId());
+        }
+
+        // Remove policies that were sent to the HAL from the tracking table.
+        mPolicyTrackingTable.removePolicies(rejectedPolicies, uid);
+        return statusList;
+    }
+
+    /**
+     * Process the status list from {@link WifiNative#addQosPolicyRequestForScs(String, List)}.
+     *
+     * For each policy that was sent to the HAL, merge the HAL status into the main status list.
+     * If any policies were rejected by the HAL, remove them from the policy tracking table.
+     */
+    @VisibleForTesting
+    protected List<Integer> processSynchronousHalResponse(List<Integer> statusList,
+            List<SupplicantStaIfaceHal.QosPolicyStatus> halResults,
+            List<QosPolicyParams> policyList, int uid) {
+        int halIndex = 0;
+        List<Integer> rejectedPolicies = new ArrayList<>();
+        for (int i = 0; i < statusList.size(); i++) {
+            if (statusList.get(i) != WifiManager.QOS_REQUEST_STATUS_TRACKING) {
+                // Policy was assigned an error code by the tracking table
+                // and was not sent to the HAL.
+                continue;
+            }
+            int statusCode = halToWifiManagerSyncStatus(halResults.get(halIndex).statusCode);
+            if (statusCode != WifiManager.QOS_REQUEST_STATUS_TRACKING) {
+                rejectedPolicies.add(policyList.get(i).getPolicyId());
+            }
+            statusList.set(i, statusCode);
+            halIndex++;
+        }
+
+        if (!rejectedPolicies.isEmpty()) {
+            // Remove policies rejected by the HAL from the tracking table.
+            mPolicyTrackingTable.removePolicies(rejectedPolicies, uid);
+        }
+        return statusList;
+    }
+
+    /**
+     * Dump information about the internal state.
+     *
+     * @param pw PrintWriter to write the dump to.
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of ApplicationQosPolicyRequestHandler");
+        pw.println("mPerIfaceRequestQueue: " + mPerIfaceRequestQueue);
+        pw.println("mPendingCallbacks: " + mPendingCallbacks);
+        pw.println();
+        mPolicyTrackingTable.dump(pw);
     }
 }
