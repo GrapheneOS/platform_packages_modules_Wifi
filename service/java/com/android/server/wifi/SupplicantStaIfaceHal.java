@@ -756,6 +756,11 @@ public class SupplicantStaIfaceHal {
             policyId = id;
             statusCode = status;
         }
+
+        @Override
+        public String toString() {
+            return "{policyId: " + policyId + ", statusCode: " + statusCode + "}";
+        }
     }
 
     protected static final int QOS_POLICY_SCS_REQUEST_STATUS_ERROR_UNKNOWN = -1;
