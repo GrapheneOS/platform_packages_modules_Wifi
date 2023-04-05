@@ -319,6 +319,7 @@
           <item type="bool" name="config_wifiP2pGoIpAddressAllocationInEapolFrames" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeStart" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeEnd" />
+          <item type="bool" name="config_wifiUpdateCountryCodeFromScanResultGeneric" />
 
           <!-- Params from config.xml that can be overlayed -->
 
