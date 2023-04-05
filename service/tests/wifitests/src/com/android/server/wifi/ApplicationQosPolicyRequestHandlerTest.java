@@ -75,6 +75,8 @@ public class ApplicationQosPolicyRequestHandlerTest {
     @Captor ArgumentCaptor<List<QosPolicyParams>> mPolicyListCaptor;
     @Captor ArgumentCaptor<List<Integer>> mPolicyIdListCaptor;
     @Captor ArgumentCaptor<List<Byte>> mPolicyIdByteListCaptor;
+    @Captor ArgumentCaptor<IBinder.DeathRecipient> mDeathRecipientCaptor =
+            ArgumentCaptor.forClass(IBinder.DeathRecipient.class);
 
     private List<String> mApCallbackReceivedIfaces;
 
@@ -205,6 +207,8 @@ public class ApplicationQosPolicyRequestHandlerTest {
                 return policyIds;
             }
         }).when(mPolicyTrackingTable).translatePolicyIds(anyList(), anyInt());
+
+        when(mPolicyTrackingTable.tableContainsUid(anyInt())).thenReturn(true);
     }
 
     private List<Integer> getVirtualPolicyIds(List<QosPolicyParams> policyList) {
@@ -582,5 +586,42 @@ public class ApplicationQosPolicyRequestHandlerTest {
         // Verify that the second request is processed.
         verify(mWifiNative, times(2)).addQosPolicyRequestForScs(anyString(), anyList());
         verify(mockPolicy2Listener).onResult(anyList());
+    }
+
+    /**
+     * Tests that if the death recipient is called with an application's binder,
+     * all policies owned by that application are removed.
+     */
+    @Test
+    public void testBinderDeathRecipient() throws Exception {
+        when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
+                .thenReturn(Arrays.asList(mClientModeManager0));
+
+        // Make 2 add requests, each containing 5 new policies.
+        int numPolicies = 10;
+        List<QosPolicyParams> policyList = createDownlinkPolicyList(
+                numPolicies, TEST_POLICY_ID_START);
+        mDut.queueAddRequest(policyList.subList(0, 5), mIListListener, mBinder, TEST_UID);
+        mDut.queueAddRequest(policyList.subList(5, 10), mIListListener, mBinder, TEST_UID);
+
+        // Trigger the callbacks to complete processing.
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_0, policyList.subList(0, 5),
+                SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_0, policyList.subList(5, 10),
+                SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
+        verify(mWifiNative, times(2)).addQosPolicyRequestForScs(eq(TEST_IFACE_NAME_0), anyList());
+
+        // Set up the owned policies in the tracking table.
+        List<Integer> policyIds = getPolicyIdsFromPolicyList(policyList);
+        when(mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(anyInt())).thenReturn(policyIds);
+
+        // Trigger the death recipient. Expect that all 10 policies are removed.
+        verify(mBinder).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
+        mDeathRecipientCaptor.getValue().binderDied(mBinder);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative).removeQosPolicyForScs(
+                eq(TEST_IFACE_NAME_0), mPolicyIdByteListCaptor.capture());
+        assertEquals(numPolicies, mPolicyIdByteListCaptor.getValue().size());
     }
 }
