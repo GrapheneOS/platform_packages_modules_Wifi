@@ -246,7 +246,6 @@ public class WifiMetrics {
     private RttMetrics mRttMetrics;
     private final PnoScanMetrics mPnoScanMetrics = new PnoScanMetrics();
     private final WifiLinkLayerUsageStats mWifiLinkLayerUsageStats = new WifiLinkLayerUsageStats();
-    private final TelephonyManager mTelephonyManager;
     /** Mapping of radio id values to RadioStats objects. */
     private final SparseArray<RadioStats> mRadioStats = new SparseArray<>();
     private final ExperimentValues mExperimentValues = new ExperimentValues();
@@ -405,7 +404,6 @@ public class WifiMetrics {
     private final SparseIntArray mObservedHotspotR3ApsPerEssInScanHistogram = new SparseIntArray();
 
     private final SparseIntArray mObserved80211mcApInScanHistogram = new SparseIntArray();
-    private final IntCounter mCountryCodeScanHistogram = new IntCounter();
 
     // link probing stats
     private final IntCounter mLinkProbeSuccessRssiCounts = new IntCounter(-85, -65);
@@ -1555,7 +1553,6 @@ public class WifiMetrics {
         setScreenState(context.getSystemService(PowerManager.class).isInteractive());
 
         mScanMetrics = new ScanMetrics(context, clock);
-        mTelephonyManager = context.getSystemService(TelephonyManager.class);
     }
 
     /** Sets internal ScoringParams member */
@@ -3517,7 +3514,6 @@ public class WifiMetrics {
                 mWifiLogProto.partialAllSingleScanListenerResults++;
                 return;
             }
-            updateCountryCodeScanStats(scanDetails);
 
             Set<ScanResultMatchInfo> ssids = new HashSet<ScanResultMatchInfo>();
             int bssids = 0;
@@ -3655,35 +3651,6 @@ public class WifiMetrics {
             }
             increment80211mcAps(mObserved80211mcApInScanHistogram, supporting80211mcAps);
         }
-    }
-
-    private void updateCountryCodeScanStats(List<ScanDetail> scanDetails) {
-        String countryCode = null;
-        int countryCodeCount = 0;
-        for (ScanDetail scanDetail : scanDetails) {
-            NetworkDetail networkDetail = scanDetail.getNetworkDetail();
-            String countryCodeCurr = networkDetail.getCountryCode();
-            if (countryCodeCurr == null) {
-                continue;
-            }
-            if (countryCode == null) {
-                countryCode = countryCodeCurr;
-                countryCodeCount = 1;
-                continue;
-            }
-            if (!countryCodeCurr.equalsIgnoreCase(countryCode)) {
-                mCountryCodeScanHistogram.increment(COUNTRY_CODE_CONFLICT_WIFI_SCAN);
-                return;
-            }
-            countryCodeCount++;
-        }
-        String countryCodeTelephony = mTelephonyManager.getNetworkCountryIso();
-        if (countryCodeCount > 0 && !TextUtils.isEmpty(countryCodeTelephony)
-                && !countryCodeTelephony.equalsIgnoreCase(countryCode)) {
-            mCountryCodeScanHistogram.increment(COUNTRY_CODE_CONFLICT_WIFI_SCAN_TELEPHONY);
-            return;
-        }
-        mCountryCodeScanHistogram.increment(Math.min(countryCodeCount, MAX_COUNTRY_CODE_COUNT));
     }
 
     /** Increments the occurence of a "Connect to Network" notification. */
@@ -4232,8 +4199,6 @@ public class WifiMetrics {
 
                 pw.println("mWifiLogProto.observed80211mcSupportingApsInScanHistogram"
                         + mObserved80211mcApInScanHistogram);
-                pw.println("mWifiLogProto.CountryCodeScanHistogram="
-                        + mCountryCodeScanHistogram.toString());
                 pw.println("mWifiLogProto.bssidBlocklistStats:");
                 pw.println(mBssidBlocklistStats.toString());
 
@@ -5197,7 +5162,6 @@ public class WifiMetrics {
             mWifiLogProto.passpointDeauthImminentScope = mPasspointDeauthImminentScope.toProto();
             mWifiLogProto.recentFailureAssociationStatus =
                     mRecentFailureAssociationStatus.toProto();
-            mWifiLogProto.countryCodeScanHistogram = mCountryCodeScanHistogram.toProto();
         }
     }
 
@@ -5357,7 +5321,6 @@ public class WifiMetrics {
             mObservedHotspotR1ApsPerEssInScanHistogram.clear();
             mObservedHotspotR2ApsPerEssInScanHistogram.clear();
             mObservedHotspotR3ApsPerEssInScanHistogram.clear();
-            mCountryCodeScanHistogram.clear();
             mSoftApEventListTethered.clear();
             mSoftApEventListLocalOnly.clear();
             mWifiWakeMetrics.clear();
