@@ -671,6 +671,13 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         private final long mTotalBeaconRx;
         /** @see #WifiUsabilityStatsEntry#getTimeSliceDutyCycleInPercent() */
         private final int mTimeSliceDutyCycleInPercent;
+        /**
+         * The total time CCA is on busy status on the link frequency in ms counted from the last
+         * radio chip reset
+         */
+        private final long mTotalCcaBusyFreqTimeMillis;
+        /** The total radio on time on the link frequency in ms from the last radio chip reset */
+        private final long mTotalRadioOnFreqTimeMillis;
         /** Data packet contention time statistics */
         private final ContentionTimeStats[] mContentionTimeStats;
         /** Rate information and statistics */
@@ -690,6 +697,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             mTotalRxSuccess = 0;
             mTotalBeaconRx = 0;
             mTimeSliceDutyCycleInPercent = 0;
+            mTotalCcaBusyFreqTimeMillis = 0;
+            mTotalRadioOnFreqTimeMillis = 0;
             mContentionTimeStats = null;
             mRateStats = null;
         }
@@ -709,12 +718,17 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
          * @param totalRxSuccess              Total number of good receive packets.
          * @param totalBeaconRx               Total number of beacon received.
          * @param timeSliceDutyCycleInPercent Duty cycle of the connection.
+         * @param totalCcaBusyFreqTimeMillis  Total CCA is on busy status on the link frequency from
+         *                                    the last radio chip reset.
+         * @param totalRadioOnFreqTimeMillis  Total Radio on time on the link frequency from the
+         *                                    last radio chip reset.
          * @param contentionTimeStats         Data packet contention time statistics.
          * @param rateStats                   Rate information.
          */
         public LinkStats(int linkId, int state, int radioId, int rssi, int txLinkSpeedMpbs,
                 int rxLinkSpeedMpbs, long totalTxSuccess, long totalTxRetries, long totalTxBad,
                 long totalRxSuccess, long totalBeaconRx, int timeSliceDutyCycleInPercent,
+                long totalCcaBusyFreqTimeMillis, long  totalRadioOnFreqTimeMillis,
                 ContentionTimeStats[] contentionTimeStats, RateStats[] rateStats) {
             this.mLinkId = linkId;
             this.mState = state;
@@ -728,6 +742,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             this.mTotalRxSuccess = totalRxSuccess;
             this.mTotalBeaconRx = totalBeaconRx;
             this.mTimeSliceDutyCycleInPercent = timeSliceDutyCycleInPercent;
+            this.mTotalCcaBusyFreqTimeMillis = totalCcaBusyFreqTimeMillis;
+            this.mTotalRadioOnFreqTimeMillis = totalRadioOnFreqTimeMillis;
             this.mContentionTimeStats = contentionTimeStats;
             this.mRateStats = rateStats;
         }
@@ -751,6 +767,8 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             dest.writeLong(mTotalRxSuccess);
             dest.writeLong(mTotalBeaconRx);
             dest.writeInt(mTimeSliceDutyCycleInPercent);
+            dest.writeLong(mTotalCcaBusyFreqTimeMillis);
+            dest.writeLong(mTotalRadioOnFreqTimeMillis);
             dest.writeTypedArray(mContentionTimeStats, flags);
             dest.writeTypedArray(mRateStats, flags);
         }
@@ -763,6 +781,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
                         return new LinkStats(in.readInt(), in.readInt(), in.readInt(), in.readInt(),
                                 in.readInt(), in.readInt(), in.readLong(), in.readLong(),
                                 in.readLong(), in.readLong(), in.readLong(), in.readInt(),
+                                in.readLong(), in.readLong(),
                                 in.createTypedArray(ContentionTimeStats.CREATOR),
                                 in.createTypedArray(RateStats.CREATOR));
                     }
@@ -1130,15 +1149,50 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         return mTotalHotspot2ScanTimeMillis;
     }
 
-    /** The total time CCA is on busy status on the current frequency in ms counted from the last
-     * radio chip reset */
+    /**
+     * The total time CCA is on busy status on the current frequency in ms counted from the last
+     * radio chip reset.In case of Multi Link Operation (MLO), returned value is the total time
+     * CCA is on busy status on the current frequency of the associated link with the highest
+     * RSSI.
+     */
     public long getTotalCcaBusyFreqTimeMillis() {
         return mTotalCcaBusyFreqTimeMillis;
     }
 
-    /** The total radio on time on the current frequency from the last radio chip reset */
+    /**
+     * The total time CCA is on busy status on the link frequency in ms counted from the last
+     * radio chip reset.
+     *
+     * @param linkId Identifier of the link.
+     * @return total time CCA is on busy status for the link in ms.
+     * @throws NoSuchElementException if linkId is invalid.
+     * @hide
+     */
+    public long getTotalCcaBusyFreqTimeMillis(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalCcaBusyFreqTimeMillis;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
+    }
+
+    /**
+     * The total radio on time on the current frequency from the last radio chip reset. In case of
+     * Multi Link Operation (MLO), returned value is the total time radio on time on the current
+     * frequency of the associated link with the highest RSSI.
+     */
     public long getTotalRadioOnFreqTimeMillis() {
         return mTotalRadioOnFreqTimeMillis;
+    }
+
+    /**
+     * The total radio on time on the link frequency from the last radio chip reset
+     *
+     * @param linkId Identifier of the link.
+     * @return The total radio on time for the link in ms.
+     * @throws NoSuchElementException if linkId is invalid.
+     * @hide
+     */
+    public long getTotalRadioOnFreqTimeMillis(int linkId) {
+        if (mLinkStats.contains(linkId)) return mLinkStats.get(linkId).mTotalRadioOnFreqTimeMillis;
+        throw new NoSuchElementException("linkId is invalid - " + linkId);
     }
 
     /**

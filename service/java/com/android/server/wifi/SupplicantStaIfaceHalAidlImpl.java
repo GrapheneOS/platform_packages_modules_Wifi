@@ -2897,6 +2897,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         classifierParams.srcIp = new byte[0];
         classifierParams.dstIp = new byte[0];
         classifierParams.dstPortRange = new PortRange();
+        classifierParams.flowLabelIpv6 = new byte[0];
+        classifierParams.domainName = "";
 
         if (params.getSourceAddress() != null) {
             paramsMask |= QosPolicyClassifierParamsMask.SRC_IP;
@@ -2922,6 +2924,10 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         if (params.getDscp() != QosPolicyParams.DSCP_ANY) {
             paramsMask |= QosPolicyClassifierParamsMask.DSCP;
             classifierParams.dscp = (byte) params.getDscp();
+        }
+        if (params.getFlowLabel() != null) {
+            paramsMask |= QosPolicyClassifierParamsMask.FLOW_LABEL;
+            classifierParams.flowLabelIpv6 = params.getFlowLabel();
         }
 
         classifierParams.classifierParamMask = paramsMask;
