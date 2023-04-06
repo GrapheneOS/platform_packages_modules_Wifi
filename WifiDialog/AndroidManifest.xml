@@ -29,7 +29,8 @@
     <application
         android:enabled="true"
         android:configChanges="keyboardHidden|orientation|screenSize"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:theme="@style/WifiDialogTheme">
 
         <!-- This is only used to identify this app by resolving the action.
              The activity is never actually triggered. -->
@@ -43,7 +44,6 @@
                   android:configChanges="keyboardHidden|screenSize"
                   android:hardwareAccelerated="true"
                   android:launchMode="singleInstance"
-                  android:excludeFromRecents="true"
-                  android:theme="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight" />
+                  android:excludeFromRecents="true"/>
     </application>
 </manifest>
