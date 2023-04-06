@@ -697,6 +697,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.getClientModeImplNumLogRecs()).thenReturn(100);
         when(mWifiGlobals.isSaveFactoryMacToConfigStoreEnabled()).thenReturn(true);
+        when(mWifiGlobals.getNetworkNotFoundEventThreshold()).thenReturn(3);
         when(mWifiInjector.makeWifiNetworkAgent(any(), any(), any(), any(), any()))
                 .thenAnswer(new AnswerWithArguments() {
                     public WifiNetworkAgent answer(
@@ -7701,7 +7702,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastS());
         initializeAndAddNetworkAndVerifySuccess();
         mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
-        for (int i = 0; i < ClientModeImpl.NETWORK_NOT_FOUND_EVENT_THRESHOLD; i++) {
+        for (int i = 0; i < mWifiGlobals.getNetworkNotFoundEventThreshold(); i++) {
             mCmi.sendMessage(WifiMonitor.NETWORK_NOT_FOUND_EVENT, DEFAULT_TEST_SSID);
         }
         mLooper.dispatchAll();
