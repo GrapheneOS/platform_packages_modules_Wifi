@@ -132,14 +132,18 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"ਸਰਵਰ ਦਾ ਨਾਮ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"ਜਾਰੀਕਰਤਾ ਦਾ ਨਾਮ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"ਸੰਸਥਾ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"ਪ੍ਰਮਾਣ-ਪੱਤਰ ਦੀ ਮਿਆਦ ਸਮਾਪਤੀ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"SHA-256 ਫਿੰਗਰਪ੍ਰਿੰਟ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"ਸੰਪਰਕ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"ਦਸਤਖਤ:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"ਨੈੱਟਵਰਕ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਦੀ ਲੋੜ ਹੈ"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"ਕਨੈਕਟ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ <xliff:g id="SSID">%1$s</xliff:g> ਲਈ ਨੈੱਟਵਰਕ ਵੇਰਵਿਆਂ ਦੀ ਸਮੀਖਿਆ ਕਰੋ। ਜਾਰੀ ਰੱਖਣ ਲਈ ਟੈਪ ਕਰੋ।"</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"ਪ੍ਰਮਾਣ-ਪੱਤਰ ਨੂੰ ਸਥਾਪਤ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> ਨਾਲ ਕਨੈਕਟ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"ਸਰਵਰ ਪ੍ਰਮਾਣ-ਪੱਤਰ ਲੜੀ ਅਵੈਧ ਹੈ।"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ਠੀਕ ਹੈ"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ਇਸ ਨੈੱਟਵਰਕ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਕੀਤੀ ਜਾ ਸਕਦੀ"</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"ਫਿਰ ਵੀ ਕਨੈਕਟ ਕਰੋ"</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"ਕਨੈਕਟ ਨਾ ਕਰੋ"</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"ਕਨੈਕਟ ਰਹੋ"</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"ਹੁਣੇ ਡਿਸਕਨੈਕਟ ਕਰੋ"</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint" msgid="5682518783200852031">"ਨੈੱਟਵਰਕ <xliff:g id="SSID">%1$s</xliff:g> ਕੋਲ ਕੋਈ ਪ੍ਰਮਾਣ-ਪੱਤਰ ਮੌਜੂਦ ਨਹੀਂ ਹੈ।"</string>
     <string name="wifi_ca_cert_dialog_preT_message_link" msgid="6325483132538546884">"ਪ੍ਰਮਾਣ-ਪੱਤਰਾਂ ਨੂੰ ਸ਼ਾਮਲ ਕਰਨ ਦਾ ਤਰੀਕਾ ਜਾਣੋ"</string>
     <string name="wifi_ca_cert_notification_preT_title" msgid="7255129934648316663">"ਇਸ ਨੈੱਟਵਰਕ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਕੀਤੀ ਜਾ ਸਕਦੀ"</string>
