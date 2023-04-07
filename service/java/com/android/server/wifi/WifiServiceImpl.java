@@ -20,7 +20,6 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
-import static android.net.wifi.ScanResult.WIFI_BAND_60_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
 import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_FREQUENCY_MHZ;
 import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_NUM_AP;
@@ -198,6 +197,9 @@ import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.RssiUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.BufferedReader;
 import java.io.FileDescriptor;
@@ -1865,6 +1867,17 @@ public class WifiServiceImpl extends BaseWifiService {
                     mActiveModeWarden.updateSoftApCapability(
                             mLohsSoftApTracker.getSoftApCapability(),
                             WifiManager.IFACE_IP_MODE_LOCAL_ONLY);
+                    // Store Soft AP channels for reference after a reboot before the driver is up.
+                    WifiSettingsConfigStore configStore = mWifiInjector.getSettingsConfigStore();
+                    Resources res = mContext.getResources();
+                    configStore.put(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE, countryCode);
+                    List<Integer> freqs = new ArrayList<>();
+                    for (int band : SoftApConfiguration.BAND_TYPES) {
+                        freqs.addAll(ApConfigUtil.getAvailableChannelFreqsForBand(
+                                band, mWifiNative, res, true));
+                    }
+                    configStore.put(WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ,
+                            new JSONArray(freqs).toString());
                 }
                 if (SdkLevel.isAtLeastT()) {
                     int itemCount = mRegisteredDriverCountryCodeListeners.beginBroadcast();
@@ -6973,43 +6986,26 @@ public class WifiServiceImpl extends BaseWifiService {
         }
     }
 
-    private List<WifiAvailableChannel> getCachedSoftApAvailableChannels(
+    private List<WifiAvailableChannel> getStoredSoftApAvailableChannels(
             @WifiScanner.WifiBand int band) {
-        List<WifiAvailableChannel> cachedChannels = new ArrayList<>();
-        if ((band & WIFI_BAND_24_GHZ) != 0) {
-            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
-                            .getSupportedChannelList(SoftApConfiguration.BAND_2GHZ))
-                    .mapToObj(channel -> new WifiAvailableChannel(
-                            ScanResult.convertChannelToFrequencyMhzIfSupported(
-                                    channel, WIFI_BAND_24_GHZ),
-                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        List<Integer> freqs = new ArrayList<>();
+        try {
+            JSONArray json = new JSONArray(mWifiInjector.getSettingsConfigStore().get(
+                    WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ));
+            for (int i = 0; i < json.length(); i++) {
+                freqs.add(json.getInt(i));
+            }
+        } catch (JSONException e) {
+            Log.i(TAG, "Failed to read stored JSON for available Soft AP channels: " + e);
         }
-        if ((band & WIFI_BAND_5_GHZ) != 0) {
-            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
-                            .getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
-                    .mapToObj(channel -> new WifiAvailableChannel(
-                            ScanResult.convertChannelToFrequencyMhzIfSupported(
-                                    channel, WIFI_BAND_5_GHZ),
-                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        List<WifiAvailableChannel> channels = new ArrayList<>();
+        for (int freq : freqs) {
+            if ((band & ScanResult.toBand(freq)) == 0) {
+                continue;
+            }
+            channels.add(new WifiAvailableChannel(freq, WifiAvailableChannel.OP_MODE_SAP));
         }
-        if ((band & WIFI_BAND_6_GHZ) != 0) {
-            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
-                            .getSupportedChannelList(SoftApConfiguration.BAND_6GHZ))
-                    .mapToObj(channel -> new WifiAvailableChannel(
-                            ScanResult.convertChannelToFrequencyMhzIfSupported(
-                                    channel, WIFI_BAND_6_GHZ),
-                            WifiAvailableChannel.OP_MODE_SAP)).toList());
-        }
-        if ((band & WIFI_BAND_60_GHZ) != 0) {
-            cachedChannels.addAll(Arrays.stream(
-                            mTetheredSoftApTracker.getSoftApCapability()
-                                    .getSupportedChannelList(SoftApConfiguration.BAND_60GHZ))
-                    .mapToObj(channel -> new WifiAvailableChannel(
-                            ScanResult.convertChannelToFrequencyMhzIfSupported(
-                                    channel, WIFI_BAND_60_GHZ),
-                            WifiAvailableChannel.OP_MODE_SAP)).toList());
-        }
-        return cachedChannels;
+        return channels;
     }
 
     /**
@@ -7049,13 +7045,17 @@ public class WifiServiceImpl extends BaseWifiService {
         if (!isValidBandForGetUsableChannels(band)) {
             throw new IllegalArgumentException("Unsupported band: " + band);
         }
-        // If querying the usable channels for SoftAp mode and regulatory filtered, return from
-        // cached softAp capabilities directly.
-        if (mode == WifiAvailableChannel.OP_MODE_SAP
-                && filter == WifiAvailableChannel.FILTER_REGULATORY) {
-            List<WifiAvailableChannel> cachedChannels = getCachedSoftApAvailableChannels(band);
-            if (!cachedChannels.isEmpty()) {
-                return cachedChannels;
+        // Use stored values if the HAL isn't started and the stored country code matches.
+        // This is to show the band availability based on the regulatory domain.
+        if (mWifiNative.isHalSupported() && !mWifiNative.isHalStarted()
+                && mode == WifiAvailableChannel.OP_MODE_SAP
+                && filter == WifiAvailableChannel.FILTER_REGULATORY
+                && TextUtils.equals(mWifiInjector.getSettingsConfigStore().get(
+                        WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE),
+                mCountryCode.getCountryCode())) {
+            List<WifiAvailableChannel> storedChannels = getStoredSoftApAvailableChannels(band);
+            if (!storedChannels.isEmpty()) {
+                return storedChannels;
             }
         }
         List<WifiAvailableChannel> channels = mWifiThreadRunner.call(
