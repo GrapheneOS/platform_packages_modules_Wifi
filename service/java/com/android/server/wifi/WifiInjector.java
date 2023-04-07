@@ -251,6 +251,7 @@ public class WifiInjector {
     private final InterfaceConflictManager mInterfaceConflictManager;
     @NonNull private final WifiDialogManager mWifiDialogManager;
     @NonNull private final SsidTranslator mSsidTranslator;
+    @NonNull private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -551,6 +552,8 @@ public class WifiInjector {
                 mWifiGlobals);
         mWifiMulticastLockManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
                 wifiLooper);
+        mApplicationQosPolicyRequestHandler = new ApplicationQosPolicyRequestHandler(
+                mActiveModeWarden, mWifiNative, mWifiHandlerThread);
 
         // Register the various network Nominators with the network selector.
         mWifiNetworkSelector.registerNetworkNominator(mSavedNetworkNominator);
@@ -1197,5 +1200,10 @@ public class WifiInjector {
     @NonNull
     public WifiKeyStore getWifiKeyStore() {
         return mWifiKeyStore;
+    }
+
+    @NonNull
+    public ApplicationQosPolicyRequestHandler getApplicationQosPolicyRequestHandler() {
+        return mApplicationQosPolicyRequestHandler;
     }
 }
