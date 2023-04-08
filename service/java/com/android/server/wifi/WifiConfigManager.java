@@ -1061,7 +1061,8 @@ public class WifiConfigManager {
         int newType = externalConfig.getDefaultSecurityParams().getSecurityType();
         if (oldType != newType) {
             if (internalConfig.isSecurityType(newType)) {
-                internalConfig.setSecurityParamsIsAddedByAutoUpgrade(newType, false);
+                internalConfig.setSecurityParamsIsAddedByAutoUpgrade(newType,
+                        externalConfig.getDefaultSecurityParams().isAddedByAutoUpgrade());
             } else if (externalConfig.isSecurityType(oldType)) {
                 internalConfig.setSecurityParams(newType);
                 internalConfig.addSecurityParams(oldType);
