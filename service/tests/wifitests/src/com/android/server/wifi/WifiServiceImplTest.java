@@ -78,6 +78,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.AdditionalAnswers.returnsSecondArg;
 import static org.mockito.AdditionalMatchers.aryEq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -448,6 +449,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock InterfaceConflictManager mInterfaceConflictManager;
     @Mock WifiKeyStore mWifiKeyStore;
     @Mock ScoringParams mScoringParams;
+    @Mock ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
 
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
     @Captor ArgumentCaptor<List> mListCaptor;
@@ -617,6 +619,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getInterfaceConflictManager()).thenReturn(mInterfaceConflictManager);
         when(mWifiInjector.getWifiKeyStore()).thenReturn(mWifiKeyStore);
         when(mWifiInjector.getScoringParams()).thenReturn(mScoringParams);
+        when(mWifiInjector.getApplicationQosPolicyRequestHandler())
+                .thenReturn(mApplicationQosPolicyRequestHandler);
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -11145,9 +11149,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         IListListener listener = mock(IListListener.class);
         mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, listener);
 
-        // TODO: Update once the implementation exists.
         mLooper.dispatchAll();
-        verify(listener).onResult(any());
+        verify(mApplicationQosPolicyRequestHandler).queueAddRequest(anyList(), any(), anyInt());
     }
 
     /**
@@ -11209,9 +11212,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testRemoveQosPoliciesSuccess() throws RemoteException {
         assumeTrue(SdkLevel.isAtLeastU());
         enableQosPolicyFeature();
-        // TODO: Update once the implementation exists.
+
         int[] policyIds = new int[]{1, 2, 3};
         mWifiServiceImpl.removeQosPolicies(policyIds, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mApplicationQosPolicyRequestHandler).queueRemoveRequest(anyList(), anyInt());
     }
 
     /**
@@ -11243,8 +11248,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testRemoveAllQosPolicies() {
         assumeTrue(SdkLevel.isAtLeastU());
         enableQosPolicyFeature();
-        // TODO: Update once the implementation exists.
+
         mWifiServiceImpl.removeAllQosPolicies(TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mApplicationQosPolicyRequestHandler).queueRemoveAllRequest(anyInt());
     }
 
     /**
