@@ -20,6 +20,7 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_60_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
 import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_FREQUENCY_MHZ;
 import static android.net.wifi.WifiManager.CHANNEL_DATA_KEY_NUM_AP;
@@ -228,7 +229,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * WifiService handles remote WiFi operation requests by implementing
@@ -6973,6 +6973,45 @@ public class WifiServiceImpl extends BaseWifiService {
         }
     }
 
+    private List<WifiAvailableChannel> getCachedSoftApAvailableChannels(
+            @WifiScanner.WifiBand int band) {
+        List<WifiAvailableChannel> cachedChannels = new ArrayList<>();
+        if ((band & WIFI_BAND_24_GHZ) != 0) {
+            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
+                            .getSupportedChannelList(SoftApConfiguration.BAND_2GHZ))
+                    .mapToObj(channel -> new WifiAvailableChannel(
+                            ScanResult.convertChannelToFrequencyMhzIfSupported(
+                                    channel, WIFI_BAND_24_GHZ),
+                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        }
+        if ((band & WIFI_BAND_5_GHZ) != 0) {
+            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
+                            .getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
+                    .mapToObj(channel -> new WifiAvailableChannel(
+                            ScanResult.convertChannelToFrequencyMhzIfSupported(
+                                    channel, WIFI_BAND_5_GHZ),
+                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        }
+        if ((band & WIFI_BAND_6_GHZ) != 0) {
+            cachedChannels.addAll(Arrays.stream(mTetheredSoftApTracker.getSoftApCapability()
+                            .getSupportedChannelList(SoftApConfiguration.BAND_6GHZ))
+                    .mapToObj(channel -> new WifiAvailableChannel(
+                            ScanResult.convertChannelToFrequencyMhzIfSupported(
+                                    channel, WIFI_BAND_6_GHZ),
+                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        }
+        if ((band & WIFI_BAND_60_GHZ) != 0) {
+            cachedChannels.addAll(Arrays.stream(
+                            mTetheredSoftApTracker.getSoftApCapability()
+                                    .getSupportedChannelList(SoftApConfiguration.BAND_60GHZ))
+                    .mapToObj(channel -> new WifiAvailableChannel(
+                            ScanResult.convertChannelToFrequencyMhzIfSupported(
+                                    channel, WIFI_BAND_60_GHZ),
+                            WifiAvailableChannel.OP_MODE_SAP)).toList());
+        }
+        return cachedChannels;
+    }
+
     /**
      * See {@link android.net.wifi.WifiManager#getUsableChannels(int, int) and
      * See {@link android.net.wifi.WifiManager#getAllowedChannels(int, int).
@@ -7014,38 +7053,9 @@ public class WifiServiceImpl extends BaseWifiService {
         // cached softAp capabilities directly.
         if (mode == WifiAvailableChannel.OP_MODE_SAP
                 && filter == WifiAvailableChannel.FILTER_REGULATORY) {
-            int[] chans;
-            switch (band) {
-                case WifiScanner.WIFI_BAND_24_GHZ:
-                    chans =
-                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
-                                    SoftApConfiguration.BAND_2GHZ);
-                    break;
-                case WifiScanner.WIFI_BAND_5_GHZ:
-                    chans =
-                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
-                                    SoftApConfiguration.BAND_5GHZ);
-                    break;
-                case WifiScanner.WIFI_BAND_6_GHZ:
-                    chans =
-                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
-                                    SoftApConfiguration.BAND_6GHZ);
-                    break;
-                case WifiScanner.WIFI_BAND_60_GHZ:
-                    chans =
-                            mTetheredSoftApTracker.getSoftApCapability().getSupportedChannelList(
-                                    SoftApConfiguration.BAND_60GHZ);
-                    break;
-                default:
-                    chans = null;
-                    break;
-            }
-            if (chans != null) {
-                return Arrays.stream(chans).mapToObj(
-                        v -> new WifiAvailableChannel(
-                                ScanResult.convertChannelToFrequencyMhzIfSupported(v, band),
-                                WifiAvailableChannel.OP_MODE_SAP)).collect(
-                        Collectors.toList());
+            List<WifiAvailableChannel> cachedChannels = getCachedSoftApAvailableChannels(band);
+            if (!cachedChannels.isEmpty()) {
+                return cachedChannels;
             }
         }
         List<WifiAvailableChannel> channels = mWifiThreadRunner.call(

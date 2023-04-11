@@ -49,6 +49,7 @@ import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
+import static android.net.wifi.WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.os.Process.WIFI_UID;
@@ -9541,20 +9542,35 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .thenReturn(true);
         // Country code update with HAL started
         when(mWifiNative.isHalStarted()).thenReturn(true);
-        // Channel 9 - 2452Mhz
-        WifiAvailableChannel channels2g = new WifiAvailableChannel(2452,
-                WifiAvailableChannel.OP_MODE_SAP);
         when(mWifiNative.isHalSupported()).thenReturn(true);
-        when(mWifiNative.isHalStarted()).thenReturn(true);
+        setup5GhzSupported();
+        setup6GhzSupported();
+        setup60GhzSupported();
+        WifiAvailableChannel channel2g = new WifiAvailableChannel(2452,
+                WifiAvailableChannel.OP_MODE_SAP);
+        WifiAvailableChannel channel5g = new WifiAvailableChannel(5180,
+                WifiAvailableChannel.OP_MODE_SAP);
+        WifiAvailableChannel channel6g = new WifiAvailableChannel(5955,
+                WifiAvailableChannel.OP_MODE_SAP);
+        WifiAvailableChannel channel60g = new WifiAvailableChannel(58320,
+                WifiAvailableChannel.OP_MODE_SAP);
         when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(), anyInt()))
-                .thenReturn(new ArrayList<>(Arrays.asList(channels2g)));
+                .thenReturn(new ArrayList<>(List.of(channel2g)));
+        when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_5_GHZ), anyInt(), anyInt()))
+                .thenReturn(new ArrayList<>(List.of(channel5g)));
+        when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_6_GHZ), anyInt(), anyInt()))
+                .thenReturn(new ArrayList<>(List.of(channel6g)));
+        when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_60_GHZ), anyInt(), anyInt()))
+                .thenReturn(new ArrayList<>(List.of(channel60g)));
         mWifiServiceImpl.mCountryCodeTracker.onDriverCountryCodeChanged(TEST_COUNTRY_CODE);
         mLooper.dispatchAll();
         reset(mWifiNative);
-        List<WifiAvailableChannel> channels = mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ,
-                OP_MODE_SAP, FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras);
-        assertEquals(1, channels.size());
-        assertEquals(channels2g, channels.get(0));
+
+        List<WifiAvailableChannel> channels = mWifiServiceImpl.getUsableChannels(
+                WIFI_BAND_24_5_WITH_DFS_6_60_GHZ, OP_MODE_SAP, FILTER_REGULATORY, TEST_PACKAGE_NAME,
+                mExtras);
+
+        assertThat(channels).containsExactly(channel2g, channel5g, channel6g, channel60g);
         verify(mWifiNative, never()).getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(),
                 anyInt());
     }
