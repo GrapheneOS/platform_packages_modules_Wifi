@@ -24,6 +24,7 @@ import android.net.wifi.QosPolicyParams;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -76,6 +77,7 @@ public class ApplicationQosPolicyRequestHandler {
         public final @Nullable List<QosPolicyParams> policiesToAdd;
         public final @Nullable List<Integer> policyIdsToRemove;
         public final @NonNull ApplicationCallback callback;
+        public final @Nullable IBinder binder;
         public final int requesterUid;
 
         // Set during processing.
@@ -86,11 +88,13 @@ public class ApplicationQosPolicyRequestHandler {
         QueuedRequest(@RequestType int inRequestType,
                 @Nullable List<QosPolicyParams> inPoliciesToAdd,
                 @Nullable List<Integer> inPolicyIdsToRemove,
-                @Nullable IListListener inListener, int inRequesterUid) {
+                @Nullable IListListener inListener, @Nullable IBinder inBinder,
+                int inRequesterUid) {
             requestType = inRequestType;
             policiesToAdd = inPoliciesToAdd;
             policyIdsToRemove = inPolicyIdsToRemove;
             callback = new ApplicationCallback(inListener);
+            binder = inBinder;
             requesterUid = inRequesterUid;
             processedOnAnyIface = false;
         }
@@ -101,6 +105,7 @@ public class ApplicationQosPolicyRequestHandler {
                     + "policiesToAdd: " + policiesToAdd + ", "
                     + "policyIdsToRemove: " + policyIdsToRemove + ", "
                     + "callback: " + callback + ", "
+                    + "binder: " + binder + ", "
                     + "requesterUid: " + requesterUid + ", "
                     + "processedOnAnyIface: " + processedOnAnyIface + ", "
                     + "initialStatusList: " + initialStatusList + ", "
@@ -225,11 +230,13 @@ public class ApplicationQosPolicyRequestHandler {
      *
      * @param policies List of {@link QosPolicyParams} objects representing the policies.
      * @param listener Listener to call when the operation is complete.
+     * @param binder Caller's binder context.
      * @param uid UID of the requesting application.
      */
     public void queueAddRequest(@NonNull List<QosPolicyParams> policies,
-            @NonNull IListListener listener, int uid) {
-        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_ADD, policies, null, listener, uid);
+            @NonNull IListListener listener, @NonNull IBinder binder, int uid) {
+        QueuedRequest request = new QueuedRequest(
+                REQUEST_TYPE_ADD, policies, null, listener, binder, uid);
         queueRequestOnAllIfaces(request);
         processNextRequestOnAllIfacesIfPossible();
     }
@@ -241,7 +248,8 @@ public class ApplicationQosPolicyRequestHandler {
      * @param uid UID of the requesting application.
      */
     public void queueRemoveRequest(@NonNull List<Integer> policyIds, int uid) {
-        QueuedRequest request = new QueuedRequest(REQUEST_TYPE_REMOVE, null, policyIds, null, uid);
+        QueuedRequest request = new QueuedRequest(
+                REQUEST_TYPE_REMOVE, null, policyIds, null, null, uid);
         queueRequestOnAllIfaces(request);
         processNextRequestOnAllIfacesIfPossible();
     }
@@ -261,7 +269,7 @@ public class ApplicationQosPolicyRequestHandler {
         while (startIndex < endIndex) {
             QueuedRequest request = new QueuedRequest(
                     REQUEST_TYPE_REMOVE, null, ownedPolicies.subList(startIndex, endIndex),
-                    null, uid);
+                    null, null, uid);
             queueRequestOnAllIfaces(request);
 
             startIndex += MAX_POLICIES_PER_TRANSACTION;
@@ -360,6 +368,13 @@ public class ApplicationQosPolicyRequestHandler {
     private void processAddRequest(String ifaceName, QueuedRequest request) {
         boolean previouslyProcessed = request.processedOnAnyIface;
         request.processedOnAnyIface = true;
+
+        // Verify that the requesting application is still alive.
+        if (!request.binder.pingBinder()) {
+            Log.e(TAG, "Requesting application died before processing. request=" + request);
+            processNextRequestIfPossible(ifaceName);
+            return;
+        }
 
         // Filter out policies that were already in the table during pre-processing.
         List<Integer> statusList = new ArrayList(request.initialStatusList);
