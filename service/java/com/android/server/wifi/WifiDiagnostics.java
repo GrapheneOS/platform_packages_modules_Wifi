@@ -891,6 +891,7 @@ public class WifiDiagnostics {
         private static final boolean DEFAULT_BUGREPORT_REQUIRED = true;
         // Component: Android > Android OS & Apps > Systems > wifi
         private static final long DEFAULT_COMPONENT_ID = 33618L;
+        private static final String DEFAULT_BUG_ASSIGNEE = "android-wifi-team@google.com";
 
         private static final String EXTRA_DEEPLINK = "EXTRA_DEEPLINK";
         private static final String EXTRA_ISSUE_TITLE = "EXTRA_ISSUE_TITLE";
@@ -916,6 +917,7 @@ public class WifiDiagnostics {
                     .putExtra(EXTRA_DEEPLINK, true);
             setAutoUpload(DEFAULT_AUTO_UPLOAD_ENABLED);
             setBugreportRequired(DEFAULT_BUGREPORT_REQUIRED);
+            setBugAssignee(DEFAULT_BUG_ASSIGNEE);
             setComponentId(DEFAULT_COMPONENT_ID);
         }
 
