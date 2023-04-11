@@ -733,6 +733,10 @@
     interval -->
     <integer translatable="false" name="config_wifiPollRssiLongIntervalMilliseconds">6000</integer>
 
+    <!-- Integer indicating the maximum number of consecutive NETWORK_NOT_FOUND_EVENT event to allow
+    before attempting to temporarily disable the network -->
+    <integer translatable="false" name="config_wifiNetworkNotFoundEventThreshold">3</integer>
+
     <!-- RSSI threshold in dBm to decide the RSSI and link layer stats polling interval, and also
     for the client mode RSSI monitor. When the polling is enabled, if the device is stationary
     and current RSSI >= Threshold + Hysteresis value, set long interval and enable RSSI monitoring

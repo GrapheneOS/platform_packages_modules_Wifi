@@ -59,6 +59,7 @@ public class WifiGlobals {
     private final int mClientRssiMonitorHysteresisDb;
     private final boolean mAdjustPollRssiIntervalEnabled;
     private final boolean mWifiInterfaceAddedSelfRecoveryEnabled;
+    private final int mNetworkNotFoundEventThreshold;
 
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
@@ -110,6 +111,8 @@ public class WifiGlobals {
                 R.bool.config_wifiInterfaceAddedSelfRecoveryEnabled);
         mDisableUnwantedNetworkOnLowRssi = mContext.getResources().getBoolean(
                 R.bool.config_wifiDisableUnwantedNetworkOnLowRssi);
+        mNetworkNotFoundEventThreshold = mContext.getResources().getInteger(
+                R.integer.config_wifiNetworkNotFoundEventThreshold);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -323,6 +326,13 @@ public class WifiGlobals {
         return mDisableUnwantedNetworkOnLowRssi;
     }
 
+    /**
+     * Get the threshold to use for blocking a network due to NETWORK_NOT_FOUND_EVENT failure.
+     */
+    public int getNetworkNotFoundEventThreshold() {
+        return mNetworkNotFoundEventThreshold;
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -350,5 +360,6 @@ public class WifiGlobals {
         pw.println("mWifiInterfaceAddedSelfRecoveryEnabled="
                 + mWifiInterfaceAddedSelfRecoveryEnabled);
         pw.println("mDisableUnwantedNetworkOnLowRssi=" + mDisableUnwantedNetworkOnLowRssi);
+        pw.println("mNetworkNotFoundEventThreshold=" + mNetworkNotFoundEventThreshold);
     }
 }
