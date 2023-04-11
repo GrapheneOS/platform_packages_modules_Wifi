@@ -201,7 +201,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static final int NETWORK_AGENT_TEARDOWN_DELAY_MS = 5_000; // Max teardown delay.
     @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 30_000; // 30 secs.
     @VisibleForTesting
-    public static final short NETWORK_NOT_FOUND_EVENT_THRESHOLD = 3;
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
 
     private boolean mVerboseLoggingEnabled = false;
@@ -5747,7 +5746,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         break;
                     }
                     Log.d(getTag(), "Network not found event received: network: " + networkName);
-                    if (mNetworkNotFoundEventCount >= NETWORK_NOT_FOUND_EVENT_THRESHOLD
+                    if (mNetworkNotFoundEventCount
+                            >= mWifiGlobals.getNetworkNotFoundEventThreshold()
                             && mTargetWifiConfiguration != null
                             && mTargetWifiConfiguration.SSID != null
                             && mTargetWifiConfiguration.SSID.equals(networkName)) {
