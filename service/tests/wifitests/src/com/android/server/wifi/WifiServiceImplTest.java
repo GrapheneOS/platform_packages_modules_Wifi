@@ -11150,7 +11150,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, listener);
 
         mLooper.dispatchAll();
-        verify(mApplicationQosPolicyRequestHandler).queueAddRequest(anyList(), any(), anyInt());
+        verify(mApplicationQosPolicyRequestHandler).queueAddRequest(
+                anyList(), any(), any(), anyInt());
     }
 
     /**
