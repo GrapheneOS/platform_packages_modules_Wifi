@@ -217,6 +217,7 @@
           <item type="integer" name="config_wifiRttBackgroundExecGapMs" />
           <item type="integer" name="config_wifiPollRssiIntervalMilliseconds" />
           <item type="integer" name="config_wifiPollRssiLongIntervalMilliseconds" />
+          <item type="integer" name="config_wifiNetworkNotFoundEventThreshold" />
           <item type="integer" name="config_wifiClientRssiMonitorThresholdDbm" />
           <item type="integer" name="config_wifiClientRssiMonitorHysteresisDb" />
           <item type="bool" name="config_wifiAdjustPollRssiIntervalEnabled" />
