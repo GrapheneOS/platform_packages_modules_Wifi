@@ -1924,7 +1924,14 @@ public class WifiVendorHal {
     }
 
     /**
-     * Set DTIM multiplier used when the system is in the suspended mode.
+     * Set maximum acceptable DTIM multiplier to hardware driver. Any multiplier larger than the
+     * maximum value must not be accepted, it will cause packet loss higher than what the system
+     * can accept, which will cause unexpected behavior for apps, and may interrupt the network
+     * connection.
+     *
+     * @param ifaceName Name of the interface.
+     * @param multiplier integer maximum DTIM multiplier value to set.
+     * @return true for success
      */
     public boolean setDtimMultiplier(@NonNull String ifaceName, int multiplier) {
         synchronized (sLock) {
