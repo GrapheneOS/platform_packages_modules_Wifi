@@ -7407,15 +7407,6 @@ public class WifiServiceImpl extends BaseWifiService {
                 .getInteger(R.integer.config_wifiNetworkSpecifierMaxPreferredChannels);
     }
 
-    private boolean isApplicationQosPolicyFeatureEnabled() {
-        // Both the experiment flag and overlay value must be enabled,
-        // and the HAL must support this feature.
-        return mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()
-                && mContext.getResources().getBoolean(
-                        R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled)
-                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(2);
-    }
-
     private boolean policyIdsAreUnique(List<QosPolicyParams> policies) {
         Set<Integer> policyIdSet = new HashSet<>();
         for (QosPolicyParams policy : policies) {
@@ -7478,7 +7469,7 @@ public class WifiServiceImpl extends BaseWifiService {
         Objects.requireNonNull(binder, "binder cannot be null");
         Objects.requireNonNull(listener, "listener cannot be null");
 
-        if (!isApplicationQosPolicyFeatureEnabled()) {
+        if (!mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
             Log.i(TAG, "addQosPolicies is disabled on this device");
             rejectAllQosPolicies(policyParamsList, listener);
             return;
@@ -7506,7 +7497,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public void removeQosPolicies(@NonNull int[] policyIds, @NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
-        } else if (!isApplicationQosPolicyFeatureEnabled()) {
+        } else if (!mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
             Log.i(TAG, "removeQosPolicies is disabled on this device");
             return;
         }
@@ -7537,7 +7528,7 @@ public class WifiServiceImpl extends BaseWifiService {
     public void removeAllQosPolicies(@NonNull String packageName) {
         if (!SdkLevel.isAtLeastU()) {
             throw new UnsupportedOperationException("SDK level too old");
-        } else if (!isApplicationQosPolicyFeatureEnabled()) {
+        } else if (!mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
             Log.i(TAG, "removeAllQosPolicies is disabled on this device");
             return;
         }

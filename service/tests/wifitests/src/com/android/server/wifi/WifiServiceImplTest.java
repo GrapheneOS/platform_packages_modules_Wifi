@@ -11114,11 +11114,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     private void enableQosPolicyFeature() {
-        when(mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()).thenReturn(true);
-        when(mResources.getBoolean(
-                R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled))
-                .thenReturn(true);
-        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(eq(2))).thenReturn(true);
+        when(mApplicationQosPolicyRequestHandler.isFeatureEnabled()).thenReturn(true);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(true);
@@ -11167,7 +11163,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         IListListener listener = mock(IListListener.class);
 
         // Feature disabled
-        when(mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()).thenReturn(false);
+        when(mApplicationQosPolicyRequestHandler.isFeatureEnabled()).thenReturn(false);
         mWifiServiceImpl.addQosPolicies(paramsList, binder, TEST_PACKAGE_NAME, listener);
         enableQosPolicyFeature();
 

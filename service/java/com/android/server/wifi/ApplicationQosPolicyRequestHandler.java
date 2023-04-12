@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.Context;
 import android.net.wifi.IListListener;
 import android.net.wifi.QosPolicyParams;
 import android.net.wifi.WifiManager;
@@ -29,6 +30,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.wifi.resources.R;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -64,6 +66,8 @@ public class ApplicationQosPolicyRequestHandler {
     private final ApCallback mApCallback;
     private final ApplicationQosPolicyTrackingTable mPolicyTrackingTable;
     private final ApplicationDeathRecipient mApplicationDeathRecipient;
+    private final DeviceConfigFacade mDeviceConfigFacade;
+    private final Context mContext;
 
     private Map<String, List<QueuedRequest>> mPerIfaceRequestQueue;
     private Map<String, CallbackParams> mPendingCallbacks;
@@ -236,7 +240,8 @@ public class ApplicationQosPolicyRequestHandler {
     }
 
     public ApplicationQosPolicyRequestHandler(@NonNull ActiveModeWarden activeModeWarden,
-            @NonNull WifiNative wifiNative, @NonNull HandlerThread handlerThread) {
+            @NonNull WifiNative wifiNative, @NonNull HandlerThread handlerThread,
+            @NonNull DeviceConfigFacade deviceConfigFacade, @NonNull Context context) {
         mActiveModeWarden = activeModeWarden;
         mWifiNative = wifiNative;
         mHandler = new Handler(handlerThread.getLooper());
@@ -246,6 +251,8 @@ public class ApplicationQosPolicyRequestHandler {
         mApplicationUidToBinderMap = new HashMap<>();
         mApCallback = new ApCallback();
         mApplicationDeathRecipient = new ApplicationDeathRecipient();
+        mDeviceConfigFacade = deviceConfigFacade;
+        mContext = context;
         mPolicyTrackingTable = createPolicyTrackingTableMockable();
         mWifiNative.registerQosScsResponseCallback(mApCallback);
     }
@@ -258,6 +265,20 @@ public class ApplicationQosPolicyRequestHandler {
     protected void logApCallbackMockable(String ifaceName,
             List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
         Log.i(TAG, "Received AP callback on " + ifaceName + ", size=" + halStatusList.size());
+    }
+
+    /**
+     * Check whether the Application QoS policy feature is enabled.
+     *
+     * @return true if the feature is enabled, false otherwise.
+     */
+    public boolean isFeatureEnabled() {
+        // Both the experiment flag and overlay value must be enabled,
+        // and the HAL must support this feature.
+        return mDeviceConfigFacade.isApplicationQosPolicyApiEnabled()
+                && mContext.getResources().getBoolean(
+                R.bool.config_wifiApplicationCentricQosPolicyFeatureEnabled)
+                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(2);
     }
 
     /**
