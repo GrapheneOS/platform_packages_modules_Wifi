@@ -7492,7 +7492,8 @@ public class WifiServiceImpl extends BaseWifiService {
         }
 
         mWifiThreadRunner.post(() -> {
-            mApplicationQosPolicyRequestHandler.queueAddRequest(policyParamsList, listener, uid);
+            mApplicationQosPolicyRequestHandler.queueAddRequest(
+                    policyParamsList, listener, binder, uid);
         });
     }
 
