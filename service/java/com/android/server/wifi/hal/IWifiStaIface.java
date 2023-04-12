@@ -247,9 +247,12 @@ public interface IWifiStaIface {
     boolean stopSendingKeepAlivePackets(int cmdId);
 
     /**
-     * Set DTIM multiplier used when the system is in the suspended mode.
+     * Set maximum acceptable DTIM multiplier to hardware driver. Any multiplier larger than the
+     * maximum value must not be accepted, it will cause packet loss higher than what the system
+     * can accept, which will cause unexpected behavior for apps, and may interrupt the network
+     * connection.
      *
-     * @param multiplier DTIM multiplier value to set.
+     * @param multiplier maximum DTIM multiplier value to set.
      * @return true if successful, false otherwise.
      */
     boolean setDtimMultiplier(int multiplier);
