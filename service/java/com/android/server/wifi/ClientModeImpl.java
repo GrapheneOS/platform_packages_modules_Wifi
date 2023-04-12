@@ -665,6 +665,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private final WifiPseudonymManager.PseudonymUpdatingListener mPseudonymUpdatingListener;
 
+    private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
+
 
     /** Note that this constructor will also start() the StateMachine. */
     public ClientModeImpl(
@@ -869,6 +871,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 getHandler());
 
         mPseudonymUpdatingListener = this::updatePseudonymFromOob;
+        mApplicationQosPolicyRequestHandler = mWifiInjector.getApplicationQosPolicyRequestHandler();
 
         final int threshold =  mContext.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
@@ -5531,6 +5534,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     mWifiInfo.setNetworkKey(config.getNetworkKeyFromSecurityType(
                             mWifiInfo.getCurrentSecurityType()));
+                    if (mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
+                        mApplicationQosPolicyRequestHandler.queueAllPoliciesOnIface(mInterfaceName);
+                    }
                     updateLayer2Information();
                     updateCurrentConnectionInfo();
                     transitionTo(mL3ProvisioningState);
@@ -6293,6 +6299,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
                     }
                     checkIfNeedDisconnectSecondaryWifi();
+                    if (mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
+                        mApplicationQosPolicyRequestHandler.queueAllPoliciesOnIface(mInterfaceName);
+                    }
                     break;
                 }
                 case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT: {
