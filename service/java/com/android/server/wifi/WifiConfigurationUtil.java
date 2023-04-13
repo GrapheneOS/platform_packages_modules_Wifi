@@ -695,7 +695,10 @@ public class WifiConfigurationUtil {
                 && !validatePassword(config.preSharedKey, isAdd, true)) {
             return false;
         }
-
+        if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK)
+                && !validatePassword(config.preSharedKey, isAdd, false)) {
+            return false;
+        }
         if (!validateEnterpriseConfig(config, isAdd)) {
             return false;
         }
