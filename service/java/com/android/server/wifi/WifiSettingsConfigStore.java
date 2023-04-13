@@ -84,6 +84,12 @@ public class WifiSettingsConfigStore {
             new Key<>("wifi_p2p_device_name", null);
 
     /**
+     * The Wi-Fi peer-to-peer device mac address
+     */
+    public static final Key<String> WIFI_P2P_DEVICE_ADDRESS =
+            new Key<>("wifi_p2p_device_address", null);
+
+    /**
      * Whether Wifi scoring is enabled or not.
      */
     public static final Key<Boolean> WIFI_SCORING_ENABLED =
