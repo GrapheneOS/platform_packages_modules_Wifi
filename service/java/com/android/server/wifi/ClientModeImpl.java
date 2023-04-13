@@ -271,7 +271,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final ConcreteClientModeManager mClientModeManager;
 
     private final WifiNotificationManager mNotificationManager;
-    private final DtimMultiplierController mDtimMultiplierController;
     private final QosPolicyRequestHandler mQosPolicyRequestHandler;
 
     private boolean mFailedToResetMacAddress = false;
@@ -546,6 +545,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     /** Used to remove packet filter from apf. */
     static final int CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF = BASE + 210;
 
+    /**
+     * Set maximum acceptable DTIM multiplier to hardware driver. Any multiplier larger than the
+     * maximum value must not be accepted, it will cause packet loss higher than what the system
+     * can accept, which will cause unexpected behavior for apps, and may interrupt the network
+     * connection.
+     */
+    static final int CMD_SET_MAX_DTIM_MULTIPLIER = BASE + 211;
+
     @VisibleForTesting
     static final int CMD_PRE_DHCP_ACTION                                = BASE + 255;
     private static final int CMD_PRE_DHCP_ACTION_COMPLETE               = BASE + 256;
@@ -812,8 +819,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiInjector = wifiInjector;
         mQosPolicyRequestHandler = new QosPolicyRequestHandler(mInterfaceName, mWifiNative, this,
                 mWifiInjector.getWifiHandlerThread());
-        mDtimMultiplierController = new DtimMultiplierController(mContext, mInterfaceName,
-                mWifiNative);
 
         mRssiMonitor = new RssiMonitor(mWifiGlobals, mWifiThreadRunner, mWifiInfo, mWifiNative,
                 mInterfaceName,
@@ -959,8 +964,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private void setMulticastFilter(boolean enabled) {
         if (mIpClient != null) {
             mIpClient.setMulticastFilter(enabled);
-            // Multicast filter enabled = multicast lock disabled
-            mDtimMultiplierController.setMulticastLock(!enabled);
         }
     }
 
@@ -1116,6 +1119,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         public void onPreconnectionStart(List<Layer2PacketParcelable> packets) {
             if (mIpClientCallbacks != this) return;
             sendMessage(CMD_START_FILS_CONNECTION, 0, 0, packets);
+        }
+
+        @Override
+        public void setMaxDtimMultiplier(int multiplier) {
+            if (mIpClientCallbacks != this) return;
+            sendMessage(CMD_SET_MAX_DTIM_MULTIPLIER, multiplier);
         }
 
         @Override
@@ -1303,7 +1312,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mSupplicantStateTracker.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiNative.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseLoggingEnabled);
         mQosPolicyRequestHandler.enableVerboseLogging(mVerboseLoggingEnabled);
-        mDtimMultiplierController.enableVerboseLogging(mVerboseLoggingEnabled);
         mRssiMonitor.enableVerboseLogging(mVerboseLoggingEnabled);
     }
 
@@ -2309,6 +2317,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             case CMD_SET_FALLBACK_PACKET_FILTERING:
                 sb.append(" enabled=" + (boolean) msg.obj);
                 break;
+            case CMD_SET_MAX_DTIM_MULTIPLIER:
+                sb.append(" maximum multiplier=" + msg.arg1);
+                break;
             case CMD_ROAM_WATCHDOG_TIMER:
                 sb.append(" ");
                 sb.append(Integer.toString(msg.arg1));
@@ -2415,6 +2426,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return "CMD_SCREEN_STATE_CHANGED";
             case CMD_SET_FALLBACK_PACKET_FILTERING:
                 return "CMD_SET_FALLBACK_PACKET_FILTERING";
+            case CMD_SET_MAX_DTIM_MULTIPLIER:
+                return "CMD_SET_MAX_DTIM_MULTIPLIER";
             case CMD_SET_SUSPEND_OPT_ENABLED:
                 return "CMD_SET_SUSPEND_OPT_ENABLED";
             case CMD_START_CONNECT:
@@ -2784,7 +2797,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // TODO: Update all callers to use NetworkCallbacks and delete this.
             sendLinkConfigurationChangedBroadcast();
         }
-        mDtimMultiplierController.updateLinkProperties(newLp);
         if (mVerboseLoggingEnabled) {
             StringBuilder sb = new StringBuilder();
             sb.append("updateLinkProperties nid: " + mLastNetworkId);
@@ -3374,7 +3386,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (!newConnectionInProgress) {
             mIsUserSelected = false;
         }
-        mDtimMultiplierController.reset();
         updateCurrentConnectionInfo();
     }
 
@@ -4747,6 +4758,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         mWifiNative.startFilteringMulticastV4Packets(mInterfaceName);
                     } else {
                         mWifiNative.stopFilteringMulticastV4Packets(mInterfaceName);
+                    }
+                    break;
+                }
+                case CMD_SET_MAX_DTIM_MULTIPLIER: {
+                    final int maxMultiplier = message.arg1;
+                    final boolean success =
+                            mWifiNative.setDtimMultiplier(mInterfaceName, maxMultiplier);
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "Set maximum DTIM Multiplier to " + maxMultiplier
+                                + (success ? " SUCCESS" : " FAIL"));
                     }
                     break;
                 }
