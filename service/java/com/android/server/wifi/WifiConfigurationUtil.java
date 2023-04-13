@@ -720,6 +720,10 @@ public class WifiConfigurationUtil {
                 && !validatePassword(config.preSharedKey, isAdd, true)) {
             return false;
         }
+        if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK)
+                && !validatePassword(config.preSharedKey, isAdd, false)) {
+            return false;
+        }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)
                 && (supportedFeatureSet & WifiManager.WIFI_FEATURE_DPP_AKM) == 0) {
             Log.e(TAG, "DPP AKM is not supported");
