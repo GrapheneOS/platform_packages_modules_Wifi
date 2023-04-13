@@ -21,6 +21,7 @@ import static android.net.wifi.p2p.WifiP2pConfig.GROUP_CLIENT_IP_PROVISIONING_MO
 
 import static com.android.net.module.util.Inet4AddressUtils.inet4AddressToIntHTL;
 import static com.android.net.module.util.Inet4AddressUtils.netmaskToPrefixLength;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_DEVICE_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_DEVICE_NAME;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_P2P_PENDING_FACTORY_RESET;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
@@ -689,6 +690,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         mTetheringManager = mContext.getSystemService(TetheringManager.class);
         if (mTetheringManager == null) {
             Log.wtf(TAG, "Tethering manager is null when WifiP2pServiceImp handles boot completed");
+        }
+        String deviceAddress = mSettingsConfigStore.get(WIFI_P2P_DEVICE_ADDRESS);
+        if (!mWifiGlobals.isP2pMacRandomizationSupported() && !TextUtils.isEmpty(deviceAddress)) {
+            mThisDevice.deviceAddress = deviceAddress;
+        }
+        String deviceName = mSettingsConfigStore.get(WIFI_P2P_DEVICE_NAME);
+        if (!TextUtils.isEmpty(deviceName)) {
+            mThisDevice.deviceName = deviceName;
         }
     }
 
@@ -5916,6 +5925,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             mWifiNative.setConfigMethods("virtual_push_button physical_display keypad");
 
             mThisDevice.deviceAddress = mWifiNative.p2pGetDeviceAddress();
+            if (!mWifiGlobals.isP2pMacRandomizationSupported()) {
+                mSettingsConfigStore.put(WIFI_P2P_DEVICE_ADDRESS, mThisDevice.deviceAddress);
+            }
             updateThisDevice(WifiP2pDevice.AVAILABLE);
             mWifiNative.p2pFlush();
             mWifiNative.p2pServiceFlush();
