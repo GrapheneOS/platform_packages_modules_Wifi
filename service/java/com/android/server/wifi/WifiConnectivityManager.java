@@ -419,7 +419,7 @@ public class WifiConnectivityManager {
         // Perform network selection among secondary candidates. Create a new copy. Do not allow
         // user choice override.
         final WifiConfiguration secondaryCmmCandidate =
-                mNetworkSelector.selectNetwork(preferredSecondaryCandidates.isEmpty()
+                mNetworkSelector.selectNetwork(specifiedBssids.isEmpty()
                                 ? secondaryCmmCandidates : preferredSecondaryCandidates,
                         false /* overrideEnabled */);
 
