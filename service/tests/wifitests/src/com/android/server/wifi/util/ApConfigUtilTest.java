@@ -548,6 +548,11 @@ public class ApConfigUtilTest extends WifiBaseTest {
             assertEquals(SoftApConfiguration.BAND_5GHZ,
                     ApConfigUtil.remove6gBandForUnsupportedSecurity(config).getBand());
         }
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .build();
+        assertNull(ApConfigUtil.remove6gBandForUnsupportedSecurity(config));
     }
 
     /**
