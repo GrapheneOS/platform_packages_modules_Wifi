@@ -1543,14 +1543,14 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     public void multiInternetSecondaryConnectionRequest_filterBssidNotExist() {
         setupMocksForMultiInternetTests(false);
         Map<Integer, String> specifiedBssids = new ArrayMap<>();
-        // Verify filtering by a BSSID that does not exist in the candidate list still
-        // results in a connection.
+        // Verify filtering by a BSSID that does not exist in the candidate list will not result
+        // in a connection.
         specifiedBssids.put(ScanResult.toBand(mCandidate2.getFrequency()),
                 mCandidate3.getKey().bssid.toString());
         specifiedBssids.put(ScanResult.toBand(mCandidate4.getFrequency()),
                 mCandidate3.getKey().bssid.toString());
         when(mMultiInternetManager.getSpecifiedBssids()).thenReturn(specifiedBssids);
-        testMultiInternetSecondaryConnectionRequest(false, true, true,
+        testMultiInternetSecondaryConnectionRequest(false, true, false,
                 mCandidate2.getKey().bssid.toString());
     }
 
