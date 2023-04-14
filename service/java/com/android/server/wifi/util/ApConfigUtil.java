@@ -674,29 +674,35 @@ public class ApConfigUtil {
             SoftApConfiguration config) {
         SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder(config);
 
-        if (config.getBands().length == 1) {
-            int configuredBand = config.getBand();
-            if ((configuredBand & SoftApConfiguration.BAND_6GHZ) != 0
-                    && isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
-                Log.i(TAG, "remove BAND_6G if multiple bands are configured "
-                        + "as a mask since security type is restricted");
-                builder.setBand(configuredBand & ~SoftApConfiguration.BAND_6GHZ);
-            }
-        } else if (SdkLevel.isAtLeastS()) {
-            SparseIntArray channels = config.getChannels();
-            SparseIntArray newChannels = new SparseIntArray(channels.size());
-            if (isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
-                for (int i = 0; i < channels.size(); i++) {
-                    int band = channels.keyAt(i);
-                    if ((band & SoftApConfiguration.BAND_6GHZ) != 0) {
-                        Log.i(TAG, "remove BAND_6G if multiple bands are configured "
-                                + "as a mask when security type is restricted");
-                        band &= ~SoftApConfiguration.BAND_6GHZ;
-                    }
-                    newChannels.put(band, channels.valueAt(i));
+        try {
+            if (config.getBands().length == 1) {
+                int configuredBand = config.getBand();
+                if ((configuredBand & SoftApConfiguration.BAND_6GHZ) != 0
+                        && isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
+                    Log.i(TAG, "remove BAND_6G if multiple bands are configured "
+                            + "as a mask since security type is restricted");
+                    builder.setBand(configuredBand & ~SoftApConfiguration.BAND_6GHZ);
                 }
-                builder.setChannels(newChannels);
+            } else if (SdkLevel.isAtLeastS()) {
+                SparseIntArray channels = config.getChannels();
+                SparseIntArray newChannels = new SparseIntArray(channels.size());
+                if (isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
+                    for (int i = 0; i < channels.size(); i++) {
+                        int band = channels.keyAt(i);
+                        if ((band & SoftApConfiguration.BAND_6GHZ) != 0) {
+                            Log.i(TAG, "remove BAND_6G if multiple bands are configured "
+                                    + "as a mask when security type is restricted");
+                            band &= ~SoftApConfiguration.BAND_6GHZ;
+                        }
+                        newChannels.put(band, channels.valueAt(i));
+                    }
+                    builder.setChannels(newChannels);
+                }
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to update config by removing 6G band for unsupported security type:"
+                    + e);
+            return null;
         }
 
         return builder.build();
