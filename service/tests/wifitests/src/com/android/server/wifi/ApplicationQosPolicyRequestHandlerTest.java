@@ -557,4 +557,30 @@ public class ApplicationQosPolicyRequestHandlerTest {
         mDut.queueAddRequest(policyList, mIListListener, mBinder, TEST_UID);
         verify(mWifiNative, never()).addQosPolicyRequestForScs(anyString(), anyList());
     }
+
+    /**
+     * Tests that if the callback timeout period expires and no callback is received,
+     * the timeout handler starts processing the next queued request.
+     */
+    @Test
+    public void testCallbackTimedOut() throws Exception {
+        // Queue two add requests.
+        when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
+                .thenReturn(Arrays.asList(mClientModeManager0));
+        List<QosPolicyParams> policyList1 = createDownlinkPolicyList(5, TEST_POLICY_ID_START);
+        List<QosPolicyParams> policyList2 = createDownlinkPolicyList(5, TEST_POLICY_ID_START + 15);
+        IListListener mockPolicy1Listener = mock(IListListener.class);
+        IListListener mockPolicy2Listener = mock(IListListener.class);
+        mDut.queueAddRequest(policyList1, mockPolicy1Listener, mBinder, TEST_UID);
+        mDut.queueAddRequest(policyList2, mockPolicy2Listener, mBinder, TEST_UID);
+        verify(mWifiNative, times(1)).addQosPolicyRequestForScs(anyString(), anyList());
+
+        // Allow the callback timeout period to expire.
+        mLooper.moveTimeForward(ApplicationQosPolicyRequestHandler.CALLBACK_TIMEOUT_MILLIS + 1);
+        mLooper.dispatchAll();
+
+        // Verify that the second request is processed.
+        verify(mWifiNative, times(2)).addQosPolicyRequestForScs(anyString(), anyList());
+        verify(mockPolicy2Listener).onResult(anyList());
+    }
 }
