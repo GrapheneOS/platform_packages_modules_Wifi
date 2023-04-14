@@ -62,9 +62,12 @@ public class ApplicationQosPolicyRequestHandler {
     private final Handler mHandler;
     private final ApCallback mApCallback;
     private final ApplicationQosPolicyTrackingTable mPolicyTrackingTable;
+    private final ApplicationDeathRecipient mApplicationDeathRecipient;
 
     private Map<String, List<QueuedRequest>> mPerIfaceRequestQueue;
     private Map<String, CallbackParams> mPendingCallbacks;
+    private Map<IBinder, Integer> mApplicationBinderToUidMap;
+    private Map<Integer, IBinder> mApplicationUidToBinderMap;
 
     private static final int REQUEST_TYPE_ADD = 0;
     private static final int REQUEST_TYPE_REMOVE = 1;
@@ -207,6 +210,30 @@ public class ApplicationQosPolicyRequestHandler {
         }
     }
 
+    private class ApplicationDeathRecipient implements IBinder.DeathRecipient {
+        @Override
+        public void binderDied() {
+        }
+
+        @Override
+        public void binderDied(@NonNull IBinder who) {
+            mHandler.post(() -> {
+                Integer uid = mApplicationBinderToUidMap.get(who);
+                Log.i(TAG, "Application binder died. who=" + who + ", uid=" + uid);
+                if (uid == null) {
+                    // Application is not registered with us.
+                    return;
+                }
+
+                // Remove this application from the tracking maps
+                // and clear out any policies that they own.
+                mApplicationBinderToUidMap.remove(who);
+                mApplicationUidToBinderMap.remove(uid);
+                queueRemoveAllRequest(uid);
+            });
+        }
+    }
+
     public ApplicationQosPolicyRequestHandler(@NonNull ActiveModeWarden activeModeWarden,
             @NonNull WifiNative wifiNative, @NonNull HandlerThread handlerThread) {
         mActiveModeWarden = activeModeWarden;
@@ -214,7 +241,10 @@ public class ApplicationQosPolicyRequestHandler {
         mHandler = new Handler(handlerThread.getLooper());
         mPerIfaceRequestQueue = new HashMap<>();
         mPendingCallbacks = new HashMap<>();
+        mApplicationBinderToUidMap = new HashMap<>();
+        mApplicationUidToBinderMap = new HashMap<>();
         mApCallback = new ApCallback();
+        mApplicationDeathRecipient = new ApplicationDeathRecipient();
         mPolicyTrackingTable = createPolicyTrackingTableMockable();
         mWifiNative.registerQosScsResponseCallback(mApCallback);
     }
@@ -234,7 +264,6 @@ public class ApplicationQosPolicyRequestHandler {
      *
      * @param policies List of {@link QosPolicyParams} objects representing the policies.
      * @param listener Listener to call when the operation is complete.
-     * @param binder Caller's binder context.
      * @param uid UID of the requesting application.
      */
     public void queueAddRequest(@NonNull List<QosPolicyParams> policies,
@@ -319,6 +348,9 @@ public class ApplicationQosPolicyRequestHandler {
                 virtualPolicyIdBytes.add((byte) policyId);
             }
             request.virtualPolicyIdsToRemove = virtualPolicyIdBytes;
+
+            // Unregister death handler if this application no longer owns any policies.
+            unregisterDeathHandlerIfNeeded(request.requesterUid);
         }
 
         for (ClientModeManager cmm : clientModeManagers) {
@@ -416,6 +448,9 @@ public class ApplicationQosPolicyRequestHandler {
                     statusList, halStatusList, request.policiesToAdd, request.requesterUid);
             request.callback.sendResult(statusList);
         }
+
+        // Register death handler if this application owns any policies in the table.
+        registerDeathHandlerIfNeeded(request.requesterUid, request.binder);
 
         // Policies that were sent to the AP expect a response from the callback.
         List<Byte> policiesAwaitingCallback = getPoliciesAwaitingCallback(halStatusList);
@@ -534,6 +569,47 @@ public class ApplicationQosPolicyRequestHandler {
             mPolicyTrackingTable.removePolicies(rejectedPolicies, uid);
         }
         return statusList;
+    }
+
+    /**
+     * Register death handler for this application if it owns policies in the tracking table,
+     * and no death handlers have been registered before.
+     */
+    private void registerDeathHandlerIfNeeded(int uid, @NonNull IBinder binder) {
+        if (mApplicationUidToBinderMap.containsKey(uid)) {
+            // Application has already been linked to the death recipient.
+            return;
+        } else if (!mPolicyTrackingTable.tableContainsUid(uid)) {
+            // Application does not own any policies in the tracking table.
+            return;
+        }
+
+        try {
+            binder.linkToDeath(mApplicationDeathRecipient, /* flags */ 0);
+            mApplicationBinderToUidMap.put(binder, uid);
+            mApplicationUidToBinderMap.put(uid, binder);
+        } catch (RemoteException e) {
+            Log.wtf(TAG, "Exception occurred while linking to death: " + e);
+        }
+    }
+
+    /**
+     * Unregister the death handler for this application if it
+     * no longer owns any policies in the tracking table.
+     */
+    private void unregisterDeathHandlerIfNeeded(int uid) {
+        if (!mApplicationUidToBinderMap.containsKey(uid)) {
+            // Application has already been unlinked from the death recipient.
+            return;
+        } else if (mPolicyTrackingTable.tableContainsUid(uid)) {
+            // Application still owns policies in the tracking table.
+            return;
+        }
+
+        IBinder binder = mApplicationUidToBinderMap.get(uid);
+        binder.unlinkToDeath(mApplicationDeathRecipient, /* flags */ 0);
+        mApplicationBinderToUidMap.remove(binder);
+        mApplicationUidToBinderMap.remove(uid);
     }
 
     /**
