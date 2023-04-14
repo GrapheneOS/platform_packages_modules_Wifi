@@ -1133,9 +1133,14 @@ public class SoftApManager implements ActiveModeManager {
 
                         // Remove 6GHz from requested bands if security type is restricted
                         // Note: 6GHz only band is already handled by initial validation
-                        mCurrentSoftApConfiguration =
+                        SoftApConfiguration tempConfig =
                                 ApConfigUtil.remove6gBandForUnsupportedSecurity(
                                     mCurrentSoftApConfiguration);
+                        if (tempConfig == null) {
+                            handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                            break;
+                        }
+                        mCurrentSoftApConfiguration = tempConfig;
                         // Don't show the ICM dialog if this is for tethering.
                         boolean bypassDialog = mOriginalModeConfiguration.getTargetMode()
                                 == WifiManager.IFACE_IP_MODE_TETHERED;
