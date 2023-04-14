@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The Android Open Source Project
+// Copyright (C) 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,8 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-python_test_host {
-    name: "CtsWifiAwareTestCases",
-    main: "wifi_aware_test.py",
-    srcs: ["wifi_aware_test.py"],
+python_defaults {
+    name: "CtsWifiMultiDevicePythonDefaults",
     libs: [
         "mobly",
     ],
@@ -27,17 +25,25 @@ python_test_host {
         "cts",
         "general-tests",
     ],
-    test_options: {
-        unit_test: false,
-    },
-    data: [
-        // Package the snippet with the mobly test
-        ":wifi_aware_snippet",
-	"requirements.txt",
-    ],
     version: {
         py3: {
             embedded_launcher: true,
         },
     },
+}
+
+python_test_host {
+    name: "CtsWifiAwareTestCases",
+    main: "aware/wifi_aware_test.py",
+    srcs: ["aware/wifi_aware_test.py"],
+    test_config: "aware/AndroidTest.xml",
+    data: [
+        // Package the snippet with the mobly test
+        ":wifi_aware_snippet",
+	    "requirements.txt",
+    ],
+    test_options: {
+        unit_test: false,
+    },
+    defaults: ["CtsWifiMultiDevicePythonDefaults"],
 }
