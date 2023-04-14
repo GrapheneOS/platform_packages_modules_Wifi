@@ -52,6 +52,11 @@ public class ApplicationQosPolicyRequestHandler {
     private static final int MAX_POLICIES_PER_TRANSACTION =
             WifiManager.getMaxNumberOfPoliciesPerQosRequest();
 
+    // HAL should automatically time out at 1000 ms. Perform a local check at 1500 ms to verify
+    // that either the expected callback, or the timeout callback, was received.
+    @VisibleForTesting
+    protected static final int CALLBACK_TIMEOUT_MILLIS = 1500;
+
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiNative mWifiNative;
     private final Handler mHandler;
@@ -192,7 +197,6 @@ public class ApplicationQosPolicyRequestHandler {
 
                 if (!expectedParams.matchesResults(halStatusList)) {
                     // Silently ignore this callback if it does not match the expected parameters.
-                    // TODO: Add a timeout to clear the pending callback if it is never received.
                     Log.i(TAG, "Callback was unsolicited. statusList: " + halStatusList);
                     return;
                 }
@@ -350,6 +354,15 @@ public class ApplicationQosPolicyRequestHandler {
         }
     }
 
+    private void checkForStalledCallback(String ifaceName, CallbackParams processedParams) {
+        CallbackParams pendingParams = mPendingCallbacks.get(ifaceName);
+        if (pendingParams == processedParams) {
+            Log.e(TAG, "Callback timed out. Expected params " + pendingParams);
+            mPendingCallbacks.remove(ifaceName);
+            processNextRequestIfPossible(ifaceName);
+        }
+    }
+
     /**
      * Filter out policies that do not have status code
      * {@link WifiManager#QOS_REQUEST_STATUS_TRACKING}.
@@ -409,7 +422,10 @@ public class ApplicationQosPolicyRequestHandler {
         if (policiesAwaitingCallback.isEmpty()) {
             processNextRequestIfPossible(ifaceName);
         } else {
-            mPendingCallbacks.put(ifaceName, new CallbackParams(policiesAwaitingCallback));
+            CallbackParams cbParams = new CallbackParams(policiesAwaitingCallback);
+            mPendingCallbacks.put(ifaceName, cbParams);
+            mHandler.postDelayed(() -> checkForStalledCallback(ifaceName, cbParams),
+                    CALLBACK_TIMEOUT_MILLIS);
         }
     }
 
@@ -426,7 +442,10 @@ public class ApplicationQosPolicyRequestHandler {
         if (policiesAwaitingCallback.isEmpty()) {
             processNextRequestIfPossible(ifaceName);
         } else {
-            mPendingCallbacks.put(ifaceName, new CallbackParams(policiesAwaitingCallback));
+            CallbackParams cbParams = new CallbackParams(policiesAwaitingCallback);
+            mPendingCallbacks.put(ifaceName, cbParams);
+            mHandler.postDelayed(() -> checkForStalledCallback(ifaceName, cbParams),
+                    CALLBACK_TIMEOUT_MILLIS);
         }
     }
 
