@@ -3517,7 +3517,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     mLocalLog, awareOffload);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
-            client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
             try {
@@ -4083,7 +4082,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         "onConfigCompletedLocal onConnectSuccess(): RemoteException (FYI): " + e);
             }
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
-            client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
         } else if (completedCommand.arg1 == COMMAND_TYPE_DISCONNECT) {
             /*
              * NOP (i.e. updated configuration after disconnecting a client)
