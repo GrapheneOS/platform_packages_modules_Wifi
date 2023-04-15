@@ -202,6 +202,16 @@ public class ApplicationQosPolicyTrackingTable {
     }
 
     /**
+     * Check whether this requester owns any policies in the table.
+     *
+     * @param uid UID of the requesting application.
+     * @return true if the requester owns any policies in the table, false otherwise.
+     */
+    public boolean tableContainsUid(int uid) {
+        return mUidToPolicyHashesMap.containsKey(uid);
+    }
+
+    /**
      * Dump information about the internal state.
      *
      * @param pw PrintWriter to write the dump to.
