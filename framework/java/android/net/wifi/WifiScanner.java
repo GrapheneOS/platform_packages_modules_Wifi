@@ -326,6 +326,7 @@ public class WifiScanner {
             Binder.clearCallingIdentity();
             mExecutor.execute(() ->
                     mActionListener.onFailure(reason, description));
+            removeListener(mActionListener);
         }
 
         /**
