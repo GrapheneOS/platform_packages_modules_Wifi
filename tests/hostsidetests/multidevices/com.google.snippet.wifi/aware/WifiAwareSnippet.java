@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.snippet;
+package com.google.snippet.wifi.aware;
 
 import static android.net.wifi.aware.AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC;
 
@@ -116,7 +116,7 @@ public class WifiAwareSnippet implements Snippet {
                 attachCb.waitForAttach();
         if (results.first != CallbackUtils.AttachCb.CallbackCode.ON_ATTACHED) {
             throw new WifiAwareSnippetException(
-                    String.format("executeTest: attach %s", results.first));
+                    String.format("executeTest: attach " + results.first));
         }
         mWifiAwareSession = results.second;
         if (mWifiAwareSession == null) {
