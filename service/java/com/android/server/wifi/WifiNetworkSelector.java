@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -464,6 +465,7 @@ public class WifiNetworkSelector {
         StringBuffer lowRssi = new StringBuffer();
         StringBuffer mboAssociationDisallowedBssid = new StringBuffer();
         StringBuffer adminRestrictedSsid = new StringBuffer();
+        StringJoiner deprecatedSecurityTypeSsid = new StringJoiner(" / ");
         List<String> currentBssids = cmmStates.stream()
                 .map(cmmState -> cmmState.wifiInfo.getBSSID())
                 .collect(Collectors.toList());
@@ -582,6 +584,22 @@ public class WifiNetworkSelector {
                 }
             }
 
+            // Skip network that has deprecated security type
+            if (mWifiGlobals.isWepDeprecated()) {
+                boolean securityTypeDeprecated = false;
+                @WifiAnnotations.SecurityType int[] securityTypes = scanResult.getSecurityTypes();
+                for (int type : securityTypes) {
+                    if (type == WifiInfo.SECURITY_TYPE_WEP) {
+                        securityTypeDeprecated = true;
+                        break;
+                    }
+                }
+                if (securityTypeDeprecated) {
+                    deprecatedSecurityTypeSsid.add(scanId);
+                    continue;
+                }
+            }
+
             validScanDetails.add(scanDetail);
         }
         mWifiMetrics.incrementNetworkSelectionFilteredBssidCount(numBssidFiltered);
@@ -627,6 +645,11 @@ public class WifiNetworkSelector {
 
         if (adminRestrictedSsid.length() != 0) {
             localLog("Networks filtered out due to admin restrictions: " + adminRestrictedSsid);
+        }
+
+        if (deprecatedSecurityTypeSsid.length() != 0) {
+            localLog("Networks filtered out due to deprecated security type: "
+                    + deprecatedSecurityTypeSsid);
         }
 
         return validScanDetails;

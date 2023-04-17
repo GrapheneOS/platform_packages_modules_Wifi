@@ -5636,6 +5636,62 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that connecting to a supported security type network succeeds
+     */
+    @Test
+    public void connectToSupportedSecurityTypeNetwork_success() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        NetworkUpdateResult result = new NetworkUpdateResult(TEST_NETWORK_ID);
+        when(mWifiConfigManager.addOrUpdateNetwork(eq(mWifiConfig), anyInt()))
+                .thenReturn(result);
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(mWifiConfig);
+        when(mWifiGlobals.isDeprecatedSecurityTypeNetwork(mWifiConfig)).thenReturn(false);
+
+        mWifiServiceImpl.connect(mWifiConfig, WifiConfiguration.INVALID_NETWORK_ID,
+                mActionListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<WifiConfiguration> configCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+        verify(mWifiConfigManager).addOrUpdateNetwork(configCaptor.capture(), anyInt());
+        assertThat(configCaptor.getValue().networkId).isEqualTo(TEST_NETWORK_ID);
+
+        verify(mConnectHelper).connectToNetwork(eq(result), any(), anyInt(), any());
+    }
+
+    /**
+     * Verify that connecting to a deprecated security type network fails,
+     * but saves the network instead
+     */
+    @Test
+    public void connectToDeprecatedSecurityTypeNetwork_failure() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        NetworkUpdateResult result = new NetworkUpdateResult(TEST_NETWORK_ID);
+        when(mWifiConfigManager.addOrUpdateNetwork(eq(mWifiConfig), anyInt()))
+                .thenReturn(result);
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(mWifiConfig);
+        when(mWifiGlobals.isDeprecatedSecurityTypeNetwork(mWifiConfig)).thenReturn(true);
+
+        mWifiServiceImpl.connect(mWifiConfig, WifiConfiguration.INVALID_NETWORK_ID,
+                mActionListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<WifiConfiguration> configCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+        verify(mWifiConfigManager).addOrUpdateNetwork(configCaptor.capture(), anyInt());
+        assertThat(configCaptor.getValue().networkId).isEqualTo(TEST_NETWORK_ID);
+
+        verify(mWifiConfigManager).addOrUpdateNetwork(eq(mWifiConfig), anyInt());
+        verify(mClientModeManager, never()).connectNetwork(any(), any(), anyInt(), any());
+        verify(mActionListener).onFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+        verify(mActionListener, never()).onSuccess();
+    }
+
+    /**
      * Tests the scenario when a scan request arrives while the device is idle. In this case
      * the scan is done when idle mode ends.
      */
@@ -6829,6 +6885,26 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
         when(mWifiPermissionsUtil.isAdminRestrictedNetwork(config)).thenReturn(true);
+
+        mLooper.startAutoDispatch();
+        mWifiServiceImpl.enableNetwork(TEST_NETWORK_ID, true, TEST_PACKAGE_NAME);
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        verify(mConnectHelper, never()).connectToNetwork(any(), any(), anyInt(), any());
+        verify(mWifiMetrics, never()).incrementNumEnableNetworkCalls();
+    }
+
+    /**
+     * Verify that enableNetwork is not allowed for deprecated security type network
+     */
+    @Test
+    public void testEnableNetworkNotAllowedForDeprecatedSecurityTypeNetwork() throws Exception {
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
+        when(mWifiPermissionsUtil.isSystem(TEST_PACKAGE_NAME, Process.myUid())).thenReturn(true);
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
+        when(mWifiGlobals.isDeprecatedSecurityTypeNetwork(config)).thenReturn(true);
 
         mLooper.startAutoDispatch();
         mWifiServiceImpl.enableNetwork(TEST_NETWORK_ID, true, TEST_PACKAGE_NAME);
