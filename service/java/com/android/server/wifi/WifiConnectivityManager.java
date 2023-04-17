@@ -392,12 +392,19 @@ public class WifiConnectivityManager {
 
         List<WifiCandidates.Candidate> secondaryCmmCandidates;
         if (mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed()) {
-            // Only allow the candidates have different band with primary and not belong to
-            // MLO affiliated links.
-            secondaryCmmCandidates = candidates.stream().filter(
-                    c -> ScanResult.toBand(c.getFrequency()) != primaryBand
-                            && !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid)).collect(
-                    Collectors.toList());
+            if (primaryCcm.isMlo()) {
+                // An MLO connection can have links in multiple bands. So pick any candidates other
+                // than affiliated BSSID's. Accordingly, firmware will adjust multi-links.
+                secondaryCmmCandidates = candidates.stream()
+                        .filter(c -> !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid))
+                        .collect(Collectors.toList());
+            } else {
+                // A BSSID can only exist in one band, so when evaluating candidates, only those
+                // with a different band from the primary will be considered.
+                secondaryCmmCandidates = candidates.stream()
+                        .filter(c -> ScanResult.toBand(c.getFrequency()) != primaryBand)
+                        .collect(Collectors.toList());
+            }
         } else {
             // Only allow the candidates have the same SSID as the primary.
             secondaryCmmCandidates = candidates.stream().filter(c -> {
