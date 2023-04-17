@@ -22,7 +22,7 @@
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"Wi‑Fi నెట్‌వర్క్‌కు కనెక్ట్ చేయబడింది"</string>
     <string name="wifi_available_title_failed_to_connect" msgid="4840833680513368639">"Wi‑Fi నెట్‌వర్క్‌కు కనెక్ట్ చేయడం సాధ్యపడలేదు"</string>
     <string name="wifi_available_content_failed_to_connect" msgid="4330035988269701861">"అన్ని నెట్‌వర్క్‌లు చూడటానికి నొక్కండి"</string>
-    <string name="wifi_available_action_connect" msgid="5636634933476946222">"కనెక్ట్ చేయి"</string>
+    <string name="wifi_available_action_connect" msgid="5636634933476946222">"కనెక్ట్ చేయండి"</string>
     <string name="wifi_available_action_all_networks" msgid="8491109932336522211">"అన్ని నెట్‌వర్క్‌లు"</string>
     <string name="notification_channel_network_status" msgid="1631786866932924838">"నెట్‌వర్క్ స్టేటస్‌"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"నెట్‌వర్క్ హెచ్చరికలు"</string>
@@ -31,14 +31,14 @@
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"సూచించిన Wi‑Fi నెట్‌వర్క్‌లను అనుమతించాలా?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> సూచించిన నెట్‌వర్క్‌లు. పరికరం ఆటోమేటిక్‌గా కనెక్ట్ అవచ్చు."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"అనుమతించండి"</string>
-    <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"వద్దు"</string>
+    <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"వద్దు, ధన్యవాదాలు"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi-Fiకి కనెక్ట్ చేయాలా?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"పరికర లొకేషన్‌ను ట్రాక్ చేయడానికి ఉపయోగపడే SIM IDని ఈ నెట్‌వర్క్‌లు అందుకుంటాయి"</string>
-    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"కనెక్ట్ చేయి"</string>
+    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"కనెక్ట్ చేయండి"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"కనెక్ట్ చేయవద్దు"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"ఖచ్చితంగా కనెక్ట్ చేయాలా?"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"<xliff:g id="CARRIERNAME">%s</xliff:g> నెట్‌వర్క్‌కు మీరు కనెక్ట్ చేస్తే, ఆ క్యారియర్ Wi‑Fi నెట్‌వర్క్‌లు మీ SIMకు అనుబంధితమైన ప్రత్యేక IDని యాక్సెస్ లేదా షేర్ చేయగలగవచ్చు. దీని వలన మీ పరికరం లొకేషన్ ట్రాక్ చేయబడవచ్చు."</string>
-    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"కనెక్ట్ చేయి"</string>
+    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"కనెక్ట్ చేయండి"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"కనెక్ట్ చేయవద్దు"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi ఆటోమేటిక్‌గా ఆన్ అవుతుంది"</string>
     <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"మీరు అధిక క్వాలిటీ గల సేవ్ చేసిన నెట్‌వర్క్‌కు సమీపంగా ఉన్నప్పుడు"</string>
