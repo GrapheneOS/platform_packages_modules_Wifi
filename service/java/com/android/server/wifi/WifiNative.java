@@ -1332,7 +1332,6 @@ public class WifiNative {
             iface.featureSet = getSupportedFeatureSetInternal(iface.name);
             updateSupportedBandForStaInternal(iface);
 
-            //TODO(b/269664218): we will enable it during startHal()
             mWifiVendorHal.enableStaChannelForPeerNetwork(mContext.getResources().getBoolean(
                             R.bool.config_wifiEnableStaIndoorChannelForPeerNetwork),
                     mContext.getResources().getBoolean(
