@@ -21,6 +21,7 @@ import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -226,7 +227,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_NDP_IDS = "ndp_ids";
     private static final String MESSAGE_BUNDLE_KEY_APP_INFO = "app_info";
     private static final String MESSAGE_BUNDLE_KEY_ACCEPT_STATE = "accept_state";
-    private static final String MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE = "attribution_source";
 
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
@@ -823,7 +823,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_CONNECT;
         msg.arg2 = clientId;
-        msg.obj = callback;
+        Pair<IWifiAwareEventCallback, Object> callbackAndAttributionSource = new Pair<>(
+                callback, extra.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
+        msg.obj = callbackAndAttributionSource;
         msg.getData().putParcelable(MESSAGE_BUNDLE_KEY_CONFIG, configRequest);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_UID, uid);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PID, pid);
@@ -831,7 +833,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putString(MESSAGE_BUNDLE_KEY_CALLING_FEATURE_ID, callingFeatureId);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_NOTIFY_IDENTITY_CHANGE,
                 notifyOnIdentityChanged);
-        msg.getData().putBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE, extra);
         mSm.sendMessage(msg);
     }
 
@@ -1847,7 +1848,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     }
 
                     int clientId = msg.arg2;
-                    IWifiAwareEventCallback callback = (IWifiAwareEventCallback) msg.obj;
+                    Pair<IWifiAwareEventCallback, Object> callbackAndAttributionSource =
+                            (Pair<IWifiAwareEventCallback, Object>) msg.obj;
+                    IWifiAwareEventCallback callback = callbackAndAttributionSource.first;
                     ConfigRequest configRequest = (ConfigRequest) msg.getData()
                             .getParcelable(MESSAGE_BUNDLE_KEY_CONFIG);
                     int uid = msg.getData().getInt(MESSAGE_BUNDLE_KEY_UID);
@@ -1881,8 +1884,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             == InterfaceConflictManager.ICM_EXECUTE_COMMAND) {
                         waitForResponse = connectLocal(mCurrentTransactionId, clientId, uid, pid,
                                 callingPackage, callingFeatureId, callback, configRequest,
-                                notifyIdentityChange,
-                                msg.getData().getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE));
+                                notifyIdentityChange, callbackAndAttributionSource.second);
                     } else { // InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER
                         waitForResponse = false;
                     }
@@ -2504,7 +2506,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean connectLocal(short transactionId, int clientId, int uid, int pid,
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
-            boolean notifyIdentityChange, Bundle extra) {
+            boolean notifyIdentityChange, Object attributionSource) {
         if (VDBG) {
             Log.v(TAG, "connectLocal(): transactionId=" + transactionId + ", clientId=" + clientId
                     + ", uid=" + uid + ", pid=" + pid + ", callingPackage=" + callingPackage
@@ -2556,7 +2558,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
-                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil, extra);
+                    SystemClock.elapsedRealtime(), mWifiPermissionsUtil, attributionSource);
             client.enableVerboseLogging(mDbg);
             client.onInterfaceAddressChange(mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
@@ -2962,7 +2964,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Bundle data = completedCommand.getData();
 
             int clientId = completedCommand.arg2;
-            IWifiAwareEventCallback callback = (IWifiAwareEventCallback) completedCommand.obj;
+            Pair<IWifiAwareEventCallback, Object> callbackAndAttributionSource =
+                    (Pair<IWifiAwareEventCallback, Object>) completedCommand.obj;
+            IWifiAwareEventCallback callback = callbackAndAttributionSource.first;
             ConfigRequest configRequest = (ConfigRequest) data
                     .getParcelable(MESSAGE_BUNDLE_KEY_CONFIG);
             int uid = data.getInt(MESSAGE_BUNDLE_KEY_UID);
@@ -2975,7 +2979,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil,
-                    data.getBundle(MESSAGE_BUNDLE_KEY_ATTRIBUTION_SOURCE));
+                    callbackAndAttributionSource.second);
             client.enableVerboseLogging(mDbg);
             mClients.put(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
@@ -3021,8 +3025,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         if (failedCommand.arg1 == COMMAND_TYPE_CONNECT) {
-            IWifiAwareEventCallback callback = (IWifiAwareEventCallback) failedCommand.obj;
-
+            Pair<IWifiAwareEventCallback, Object> callbackAndAttributionSource =
+                    (Pair<IWifiAwareEventCallback, Object>) failedCommand.obj;
+            IWifiAwareEventCallback callback = callbackAndAttributionSource.first;
             try {
                 callback.onConnectFail(reason);
                 mAwareMetrics.recordAttachStatus(reason);
@@ -3757,12 +3762,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private void handleLocationModeDisabled() {
         for (int i = 0; i < mClients.size(); i++) {
             WifiAwareClientState clientState = mClients.valueAt(i);
-            try {
-                // As location mode is disabled, only app disavowal the location can pass the check.
-                mWifiPermissionsUtil.enforceNearbyDevicesPermission(clientState.getExtra()
-                        .getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), true,
-                        "Wifi Aware location mode change.");
-            } catch (SecurityException e) {
+            if (SdkLevel.isAtLeastT()) {
+                try {
+                    // As location mode is disabled, only app disavowal the location can pass the
+                    // check.
+                    mWifiPermissionsUtil.enforceNearbyDevicesPermission(
+                            (AttributionSource) clientState.getAttributionSource(), true,
+                            "Wifi Aware location mode change.");
+                } catch (SecurityException e) {
+                    disconnect(clientState.getClientId());
+                }
+            } else {
                 disconnect(clientState.getClientId());
             }
         }
