@@ -22,12 +22,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.wifi.IWifiDeviceLowLatencyModeListener;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
@@ -95,6 +97,9 @@ public class WifiLockManager {
     private long mCurrentSessionStartTimeMs;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
+    private final RemoteCallbackList<IWifiDeviceLowLatencyModeListener>
+            mWifiDeviceLowLatencyModeListeners = new RemoteCallbackList<>();
+    private boolean mIsLowLatencyModeEnabled = false;
 
     WifiLockManager(Context context, BatteryStatsManager batteryStats,
             ActiveModeWarden activeModeWarden, FrameworkFacade frameworkFacade,
@@ -806,6 +811,8 @@ public class WifiLockManager {
                 clientModeManager.setLowLatencyMode(!enabled);
                 return false;
             }
+            mIsLowLatencyModeEnabled = enabled;
+            notifyWifiDeviceLowLatencyEnabled();
         } else if (lowLatencySupport == LOW_LATENCY_NOT_SUPPORTED) {
             // Only set power save mode
             if (!setPowerSave(clientModeManager, ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
@@ -816,6 +823,49 @@ public class WifiLockManager {
         }
 
         return true;
+    }
+
+    /**
+     * Add a listener to get device low latency mode changes. Also, it notifies the listener about
+     * the low latency mode is currently enabled or not.
+     */
+    public boolean addWifiDeviceLowLatencyModeListener(IWifiDeviceLowLatencyModeListener listener) {
+        if (!mWifiDeviceLowLatencyModeListeners.register(listener)) {
+            return false;
+        }
+        // Notify the new listener about the current enablement of low latency mode.
+        try {
+            listener.onEnabled(mIsLowLatencyModeEnabled);
+        } catch (RemoteException e) {
+            Log.e(TAG,
+                    "addWifiDeviceLowLatencyModeListener: Failure invoking listener.onEnabled" + e);
+        }
+        return true;
+    }
+
+    /**
+     * Remove a listener for getting low latency mode changes
+     */
+    public boolean removeWifiDeviceLowLatencyModeListener(
+            IWifiDeviceLowLatencyModeListener listener) {
+        return mWifiDeviceLowLatencyModeListeners.unregister(listener);
+    }
+
+    private void notifyWifiDeviceLowLatencyEnabled() {
+        int numCallbacks = mWifiDeviceLowLatencyModeListeners.beginBroadcast();
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Sending IWifiDeviceLowLatencyModeListener#onEnabled enabled= "
+                    + mIsLowLatencyModeEnabled);
+        }
+        for (int i = 0; i < numCallbacks; i++) {
+            try {
+                mWifiDeviceLowLatencyModeListeners.getBroadcastItem(i).onEnabled(
+                        mIsLowLatencyModeEnabled);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failure calling IWifiDeviceLowLatencyModeListener#onEnabled" + e);
+            }
+        }
+        mWifiDeviceLowLatencyModeListeners.finishBroadcast();
     }
 
     private synchronized WifiLock findLockByBinder(IBinder binder) {
