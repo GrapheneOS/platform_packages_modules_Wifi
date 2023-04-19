@@ -349,4 +349,10 @@ public interface ClientMode {
      * @return true if BSSID matches to one of the affiliated link BSSIDs, false otherwise.
      */
     boolean isAffiliatedLinkBssid(MacAddress bssid);
+
+    /**
+     * Check if the connection is MLO (Multi-Link Operation).
+     * @return true if connection is MLO, otherwise false.
+     */
+    boolean isMlo();
 }

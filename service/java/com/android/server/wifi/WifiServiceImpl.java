@@ -116,6 +116,7 @@ import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.IWifiDeviceLowLatencyModeListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
@@ -7643,6 +7644,46 @@ public class WifiServiceImpl extends BaseWifiService {
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#addWifiNetworkStateChangedListener(Executor,
+     * WifiManager.WifiNetworkStateChangedListener)}
+     */
+    public void addWifiDeviceLowLatencyModeListener(IWifiDeviceLowLatencyModeListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException();
+        }
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException("addWifiDeviceLowLatencyModeListener is not allowed"
+            + "for uid=" + uid);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("addWifiDeviceLowLatencyModeListener uid=%").c(
+                    Binder.getCallingUid()).flush();
+        }
+        mWifiThreadRunner.post(() -> {
+            mWifiLockManager.addWifiDeviceLowLatencyModeListener(listener);
+        });
+    }
+
+    /**
+     * See {@link WifiManager#removeWifiDeviceLowLatencyModeListener(
+     *WifiManager.WifiDeviceLowLatencyModeListener)}
+     */
+    public void removeWifiDeviceLowLatencyModeListener(IWifiDeviceLowLatencyModeListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException();
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("removeWifiDeviceLowLatencyModeListener uid=%").c(
+                    Binder.getCallingUid()).flush();
+        }
+        mWifiThreadRunner.post(() -> {
+            mWifiLockManager.removeWifiDeviceLowLatencyModeListener(listener);
         });
     }
 }
