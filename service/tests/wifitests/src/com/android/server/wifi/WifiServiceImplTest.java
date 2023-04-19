@@ -11401,4 +11401,15 @@ public class WifiServiceImplTest extends WifiBaseTest {
         // No exception for remove.
         mWifiServiceImpl.removeWifiDeviceLowLatencyModeListener(testListener);
     }
+
+    /**
+     * Verify that setWifiEnabled() returns false when satellite mode is on.
+     */
+    @Test
+    public void testSetWifiEnabledSatelliteModeOn() {
+        when(mSettingsStore.isSatelliteModeOn()).thenReturn(true);
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+    }
 }
