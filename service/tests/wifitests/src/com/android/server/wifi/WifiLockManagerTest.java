@@ -32,6 +32,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.net.wifi.IWifiDeviceLowLatencyModeListener;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
@@ -1860,5 +1861,44 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
                 false);
 
+    }
+
+    /**
+     * Test {@link WifiLockManager#addWifiDeviceLowLatencyModeListener(
+     * IWifiDeviceLowLatencyModeListener)} and
+     * {@link WifiLockManager#removeWifiDeviceLowLatencyModeListener(
+     * IWifiDeviceLowLatencyModeListener)}.
+     */
+    @Test
+    public void testWifiDeviceLowLatencyModeListener() throws Exception {
+        // Setup listener.
+        IWifiDeviceLowLatencyModeListener testListener = mock(
+                IWifiDeviceLowLatencyModeListener.class);
+        when(testListener.asBinder()).thenReturn(mock(IBinder.class));
+        InOrder inOrder = inOrder(testListener);
+
+        // Register listener and test current low latency mode is notified.
+        mWifiLockManager.addWifiDeviceLowLatencyModeListener(testListener);
+        inOrder.verify(testListener).onEnabled(false);
+
+        // Acquire low latency lock to test low latency mode change is notified.
+        setScreenState(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+        inOrder.verify(testListener).onEnabled(true);
+
+        // Unregister listener.
+        mWifiLockManager.removeWifiDeviceLowLatencyModeListener(testListener);
+
+        // Deactivate the low latency lock to test low latency mode change is not notified.
+        setScreenState(false);
+        inOrder.verify(testListener, never()).onEnabled(false);
     }
 }
