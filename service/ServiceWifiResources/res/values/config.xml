@@ -48,6 +48,9 @@
            be checked via NL80211 interface -->
     <bool translatable="false" name="config_wifi11beSupportOverride">false</bool>
 
+    <!-- Indicates whether networks using the WEP Wi-Fi security protocol is deprecated -->
+    <bool translatable="false" name="config_wifiWepDeprecated">false</bool>
+
     <!-- Indicates whether to enable overriding the max number of spatial stream supported by the device
          If true, config_wifiFrameworkMaxNumSpatialStreamDeviceOverrideValue
          will be used to override the max number of spatial stream supported by the device.
