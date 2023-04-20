@@ -134,6 +134,7 @@ import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiDiagnostics;
 import com.android.server.wifi.WifiDialogManager;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
@@ -271,6 +272,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     CoexManager.CoexListener mCoexListener;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock TetheringManager mTetheringManager;
+    @Mock WifiDiagnostics mWifiDiagnostics;
 
     private void generatorTestData() {
         mTestWifiP2pGroup = new WifiP2pGroup();
@@ -1407,6 +1409,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mCoexManager.getCoexRestrictions()).thenReturn(0);
         when(mCoexManager.getCoexUnsafeChannels()).thenReturn(Collections.emptyList());
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
         when(mDeviceConfigFacade.isP2pFailureBugreportEnabled()).thenReturn(false);
         when(mContext.getSystemService(TetheringManager.class)).thenReturn(mTetheringManager);
 
@@ -3191,11 +3194,11 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
      * createGroup API with config.
      */
     @Test
-    public void testStartFastConnectionEventWhenCreateGroupWithConfig()
+    public void testStartFastConnectionEventWhenCreateGroupWithConfigTwice()
             throws Exception {
         setTargetSdkGreaterThanT();
         forceP2pEnabled(mClient1);
-
+        when(mDeviceConfigFacade.isP2pFailureBugreportEnabled()).thenReturn(true);
         sendCreateGroupMsg(mClientMessenger, 0, mTestWifiP2pFastConnectionConfig);
         if (SdkLevel.isAtLeastT()) {
             verify(mWifiPermissionsUtil, atLeastOnce()).checkNearbyDevicesPermission(
@@ -3218,6 +3221,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 configCaptor.getValue().toString());
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CREATE_GROUP_P2P_CONFIG),
                 anyInt(), anyInt(), anyInt(), anyString(), eq(true));
+        verify(mWifiDiagnostics, never()).takeBugReport(anyString(), anyString());
+
+        when(mWifiP2pMetrics.hasOngoingConnection()).thenReturn(true);
+        sendCreateGroupMsg(mClientMessenger, 0, mTestWifiP2pFastConnectionConfig);
+
+        verify(mWifiDiagnostics).takeBugReport(anyString(), anyString());
     }
 
     /**

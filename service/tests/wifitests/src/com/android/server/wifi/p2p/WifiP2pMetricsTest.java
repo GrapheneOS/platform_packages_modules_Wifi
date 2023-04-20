@@ -16,6 +16,8 @@
 package com.android.server.wifi.p2p;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -89,9 +91,11 @@ public class WifiP2pMetricsTest extends WifiBaseTest {
         // Start and end Connection event.
         mWifiP2pMetrics.startConnectionEvent(P2pConnectionEvent.CONNECTION_FRESH, null,
                 GroupEvent.GROUP_OWNER, 2000);
+        assertTrue(mWifiP2pMetrics.hasOngoingConnection());
         when(mClock.getElapsedSinceBootMillis()).thenReturn(1000L);
         mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_NONE);
         stats = mWifiP2pMetrics.consolidateProto();
+        assertFalse(mWifiP2pMetrics.hasOngoingConnection());
         assertEquals(1, stats.connectionEvent.length);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_P2P_CONNECTION_REPORTED,

@@ -1531,6 +1531,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
         }
 
+        private void reportConnectionEventTakeBugReportIfOverlapped(int connectionType,
+                WifiP2pConfig config, int groupRole, int uid) {
+            if (mWifiP2pMetrics.hasOngoingConnection()) {
+                takeBugReportP2pFailureIfNeeded("Wi-Fi BugReport (P2P "
+                        + mWifiP2pMetrics.getP2pGroupRoleString()
+                        + " overlapping connection attempt)",
+                        "new and old connection attempts overlap");
+            }
+            mWifiP2pMetrics.startConnectionEvent(connectionType, config, groupRole, uid);
+        }
+
         private void takeBugReportP2pFailureIfNeeded(String bugTitle, String bugDetail) {
             if (mWifiInjector.getDeviceConfigFacade().isP2pFailureBugreportEnabled()) {
                 mWifiInjector.getWifiDiagnostics().takeBugReport(bugTitle, bugDetail);
@@ -3108,7 +3119,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 logd("FAST_CONNECTION GC band freq: " + config.groupOwnerBand);
                             }
                             if (mWifiNative.p2pGroupAdd(config, true)) {
-                                mWifiP2pMetrics.startConnectionEvent(
+                                reportConnectionEventTakeBugReportIfOverlapped(
                                         P2pConnectionEvent.CONNECTION_FAST,
                                         config, WifiMetricsProto.GroupEvent.GROUP_CLIENT, uid);
                                 transitionTo(mGroupNegotiationState);
@@ -3298,7 +3309,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 if (mVerboseLoggingEnabled) {
                                     logd("FAST_CONNECTION GO band freq: " + config.groupOwnerBand);
                                 }
-                                mWifiP2pMetrics.startConnectionEvent(
+                                reportConnectionEventTakeBugReportIfOverlapped(
                                         P2pConnectionEvent.CONNECTION_FAST,
                                         config, GroupEvent.GROUP_OWNER, uid);
                                 ret = mWifiNative.p2pGroupAdd(config, false);
