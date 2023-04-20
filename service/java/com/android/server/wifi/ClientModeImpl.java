@@ -4639,7 +4639,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 + netId + " while disconnected. Connecting.");
                         WifiConfiguration config =
                                 mWifiConfigManager.getConfiguredNetwork(netId);
-                        if (!mWifiPermissionsUtil.isAdminRestrictedNetwork(config)) {
+                        if (!mWifiPermissionsUtil.isAdminRestrictedNetwork(config)
+                                && !mWifiGlobals.isDeprecatedSecurityTypeNetwork(config)) {
                             startConnectToNetwork(netId, message.sendingUid, SUPPLICANT_BSSID_ANY);
                         }
                     } else if (result.hasCredentialChanged()) {
