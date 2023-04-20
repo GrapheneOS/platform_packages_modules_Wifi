@@ -908,6 +908,25 @@ public class ClientModeImplTest extends WifiBaseTest {
                 .setShouldReduceNetworkScore(false);
     }
 
+    /**
+     * Verifies that deprecated security type configs can be saved without triggering a connection.
+     */
+    @Test
+    public void canSaveDeprecatedSecurityTypeNetworkWithoutConnecting() throws Exception {
+        mWifiInfo.setNetworkId(WifiConfiguration.INVALID_NETWORK_ID);
+        IActionListener connectActionListener = mock(IActionListener.class);
+        when(mWifiGlobals.isDeprecatedSecurityTypeNetwork(any())).thenReturn(true);
+        mCmi.saveNetwork(
+                new NetworkUpdateResult(TEST_NETWORK_ID, STATUS_SUCCESS, false, false, true, false),
+                new ActionListenerWrapper(connectActionListener),
+                Binder.getCallingUid(), OP_PACKAGE_NAME);
+        mLooper.dispatchAll();
+
+        verify(connectActionListener).onSuccess();
+        verify(mClientModeManager, never())
+                .setShouldReduceNetworkScore(false);
+    }
+
     private WifiConfiguration createTestNetwork(boolean isHidden) {
         WifiConfiguration config = new WifiConfiguration();
         config.networkId = FRAMEWORK_NETWORK_ID;
