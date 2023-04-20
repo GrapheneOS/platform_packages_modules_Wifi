@@ -26,6 +26,7 @@
           <item type="bool" name="config_wifi60ghzSupport" />
           <item type="bool" name="config_wifi11axSupportOverride" />
           <item type="bool" name="config_wifi11beSupportOverride" />
+          <item type="bool" name="config_wifiWepDeprecated" />
           <item type="bool" name="config_wifiFrameworkMaxNumSpatialStreamDeviceOverrideEnable" />
           <item type="integer" name="config_wifiFrameworkMaxNumSpatialStreamDeviceOverrideValue" />
           <item type="bool" name="config_wifi_fast_bss_transition_enabled" />
