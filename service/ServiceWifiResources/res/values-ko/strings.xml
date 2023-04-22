@@ -132,14 +132,18 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"서버 이름:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"발급기관 이름:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"조직:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"인증서 만료:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"SHA-256 지문:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"연락처:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"서명:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"네트워크 인증 필요"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"연결하기 전에 <xliff:g id="SSID">%1$s</xliff:g>의 네트워크 세부정보를 확인하세요. 계속하려면 탭하세요."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"인증서를 설치할 수 없습니다."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>에 연결할 수 없음"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"잘못된 서버 인증 체인입니다."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"확인"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"이 네트워크를 확인할 수 없음"</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"무시하고 연결"</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"연결 안 함"</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"연결 상태 유지"</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"지금 연결 해제"</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint" msgid="5682518783200852031">"<xliff:g id="SSID">%1$s</xliff:g> 네트워크에 인증서가 없습니다."</string>
     <string name="wifi_ca_cert_dialog_preT_message_link" msgid="6325483132538546884">"인증서 추가 방법 알아보기"</string>
     <string name="wifi_ca_cert_notification_preT_title" msgid="7255129934648316663">"이 네트워크를 확인할 수 없음"</string>

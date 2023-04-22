@@ -132,17 +132,21 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Servernavn:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Udstedernavn:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Organisation:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"Certifikatet udløber:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"SHA-256-fingeraftryk:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Kontakt:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"Signatur:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Netværket skal bekræftes"</string>
+    <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Netværket skal verificeres"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Gennemgå netværksoplysningerne for <xliff:g id="SSID">%1$s</xliff:g>, inden du opretter forbindelse. Tryk for at fortsætte."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Installationen af certifikatet mislykkedes."</string>
-    <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Dette netværk kan ikke bekræftes"</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Opret forbindelse alligevel"</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Opret ikke forbindelse"</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Der kan ikke oprettes forbindelse til <xliff:g id="VALUE">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Servercertifikatkæden er ugyldig."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"OK"</string>
+    <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Dette netværk kan ikke verificeres"</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Oprethold forbindelsen"</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"Afbryd forbindelsen nu"</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint" msgid="5682518783200852031">"Netværket <xliff:g id="SSID">%1$s</xliff:g> mangler et certifikat."</string>
     <string name="wifi_ca_cert_dialog_preT_message_link" msgid="6325483132538546884">"Se, hvordan du tilføjer certifikater"</string>
-    <string name="wifi_ca_cert_notification_preT_title" msgid="7255129934648316663">"Dette netværk kan ikke bekræftes"</string>
+    <string name="wifi_ca_cert_notification_preT_title" msgid="7255129934648316663">"Dette netværk kan ikke verificeres"</string>
     <string name="wifi_ca_cert_notification_preT_message" msgid="4565553176090475724">"Netværket <xliff:g id="SSID">%1$s</xliff:g> mangler et certifikat. Tryk for at se, hvordan du tilføjer certifikater."</string>
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"Opret forbindelse alligevel"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"Opret ikke forbindelse"</string>
