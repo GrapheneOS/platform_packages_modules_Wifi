@@ -980,7 +980,7 @@ public class WifiConfigManager {
         intentForSystem.putExtra(WifiManager.EXTRA_MULTIPLE_NETWORKS_CHANGED, config == null);
         intentForSystem.putExtra(WifiManager.EXTRA_CHANGE_REASON, reason);
         intentForSystem.putExtra(WifiManager.EXTRA_WIFI_CONFIGURATION,
-                createExternalWifiConfiguration(config, true, -1));
+                config == null ? null : createExternalWifiConfiguration(config, true, -1));
         mContext.sendBroadcastAsUser(intentForSystem, UserHandle.SYSTEM,
                 Manifest.permission.NETWORK_STACK);
     }
