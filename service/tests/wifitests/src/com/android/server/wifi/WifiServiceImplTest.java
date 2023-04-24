@@ -20,6 +20,8 @@ import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE;
 import static android.Manifest.permission.WIFI_ACCESS_COEX_UNSAFE_CHANNELS;
 import static android.Manifest.permission.WIFI_UPDATE_COEX_UNSAFE_CHANNELS;
+import static android.net.wifi.ScanResult.WIFI_BAND_60_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
 import static android.net.wifi.WifiAvailableChannel.FILTER_REGULATORY;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_SAP;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_STA;
@@ -49,6 +51,7 @@ import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
+import static android.net.wifi.WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.os.Process.WIFI_UID;
@@ -7918,7 +7921,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WifiNetworkSelectionConfig defaultConfig = new WifiNetworkSelectionConfig.Builder()
                 .setRssiThresholds(ScanResult.WIFI_BAND_24_GHZ, defaultRssi2)
                 .setRssiThresholds(ScanResult.WIFI_BAND_5_GHZ, defaultRssi5)
-                .setRssiThresholds(ScanResult.WIFI_BAND_6_GHZ, defaultRssi6)
+                .setRssiThresholds(WIFI_BAND_6_GHZ, defaultRssi6)
                 .build();
         inOrder.verify(listener).onResult(defaultConfig);
 
@@ -7926,7 +7929,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WifiNetworkSelectionConfig customConfig = new WifiNetworkSelectionConfig.Builder()
                 .setRssiThresholds(ScanResult.WIFI_BAND_24_GHZ, customRssi2)
                 .setRssiThresholds(ScanResult.WIFI_BAND_5_GHZ, customRssi5)
-                .setRssiThresholds(ScanResult.WIFI_BAND_6_GHZ, customRssi6)
+                .setRssiThresholds(WIFI_BAND_6_GHZ, customRssi6)
                 .setUserConnectChoiceOverrideEnabled(false)
                 .setLastSelectionWeightEnabled(false)
                 .build();
@@ -7943,13 +7946,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
         WifiNetworkSelectionConfig resetConfig = new WifiNetworkSelectionConfig.Builder()
                 .setRssiThresholds(ScanResult.WIFI_BAND_24_GHZ, resetArray)
                 .setRssiThresholds(ScanResult.WIFI_BAND_5_GHZ, resetArray)
-                .setRssiThresholds(ScanResult.WIFI_BAND_6_GHZ, defaultRssi6)
+                .setRssiThresholds(WIFI_BAND_6_GHZ, defaultRssi6)
                 .build();
 
         WifiNetworkSelectionConfig resetExpectedConfig = new WifiNetworkSelectionConfig.Builder()
                 .setRssiThresholds(ScanResult.WIFI_BAND_24_GHZ, defaultRssi2)
                 .setRssiThresholds(ScanResult.WIFI_BAND_5_GHZ, defaultRssi5)
-                .setRssiThresholds(ScanResult.WIFI_BAND_6_GHZ, defaultRssi6)
+                .setRssiThresholds(WIFI_BAND_6_GHZ, defaultRssi6)
                 .build();
 
         mWifiServiceImpl.setNetworkSelectionConfig(resetConfig);
@@ -9610,30 +9613,75 @@ public class WifiServiceImplTest extends WifiBaseTest {
      * Verify the call to getUsableChannels() goes to cached SoftAp capabilities
      */
     @Test
-    public void testGetUsableChannelsForApRegulation() throws Exception {
+    public void testGetUsableChannelsUsesStoredSoftApChannelsWhenDriverIsntUp() throws Exception {
         mWifiServiceImpl.handleBootCompleted();
         mLooper.dispatchAll();
         when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
         when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
                 .thenReturn(true);
-        // Country code update with HAL started
-        when(mWifiNative.isHalStarted()).thenReturn(true);
-        // Channel 9 - 2452Mhz
-        WifiAvailableChannel channels2g = new WifiAvailableChannel(2452,
-                WifiAvailableChannel.OP_MODE_SAP);
+        when(mWifiNative.isHalSupported()).thenReturn(true);
+        when(mWifiNative.isHalStarted()).thenReturn(false);
+        setup5GhzSupported();
+        setup6GhzSupported();
+        setup60GhzSupported();
+        when(mWifiCountryCode.getCountryCode()).thenReturn(TEST_COUNTRY_CODE);
+
+        // No values stored
+        assertThat(mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_SAP,
+                FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras)).isEmpty();
+
+        // Country code doesn't match
+        when(mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE))
+                .thenReturn(TEST_COUNTRY_CODE);
+        when(mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ))
+                .thenReturn("[2452,5180,5955,58320]");
+        when(mWifiCountryCode.getCountryCode()).thenReturn(TEST_NEW_COUNTRY_CODE);
+        assertThat(mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ, OP_MODE_SAP,
+                FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras)).isEmpty();
+
+        // Matching country code
+        when(mWifiCountryCode.getCountryCode()).thenReturn(TEST_COUNTRY_CODE);
+        assertThat(mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_5_WITH_DFS_6_60_GHZ, OP_MODE_SAP,
+                FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras)).containsExactly(
+                new WifiAvailableChannel(2452, WifiAvailableChannel.OP_MODE_SAP),
+                new WifiAvailableChannel(5180, WifiAvailableChannel.OP_MODE_SAP),
+                new WifiAvailableChannel(5955, WifiAvailableChannel.OP_MODE_SAP),
+                new WifiAvailableChannel(58320, WifiAvailableChannel.OP_MODE_SAP));
+    }
+
+    /**
+     * Verify that driver country code updates store the new available Soft AP channels.
+     */
+    @Test
+    public void testDriverCountryCodeChangedStoresAvailableSoftApChannels() throws Exception {
+        mWifiServiceImpl.handleBootCompleted();
+        mLooper.dispatchAll();
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        when(mWifiPermissionsUtil.checkCallersHardwareLocationPermission(anyInt()))
+                .thenReturn(true);
         when(mWifiNative.isHalSupported()).thenReturn(true);
         when(mWifiNative.isHalStarted()).thenReturn(true);
-        when(mWifiNative.getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(), anyInt()))
-                .thenReturn(new ArrayList<>(Arrays.asList(channels2g)));
+        when(mWifiNative.getUsableChannels(eq(WIFI_BAND_24_GHZ), anyInt(), anyInt()))
+                .thenReturn(Arrays.asList(
+                        new WifiAvailableChannel(2452, WifiAvailableChannel.OP_MODE_SAP)));
+        when(mWifiNative.getUsableChannels(eq(WIFI_BAND_5_GHZ), anyInt(), anyInt()))
+                .thenReturn(Arrays.asList(
+                        new WifiAvailableChannel(5180, WifiAvailableChannel.OP_MODE_SAP)));
+        when(mWifiNative.getUsableChannels(eq(WIFI_BAND_6_GHZ), anyInt(), anyInt()))
+                .thenReturn(Arrays.asList(
+                        new WifiAvailableChannel(5955, WifiAvailableChannel.OP_MODE_SAP)));
+        when(mWifiNative.getUsableChannels(eq(WIFI_BAND_60_GHZ), anyInt(), anyInt()))
+                .thenReturn(Arrays.asList(
+                        new WifiAvailableChannel(58320, WifiAvailableChannel.OP_MODE_SAP)));
+
         mWifiServiceImpl.mCountryCodeTracker.onDriverCountryCodeChanged(TEST_COUNTRY_CODE);
         mLooper.dispatchAll();
-        reset(mWifiNative);
-        List<WifiAvailableChannel> channels = mWifiServiceImpl.getUsableChannels(WIFI_BAND_24_GHZ,
-                OP_MODE_SAP, FILTER_REGULATORY, TEST_PACKAGE_NAME, mExtras);
-        assertEquals(1, channels.size());
-        assertEquals(channels2g, channels.get(0));
-        verify(mWifiNative, never()).getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ), anyInt(),
-                anyInt());
+
+        verify(mWifiSettingsConfigStore).put(
+                eq(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE), eq(TEST_COUNTRY_CODE));
+        verify(mWifiSettingsConfigStore).put(
+                eq(WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ),
+                eq("[2452,5180,5955,58320]"));
     }
 
     private List<WifiConfiguration> setupMultiTypeConfigs(
