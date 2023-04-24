@@ -30,6 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.Context;
 import android.net.wifi.IListListener;
 import android.net.wifi.QosPolicyParams;
 import android.net.wifi.WifiManager;
@@ -64,6 +65,8 @@ public class ApplicationQosPolicyRequestHandlerTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock WifiNative mWifiNative;
     @Mock HandlerThread mHandlerThread;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
+    @Mock Context mContext;
     @Mock IListListener mIListListener;
     @Mock ClientModeManager mClientModeManager0;
     @Mock ClientModeManager mClientModeManager1;
@@ -82,7 +85,7 @@ public class ApplicationQosPolicyRequestHandlerTest {
 
     private class ApplicationQosPolicyRequestHandlerSpy extends ApplicationQosPolicyRequestHandler {
         ApplicationQosPolicyRequestHandlerSpy() {
-            super(mActiveModeWarden, mWifiNative, mHandlerThread);
+            super(mActiveModeWarden, mWifiNative, mHandlerThread, mDeviceConfigFacade, mContext);
         }
 
         @Override
@@ -623,5 +626,33 @@ public class ApplicationQosPolicyRequestHandlerTest {
         verify(mWifiNative).removeQosPolicyForScs(
                 eq(TEST_IFACE_NAME_0), mPolicyIdByteListCaptor.capture());
         assertEquals(numPolicies, mPolicyIdByteListCaptor.getValue().size());
+    }
+
+    /*
+     * Tests that if a large number of policies are in the table, then a call to
+     * {@link ApplicationQosPolicyRequestHandler#queueAllPoliciesOnIface} divides the policies
+     * correctly into a series of individual add requests.
+     */
+    @Test
+    public void testLargeQueueAllPoliciesRequest() {
+        int numOwnedPolicies = 18;
+        List<QosPolicyParams> policyList =
+                createDownlinkPolicyList(numOwnedPolicies, TEST_POLICY_ID_START);
+        assignVirtualPolicyIds(policyList);
+        when(mPolicyTrackingTable.getAllPolicies()).thenReturn(policyList);
+
+        // Expect that the request is divided into two batches of size 16 and 2, respectively.
+        mDut.queueAllPoliciesOnIface(TEST_IFACE_NAME_1);
+        verify(mWifiNative).addQosPolicyRequestForScs(
+                eq(TEST_IFACE_NAME_1), mPolicyListCaptor.capture());
+        assertEquals(16, mPolicyListCaptor.getValue().size());
+
+        // Trigger AP callback to start processing next request.
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_1, policyList.subList(0, 16),
+                SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
+
+        verify(mWifiNative, times(2)).addQosPolicyRequestForScs(
+                eq(TEST_IFACE_NAME_1), mPolicyListCaptor.capture());
+        assertEquals(2, mPolicyListCaptor.getValue().size());
     }
 }
