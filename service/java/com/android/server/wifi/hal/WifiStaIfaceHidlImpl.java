@@ -602,6 +602,9 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
         } catch (RemoteException e) {
             handleRemoteException(e, methodStrV1_6);
             return null;
+        } catch (Exception e) {
+            handleException(e, methodStrV1_6);
+            return null;
         }
         return frameworkFromHalLinkLayerStats_1_6(statsResp.value);
     }
@@ -1545,6 +1548,10 @@ public class WifiStaIfaceHidlImpl implements IWifiStaIface {
     private void handleRemoteException(RemoteException e, String methodStr) {
         Log.e(TAG, methodStr + " failed with remote exception: " + e);
         mWifiStaIface = null;
+    }
+
+    private void handleException(Exception e, String methodStr) {
+        Log.e(TAG, methodStr + " failed with exception: " + e);
     }
 
     private <T> T validateAndCall(String methodStr, T defaultVal, @NonNull Supplier<T> supplier) {
