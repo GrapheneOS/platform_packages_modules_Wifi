@@ -262,4 +262,24 @@ public class ApplicationQosPolicyTrackingTableTest {
         retrievedPolicyIds = mDut.getAllPolicyIdsOwnedByUid(TEST_UID + 1);
         assertTrue(retrievedPolicyIds.isEmpty());
     }
+
+    /**
+     * Tests the {@link ApplicationQosPolicyTrackingTable#getAllPolicies()} method.
+     */
+    @Test
+    public void testGetAllPolicies() {
+        // Empty table should return an empty list.
+        List<QosPolicyParams> retrievedPolicies = mDut.getAllPolicies();
+        assertTrue(retrievedPolicies.isEmpty());
+
+        // Fill table with policies from multiple requesters.
+        List<QosPolicyParams> policyList = generatePolicyList(
+                NUM_VIRTUAL_POLICY_IDS / 2, TEST_PHYSICAL_POLICY_ID_START);
+        mDut.addPolicies(policyList, TEST_UID);
+        mDut.addPolicies(policyList, TEST_UID + 1);
+
+        // getAllPolicies should return all policies across all requesters.
+        retrievedPolicies = mDut.getAllPolicies();
+        assertEquals(NUM_VIRTUAL_POLICY_IDS, retrievedPolicies.size());
+    }
 }
