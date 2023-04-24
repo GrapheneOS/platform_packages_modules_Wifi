@@ -457,8 +457,8 @@
           <item type="string" name="wifi_network_disabled_by_admin_title" />
           <item type="string" name="wifi_network_disabled_by_admin_message" />
           <item type="string" name="wifi_network_disabled_by_admin_button" />
-          <item type="string" name="wifi_network_switch_dialog_title" />
-          <item type="string" name="wifi_network_switch_dialog_message" />
+          <item type="string" name="wifi_network_switch_dialog_title_no_internet" />
+          <item type="string" name="wifi_network_switch_dialog_title_bad_internet" />
           <item type="string" name="wifi_network_switch_dialog_positive_button" />
           <item type="string" name="wifi_network_switch_dialog_negative_button" />
           <!-- Params from strings.xml that can be overlayed -->

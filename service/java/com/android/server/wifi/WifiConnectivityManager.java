@@ -1608,10 +1608,12 @@ public class WifiConnectivityManager {
                 + candidate.getProfileKey());
         resetNetworkSwitchDialog();
         mNetworkSwitchDialog = mWifiDialogManager.createSimpleDialog(
-                mContext.getString(R.string.wifi_network_switch_dialog_title),
-                mContext.getString(R.string.wifi_network_switch_dialog_message,
+                mContext.getString(connectedConfig.hasNoInternetAccess()
+                                ? R.string.wifi_network_switch_dialog_title_no_internet
+                                : R.string.wifi_network_switch_dialog_title_bad_internet,
                         WifiInfo.removeDoubleQuotes(connectedConfig.SSID),
                         WifiInfo.removeDoubleQuotes(candidate.SSID)),
+                /* message */ null,
                 mContext.getString(R.string.wifi_network_switch_dialog_positive_button),
                 mContext.getString(R.string.wifi_network_switch_dialog_negative_button),
                 /* neutralButtonText */ null,
