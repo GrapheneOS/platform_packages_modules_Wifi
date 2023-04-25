@@ -1225,6 +1225,13 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("setWifiEnabled not allowed for uid=%").c(callingUid).flush();
             return false;
         }
+
+        // If Satellite mode is enabled, Wifi can not be turned on/off
+        if (mSettingsStore.isSatelliteModeOn()) {
+            mLog.info("setWifiEnabled not allowed as satellite mode is on.").flush();
+            return false;
+        }
+
         // If Airplane mode is enabled, only privileged apps are allowed to toggle Wifi
         if (mSettingsStore.isAirplaneModeOn() && !isPrivileged) {
             mLog.err("setWifiEnabled in Airplane mode: only Settings can toggle wifi").flush();
