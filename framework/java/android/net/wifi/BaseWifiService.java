@@ -1059,4 +1059,10 @@ public class BaseWifiService extends IWifiManager.Stub {
     public void getMaxMloStrLinkCount(IIntegerListener listener, Bundle extras) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void getSupportedSimultaneousBandCombinations(IWifiBandsListener listener,
+            Bundle extras) {
+        throw new UnsupportedOperationException();
+    }
 }

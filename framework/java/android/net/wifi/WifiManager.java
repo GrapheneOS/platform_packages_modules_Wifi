@@ -11751,4 +11751,50 @@ public class WifiManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * Get the set of band combinations supported simultaneously by the Wi-Fi Chip.
+     *
+     * Note: This method returns simultaneous band operation combination and not multichannel
+     * concurrent operation (MCC) combination.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return a list of possible
+     *                        simultaneous band combinations supported by the chip or empty list if
+     *                        not available. Band value is defined in {@link WifiScanner.WifiBand}.
+     * @throws NullPointerException if the caller provided a null input.
+     * @throws SecurityException if caller does not have the required permissions.
+     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
+    public void getSupportedSimultaneousBandCombinations(
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<List<int[]>> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
+            mService.getSupportedSimultaneousBandCombinations(new IWifiBandsListener.Stub() {
+                @Override
+                public void onResult(WifiBands[] supportedBands) {
+                    Binder.clearCallingIdentity();
+                    List<int[]> bandCombinations = new ArrayList<>();
+                    for (WifiBands wifiBands : supportedBands) {
+                        bandCombinations.add(wifiBands.bands);
+                    }
+                    executor.execute(() -> {
+                        resultsCallback.accept(bandCombinations);
+                    });
+                }
+            }, extras);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }
