@@ -212,6 +212,18 @@ public class ApplicationQosPolicyTrackingTable {
     }
 
     /**
+     * Get all policies that are tracked by this table.
+     *
+     * @return List of policies, or empty list if there are no policies in the table.
+     */
+    public List<QosPolicyParams> getAllPolicies() {
+        if (mPolicyHashToPolicyMap.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return mPolicyHashToPolicyMap.values().stream().toList();
+    }
+
+    /**
      * Dump information about the internal state.
      *
      * @param pw PrintWriter to write the dump to.
