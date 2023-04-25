@@ -553,7 +553,7 @@ public class WifiInjector {
         mWifiMulticastLockManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
                 wifiLooper);
         mApplicationQosPolicyRequestHandler = new ApplicationQosPolicyRequestHandler(
-                mActiveModeWarden, mWifiNative, mWifiHandlerThread);
+                mActiveModeWarden, mWifiNative, mWifiHandlerThread, mDeviceConfigFacade, mContext);
 
         // Register the various network Nominators with the network selector.
         mWifiNetworkSelector.registerNetworkNominator(mSavedNetworkNominator);
