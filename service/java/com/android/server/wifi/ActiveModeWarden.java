@@ -39,6 +39,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.database.ContentObserver;
 import android.location.LocationManager;
 import android.net.Network;
 import android.net.wifi.ISubsystemRestartCallback;
@@ -63,6 +64,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.WorkSource;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.ArraySet;
@@ -177,6 +179,8 @@ public class ActiveModeWarden {
      * {@link WifiManager#WIFI_STATE_UNKNOWN}
      */
     private final AtomicInteger mWifiState = new AtomicInteger(WIFI_STATE_DISABLED);
+
+    private ContentObserver mSatelliteModeContentObserver;
 
     /**
      * Method that allows the active ClientModeManager to set the wifi state that is
@@ -681,6 +685,22 @@ public class ActiveModeWarden {
         setSupportedFeatureSet(mWifiNative.getSupportedFeatureSet(null),
                 mWifiNative.isStaApConcurrencySupported(),
                 mWifiNative.isStaStaConcurrencySupported());
+
+        mSatelliteModeContentObserver = new ContentObserver(mHandler) {
+            @Override
+            public void onChange(boolean selfChange) {
+                handleSatelliteModeChange();
+            }
+        };
+        mFacade.registerContentObserver(
+                mContext,
+                Settings.Global.getUriFor(WifiSettingsStore.SETTINGS_SATELLITE_MODE_RADIOS),
+                false, mSatelliteModeContentObserver);
+        mFacade.registerContentObserver(
+                mContext,
+                Settings.Global.getUriFor(WifiSettingsStore.SETTINGS_SATELLITE_MODE_ENABLED),
+                false, mSatelliteModeContentObserver);
+
         mWifiController.start();
     }
 
@@ -1733,6 +1753,7 @@ public class ActiveModeWarden {
         static final int CMD_UPDATE_AP_CONFIG                        = BASE + 25;
         static final int CMD_REQUEST_ADDITIONAL_CLIENT_MODE_MANAGER  = BASE + 26;
         static final int CMD_REMOVE_ADDITIONAL_CLIENT_MODE_MANAGER   = BASE + 27;
+        static final int CMD_SATELLITE_MODE_CHANGED                  = BASE + 28;
 
         private final EnabledState mEnabledState;
         private final DisabledState mDisabledState;
@@ -1818,6 +1839,8 @@ public class ActiveModeWarden {
                     return "CMD_UPDATE_AP_CONFIG";
                 case CMD_WIFI_TOGGLED:
                     return "CMD_WIFI_TOGGLED";
+                case CMD_SATELLITE_MODE_CHANGED:
+                    return "CMD_SATELLITE_MODE_CHANGED";
                 case RunnerState.STATE_ENTER_CMD:
                     return "Enter";
                 case RunnerState.STATE_EXIT_CMD:
@@ -1833,11 +1856,13 @@ public class ActiveModeWarden {
             boolean isWifiEnabled = mSettingsStore.isWifiToggleEnabled();
             boolean isScanningAlwaysAvailable = mSettingsStore.isScanAlwaysAvailable();
             boolean isLocationModeActive = mWifiPermissionsUtil.isLocationModeEnabled();
+            boolean isSatelliteModeOn = mSettingsStore.isSatelliteModeOn();
 
             log("isAirplaneModeOn = " + isAirplaneModeOn
                     + ", isWifiEnabled = " + isWifiEnabled
                     + ", isScanningAvailable = " + isScanningAlwaysAvailable
-                    + ", isLocationModeActive = " + isLocationModeActive);
+                    + ", isLocationModeActive = " + isLocationModeActive
+                    + ", isSatelliteModeOn = " + isSatelliteModeOn);
 
             // Initialize these values at bootup to defaults, will be overridden by API calls
             // for further toggles.
@@ -2053,6 +2078,26 @@ public class ActiveModeWarden {
             void exitImpl() {
             }
 
+            private void checkAndHandleAirplaneModeState() {
+                if (mSettingsStore.isAirplaneModeOn()) {
+                    log("Airplane mode toggled");
+                    if (!mSettingsStore.shouldWifiRemainEnabledWhenApmEnabled()) {
+                        log("Wifi disabled on APM, disable wifi");
+                        shutdownWifi();
+                        // onStopped will move the state machine to "DisabledState".
+                    }
+                } else {
+                    log("Airplane mode disabled, determine next state");
+                    if (shouldEnableSta()) {
+                        startPrimaryOrScanOnlyClientModeManager(
+                                // Assumes user toggled it on from settings before.
+                                mFacade.getSettingsWorkSource(mContext));
+                        transitionTo(mEnabledState);
+                    }
+                    // wifi should remain disabled, do not need to transition
+                }
+            }
+
             @Override
             public boolean processMessageImpl(Message msg) {
                 switch (msg.what) {
@@ -2079,29 +2124,26 @@ public class ActiveModeWarden {
                         // onStopped will move the state machine to "DisabledState".
                         break;
                     case CMD_AIRPLANE_TOGGLED:
-                        if (mSettingsStore.isAirplaneModeOn()) {
-                            log("Airplane mode toggled");
-                            if (!mSettingsStore.shouldWifiRemainEnabledWhenApmEnabled()) {
-                                log("Wifi disabled on APM, disable wifi");
-                                shutdownWifi();
-                                // onStopped will move the state machine to "DisabledState".
-                            }
-                        } else {
-                            log("Airplane mode disabled, determine next state");
-                            if (shouldEnableSta()) {
-                                startPrimaryOrScanOnlyClientModeManager(
-                                        // Assumes user toggled it on from settings before.
-                                        mFacade.getSettingsWorkSource(mContext));
-                                transitionTo(mEnabledState);
-                            }
-                            // wifi should remain disabled, do not need to transition
+                        if (mSettingsStore.isSatelliteModeOn()) {
+                            log("Satellite mode is on - return");
+                            break;
                         }
+                        checkAndHandleAirplaneModeState();
                         break;
                     case CMD_UPDATE_AP_CAPABILITY:
                         updateCapabilityToSoftApModeManager((SoftApCapability) msg.obj, msg.arg1);
                         break;
                     case CMD_UPDATE_AP_CONFIG:
                         updateConfigurationToSoftApModeManager((SoftApConfiguration) msg.obj);
+                        break;
+                    case CMD_SATELLITE_MODE_CHANGED:
+                        if (mSettingsStore.isSatelliteModeOn()) {
+                            log("Satellite mode is on, disable wifi");
+                            shutdownWifi();
+                        } else {
+                            log("Satellite mode is off, determine next stage");
+                            checkAndHandleAirplaneModeState();
+                        }
                         break;
                     default:
                         throw new RuntimeException("WifiController.handleMessage " + msg.what);
@@ -2734,4 +2776,9 @@ public class ActiveModeWarden {
         return mDeviceMobilityState;
     }
 
+    @VisibleForTesting
+    public void handleSatelliteModeChange() {
+        mSettingsStore.updateSatelliteModeTracker();
+        mWifiController.sendMessage(WifiController.CMD_SATELLITE_MODE_CHANGED);
+    }
 }
