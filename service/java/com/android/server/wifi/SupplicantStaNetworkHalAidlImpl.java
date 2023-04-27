@@ -376,8 +376,9 @@ public class SupplicantStaNetworkHalAidlImpl {
             }
             /** Security Protocol */
             BitSet allowedProtocols = securityParams.getAllowedProtocols();
-            if (allowedProtocols.cardinality() != 0
-                    && !setProto(wifiConfigurationToSupplicantProtoMask(allowedProtocols))) {
+            if (allowedProtocols.cardinality() != 0 && !setProto(
+                    wifiConfigurationToSupplicantProtoMask(allowedProtocols, mWifiGlobals,
+                            WifiConfigurationUtil.isConfigForEnterpriseNetwork(config)))) {
                 Log.e(TAG, "failed to set Security Protocol");
                 return false;
             }
@@ -949,13 +950,16 @@ public class SupplicantStaNetworkHalAidlImpl {
         return mask;
     }
 
-    private static int wifiConfigurationToSupplicantProtoMask(BitSet protoMask) {
+    private static int wifiConfigurationToSupplicantProtoMask(BitSet protoMask,
+            WifiGlobals wifiGlobals, boolean isEnterprise) {
         int mask = 0;
         for (int bit = protoMask.nextSetBit(0); bit != -1;
                 bit = protoMask.nextSetBit(bit + 1)) {
             switch (bit) {
                 case WifiConfiguration.Protocol.WPA:
-                    mask |= ProtoMask.WPA;
+                    if (isEnterprise || !wifiGlobals.isWpaPersonalDeprecated()) {
+                        mask |= ProtoMask.WPA;
+                    }
                     break;
                 case WifiConfiguration.Protocol.RSN:
                     mask |= ProtoMask.RSN;
