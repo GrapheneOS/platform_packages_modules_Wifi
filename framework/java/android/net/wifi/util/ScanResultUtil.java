@@ -249,6 +249,14 @@ public class ScanResultUtil {
     }
 
     /**
+     * Helper method to check if the provided |scanResult| corresponds to only WPA-Personal network.
+     * This checks if the provided capabilities string contains WPA and not RSN.
+     */
+    public static boolean isScanResultForWpaPersonalOnlyNetwork(@NonNull ScanResult scanResult) {
+        return isScanResultForPskNetwork(scanResult) && !scanResult.capabilities.contains("RSN");
+    }
+
+    /**
      *  Helper method to check if the provided |scanResult| corresponds to an unknown amk network.
      *  This checks if the provided capabilities string contains ? or not.
      */

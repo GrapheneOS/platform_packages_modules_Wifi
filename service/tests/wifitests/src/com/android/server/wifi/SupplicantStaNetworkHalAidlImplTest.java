@@ -45,6 +45,7 @@ import android.hardware.wifi.supplicant.NetworkRequestEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.NetworkResponseEapSimGsmAuthParams;
 import android.hardware.wifi.supplicant.NetworkResponseEapSimUmtsAuthParams;
 import android.hardware.wifi.supplicant.PairwiseCipherMask;
+import android.hardware.wifi.supplicant.ProtoMask;
 import android.hardware.wifi.supplicant.SaeH2eMode;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
 import android.hardware.wifi.supplicant.TlsVersion;
@@ -116,6 +117,7 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         mResources = new MockResources();
         when(mContext.getResources()).thenReturn(mResources);
         when(mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()).thenReturn(true);
+        when(mWifiGlobals.isWpaPersonalDeprecated()).thenReturn(false);
 
         mAdvanceKeyMgmtFeatures |= WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
         mSupplicantNetwork = new SupplicantStaNetworkHalAidlImpl(1,
@@ -191,6 +193,25 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
         verify(mISupplicantStaNetworkMock).getPsk();
         verify(mISupplicantStaNetworkMock, never()).setPskPassphrase(anyString());
         verify(mISupplicantStaNetworkMock).getPskPassphrase();
+        verify(mISupplicantStaNetworkMock).setProto(ProtoMask.RSN | ProtoMask.WPA);
+    }
+
+    /**
+     * Tests the saving/loading of WifiConfiguration to wpa_supplicant with raw psk - WPA
+     * deprecated.
+     */
+    @Test
+    public void testPskNetworkWifiConfigurationSaveLoadWpaDeprecated() throws Exception {
+        when(mWifiGlobals.isWpaPersonalDeprecated()).thenReturn(true);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork();
+        config.preSharedKey = "945ef00c463c2a7c2496376b13263d1531366b46377179a4b17b393687450779";
+        testWifiConfigurationSaveLoad(config);
+        verify(mISupplicantStaNetworkMock).setPsk(any(byte[].class));
+        verify(mISupplicantStaNetworkMock).getPsk();
+        verify(mISupplicantStaNetworkMock, never()).setPskPassphrase(anyString());
+        verify(mISupplicantStaNetworkMock).getPskPassphrase();
+        verify(mISupplicantStaNetworkMock).setProto(ProtoMask.RSN);
     }
 
     /**
