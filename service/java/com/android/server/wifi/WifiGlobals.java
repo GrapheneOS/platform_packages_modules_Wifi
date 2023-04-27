@@ -63,6 +63,7 @@ public class WifiGlobals {
     private final boolean mWifiInterfaceAddedSelfRecoveryEnabled;
     private final int mNetworkNotFoundEventThreshold;
     private final boolean mIsWepDeprecated;
+    private final boolean mIsWpaPersonalDeprecated;
 
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
@@ -118,6 +119,8 @@ public class WifiGlobals {
                 R.integer.config_wifiNetworkNotFoundEventThreshold);
         mIsWepDeprecated = mContext.getResources()
                 .getBoolean(R.bool.config_wifiWepDeprecated);
+        mIsWpaPersonalDeprecated = mContext.getResources()
+                .getBoolean(R.bool.config_wifiWpaPersonalDeprecated);
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
@@ -181,6 +184,15 @@ public class WifiGlobals {
     }
 
     /**
+     * Helper method to check if WPA-Personal networks are deprecated.
+     *
+     * @return boolean true if WPA-Personal networks are deprecated, false otherwise.
+     */
+    public boolean isWpaPersonalDeprecated() {
+        return mIsWpaPersonalDeprecated;
+    }
+
+    /**
      * Helper method to check if the device may not connect to the configuration
      * due to deprecated security type
      */
@@ -189,6 +201,9 @@ public class WifiGlobals {
             return false;
         }
         if (isWepDeprecated() && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)) {
+            return true;
+        }
+        if (isWpaPersonalDeprecated() && config.isWpaPersonalOnlyConfiguration()) {
             return true;
         }
         return false;
@@ -390,5 +405,6 @@ public class WifiGlobals {
         pw.println("mDisableUnwantedNetworkOnLowRssi=" + mDisableUnwantedNetworkOnLowRssi);
         pw.println("mNetworkNotFoundEventThreshold=" + mNetworkNotFoundEventThreshold);
         pw.println("mIsWepDeprecated=" + mIsWepDeprecated);
+        pw.println("mIsWpaPersonalDeprecated=" + mIsWpaPersonalDeprecated);
     }
 }
