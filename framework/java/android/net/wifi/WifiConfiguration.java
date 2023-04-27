@@ -714,6 +714,16 @@ public class WifiConfiguration implements Parcelable {
     }
 
     /**
+     * Return whether the configuration is a WPA-Personal network
+     * @hide
+     */
+    public boolean isWpaPersonalOnlyConfiguration() {
+        return isSecurityType(SECURITY_TYPE_PSK)
+                && allowedProtocols.get(Protocol.WPA)
+                && !allowedProtocols.get(Protocol.RSN);
+    }
+
+    /**
      * If there is no security params, generate one according to legacy fields.
      * @hide
      */

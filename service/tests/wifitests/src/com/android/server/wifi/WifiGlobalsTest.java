@@ -149,4 +149,24 @@ public class WifiGlobalsTest extends WifiBaseTest {
 
         assertTrue(mWifiGlobals.isDeprecatedSecurityTypeNetwork(config));
     }
+
+    /**
+     * Test that isDeprecatedSecurityTypeNetwork returns true due to WPA-Personal network
+     */
+    @Test
+    public void testDeprecatedNetworkSecurityTypeWpaPersonal()
+            throws Exception {
+        mResources.setBoolean(R.bool.config_wifiWpaPersonalDeprecated, true);
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertTrue(mWifiGlobals.isWpaPersonalDeprecated());
+
+        WifiConfiguration config = new WifiConfiguration();
+        config.networkId = TEST_NETWORK_ID;
+        config.SSID = TEST_SSID;
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        config.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+        config.allowedProtocols.clear(WifiConfiguration.Protocol.RSN);
+
+        assertTrue(mWifiGlobals.isDeprecatedSecurityTypeNetwork(config));
+    }
 }
