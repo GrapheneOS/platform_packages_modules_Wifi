@@ -98,8 +98,9 @@ public class MultiInternetWifiNetworkFactory extends NetworkFactory {
             return false;
         }
         WifiNetworkSpecifier wns = (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier();
-        // Multi internet request must have internet capability, with specifier of band request,
-        // and must not have SSID/BSSID pattern matcher.
+        // Multi internet request must have internet capability, with specifier of band request.
+        // It must not have SSID/BSSID pattern matcher - except a request from Settings which can
+        // specify a BSSID (while an SSID specification is allowed here, it is dropped later on).
         if (networkRequest.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 && wns.getBand() != ScanResult.UNSPECIFIED
                 && (isFromSettings || WifiConfigurationUtil.isMatchAllNetworkSpecifier(wns))) {
