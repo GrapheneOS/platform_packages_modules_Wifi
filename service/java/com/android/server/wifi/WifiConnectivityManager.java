@@ -1581,6 +1581,7 @@ public class WifiConnectivityManager {
                 });
         WifiConfiguration connectedConfig = primaryManager.getConnectedWifiConfiguration();
         if (connectedConfig == null || !connectedConfig.isUserSelected()
+                || !mNetworkSelector.isSufficiencyCheckEnabled()
                 || connectedConfig.networkId == candidate.networkId
                 || !mContext.getResources().getBoolean(
                 R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork)) {

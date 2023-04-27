@@ -3983,6 +3983,38 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
     /**
      * Verifies that if R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork is true,
+     * then we don't show the network switch dialog if the sufficiency check is disabled.
+     */
+    @Test
+    public void testSufficiencyCheckDisabledDoesNotShowNetworkSwitchDialog() {
+        mResources.setBoolean(
+                R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork, true);
+
+        // Start off connected to a user-selected network.
+        setWifiStateConnected();
+        WifiConfiguration config = new WifiConfiguration();
+        config.networkId = TEST_CONNECTED_NETWORK_ID;
+        config.setIsUserSelected(true);
+        when(mPrimaryClientModeManager.getConnectedWifiConfiguration()).thenReturn(config);
+        when(mWifiNS.isSufficiencyCheckEnabled()).thenReturn(false);
+
+        // Request a single scan to trigger network selection.
+        ScanSettings settings = new ScanSettings();
+        WifiScannerInternal.ScanListener scanListener = new WifiScannerInternal.ScanListener(mock(
+                WifiScanner.ScanListener.class), mTestHandler);
+        mWifiScanner.startScan(settings, scanListener);
+        mLooper.dispatchAll();
+
+        // Verify we started the connection without the dialog.
+        verify(mWifiDialogManager, never()).createSimpleDialog(any(), any(), any(), any(), any(),
+                mSimpleDialogCallbackCaptor.capture(), any());
+        verify(mDialogHandle, never()).launchDialog();
+        verify(mPrimaryClientModeManager).startConnectToNetwork(
+                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
+    }
+
+    /**
+     * Verifies that if R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork is true,
      * then we switch away from a user-connected network only after the user accepts the dialog.
      */
     @Test
