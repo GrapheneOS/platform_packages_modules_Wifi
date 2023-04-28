@@ -318,7 +318,6 @@
           <item type="bool" name="config_wifiAwareOffloadingFirmwareHandlePriority" />
           <item type="bool" name="config_wifiLowLatencyLockDisableChipPowerSave" />
           <item type="bool" name="config_wifiNiapModeEnabled" />
-          <item type="bool" name="config_wifiUpdateCountryCodeFromScanResultSetupWizard" />
           <item type="bool" name="config_wifiP2pGoIpAddressAllocationInEapolFrames" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeStart" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeEnd" />
