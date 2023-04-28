@@ -1047,7 +1047,10 @@
     <!-- Indicates whether or not P2P interface removal can be approved automatically when P2P
          is not connected. -->
     <bool translatable="false" name="config_wifiUserApprovalNotRequireForDisconnectedP2p">false</bool>
-
+    <!-- Indicates the time in milliseconds to wait after creating a P2P interface before treating
+         it as low priority when disconnected, allowing it to be deleted to create other
+         interfaces. A negative value disables this behavior. -->
+    <integer translatable="false" name="config_disconnectedP2pIfaceLowPriorityTimeoutMs">-1</integer>
     <!-- boolean indicating whether the Easy Connect (DPP) AKM is supported -->
     <bool translatable="false" name ="config_wifiDppAkmSupported">false</bool>
     <!-- Indicates the number of octets to mask for each BSSID in the SecurityLog output.

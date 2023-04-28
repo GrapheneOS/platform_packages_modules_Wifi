@@ -53,10 +53,15 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.app.test.MockAnswerUtil;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
 import android.content.res.Resources;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.WorkSource;
@@ -196,6 +201,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 .thenReturn(mWifiUserApprovalRequiredForD2dInterfacePriority);
         when(mResources.getBoolean(R.bool.config_wifiWaitForDestroyedListeners))
                 .thenReturn(mWaitForDestroyedListeners);
+        when(mResources.getInteger(R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs))
+                .thenReturn(-1);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
 
         mDut = new HalDeviceManagerSpy();
         mDut.handleBootCompleted();
@@ -854,6 +862,102 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 TEST_WORKSOURCE_2 // requestorWs);
         );
         collector.checkThat("AP was not created", apIface, IsNull.notNullValue());
+    }
+
+    /**
+     * Validate that disconnected P2P is treated as opportunistic and can be deleted by other
+     * foreground apps after config_disconnectedP2pIfaceLowPriorityTimeoutMs.
+     *
+     * Flow sequence:
+     * - create STA and P2P (privileged app)
+     * - create NAN (foreground app): should fail
+     * - advance clock to config_disconnectedP2pIfaceLowPriorityTimeoutMs
+     * - create NAN (foreground app): should succeed
+     */
+    @Test
+    public void testDisconnectedP2pTreatedAsOpportunisticAfterTimeout() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mResources.getInteger(R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs))
+                .thenReturn(1);
+        when(mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_STATIC_CHIP_INFO))
+                .thenReturn(TestChipV2.STATIC_CHIP_INFO_JSON_STRING);
+        mDut = new HalDeviceManagerSpy();
+        ChipMockBase chipMock = new TestChipV2();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+        ArgumentCaptor<BroadcastReceiver> brCaptor =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        verify(mContext, atLeastOnce()).registerReceiver(brCaptor.capture(), any(), any(), any());
+
+        // Create STA and P2P interface from privileged app: should succeed.
+        WifiInterface staIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV2.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA,
+                "wlan0",
+                TestChipV2.CHIP_MODE_ID,
+                null, // tearDownList
+                null, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("STA was not created", staIface, IsNull.notNullValue());
+        WifiInterface p2pIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV2.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_P2P,
+                "wlan1",
+                TestChipV2.CHIP_MODE_ID,
+                null, // tearDownList
+                null, // destroyedListener
+                TEST_WORKSOURCE_1 // requestorWs
+        );
+        collector.checkThat("P2P was not created", p2pIface, IsNull.notNullValue());
+
+        // Foreground NAN cannot be created
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
+        List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
+        assertNull("Should not create this NAN", nanDetails);
+        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2);
+        collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
+
+        // Timeout the P2P but also connect it. Foreground NAN still can't be created since P2P is
+        // connected.
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(1L);
+        final NetworkInfo networkInfo = new NetworkInfo(ConnectivityManager.TYPE_WIFI_P2P,
+                0, "WIFI_P2P", "");
+        networkInfo.setDetailedState(NetworkInfo.DetailedState.CONNECTED, null, null);
+        Intent connectionIntent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        connectionIntent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, networkInfo);
+        brCaptor.getValue().onReceive(mContext, connectionIntent);
+        when(mWorkSourceHelper2.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
+        nanDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
+        assertNull("Should not create this NAN", nanDetails);
+        nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2);
+        collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
+
+        // Simulate P2P disconnection. Foreground NAN can be created now.
+        networkInfo.setDetailedState(NetworkInfo.DetailedState.DISCONNECTED, null, null);
+        connectionIntent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, networkInfo);
+        brCaptor.getValue().onReceive(mContext, connectionIntent);
+        nanDetails = mDut.reportImpactToCreateIface(
+                HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
+        assertNotNull("Should create this NAN", nanDetails);
+        nanIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipV2.CHIP_MODE_ID, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_NAN,
+                "wlan1",
+                TestChipV2.CHIP_MODE_ID,
+                new WifiInterface[]{p2pIface}, // tearDownList
+                null, // destroyedListener
+                TEST_WORKSOURCE_2 // requestorWs);
+        );
+        collector.checkThat("NAN was not created", nanIface, IsNull.notNullValue());
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
