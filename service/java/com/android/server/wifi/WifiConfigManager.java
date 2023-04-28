@@ -963,13 +963,26 @@ public class WifiConfigManager {
      *
      * @param reason  The reason for the change, should be one of WifiManager.CHANGE_REASON_ADDED,
      *                WifiManager.CHANGE_REASON_REMOVED, or WifiManager.CHANGE_REASON_CHANGE.
+     * @param config The related to the change. This is only sent out for system users, and could
+     *               be null if multiple WifiConfigurations are affected by the change.
      */
-    private void sendConfiguredNetworkChangedBroadcast(int reason) {
+    private void sendConfiguredNetworkChangedBroadcast(int reason,
+            @Nullable WifiConfiguration config) {
         Intent intent = new Intent(WifiManager.CONFIGURED_NETWORKS_CHANGED_ACTION);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
         intent.putExtra(WifiManager.EXTRA_MULTIPLE_NETWORKS_CHANGED, true);
         intent.putExtra(WifiManager.EXTRA_CHANGE_REASON, reason);
         mContext.sendBroadcastAsUser(intent, UserHandle.ALL, Manifest.permission.ACCESS_WIFI_STATE);
+
+        // Send another broadcast including the WifiConfiguration to System only
+        Intent intentForSystem = new Intent(WifiManager.CONFIGURED_NETWORKS_CHANGED_ACTION);
+        intentForSystem.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+        intentForSystem.putExtra(WifiManager.EXTRA_MULTIPLE_NETWORKS_CHANGED, config == null);
+        intentForSystem.putExtra(WifiManager.EXTRA_CHANGE_REASON, reason);
+        intentForSystem.putExtra(WifiManager.EXTRA_WIFI_CONFIGURATION,
+                config == null ? null : createExternalWifiConfiguration(config, true, -1));
+        mContext.sendBroadcastAsUser(intentForSystem, UserHandle.SYSTEM,
+                Manifest.permission.NETWORK_STACK);
     }
 
     /**
@@ -1622,7 +1635,7 @@ public class WifiConfigManager {
         sendConfiguredNetworkChangedBroadcast(
                 result.isNewNetwork()
                         ? WifiManager.CHANGE_REASON_ADDED
-                        : WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+                        : WifiManager.CHANGE_REASON_CONFIG_CHANGE, newConfig);
         // Unless the added network is ephemeral or Passpoint, persist the network update/addition.
         if (!config.ephemeral && !config.isPasspoint()) {
             saveToStore(true);
@@ -1840,7 +1853,7 @@ public class WifiConfigManager {
         if (!config.ephemeral && !config.isPasspoint()) {
             mLruConnectionTracker.removeNetwork(config);
         }
-        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_REMOVED);
+        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_REMOVED, config);
         // Unless the removed network is ephemeral or Passpoint, persist the network removal.
         if (!config.ephemeral && !config.isPasspoint()) {
             saveToStore(true);
@@ -2016,7 +2029,7 @@ public class WifiConfigManager {
      */
     private void setNetworkStatus(WifiConfiguration config, int status) {
         config.status = status;
-        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
     }
 
     /**
@@ -2052,7 +2065,7 @@ public class WifiConfigManager {
                 .getNetworkSelectionStatus();
         if (prevNetworkSelectionStatus != newNetworkSelectionStatus) {
             sendNetworkSelectionStatusChangedUpdate(config, newNetworkSelectionStatus, reason);
-            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
         }
         saveToStore(false);
         return true;
@@ -2228,7 +2241,7 @@ public class WifiConfigManager {
             removeConnectChoiceFromAllNetworks(config.getProfileKey());
             clearConnectChoiceInternal(config);
         }
-        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
         if (!config.ephemeral) {
             saveToStore(true);
         }
@@ -3360,7 +3373,7 @@ public class WifiConfigManager {
             }
         }
         if (!removedNetworkIds.isEmpty()) {
-            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_REMOVED);
+            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_REMOVED, null);
         }
         mUserTemporarilyDisabledList.clear();
         mNonCarrierMergedNetworksStatusTracker.clear();
@@ -3509,7 +3522,7 @@ public class WifiConfigManager {
         // on load (i.e. boot) so that if the user changed SIMs while the device was powered off,
         // we do not reuse stale credentials that would lead to authentication failure.
         resetSimNetworks();
-        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_ADDED);
+        sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_ADDED, null);
         mPendingStoreRead = false;
     }
 
@@ -3779,7 +3792,7 @@ public class WifiConfigManager {
         int previousReason = config.recentFailure.getAssociationStatus();
         config.recentFailure.setAssociationStatus(reason, mClock.getElapsedSinceBootMillis());
         if (previousReason != reason) {
-            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
         }
     }
 
@@ -3806,7 +3819,8 @@ public class WifiConfigManager {
                     && mClock.getElapsedSinceBootMillis()
                     >= config.recentFailure.getLastUpdateTimeSinceBootMillis() + timeoutDuration) {
                 config.recentFailure.clear();
-                sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE);
+                sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE,
+                        config);
             }
         }
     }

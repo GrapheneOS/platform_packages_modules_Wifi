@@ -271,4 +271,9 @@ public interface ClientModeDefaults extends ClientMode {
     default boolean isAffiliatedLinkBssid(MacAddress bssid) {
         return false;
     }
+
+    @Override
+    default boolean isMlo() {
+        return false;
+    }
 }

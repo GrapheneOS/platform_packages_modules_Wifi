@@ -574,6 +574,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock ScanResult mScanResult;
     @Mock HandlerThread mWifiHandlerThread;
     @Mock SsidTranslator mSsidTranslator;
+    @Mock ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
     @Mock LocalLog mLocalLog;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
@@ -652,7 +653,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mUntrustedWifiNetworkFactory.hasConnectionRequests()).thenReturn(true);
         when(mOemWifiNetworkFactory.hasConnectionRequests()).thenReturn(true);
         when(mMultiInternetManager.hasPendingConnectionRequests()).thenReturn(true);
+        when(mApplicationQosPolicyRequestHandler.isFeatureEnabled()).thenReturn(true);
         when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
+        when(mWifiInjector.getApplicationQosPolicyRequestHandler())
+                .thenReturn(mApplicationQosPolicyRequestHandler);
 
         mFrameworkFacade = getFrameworkFacade();
         mContext = getContext();
@@ -904,6 +908,25 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(connectActionListener).onSuccess();
         verify(mWifiPermissionsUtil).isAdminRestrictedNetwork(any());
+        verify(mClientModeManager, never())
+                .setShouldReduceNetworkScore(false);
+    }
+
+    /**
+     * Verifies that deprecated security type configs can be saved without triggering a connection.
+     */
+    @Test
+    public void canSaveDeprecatedSecurityTypeNetworkWithoutConnecting() throws Exception {
+        mWifiInfo.setNetworkId(WifiConfiguration.INVALID_NETWORK_ID);
+        IActionListener connectActionListener = mock(IActionListener.class);
+        when(mWifiGlobals.isDeprecatedSecurityTypeNetwork(any())).thenReturn(true);
+        mCmi.saveNetwork(
+                new NetworkUpdateResult(TEST_NETWORK_ID, STATUS_SUCCESS, false, false, true, false),
+                new ActionListenerWrapper(connectActionListener),
+                Binder.getCallingUid(), OP_PACKAGE_NAME);
+        mLooper.dispatchAll();
+
+        verify(connectActionListener).onSuccess();
         verify(mClientModeManager, never())
                 .setShouldReduceNetworkScore(false);
     }

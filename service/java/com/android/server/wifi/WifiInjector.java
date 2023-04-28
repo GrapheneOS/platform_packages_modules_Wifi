@@ -553,7 +553,7 @@ public class WifiInjector {
         mWifiMulticastLockManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
                 wifiLooper);
         mApplicationQosPolicyRequestHandler = new ApplicationQosPolicyRequestHandler(
-                mActiveModeWarden, mWifiNative, mWifiHandlerThread);
+                mActiveModeWarden, mWifiNative, mWifiHandlerThread, mDeviceConfigFacade, mContext);
 
         // Register the various network Nominators with the network selector.
         mWifiNetworkSelector.registerNetworkNominator(mSavedNetworkNominator);
@@ -620,6 +620,7 @@ public class WifiInjector {
         mWifiPermissionsUtil.enableVerboseLogging(verboseEnabled);
         mWifiDialogManager.enableVerboseLogging(verboseEnabled);
         mExternalPnoScanRequestManager.enableVerboseLogging(verboseEnabled);
+        mMultiInternetWifiNetworkFactory.enableVerboseLogging(verboseEnabled);
     }
 
     public UserManager getUserManager() {

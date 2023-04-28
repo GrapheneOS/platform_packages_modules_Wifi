@@ -84,6 +84,12 @@ public class WifiSettingsConfigStore {
             new Key<>("wifi_p2p_device_name", null);
 
     /**
+     * The Wi-Fi peer-to-peer device mac address
+     */
+    public static final Key<String> WIFI_P2P_DEVICE_ADDRESS =
+            new Key<>("wifi_p2p_device_address", null);
+
+    /**
      * Whether Wifi scoring is enabled or not.
      */
     public static final Key<Boolean> WIFI_SCORING_ENABLED =
@@ -137,6 +143,19 @@ public class WifiSettingsConfigStore {
      * Store the static chip info retrieved from WiFi HAL
      */
     public static final Key<String> WIFI_STATIC_CHIP_INFO = new Key<>("wifi_static_chip_info", "");
+
+    /**
+     * Store the last country code used by Soft AP.
+     */
+    public static final Key<String> WIFI_SOFT_AP_COUNTRY_CODE =
+            new Key<>("wifi_last_country_code", "");
+
+    /**
+     * Store the available channel frequencies in a JSON array for Soft AP for the last country
+     * code used.
+     */
+    public static final Key<String> WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ =
+            new Key<>("wifi_available_soft_ap_freqs_mhz", "[]");
 
     /**
      * Whether to show a dialog when third party apps attempt to enable wifi.

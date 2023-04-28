@@ -410,6 +410,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final RestrictedWifiNetworkFactory mRestrictedWifiNetworkFactory;
     @VisibleForTesting
     InsecureEapNetworkHandler mInsecureEapNetworkHandler;
+    boolean mLeafCertSent;
     @VisibleForTesting
     InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks
             mInsecureEapNetworkHandlerCallbacksImpl;
@@ -664,6 +665,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private final WifiPseudonymManager.PseudonymUpdatingListener mPseudonymUpdatingListener;
 
+    private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
+
 
     /** Note that this constructor will also start() the StateMachine. */
     public ClientModeImpl(
@@ -868,6 +871,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 getHandler());
 
         mPseudonymUpdatingListener = this::updatePseudonymFromOob;
+        mApplicationQosPolicyRequestHandler = mWifiInjector.getApplicationQosPolicyRequestHandler();
 
         final int threshold =  mContext.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs);
@@ -4546,6 +4550,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
                     // TOFU flow for devices that do not support this feature
                     mInsecureEapNetworkHandler.prepareConnection(mTargetWifiConfiguration);
+                    mLeafCertSent = false;
                     if (!isTrustOnFirstUseSupported()) {
                         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(mIsUserSelected);
                     }
@@ -4637,7 +4642,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 + netId + " while disconnected. Connecting.");
                         WifiConfiguration config =
                                 mWifiConfigManager.getConfiguredNetwork(netId);
-                        if (!mWifiPermissionsUtil.isAdminRestrictedNetwork(config)) {
+                        if (!mWifiPermissionsUtil.isAdminRestrictedNetwork(config)
+                                && !mWifiGlobals.isDeprecatedSecurityTypeNetwork(config)) {
                             startConnectToNetwork(netId, message.sendingUid, SUPPLICANT_BSSID_ANY);
                         }
                     } else if (result.hasCredentialChanged()) {
@@ -5076,6 +5082,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return false;
     }
 
+    /**
+     * Check if the connection is MLO (Multi-Link Operation).
+     * @return true if connection is MLO, otherwise false.
+     */
+    public boolean isMlo() {
+        return !mWifiInfo.getAssociatedMloLinks().isEmpty();
+    }
 
     private void updateCapabilities(WifiConfiguration currentWifiConfiguration) {
         updateCapabilities(getCapabilities(currentWifiConfiguration, getConnectedBssidInternal()));
@@ -5522,6 +5535,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     mWifiInfo.setNetworkKey(config.getNetworkKeyFromSecurityType(
                             mWifiInfo.getCurrentSecurityType()));
+                    if (mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
+                        mApplicationQosPolicyRequestHandler.queueAllPoliciesOnIface(mInterfaceName);
+                    }
                     updateLayer2Information();
                     updateCurrentConnectionInfo();
                     transitionTo(mL3ProvisioningState);
@@ -6064,11 +6080,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         Log.d(TAG, "Cannot set pending cert.");
                     }
                     // Launch user approval upon receiving the server certificate and disconnect
-                    if (certificateDepth == 0 && mInsecureEapNetworkHandler
+                    if (certificateDepth == 0 && !mLeafCertSent && mInsecureEapNetworkHandler
                             .startUserApprovalIfNecessary(mIsUserSelected)) {
                         // In the TOFU flow, the user approval dialog is now displayed and the
                         // network remains disconnected and disabled until it is approved.
                         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_NETWORK_UNTRUSTED);
+                        mLeafCertSent = true;
                     }
                     break;
                 }
@@ -6283,6 +6300,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         sendNetworkChangeBroadcast(DetailedState.CONNECTED);
                     }
                     checkIfNeedDisconnectSecondaryWifi();
+                    if (mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
+                        mApplicationQosPolicyRequestHandler.queueAllPoliciesOnIface(mInterfaceName);
+                    }
                     break;
                 }
                 case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT: {

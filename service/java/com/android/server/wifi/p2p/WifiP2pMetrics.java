@@ -410,6 +410,11 @@ public class WifiP2pMetrics {
         }
     }
 
+    /** Returns if there is an ongoing connection */
+    public boolean hasOngoingConnection() {
+        return mCurrentConnectionEvent != null;
+    }
+
     /**
      * End a Connection event record. Call when p2p connection attempt succeeds or fails.
      * If a Connection event has not been started when .end is called,
