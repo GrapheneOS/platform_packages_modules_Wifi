@@ -42,6 +42,7 @@ import com.android.server.wifi.util.CertificateSubjectInfo;
 import com.android.wifi.resources.R;
 
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertPath;
@@ -54,6 +55,7 @@ import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -76,7 +78,6 @@ public class InsecureEapNetworkHandler {
             "com.android.server.wifi.ClientModeImpl.EXTRA_PENDING_CERT_SSID";
 
     static final String TOFU_ANONYMOUS_IDENTITY = "anonymous";
-
     private final String mCaCertHelpLink;
     private final WifiContext mContext;
     private final WifiConfigManager mWifiConfigManager;
@@ -121,6 +122,7 @@ public class InsecureEapNetworkHandler {
     private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
     private boolean mIsCertNotificationReceiverRegistered = false;
     private String mServerCertHash = null;
+    private boolean mUseTrustStore;
 
     BroadcastReceiver mCertNotificationReceiver = new BroadcastReceiver() {
         @Override
@@ -225,6 +227,10 @@ public class InsecureEapNetworkHandler {
                     config.enterpriseConfig.setAnonymousIdentity(TOFU_ANONYMOUS_IDENTITY);
                 }
                 config.enterpriseConfig.setPassword(null);
+            }
+            if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(2)) {
+                // For AIDL v2+, we can start with the default trust store
+                config.enterpriseConfig.setCaPath(WifiConfigurationUtil.getSystemTrustStorePath());
             }
         }
         mCurrentTofuConfig = config;
@@ -495,10 +501,6 @@ public class InsecureEapNetworkHandler {
                 return true;
             }
         } else {
-            // TODO: b/271921032 some deployments that use globally trusted Root CAs do not include
-            // the Root during the handshake, only an intermediate. We can start the handshake with
-            // the Android trust store and validate the connection with a Root CA rather than
-            // certificate pinning.
             Log.i(TAG, "Root CA is not self-signed, use server certificate pinning");
             return true;
         }
@@ -532,8 +534,20 @@ public class InsecureEapNetworkHandler {
             Log.e(TAG, "Server certificate chain validation failed: " + e);
             return false;
         }
-        Log.i(TAG, "Server certificate chain validation succeeded, use Root CA");
+
+        // Validation succeeded, no need for the server cert hash
         mServerCertHash = null;
+
+        // Check if the Root CA certificate is in the trust store so that we could configure the
+        // connection to use the system store instead of an explicit Root CA.
+        mUseTrustStore = false;
+        if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(2)) {
+            if (isCertInTrustStore(mPendingRootCaCert)) {
+                mUseTrustStore = true;
+            }
+        }
+        Log.i(TAG, "Server certificate chain validation succeeded, use "
+                + (mUseTrustStore ? "trust store" : "Root CA"));
         return true;
     }
 
@@ -576,7 +590,7 @@ public class InsecureEapNetworkHandler {
             }
             if (!mWifiConfigManager.updateCaCertificate(
                     mCurrentTofuConfig.networkId, mPendingRootCaCert, mPendingServerCert,
-                    mServerCertHash)) {
+                    mServerCertHash, mUseTrustStore)) {
                 // The user approved this network,
                 // keep the connection regardless of the result.
                 Log.e(TAG, "Cannot update CA cert to network " + mCurrentTofuConfig.getProfileKey()
@@ -811,6 +825,7 @@ public class InsecureEapNetworkHandler {
         mPendingServerCertIssuerInfo = null;
         mCurrentTofuConfig = null;
         mServerCertHash = null;
+        mUseTrustStore = false;
     }
 
     private void clearNativeData() {
@@ -915,5 +930,35 @@ public class InsecureEapNetworkHandler {
 
             dismissDialogAndNotification();
         }
+    }
+
+    /**
+     * Check if a given Root CA certificate exists in the Android trust store
+     *
+     * @param rootCaCert the Root CA certificate to check
+     * @return true if the Root CA certificate is found in the trust store, false otherwise
+     */
+    private boolean isCertInTrustStore(X509Certificate rootCaCert) {
+        try {
+            // Get the Android trust store.
+            KeyStore keystore = KeyStore.getInstance("AndroidCAStore");
+            keystore.load(null);
+
+            Enumeration<String> aliases = keystore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                X509Certificate trusted = (X509Certificate) keystore.getCertificate(alias);
+                if (trusted.getSubjectDN().equals(rootCaCert.getSubjectDN())) {
+                    // Check that the supplied cert was actually signed by the key we trust.
+                    rootCaCert.verify(trusted.getPublicKey());
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Fall through
+            Log.e(TAG, e.getMessage());
+        }
+        // The certificate is not in the trust store.
+        return false;
     }
 }
