@@ -17,10 +17,12 @@
 package android.net.wifi;
 
 /**
- * Interface for Wi-Fi device low latency mode changed listener.
+ * Interface for Wi-Fi low latency lock listener.
  * @hide
  */
-oneway interface IWifiDeviceLowLatencyModeListener
+oneway interface IWifiLowLatencyLockListener
 {
-    void onEnabled(boolean enabled);
+    void onActivated(boolean activated);
+    void onOwnershipChanged(in int[] ownerUids);
+    void onActiveUsersChanged(in int[] activeUids);
 }
