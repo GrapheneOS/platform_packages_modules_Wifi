@@ -253,12 +253,9 @@ public class ApplicationQosPolicyRequestHandler {
         mApplicationDeathRecipient = new ApplicationDeathRecipient();
         mDeviceConfigFacade = deviceConfigFacade;
         mContext = context;
-        mPolicyTrackingTable = createPolicyTrackingTableMockable();
+        mPolicyTrackingTable =
+                new ApplicationQosPolicyTrackingTable(HAL_POLICY_ID_MIN, HAL_POLICY_ID_MAX);
         mWifiNative.registerQosScsResponseCallback(mApCallback);
-    }
-
-    protected ApplicationQosPolicyTrackingTable createPolicyTrackingTableMockable() {
-        return new ApplicationQosPolicyTrackingTable(HAL_POLICY_ID_MIN, HAL_POLICY_ID_MAX);
     }
 
     @VisibleForTesting
@@ -443,7 +440,8 @@ public class ApplicationQosPolicyRequestHandler {
     /**
      * Divide a large request into batches of max size {@link #MAX_POLICIES_PER_TRANSACTION}.
      */
-    private <T> List<List<T>> divideRequestIntoBatches(List<T> request) {
+    @VisibleForTesting
+    protected <T> List<List<T>> divideRequestIntoBatches(List<T> request) {
         List<List<T>> batches = new ArrayList<>();
         int startIndex = 0;
         int endIndex = Math.min(request.size(), MAX_POLICIES_PER_TRANSACTION);
