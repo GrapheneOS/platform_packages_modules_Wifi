@@ -32,7 +32,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.net.wifi.IWifiDeviceLowLatencyModeListener;
+import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
@@ -1864,41 +1864,91 @@ public class WifiLockManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Test {@link WifiLockManager#addWifiDeviceLowLatencyModeListener(
-     * IWifiDeviceLowLatencyModeListener)} and
-     * {@link WifiLockManager#removeWifiDeviceLowLatencyModeListener(
-     * IWifiDeviceLowLatencyModeListener)}.
+     * Verify that low latency lock listeners are triggered in various scenarios with lock active
+     * state, lock owners and active users when lock is active.
      */
     @Test
-    public void testWifiDeviceLowLatencyModeListener() throws Exception {
-        // Setup listener.
-        IWifiDeviceLowLatencyModeListener testListener = mock(
-                IWifiDeviceLowLatencyModeListener.class);
+    public void testWifiLowLatencyLockListener() throws Exception {
+        // Setup mock listener.
+        IWifiLowLatencyLockListener testListener = mock(IWifiLowLatencyLockListener.class);
         when(testListener.asBinder()).thenReturn(mock(IBinder.class));
         InOrder inOrder = inOrder(testListener);
 
-        // Register listener and test current low latency mode is notified.
-        mWifiLockManager.addWifiDeviceLowLatencyModeListener(testListener);
-        inOrder.verify(testListener).onEnabled(false);
+        // Register the listener and test current state and ownership are notified immediately after
+        // registration. Active users is not notified since the lock is not activated.
+        mWifiLockManager.addWifiLowLatencyLockListener(testListener);
+        inOrder.verify(testListener).onActivated(false);
+        inOrder.verify(testListener).onOwnershipChanged(eq(new int[0]));
+        inOrder.verify(testListener, never()).onActiveUsersChanged(any());
 
-        // Acquire low latency lock to test low latency mode change is notified.
+        // Acquire a low latency lock to test low latency state is notified with owner & active
+        // users UIDs. The order of notification is, 'ownership changed' --> 'active' --> 'active
+        // used changed'. To activate the lock, keep the screen on and Wi-Fi connected.
         setScreenState(true);
         when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
                 anyBoolean())).thenReturn(true);
-        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_1)).thenReturn(
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
         when(mClientModeManager.getSupportedFeatures()).thenReturn(
                 WifiManager.WIFI_FEATURE_LOW_LATENCY);
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
         mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
-        inOrder.verify(testListener).onEnabled(true);
+        inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+        inOrder.verify(testListener).onActivated(true);
+        inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+
+        // Acquire a second lock and check the owners & active users changed.
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_2)).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        WorkSource workSource2 = new WorkSource(DEFAULT_TEST_UID_2);
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder2,
+                workSource2);
+        captureUidImportanceListener();
+        inOrder.verify(testListener).onOwnershipChanged(
+                eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
+        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener).onActiveUsersChanged(
+                eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
+
+        // Take the second app out of foreground and verify that active users got updated.
+        mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_2,
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND);
+        mLooper.dispatchAll();
+        inOrder.verify(testListener, never()).onOwnershipChanged(any());
+        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+
+        // Take the second app to foreground and verify that active users got updated.
+        mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_2,
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        mLooper.dispatchAll();
+        inOrder.verify(testListener, never()).onOwnershipChanged(any());
+        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener).onActiveUsersChanged(
+                eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
+
+        // Release second lock and verify the owners & active users UIDs get updated.
+        releaseWifiLockSuccessful(mBinder2);
+        inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+
+        // Turn off the screen and check the low latency mode is disabled.
+        setScreenState(false);
+        inOrder.verify(testListener, never()).onOwnershipChanged(any());
+        inOrder.verify(testListener).onActivated(false);
+        inOrder.verify(testListener, never()).onActiveUsersChanged(any());
 
         // Unregister listener.
-        mWifiLockManager.removeWifiDeviceLowLatencyModeListener(testListener);
+        mWifiLockManager.removeWifiLowLatencyLockListener(testListener);
 
-        // Deactivate the low latency lock to test low latency mode change is not notified.
-        setScreenState(false);
-        inOrder.verify(testListener, never()).onEnabled(false);
+        // Reactivate the low latency lock and release to test low latency is not notified.
+        setScreenState(true);
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder2,
+                workSource2);
+        inOrder.verify(testListener, never()).onOwnershipChanged(any());
+        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActiveUsersChanged(any());
     }
 }
