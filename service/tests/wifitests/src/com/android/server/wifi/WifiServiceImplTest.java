@@ -163,7 +163,7 @@ import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
-import android.net.wifi.IWifiDeviceLowLatencyModeListener;
+import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
@@ -11483,43 +11483,39 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Verify {@link WifiServiceImpl#addWifiDeviceLowLatencyModeListener(
-     * IWifiDeviceLowLatencyModeListener)} and
-     * {@link WifiServiceImpl#removeWifiDeviceLowLatencyModeListener(
-     * IWifiDeviceLowLatencyModeListener)}
+     * Verify add and remove of Wi-Fi low latency listener.
      */
     @Test
     public void testWifiDeviceLowLatencyModeListener() {
         // Setup listener.
-        IWifiDeviceLowLatencyModeListener testListener = mock(
-                IWifiDeviceLowLatencyModeListener.class);
+        IWifiLowLatencyLockListener testListener = mock(IWifiLowLatencyLockListener.class);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
                 true);
 
         // Test success case.
-        mWifiServiceImpl.addWifiDeviceLowLatencyModeListener(testListener);
+        mWifiServiceImpl.addWifiLowLatencyLockListener(testListener);
         mLooper.dispatchAll();
-        verify(mLockManager).addWifiDeviceLowLatencyModeListener(testListener);
-        mWifiServiceImpl.removeWifiDeviceLowLatencyModeListener(testListener);
+        verify(mLockManager).addWifiLowLatencyLockListener(testListener);
+        mWifiServiceImpl.removeWifiLowLatencyLockListener(testListener);
         mLooper.dispatchAll();
-        verify(mLockManager).removeWifiDeviceLowLatencyModeListener(testListener);
+        verify(mLockManager).removeWifiLowLatencyLockListener(testListener);
 
         // Test null listener.
         assertThrows(IllegalArgumentException.class,
-                () -> mWifiServiceImpl.addWifiDeviceLowLatencyModeListener(null));
+                () -> mWifiServiceImpl.addWifiLowLatencyLockListener(null));
         assertThrows(IllegalArgumentException.class,
-                () -> mWifiServiceImpl.removeWifiDeviceLowLatencyModeListener(null));
+                () -> mWifiServiceImpl.removeWifiLowLatencyLockListener(null));
 
         // Expect exception when caller has no permission.
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(false);
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
                 false);
         assertThrows(SecurityException.class,
-                () -> mWifiServiceImpl.addWifiDeviceLowLatencyModeListener(testListener));
+                () -> mWifiServiceImpl.addWifiLowLatencyLockListener(testListener));
 
         // No exception for remove.
-        mWifiServiceImpl.removeWifiDeviceLowLatencyModeListener(testListener);
+        mWifiServiceImpl.removeWifiLowLatencyLockListener(testListener);
     }
 
     /**
