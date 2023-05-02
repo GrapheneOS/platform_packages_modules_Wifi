@@ -66,7 +66,7 @@
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"Puudutage privaatsusseadete muutmiseks ja uuesti proovimiseks"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"Kas muuta privaatsusseadet?"</string>
     <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"Ühendamiseks peab <xliff:g id="SSID">%1$s</xliff:g> kasutama teie seadme MAC-aadressi, mis on teie kordumatu ID. Praegu kasutab teie privaatsusseade selle võrgu puhul juhuslikku ID-d. \n\nSee muudatus võib võimaldada läheduses asuvatel seadmetel jälgida teie seadme asukohta."</string>
-    <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"Muuda seadet"</string>
+    <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"Muuda sätet"</string>
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Seadet värskendati. Proovige uuesti ühendada."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Privaatsusseadet ei saa muuta"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Võrku ei leitud"</string>

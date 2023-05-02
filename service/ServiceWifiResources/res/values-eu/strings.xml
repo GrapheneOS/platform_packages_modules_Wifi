@@ -36,7 +36,7 @@
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Konektatu"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Ez konektatu"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Konexioa berretsi nahi duzu?"</string>
-    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"Konektatzen bazara, baliteke <xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sareek zure SIM txartelarekin lotutako ID esklusiboa atzitzea edo partekatzea. Horrela, baliteke zure gailuaren kokapenaren jarraipena egiteko aukera izatea."</string>
+    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"Konektatzen bazara, baliteke <xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sareek zure SIM txartelarekin lotutako identifikatzaile esklusiboa atzitzea edo partekatzea. Horrela, baliteke zure gailuaren kokapenaren jarraipena egiteko aukera izatea."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"Konektatu"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"Ez konektatu"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi konexioa automatikoki aktibatuko da"</string>
