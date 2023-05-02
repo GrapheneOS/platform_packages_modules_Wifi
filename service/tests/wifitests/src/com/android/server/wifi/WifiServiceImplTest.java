@@ -9671,8 +9671,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .thenReturn(Arrays.asList(
                         new WifiAvailableChannel(5955, WifiAvailableChannel.OP_MODE_SAP)));
         when(mWifiNative.getUsableChannels(eq(WIFI_BAND_60_GHZ), anyInt(), anyInt()))
-                .thenReturn(Arrays.asList(
-                        new WifiAvailableChannel(58320, WifiAvailableChannel.OP_MODE_SAP)));
+                .thenReturn(null);
 
         mWifiServiceImpl.mCountryCodeTracker.onDriverCountryCodeChanged(TEST_COUNTRY_CODE);
         mLooper.dispatchAll();
@@ -9681,7 +9680,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 eq(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE), eq(TEST_COUNTRY_CODE));
         verify(mWifiSettingsConfigStore).put(
                 eq(WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ),
-                eq("[2452,5180,5955,58320]"));
+                eq("[2452,5180,5955]"));
     }
 
     private List<WifiConfiguration> setupMultiTypeConfigs(
