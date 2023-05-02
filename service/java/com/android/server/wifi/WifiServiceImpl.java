@@ -116,7 +116,7 @@ import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
 import android.net.wifi.IWifiConnectedNetworkScorer;
-import android.net.wifi.IWifiDeviceLowLatencyModeListener;
+import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
 import android.net.wifi.IWifiNetworkStateChangedListener;
 import android.net.wifi.IWifiVerboseLoggingStatusChangedListener;
@@ -7666,42 +7666,40 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#addWifiNetworkStateChangedListener(Executor,
-     * WifiManager.WifiNetworkStateChangedListener)}
+     * See {@link WifiManager#addWifiLowLatencyLockListener(Executor,
+     * WifiManager.WifiLowLatencyLockListener)}
      */
-    public void addWifiDeviceLowLatencyModeListener(IWifiDeviceLowLatencyModeListener listener) {
+    public void addWifiLowLatencyLockListener(IWifiLowLatencyLockListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException();
         }
-        int uid = Binder.getCallingUid();
-        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)
-                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
-            throw new SecurityException("addWifiDeviceLowLatencyModeListener is not allowed"
-            + "for uid=" + uid);
+        int callingUid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(callingUid)
+                && !mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
+            throw new SecurityException(TAG + " Uid " + callingUid
+                    + " Missing MANAGE_WIFI_NETWORK_SELECTION permission");
         }
         if (mVerboseLoggingEnabled) {
-            mLog.info("addWifiDeviceLowLatencyModeListener uid=%").c(
-                    Binder.getCallingUid()).flush();
+            mLog.info("addWifiLowLatencyLockListener uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
-            mWifiLockManager.addWifiDeviceLowLatencyModeListener(listener);
+            mWifiLockManager.addWifiLowLatencyLockListener(listener);
         });
     }
 
     /**
-     * See {@link WifiManager#removeWifiDeviceLowLatencyModeListener(
-     *WifiManager.WifiDeviceLowLatencyModeListener)}
+     * See {@link WifiManager#removeWifiLowLatencyLockListener(
+     * WifiManager.WifiLowLatencyLockListener)}
      */
-    public void removeWifiDeviceLowLatencyModeListener(IWifiDeviceLowLatencyModeListener listener) {
+    public void removeWifiLowLatencyLockListener(IWifiLowLatencyLockListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException();
         }
         if (mVerboseLoggingEnabled) {
-            mLog.info("removeWifiDeviceLowLatencyModeListener uid=%").c(
-                    Binder.getCallingUid()).flush();
+            mLog.info("removeWifiLowLatencyLockListener uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
-            mWifiLockManager.removeWifiDeviceLowLatencyModeListener(listener);
+            mWifiLockManager.removeWifiLowLatencyLockListener(listener);
         });
     }
 }

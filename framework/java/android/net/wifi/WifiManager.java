@@ -2033,8 +2033,8 @@ public class WifiManager {
             sLocalOnlyConnectionStatusListenerMap = new SparseArray();
     private static final SparseArray<IWifiNetworkStateChangedListener>
             sOnWifiNetworkStateChangedListenerMap = new SparseArray<>();
-    private static final SparseArray<IWifiDeviceLowLatencyModeListener>
-            sWifiDeviceLowLatencyModeListenerMap = new SparseArray<>();
+    private static final SparseArray<IWifiLowLatencyLockListener>
+            sWifiLowLatencyLockListenerMap = new SparseArray<>();
 
     /**
      * Multi-link operation (MLO) will allow Wi-Fi devices to operate on multiple links at the same
@@ -7803,33 +7803,59 @@ public class WifiManager {
     }
 
     /**
-     * Interface for device low latency mode change listener. Should be extended by application and
-     * set when calling {@link WifiManager#addWifiDeviceLowLatencyModeListener(Executor,
-     * WifiDeviceLowLatencyModeListener)}.
+     * Interface for low latency lock listener. Should be extended by application and
+     * set when calling {@link WifiManager#addWifiLowLatencyLockListener(Executor,
+     * WifiLowLatencyLockListener)}.
      *
      * @hide
      */
-    public interface WifiDeviceLowLatencyModeListener {
+    public interface WifiLowLatencyLockListener {
         /**
-         * Provides device low latency mode is enabled or disabled.
+         * Provides low latency mode is activated or not. Triggered when Wi-Fi chip enters into low
+         * latency mode.
          *
-         * @param enabled true if low latency mode is enabled, otherwise false.
-         * @hide
+         * Note: Always called with current state when a new listener gets registered.
          */
-        void onEnabled(boolean enabled);
+        void onActivated(boolean activated);
+
+        /**
+         * Provides UIDs (lock owners) of the applications which currently acquired low latency
+         * lock. Triggered when an application acquires or releases a lock.
+         *
+         * Note: Always called with UIDs of the current acquired locks when a new listener gets
+         * registered.
+         *
+         * @param ownerUids An array of UIDs.
+         */
+        default void onOwnershipChanged(int[] ownerUids) {}
+
+        /**
+         * Provides UIDs of the applications which acquired the low latency lock and is currently
+         * active. See {@link WifiManager#WIFI_MODE_FULL_LOW_LATENCY} for the conditions to be
+         * met for low latency lock to be active. Triggered when application acquiring the lock
+         * satisfies or does not satisfy low latency conditions when the low latency mode is
+         * activated. Also gets triggered when the lock becomes active, immediately after the
+         * {@link WifiLowLatencyLockListener#onActivated(boolean)} callback is triggered.
+         *
+         * Note: Always called with UIDs of the current active locks when a new listener gets
+         * registered if the Wi-Fi chip is in low latency mode.
+         *
+         * @param activeUids An array of UIDs.
+         */
+        default void onActiveUsersChanged(int[] activeUids) {}
     }
 
     /**
-     * Helper class to support wifi device low latency mode listener.
+     * Helper class to support wifi low latency lock listener.
      */
-    private static class OnWifiDeviceLowLatencyModeProxy
-            extends IWifiDeviceLowLatencyModeListener.Stub {
+    private static class OnWifiLowLatencyLockProxy extends IWifiLowLatencyLockListener.Stub {
+        @NonNull
+        private Executor mExecutor;
+        @NonNull
+        private WifiLowLatencyLockListener mListener;
 
-        @NonNull private Executor mExecutor;
-        @NonNull private WifiDeviceLowLatencyModeListener mListener;
-
-        OnWifiDeviceLowLatencyModeProxy(@NonNull Executor executor,
-                @NonNull WifiDeviceLowLatencyModeListener listener) {
+        OnWifiLowLatencyLockProxy(@NonNull Executor executor,
+                @NonNull WifiLowLatencyLockListener listener) {
             Objects.requireNonNull(executor);
             Objects.requireNonNull(listener);
             mExecutor = executor;
@@ -7837,20 +7863,30 @@ public class WifiManager {
         }
 
         @Override
-        public void onEnabled(boolean enabled) {
-            Log.i(TAG, "OnWifiDeviceLowLatencyModeProxy: onEnabled: " + enabled);
+        public void onActivated(boolean activated) {
             Binder.clearCallingIdentity();
-            mExecutor.execute(() -> mListener.onEnabled(enabled));
+            mExecutor.execute(() -> mListener.onActivated(activated));
+
+        }
+
+        @Override
+        public void onOwnershipChanged(int[] ownerUids) {
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mListener.onOwnershipChanged(ownerUids));
+
+        }
+
+        @Override
+        public void onActiveUsersChanged(int[] activeUids) {
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mListener.onActiveUsersChanged(activeUids));
         }
     }
 
     /**
-     * Add a listener for monitoring the device low latency mode. The enabled or disabled status
-     * will be delivered via {@link WifiDeviceLowLatencyModeListener#onEnabled(boolean)}. The
-     * caller can unregister a previously registered listener using {@link
-     * WifiManager#removeWifiDeviceLowLatencyModeListener(WifiDeviceLowLatencyModeListener)}.
-     *
-     * Note: While registering, listener will always be notified for the first time.
+     * Add a listener for monitoring the low latency lock. The caller can unregister a previously
+     * registered listener using {@link WifiManager#removeWifiLowLatencyLockListener(
+     * WifiLowLatencyLockListener)}.
      *
      * Applications should have the {@link android.Manifest.permission#NETWORK_SETTINGS} and
      * {@link android.Manifest.permission#MANAGE_WIFI_NETWORK_SELECTION} permission. Callers
@@ -7863,64 +7899,59 @@ public class WifiManager {
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @RequiresPermission(anyOf = {
-            android.Manifest.permission.NETWORK_SETTINGS,
-            MANAGE_WIFI_NETWORK_SELECTION
-    })
-    public void addWifiDeviceLowLatencyModeListener(
-            @NonNull @CallbackExecutor Executor executor,
-            @NonNull WifiDeviceLowLatencyModeListener listener) {
+    @RequiresPermission(anyOf = {android.Manifest.permission.NETWORK_SETTINGS,
+            MANAGE_WIFI_NETWORK_SELECTION})
+    public void addWifiLowLatencyLockListener(@NonNull @CallbackExecutor Executor executor,
+            @NonNull WifiLowLatencyLockListener listener) {
         if (executor == null) throw new IllegalArgumentException("executor cannot be null");
         if (listener == null) throw new IllegalArgumentException("listener cannot be null");
         if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "addWifiDeviceLowLatencyModeListener: listener=" + listener
-                    + ", executor=" + executor);
+            Log.d(TAG, "addWifiLowLatencyLockListener: listener=" + listener + ", executor="
+                    + executor);
         }
         final int listenerIdentifier = System.identityHashCode(listener);
         try {
-            synchronized (sWifiDeviceLowLatencyModeListenerMap) {
-                IWifiDeviceLowLatencyModeListener.Stub listenerProxy =
-                        new OnWifiDeviceLowLatencyModeProxy(executor, listener);
-                sWifiDeviceLowLatencyModeListenerMap.put(listenerIdentifier,
-                        listenerProxy);
-                mService.addWifiDeviceLowLatencyModeListener(listenerProxy);
+            synchronized (sWifiLowLatencyLockListenerMap) {
+                IWifiLowLatencyLockListener.Stub listenerProxy = new OnWifiLowLatencyLockProxy(
+                        executor,
+                        listener);
+                sWifiLowLatencyLockListenerMap.put(listenerIdentifier, listenerProxy);
+                mService.addWifiLowLatencyLockListener(listenerProxy);
             }
         } catch (RemoteException e) {
-            sWifiDeviceLowLatencyModeListenerMap.remove(listenerIdentifier);
+            sWifiLowLatencyLockListenerMap.remove(listenerIdentifier);
             throw e.rethrowFromSystemServer();
         }
     }
 
     /**
-     * Removes a listener added using
-     * {@link WifiManager#addWifiDeviceLowLatencyModeListener(Executor,
-     * WifiDeviceLowLatencyModeListener)}. After calling this method, applications will no longer
-     * receive low latency mode change notifications.
+     * Removes a listener added using {@link WifiManager#addWifiLowLatencyLockListener(Executor,
+     * WifiLowLatencyLockListener)}. After calling this method, applications will no longer
+     * receive low latency mode notifications.
      *
      * @param listener the listener to be removed.
      * @throws IllegalArgumentException if incorrect input arguments are provided.
      * @hide
      */
-    public void removeWifiDeviceLowLatencyModeListener(
-            @NonNull WifiDeviceLowLatencyModeListener listener) {
+    public void removeWifiLowLatencyLockListener(@NonNull WifiLowLatencyLockListener listener) {
         if (listener == null) throw new IllegalArgumentException("listener cannot be null");
         if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "removeWifiDeviceLowLatencyModeListener: listener=" + listener);
+            Log.d(TAG, "removeWifiLowLatencyLockListener: listener=" + listener);
         }
         final int listenerIdentifier = System.identityHashCode(listener);
-        synchronized (sWifiDeviceLowLatencyModeListenerMap) {
+        synchronized (sWifiLowLatencyLockListenerMap) {
             try {
-                if (!sWifiDeviceLowLatencyModeListenerMap.contains(listenerIdentifier)) {
+                if (!sWifiLowLatencyLockListenerMap.contains(listenerIdentifier)) {
                     Log.w(TAG, "Unknown external listener " + listenerIdentifier);
                     return;
                 }
-                mService.removeWifiDeviceLowLatencyModeListener(
-                        sWifiDeviceLowLatencyModeListenerMap.get(listenerIdentifier));
+                mService.removeWifiLowLatencyLockListener(
+                        sWifiLowLatencyLockListenerMap.get(listenerIdentifier));
 
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             } finally {
-                sWifiDeviceLowLatencyModeListenerMap.remove(listenerIdentifier);
+                sWifiLowLatencyLockListenerMap.remove(listenerIdentifier);
             }
         }
     }
