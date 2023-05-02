@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,13 +71,11 @@ public class ApplicationQosPolicyRequestHandlerTest {
     @Mock IListListener mIListListener;
     @Mock ClientModeManager mClientModeManager0;
     @Mock ClientModeManager mClientModeManager1;
-    @Mock ApplicationQosPolicyTrackingTable mPolicyTrackingTable;
     @Mock IBinder mBinder;
 
     @Captor ArgumentCaptor<SupplicantStaIfaceHal.QosScsResponseCallback> mApCallbackCaptor;
     @Captor ArgumentCaptor<List<Integer>> mApplicationCallbackResultCaptor;
     @Captor ArgumentCaptor<List<QosPolicyParams>> mPolicyListCaptor;
-    @Captor ArgumentCaptor<List<Integer>> mPolicyIdListCaptor;
     @Captor ArgumentCaptor<List<Byte>> mPolicyIdByteListCaptor;
     @Captor ArgumentCaptor<IBinder.DeathRecipient> mDeathRecipientCaptor =
             ArgumentCaptor.forClass(IBinder.DeathRecipient.class);
@@ -92,11 +91,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
         protected void logApCallbackMockable(String ifaceName,
                 List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
             mApCallbackReceivedIfaces.add(ifaceName);
-        }
-
-        @Override
-        protected ApplicationQosPolicyTrackingTable createPolicyTrackingTableMockable() {
-            return mPolicyTrackingTable;
         }
     }
 
@@ -115,7 +109,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
         when(mClientModeManager0.getInterfaceName()).thenReturn(TEST_IFACE_NAME_0);
         when(mClientModeManager1.getInterfaceName()).thenReturn(TEST_IFACE_NAME_1);
         setupSynchronousResponse(SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT);
-        setupPolicyTrackingTable(WifiManager.QOS_REQUEST_STATUS_TRACKING);
     }
 
     private QosPolicyParams createDownlinkPolicy(int policyId) {
@@ -151,6 +144,15 @@ public class ApplicationQosPolicyRequestHandlerTest {
         return halStatusList;
     }
 
+    private void addPoliciesToTable(List<QosPolicyParams> policyList) {
+        List<List<QosPolicyParams>> batches = mDut.divideRequestIntoBatches(policyList);
+        for (List<QosPolicyParams> batch : batches) {
+            mDut.queueAddRequest(batch, mIListListener, mBinder, TEST_UID);
+            triggerAndVerifyApCallback(TEST_IFACE_NAME_0, batch,
+                    SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
+        }
+    }
+
     private void setupSynchronousResponse(
             @SupplicantStaIfaceHal.QosPolicyScsRequestStatusCode int expectedStatus) {
         doAnswer(new Answer() {
@@ -176,42 +178,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
                 return statusList;
             }
         }).when(mWifiNative).removeQosPolicyForScs(anyString(), anyList());
-    }
-
-    private void setupPolicyTrackingTable(@WifiManager.QosRequestStatus int expectedStatus) {
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                Object[] args = invocation.getArguments();
-                List<QosPolicyParams> policyList = (List<QosPolicyParams>) args[0];
-                List<Integer> statusList = new ArrayList<>();
-                for (QosPolicyParams policy : policyList) {
-                    policy.setTranslatedPolicyId(policy.getPolicyId());
-                    statusList.add(expectedStatus);
-                }
-                return statusList;
-            }
-        }).when(mPolicyTrackingTable).addPolicies(anyList(), anyInt());
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                Object[] args = invocation.getArguments();
-                List<QosPolicyParams> policyList = (List<QosPolicyParams>) args[0];
-                return policyList;
-            }
-        }).when(mPolicyTrackingTable).filterUntrackedPolicies(anyList(), anyInt());
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                Object[] args = invocation.getArguments();
-                List<Integer> policyIds = (List<Integer>) args[0];
-                return policyIds;
-            }
-        }).when(mPolicyTrackingTable).translatePolicyIds(anyList(), anyInt());
-
-        when(mPolicyTrackingTable.tableContainsUid(anyInt())).thenReturn(true);
     }
 
     private List<Integer> getVirtualPolicyIds(List<QosPolicyParams> policyList) {
@@ -253,12 +219,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
                 mApplicationCallbackResultCaptor.getValue().size(), expectedStatus);
         List<Integer> applicationStatusList = mApplicationCallbackResultCaptor.getValue();
         assertTrue(expectedStatusList.equals(applicationStatusList));
-    }
-
-    private void assignVirtualPolicyIds(List<QosPolicyParams> policyList) {
-        for (QosPolicyParams policy : policyList) {
-            policy.setTranslatedPolicyId(policy.getPolicyId());
-        }
     }
 
     private List<Integer> getPolicyIdsFromPolicyList(List<QosPolicyParams> policyList) {
@@ -434,9 +394,14 @@ public class ApplicationQosPolicyRequestHandlerTest {
     public void testPolicyTrackingTableFull() throws Exception {
         when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
                 .thenReturn(Arrays.asList(mClientModeManager0));
-        setupPolicyTrackingTable(WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
 
-        List<QosPolicyParams> policyList = createDownlinkPolicyList(5, TEST_POLICY_ID_START);
+        // Fill tracking table to nearly full capacity.
+        List<QosPolicyParams> maxSizePolicyList = createDownlinkPolicyList(254, 1);
+        addPoliciesToTable(maxSizePolicyList);
+        reset(mWifiNative, mIListListener);
+
+        // Adding 10 new policies should fail due to insufficient resources.
+        List<QosPolicyParams> policyList = createDownlinkPolicyList(10, TEST_POLICY_ID_START);
         mDut.queueAddRequest(policyList, mIListListener, mBinder, TEST_UID);
         verify(mWifiNative, never()).addQosPolicyRequestForScs(eq(TEST_IFACE_NAME_0), anyList());
         verifyApplicationCallback(WifiManager.QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES);
@@ -451,17 +416,18 @@ public class ApplicationQosPolicyRequestHandlerTest {
                 .thenReturn(Arrays.asList(mClientModeManager0));
         List<QosPolicyParams> policies = createDownlinkPolicyList(3, 1);
 
-        // Tracking table will indicate that the third policy is already tracked.
-        List<Integer> statusList = Arrays.asList(
-                WifiManager.QOS_REQUEST_STATUS_TRACKING,
-                WifiManager.QOS_REQUEST_STATUS_TRACKING,
-                WifiManager.QOS_REQUEST_STATUS_ALREADY_ACTIVE);
-        when(mPolicyTrackingTable.addPolicies(anyList(), anyInt())).thenReturn(statusList);
+        // Send the first policy. Will get added to the table.
+        mDut.queueAddRequest(policies.subList(0, 1), mIListListener, mBinder, TEST_UID);
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_0, policies.subList(0, 1),
+                SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
 
-        // Expect that only the 2 new policies are sent to the HAL.
+        // Send all 3 policies.
         mDut.queueAddRequest(policies, mIListListener, mBinder, TEST_UID);
-        verify(mWifiNative).addQosPolicyRequestForScs(anyString(), mPolicyListCaptor.capture());
-        assertEquals(2, mPolicyListCaptor.getValue().size());
+        verify(mWifiNative, times(2))
+                .addQosPolicyRequestForScs(anyString(), mPolicyListCaptor.capture());
+
+        // Expect that during the second add, only the 2 new policies are sent to the HAL.
+        assertEquals(2, mPolicyListCaptor.getAllValues().get(1).size());
     }
 
     /**
@@ -472,9 +438,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
     public void testRemovePoliciesNotTrackedByTable() {
         when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
                 .thenReturn(Arrays.asList(mClientModeManager0));
-        when(mPolicyTrackingTable.translatePolicyIds(anyList(), anyInt()))
-                .thenReturn(new ArrayList<>());
-
         List<Integer> nonExistentPolicyIds = Arrays.asList(1, 2, 3);
         mDut.queueRemoveRequest(nonExistentPolicyIds, TEST_UID);
         verify(mWifiNative, never()).removeQosPolicyForScs(anyString(), anyList());
@@ -514,10 +477,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
         statusList = mDut.processSynchronousHalResponse(
                 statusList, halStatusList, policyList, TEST_UID);
         assertTrue(expectedStatusList.equals(statusList));
-
-        // Policies rejected by the HAL should be removed from the tracking table.
-        verify(mPolicyTrackingTable).removePolicies(mPolicyIdListCaptor.capture(), eq(TEST_UID));
-        assertEquals(2, mPolicyIdListCaptor.getValue().size());
     }
 
     /**
@@ -525,18 +484,17 @@ public class ApplicationQosPolicyRequestHandlerTest {
      * is divided correctly into several individual remove transactions.
      */
     @Test
-    public void testLargeRemoveAllRequest() {
-        int numOwnedPolicies = 18;
-        List<QosPolicyParams> policyList =
-                createDownlinkPolicyList(numOwnedPolicies, TEST_POLICY_ID_START);
-        List<Integer> ownedPolicyIds = getPolicyIdsFromPolicyList(policyList);
-        assignVirtualPolicyIds(policyList);
-
-        when(mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(anyInt())).thenReturn(ownedPolicyIds);
+    public void testLargeRemoveAllRequest() throws Exception {
         when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
                 .thenReturn(Arrays.asList(mClientModeManager0));
 
-        // Expect that the request is divided into two batches of size 16 and 2, respectively.
+        // Add 18 policies to the table.
+        int numOwnedPolicies = 18;
+        List<QosPolicyParams> policyList =
+                createDownlinkPolicyList(numOwnedPolicies, TEST_POLICY_ID_START);
+        addPoliciesToTable(policyList);
+
+        // Expect that the removeAll is divided into two batches of size 16 and 2, respectively.
         mDut.queueRemoveAllRequest(TEST_UID);
         verify(mWifiNative).removeQosPolicyForScs(
                 eq(TEST_IFACE_NAME_0), mPolicyIdByteListCaptor.capture());
@@ -614,10 +572,6 @@ public class ApplicationQosPolicyRequestHandlerTest {
                 SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
         verify(mWifiNative, times(2)).addQosPolicyRequestForScs(eq(TEST_IFACE_NAME_0), anyList());
 
-        // Set up the owned policies in the tracking table.
-        List<Integer> policyIds = getPolicyIdsFromPolicyList(policyList);
-        when(mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(anyInt())).thenReturn(policyIds);
-
         // Trigger the death recipient. Expect that all 10 policies are removed.
         verify(mBinder).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
         mDeathRecipientCaptor.getValue().binderDied(mBinder);
@@ -635,11 +589,14 @@ public class ApplicationQosPolicyRequestHandlerTest {
      */
     @Test
     public void testLargeQueueAllPoliciesRequest() {
+        when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
+                .thenReturn(Arrays.asList(mClientModeManager0));
+
+        // Add 18 policies to the table.
         int numOwnedPolicies = 18;
         List<QosPolicyParams> policyList =
                 createDownlinkPolicyList(numOwnedPolicies, TEST_POLICY_ID_START);
-        assignVirtualPolicyIds(policyList);
-        when(mPolicyTrackingTable.getAllPolicies()).thenReturn(policyList);
+        addPoliciesToTable(policyList);
 
         // Expect that the request is divided into two batches of size 16 and 2, respectively.
         mDut.queueAllPoliciesOnIface(TEST_IFACE_NAME_1);
@@ -648,7 +605,7 @@ public class ApplicationQosPolicyRequestHandlerTest {
         assertEquals(16, mPolicyListCaptor.getValue().size());
 
         // Trigger AP callback to start processing next request.
-        triggerAndVerifyApCallback(TEST_IFACE_NAME_1, policyList.subList(0, 16),
+        triggerAndVerifyApCallback(TEST_IFACE_NAME_1, mPolicyListCaptor.getValue(),
                 SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS);
 
         verify(mWifiNative, times(2)).addQosPolicyRequestForScs(
