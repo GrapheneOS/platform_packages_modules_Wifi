@@ -1881,8 +1881,11 @@ public class WifiServiceImpl extends BaseWifiService {
                     configStore.put(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE, countryCode);
                     List<Integer> freqs = new ArrayList<>();
                     for (int band : SoftApConfiguration.BAND_TYPES) {
-                        freqs.addAll(ApConfigUtil.getAvailableChannelFreqsForBand(
-                                band, mWifiNative, res, true));
+                        List<Integer> freqsForBand = ApConfigUtil.getAvailableChannelFreqsForBand(
+                                band, mWifiNative, res, true);
+                        if (freqsForBand != null) {
+                            freqs.addAll(freqsForBand);
+                        }
                     }
                     configStore.put(WifiSettingsConfigStore.WIFI_AVAILABLE_SOFT_AP_FREQS_MHZ,
                             new JSONArray(freqs).toString());
