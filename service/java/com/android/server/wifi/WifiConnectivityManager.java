@@ -1449,7 +1449,8 @@ public class WifiConnectivityManager {
                 && Objects.equals(targetBssid, connectedOrConnectingBssid);
     }
 
-    private boolean mUserRejectedNetworkSwitch = false;
+    private boolean mNetworkSwitchDialogRejected = false;
+    private long mTimeToReenableNetworkSwitchDialogsMs = 0;
     private WifiDialogManager.DialogHandle mNetworkSwitchDialog = null;
     private int mDialogCandidateNetId = INVALID_NETWORK_ID;
 
@@ -1485,15 +1486,32 @@ public class WifiConnectivityManager {
     }
 
     /**
-     * Dismisses any active network switch dialogs and resets the user's choice.
+     * Dismisses any active network switch dialogs.
      */
-    public void resetNetworkSwitchDialog() {
+    private void dismissNetworkSwitchDialog() {
         if (mNetworkSwitchDialog != null) {
             mNetworkSwitchDialog.dismissDialog();
         }
         mNetworkSwitchDialog = null;
         mDialogCandidateNetId = INVALID_NETWORK_ID;
-        mUserRejectedNetworkSwitch = false;
+    }
+
+    /**
+     * Resets the network switch dialog state.
+     */
+    private void resetNetworkSwitchDialog() {
+        dismissNetworkSwitchDialog();
+        mNetworkSwitchDialogRejected = false;
+        mTimeToReenableNetworkSwitchDialogsMs = 0;
+    }
+
+    /**
+     * Rejects any active network switch dialogs and disables them from appearing again for the
+     * current connection for the specified duration.
+     */
+    public void disableNetworkSwitchDialog(int durationMs) {
+        dismissNetworkSwitchDialog();
+        mTimeToReenableNetworkSwitchDialogsMs = mClock.getElapsedSinceBootMillis() + durationMs;
     }
 
     /**
@@ -1563,6 +1581,7 @@ public class WifiConnectivityManager {
                 });
         WifiConfiguration connectedConfig = primaryManager.getConnectedWifiConfiguration();
         if (connectedConfig == null || !connectedConfig.isUserSelected()
+                || !mNetworkSelector.isSufficiencyCheckEnabled()
                 || connectedConfig.networkId == candidate.networkId
                 || !mContext.getResources().getBoolean(
                 R.bool.config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork)) {
@@ -1572,8 +1591,13 @@ public class WifiConnectivityManager {
         }
 
         // User confirmation for the network switch is required.
-        if (mUserRejectedNetworkSwitch) {
+        if (mNetworkSwitchDialogRejected) {
             Log.i(TAG, "User rejected switching networks. Do not connect to candidate "
+                    + candidate.getProfileKey());
+            return;
+        }
+        if (mClock.getElapsedSinceBootMillis() < mTimeToReenableNetworkSwitchDialogsMs) {
+            Log.i(TAG, "Network switching dialog temporarily disabled. Do not connect to candidate "
                     + candidate.getProfileKey());
             return;
         }
@@ -1585,10 +1609,12 @@ public class WifiConnectivityManager {
                 + candidate.getProfileKey());
         resetNetworkSwitchDialog();
         mNetworkSwitchDialog = mWifiDialogManager.createSimpleDialog(
-                mContext.getString(R.string.wifi_network_switch_dialog_title),
-                mContext.getString(R.string.wifi_network_switch_dialog_message,
+                mContext.getString(connectedConfig.hasNoInternetAccess()
+                                ? R.string.wifi_network_switch_dialog_title_no_internet
+                                : R.string.wifi_network_switch_dialog_title_bad_internet,
                         WifiInfo.removeDoubleQuotes(connectedConfig.SSID),
                         WifiInfo.removeDoubleQuotes(candidate.SSID)),
+                /* message */ null,
                 mContext.getString(R.string.wifi_network_switch_dialog_positive_button),
                 mContext.getString(R.string.wifi_network_switch_dialog_negative_button),
                 /* neutralButtonText */ null,
@@ -1602,9 +1628,7 @@ public class WifiConnectivityManager {
                 /* onSwitchRejectedRunnable */ () -> {
                     Log.i(TAG, "User rejected network switch to "
                             + candidate.getProfileKey());
-                    mNetworkSwitchDialog = null;
-                    mDialogCandidateNetId = INVALID_NETWORK_ID;
-                    mUserRejectedNetworkSwitch = true;
+                    mNetworkSwitchDialogRejected = true;
                     primaryManager.onNetworkSwitchRejected(candidate.networkId,
                             candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
                 }),
@@ -2266,6 +2290,8 @@ public class WifiConnectivityManager {
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void setNetworkSelectionConfig(@NonNull WifiNetworkSelectionConfig nsConfig) {
+        boolean oldAssociatedNetworkSelectionEnabled =
+                mNetworkSelector.isAssociatedNetworkSelectionEnabled();
         mNetworkSelector.setAssociatedNetworkSelectionOverride(
                 nsConfig.getAssociatedNetworkSelectionOverride());
         mNetworkSelector.setSufficiencyCheckEnabled(
@@ -2283,6 +2309,13 @@ public class WifiConnectivityManager {
                 nsConfig.getRssiThresholds(ScanResult.WIFI_BAND_6_GHZ));
         mScoringParams.setFrequencyWeights(
                 nsConfig.getFrequencyWeights());
+        boolean newAssociatedNetworkSelectionEnabled =
+                mNetworkSelector.isAssociatedNetworkSelectionEnabled();
+        if (oldAssociatedNetworkSelectionEnabled && !newAssociatedNetworkSelectionEnabled) {
+            dismissNetworkSwitchDialog();
+        } else if (!oldAssociatedNetworkSelectionEnabled && newAssociatedNetworkSelectionEnabled) {
+            resetNetworkSwitchDialog();
+        }
     }
 
     /**
@@ -3301,6 +3334,9 @@ public class WifiConnectivityManager {
         if (mAutoJoinEnabledExternal != enable) {
             mAutoJoinEnabledExternal = enable;
             checkAllStatesAndEnableAutoJoin();
+            if (!enable) {
+                dismissNetworkSwitchDialog();
+            }
         }
     }
 
