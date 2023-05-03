@@ -1049,4 +1049,14 @@ public class BaseWifiService extends IWifiManager.Stub {
     public void removeWifiLowLatencyLockListener(IWifiLowLatencyLockListener listener) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void getMaxMloAssociationLinkCount(IIntegerListener listener, Bundle extras) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void getMaxMloStrLinkCount(IIntegerListener listener, Bundle extras) {
+        throw new UnsupportedOperationException();
+    }
 }

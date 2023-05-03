@@ -459,4 +459,8 @@ interface IWifiManager
     void addWifiLowLatencyLockListener(in IWifiLowLatencyLockListener listener);
 
     void removeWifiLowLatencyLockListener(in IWifiLowLatencyLockListener listener);
+
+    void getMaxMloAssociationLinkCount(in IIntegerListener listener, in Bundle extras);
+
+    void getMaxMloStrLinkCount(in IIntegerListener listener, in Bundle extras);
 }
