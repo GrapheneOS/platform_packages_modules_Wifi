@@ -115,6 +115,7 @@ import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
+import android.net.wifi.IWifiBandsListener;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
@@ -127,6 +128,7 @@ import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiAnnotations.WifiStandard;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiBands;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
@@ -306,6 +308,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private final MultiInternetManager mMultiInternetManager;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private boolean mIsWifiServiceStarted = false;
+    private static final String PACKAGE_NAME_NOT_AVAILABLE = "Not Available";
 
     /**
      * Callback for use with LocalOnlyHotspot to unregister requesting applications upon death.
@@ -7703,6 +7706,128 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mWifiThreadRunner.post(() -> {
             mWifiLockManager.removeWifiLowLatencyLockListener(listener);
+        });
+    }
+
+    private String getPackageName(Bundle extras) {
+        // AttributionSource#getPackageName() is added in API level 31.
+        if (!SdkLevel.isAtLeastS() || extras == null) {
+            return PACKAGE_NAME_NOT_AVAILABLE;
+        }
+        AttributionSource attributionSource = extras.getParcelable(
+                WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE);
+        if (attributionSource == null) return PACKAGE_NAME_NOT_AVAILABLE;
+        String packageName = attributionSource.getPackageName();
+        if (packageName == null) return PACKAGE_NAME_NOT_AVAILABLE;
+        return packageName;
+    }
+
+    /**
+     * See {@link WifiManager#getMaxMloAssociationLinkCount(Executor, Consumer)}
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void getMaxMloAssociationLinkCount(@NonNull IIntegerListener listener, Bundle extras) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException(
+                    "Caller does not have MANAGE_WIFI_NETWORK_SELECTION permission");
+        }
+
+        Objects.requireNonNull(listener, "listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            mLog.info("getMaxMloAssociationLinkCount: Uid=% Package Name=%").c(
+                    Binder.getCallingUid()).c(getPackageName(extras)).flush();
+        }
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiNative.getMaxMloAssociationLinkCount(
+                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName()));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#getMaxMloStrLinkCount(Executor, Consumer)}
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void getMaxMloStrLinkCount(@NonNull IIntegerListener listener, Bundle extras) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException(
+                    "Caller does not have MANAGE_WIFI_NETWORK_SELECTION permission");
+        }
+
+        Objects.requireNonNull(listener, "listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            mLog.info("getMaxMloStrLinkCount:  Uid=% Package Name=%").c(
+                    Binder.getCallingUid()).c(getPackageName(extras)).flush();
+        }
+
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiNative.getMaxMloStrLinkCount(
+                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName()));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#getSupportedSimultaneousBandCombinations(Executor, Consumer)}.
+     */
+    public void getSupportedSimultaneousBandCombinations(@NonNull IWifiBandsListener listener,
+            Bundle extras) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException(
+                    "Caller does not have MANAGE_WIFI_NETWORK_SELECTION permission");
+        }
+        // Argument check.
+        Objects.requireNonNull(listener, "listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            mLog.info("getSupportedSimultaneousBandCombinations:  Uid=% Package Name=%").c(
+                    Binder.getCallingUid()).c(getPackageName(extras)).flush();
+        }
+        // Get supported band combinations from chip.
+        mWifiThreadRunner.post(() -> {
+            try {
+                Set<List<Integer>> bandsSet = mWifiNative.getSupportedBandCombinations(
+                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName());
+                if (bandsSet == null) {
+                    listener.onResult(new WifiBands[0]);
+                    return;
+                }
+                WifiBands[] supportedBands = new WifiBands[bandsSet.size()];
+                int i = 0;
+                for (List<Integer> bands : bandsSet) {
+                    supportedBands[i] = new WifiBands();
+                    supportedBands[i].bands = bands.stream().mapToInt(
+                            Integer::intValue).toArray();
+                    i++;
+                }
+                listener.onResult(supportedBands);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
         });
     }
 }

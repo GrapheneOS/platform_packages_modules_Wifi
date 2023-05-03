@@ -265,6 +265,7 @@ public class WifiInjector {
         }
 
         sWifiInjector = this;
+        mLastCallerInfoManager = new LastCallerInfoManager();
 
         // Now create and start handler threads
         mWifiHandlerThread = new HandlerThread("WifiHandlerThread");
@@ -561,7 +562,6 @@ public class WifiInjector {
 
         mSimRequiredNotifier = new SimRequiredNotifier(mContext, mFrameworkFacade,
                 mWifiNotificationManager);
-        mLastCallerInfoManager = new LastCallerInfoManager();
     }
 
     /**

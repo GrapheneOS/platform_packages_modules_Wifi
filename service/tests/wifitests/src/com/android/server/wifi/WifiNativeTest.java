@@ -267,6 +267,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock private WifiNative.InterfaceCallback mInterfaceCallback;
     @Mock private WifiCountryCode.ChangeListener mWifiCountryCodeChangeListener;
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
+    @Mock private ConcreteClientModeManager mConcreteClientModeManager;
     @Mock private SoftApManager mSoftApManager;
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiGlobals mWifiGlobals;
@@ -284,8 +285,9 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.initialize(any())).thenReturn(true);
         when(mWifiVendorHal.isVendorHalSupported()).thenReturn(true);
         when(mWifiVendorHal.startVendorHal()).thenReturn(true);
-        when(mWifiVendorHal.startVendorHalSta()).thenReturn(true);
-        when(mWifiVendorHal.createStaIface(any(), any())).thenReturn(WIFI_IFACE_NAME);
+        when(mWifiVendorHal.startVendorHalSta(eq(mConcreteClientModeManager))).thenReturn(true);
+        when(mWifiVendorHal.createStaIface(any(), any(), eq(mConcreteClientModeManager)))
+                .thenReturn(WIFI_IFACE_NAME);
         when(mWifiVendorHal.createApIface(any(), any(), anyInt(), anyBoolean(), any()))
                 .thenReturn(WIFI_IFACE_NAME);
 
@@ -675,7 +677,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testGetWifiLinkLayerStatsForClientInConnectivityMode() throws Exception {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         mWifiNative.getWifiLinkLayerStats(WIFI_IFACE_NAME);
         mWifiNative.getWifiLinkLayerStats(WIFI_IFACE_NAME);
         verify(mWifiVendorHal, times(2)).getWifiLinkLayerStats(eq(WIFI_IFACE_NAME));
@@ -687,7 +690,8 @@ public class WifiNativeTest extends WifiBaseTest {
     @Test
     public void testClientModeScanSuccess() {
         InOrder order = inOrder(mWificondControl, mNetdWrapper, mWifiVendorHal);
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         order.verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
         order.verify(mNetdWrapper).isInterfaceUp(eq(WIFI_IFACE_NAME));
@@ -702,7 +706,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testClientModeScanFailure() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
 
@@ -720,7 +725,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testClientModePnoScanSuccess() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 any(), mScanCallbackCaptor.capture());
 
@@ -734,7 +740,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testClientModePnoScanFailure() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 any(), mScanCallbackCaptor.capture());
 
@@ -748,7 +755,8 @@ public class WifiNativeTest extends WifiBaseTest {
     @Test
     public void testScanModeScanSuccess() {
         InOrder order = inOrder(mWificondControl, mNetdWrapper, mWifiVendorHal);
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         order.verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
         order.verify(mNetdWrapper).isInterfaceUp(eq(WIFI_IFACE_NAME));
@@ -786,7 +794,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testScanModeScanFailure() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 mScanCallbackCaptor.capture(), any());
 
@@ -804,7 +813,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testScanModePnoScanSuccess() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 any(), mScanCallbackCaptor.capture());
 
@@ -818,7 +828,8 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testScanModePnoScanFailure() {
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWificondControl).setupInterfaceForClientMode(eq(WIFI_IFACE_NAME), any(),
                 any(), mScanCallbackCaptor.capture());
 
@@ -840,11 +851,13 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mCoexManager.getCoexRestrictions()).thenReturn(restrictions);
         mWifiNative.setCoexUnsafeChannels(unsafeChannels, restrictions);
 
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWifiVendorHal, times(2)).setCoexUnsafeChannels(unsafeChannels, restrictions);
 
         mWifiNative.teardownAllInterfaces();
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWifiVendorHal, times(3)).setCoexUnsafeChannels(unsafeChannels, restrictions);
 
         mWifiNative.teardownAllInterfaces();
@@ -1342,7 +1355,7 @@ public class WifiNativeTest extends WifiBaseTest {
     public void testReplaceStaIfaceRequestorWs() {
         assertEquals(WIFI_IFACE_NAME,
                 mWifiNative.setupInterfaceForClientInScanMode(
-                        mInterfaceCallback, TEST_WORKSOURCE));
+                        mInterfaceCallback, TEST_WORKSOURCE, mConcreteClientModeManager));
         when(mWifiVendorHal.replaceStaIfaceRequestorWs(WIFI_IFACE_NAME, TEST_WORKSOURCE2))
                 .thenReturn(true);
 
@@ -1558,7 +1571,8 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ,
                 WifiAvailableChannel.OP_MODE_STA,
                 WifiAvailableChannel.FILTER_REGULATORY)).thenReturn(usableChannelList);
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         mWifiNative.switchClientInterfaceToConnectivityMode(WIFI_IFACE_NAME, TEST_WORKSOURCE);
         assertEquals(3, mWifiNative.getSupportedBandsForSta(WIFI_IFACE_NAME));
     }
@@ -1579,7 +1593,8 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ,
                 WifiAvailableChannel.OP_MODE_STA,
                 WifiAvailableChannel.FILTER_REGULATORY)).thenReturn(null);
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         mWifiNative.switchClientInterfaceToConnectivityMode(WIFI_IFACE_NAME, TEST_WORKSOURCE);
         verify(mWificondControl).getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
         verify(mWificondControl).getChannelsMhzForBand(WifiScanner.WIFI_BAND_5_GHZ);
@@ -1599,7 +1614,8 @@ public class WifiNativeTest extends WifiBaseTest {
     public void testEnableStaChannelForPeerNetworkWithOverride() throws Exception {
         mResources.setBoolean(R.bool.config_wifiEnableStaIndoorChannelForPeerNetwork, true);
         mResources.setBoolean(R.bool.config_wifiEnableStaDfsChannelForPeerNetwork, true);
-        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
         verify(mWifiVendorHal).enableStaChannelForPeerNetwork(true, true);
     }
 }
