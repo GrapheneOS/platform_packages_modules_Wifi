@@ -1076,11 +1076,13 @@ public class WifiNative {
      * For devices which do not the support the HAL, this will bypass HalDeviceManager &
      * teardown any existing iface.
      */
-    private String createStaIface(@NonNull Iface iface, @NonNull WorkSource requestorWs) {
+    private String createStaIface(@NonNull Iface iface, @NonNull WorkSource requestorWs,
+            @NonNull ConcreteClientModeManager concreteClientModeManager) {
         synchronized (mLock) {
             if (mWifiVendorHal.isVendorHalSupported()) {
                 return mWifiVendorHal.createStaIface(
-                        new InterfaceDestoyedListenerInternal(iface.id), requestorWs);
+                        new InterfaceDestoyedListenerInternal(iface.id), requestorWs,
+                        concreteClientModeManager);
             } else {
                 Log.i(TAG, "Vendor Hal not supported, ignoring createStaIface.");
                 return handleIfaceCreationWhenVendorHalNotSupported(iface);
@@ -1284,10 +1286,12 @@ public class WifiNative {
      *
      * @param interfaceCallback Associated callback for notifying status changes for the iface.
      * @param requestorWs Requestor worksource.
+     * @param concreteClientModeManager ConcreteClientModeManager requesting the interface.
      * @return Returns the name of the allocated interface, will be null on failure.
      */
     public String setupInterfaceForClientInScanMode(
-            @NonNull InterfaceCallback interfaceCallback, @NonNull WorkSource requestorWs) {
+            @NonNull InterfaceCallback interfaceCallback, @NonNull WorkSource requestorWs,
+            @NonNull ConcreteClientModeManager concreteClientModeManager) {
         synchronized (mLock) {
             if (!startHal()) {
                 Log.e(TAG, "Failed to start Hal");
@@ -1300,7 +1304,7 @@ public class WifiNative {
                 return null;
             }
             iface.externalListener = interfaceCallback;
-            iface.name = createStaIface(iface, requestorWs);
+            iface.name = createStaIface(iface, requestorWs, concreteClientModeManager);
             if (TextUtils.isEmpty(iface.name)) {
                 Log.e(TAG, "Failed to create iface in vendor HAL");
                 mIfaceMgr.removeIface(iface.id);
