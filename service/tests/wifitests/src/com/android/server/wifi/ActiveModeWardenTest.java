@@ -97,6 +97,7 @@ import com.android.server.wifi.ActiveModeManager.Listener;
 import com.android.server.wifi.ActiveModeManager.SoftApRole;
 import com.android.server.wifi.ActiveModeWarden.ExternalClientModeManagerRequestListener;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
+import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
@@ -179,6 +180,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Mock Network mNetwork;
     @Mock LocalLog mLocalLog;
     @Mock WifiSettingsConfigStore mSettingsConfigStore;
+    @Mock LastCallerInfoManager mLastCallerInfoManager;
 
     Listener<ConcreteClientModeManager> mClientListener;
     Listener<SoftApManager> mSoftApListener;
@@ -233,6 +235,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)).thenReturn(true);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mSettingsConfigStore);
+        when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
         when(mSettingsConfigStore.get(
                 eq(WIFI_NATIVE_SUPPORTED_STA_BANDS))).thenReturn(
                 TEST_SUPPORTED_BANDS);
@@ -1506,6 +1509,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mSettingsStore).handleAirplaneModeToggled();
+        verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_WIFI_ENABLED),
+                anyInt(), anyInt(), anyInt(), any(), anyBoolean());
     }
 
     /**
@@ -1523,6 +1528,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             mActiveModeWarden.airplaneModeToggled();
             mLooper.dispatchAll();
         }, 0);
+        verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_WIFI_ENABLED),
+                anyInt(), anyInt(), anyInt(), any(), anyBoolean());
 
         // Wi-Fi shuts down when APM enhancement disabled
         assertWifiShutDown(() -> {
@@ -1530,6 +1537,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             mActiveModeWarden.airplaneModeToggled();
             mLooper.dispatchAll();
         });
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
+                anyInt(), eq("android_apm"), eq(false));
     }
 
     /**
@@ -3958,6 +3967,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             mActiveModeWarden.airplaneModeToggled();
             mLooper.dispatchAll();
         });
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
+                anyInt(), eq("android_apm"), eq(false));
 
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
@@ -5000,6 +5011,10 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             mActiveModeWarden.airplaneModeToggled();
             mLooper.dispatchAll();
         });
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
+                anyInt(), eq("android_apm"), eq(false));
+        verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(),
+                anyInt(), anyInt(), eq("android_apm"), eq(true));
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
         assertInDisabledState();
@@ -5021,6 +5036,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mActiveModeWarden.airplaneModeToggled();
         mLooper.dispatchAll();
         assertInEnabledState();
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
+                anyInt(), eq("android_apm"), eq(true));
     }
 
     @Test
