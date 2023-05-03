@@ -217,12 +217,13 @@ public class WifiVendorHal {
      *
      * @return true for success
      */
-    public boolean startVendorHalSta() {
+    public boolean startVendorHalSta(@NonNull ConcreteClientModeManager concreteClientModeManager) {
         synchronized (sLock) {
             if (!startVendorHal()) {
                 return false;
             }
-            if (TextUtils.isEmpty(createStaIface(null, null))) {
+            if (TextUtils.isEmpty(createStaIface(null, null,
+                    concreteClientModeManager))) {
                 stopVendorHal();
                 return false;
             }
@@ -276,14 +277,16 @@ public class WifiVendorHal {
      *
      * @param destroyedListener Listener to be invoked when the interface is destroyed.
      * @param requestorWs Requestor worksource.
+     * @param concreteClientModeManager ConcreteClientModeManager requesting the interface.
      * @return iface name on success, null otherwise.
      */
     public String createStaIface(@Nullable InterfaceDestroyedListener destroyedListener,
-            @NonNull WorkSource requestorWs) {
+            @NonNull WorkSource requestorWs,
+            @NonNull ConcreteClientModeManager concreteClientModeManager) {
         synchronized (sLock) {
             WifiStaIface iface = mHalDeviceManager.createStaIface(
                     new StaInterfaceDestroyedListenerInternal(destroyedListener), mHalEventHandler,
-                    requestorWs);
+                    requestorWs, concreteClientModeManager);
             if (iface == null) {
                 mLog.err("Failed to create STA iface").flush();
                 return null;
