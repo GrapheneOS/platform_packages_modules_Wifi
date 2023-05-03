@@ -11527,4 +11527,45 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
     }
+
+    /**
+     * Verify {@link WifiServiceImpl#getMaxMloAssociationLinkCount(IIntegerListener)} and
+     * {@link WifiServiceImpl#getMaxMloStrLinkCount(IIntegerListener)}.
+     */
+    @Test
+    public void testGetMloCapabilities() throws RemoteException {
+        // Android U+ only.
+        assumeTrue(SdkLevel.isAtLeastU());
+        // Mock listener.
+        IIntegerListener listener = mock(IIntegerListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        // Verify permission.
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getMaxMloStrLinkCount(listener, mExtras));
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getMaxMloAssociationLinkCount(listener, mExtras));
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                true);
+
+        // verify listener == null.
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getMaxMloStrLinkCount(null, mExtras));
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getMaxMloAssociationLinkCount(null, mExtras));
+
+        // Verify getMaxMloAssociationLinkCount().
+        when(mWifiNative.getMaxMloAssociationLinkCount(WIFI_IFACE_NAME)).thenReturn(3);
+        mWifiServiceImpl.getMaxMloAssociationLinkCount(listener, mExtras);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(3);
+
+        // Verify getMaxMloStrLinkCount().
+        when(mWifiNative.getMaxMloStrLinkCount(WIFI_IFACE_NAME)).thenReturn(2);
+        mWifiServiceImpl.getMaxMloStrLinkCount(listener, mExtras);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(2);
+    }
 }
