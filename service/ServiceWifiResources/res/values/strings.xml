@@ -254,8 +254,8 @@
     <string name="wifi_network_disabled_by_admin_message"><xliff:g id="ssid">%1$s</xliff:g> is disabled by your administrator.</string>
     <string name="wifi_network_disabled_by_admin_button">Close</string>
 
-    <string name="wifi_network_switch_dialog_title">Switch Wi\u2011Fi networks?</string>
-    <string name="wifi_network_switch_dialog_message"><xliff:g id="ssid">%1$s</xliff:g> does not appear to be connected to the internet. Switch to <xliff:g id="ssid">%2$s</xliff:g>?</string>
+    <string name="wifi_network_switch_dialog_title_no_internet"><xliff:g id="ssid">%1$s</xliff:g> does not appear to be connected to the internet. Switch to <xliff:g id="ssid">%2$s</xliff:g>?</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet"><xliff:g id="ssid">%1$s</xliff:g> is low quality. Switch to <xliff:g id="ssid">%2$s</xliff:g>?</string>
     <string name="wifi_network_switch_dialog_positive_button">Switch</string>
     <string name="wifi_network_switch_dialog_negative_button">Don\u0027t switch</string>
 </resources>
