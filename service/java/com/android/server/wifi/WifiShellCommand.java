@@ -47,6 +47,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.IActionListener;
 import android.net.wifi.IDppCallback;
+import android.net.wifi.ILastCallerListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScoreUpdateObserver;
@@ -605,6 +606,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 }
                 case "send-link-probe": {
                     return sendLinkProbe(pw);
+                }
+                case "get-last-caller-info": {
+                    int apiType = Integer.parseInt(getNextArgRequired());
+                    mWifiService.getLastCallerInfoForApi(apiType,
+                            new ILastCallerListener.Stub() {
+                                @Override
+                                public void onResult(String packageName, boolean enabled) {
+                                    Log.i(TAG, "getLastCallerInfoForApi " + apiType
+                                            + ": packageName=" + packageName
+                                            + ", enabled=" + enabled);
+                                }
+                            });
+                    return 0;
                 }
                 case "force-softap-band": {
                     boolean forceBandEnabled = getNextArgRequiredTrueOrFalse("enabled", "disabled");
@@ -2840,6 +2854,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Example: set-ssid-charset zh GBK");
         pw.println("  clear-ssid-charsets");
         pw.println("    Clears the SSID translation charsets set in set-ssid-charset.");
+        pw.println("  get-last-caller-info api_type");
+        pw.println("    Get the last caller information for a WifiManager.ApiType");
     }
 
     @Override

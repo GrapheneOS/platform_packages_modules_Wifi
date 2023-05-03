@@ -6688,8 +6688,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration mergedNetwork = retrievedNetworks.get(0);
         assertTrue(mergedNetwork.isSecurityType(baseSecurityType));
         assertTrue(mergedNetwork.isSecurityType(upgradableSecurityType));
-        assertFalse(mergedNetwork.getSecurityParams(upgradableSecurityType)
-                .isAddedByAutoUpgrade());
+        assertEquals(upgradableConfig.getDefaultSecurityParams().isAddedByAutoUpgrade(),
+                mergedNetwork.getSecurityParams(upgradableSecurityType).isAddedByAutoUpgrade());
     }
 
     /**
@@ -6708,6 +6708,26 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         upgradableConfig.preSharedKey = "\"Passw0rd\"";
 
         verifyAddUpgradableNetwork(baseConfig, upgradableConfig);
+    }
+
+    /**
+     * Verifies that updating an existing upgradable network that was added by auto upgrade will
+     * retain the isAddedByAutoUpgrade() value.
+     * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int)}
+     */
+    @Test
+    public void testUpdateUpgradedNetworkKeepsIsAddedByAutoUpgradeValue() {
+        WifiConfiguration baseConfig = new WifiConfiguration();
+        baseConfig.SSID = "\"upgradableNetwork\"";
+        baseConfig.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        baseConfig.preSharedKey = "\"Passw0rd\"";
+        WifiConfiguration upgradedConfig = new WifiConfiguration();
+        upgradedConfig.SSID = "\"upgradableNetwork\"";
+        upgradedConfig.setSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
+        upgradedConfig.preSharedKey = "\"Passw0rd\"";
+        upgradedConfig.getDefaultSecurityParams().setIsAddedByAutoUpgrade(true);
+
+        verifyAddUpgradableNetwork(baseConfig, upgradedConfig);
     }
 
     /**

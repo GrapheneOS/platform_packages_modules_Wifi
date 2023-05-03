@@ -162,6 +162,7 @@ import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
+import android.net.wifi.IWifiBandsListener;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
@@ -174,6 +175,7 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiBands;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.KeyMgmt;
@@ -259,6 +261,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Unit tests for {@link WifiServiceImpl}.
@@ -11526,5 +11529,106 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+    }
+
+    /**
+     * Verify {@link WifiServiceImpl#getMaxMloAssociationLinkCount(IIntegerListener)} and
+     * {@link WifiServiceImpl#getMaxMloStrLinkCount(IIntegerListener)}.
+     */
+    @Test
+    public void testGetMloCapabilities() throws RemoteException {
+        // Android U+ only.
+        assumeTrue(SdkLevel.isAtLeastU());
+        // Mock listener.
+        IIntegerListener listener = mock(IIntegerListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        // Verify permission.
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getMaxMloStrLinkCount(listener, mExtras));
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getMaxMloAssociationLinkCount(listener, mExtras));
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                true);
+
+        // verify listener == null.
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getMaxMloStrLinkCount(null, mExtras));
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getMaxMloAssociationLinkCount(null, mExtras));
+
+        // Verify getMaxMloAssociationLinkCount().
+        when(mWifiNative.getMaxMloAssociationLinkCount(WIFI_IFACE_NAME)).thenReturn(3);
+        mWifiServiceImpl.getMaxMloAssociationLinkCount(listener, mExtras);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(3);
+
+        // Verify getMaxMloStrLinkCount().
+        when(mWifiNative.getMaxMloStrLinkCount(WIFI_IFACE_NAME)).thenReturn(2);
+        mWifiServiceImpl.getMaxMloStrLinkCount(listener, mExtras);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(2);
+    }
+
+    @Test
+    public void testSupportedBandCombinations() throws RemoteException {
+        // Android U+ only.
+        assumeTrue(SdkLevel.isAtLeastU());
+        // Mock listener.
+        IWifiBandsListener listener = mock(IWifiBandsListener.class);
+        InOrder inOrder = inOrder(listener);
+
+        // Verify permission.
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                false);
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.getSupportedSimultaneousBandCombinations(listener, mExtras));
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt())).thenReturn(
+                true);
+
+        // verify listener == null.
+        assertThrows(NullPointerException.class,
+                () -> mWifiServiceImpl.getSupportedSimultaneousBandCombinations(null, mExtras));
+
+        // verify the behaviour if the band information is not available.
+        Set<List<Integer>> supportedBandsSet = null;
+        when(mWifiNative.getSupportedBandCombinations(WIFI_IFACE_NAME)).thenReturn(
+                supportedBandsSet);
+        mWifiServiceImpl.getSupportedSimultaneousBandCombinations(listener, mExtras);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(eq(new WifiBands[0]));
+
+        // Verify positive case.
+        supportedBandsSet = Set.of(new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(Arrays.asList(WifiScanner.WIFI_BAND_6_GHZ)), new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_5_GHZ, WifiScanner.WIFI_BAND_6_GHZ)),
+                new ArrayList(
+                        Arrays.asList(WifiScanner.WIFI_BAND_24_GHZ, WifiScanner.WIFI_BAND_5_GHZ,
+                                WifiScanner.WIFI_BAND_6_GHZ)));
+        when(mWifiNative.getSupportedBandCombinations(WIFI_IFACE_NAME)).thenReturn(
+                supportedBandsSet);
+        mWifiServiceImpl.getSupportedSimultaneousBandCombinations(listener, mExtras);
+        mLooper.dispatchAll();
+        ArgumentCaptor<WifiBands[]> resultCaptor = ArgumentCaptor.forClass(WifiBands[].class);
+        inOrder.verify(listener).onResult(resultCaptor.capture());
+        int entries = 0;
+        for (WifiBands band : resultCaptor.getValue()) {
+            ++entries;
+            assertTrue(supportedBandsSet.stream().anyMatch(l -> {
+                for (int i = 0; i < band.bands.length; ++i) {
+                    if (i >= l.size()) return false;
+                    if (band.bands[i] != l.get(i)) return false;
+                }
+                return true;
+            }));
+        }
+        assertTrue(entries == supportedBandsSet.size());
     }
 }
