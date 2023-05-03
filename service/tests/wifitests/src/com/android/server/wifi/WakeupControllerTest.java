@@ -46,6 +46,7 @@ import android.provider.Settings;
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.ActiveModeWarden.PrimaryClientModeManagerChangedCallback;
+import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
 
 import org.junit.After;
@@ -97,6 +98,7 @@ public class WakeupControllerTest extends WifiBaseTest {
     @Mock private Clock mClock;
     @Mock private ConcreteClientModeManager mPrimaryClientModeManager;
     @Mock private WifiGlobals mWifiGlobals;
+    @Mock private LastCallerInfoManager mLastCallerInfoManager;
 
     @Captor private ArgumentCaptor<PrimaryClientModeManagerChangedCallback> mPrimaryChangedCaptor;
 
@@ -128,6 +130,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY))
                 .thenReturn(new int[]{DFS_CHANNEL_FREQ});
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
         when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(true);
         when(mWifiGlobals.isOweUpgradeEnabled()).thenReturn(true);
 
@@ -230,6 +233,8 @@ public class WakeupControllerTest extends WifiBaseTest {
 
     private void verifyDoesNotEnableWifi() {
         verify(mWifiSettingsStore, never()).handleWifiToggled(true /* wifiEnabled */);
+        verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_WIFI_ENABLED),
+                anyInt(), anyInt(), anyInt(), any(), anyBoolean());
     }
 
     /**
@@ -766,6 +771,8 @@ public class WakeupControllerTest extends WifiBaseTest {
         verify(mWakeupEvaluator).findViableNetwork(any(), any());
         verify(mWifiSettingsStore).handleWifiToggled(true /* wifiEnabled */);
         verify(mWifiWakeMetrics).recordWakeupEvent(1 /* numScans */);
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
+                anyInt(), eq("android_wifi_wake"), eq(true));
     }
 
     /**
