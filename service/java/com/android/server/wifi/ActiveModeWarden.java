@@ -84,6 +84,7 @@ import com.android.server.wifi.ActiveModeManager.ClientInternetConnectivityRole;
 import com.android.server.wifi.ActiveModeManager.ClientRole;
 import com.android.server.wifi.ActiveModeManager.SoftApRole;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
@@ -137,6 +138,7 @@ public class ActiveModeWarden {
     private final ExternalScoreUpdateObserverProxy mExternalScoreUpdateObserverProxy;
     private final DppManager mDppManager;
     private final UserManager mUserManager;
+    private final LastCallerInfoManager mLastCallerInfoManager;
 
     private WifiServiceImpl.SoftApCallbackInternal mSoftApCallback;
     private WifiServiceImpl.SoftApCallbackInternal mLohsCallback;
@@ -373,6 +375,7 @@ public class ActiveModeWarden {
         mDppManager = dppManager;
         mGraveyard = new Graveyard();
         mUserManager = mWifiInjector.getUserManager();
+        mLastCallerInfoManager = mWifiInjector.getLastCallerInfoManager();
 
         wifiNative.registerStatusListener(isReady -> {
             if (!isReady && !mIsShuttingdown) {
@@ -2085,6 +2088,8 @@ public class ActiveModeWarden {
                         log("Wifi disabled on APM, disable wifi");
                         shutdownWifi();
                         // onStopped will move the state machine to "DisabledState".
+                        mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
+                                Process.WIFI_UID, -1, "android_apm", false);
                     }
                 } else {
                     log("Airplane mode disabled, determine next state");
@@ -2093,6 +2098,8 @@ public class ActiveModeWarden {
                                 // Assumes user toggled it on from settings before.
                                 mFacade.getSettingsWorkSource(mContext));
                         transitionTo(mEnabledState);
+                        mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
+                                Process.WIFI_UID, -1, "android_apm", true);
                     }
                     // wifi should remain disabled, do not need to transition
                 }
