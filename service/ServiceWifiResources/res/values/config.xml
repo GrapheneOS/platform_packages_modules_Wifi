@@ -171,6 +171,9 @@
     <bool translatable="false" name="config_wifiAskUserBeforeSwitchingFromUserSelectedNetwork">false</bool>
     <!-- boolean indicating whether or not to apply an unbeatable score boost for a recently user-selected network -->
     <bool translatable="false" name="config_wifiThroughputScorerBoostForRecentlyUserSelectedNetwork">true</bool>
+    <!-- Duration in milliseconds to disable network switch dialogs for the current connection when
+         the network is marked usable by an external scorer. -->
+    <integer translatable="false" name="config_wifiNetworkSwitchDialogDisabledMsWhenMarkedUsable">300000</integer>
 
     <!-- Integer delay in milliseconds before shutting down soft AP when there
          are no connected devices. -->
