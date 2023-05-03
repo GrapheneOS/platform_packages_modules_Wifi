@@ -11630,7 +11630,7 @@ public class WifiManager {
 
     /**
      * This API allows a privileged application to get Multi-Link Operation mode. Refer
-     * {@link WifiManager#setMloMode(int)} for more details.
+     * {@link WifiManager#setMloMode(int, Executor, Consumer)}  for more details.
      *
      * @param executor The executor on which callback will be invoked.
      * @param resultsCallback An asynchronous callback that will return current MLO mode. Returns
@@ -11658,6 +11658,95 @@ public class WifiManager {
                     });
                 }
             });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Get the maximum number of links supported by the chip for MLO association. e.g. if the Wi-Fi
+     * chip supports eMLSR (Enhanced Multi-Link Single Radio) and STR (Simultaneous Transmit and
+     * Receive) with following capabilities,
+     * - Max MLO assoc link count = 3.
+     * - Max MLO STR link count   = 2. See
+     * {@link WifiManager#getMaxMloStrLinkCount(Executor, Consumer)}
+     * One of the possible configuration is - STR (2.4 GHz , eMLSR(5 GHz, 6 GHz)), provided the
+     * radio combination of the chip supports it.
+     *
+     * @param executor        The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return maximum MLO association link
+     *                        count supported by the chip or -1 if error or not available.
+     * @throws NullPointerException          if the caller provided a null input.
+     * @throws SecurityException             if caller does not have the required permissions.
+     * @throws UnsupportedOperationException if the get operation is not supported.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
+    public void getMaxMloAssociationLinkCount(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
+            mService.getMaxMloAssociationLinkCount(new IIntegerListener.Stub() {
+                @Override
+                public void onResult(int value) {
+                    Binder.clearCallingIdentity();
+                    executor.execute(() -> {
+                        resultsCallback.accept(value);
+                    });
+                }
+            }, extras);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Get the maximum number of STR links used in Multi-Link Operation. The maximum number of STR
+     * links used for MLO can be different from the number of radios supported by the chip. e.g. if
+     * the Wi-Fi chip supports eMLSR (Enhanced Multi-Link Single Radio) and STR (Simultaneous
+     * Transmit and Receive) with following capabilities,
+     * - Max MLO assoc link count = 3. See
+     *   {@link WifiManager#getMaxMloAssociationLinkCount(Executor, Consumer)}.
+     * - Max MLO STR link count   = 2.
+     * One of the possible configuration is - STR (2.4 GHz, eMLSR(5 GHz, 6 GHz)), provided the radio
+     * combination of the chip supports it.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return maximum STR link count
+     *                       supported by the chip in MLO mode or -1 if error or not available.
+     * @throws NullPointerException if the caller provided a null input.
+     * @throws SecurityException if caller does not have the required permissions.
+     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
+    public void getMaxMloStrLinkCount(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Integer> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            Bundle extras = new Bundle();
+            if (SdkLevel.isAtLeastS()) {
+                extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                        mContext.getAttributionSource());
+            }
+            mService.getMaxMloStrLinkCount(new IIntegerListener.Stub() {
+                @Override
+                public void onResult(int value) {
+                    Binder.clearCallingIdentity();
+                    executor.execute(() -> {
+                        resultsCallback.accept(value);
+                    });
+                }
+            }, extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
