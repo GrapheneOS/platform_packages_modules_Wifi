@@ -115,6 +115,7 @@ import android.net.wifi.ISubsystemRestartCallback;
 import android.net.wifi.ISuggestionConnectionStatusListener;
 import android.net.wifi.ISuggestionUserApprovalStatusListener;
 import android.net.wifi.ITrafficStateCallback;
+import android.net.wifi.IWifiBandsListener;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.IWifiNetworkSelectionConfigListener;
@@ -127,6 +128,7 @@ import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiAnnotations.WifiStandard;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiBands;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
@@ -7778,6 +7780,51 @@ public class WifiServiceImpl extends BaseWifiService {
             try {
                 listener.onResult(mWifiNative.getMaxMloStrLinkCount(
                         mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName()));
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * See {@link WifiManager#getSupportedSimultaneousBandCombinations(Executor, Consumer)}.
+     */
+    public void getSupportedSimultaneousBandCombinations(@NonNull IWifiBandsListener listener,
+            Bundle extras) {
+        // SDK check.
+        if (!SdkLevel.isAtLeastU()) {
+            throw new UnsupportedOperationException("SDK level too old");
+        }
+        // Permission check.
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+            throw new SecurityException(
+                    "Caller does not have MANAGE_WIFI_NETWORK_SELECTION permission");
+        }
+        // Argument check.
+        Objects.requireNonNull(listener, "listener cannot be null");
+        if (mVerboseLoggingEnabled) {
+            mLog.info("getSupportedSimultaneousBandCombinations:  Uid=% Package Name=%").c(
+                    Binder.getCallingUid()).c(getPackageName(extras)).flush();
+        }
+        // Get supported band combinations from chip.
+        mWifiThreadRunner.post(() -> {
+            try {
+                Set<List<Integer>> bandsSet = mWifiNative.getSupportedBandCombinations(
+                        mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName());
+                if (bandsSet == null) {
+                    listener.onResult(new WifiBands[0]);
+                    return;
+                }
+                WifiBands[] supportedBands = new WifiBands[bandsSet.size()];
+                int i = 0;
+                for (List<Integer> bands : bandsSet) {
+                    supportedBands[i] = new WifiBands();
+                    supportedBands[i].bands = bands.stream().mapToInt(
+                            Integer::intValue).toArray();
+                    i++;
+                }
+                listener.onResult(supportedBands);
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
