@@ -532,6 +532,8 @@ public class WifiConnectivityManager {
             localLog("Ignore scan results while DPP is in progress to prevent auto connect");
             return;
         }
+        mWifiCountryCode.updateCountryCodeFromScanResults(scanDetails);
+
         List<WifiNetworkSelector.ClientModeManagerState> cmmStates = new ArrayList<>();
         Set<String> connectedSsids = new HashSet<>();
         boolean hasExistingSecondaryCmm = false;
@@ -778,7 +780,6 @@ public class WifiConnectivityManager {
                     secondaryCcm.disconnect();
                 }
             }
-            mWifiCountryCode.updateCountryCodeFromScanResults(scanDetails, candidate);
             connectToNetworkForPrimaryCmmUsingMbbIfAvailable(candidate);
             handleScanResultsWithCandidate(handleScanResultsListener);
         } else {
