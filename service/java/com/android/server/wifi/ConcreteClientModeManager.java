@@ -976,7 +976,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
                         // Always start in scan mode first.
                         RoleChangeInfo roleChangeInfo = (RoleChangeInfo) message.obj;
                         mClientInterfaceName = mWifiNative.setupInterfaceForClientInScanMode(
-                                mWifiNativeInterfaceCallback, roleChangeInfo.requestorWs);
+                                mWifiNativeInterfaceCallback, roleChangeInfo.requestorWs,
+                                ConcreteClientModeManager.this);
                         if (TextUtils.isEmpty(mClientInterfaceName)) {
                             Log.e(getTag(), "Failed to create ClientInterface. Sit in Idle");
                             takeBugReportInterfaceFailureIfNeeded(
