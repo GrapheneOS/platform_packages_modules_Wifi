@@ -10655,15 +10655,15 @@ public class WifiManager {
      *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
-     *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED} - no band specified; Looks for the
+     *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED}=0 - no band specified; Looks for the
      *                channels in all the available bands - 2.4 GHz, 5 GHz, 6 GHz and 60 GHz
-     *             2. {@code WifiScanner#WIFI_BAND_24_GHZ}
-     *             3. {@code WifiScanner#WIFI_BAND_5_GHZ_WITH_DFS}
-     *             4. {@code WifiScanner#WIFI_BAND_BOTH_WITH_DFS}
-     *             5. {@code WifiScanner#WIFI_BAND_6_GHZ}
-     *             6. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_GHZ}
-     *             7. {@code WifiScanner#WIFI_BAND_60_GHZ}
-     *             8. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_60_GHZ}
+     *             2. {@code WifiScanner#WIFI_BAND_24_GHZ}=1
+     *             3. {@code WifiScanner#WIFI_BAND_5_GHZ_WITH_DFS}=6
+     *             4. {@code WifiScanner#WIFI_BAND_BOTH_WITH_DFS}=7
+     *             5. {@code WifiScanner#WIFI_BAND_6_GHZ}=8
+     *             6. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_GHZ}=15
+     *             7. {@code WifiScanner#WIFI_BAND_60_GHZ}=16
+     *             8. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_60_GHZ}=31
      * @param mode Bitwise OR of {@code WifiAvailableChannel#OP_MODE_*} constants
      *        e.g. {@link WifiAvailableChannel#OP_MODE_WIFI_AWARE}
      * @return a list of {@link WifiAvailableChannel}
@@ -10676,7 +10676,7 @@ public class WifiManager {
     @NonNull
     @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getAllowedChannels(
-            @WifiScanner.WifiBand int band,
+            int band,
             @WifiAvailableChannel.OpMode int mode) {
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
@@ -10709,15 +10709,15 @@ public class WifiManager {
      *
      * @param band one of the following band constants defined in {@code WifiScanner#WIFI_BAND_*}
      *             constants.
-     *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED} - no band specified; Looks for the
+     *             1. {@code WifiScanner#WIFI_BAND_UNSPECIFIED}=0 - no band specified; Looks for the
      *                channels in all the available bands - 2.4 GHz, 5 GHz, 6 GHz and 60 GHz
-     *             2. {@code WifiScanner#WIFI_BAND_24_GHZ}
-     *             3. {@code WifiScanner#WIFI_BAND_5_GHZ_WITH_DFS}
-     *             4. {@code WifiScanner#WIFI_BAND_BOTH_WITH_DFS}
-     *             5. {@code WifiScanner#WIFI_BAND_6_GHZ}
-     *             6. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_GHZ}
-     *             7. {@code WifiScanner#WIFI_BAND_60_GHZ}
-     *             8. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_60_GHZ}
+     *             2. {@code WifiScanner#WIFI_BAND_24_GHZ}=1
+     *             3. {@code WifiScanner#WIFI_BAND_5_GHZ_WITH_DFS}=6
+     *             4. {@code WifiScanner#WIFI_BAND_BOTH_WITH_DFS}=7
+     *             5. {@code WifiScanner#WIFI_BAND_6_GHZ}=8
+     *             6. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_GHZ}=15
+     *             7. {@code WifiScanner#WIFI_BAND_60_GHZ}=16
+     *             8. {@code WifiScanner#WIFI_BAND_24_5_WITH_DFS_6_60_GHZ}=31
      * @param mode Bitwise OR of {@code WifiAvailableChannel#OP_MODE_*} constants
      *        e.g. {@link WifiAvailableChannel#OP_MODE_WIFI_AWARE}
      * @return a list of {@link WifiAvailableChannel}
@@ -10730,7 +10730,7 @@ public class WifiManager {
     @NonNull
     @RequiresPermission(NEARBY_WIFI_DEVICES)
     public List<WifiAvailableChannel> getUsableChannels(
-            @WifiScanner.WifiBand int band,
+            int band,
             @WifiAvailableChannel.OpMode int mode) {
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
