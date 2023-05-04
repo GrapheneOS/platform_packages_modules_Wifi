@@ -23,9 +23,15 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STATIC_CHIP_I
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 import android.os.WorkSource;
 import android.text.TextUtils;
@@ -99,6 +105,7 @@ public class HalDeviceManager {
     private final Map<String, ConcreteClientModeManager> mClientModeManagers = new ArrayMap<>();
     // Map of Interface name to their associated SoftApManager
     private final Map<String, SoftApManager> mSoftApManagers = new ArrayMap<>();
+    private boolean mIsP2pConnected = false;
 
     /**
      * Public API for querying interfaces from the HalDeviceManager.
@@ -147,6 +154,21 @@ public class HalDeviceManager {
         mEventHandler = handler;
         mIWifiDeathRecipient = new WifiDeathRecipient();
         mWifiHal = getWifiHalMockable(context, wifiInjector);
+        // Monitor P2P connection to treat disconnected P2P as low priority.
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        mContext.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (!intent.getAction().equals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)) {
+                    return;
+                }
+                NetworkInfo networkInfo =
+                        intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+                mIsP2pConnected = networkInfo != null
+                        && networkInfo.getDetailedState() == NetworkInfo.DetailedState.CONNECTED;
+            }
+        }, intentFilter, null, mEventHandler);
     }
 
     @VisibleForTesting
@@ -1692,7 +1714,7 @@ public class HalDeviceManager {
                                 new InterfaceDestroyedListenerProxy(
                                         cacheEntry.name, destroyedListener, handler));
                     }
-                    cacheEntry.creationTime = mClock.getUptimeSinceBootMillis();
+                    cacheEntry.creationTime = mClock.getElapsedSinceBootMillis();
 
                     if (mDbg) Log.d(TAG, "createIfaceIfPossible: added cacheEntry=" + cacheEntry);
                     mInterfaceInfoCache.put(
@@ -1983,6 +2005,25 @@ public class HalDeviceManager {
                     Log.i(TAG, "Requested create type " + requestedCreateType + " from "
                             + newRequestorWs + " can delete secondary internet STA from "
                             + existingRequestorWs);
+                }
+                return true;
+            }
+        }
+
+        // Allow FG apps to delete any disconnected P2P iface if they are older than
+        // config_disconnectedP2pIfaceLowPriorityTimeoutMs.
+        int unusedP2pTimeoutMs = mContext.getResources().getInteger(
+                R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs);
+        if (newRequestorWsPriority > WorkSourceHelper.PRIORITY_BG
+                && existingCreateType == HDM_CREATE_IFACE_P2P
+                && !mIsP2pConnected
+                && unusedP2pTimeoutMs >= 0) {
+            InterfaceCacheEntry ifaceCacheEntry = mInterfaceInfoCache.get(
+                    Pair.create(existingIfaceInfo.name, getType(existingIfaceInfo.iface)));
+            if (ifaceCacheEntry != null && mClock.getElapsedSinceBootMillis()
+                    >= ifaceCacheEntry.creationTime + unusedP2pTimeoutMs) {
+                if (mDbg) {
+                    Log.i(TAG, "Allowed to delete disconnected P2P iface: " + ifaceCacheEntry);
                 }
                 return true;
             }
