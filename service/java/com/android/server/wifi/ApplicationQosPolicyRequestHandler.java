@@ -333,6 +333,7 @@ public class ApplicationQosPolicyRequestHandler {
      */
     public void queueAllPoliciesOnIface(String ifaceName) {
         List<QosPolicyParams> policyList = mPolicyTrackingTable.getAllPolicies();
+        if (policyList.isEmpty()) return;
 
         // Divide policyList into batches of size MAX_POLICIES_PER_TRANSACTION,
         // and queue each batch on the specified interface.

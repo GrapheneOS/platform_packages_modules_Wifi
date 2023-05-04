@@ -264,6 +264,12 @@ public class WifiScoreReport {
             if (mShouldReduceNetworkScore) {
                 return;
             }
+            if (!mIsUsable && isUsable) {
+                // Disable the network switch dialog temporarily if the status changed to usable.
+                int durationMs = mContext.getResources().getInteger(
+                        R.integer.config_wifiNetworkSwitchDialogDisabledMsWhenMarkedUsable);
+                mWifiConnectivityManager.disableNetworkSwitchDialog(durationMs);
+            }
             mIsUsable = isUsable;
             // Wifi is set to be usable if adaptive connectivity is disabled.
             if (!mAdaptiveConnectivityEnabledSettingObserver.get()
@@ -290,9 +296,6 @@ public class WifiScoreReport {
                         : ConnectedScore.WIFI_TRANSITION_SCORE - 1);
             }
             mWifiInfo.setUsable(mIsUsable);
-            if (mIsUsable) {
-                mWifiConnectivityManager.resetNetworkSwitchDialog();
-            }
         }
 
         @Override
