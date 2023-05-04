@@ -21,7 +21,6 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_DEFAULT_COUNT
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.os.SystemProperties;
 import android.telephony.SubscriptionInfo;
@@ -453,46 +452,27 @@ public class WifiCountryCode {
     }
 
     /**
-     * Update country code from scan results right before the network connection
+     * Update country code from scan results
      * Note the derived country code is used only if all following conditions are met
      * 1) There is no telephony country code
      * 2) The current driver country code is empty or equal to the worldwide code
      * 3) Currently the device is disconnected
-     * 4) The setup wizard is running and the device overlay is enabled
      * @param scanDetails Wifi scan results
-     * @param targetNetwork The configuration of target network
      */
-    public void updateCountryCodeFromScanResults(@NonNull List<ScanDetail> scanDetails,
-            @NonNull WifiConfiguration targetNetwork) {
+    public void updateCountryCodeFromScanResults(@NonNull List<ScanDetail> scanDetails) {
         if (mTelephonyCountryCode != null) {
             return;
         }
 
-        if (!isCcUpdateGenericEnabledOrDriverCcWorldMode()) {
-            return;
-        }
-
-        boolean isUpdateEnabledGeneric = mContext.getResources()
-                .getBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultGeneric);
-        boolean isUpdateEnabledSetupWizard = mContext.getResources()
-                .getBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultSetupWizard);
-        boolean isSetupWizardRunning = mWifiPermissionsUtil.checkNetworkSetupWizardPermission(
-                targetNetwork.creatorUid) && targetNetwork.lastUpdated != 0
-                && (mClock.getWallClockMillis() < (MAX_DURATION_SINCE_LAST_UPDATE_TIME_MS
-                + targetNetwork.lastUpdated));
-        boolean isFrameworkCcUpdateEnabled =
-                isUpdateEnabledGeneric || (isUpdateEnabledSetupWizard && isSetupWizardRunning);
-        if (!isFrameworkCcUpdateEnabled) {
+        if (!isCcUpdateGenericEnabled()) {
             return;
         }
 
         String countryCode = findCountryCodeFromScanResults(scanDetails);
-
         if (countryCode == null) {
             Log.i(TAG, "Skip framework CC update because it is empty");
             return;
         }
-
         if (countryCode.equalsIgnoreCase(mFrameworkCountryCode)) {
             return;
         }
@@ -507,15 +487,9 @@ public class WifiCountryCode {
         updateCountryCode(false);
     }
 
-    private boolean isCcUpdateGenericEnabledOrDriverCcWorldMode() {
-        boolean isUpdateEnabledGeneric = mContext.getResources()
-                .getBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultGeneric);
-        if (isUpdateEnabledGeneric || mDriverCountryCode == null
-                || mDriverCountryCode.equalsIgnoreCase(mWorldModeCountryCode)) {
-            return true;
-        }
-
-        return false;
+    private boolean isCcUpdateGenericEnabled() {
+        return mContext.getResources().getBoolean(
+                R.bool.config_wifiUpdateCountryCodeFromScanResultGeneric);
     }
 
     private String findCountryCodeFromScanResults(List<ScanDetail> scanDetails) {
@@ -711,7 +685,7 @@ public class WifiCountryCode {
             // when driver supported 802.11d.
             return mDriverCountryCode;
         }
-        if (mFrameworkCountryCode != null && isCcUpdateGenericEnabledOrDriverCcWorldMode()) {
+        if (mFrameworkCountryCode != null && isCcUpdateGenericEnabled()) {
             return mFrameworkCountryCode;
         }
         return mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE);
