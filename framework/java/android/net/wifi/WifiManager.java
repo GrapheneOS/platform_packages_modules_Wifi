@@ -7809,6 +7809,7 @@ public class WifiManager {
      *
      * @hide
      */
+    @SystemApi
     public interface WifiLowLatencyLockListener {
         /**
          * Provides low latency mode is activated or not. Triggered when Wi-Fi chip enters into low
@@ -7827,7 +7828,7 @@ public class WifiManager {
          *
          * @param ownerUids An array of UIDs.
          */
-        default void onOwnershipChanged(int[] ownerUids) {}
+        default void onOwnershipChanged(@NonNull int[] ownerUids) {}
 
         /**
          * Provides UIDs of the applications which acquired the low latency lock and is currently
@@ -7842,7 +7843,7 @@ public class WifiManager {
          *
          * @param activeUids An array of UIDs.
          */
-        default void onActiveUsersChanged(int[] activeUids) {}
+        default void onActiveUsersChanged(@NonNull int[] activeUids) {}
     }
 
     /**
@@ -7870,14 +7871,14 @@ public class WifiManager {
         }
 
         @Override
-        public void onOwnershipChanged(int[] ownerUids) {
+        public void onOwnershipChanged(@NonNull int[] ownerUids) {
             Binder.clearCallingIdentity();
             mExecutor.execute(() -> mListener.onOwnershipChanged(ownerUids));
 
         }
 
         @Override
-        public void onActiveUsersChanged(int[] activeUids) {
+        public void onActiveUsersChanged(@NonNull int[] activeUids) {
             Binder.clearCallingIdentity();
             mExecutor.execute(() -> mListener.onActiveUsersChanged(activeUids));
         }
@@ -7898,6 +7899,7 @@ public class WifiManager {
      * @throws SecurityException if the caller is not allowed to call this API
      * @hide
      */
+    @SystemApi
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @RequiresPermission(anyOf = {android.Manifest.permission.NETWORK_SETTINGS,
             MANAGE_WIFI_NETWORK_SELECTION})
@@ -7933,6 +7935,8 @@ public class WifiManager {
      * @throws IllegalArgumentException if incorrect input arguments are provided.
      * @hide
      */
+    @SystemApi
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void removeWifiLowLatencyLockListener(@NonNull WifiLowLatencyLockListener listener) {
         if (listener == null) throw new IllegalArgumentException("listener cannot be null");
         if (mVerboseLoggingEnabled) {
