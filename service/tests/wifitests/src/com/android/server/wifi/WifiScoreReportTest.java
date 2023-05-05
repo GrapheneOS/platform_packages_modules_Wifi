@@ -105,6 +105,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
     private static final String TEST_IFACE_NAME = "wlan0";
     public static final String TEST_BSSID = "00:00:00:00:00:00";
     public static final boolean TEST_USER_SELECTED = true;
+    public static final int TEST_NETWORK_SWITCH_DIALOG_DISABLED_MS = 300_000;
 
     FakeClock mClock;
     WifiScoreReport mWifiScoreReport;
@@ -235,6 +236,9 @@ public class WifiScoreReportTest extends WifiBaseTest {
         when(mWifiGlobals.getWifiLowConnectedScoreScanPeriodSeconds()).thenReturn(
                 TEST_LOW_CONNECTED_SCORE_SCAN_PERIOD_SECONDS);
         when(mContext.getResources()).thenReturn(mResources);
+        when(mResources.getInteger(
+                R.integer.config_wifiNetworkSwitchDialogDisabledMsWhenMarkedUsable))
+                .thenReturn(TEST_NETWORK_SWITCH_DIALOG_DISABLED_MS);
         when(mNetwork.getNetId()).thenReturn(0);
         when(mNetworkAgent.getNetwork()).thenReturn(mNetwork);
         when(mNetworkAgent.getCurrentNetworkCapabilities()).thenReturn(
@@ -1638,7 +1642,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
             assertEquals(60, ns.getLegacyInt());
             assertFalse(ns.isExiting());
             if (mIsPrimary) assertTrue(ns.isTransportPrimary());
-            verify(mWifiConnectivityManager).resetNetworkSwitchDialog();
         }
 
         mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(
@@ -1654,6 +1657,13 @@ public class WifiScoreReportTest extends WifiBaseTest {
             assertTrue(ns.isExiting());
             if (mIsPrimary) assertTrue(ns.isTransportPrimary());
         }
+
+        // Not usable -> Usable should disable the network switch dialog for the specified duration.
+        mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(
+                scorerImpl.mSessionId, true);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).disableNetworkSwitchDialog(
+                TEST_NETWORK_SWITCH_DIALOG_DISABLED_MS);
     }
 
     /**

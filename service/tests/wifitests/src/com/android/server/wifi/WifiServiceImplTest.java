@@ -5705,10 +5705,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testHandleDelayedScanAfterIdleMode() throws Exception {
         when(mSettingsStore.isWifiToggleEnabled()).thenReturn(false);
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.checkAndStartWifi();
         mWifiServiceImpl.handleBootCompleted();
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 (IntentFilter) argThat(new IdleModeIntentMatcher()),
                 isNull(),
@@ -5948,10 +5947,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserRemovedBroadcastHandling() {
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.checkAndStartWifi();
         mWifiServiceImpl.handleBootCompleted();
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
                         filter.hasAction(Intent.ACTION_USER_REMOVED)),
@@ -5970,10 +5968,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testBluetoothBroadcastHandling() {
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.checkAndStartWifi();
         mWifiServiceImpl.handleBootCompleted();
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
                         filter.hasAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
@@ -6034,10 +6031,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserRemovedBroadcastHandlingWithWrongIntentAction() {
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.checkAndStartWifi();
         mWifiServiceImpl.handleBootCompleted();
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
                         filter.hasAction(Intent.ACTION_USER_REMOVED)),
@@ -8298,9 +8294,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testHandleBootCompleted() throws Exception {
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.handleBootCompleted();
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
 
         verify(mWifiNetworkFactory).register();
         verify(mUntrustedWifiNetworkFactory).register();
