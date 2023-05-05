@@ -1338,7 +1338,9 @@ public class HalDeviceManager {
         return staticChipInfos;
     }
 
-    private StaticChipInfo[] convertWifiChipInfoToStaticChipInfos(WifiChipInfo[] chipInfos) {
+    @NonNull
+    private StaticChipInfo[] convertWifiChipInfoToStaticChipInfos(
+            @NonNull WifiChipInfo[] chipInfos) {
         StaticChipInfo[] staticChipInfos = new StaticChipInfo[chipInfos.length];
         for (int i = 0; i < chipInfos.length; i++) {
             WifiChipInfo chipInfo = chipInfos[i];
@@ -2345,7 +2347,7 @@ public class HalDeviceManager {
                     WifiChipInfo[] wifiChipInfos = getAllChipInfo();
                     if (wifiChipInfos != null) {
                         mCachedStaticChipInfos =
-                                convertWifiChipInfoToStaticChipInfos(getAllChipInfo());
+                                convertWifiChipInfoToStaticChipInfos(wifiChipInfos);
                         saveStaticChipInfoToStore(mCachedStaticChipInfos);
                         mIsConcurrencyComboLoadedFromDriver = true;
                     } else {
