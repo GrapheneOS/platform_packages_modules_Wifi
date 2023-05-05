@@ -11769,6 +11769,7 @@ public class WifiManager {
      * @throws UnsupportedOperationException if the set operation is not supported.
      * @hide
      */
+    @SystemApi
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getSupportedSimultaneousBandCombinations(
