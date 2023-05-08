@@ -411,7 +411,7 @@ public class DeviceConfigFacade {
         mApplicationQosPolicyApiEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "application_qos_policy_api_enabled", false);
         mAdjustPollRssiIntervalEnabled = DeviceConfig.getBoolean(NAMESPACE,
-                "adjust_poll_rssi_interval_enabled", false);
+                "adjust_poll_rssi_interval_enabled", true);
         mSoftwarePnoEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "software_pno_enabled", false);
         mIncludePasspointSsidsInPnoScans = DeviceConfig.getBoolean(NAMESPACE,
