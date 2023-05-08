@@ -4093,6 +4093,15 @@ public class WifiManager {
     }
 
     /**
+     * @return true if this device supports Low latency mode.
+     * @hide
+     */
+    @SystemApi
+    public boolean isLowLatencyModeSupported() {
+        return isFeatureSupported(WIFI_FEATURE_LOW_LATENCY);
+    }
+
+    /**
      * Check if the chipset supports 2.4GHz band.
      * @return {@code true} if supported, {@code false} otherwise.
      */
