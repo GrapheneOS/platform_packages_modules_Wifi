@@ -226,7 +226,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isAwareSuspensionEnabled());
-        assertEquals(false, mDeviceConfigFacade.isHighPerfLockDeprecated());
+        assertEquals(true, mDeviceConfigFacade.isHighPerfLockDeprecated());
         assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
         mLooper.dispatchAll();
         verify(mOobPseudonymFeatureFlagChangedListener, never()).accept(anyBoolean());
