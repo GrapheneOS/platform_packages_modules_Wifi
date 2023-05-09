@@ -926,10 +926,98 @@ public class ApConfigUtilTest extends WifiBaseTest {
     @Test
     public void testCheckSupportAllConfiguration() throws Exception {
         SoftApConfiguration.Builder testConfigBuilder = new SoftApConfiguration.Builder();
+        if (SdkLevel.isAtLeastS()) {
+            testConfigBuilder.setMacRandomizationSetting(SoftApConfiguration.RANDOMIZATION_NONE);
+        }
         SoftApCapability mockSoftApCapability = mock(SoftApCapability.class);
+        // Test setBand validity
+        testConfigBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ
+                | SoftApConfiguration.BAND_6GHZ | SoftApConfiguration.BAND_60GHZ);
+        // Missing 2.4GHz support
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED)).thenReturn(false);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED)).thenReturn(true);
+        assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+        // Missing 5GHz support
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED)).thenReturn(false);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED)).thenReturn(true);
+        assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+        // Missing 6GHz support
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED)).thenReturn(false);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED)).thenReturn(true);
+        assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+        // Missing 60GHz support
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED)).thenReturn(false);
+        assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+        // All bands supported
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED)).thenReturn(true);
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED)).thenReturn(true);
         assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
-                  mockSoftApCapability));
+                mockSoftApCapability));
 
+        // Test setBssid
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION)).thenReturn(false);
+        testConfigBuilder.setBssid(MacAddress.fromString("02:23:45:67:89:ab"));
+        assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+        when(mockSoftApCapability.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION)).thenReturn(true);
+        assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                mockSoftApCapability));
+
+        // Test MAC Randomization feature
+        if (SdkLevel.isAtLeastS()) {
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION)).thenReturn(false);
+            testConfigBuilder.setBssid(null);
+            testConfigBuilder.setMacRandomizationSetting(
+                    SoftApConfiguration.RANDOMIZATION_PERSISTENT);
+            assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+            testConfigBuilder.setMacRandomizationSetting(
+                    SoftApConfiguration.RANDOMIZATION_NON_PERSISTENT);
+            assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION)).thenReturn(true);
+            assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+        }
 
         // Test client control feature
         when(mockSoftApCapability.areFeaturesSupported(
@@ -968,12 +1056,36 @@ public class ApConfigUtilTest extends WifiBaseTest {
                 SoftApConfiguration.SECURITY_TYPE_WPA3_SAE);
         assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
                 mockSoftApCapability));
-
-        // Allow for SAE
         when(mockSoftApCapability.areFeaturesSupported(
                 SoftApCapability.SOFTAP_FEATURE_WPA3_SAE)).thenReturn(true);
         assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
                 mockSoftApCapability));
+
+        if (SdkLevel.isAtLeastT()) {
+            // Test OWE
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_WPA3_OWE)).thenReturn(false);
+            testConfigBuilder.setPassphrase(null, SoftApConfiguration.SECURITY_TYPE_WPA3_OWE);
+            assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_WPA3_OWE)).thenReturn(true);
+            assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+
+            // Test OWE-Transition
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_WPA3_OWE_TRANSITION)).thenReturn(false);
+            testConfigBuilder.setPassphrase(null,
+                    SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION);
+            assertFalse(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+            when(mockSoftApCapability.areFeaturesSupported(
+                    SoftApCapability.SOFTAP_FEATURE_WPA3_OWE_TRANSITION)).thenReturn(true);
+            assertTrue(ApConfigUtil.checkSupportAllConfiguration(testConfigBuilder.build(),
+                    mockSoftApCapability));
+        }
+
         if (SdkLevel.isAtLeastS()) {
             // Test 60G not support
             testConfigBuilder.setChannels(
