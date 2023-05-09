@@ -621,6 +621,7 @@ package android.net.wifi {
     method public boolean isApMacRandomizationSupported();
     method public boolean isConnectedMacRandomizationSupported();
     method @Deprecated public boolean isDeviceToDeviceRttSupported();
+    method public boolean isLowLatencyModeSupported();
     method public boolean isPortableHotspotSupported();
     method public boolean isStaConcurrencyForRestrictedConnectionsSupported();
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled();
