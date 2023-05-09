@@ -7826,7 +7826,7 @@ public class WifiManager {
          *
          * Note: Always called with current state when a new listener gets registered.
          */
-        void onActivated(boolean activated);
+        void onActivatedStateChanged(boolean activated);
 
         /**
          * Provides UIDs (lock owners) of the applications which currently acquired low latency
@@ -7845,7 +7845,8 @@ public class WifiManager {
          * met for low latency lock to be active. Triggered when application acquiring the lock
          * satisfies or does not satisfy low latency conditions when the low latency mode is
          * activated. Also gets triggered when the lock becomes active, immediately after the
-         * {@link WifiLowLatencyLockListener#onActivated(boolean)} callback is triggered.
+         * {@link WifiLowLatencyLockListener#onActivatedStateChanged(boolean)} callback is
+         * triggered.
          *
          * Note: Always called with UIDs of the current active locks when a new listener gets
          * registered if the Wi-Fi chip is in low latency mode.
@@ -7873,9 +7874,9 @@ public class WifiManager {
         }
 
         @Override
-        public void onActivated(boolean activated) {
+        public void onActivatedStateChanged(boolean activated) {
             Binder.clearCallingIdentity();
-            mExecutor.execute(() -> mListener.onActivated(activated));
+            mExecutor.execute(() -> mListener.onActivatedStateChanged(activated));
 
         }
 
