@@ -200,7 +200,7 @@ public class WifiP2pShellCommand extends BasicShellCommandHandler {
                         new WifiP2pManager.GroupInfoListener() {
                             @Override
                             public void onGroupInfoAvailable(WifiP2pGroup group) {
-                                pw.println(group.toString());
+                                pw.println(group);
                                 countDownLatch.countDown();
                             }
                         });
