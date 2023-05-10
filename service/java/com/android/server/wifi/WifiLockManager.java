@@ -864,7 +864,7 @@ public class WifiLockManager {
         }
         // Notify the new listener about the current enablement of low latency mode.
         try {
-            listener.onActivated(mIsLowLatencyActivated);
+            listener.onActivatedStateChanged(mIsLowLatencyActivated);
             listener.onOwnershipChanged(getLowLatencyLockOwners());
             if (mIsLowLatencyActivated) {
                 listener.onActiveUsersChanged(getLowLatencyActiveUsers());
@@ -886,15 +886,17 @@ public class WifiLockManager {
     private void notifyLowLatencyActivated() {
         int numCallbacks = mWifiLowLatencyLockListeners.beginBroadcast();
         if (mVerboseLoggingEnabled) {
-            Log.i(TAG, "Broadcasting IWifiLowLatencyLockListener#onActivated activated="
+            Log.i(TAG, "Broadcasting IWifiLowLatencyLockListener#onActivatedStateChanged activated="
                     + mIsLowLatencyActivated);
         }
         for (int i = 0; i < numCallbacks; i++) {
             try {
-                mWifiLowLatencyLockListeners.getBroadcastItem(i).onActivated(
+                mWifiLowLatencyLockListeners.getBroadcastItem(i).onActivatedStateChanged(
                         mIsLowLatencyActivated);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failure broadcasting IWifiLowLatencyLockListener#onActivated" + e);
+                Log.e(TAG,
+                        "Failure broadcasting IWifiLowLatencyLockListener#onActivatedStateChanged"
+                                + e);
             }
         }
         mWifiLowLatencyLockListeners.finishBroadcast();
