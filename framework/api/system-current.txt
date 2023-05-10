@@ -901,7 +901,7 @@ package android.net.wifi {
   }
 
   public static interface WifiManager.WifiLowLatencyLockListener {
-    method public void onActivated(boolean);
+    method public void onActivatedStateChanged(boolean);
     method public default void onActiveUsersChanged(@NonNull int[]);
     method public default void onOwnershipChanged(@NonNull int[]);
   }
