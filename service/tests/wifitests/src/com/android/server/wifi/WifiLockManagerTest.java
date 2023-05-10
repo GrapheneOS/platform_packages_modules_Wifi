@@ -1877,7 +1877,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         // Register the listener and test current state and ownership are notified immediately after
         // registration. Active users is not notified since the lock is not activated.
         mWifiLockManager.addWifiLowLatencyLockListener(testListener);
-        inOrder.verify(testListener).onActivated(false);
+        inOrder.verify(testListener).onActivatedStateChanged(false);
         inOrder.verify(testListener).onOwnershipChanged(eq(new int[0]));
         inOrder.verify(testListener, never()).onActiveUsersChanged(any());
 
@@ -1895,7 +1895,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
         mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
         inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
-        inOrder.verify(testListener).onActivated(true);
+        inOrder.verify(testListener).onActivatedStateChanged(true);
         inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
 
         // Acquire a second lock and check the owners & active users changed.
@@ -1907,7 +1907,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         captureUidImportanceListener();
         inOrder.verify(testListener).onOwnershipChanged(
                 eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
-        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener).onActiveUsersChanged(
                 eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
 
@@ -1916,7 +1916,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND);
         mLooper.dispatchAll();
         inOrder.verify(testListener, never()).onOwnershipChanged(any());
-        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
 
         // Take the second app to foreground and verify that active users got updated.
@@ -1924,20 +1924,20 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
         mLooper.dispatchAll();
         inOrder.verify(testListener, never()).onOwnershipChanged(any());
-        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener).onActiveUsersChanged(
                 eq(new int[]{DEFAULT_TEST_UID_1, DEFAULT_TEST_UID_2}));
 
         // Release second lock and verify the owners & active users UIDs get updated.
         releaseWifiLockSuccessful(mBinder2);
         inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
-        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
 
         // Turn off the screen and check the low latency mode is disabled.
         setScreenState(false);
         inOrder.verify(testListener, never()).onOwnershipChanged(any());
-        inOrder.verify(testListener).onActivated(false);
+        inOrder.verify(testListener).onActivatedStateChanged(false);
         inOrder.verify(testListener, never()).onActiveUsersChanged(any());
 
         // Unregister listener.
@@ -1948,7 +1948,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder2,
                 workSource2);
         inOrder.verify(testListener, never()).onOwnershipChanged(any());
-        inOrder.verify(testListener, never()).onActivated(anyBoolean());
+        inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener, never()).onActiveUsersChanged(any());
     }
 }
