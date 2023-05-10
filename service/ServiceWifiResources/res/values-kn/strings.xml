@@ -31,7 +31,7 @@
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> ಸೂಚಿಸಿರುವ ನೆಟ್‌ವರ್ಕ್‌ಗಳು. ಸಾಧನಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಂಪರ್ಕಗೊಳ್ಳಬಹುದು."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"ಅನುಮತಿಸಿ"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"ಬೇಡ"</string>
-    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ಗೆ ಕನೆಕ್ಟ್ ಮಾಡುವುದೇ?"</string>
+    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಬೇಕೆ?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"ಸಾಧನದ ಸ್ಥಳವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಬಳಸಬಹುದಾದ SIM ಐಡಿಯನ್ನು ಈ ನೆಟ್‌ವರ್ಕ್‌ಗಳು ಸ್ವೀಕರಿಸುತ್ತವೆ"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>
