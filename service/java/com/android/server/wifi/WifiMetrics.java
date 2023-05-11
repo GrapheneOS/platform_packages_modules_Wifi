@@ -6543,9 +6543,11 @@ public class WifiMetrics {
             // Invoke Wifi usability stats listener.
             // TODO(b/179518316): Enable this for secondary transient STA also if external scorer
             // is in charge of MBB.
-            sendWifiUsabilityStats(mSeqNumInsideFramework, isSameBssidAndFreq,
-                    createNewWifiUsabilityStatsEntryParcelable(wifiUsabilityStatsEntry, stats,
-                            info));
+            if (isPrimary(ifaceName)) {
+                sendWifiUsabilityStats(mSeqNumInsideFramework, isSameBssidAndFreq,
+                        createNewWifiUsabilityStatsEntryParcelable(wifiUsabilityStatsEntry, stats,
+                                info));
+            }
 
             mSeqNumInsideFramework++;
             mProbeStatusSinceLastUpdate =
