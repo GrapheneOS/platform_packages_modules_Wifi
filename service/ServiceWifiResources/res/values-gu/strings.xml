@@ -168,8 +168,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"નેટવર્ક ઉપલબ્ધ નથી"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>ને તમારા ઍડમિનિસ્ટ્રેટર દ્વારા બંધ કરવામાં આવ્યું છે."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"બંધ કરો"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"વાઇ-ફાઇ નેટવર્ક સ્વિચ કરીએ?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"એવું લાગે છે કે <xliff:g id="SSID_0">%1$s</xliff:g> ઇન્ટરનેટ સાથે કનેક્ટેડ નથી. <xliff:g id="SSID_1">%2$s</xliff:g> પર સ્વિચ કરીએ?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"એવું લાગે છે કે <xliff:g id="SSID_0">%1$s</xliff:g> ઇન્ટરનેટ સાથે કનેક્ટેડ નથી. <xliff:g id="SSID_1">%2$s</xliff:g> પર સ્વિચ કરીએ?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g>ની ક્વૉલિટી ઓછી છે. <xliff:g id="SSID_1">%2$s</xliff:g> પર સ્વિચ કરીએ?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"સ્વિચ કરો"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"સ્વિચ કરશો નહીં"</string>
 </resources>
