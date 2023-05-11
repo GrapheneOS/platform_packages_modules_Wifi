@@ -11613,7 +11613,7 @@ public class WifiManager {
      * @throws IllegalArgumentException if mode value is not in {@link MloMode}.
      * @throws NullPointerException if the caller provided a null input.
      * @throws SecurityException if caller does not have the required permissions.
-     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @throws UnsupportedOperationException if the set operation is not supported on this SDK.
      * @hide
      */
     @SystemApi
@@ -11652,7 +11652,7 @@ public class WifiManager {
      *                        e.g. if the driver/firmware doesn't provide this information.
      * @throws NullPointerException if the caller provided a null input.
      * @throws SecurityException if caller does not have the required permissions.
-     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @throws UnsupportedOperationException if the get operation is not supported on this SDK.
      * @hide
      */
     @SystemApi
@@ -11692,7 +11692,7 @@ public class WifiManager {
      *                        count supported by the chip or -1 if error or not available.
      * @throws NullPointerException          if the caller provided a null input.
      * @throws SecurityException             if caller does not have the required permissions.
-     * @throws UnsupportedOperationException if the get operation is not supported.
+     * @throws UnsupportedOperationException if the get operation is not supported on this SDK.
      * @hide
      */
     @SystemApi
@@ -11738,7 +11738,7 @@ public class WifiManager {
      *                       supported by the chip in MLO mode or -1 if error or not available.
      * @throws NullPointerException if the caller provided a null input.
      * @throws SecurityException if caller does not have the required permissions.
-     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @throws UnsupportedOperationException if the get operation is not supported on this SDK
      * @hide
      */
     @SystemApi
@@ -11780,7 +11780,7 @@ public class WifiManager {
      *                        not available. Band value is defined in {@link WifiScanner.WifiBand}.
      * @throws NullPointerException if the caller provided a null input.
      * @throws SecurityException if caller does not have the required permissions.
-     * @throws UnsupportedOperationException if the set operation is not supported.
+     * @throws UnsupportedOperationException if the get operation is not supported on this SDK.
      * @hide
      */
     @SystemApi
