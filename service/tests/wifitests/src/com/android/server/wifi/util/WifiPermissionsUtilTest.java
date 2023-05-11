@@ -56,6 +56,7 @@ import android.net.NetworkStack;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiSsid;
 import android.os.Build;
+import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.permission.PermissionManager;
@@ -1920,5 +1921,21 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         codeUnderTest.enableVerboseLogging(true);
 
         assertTrue(codeUnderTest.isAdminRestrictedNetwork(config));
+    }
+
+    /**
+     * Test isSignedWithPlatformKey
+     */
+    @Test
+    public void testIsSignedWithPlatformKey() throws Exception {
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        when(mMockPkgMgr.checkSignatures(anyInt(), eq(Process.SYSTEM_UID)))
+                .thenReturn(PackageManager.SIGNATURE_MATCH);
+        assertTrue(codeUnderTest.isSignedWithPlatformKey(TEST_CALLING_UID));
+        when(mMockPkgMgr.checkSignatures(anyInt(), eq(Process.SYSTEM_UID)))
+                .thenReturn(PackageManager.SIGNATURE_NO_MATCH);
+        assertFalse(codeUnderTest.isSignedWithPlatformKey(TEST_CALLING_UID));
     }
 }
