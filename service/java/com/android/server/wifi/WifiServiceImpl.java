@@ -1397,7 +1397,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         enforceAccessPermission();
         if (mVerboseLoggingEnabled) {
-            mLog.info("registerSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
+            mLog.info("unregisterSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
             if (!mActiveModeWarden.unregisterSubsystemRestartCallback(callback)) {
@@ -1418,7 +1418,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         enforceNetworkSettingsPermission();
         if (mVerboseLoggingEnabled) {
-            mLog.info("registerSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
+            mLog.info("addWifiNetworkStateChangedListener uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
             mActiveModeWarden.addWifiNetworkStateChangedListener(listener);
