@@ -218,6 +218,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(wifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(wifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(wifiInjector.getDppManager()).thenReturn(mDppManager);
+        when(wifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
         lenient().when(WifiInjector.getInstance()).thenReturn(wifiInjector);
         when(mSsidTranslator.getAllPossibleOriginalSsids(any())).thenAnswer(
                 (Answer<List<WifiSsid>>) invocation -> Arrays.asList(invocation.getArgument(0),
@@ -325,6 +326,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private DppManager mDppManager;
     @Mock private WifiDialogManager mWifiDialogManager;
     @Mock private WifiDialogManager.DialogHandle mDialogHandle;
+    @Mock private WifiInjector mWifiInjector;
+    @Mock private HalDeviceManager mHalDeviceManager;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -1567,6 +1570,14 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mMultiInternetManager.getSpecifiedBssids()).thenReturn(specifiedBssids);
         testMultiInternetSecondaryConnectionRequest(false, true, false,
                 mCandidate2.getKey().bssid.toString());
+    }
+
+    @Test
+    public void multiInternetSecondaryConnectionRequestFailsIfWouldDeletePrivilegedIface() {
+        setupMocksForMultiInternetTests(false);
+        when(mHalDeviceManager.creatingIfaceWillDeletePrivilegedIface(anyInt(), any()))
+                .thenReturn(true);
+        testMultiInternetSecondaryConnectionRequest(true, true, false, CANDIDATE_BSSID_3);
     }
 
     /**
