@@ -960,6 +960,53 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("NAN was not created", nanIface, IsNull.notNullValue());
     }
 
+    /**
+     * Validate the behavior of creatingIfaceWillDeletePrivilegedIface
+     */
+    @Test
+    public void testCreatingIfaceWillDeletePrivilegedIface() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        TestChipV1 chipMock = new TestChipV1();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+
+        // No interface needs to be deleted
+        assertFalse(mDut.creatingIfaceWillDeletePrivilegedIface(
+                HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
+
+        // Request STA
+        WifiInterface staIface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_STA, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipV1.STA_CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                null, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("STA can't be created", staIface, IsNull.notNullValue());
+
+        // Privileged AP beats privileged STA
+        assertTrue(mDut.creatingIfaceWillDeletePrivilegedIface(
+                HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
+
+        // Internal AP cannot beat privileged STA
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_INTERNAL);
+        assertFalse(mDut.creatingIfaceWillDeletePrivilegedIface(
+                HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
+
+        // Foreground AP can beat background STA
+        when(mWorkSourceHelper0.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_BG);
+        when(mWorkSourceHelper1.getRequestorWsPriority())
+                .thenReturn(WorkSourceHelper.PRIORITY_FG_APP);
+        assertFalse(mDut.creatingIfaceWillDeletePrivilegedIface(
+                HDM_CREATE_IFACE_AP, TEST_WORKSOURCE_1));
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////
     // Chip Specific Tests - but should work on all chips!
     // (i.e. add copies for each test chip)

@@ -944,6 +944,26 @@ public class HalDeviceManager {
                 requestorWs);
     }
 
+    /**
+     * Helper method to return true if the given iface request will result in deleting an iface
+     * requested by a privileged worksource.
+     */
+    public boolean creatingIfaceWillDeletePrivilegedIface(
+            @HdmIfaceTypeForCreation int ifaceType, WorkSource requestorWs) {
+        List<Pair<Integer, WorkSource>> impact =
+                reportImpactToCreateIface(ifaceType, true, requestorWs);
+        if (impact == null) {
+            return false;
+        }
+        for (Pair<Integer, WorkSource> pair : impact) {
+            if (mWifiInjector.makeWsHelper(pair.second).getRequestorWsPriority()
+                    == WorkSourceHelper.PRIORITY_PRIVILEGED) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // internal state
 
     /* This "PRIORITY" is not for deciding interface elimination (that is controlled by
