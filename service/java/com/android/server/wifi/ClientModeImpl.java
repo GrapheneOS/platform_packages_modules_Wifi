@@ -3828,6 +3828,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private void handleIpReachabilityLost() {
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
+                getConnectedWifiConfiguration(),
+                WifiBlocklistMonitor.REASON_ABNORMAL_DISCONNECT, mWifiInfo.getRssi());
         mWifiScoreCard.noteIpReachabilityLost(mWifiInfo);
         mWifiInfo.setInetAddress(null);
         mWifiInfo.setMeteredHint(false);

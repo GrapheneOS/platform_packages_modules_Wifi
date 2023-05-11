@@ -4234,6 +4234,33 @@ public class ClientModeImplTest extends WifiBaseTest {
                 anyInt());
     }
 
+    @Test
+    public void testAbnormalDisconnectIpReachabilityLostNotifiesWifiBlocklistMonitor()
+            throws Exception {
+        // trigger RSSI poll to update WifiInfo
+        mCmi.enableRssiPolling(true);
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, TEST_RSSI, 65, 54, sFreq);
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+
+        // Connect, trigger CMD_IP_REACHABILITY_LOST and verifiy REASON_ABNORMAL_DISCONNECT is
+        // sent to mWifiBlocklistMonitor
+        connect();
+        mLooper.dispatchAll();
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
+        mLooper.dispatchAll();
+
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                eq(mConnectedNetwork), eq(WifiBlocklistMonitor.REASON_ABNORMAL_DISCONNECT),
+                anyInt());
+    }
+
     /**
      * Verify that ClientModeImpl notifies WifiBlocklistMonitor correctly when the RSSI is
      * too low.
