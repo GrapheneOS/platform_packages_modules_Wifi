@@ -168,8 +168,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"無法使用網絡"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"你的管理員已停用「<xliff:g id="SSID">%1$s</xliff:g>」。"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"關閉"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"要切換至 Wi-Fi 網絡嗎？"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"「<xliff:g id="SSID_0">%1$s</xliff:g>」似乎尚未連線至互聯網。要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"「<xliff:g id="SSID_0">%1$s</xliff:g>」似乎未連線至互聯網。要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"「<xliff:g id="SSID_0">%1$s</xliff:g>」品質偏低，要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切換"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不要切換"</string>
 </resources>
