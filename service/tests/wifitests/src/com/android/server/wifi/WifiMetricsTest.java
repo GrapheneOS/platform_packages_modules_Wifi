@@ -4585,6 +4585,24 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(info.getLinkSpeed()).thenReturn(nextRandInt());
 
         WifiLinkLayerStats linkLayerStats = nextRandomStats(new WifiLinkLayerStats());
+
+        // verify non-primary does not send wifi usability stats
+        ConcreteClientModeManager concreteClientModeManager = mock(ConcreteClientModeManager.class);
+        when(concreteClientModeManager.getInterfaceName()).thenReturn(TEST_IFACE_NAME);
+        when(concreteClientModeManager.getRole()).thenReturn(
+                ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mModeChangeCallbackArgumentCaptor.getValue()
+                .onActiveModeManagerRoleChanged(concreteClientModeManager);
+        mWifiMetrics.updateWifiUsabilityStatsEntries(TEST_IFACE_NAME, info, linkLayerStats);
+        verify(mOnWifiUsabilityStatsListener, never()).onWifiUsabilityStats(anyInt(), anyBoolean(),
+                any());
+
+        // verify primary sends out wifi usability stats
+        concreteClientModeManager = mock(ConcreteClientModeManager.class);
+        when(concreteClientModeManager.getInterfaceName()).thenReturn(TEST_IFACE_NAME);
+        when(concreteClientModeManager.getRole()).thenReturn(ActiveModeManager.ROLE_CLIENT_PRIMARY);
+        mModeChangeCallbackArgumentCaptor.getValue()
+                .onActiveModeManagerRoleChanged(concreteClientModeManager);
         mWifiMetrics.updateWifiUsabilityStatsEntries(TEST_IFACE_NAME, info, linkLayerStats);
 
         // Client should get the stats.
