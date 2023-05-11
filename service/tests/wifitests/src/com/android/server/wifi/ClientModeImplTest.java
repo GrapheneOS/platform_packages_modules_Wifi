@@ -709,6 +709,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiGlobals.getClientModeImplNumLogRecs()).thenReturn(100);
         when(mWifiGlobals.isSaveFactoryMacToConfigStoreEnabled()).thenReturn(true);
         when(mWifiGlobals.getNetworkNotFoundEventThreshold()).thenReturn(3);
+        when(mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes()).thenReturn(
+                Collections.EMPTY_SET);
         when(mWifiInjector.makeWifiNetworkAgent(any(), any(), any(), any(), any()))
                 .thenAnswer(new AnswerWithArguments() {
                     public WifiNetworkAgent answer(
@@ -3812,6 +3814,28 @@ public class ClientModeImplTest extends WifiBaseTest {
         mResources.setStringArray(R.array.config_wifiForceDisableMacRandomizationSsidList,
                 new String[]{mConnectedNetwork.SSID});
 
+        connect();
+        verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_GLOBAL_MAC_ADDRESS);
+        verify(mWifiMetrics).logStaEvent(
+                eq(WIFI_IFACE_NAME), eq(StaEvent.TYPE_MAC_CHANGE), any(WifiConfiguration.class));
+        verify(mWifiConfigManager).addOrUpdateNetwork(any(), eq(Process.SYSTEM_UID));
+        assertEquals(TEST_GLOBAL_MAC_ADDRESS.toString(), mWifiInfo.getMacAddress());
+    }
+
+    @Test
+    public void testConnectedMacRandomizationForceDisabledSsidPrefix() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        when(mWifiNative.getMacAddress(WIFI_IFACE_NAME))
+                .thenReturn(TEST_LOCAL_MAC_ADDRESS.toString());
+
+        Set<String> ssidPrefixSet = new ArraySet<>();
+        // Take the prefix of 2 characters, which should include the " and the first letter of
+        // actual SSID
+        ssidPrefixSet.add(mConnectedNetwork.SSID.substring(0, 2));
+        when(mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes()).thenReturn(ssidPrefixSet);
+
+        // Verify MAC randomization is disabled
         connect();
         verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_GLOBAL_MAC_ADDRESS);
         verify(mWifiMetrics).logStaEvent(
