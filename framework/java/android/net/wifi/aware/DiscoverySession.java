@@ -401,7 +401,8 @@ public class DiscoverySession implements AutoCloseable {
     }
 
     /**
-     * Put Aware connection into suspension mode to save power.
+     * Put Aware connection into suspension mode to save power. Suspend mode pauses all Wi-Fi Aware
+     * activities for this discovery session including any active NDPs.
      * <p>
      * This method would work only for a {@link DiscoverySession} which has been created using
      * a suspendable {@link PublishConfig} or {@link SubscribeConfig}.
@@ -431,7 +432,10 @@ public class DiscoverySession implements AutoCloseable {
     }
 
     /**
-     * Wake up Aware connection from suspension mode to transmit data.
+     * Wake up Aware connection from suspension mode to transmit data. Resumes all paused
+     * Wi-Fi Aware activities and any associated NDPs to a state before they were suspended. Resume
+     * operation will be faster than recreating the corresponding discovery session and NDPs with
+     * the same benefit of power.
      * <p>
      * This method would work only for a {@link DiscoverySession} which has been created using
      * a suspendable {@link PublishConfig} or {@link SubscribeConfig}.
