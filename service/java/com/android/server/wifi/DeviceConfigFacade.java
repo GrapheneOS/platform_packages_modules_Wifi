@@ -398,7 +398,7 @@ public class DeviceConfigFacade {
         mAwareSuspensionEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "aware_suspension_enabled", false);
         mHighPerfLockDeprecated = DeviceConfig.getBoolean(NAMESPACE,
-                "high_perf_lock_deprecated", false);
+                "high_perf_lock_deprecated", true);
         boolean oobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "oob_pseudonym_enabled", false);
         if (mOobPseudonymEnabled.isPresent()
@@ -411,7 +411,7 @@ public class DeviceConfigFacade {
         mApplicationQosPolicyApiEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "application_qos_policy_api_enabled", false);
         mAdjustPollRssiIntervalEnabled = DeviceConfig.getBoolean(NAMESPACE,
-                "adjust_poll_rssi_interval_enabled", false);
+                "adjust_poll_rssi_interval_enabled", true);
         mSoftwarePnoEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "software_pno_enabled", false);
         mIncludePasspointSsidsInPnoScans = DeviceConfig.getBoolean(NAMESPACE,

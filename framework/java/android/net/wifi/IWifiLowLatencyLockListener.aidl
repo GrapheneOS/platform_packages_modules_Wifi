@@ -22,7 +22,7 @@ package android.net.wifi;
  */
 oneway interface IWifiLowLatencyLockListener
 {
-    void onActivated(boolean activated);
+    void onActivatedStateChanged(boolean activated);
     void onOwnershipChanged(in int[] ownerUids);
     void onActiveUsersChanged(in int[] activeUids);
 }
