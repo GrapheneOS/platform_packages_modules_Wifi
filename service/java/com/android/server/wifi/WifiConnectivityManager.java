@@ -387,6 +387,12 @@ public class WifiConnectivityManager {
             // a different band with the primary.
             return false;
         }
+        if (WifiInjector.getInstance().getHalDeviceManager()
+                .creatingIfaceWillDeletePrivilegedIface(HalDeviceManager.HDM_CREATE_IFACE_STA,
+                        mMultiInternetConnectionRequestorWs)) {
+            localLog(listenerName + ": No secondary cmm candidate");
+            return false;
+        }
         final WifiInfo primaryInfo = primaryCcm.getConnectionInfo();
         final int primaryBand = ScanResult.toBand(primaryInfo.getFrequency());
 
