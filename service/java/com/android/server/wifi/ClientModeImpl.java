@@ -7789,7 +7789,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private boolean isMacRandomizationForceDisabledOnSsid(WifiConfiguration config) {
         Set<String> unsupportedSsids = new ArraySet<>(mContext.getResources().getStringArray(
                 R.array.config_wifiForceDisableMacRandomizationSsidList));
-        return unsupportedSsids.contains(config.SSID);
+        Set<String> unsupportedPrefixes = mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes();
+        boolean isUnsupportedByPrefix =
+                unsupportedPrefixes.stream().anyMatch(ssid -> config.SSID.startsWith(ssid));
+        return isUnsupportedByPrefix || unsupportedSsids.contains(config.SSID);
     }
 
     private void setConfigurationsPriorToIpClientProvisioning(WifiConfiguration config) {
