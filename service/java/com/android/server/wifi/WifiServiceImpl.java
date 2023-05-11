@@ -1022,13 +1022,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 || checkNetworkSetupWizardPermission(pid, uid)
                 || checkNetworkStackPermission(pid, uid)
                 || checkNetworkManagedProvisioningPermission(pid, uid)
-                || isSignedWithPlatformKey(uid);
-    }
-
-    /** Whether the uid is signed with the same key as the platform. */
-    private boolean isSignedWithPlatformKey(int uid) {
-        return mContext.getPackageManager().checkSignatures(uid, Process.SYSTEM_UID)
-                == PackageManager.SIGNATURE_MATCH;
+                || mWifiPermissionsUtil.isSignedWithPlatformKey(uid);
     }
 
     /**
@@ -1397,7 +1391,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         enforceAccessPermission();
         if (mVerboseLoggingEnabled) {
-            mLog.info("registerSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
+            mLog.info("unregisterSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
             if (!mActiveModeWarden.unregisterSubsystemRestartCallback(callback)) {
@@ -1418,7 +1412,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         enforceNetworkSettingsPermission();
         if (mVerboseLoggingEnabled) {
-            mLog.info("registerSubsystemRestartCallback uid=%").c(Binder.getCallingUid()).flush();
+            mLog.info("addWifiNetworkStateChangedListener uid=%").c(Binder.getCallingUid()).flush();
         }
         mWifiThreadRunner.post(() -> {
             mActiveModeWarden.addWifiNetworkStateChangedListener(listener);

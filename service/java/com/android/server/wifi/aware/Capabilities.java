@@ -81,7 +81,7 @@ public class Capabilities {
         j.put("maxPublishes", maxPublishes);
         j.put("maxSubscribes", maxSubscribes);
         j.put("maxServiceNameLen", maxServiceNameLen);
-        j.put("maxMatchFilterLen", maxTotalMatchFilterLen);
+        j.put("maxMatchFilterLen", maxMatchFilterLen);
         j.put("maxServiceSpecificInfoLen", maxServiceSpecificInfoLen);
         j.put("maxExtendedServiceSpecificInfoLen", maxExtendedServiceSpecificInfoLen);
         j.put("maxNdiInterfaces", maxNdiInterfaces);
