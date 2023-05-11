@@ -19,12 +19,14 @@ package com.android.server.wifi;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.net.wifi.WifiConfiguration;
+import android.util.ArraySet;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -69,6 +71,7 @@ public class WifiGlobals {
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
     private boolean mIsUsingExternalScorer = false;
     private boolean mDisableUnwantedNetworkOnLowRssi = false;
+    private Set<String> mMacRandomizationUnsupportedSsidPrefixes = new ArraySet<>();
 
     public WifiGlobals(Context context) {
         mContext = context;
@@ -121,6 +124,20 @@ public class WifiGlobals {
                 .getBoolean(R.bool.config_wifiWepDeprecated);
         mIsWpaPersonalDeprecated = mContext.getResources()
                 .getBoolean(R.bool.config_wifiWpaPersonalDeprecated);
+        Set<String> unsupportedSsidPrefixes = new ArraySet<>(mContext.getResources().getStringArray(
+                R.array.config_wifiForceDisableMacRandomizationSsidPrefixList));
+        if (!unsupportedSsidPrefixes.isEmpty()) {
+            for (String ssid : unsupportedSsidPrefixes) {
+                String cleanedSsid = ssid.length() > 1 && (ssid.charAt(0) == '"')
+                        && (ssid.charAt(ssid.length() - 1) == '"')
+                        ? ssid.substring(0, ssid.length() - 1) : ssid;
+                mMacRandomizationUnsupportedSsidPrefixes.add(cleanedSsid);
+            }
+        }
+    }
+
+    public Set<String> getMacRandomizationUnsupportedSsidPrefixes() {
+        return mMacRandomizationUnsupportedSsidPrefixes;
     }
 
     /** Get the interval between RSSI polls, in milliseconds. */
