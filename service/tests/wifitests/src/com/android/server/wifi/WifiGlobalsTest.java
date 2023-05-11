@@ -57,6 +57,8 @@ public class WifiGlobalsTest extends WifiBaseTest {
         mResources.setInteger(R.integer.config_wifiPollRssiIntervalMilliseconds, 3000);
         mResources.setInteger(R.integer.config_wifiClientModeImplNumLogRecs, 200);
         mResources.setBoolean(R.bool.config_wifiSaveFactoryMacToWifiConfigStore, true);
+        mResources.setStringArray(R.array.config_wifiForceDisableMacRandomizationSsidPrefixList,
+                new String[] {TEST_SSID});
         when(mContext.getResources()).thenReturn(mResources);
 
         mWifiGlobals = new WifiGlobals(mContext);
@@ -129,6 +131,13 @@ public class WifiGlobalsTest extends WifiBaseTest {
     @Test
     public void testSaveFactoryMacToConfigStoreEnabled() throws Exception {
         assertEquals(true, mWifiGlobals.isSaveFactoryMacToConfigStoreEnabled());
+    }
+
+    @Test
+    public void testQuotedStringSsidPrefixParsedCorrectly() throws Exception {
+        assertEquals(1, mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes().size());
+        assertTrue(mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes()
+                .contains(TEST_SSID.substring(0, TEST_SSID.length() - 1)));
     }
 
 
