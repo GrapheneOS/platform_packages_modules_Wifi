@@ -1022,13 +1022,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 || checkNetworkSetupWizardPermission(pid, uid)
                 || checkNetworkStackPermission(pid, uid)
                 || checkNetworkManagedProvisioningPermission(pid, uid)
-                || isSignedWithPlatformKey(uid);
-    }
-
-    /** Whether the uid is signed with the same key as the platform. */
-    private boolean isSignedWithPlatformKey(int uid) {
-        return mContext.getPackageManager().checkSignatures(uid, Process.SYSTEM_UID)
-                == PackageManager.SIGNATURE_MATCH;
+                || mWifiPermissionsUtil.isSignedWithPlatformKey(uid);
     }
 
     /**
