@@ -386,6 +386,14 @@
         -->
     </string-array>
 
+    <!-- list of SSID prefixes. Disable MAC randomization on all SSIDs matching any prefix -->
+    <string-array translatable="false" name="config_wifiForceDisableMacRandomizationSsidPrefixList">
+        <!-- SSID prefixes are expected in quoted format:
+        <item>\"SSID_PREFIX_1\"</item>
+        <item>\"SSID_PREFIX_2\"</item>
+        -->
+    </string-array>
+
     <!-- list of SSIDs to enable non-persistent MAC randomization on -->
     <string-array translatable="false" name="config_wifi_non_persistent_randomization_ssid_allowlist">
         <!-- SSIDs are expected in quoted format:
