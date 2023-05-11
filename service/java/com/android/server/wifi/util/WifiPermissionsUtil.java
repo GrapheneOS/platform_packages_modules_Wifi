@@ -1321,4 +1321,10 @@ public class WifiPermissionsUtil {
         }
         return user;
     }
+
+    /** Whether the uid is signed with the same key as the platform. */
+    public boolean isSignedWithPlatformKey(int uid) {
+        return mContext.getPackageManager().checkSignatures(uid, Process.SYSTEM_UID)
+                == PackageManager.SIGNATURE_MATCH;
+    }
 }
