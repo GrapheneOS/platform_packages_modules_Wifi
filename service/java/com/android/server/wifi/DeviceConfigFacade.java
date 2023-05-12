@@ -396,7 +396,7 @@ public class DeviceConfigFacade {
         mApmEnhancementEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "apm_enhancement_enabled", false);
         mAwareSuspensionEnabled = DeviceConfig.getBoolean(NAMESPACE,
-                "aware_suspension_enabled", false);
+                "aware_suspension_enabled", true);
         mHighPerfLockDeprecated = DeviceConfig.getBoolean(NAMESPACE,
                 "high_perf_lock_deprecated", true);
         boolean oobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
