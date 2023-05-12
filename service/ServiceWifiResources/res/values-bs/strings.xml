@@ -168,8 +168,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Nedostupna mreža"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administrator je onemogućio <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Zatvori"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Promijeniti WiFi mrežu?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Izgleda da mreža <xliff:g id="SSID_0">%1$s</xliff:g> nije povezana s internetom. Prebaciti na mrežu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"Izgleda da mreža <xliff:g id="SSID_0">%1$s</xliff:g> nije povezana s internetom. Prebaciti na mrežu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> je niskog kvaliteta. Prebaciti na mrežu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Prebaci"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nemoj prebaciti"</string>
 </resources>
