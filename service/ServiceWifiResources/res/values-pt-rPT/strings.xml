@@ -168,8 +168,8 @@
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Rede indisponível"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"O administrador desativou a funcionalidade <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Fechar"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Mudar de rede Wi-Fi?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> não parece ter uma ligação à Internet. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> não parece ter uma ligação à Internet. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> tem baixa qualidade. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Mudar"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Não mudar"</string>
 </resources>
