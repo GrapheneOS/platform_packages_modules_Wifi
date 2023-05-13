@@ -1005,8 +1005,15 @@ public class WifiNetworkSuggestionsManager {
             // auto join disabled
             if (isSimBasedPhase1Suggestion(ewns)) {
                 int carrierIdFromSuggestion = getCarrierIdFromSuggestion(ewns);
-                int subId = mWifiCarrierInfoManager
-                        .getMatchingSubId(carrierIdFromSuggestion);
+                int subId = ewns.wns.wifiConfiguration.subscriptionId;
+                if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                    if (ewns.wns.wifiConfiguration.getSubscriptionGroup() != null) {
+                        subId = mWifiCarrierInfoManager.getActiveSubscriptionIdInGroup(
+                                ewns.wns.wifiConfiguration.getSubscriptionGroup());
+                    } else {
+                        subId = mWifiCarrierInfoManager.getMatchingSubId(carrierIdFromSuggestion);
+                    }
+                }
                 if (!(mWifiCarrierInfoManager.requiresImsiEncryption(subId)
                         || mWifiCarrierInfoManager.hasUserApprovedImsiPrivacyExemptionForCarrier(
                                 carrierIdFromSuggestion)
@@ -1243,6 +1250,9 @@ public class WifiNetworkSuggestionsManager {
                 }
                 if (wifiConfiguration.subscriptionId
                         != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                    return false;
+                }
+                if (wifiConfiguration.getSubscriptionGroup() != null) {
                     return false;
                 }
                 if (passpointConfiguration == null) {
