@@ -3028,7 +3028,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return Arrays.asList(matchingScanResult.informationElements);
     }
 
-    private void setMultiLinkInfo(@Nullable String bssid) {
+    private void setMultiLinkInfoFromScanCache(@Nullable String bssid) {
         if (bssid == null) return;
         ScanDetailCache scanDetailCache = mWifiConfigManager.getScanDetailCacheForNetwork(
                 mWifiInfo.getNetworkId());
@@ -3055,6 +3055,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         updateCurrentConnectionInfo();
     }
 
+    /**
+     * Multi-link info should not be set from scan cache after 'SupplicantState.ASSOCIATED' as it
+     * overwrites link states collected during ASSOCIATION. Return if multi-link info is settable
+     * on the current state.
+     */
+    private boolean isMultiLinkInfoSettableFromScanCache(SupplicantState currentState) {
+        return currentState != SupplicantState.FOUR_WAY_HANDSHAKE
+                && currentState != SupplicantState.GROUP_HANDSHAKE
+                && currentState != SupplicantState.COMPLETED;
+    }
+
     private SupplicantState handleSupplicantStateChange(StateChangeResult stateChangeResult) {
         SupplicantState state = stateChangeResult.state;
         mWifiScoreCard.noteSupplicantStateChanging(mWifiInfo, state);
@@ -3071,7 +3082,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (stateChangeResult.frequencyMhz > 0) {
                 mWifiInfo.setFrequency(stateChangeResult.frequencyMhz);
             }
-            setMultiLinkInfo(stateChangeResult.bssid);
+            // Multi-link info is set from scan cache (multi-link state: unassociated). On
+            // association, connection capabilities and multi-link state are queried from
+            // supplicant and link info is updated. (multi-link state: active/idle). After
+            // association, don't set the multi-link info from scan cache.
+            if (isMultiLinkInfoSettableFromScanCache(state)) {
+                setMultiLinkInfoFromScanCache(stateChangeResult.bssid);
+            }
             if (state == SupplicantState.ASSOCIATED) {
                 updateWifiInfoLinkParamsAfterAssociation();
             }
@@ -3275,7 +3292,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
         if (mVerboseLoggingEnabled) {
             StringBuilder sb = new StringBuilder();
-            logd(sb.append("WifiStandard: ").append(mLastConnectionCapabilities.wifiStandard)
+            logd(sb.append("WifiStandard: ").append(ScanResult.wifiStandardToString(
+                            mLastConnectionCapabilities.wifiStandard))
                     .append(" maxTxSpeed: ").append(maxTxLinkSpeedMbps)
                     .append(" maxRxSpeed: ").append(maxRxLinkSpeedMbps)
                     .toString());
@@ -3828,6 +3846,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     private void handleIpReachabilityLost() {
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
+                getConnectedWifiConfiguration(),
+                WifiBlocklistMonitor.REASON_ABNORMAL_DISCONNECT, mWifiInfo.getRssi());
         mWifiScoreCard.noteIpReachabilityLost(mWifiInfo);
         mWifiInfo.setInetAddress(null);
         mWifiInfo.setMeteredHint(false);
