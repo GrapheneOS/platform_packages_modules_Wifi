@@ -709,6 +709,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiGlobals.getClientModeImplNumLogRecs()).thenReturn(100);
         when(mWifiGlobals.isSaveFactoryMacToConfigStoreEnabled()).thenReturn(true);
         when(mWifiGlobals.getNetworkNotFoundEventThreshold()).thenReturn(3);
+        when(mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes()).thenReturn(
+                Collections.EMPTY_SET);
         when(mWifiInjector.makeWifiNetworkAgent(any(), any(), any(), any(), any()))
                 .thenAnswer(new AnswerWithArguments() {
                     public WifiNetworkAgent answer(
@@ -3820,6 +3822,28 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(TEST_GLOBAL_MAC_ADDRESS.toString(), mWifiInfo.getMacAddress());
     }
 
+    @Test
+    public void testConnectedMacRandomizationForceDisabledSsidPrefix() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        when(mWifiNative.getMacAddress(WIFI_IFACE_NAME))
+                .thenReturn(TEST_LOCAL_MAC_ADDRESS.toString());
+
+        Set<String> ssidPrefixSet = new ArraySet<>();
+        // Take the prefix of 2 characters, which should include the " and the first letter of
+        // actual SSID
+        ssidPrefixSet.add(mConnectedNetwork.SSID.substring(0, 2));
+        when(mWifiGlobals.getMacRandomizationUnsupportedSsidPrefixes()).thenReturn(ssidPrefixSet);
+
+        // Verify MAC randomization is disabled
+        connect();
+        verify(mWifiNative).setStaMacAddress(WIFI_IFACE_NAME, TEST_GLOBAL_MAC_ADDRESS);
+        verify(mWifiMetrics).logStaEvent(
+                eq(WIFI_IFACE_NAME), eq(StaEvent.TYPE_MAC_CHANGE), any(WifiConfiguration.class));
+        verify(mWifiConfigManager).addOrUpdateNetwork(any(), eq(Process.SYSTEM_UID));
+        assertEquals(TEST_GLOBAL_MAC_ADDRESS.toString(), mWifiInfo.getMacAddress());
+    }
+
     /**
      * Verifies that when
      * 1. connected MAC randomization is on and
@@ -4227,6 +4251,33 @@ public class ClientModeImplTest extends WifiBaseTest {
         DisconnectEventInfo disconnectEventInfo =
                 new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                eq(mConnectedNetwork), eq(WifiBlocklistMonitor.REASON_ABNORMAL_DISCONNECT),
+                anyInt());
+    }
+
+    @Test
+    public void testAbnormalDisconnectIpReachabilityLostNotifiesWifiBlocklistMonitor()
+            throws Exception {
+        // trigger RSSI poll to update WifiInfo
+        mCmi.enableRssiPolling(true);
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, TEST_RSSI, 65, 54, sFreq);
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+
+        // Connect, trigger CMD_IP_REACHABILITY_LOST and verifiy REASON_ABNORMAL_DISCONNECT is
+        // sent to mWifiBlocklistMonitor
+        connect();
+        mLooper.dispatchAll();
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
         mLooper.dispatchAll();
 
         verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
@@ -9487,6 +9538,42 @@ public class ClientModeImplTest extends WifiBaseTest {
 
     }
 
+    @Test
+    public void verifyMloLinkChangeAfterAssociation() throws Exception {
+        // Initialize
+        connect();
+        setScanResultWithMloInfo();
+        setConnectionMloLinksInfo();
+        mLooper.dispatchAll();
+
+        // Association
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        // Verify all links are associated (ACTIVE) after assciation.
+        assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
+                mWifiInfo.getAffiliatedMloLinks().size());
+
+        setScanResultWithMloInfo();
+        // Send FOUR_WAY_HANDSHAKE, GROUP_HANDSHAKE and COMPLETED and verify all links are still
+        // asscoaited.
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.FOUR_WAY_HANDSHAKE));
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.GROUP_HANDSHAKE));
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.COMPLETED));
+        mLooper.dispatchAll();
+        // Verify all links are still associated (ACTIVE).
+        assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
+                mWifiInfo.getAffiliatedMloLinks().size());
+    }
     /**
      * Verify that an event that occurs on a managed network is handled by
      * logEventIfManagedNetwork.

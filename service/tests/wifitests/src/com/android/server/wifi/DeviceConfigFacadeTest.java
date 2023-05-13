@@ -225,7 +225,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
                 mDeviceConfigFacade.getBandwidthEstimatorLargeTimeConstantSec());
         assertEquals(false, mDeviceConfigFacade.isInterfaceFailureBugreportEnabled());
         assertEquals(false, mDeviceConfigFacade.isP2pFailureBugreportEnabled());
-        assertEquals(false, mDeviceConfigFacade.isAwareSuspensionEnabled());
+        assertEquals(true, mDeviceConfigFacade.isAwareSuspensionEnabled());
         assertEquals(true, mDeviceConfigFacade.isHighPerfLockDeprecated());
         assertEquals(false, mDeviceConfigFacade.isOobPseudonymEnabled());
         mLooper.dispatchAll();
