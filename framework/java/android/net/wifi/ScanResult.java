@@ -569,8 +569,9 @@ public final class ScanResult implements Parcelable {
 
     /**
      * Convert Wi-Fi standard to string
+     * @hide
      */
-    private static @Nullable String wifiStandardToString(@WifiStandard int standard) {
+    public static @Nullable String wifiStandardToString(@WifiStandard int standard) {
         switch(standard) {
             case WIFI_STANDARD_LEGACY:
                 return "legacy";

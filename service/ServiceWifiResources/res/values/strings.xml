@@ -245,9 +245,9 @@
 
     <!-- Notifying the user that the device will remember Wi-Fi state in APM. -->
     <string name="wifi_enabled_apm_first_time_title">Wi\u2011Fi on in airplane mode</string>
-    <string name="wifi_enabled_apm_first_time_message">If you keep Wi\u2011Fi on, your phone will remember to keep it on the next time you\'re in airplane mode</string>
+    <string name="wifi_enabled_apm_first_time_message">If you keep Wi\u2011Fi on, your device will remember to keep it on the next time you\'re in airplane mode</string>
     <string name="apm_enabled_first_time_title">Wi\u2011Fi stays on</string>
-    <string name="apm_enabled_first_time_message">Your phone remembers to keep Wi\u2011Fi on in airplane mode. Turn off Wi\u2011Fi if you don\'t want it to stay on.</string>
+    <string name="apm_enabled_first_time_message">Your device remembers to keep Wi\u2011Fi on in airplane mode. Turn off Wi\u2011Fi if you don\'t want it to stay on.</string>
 
     <!-- Dialog for connecting to a network with only disabled type BSSes. -->
     <string name="wifi_network_disabled_by_admin_title">Unavailable Network</string>
