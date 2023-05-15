@@ -476,7 +476,7 @@ public class WifiDialogManager {
                                         .setData(Uri.parse(messageUrl))
                                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         .putExtra(Browser.EXTRA_APPLICATION_ID, c.getPackageName());
-                                c.startActivity(openLinkIntent);
+                                c.startActivityAsUser(openLinkIntent, UserHandle.CURRENT);
                                 LegacySimpleDialogHandle.this.dismissDialog();
                             }}, messageUrlStart, messageUrlEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
