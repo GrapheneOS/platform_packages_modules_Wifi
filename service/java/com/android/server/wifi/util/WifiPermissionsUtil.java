@@ -267,6 +267,7 @@ public class WifiPermissionsUtil {
         }
         // If the app did not renounce location, check if "neverForLocation" is set.
         PackageManager pm = mContext.getPackageManager();
+        long ident = Binder.clearCallingIdentity();
         try {
             PackageInfo pkgInfo = pm.getPackageInfo(packageName,
                     GET_PERMISSIONS | MATCH_UNINSTALLED_PACKAGES);
@@ -290,9 +291,11 @@ public class WifiPermissionsUtil {
             }
         } catch (PackageManager.NameNotFoundException e) {
             Log.w(TAG, "Could not find package for disavowal check: " + packageName);
+        } finally {
+            Binder.restoreCallingIdentity(ident);
         }
         // App did not disavow location. Check for location permission and location mode.
-        long ident = Binder.clearCallingIdentity();
+        ident = Binder.clearCallingIdentity();
         try {
             if (!isLocationModeEnabled()) {
                 if (mVerboseLoggingEnabled) {
@@ -1210,6 +1213,39 @@ public class WifiPermissionsUtil {
      */
     public void enableVerboseLogging(boolean enabled) {
         mVerboseLoggingEnabled = enabled;
+    }
+
+    /**
+     * Return the corresponding WifiCallerType enum used for WifiStatsLog metrics logging.
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    public int getWifiCallerType(@NonNull AttributionSource attributionSource) {
+        if (!SdkLevel.isAtLeastS() || attributionSource == null) {
+            return 0;
+        }
+        return getWifiCallerType(attributionSource.getUid(), attributionSource.getPackageName());
+    }
+
+    /**
+     * Return the corresponding WifiCallerType enum used for WifiStatsLog metrics logging.
+     */
+    public int getWifiCallerType(int uid, String packageName) {
+        // TODO: Need to hardcode enum values for now since no atom is actually using this enum.
+        // Once the first atom start using it, replace the hardcoded values with constants generated
+        // in WifiStatsLog
+        if (checkNetworkSettingsPermission(uid) || checkNetworkSetupWizardPermission(uid)) {
+            return 1; // SETTINGS
+        } else if (isAdmin(uid, packageName)) {
+            return 2; // ADMIN
+        } else if (checkEnterCarModePrioritized(uid)) {
+            return 3; // AUTOMOTIVE
+        } else if (mContext.getPackageManager().checkSignatures(uid, Process.SYSTEM_UID)
+                == PackageManager.SIGNATURE_MATCH) {
+            return 4; // SIGNATURE
+        } else if (isSystem(packageName, uid)) {
+            return 5; // SYSTEM
+        }
+        return 6; // OTHERS
     }
 
     /**
