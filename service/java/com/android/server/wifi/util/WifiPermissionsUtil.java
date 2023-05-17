@@ -267,6 +267,7 @@ public class WifiPermissionsUtil {
         }
         // If the app did not renounce location, check if "neverForLocation" is set.
         PackageManager pm = mContext.getPackageManager();
+        long ident = Binder.clearCallingIdentity();
         try {
             PackageInfo pkgInfo = pm.getPackageInfo(packageName,
                     GET_PERMISSIONS | MATCH_UNINSTALLED_PACKAGES);
@@ -290,9 +291,11 @@ public class WifiPermissionsUtil {
             }
         } catch (PackageManager.NameNotFoundException e) {
             Log.w(TAG, "Could not find package for disavowal check: " + packageName);
+        } finally {
+            Binder.restoreCallingIdentity(ident);
         }
         // App did not disavow location. Check for location permission and location mode.
-        long ident = Binder.clearCallingIdentity();
+        ident = Binder.clearCallingIdentity();
         try {
             if (!isLocationModeEnabled()) {
                 if (mVerboseLoggingEnabled) {
