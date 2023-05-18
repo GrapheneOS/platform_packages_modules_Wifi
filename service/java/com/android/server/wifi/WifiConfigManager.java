@@ -4108,16 +4108,17 @@ public class WifiConfigManager {
     }
 
     /**
-     * This method updates the Root CA certifiate and the domain name of the
+     * This method updates the Root CA certificate and the domain name of the
      * server in the internal network.
      *
      * @param networkId networkId corresponding to the network to be updated.
      * @param caCert Root CA certificate to be updated.
      * @param serverCert Server certificate to be updated.
+     * @param certHash Server certificate hash (for TOFU case with no Root CA)
      * @return true if updating Root CA certificate successfully; otherwise, false.
      */
     public boolean updateCaCertificate(int networkId, @NonNull X509Certificate caCert,
-            @NonNull X509Certificate serverCert) {
+            @NonNull X509Certificate serverCert, String certHash) {
         WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
         if (internalConfig == null) {
             Log.e(TAG, "No network for network ID " + networkId);
@@ -4149,11 +4150,15 @@ public class WifiConfigManager {
         WifiConfiguration newConfig = new WifiConfiguration(internalConfig);
         try {
             if (newConfig.enterpriseConfig.isTrustOnFirstUseEnabled()) {
-                newConfig.enterpriseConfig.setCaCertificateForTrustOnFirstUse(caCert);
-                // setCaCertificate will mark that this CA certificate should be removed on
-                // removing this configuration.
+                if (TextUtils.isEmpty(certHash)) {
+                    newConfig.enterpriseConfig.setCaCertificateForTrustOnFirstUse(caCert);
+                } else {
+                    newConfig.enterpriseConfig.setServerCertificateHash(certHash);
+                }
                 newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
             } else {
+                // setCaCertificate will mark that this CA certificate should be removed on
+                // removing this configuration.
                 newConfig.enterpriseConfig.setCaCertificate(caCert);
             }
         } catch (IllegalArgumentException ex) {
@@ -4175,7 +4180,7 @@ public class WifiConfigManager {
             newConfig.enterpriseConfig.setDomainSuffixMatch(serverCertInfo.commonName);
         }
         newConfig.enterpriseConfig.setUserApproveNoCaCert(false);
-        // Trigger an update to install CA certifiate and the corresponding configuration.
+        // Trigger an update to install CA certificate and the corresponding configuration.
         NetworkUpdateResult result = addOrUpdateNetwork(newConfig, internalConfig.creatorUid);
         if (!result.isSuccess()) {
             Log.e(TAG, "Failed to install CA cert for network " + internalConfig.SSID);
