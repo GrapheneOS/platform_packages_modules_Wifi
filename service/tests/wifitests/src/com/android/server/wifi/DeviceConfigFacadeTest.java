@@ -233,7 +233,7 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(false, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
         assertEquals(true, mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled());
         assertEquals(false, mDeviceConfigFacade.includePasspointSsidsInPnoScans());
-        assertEquals(false, mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled());
+        assertEquals(true, mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled());
     }
 
     /**
