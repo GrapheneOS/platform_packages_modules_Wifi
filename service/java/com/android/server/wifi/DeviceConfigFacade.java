@@ -417,7 +417,7 @@ public class DeviceConfigFacade {
         mIncludePasspointSsidsInPnoScans = DeviceConfig.getBoolean(NAMESPACE,
                 "include_passpoint_ssids_in_pno_scans", false);
         mHandleRssiOrganicKernelFailuresEnabled = DeviceConfig.getBoolean(NAMESPACE,
-                "handle_rssi_organic_kernel_failures_enabled", false);
+                "handle_rssi_organic_kernel_failures_enabled", true);
     }
 
     private Set<String> getUnmodifiableSetQuoted(String key) {
