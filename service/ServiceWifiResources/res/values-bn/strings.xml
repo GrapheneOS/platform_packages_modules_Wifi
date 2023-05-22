@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"অনুমতি দিন"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"অনুমতি দেবেন না"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"\'বিমান মোড\'-এ ওয়াই-ফাই চালু থাকে"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"আপনি ওয়াই-ফাই চালু রাখলে, আপনি এরপর \'বিমান মোড\'-এ থাকলেও আপনার ডিভাইস এটি চালু রাখবে"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"ওয়াই-ফাই চালু থাকে"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"\'বিমান মোড\'-এ থাকাকালীন আপনার ডিভাইস ওয়াই-ফাই চালু রাখে। আপনি ওয়াই-ফাই চালু না রাখতে চাইলে এটি বন্ধ করুন।"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"নেটওয়ার্ক উপলভ্য নয়"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"আপনার অ্যাডমিনিস্ট্রেটর <xliff:g id="SSID">%1$s</xliff:g> বন্ধ করে দিয়েছেন।"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"বন্ধ করুন"</string>

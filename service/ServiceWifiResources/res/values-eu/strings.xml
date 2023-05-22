@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Eman baimena"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Ez eman baimenik"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifia aktibatuta hegaldi moduan"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Wifia aktibatuta utziz gero, hura aktibatuta mantentzeaz gogoratuko da gailua hegaldi modua erabiltzen duzun hurrengoan"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifia aktibatuta mantentzen da"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Hegaldi moduan, wifia aktibatuta mantentzeaz gogoratzen da gailua. Halakorik nahi ez baduzu, desaktiba ezazu zuk zeuk."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Sarea ez dago erabilgarri"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administratzaileak desgaitu du <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Itxi"</string>
