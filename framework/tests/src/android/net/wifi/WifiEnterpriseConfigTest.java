@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import android.net.wifi.WifiEnterpriseConfig.Eap;
 import android.net.wifi.WifiEnterpriseConfig.Phase2;
 import android.net.wifi.hotspot2.PasspointConfiguration;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.security.Credentials;
 
@@ -43,6 +44,8 @@ import org.junit.Test;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Unit tests for {@link android.net.wifi.WifiEnterpriseConfig}.
@@ -796,5 +799,70 @@ public class WifiEnterpriseConfigTest {
     @Test (expected = IllegalArgumentException.class)
     public void testSetMinimumTlsVersionWithVersionSmallerThanMinVersion() throws Exception {
         mEnterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_VERSION_MIN - 1);
+    }
+
+    /**
+     * Verify that fields with unsupported keys cannot be set or retrieved.
+     */
+    @Test
+    public void testCannotSetOrGetUnsupportedKeys() {
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+        String password = "somePassword";
+        config.setFieldValue(WifiEnterpriseConfig.PASSWORD_KEY, password);
+        assertEquals(password, config.getFieldValue(WifiEnterpriseConfig.PASSWORD_KEY));
+
+        String invalidKey = "invalidKey";
+        String invalidValue = "invalidValue";
+        config.setFieldValue(invalidValue, invalidKey);
+        assertEquals("", config.getFieldValue(invalidKey));
+    }
+
+    /**
+     * Construct a WifiEnterpriceConfig parcel using the provided fields map.
+     * Map is allowed to contain invalid keys.
+     */
+    private Parcel constructParcelWithFieldsMap(Map<String, String> fieldsMap) {
+        Parcel parcel = Parcel.obtain();
+        Bundle bundle = new Bundle();
+        for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
+            bundle.putString(entry.getKey(), entry.getValue());
+        }
+        parcel.writeBundle(bundle);
+
+        // Use the default value for the remaining fields.
+        parcel.writeInt(Eap.NONE);
+        parcel.writeInt(Phase2.NONE);
+        parcel.writeInt(0); // numCaCertificates
+        parcel.writeString(null); // privateKey
+        parcel.writeInt(0); // numClientCertificates
+        parcel.writeString(""); // keyChainAlias
+        parcel.writeBoolean(false); // isAppInstalledDeviceKeyAndCert
+        parcel.writeBoolean(false); // isAppInstalledCaCert
+        parcel.writeInt(0); // OSCP
+        parcel.writeBoolean(false); // isTrustOnFirstUseEnabled
+        parcel.writeBoolean(false); // userApproveNoCaCert
+        parcel.writeInt(WifiEnterpriseConfig.TLS_V1_0);
+        return parcel;
+    }
+
+    /**
+     * Verify that unsupported keys are ignored during unparceling.
+     */
+    @Test
+    public void testUnsupportedKeysIgnoredDuringUnparceling() {
+        Map<String, String> fieldsMap = new HashMap<>();
+        String password = "somePassword";
+        fieldsMap.put(WifiEnterpriseConfig.PASSWORD_KEY, password);
+
+        String invalidKey = "invalidKey";
+        String invalidValue = "invalidValue";
+        fieldsMap.put(invalidKey, invalidValue);
+
+        // Invalid field should be ignored during unparceling.
+        Parcel parcel = constructParcelWithFieldsMap(fieldsMap);
+        parcel.setDataPosition(0);
+        WifiEnterpriseConfig config = WifiEnterpriseConfig.CREATOR.createFromParcel(parcel);
+        assertEquals(password, config.getPassword());
+        assertEquals("", config.getFieldValue(invalidKey));
     }
 }
