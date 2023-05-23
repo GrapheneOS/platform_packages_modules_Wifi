@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ፍቀድ"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"አትፍቀድ"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"በአውሮፕላን ሁነታ ላይ Wi-Fi በርቷል"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Wi‑Fiን አብርተው የሚያቆዩ ከሆነ ቀጣይ በአውሮፕላን ሁነታ ላይ ሲሆኑ መሣሪያዎ እሱን አብርቶ ማቆየትን ያስታውሳል።"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi-Fi በርቶ ይቆያል"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"መሣሪያዎ በአውሮፕላን ሁነታ ውስጥ Wi-Fiን አብርቶ ማቆየትን ያስታውሳል። በርቶ እንዲቆይ ካልፈለጉ Wi-Fiን ያጥፉ።"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"የማይገኝ አውታረ መረብ"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> በእርስዎ አስተዳዳሪ ተሰናክሏል።"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"ዝጋ"</string>
