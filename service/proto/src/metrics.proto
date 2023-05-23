@@ -3065,6 +3065,9 @@ message P2pConnectionEvent {
   // fallback to negotiation if device receives invitation response status code "information is
   // currently unavailable"
   optional bool fallback_to_negotiation_on_invite_status_info_unavailable = 12;
+
+  // The try count of connection
+  optional int32 try_count = 13;
 }
 
 // GroupEvent tracking group information from GroupStarted to GroupRemoved.
