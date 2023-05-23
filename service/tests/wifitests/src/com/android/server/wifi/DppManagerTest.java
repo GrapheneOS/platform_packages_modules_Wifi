@@ -90,6 +90,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,6 +119,8 @@ public class DppManagerTest extends WifiBaseTest {
     DppManager mDppManager;
 
     @Mock
+    WifiInjector mWifiInjector;
+    @Mock
     Context mContext;
     @Mock
     WifiMetrics mWifiMetrics;
@@ -139,6 +142,8 @@ public class DppManagerTest extends WifiBaseTest {
     ScanRequestProxy mScanRequestProxy;
     @Mock
     WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock
+    SsidTranslator mSsidTranslator;
 
     String mUri =
             "DPP:C:81/1;I:DPP_TESTER;K:MDkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDIgADebGHMJoCcE7OZP/aek5muaJo"
@@ -177,11 +182,16 @@ public class DppManagerTest extends WifiBaseTest {
 
         // Successfully start enrollee responder
         when(mWifiNative.startDppEnrolleeResponder(anyString(), anyInt())).thenReturn(true);
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
+        when(mSsidTranslator.getOriginalSsid(any())).thenAnswer(
+                (Answer<WifiSsid>) invocation -> WifiSsid.fromString(
+                        ((WifiConfiguration) invocation.getArguments()[0]).SSID));
     }
 
     private DppManager createDppManager() {
-        DppManager dppManager = new DppManager(new Handler(mLooper.getLooper()), mWifiNative,
-                mWifiConfigManager, mContext, mDppMetrics, mScanRequestProxy, mWifiPermissionsUtil);
+        DppManager dppManager = new DppManager(mWifiInjector, new Handler(mLooper.getLooper()),
+                mWifiNative, mWifiConfigManager, mContext, mDppMetrics, mScanRequestProxy,
+                mWifiPermissionsUtil);
         dppManager.mDppTimeoutMessage = mWakeupMessage;
         dppManager.enableVerboseLogging(true);
         return dppManager;
