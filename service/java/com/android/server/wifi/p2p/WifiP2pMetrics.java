@@ -53,6 +53,8 @@ public class WifiP2pMetrics {
     private static final int MAX_GROUP_EVENTS = 256;
     private static final int MIN_2G_FREQUENCY_MHZ = 2412;
 
+    private static final int MAX_CONNECTION_ATTEMPT_TIME_INTERVAL_MS = 30 * 1000;
+
     private Clock mClock;
     private final Context mContext;
     private final Object mLock = new Object();
@@ -82,6 +84,12 @@ public class WifiP2pMetrics {
      * The latest started (but un-ended) connection attempt start time
      */
     private long mCurrentConnectionEventStartTime;
+
+    private long mLastConnectionEventStartTime;
+
+    private int mLastConnectionEventUid;
+
+    private int mLastConnectionTryCount;
 
     /**
      * Group Session information that gets logged for every formed group.
@@ -236,6 +244,8 @@ public class WifiP2pMetrics {
                         break;
                 }
 
+                sb.append(", tryCount=");
+                sb.append(event.tryCount);
                 sb.append(", inviteToNeg=");
                 sb.append(event.fallbackToNegotiationOnInviteStatusInfoUnavailable);
                 sb.append(", isCcWw=");
@@ -405,6 +415,15 @@ public class WifiP2pMetrics {
             }
             mCurrentConnectionEvent.staFrequencyMhz = getWifiStaFrequency();
             mCurrentConnectionEvent.uid = uid;
+            if (mLastConnectionEventUid == uid && mCurrentConnectionEventStartTime < (
+                    mLastConnectionEventStartTime + MAX_CONNECTION_ATTEMPT_TIME_INTERVAL_MS)) {
+                mLastConnectionTryCount += 1;
+            } else {
+                mLastConnectionTryCount = 1;
+            }
+            mLastConnectionEventUid = uid;
+            mLastConnectionEventStartTime = mCurrentConnectionEventStartTime;
+            mCurrentConnectionEvent.tryCount = mLastConnectionTryCount;
 
             mConnectionEventList.add(mCurrentConnectionEvent);
         }
@@ -449,8 +468,12 @@ public class WifiP2pMetrics {
                     mCurrentConnectionEvent.staFrequencyMhz,
                     mCurrentConnectionEvent.uid,
                     mIsCountryCodeWorldMode,
-                    mCurrentConnectionEvent.fallbackToNegotiationOnInviteStatusInfoUnavailable);
+                    mCurrentConnectionEvent.fallbackToNegotiationOnInviteStatusInfoUnavailable,
+                    mCurrentConnectionEvent.tryCount);
             mCurrentConnectionEvent = null;
+            if (P2pConnectionEvent.CLF_NONE == failure) {
+                mLastConnectionTryCount = 0;
+            }
         }
     }
 
