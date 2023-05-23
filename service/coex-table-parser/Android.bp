@@ -21,4 +21,5 @@ xsd_config {
     name: "coex-table-parser",
     srcs: ["coex_table.xsd"],
     package_name: "com.android.server.wifi.coex",
+    root_elements: ["table"],
 }
