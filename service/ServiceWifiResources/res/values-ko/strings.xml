@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"허용"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"허용 안함"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"비행기 모드에서 Wi-Fi 사용"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Wi-Fi를 켜진 상태로 유지하면 다음에 비행기 모드를 사용할 때도 Wi-Fi 연결이 유지됩니다."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi가 켜진 상태로 유지됨"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"비행기 모드에서 기기의 Wi-Fi가 켜진 상태로 유지됩니다. 유지하지 않으려면 Wi-Fi를 사용 중지하세요."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"사용할 수 없는 네트워크"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>이(가) 관리자에 의해 사용 중지되었습니다."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"닫기"</string>
