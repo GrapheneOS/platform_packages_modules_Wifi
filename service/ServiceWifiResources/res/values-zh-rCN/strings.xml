@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允许"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允许"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"飞行模式时开启 WLAN"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"如果您不关闭 WLAN，那么您下次进入飞行模式时设备将记住保持 WLAN 开启"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"WLAN 保持开启状态"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"在飞行模式下设备将记住保持 WLAN 开启。如果您不想让 WLAN 保持开启，请关闭 WLAN。"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"网络无法使用"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> 已被您的管理员停用。"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"关闭"</string>

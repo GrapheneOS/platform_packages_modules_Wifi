@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Tillåt"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Tillåt inte"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifi är aktiverat i flygplansläget"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Om du håller wifi aktiverat kommer enheten ihåg att hålla det aktiverat nästa gång du använder flygplansläge."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifi inaktiveras inte"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Enheten kommer ihåg att hålla wifi aktiverat i flygplansläge. Inaktivera wifi om du inte vill att wifi ska hållas aktiverat."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Otillgängligt nätverk"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> har inaktiverats av administratören."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Stäng"</string>
