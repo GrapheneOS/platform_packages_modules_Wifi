@@ -25,6 +25,7 @@ import android.net.wifi.IDppCallback;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -57,6 +58,7 @@ import java.util.List;
  */
 public class DppManager {
     private static final String TAG = "DppManager";
+    private final WifiInjector mWifiInjector;
     private final Handler mHandler;
 
     private DppRequestInfo mDppRequestInfo = null;
@@ -124,9 +126,10 @@ public class DppManager {
         }
     };
 
-    DppManager(Handler handler, WifiNative wifiNative, WifiConfigManager wifiConfigManager,
-            Context context, DppMetrics dppMetrics, ScanRequestProxy scanRequestProxy,
-            WifiPermissionsUtil wifiPermissionsUtil) {
+    DppManager(WifiInjector wifiInjector, Handler handler, WifiNative wifiNative,
+            WifiConfigManager wifiConfigManager, Context context, DppMetrics dppMetrics,
+            ScanRequestProxy scanRequestProxy, WifiPermissionsUtil wifiPermissionsUtil) {
+        mWifiInjector = wifiInjector;
         mHandler = handler;
         mWifiNative = wifiNative;
         mWifiConfigManager = wifiConfigManager;
@@ -362,7 +365,13 @@ public class DppManager {
         // Auth init
         logd("Authenticating");
 
-        String ssidEncoded = encodeStringToHex(selectedNetwork.SSID);
+        String ssidEncoded;
+        WifiSsid originalSsid = mWifiInjector.getSsidTranslator().getOriginalSsid(selectedNetwork);
+        if (originalSsid != null) {
+            ssidEncoded = encodeStringToHex(originalSsid.toString());
+        } else {
+            ssidEncoded = encodeStringToHex(selectedNetwork.SSID);
+        }
         String passwordEncoded = null;
 
         if (password != null) {

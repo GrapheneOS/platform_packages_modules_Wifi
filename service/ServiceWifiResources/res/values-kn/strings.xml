@@ -162,11 +162,9 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ಅನುಮತಿಸಿ"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ಅನುಮತಿಸಬೇಡಿ"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"ಏರ್‌ಪ್ಲೇನ್ ಮೋಡ್‌ನಲ್ಲಿ ವೈ-ಫೈ ಆನ್ ಆಗಿದೆ"</string>
-    <!-- no translation found for wifi_enabled_apm_first_time_message (6416193199042203037) -->
-    <skip />
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"ನೀವು ವೈ-ಫೈ ಆನ್ ಮಾಡಿದರೆ, ಮುಂದಿನ ಬಾರಿ ನೀವು ಏರ್‌ಪ್ಲೇನ್ ಮೋಡ್‌ನಲ್ಲಿರುವಾಗ ಅದನ್ನು ಆನ್ ಮಾಡಲು ನಿಮ್ಮ ಸಾಧನ ನೆನಪಿನಲ್ಲಿರಿಸಿಕೊಳ್ಳುತ್ತದೆ"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"ವೈ-ಫೈ ಆನ್ ಇರುತ್ತದೆ"</string>
-    <!-- no translation found for apm_enabled_first_time_message (6093911536874954410) -->
-    <skip />
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"ವೈ-ಫೈ ಅನ್ನು ಏರ್‌ಪ್ಲೇನ್ ಮೋಡ್‌ನಲ್ಲಿ ಆನ್ ಆಗಿರಿಸಿಕೊಳ್ಳುವುದನ್ನು ನಿಮ್ಮ ಸಾಧನ ನೆನಪಿನಲ್ಲಿರಿಸಿಕೊಳ್ಳುತ್ತದೆ. ವೈ-ಫೈ ಆನ್ ಆಗಿರಲು ನೀವು ಬಯಸದಿದ್ದರೆ ಅದನ್ನು ಆಫ್ ಮಾಡಿ."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"ನೆಟ್‌ವರ್ಕ್ ಲಭ್ಯವಿಲ್ಲ"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> ಅನ್ನು ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿದ್ದಾರೆ."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"ಮುಚ್ಚಿರಿ"</string>
