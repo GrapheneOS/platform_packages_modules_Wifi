@@ -946,6 +946,8 @@ public class WifiConfigStore {
                     mAtomicFile.failWrite(out);
                 }
                 throw e;
+            } catch (NullPointerException e) {
+                Log.wtf(TAG, "Possible concurrent modify on mWriteData", e);
             }
             // Reset the pending write data after write.
             mWriteData = null;
