@@ -1477,7 +1477,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mSimRequiredNotifier).showSimRequiredNotification(any(), any());
         verify(mWifiNative, times(2)).removeAllNetworks(WIFI_IFACE_NAME);
         verify(mWifiMetrics).startConnectionEvent(
-                anyString(), any(), anyString(), anyInt(), eq(true));
+                anyString(), any(), anyString(), anyInt(), eq(true), anyInt());
     }
 
     /**
@@ -2646,8 +2646,8 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void testEapSimErrorVendorSpecific() throws Exception {
-        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean()))
-                .thenReturn(80000);
+        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean(),
+                anyInt())).thenReturn(80000);
         initializeAndAddNetworkAndVerifySuccess();
 
         startConnectSuccess();
@@ -2677,8 +2677,8 @@ public class ClientModeImplTest extends WifiBaseTest {
 
     @Test
     public void testEapAkaRetrieveOobPseudonymTriggeredByAuthenticationFailure() throws Exception {
-        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean()))
-                .thenReturn(80000);
+        when(mWifiMetrics.startConnectionEvent(any(), any(), anyString(), anyInt(), anyBoolean(),
+                anyInt())).thenReturn(80000);
         when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
         initializeAndAddNetworkAndVerifySuccess();
 

@@ -3532,6 +3532,25 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return true;
     }
 
+    private int getClientRoleForMetrics(WifiConfiguration config) {
+        ActiveModeManager.ClientRole clientRole = mClientModeManager.getRole();
+        if (clientRole == ROLE_CLIENT_PRIMARY) {
+            return config != null && config.fromWifiNetworkSpecifier
+                    ? WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY
+                    : WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY;
+        } else if (clientRole == ROLE_CLIENT_LOCAL_ONLY) {
+            return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY;
+        } else if (clientRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
+            return mClientModeManager.isSecondaryInternet()
+                    ? WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_INTERNET
+                    : WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_LONG_LIVED;
+        } else if (clientRole == ROLE_CLIENT_SECONDARY_TRANSIENT) {
+            return WifiStatsLog
+                    .WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_TRANSIENT;
+        }
+        return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_OTHERS;
+    }
+
     /**
      * Inform other components that a new connection attempt is starting.
      */
@@ -3544,7 +3563,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
         int overlapWithLastConnectionMs =
                 mWifiMetrics.startConnectionEvent(
-                        mInterfaceName, config, targetBSSID, roamType, isOobPseudonymEnabled);
+                        mInterfaceName, config, targetBSSID, roamType, isOobPseudonymEnabled,
+                        getClientRoleForMetrics(config));
         if (mDeviceConfigFacade.isOverlappingConnectionBugreportEnabled()
                 && overlapWithLastConnectionMs
                 > mDeviceConfigFacade.getOverlappingConnectionDurationThresholdMs()) {
