@@ -62,7 +62,7 @@ public class WifiAwareClientState {
     private final int mUid;
     private final int mPid;
     private final String mCallingPackage;
-    private final @Nullable String mCallingFeatureId;
+    public final @Nullable String mCallingFeatureId;
     private final boolean mNotifyIdentityChange;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final Object mAttributionSource;
@@ -70,6 +70,7 @@ public class WifiAwareClientState {
     private final AppOpsManager mAppOps;
     private final long mCreationTime;
     private final boolean mAwareOffload;
+    public final int mCallerType;
 
     private static final byte[] ALL_ZERO_MAC = new byte[] {0, 0, 0, 0, 0, 0};
     private byte[] mLastDiscoveryInterfaceMac = ALL_ZERO_MAC;
@@ -80,7 +81,7 @@ public class WifiAwareClientState {
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
             boolean notifyIdentityChange, long creationTime,
             WifiPermissionsUtil wifiPermissionsUtil, Object attributionSource, LocalLog localLog,
-            boolean awareOffload) {
+            boolean awareOffload, int callerType) {
         mContext = context;
         mClientId = clientId;
         mUid = uid;
@@ -97,6 +98,7 @@ public class WifiAwareClientState {
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mAttributionSource = attributionSource;
         mLocalLog = localLog;
+        mCallerType = callerType;
     }
 
     /**
