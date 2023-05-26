@@ -1148,12 +1148,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         ArrayList<String> ifaceList = interfaces.stream().map(
                                 p -> p.getInterface()).collect(
                                 Collectors.toCollection(ArrayList::new));
-                        if (interfaces.stream().anyMatch(
-                                p -> p.getType() == TetheringManager.TETHERING_WIFI_P2P)) {
-                            logd(getName() + " Tethering localOnlyInterfacesChanged"
-                                    + " callback for ifaceList: " + ifaceList);
-                            sendMessage(TETHER_INTERFACE_STATE_CHANGED, ifaceList);
-                        }
+                        logd(getName() + " Tethering localOnlyInterfacesChanged"
+                                + " callback for ifaceList: " + ifaceList);
+                        sendMessage(TETHER_INTERFACE_STATE_CHANGED, ifaceList);
                     }
                 };
 
