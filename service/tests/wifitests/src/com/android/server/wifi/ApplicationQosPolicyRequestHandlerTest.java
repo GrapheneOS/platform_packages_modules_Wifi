@@ -292,6 +292,25 @@ public class ApplicationQosPolicyRequestHandlerTest {
     }
 
     /**
+     * Tests the policy add flow when there are multiple ClientModeManagers,
+     * and an error occurs while processing the request for the first ClientModeManager.
+     */
+    @Test
+    public void testDownlinkPolicyAddError_twoClientModeManagers() throws Exception {
+        when(mActiveModeWarden.getInternetConnectivityClientModeManagers())
+                .thenReturn(Arrays.asList(mClientModeManager0, mClientModeManager1));
+        List<QosPolicyParams> policyList = createDownlinkPolicyList(5, TEST_POLICY_ID_START);
+
+        // Immediately reject the policies in WifiNative when the request is first processed.
+        setupSynchronousResponse(SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_ERROR_UNKNOWN);
+        mDut.queueAddRequest(policyList, mIListListener, mBinder, TEST_UID);
+
+        // Policies should not be sent to WifiNative when the 2nd interface processes the request.
+        verify(mWifiNative, times(1)).addQosPolicyRequestForScs(anyString(), anyList());
+        verifyApplicationCallback(WifiManager.QOS_REQUEST_STATUS_FAILURE_UNKNOWN);
+    }
+
+    /**
      * Tests the policy add flow when multiple policy requests are queued.
      */
     @Test
