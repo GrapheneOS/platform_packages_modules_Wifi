@@ -68,6 +68,7 @@ public class ApplicationQosPolicyRequestHandler {
     private final ApplicationDeathRecipient mApplicationDeathRecipient;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final Context mContext;
+    private boolean mVerboseLoggingEnabled;
 
     private Map<String, List<QueuedRequest>> mPerIfaceRequestQueue;
     private Map<String, CallbackParams> mPendingCallbacks;
@@ -201,7 +202,10 @@ public class ApplicationQosPolicyRequestHandler {
             mHandler.post(() -> {
                 logApCallbackMockable(ifaceName, halStatusList);
                 CallbackParams expectedParams = mPendingCallbacks.get(ifaceName);
-                if (expectedParams == null) return;
+                if (expectedParams == null) {
+                    Log.i(TAG, "Callback was not expected on this interface");
+                    return;
+                }
 
                 if (!expectedParams.matchesResults(halStatusList)) {
                     // Silently ignore this callback if it does not match the expected parameters.
@@ -209,6 +213,7 @@ public class ApplicationQosPolicyRequestHandler {
                     return;
                 }
 
+                Log.i(TAG, "Expected callback was received");
                 mPendingCallbacks.remove(ifaceName);
                 processNextRequestIfPossible(ifaceName);
             });
@@ -253,15 +258,30 @@ public class ApplicationQosPolicyRequestHandler {
         mApplicationDeathRecipient = new ApplicationDeathRecipient();
         mDeviceConfigFacade = deviceConfigFacade;
         mContext = context;
+        mVerboseLoggingEnabled = false;
         mPolicyTrackingTable =
                 new ApplicationQosPolicyTrackingTable(HAL_POLICY_ID_MIN, HAL_POLICY_ID_MAX);
         mWifiNative.registerQosScsResponseCallback(mApCallback);
+    }
+
+    /**
+     * Enable or disable verbose logging.
+     */
+    public void enableVerboseLogging(boolean enable) {
+        mVerboseLoggingEnabled = enable;
     }
 
     @VisibleForTesting
     protected void logApCallbackMockable(String ifaceName,
             List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
         Log.i(TAG, "Received AP callback on " + ifaceName + ", size=" + halStatusList.size());
+        if (mVerboseLoggingEnabled) {
+            long numPoliciesAccepted = halStatusList.stream()
+                    .filter(status -> status.statusCode
+                            == SupplicantStaIfaceHal.QOS_POLICY_SCS_RESPONSE_STATUS_SUCCESS)
+                    .count();
+            Log.d(TAG, "AP accepted " + numPoliciesAccepted + " policies");
+        }
     }
 
     /**
@@ -287,6 +307,7 @@ public class ApplicationQosPolicyRequestHandler {
      */
     public void queueAddRequest(@NonNull List<QosPolicyParams> policies,
             @NonNull IListListener listener, @NonNull IBinder binder, int uid) {
+        Log.i(TAG, "Queueing add request. size=" + policies.size());
         QueuedRequest request = new QueuedRequest(
                 REQUEST_TYPE_ADD, policies, null, listener, binder, uid);
         queueRequestOnAllIfaces(request);
@@ -300,6 +321,7 @@ public class ApplicationQosPolicyRequestHandler {
      * @param uid UID of the requesting application.
      */
     public void queueRemoveRequest(@NonNull List<Integer> policyIds, int uid) {
+        Log.i(TAG, "Queueing remove request. size=" + policyIds.size());
         QueuedRequest request = new QueuedRequest(
                 REQUEST_TYPE_REMOVE, null, policyIds, null, null, uid);
         queueRequestOnAllIfaces(request);
@@ -313,6 +335,7 @@ public class ApplicationQosPolicyRequestHandler {
      */
     public void queueRemoveAllRequest(int uid) {
         List<Integer> ownedPolicies = mPolicyTrackingTable.getAllPolicyIdsOwnedByUid(uid);
+        Log.i(TAG, "Queueing removeAll request. numOwnedPolicies=" + ownedPolicies.size());
         if (ownedPolicies.isEmpty()) return;
 
         // Divide ownedPolicies into batches of size MAX_POLICIES_PER_TRANSACTION,
@@ -333,6 +356,8 @@ public class ApplicationQosPolicyRequestHandler {
      */
     public void queueAllPoliciesOnIface(String ifaceName) {
         List<QosPolicyParams> policyList = mPolicyTrackingTable.getAllPolicies();
+        Log.i(TAG, "Queueing all policies on iface=" + ifaceName + ". numPolicies="
+                + policyList.size());
         if (policyList.isEmpty()) return;
 
         // Divide policyList into batches of size MAX_POLICIES_PER_TRANSACTION,
@@ -480,6 +505,10 @@ public class ApplicationQosPolicyRequestHandler {
     private void processAddRequest(String ifaceName, QueuedRequest request) {
         boolean previouslyProcessed = request.processedOnAnyIface;
         request.processedOnAnyIface = true;
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, "Processing add request on iface=" + ifaceName + ", size="
+                    + request.policiesToAdd.size());
+        }
 
         // Verify that the requesting application is still alive.
         if (request.binder != null && !request.binder.pingBinder()) {
@@ -498,6 +527,12 @@ public class ApplicationQosPolicyRequestHandler {
         if (previouslyProcessed && request.requesterUid != DEFAULT_UID) {
             policyList = mPolicyTrackingTable.filterUntrackedPolicies(policyList,
                     request.requesterUid);
+        }
+
+        if (policyList.isEmpty()) {
+            Log.e(TAG, "All policies were removed during filtering");
+            processNextRequestIfPossible(ifaceName);
+            return;
         }
 
         List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList =
@@ -536,6 +571,10 @@ public class ApplicationQosPolicyRequestHandler {
     }
 
     private void processRemoveRequest(String ifaceName, QueuedRequest request) {
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Processing remove request on iface=" + ifaceName + ", size="
+                    + request.policyIdsToRemove.size());
+        }
         List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList =
                 mWifiNative.removeQosPolicyForScs(ifaceName, request.virtualPolicyIdsToRemove);
         if (halStatusList == null) {
@@ -560,13 +599,18 @@ public class ApplicationQosPolicyRequestHandler {
      *
      * Any policies that were sent to the AP will appear in the list.
      */
-    private static List<Byte> getPoliciesAwaitingCallback(
+    private List<Byte> getPoliciesAwaitingCallback(
             List<SupplicantStaIfaceHal.QosPolicyStatus> halStatusList) {
         List<Byte> policiesAwaitingCallback = new ArrayList<>();
         for (SupplicantStaIfaceHal.QosPolicyStatus status : halStatusList) {
             if (status.statusCode == SupplicantStaIfaceHal.QOS_POLICY_SCS_REQUEST_STATUS_SENT) {
                 policiesAwaitingCallback.add((byte) status.policyId);
             }
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.d(TAG, policiesAwaitingCallback.size()
+                    + " policies were sent to the AP and are awaiting callback");
         }
         return policiesAwaitingCallback;
     }
