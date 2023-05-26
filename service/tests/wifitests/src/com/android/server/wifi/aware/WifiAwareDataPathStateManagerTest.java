@@ -197,6 +197,10 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(), anyInt(), anyInt()))
             .thenReturn(true);
         when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        when(mWifiPermissionsUtil.getWifiCallerType(anyInt(), anyString())).thenReturn(6);
+        if (SdkLevel.isAtLeastS()) {
+            when(mWifiPermissionsUtil.getWifiCallerType(any())).thenReturn(6);
+        }
         when(mWifiInjector.getWifiAwareLocalLog()).thenReturn(mLocalLog);
 
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
@@ -309,7 +313,6 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             mDut.onCreateDataPathInterfaceResponse(transactionId.getValue(), true, 0);
             mMockLooper.dispatchAll();
         }
-
         verifyNoMoreInteractions(mMockNative, mMockNetdWrapper);
     }
 
@@ -485,7 +488,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 .isPending(WifiAwareStateManager.HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG));
 
         verifyRequestDeclaredUnfullfillable(nr);
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         // failure if there's further activity
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -620,7 +623,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             }
             inOrderM.verify(mAwareMetricsMock).recordNdpSessionDuration(anyLong());
         }
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -776,7 +779,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         inOrder.verify(mMockNetdWrapper).setInterfaceDown(anyString());
         inOrderM.verify(mAwareMetricsMock).recordNdpSessionDuration(anyLong());
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -866,7 +869,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // verify that each interface name is unique
         assertEquals("Number of unique interface names", numNdis, interfaces.size());
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -957,7 +960,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // verify that each interface name is unique
         assertEquals("Number of unique interface names", 1, interfaces.size());
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -1052,7 +1055,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // verify that each interface name is unique
         assertEquals("Number of unique interface names", numNdis, interfaces.size());
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -1172,7 +1175,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         // It should be reject as interface already has a request to this peer.
         verifyRequestDeclaredUnfullfillable(nr);
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mMockCallback, mMockSessionCallback,
                 mAwareMetricsMock, mMockNetdWrapper);
     }
@@ -1538,7 +1541,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrder.verify(mMockNative).respondToDataPathRequest(anyShort(), eq(false),
                     eq(ndpId), eq(""), eq(null), anyBoolean(), any(), any(), eq((byte) 0));
         }
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -1601,7 +1604,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrder.verify(mMockNative).respondToDataPathRequest(anyShort(), eq(false),
                     eq(ndpId), eq(""), eq(null), anyBoolean(), any(), any(), eq((byte) 0));
         }
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -1663,7 +1666,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrder.verify(mMockNative).respondToDataPathRequest(anyShort(), eq(false),
                     eq(ndpId), eq(""), eq(null), anyBoolean(), any(), any(), eq((byte) 0));
         }
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -1749,6 +1752,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrderM.verify(mAwareMetricsMock).recordNdpStatus(eq(NanStatusCode.INTERNAL_FAILURE),
                     eq(useDirect), anyInt(), anyLong(), anyInt());
             verifyRequestDeclaredUnfullfillable(nr);
+            verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
             verifyNoMoreInteractions(mMockNative, mAwareMetricsMock);
             return;
         }
@@ -1867,7 +1871,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrder.verify(mMockNetdWrapper).setInterfaceDown(anyString());
             inOrderM.verify(mAwareMetricsMock).recordNdpSessionDuration(anyLong());
         }
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper,
                 mMockNetworkInterface);
     }
@@ -1996,6 +2000,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrder.verify(mMockNetdWrapper).setInterfaceDown(anyString());
             inOrderM.verify(mAwareMetricsMock).recordNdpSessionDuration(anyLong());
         }
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -2177,7 +2182,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         inOrder.verify(mMockSessionCallback).onSessionStarted(sessionId.capture());
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySession(eq(Process.myUid()), any());
         inOrderM.verify(mAwareMetricsMock).recordDiscoveryStatus(Process.myUid(),
-                NanStatusCode.SUCCESS, doPublish, sessionId.getValue());
+                NanStatusCode.SUCCESS, doPublish, sessionId.getValue(), 6, TEST_FEATURE_ID);
 
         mDut.onMessageReceivedNotification(pubSubId, requestorId, peerDiscoveryMac,
                 someMsg.getBytes());
@@ -2240,7 +2245,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         inOrder.verify(mMockCallback).onConnectSuccess(clientId);
         inOrderM.verify(mAwareMetricsMock).recordAttachSession(eq(Process.myUid()), eq(false),
-                any());
+                any(),  eq(6), eq(TEST_FEATURE_ID));
 
         if (startUpSequence) {
             for (int i = 0; i < maxNdiInterfaces; ++i) {
@@ -2505,6 +2510,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             inOrderM.verify(mAwareMetricsMock).recordNdpSessionDuration(anyLong());
         }
         inOrder.verify(mMockNetdWrapper).setInterfaceDown(anyString());
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
 
@@ -2721,7 +2727,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 anyLong(), anyInt());
         assertFalse(mAlarmManager
                 .isPending(WifiAwareStateManager.HAL_DATA_PATH_CONFIRM_TIMEOUT_TAG));
-
+        verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         // failure if there's further activity
         verifyNoMoreInteractions(mMockNative, mAwareMetricsMock, mMockNetdWrapper);
     }
