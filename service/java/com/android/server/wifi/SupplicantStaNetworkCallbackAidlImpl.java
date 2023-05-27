@@ -209,7 +209,8 @@ class SupplicantStaNetworkCallbackAidlImpl extends ISupplicantStaNetworkCallback
                     + " certHash=" + certHash
                     + " cert=" + cert);
             mWifiMonitor.broadcastCertificationEvent(
-                    mIfaceName, mFrameworkNetworkId, mSsid, depth, cert);
+                    mIfaceName, mFrameworkNetworkId, mSsid, depth,
+                    new CertificateEventInfo(cert, certHash));
         }
     }
 
