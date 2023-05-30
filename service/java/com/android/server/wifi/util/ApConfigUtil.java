@@ -630,6 +630,67 @@ public class ApConfigUtil {
     }
 
     /**
+     * Remove unavailable bands from the softAp configuration and return the updated configuration.
+     * Unavailable bands are those which don't have channels available.
+     *
+     * @param config The current {@link SoftApConfiguration}.
+     * @param capability SoftApCapability which indicates supported channel list.
+     * @param coexManager reference to CoexManager
+     * @param context the caller context used to get value from resource file.
+     *
+     * @return the updated SoftApConfiguration.
+     */
+    public static SoftApConfiguration removeUnavailableBandsFromConfig(
+            SoftApConfiguration config, SoftApCapability capability, CoexManager coexManager,
+            @NonNull Context context) {
+        SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder(config);
+
+        try {
+            if (config.getBands().length == 1) {
+                int configuredBand = config.getBand();
+                int availableBand = ApConfigUtil.removeUnavailableBands(
+                        capability,
+                        configuredBand, coexManager);
+                if (availableBand != configuredBand) {
+                    availableBand = ApConfigUtil.append24GToBandIf24GSupported(availableBand,
+                            context);
+                    Log.i(TAG, "Reset band from " + configuredBand + " to "
+                            + availableBand + " in single AP configuration");
+                    builder.setBand(availableBand);
+                }
+            } else if (SdkLevel.isAtLeastS()) {
+                SparseIntArray channels = config.getChannels();
+                SparseIntArray newChannels = new SparseIntArray(channels.size());
+                for (int i = 0; i < channels.size(); i++) {
+                    int configuredBand = channels.keyAt(i);
+                    int availableBand = ApConfigUtil.removeUnavailableBands(
+                            capability,
+                            configuredBand, coexManager);
+                    if (availableBand != configuredBand) {
+                        Log.i(TAG, "Reset band in index " + i + " from " + configuredBand
+                                + " to " + availableBand + " in dual AP configuration");
+                    }
+                    if (isBandValid(availableBand)) {
+                        newChannels.put(availableBand, channels.valueAt(i));
+                    }
+                }
+                if (newChannels.size() != 0) {
+                    builder.setChannels(newChannels);
+                } else {
+                    builder.setBand(
+                            ApConfigUtil.append24GToBandIf24GSupported(0, context));
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to update config by removing unavailable bands"
+                    + e);
+            return null;
+        }
+
+        return builder.build();
+    }
+
+    /**
      * Remove all unsupported bands from the input band and return the resulting
      * (remaining) support bands. Unsupported bands are those which don't have channels available.
      *
