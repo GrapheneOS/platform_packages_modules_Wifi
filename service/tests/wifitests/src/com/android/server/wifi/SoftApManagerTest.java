@@ -3155,6 +3155,29 @@ public class SoftApManagerTest extends WifiBaseTest {
     public void testBridgedModeFallbackToSingleModeDueToUnavailableBand()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
+        int[] dual_bands = {SoftApConfiguration.BAND_5GHZ,
+                SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ};
+        SoftApCapability testCapability = new SoftApCapability(mTestSoftApCapability);
+        testCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
+        testCapability.setSupportedChannelList(
+                SoftApConfiguration.BAND_6GHZ, new int[]{5, 21});
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setSsid(TEST_SSID);
+        configBuilder.setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE);
+        configBuilder.setBands(dual_bands);
+
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                testCapability, TEST_COUNTRY_CODE);
+        // Reset band to 2.4G | 6G to generate expected configuration
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ);
+        startSoftApAndVerifyEnabled(apConfig, configBuilder.build(), false);
+    }
+
+    @Test
+    public void testBridgedModeWorksEvenIfABandIsUnavailableInBandArray()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
         int[] dual_bands = {SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ,
                 SoftApConfiguration.BAND_5GHZ};
         SoftApCapability testCapability = new SoftApCapability(mTestSoftApCapability);
@@ -3166,8 +3189,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
                 WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
                 testCapability, TEST_COUNTRY_CODE);
-        // Reset band to 2.4G | 5G to generate expected configuration
-        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ);
+        // Reset band array to {2.4G, 5G} to generate expected configuration
+        int[] expected_dual_bands = {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_5GHZ};
+        configBuilder.setBands(expected_dual_bands);
         startSoftApAndVerifyEnabled(apConfig, configBuilder.build(), false);
     }
 

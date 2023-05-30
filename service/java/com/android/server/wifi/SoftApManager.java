@@ -1062,7 +1062,6 @@ public class SoftApManager implements ActiveModeManager {
                         }
                         if (isBridgedMode()) {
                             boolean isFallbackToSingleAp = false;
-                            int newSingleApBand = 0;
                             final List<ClientModeManager> cmms =
                                     mActiveModeWarden.getClientModeManagers();
                             // Checking STA status only when device supports STA + AP concurrency
@@ -1098,14 +1097,19 @@ public class SoftApManager implements ActiveModeManager {
                                         + ", base country in SoftApCapability = "
                                         + mCurrentSoftApCapability.getCountryCode());
                             } else {
-                                for (int configuredBand : mCurrentSoftApConfiguration.getBands()) {
-                                    int availableBand = ApConfigUtil.removeUnavailableBands(
-                                            mCurrentSoftApCapability,
-                                            configuredBand, mCoexManager);
-                                    if (configuredBand != availableBand) {
-                                        isFallbackToSingleAp = true;
-                                    }
-                                    newSingleApBand |= availableBand;
+                                SoftApConfiguration tempConfig =
+                                        ApConfigUtil.removeUnavailableBandsFromConfig(
+                                                mCurrentSoftApConfiguration,
+                                                mCurrentSoftApCapability, mCoexManager, mContext);
+                                if (tempConfig == null) {
+                                    handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                                    break;
+                                }
+                                mCurrentSoftApConfiguration = tempConfig;
+                                if (mCurrentSoftApConfiguration.getBands().length == 1) {
+                                    isFallbackToSingleAp = true;
+                                    Log.i(getTag(), "Removed unavailable bands"
+                                            + " - fallback to single AP");
                                 }
                             }
                             // Fall back to Single AP if it's not possible to create a Bridged AP.
@@ -1120,6 +1124,10 @@ public class SoftApManager implements ActiveModeManager {
                                 isFallbackToSingleAp = true;
                             }
                             if (isFallbackToSingleAp) {
+                                int newSingleApBand = 0;
+                                for (int configuredBand : mCurrentSoftApConfiguration.getBands()) {
+                                    newSingleApBand |= configuredBand;
+                                }
                                 newSingleApBand = ApConfigUtil.append24GToBandIf24GSupported(
                                         newSingleApBand, mContext);
                                 Log.i(getTag(), "Fallback to single AP mode with band "
