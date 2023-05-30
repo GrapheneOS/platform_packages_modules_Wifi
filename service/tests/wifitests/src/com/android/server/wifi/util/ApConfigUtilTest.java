@@ -923,6 +923,94 @@ public class ApConfigUtilTest extends WifiBaseTest {
 
     }
 
+    /**
+     * Verify the update in band config band, when channels are not available in a band.
+     */
+    @Test
+    public void testUpdateBandInConfigOnFindingUnavailableChannels() throws Exception {
+        SoftApConfiguration config;
+        SoftApCapability testSoftApCapability = new SoftApCapability(0);
+        when(mContext.getResources()).thenReturn(mResources);
+
+        if (SdkLevel.isAtLeastS()) {
+            // 6GHz channels not available - {2GHz|6GHz, 5GHz} => {2GHz, 5GHz}
+            testSoftApCapability.setSupportedChannelList(
+                    SoftApConfiguration.BAND_2GHZ, new int[]{1, 2});
+            testSoftApCapability.setSupportedChannelList(
+                    SoftApConfiguration.BAND_5GHZ, new int[]{36, 149});
+            testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_6GHZ, new int[0]);
+            int[] bands_2g6g_5g = {SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ,
+                    SoftApConfiguration.BAND_5GHZ};
+            int[] expected_bands_2g_5g =
+                    {SoftApConfiguration.BAND_2GHZ, SoftApConfiguration.BAND_5GHZ};
+            config = new SoftApConfiguration.Builder()
+                    .setBands(bands_2g6g_5g)
+                    .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                    .build();
+            assertArrayEquals(expected_bands_2g_5g,
+                    ApConfigUtil.removeUnavailableBandsFromConfig(config, testSoftApCapability,
+                            mCoexManager, mContext).getBands());
+
+            // 6GHz & 5GHz channels not available - {2GHz, 5GHz|6GHz} => {2GHz}
+            testSoftApCapability.setSupportedChannelList(
+                    SoftApConfiguration.BAND_2GHZ, new int[]{1, 2});
+            testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_6GHZ, new int[0]);
+            testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
+            int[] bands_2g_5g6g = {SoftApConfiguration.BAND_2GHZ, SoftApConfiguration.BAND_5GHZ
+                    | SoftApConfiguration.BAND_6GHZ};
+            int[] expected_bands_2g = {SoftApConfiguration.BAND_2GHZ};
+            config = new SoftApConfiguration.Builder()
+                    .setBands(bands_2g_5g6g)
+                    .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                    .build();
+            assertArrayEquals(expected_bands_2g,
+                    ApConfigUtil.removeUnavailableBandsFromConfig(config, testSoftApCapability,
+                            mCoexManager, mContext).getBands());
+
+            // 2GHz & 5GHz channels not available - {5GHz, 2GHz|6GHz} => {6GHz}
+            testSoftApCapability.setSupportedChannelList(
+                    SoftApConfiguration.BAND_6GHZ, new int[]{5, 21});
+            testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_2GHZ, new int[0]);
+            testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
+            int[] bands_5g_2g6g = {SoftApConfiguration.BAND_5GHZ, SoftApConfiguration.BAND_2GHZ
+                    | SoftApConfiguration.BAND_6GHZ};
+            int[] expected_bands_6g = {SoftApConfiguration.BAND_6GHZ};
+            config = new SoftApConfiguration.Builder()
+                    .setBands(bands_5g_2g6g)
+                    .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                    .build();
+            assertArrayEquals(expected_bands_6g,
+                    ApConfigUtil.removeUnavailableBandsFromConfig(config, testSoftApCapability,
+                            mCoexManager, mContext).getBands());
+        }
+
+        // 5GHz channels not available - {2GHz|5GHz} => {2GHz}
+        testSoftApCapability.setSupportedChannelList(
+                SoftApConfiguration.BAND_2GHZ, new int[]{1, 2});
+        testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
+        testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_6GHZ, new int[0]);
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .build();
+        assertEquals(SoftApConfiguration.BAND_2GHZ,
+                ApConfigUtil.removeUnavailableBandsFromConfig(config, testSoftApCapability,
+                        mCoexManager, mContext).getBand());
+
+        // 2GHz, 5GHz and 6GHz channels not available + SoftAp doesn't support 2GHz band.
+        // Expected to return a null config as there are no bands to update.
+        when(mResources.getBoolean(R.bool.config_wifi24ghzSupport)).thenReturn(false);
+        testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_2GHZ, new int[0]);
+        testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
+        testSoftApCapability.setSupportedChannelList(SoftApConfiguration.BAND_6GHZ, new int[0]);
+        config = new SoftApConfiguration.Builder()
+                .setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase("somepassword", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .build();
+        assertNull(ApConfigUtil.removeUnavailableBandsFromConfig(config, testSoftApCapability,
+                        mCoexManager, mContext));
+    }
+
     @Test
     public void testCheckSupportAllConfiguration() throws Exception {
         SoftApConfiguration.Builder testConfigBuilder = new SoftApConfiguration.Builder();
