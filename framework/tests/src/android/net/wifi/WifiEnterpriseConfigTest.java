@@ -813,7 +813,7 @@ public class WifiEnterpriseConfigTest {
 
         String invalidKey = "invalidKey";
         String invalidValue = "invalidValue";
-        config.setFieldValue(invalidValue, invalidKey);
+        config.setFieldValue(invalidKey, invalidValue);
         assertEquals("", config.getFieldValue(invalidKey));
     }
 
@@ -864,5 +864,42 @@ public class WifiEnterpriseConfigTest {
         WifiEnterpriseConfig config = WifiEnterpriseConfig.CREATOR.createFromParcel(parcel);
         assertEquals(password, config.getPassword());
         assertEquals("", config.getFieldValue(invalidKey));
+    }
+
+    /**
+     * Verify that fields with invalid field lengths cannot be set or retrieved.
+     */
+    @Test
+    public void testCannotSetOrGetFieldsWithInvalidLength() {
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+        String password = "somePassword";
+        config.setFieldValue(WifiEnterpriseConfig.PASSWORD_KEY, password);
+        assertEquals(password, config.getFieldValue(WifiEnterpriseConfig.PASSWORD_KEY));
+
+        // Value of OPP_KEY_CACHING is expected to have a length of 1.
+        String invalidValue = "invalidValue";
+        config.setFieldValue(WifiEnterpriseConfig.OPP_KEY_CACHING, invalidValue);
+        assertEquals("", config.getFieldValue(WifiEnterpriseConfig.OPP_KEY_CACHING));
+    }
+
+    /**
+     * Verify that field values with invalid lengths are ignored during unparceling.
+     */
+    @Test
+    public void testFieldsWithInvalidLengthIgnoredDuringUnparceling() {
+        Map<String, String> fieldsMap = new HashMap<>();
+        String password = "somePassword";
+        fieldsMap.put(WifiEnterpriseConfig.PASSWORD_KEY, password);
+
+        // Value of OPP_KEY_CACHING is expected to have a length of 1.
+        String invalidValue = "invalidValue";
+        fieldsMap.put(WifiEnterpriseConfig.OPP_KEY_CACHING, invalidValue);
+
+        // Invalid field should be ignored during unparceling.
+        Parcel parcel = constructParcelWithFieldsMap(fieldsMap);
+        parcel.setDataPosition(0);
+        WifiEnterpriseConfig config = WifiEnterpriseConfig.CREATOR.createFromParcel(parcel);
+        assertEquals(password, config.getFieldValue(WifiEnterpriseConfig.PASSWORD_KEY));
+        assertEquals("", config.getFieldValue(WifiEnterpriseConfig.OPP_KEY_CACHING));
     }
 }
