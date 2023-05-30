@@ -41,10 +41,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECParameterSpec;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Enterprise configuration details for Wi-Fi. Stores details about the EAP method
@@ -250,28 +248,29 @@ public class WifiEnterpriseConfig implements Parcelable {
     };
 
     /**
-     * Keys that can be included in {@link #mFields}.
+     * Fields that are supported in {@link #mFields}.
+     * Each entry includes the supported field's key and its maximum allowed length.
      */
-    private static final Set<String> SUPPORTED_KEYS = new HashSet<>(Arrays.asList(
-            ALTSUBJECT_MATCH_KEY,
-            ANON_IDENTITY_KEY,
-            CA_CERT_KEY,
-            CA_PATH_KEY,
-            CLIENT_CERT_KEY,
-            DECORATED_IDENTITY_PREFIX_KEY,
-            DOM_SUFFIX_MATCH_KEY,
-            EAP_ERP,
-            ENGINE_KEY,
-            ENGINE_ID_KEY,
-            IDENTITY_KEY,
-            OPP_KEY_CACHING,
-            PASSWORD_KEY,
-            PLMN_KEY,
-            PRIVATE_KEY_ID_KEY,
-            REALM_KEY,
-            SUBJECT_MATCH_KEY,
-            WAPI_CERT_SUITE_KEY
-    ));
+    private static final Map<String, Integer> SUPPORTED_FIELDS = new HashMap<>() {{
+            put(ALTSUBJECT_MATCH_KEY, 256);
+            put(ANON_IDENTITY_KEY, 1024);
+            put(CA_CERT_KEY, 8192);
+            put(CA_PATH_KEY, 4096);
+            put(CLIENT_CERT_KEY, 8192);
+            put(DECORATED_IDENTITY_PREFIX_KEY, 256);
+            put(DOM_SUFFIX_MATCH_KEY, 256);
+            put(EAP_ERP, 1);
+            put(ENGINE_KEY, 1);
+            put(ENGINE_ID_KEY, 64);
+            put(IDENTITY_KEY, 256);
+            put(OPP_KEY_CACHING, 1);
+            put(PASSWORD_KEY, 256);
+            put(PLMN_KEY, 16);
+            put(PRIVATE_KEY_ID_KEY, 256);
+            put(REALM_KEY, 256);
+            put(SUBJECT_MATCH_KEY, 256);
+            put(WAPI_CERT_SUITE_KEY, 8192);
+        }};
 
     /**
      * Fields that have unquoted values in {@link #mFields}.
@@ -349,7 +348,25 @@ public class WifiEnterpriseConfig implements Parcelable {
      * @return true if the key is supported, false otherwise.
      */
     private static boolean isKeySupported(String key) {
-        return SUPPORTED_KEYS.contains(key);
+        return SUPPORTED_FIELDS.containsKey(key);
+    }
+
+    /**
+     * Check whether a value from {@link #mFields} has a valid length.
+     * @return true if the length is valid, false otherwise.
+     */
+    private static boolean isFieldLengthValid(String key, String value) {
+        if (value == null) return true;
+        int maxLength = SUPPORTED_FIELDS.getOrDefault(key, 0);
+        return value.length() <= maxLength;
+    }
+
+    /**
+     * Check whether a key/value pair from {@link #mFields} is valid.
+     * @return true if the key/value pair is valid, false otherwise.
+     */
+    private static boolean isFieldValid(String key, String value) {
+        return isKeySupported(key) && isFieldLengthValid(key, value);
     }
 
     /**
@@ -359,7 +376,7 @@ public class WifiEnterpriseConfig implements Parcelable {
     private Bundle fieldMapToBundle() {
         Bundle bundle = new Bundle();
         for (Map.Entry<String, String> entry : mFields.entrySet()) {
-            if (isKeySupported(entry.getKey())) {
+            if (isFieldValid(entry.getKey(), entry.getValue())) {
                 bundle.putString(entry.getKey(), entry.getValue());
             }
         }
@@ -374,8 +391,9 @@ public class WifiEnterpriseConfig implements Parcelable {
         HashMap<String, String> fieldMap = new HashMap<>();
         if (bundle == null) return fieldMap;
         for (String key : bundle.keySet()) {
-            if (isKeySupported(key)) {
-                fieldMap.put(key, bundle.getString(key));
+            String value = bundle.getString(key);
+            if (isFieldValid(key, value)) {
+                fieldMap.put(key, value);
             }
         }
         return fieldMap;
@@ -391,11 +409,12 @@ public class WifiEnterpriseConfig implements Parcelable {
      */
     private void copyFrom(WifiEnterpriseConfig source, boolean ignoreMaskedPassword, String mask) {
         for (String key : source.mFields.keySet()) {
+            String value = source.mFields.get(key);
             if (ignoreMaskedPassword && key.equals(PASSWORD_KEY)
-                    && TextUtils.equals(source.mFields.get(key), mask)) {
+                    && TextUtils.equals(value, mask)) {
                 continue;
             }
-            if (isKeySupported(key)) {
+            if (isFieldValid(key, value)) {
                 mFields.put(key, source.mFields.get(key));
             }
         }
@@ -603,13 +622,14 @@ public class WifiEnterpriseConfig implements Parcelable {
                 || mEapMethod == WifiEnterpriseConfig.Eap.AKA
                 || mEapMethod == WifiEnterpriseConfig.Eap.AKA_PRIME;
         for (String key : mFields.keySet()) {
-            if (!isKeySupported(key)) {
+            String value = mFields.get(key);
+            if (!isFieldValid(key, value)) {
                 continue;
             }
             if (shouldNotWriteAnonIdentity && ANON_IDENTITY_KEY.equals(key)) {
                 continue;
             }
-            if (!saver.saveValue(key, mFields.get(key))) {
+            if (!saver.saveValue(key, value)) {
                 return false;
             }
         }
@@ -641,7 +661,7 @@ public class WifiEnterpriseConfig implements Parcelable {
     public void loadFromSupplicant(SupplicantLoader loader) {
         for (String key : SUPPLICANT_CONFIG_KEYS) {
             String value = loader.loadValue(key);
-            if (!isKeySupported(key)) {
+            if (!isFieldValid(key, value)) {
                 continue;
             } else if (value == null) {
                 mFields.put(key, EMPTY_VALUE);
@@ -1503,7 +1523,7 @@ public class WifiEnterpriseConfig implements Parcelable {
      * @hide
      */
     private void setFieldValue(String key, String value, String prefix) {
-        if (!isKeySupported(key)) {
+        if (!isFieldValid(key, value)) {
             return;
         }
         if (TextUtils.isEmpty(value)) {
