@@ -3324,6 +3324,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         reset(mAsyncChannel);
         sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
         verify(mAsyncChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CANCEL_CONNECT), anyInt(),
                 anyInt(), anyInt(), anyString(), eq(true));
@@ -4030,6 +4032,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
         verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
+        assertNotEquals(WifiP2pManager.CANCEL_CONNECT_SUCCEEDED, message.what);
+
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.CANCEL_CONNECT_SUCCEEDED, message.what);
     }
 
@@ -7419,6 +7427,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         /* Trigger a group failure */
         sendSimpleMsg(null, WifiP2pManager.CANCEL_CONNECT);
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
 
         /* Verify that p2p discover is triggered */
         verify(mWifiNative).p2pFind(anyInt());

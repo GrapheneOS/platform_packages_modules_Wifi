@@ -263,6 +263,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private static final int DISABLE_P2P_WAIT_TIME_MS = 5 * 1000;
     private static int sDisableP2pTimeoutIndex = 0;
 
+    private static final int P2P_REJECTION_WAIT_TIME_MS = 100;
+    private static int sP2pRejectionResumeAfterDelayIndex = 0;
+
     // Set a two minute discover timeout to avoid STA scans from being blocked
     private static final int DISCOVER_TIMEOUT_S = 120;
 
@@ -327,6 +330,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     static final int TETHER_INTERFACE_STATE_CHANGED         =   BASE + 35;
 
     private static final int UPDATE_P2P_DISALLOWED_CHANNELS =   BASE + 36;
+    // Delayed message to timeout group creation
+    public static final int P2P_REJECTION_RESUME_AFTER_DELAY = BASE + 37;
 
     public static final int ENABLED                         = 1;
     public static final int DISABLED                        = 0;
@@ -1137,6 +1142,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 new UserAuthorizingJoinState();
         private final OngoingGroupRemovalState mOngoingGroupRemovalState =
                 new OngoingGroupRemovalState();
+        private final P2pRejectWaitState mP2pRejectWaitState = new P2pRejectWaitState();
 
         private final WifiP2pMonitor mWifiMonitor = mWifiInjector.getWifiP2pMonitor();
         private final WifiP2pDeviceList mPeers = new WifiP2pDeviceList();
@@ -1207,6 +1213,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         addState(mProvisionDiscoveryState, mGroupCreatingState);
                         addState(mGroupNegotiationState, mGroupCreatingState);
                         addState(mFrequencyConflictState, mGroupCreatingState);
+                        addState(mP2pRejectWaitState, mGroupCreatingState);
                     addState(mGroupCreatedState, mP2pEnabledState);
                         addState(mUserAuthorizingJoinState, mGroupCreatedState);
                         addState(mOngoingGroupRemovalState, mGroupCreatedState);
@@ -1523,6 +1530,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     return "WpsInfo.KEYPAD";
                 case WifiP2pManager.SET_VENDOR_ELEMENTS:
                     return "WifiP2pManager.SET_VENDOR_ELEMENTS";
+                case P2P_REJECTION_RESUME_AFTER_DELAY:
+                    return "P2P_REJECTION_RESUME_AFTER_DELAY";
                 default:
                     return "what:" + what;
             }
@@ -3527,6 +3536,45 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
         }
 
+        class P2pRejectWaitState extends State {
+            @Override
+            public void enter() {
+                if (mVerboseLoggingEnabled) logd(getName());
+            }
+
+            @Override
+            public boolean processMessage(Message message) {
+                boolean ret = HANDLED;
+                switch (message.what) {
+                    case P2P_REJECTION_RESUME_AFTER_DELAY:
+                        if (sP2pRejectionResumeAfterDelayIndex == message.arg1) {
+                            logd(
+                                    "P2p rejection resume after delay - originated from "
+                                            + getWhatToString(message.what));
+                            if (message.arg2 == WifiP2pManager.CANCEL_CONNECT) {
+                                handleGroupCreationFailure();
+                                if (message.obj != null) {
+                                    replyToMessage(
+                                            (Message) message.obj,
+                                            WifiP2pManager.CANCEL_CONNECT_SUCCEEDED);
+                                }
+                            }
+                            transitionTo(mInactiveState);
+                        } else {
+                            loge(
+                                    "Stale P2p rejection resume after delay - cached index: "
+                                            + sP2pRejectionResumeAfterDelayIndex
+                                            + " index from msg: "
+                                            + message.arg1);
+                        }
+                        break;
+                    default:
+                        ret = NOT_HANDLED;
+                }
+                return ret;
+            }
+        }
+
         class GroupCreatingState extends State {
             @Override
             public void enter() {
@@ -3616,13 +3664,19 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         mWifiP2pMetrics.endConnectionEvent(
                                 P2pConnectionEvent.CLF_CANCEL);
                         // Notify the peer about the rejection.
+                        int delay = 0;
                         if (mSavedPeerConfig != null) {
                             mWifiNative.p2pStopFind();
-                            sendP2pRejection();
+                            delay = sendP2pRejection();
                         }
-                        handleGroupCreationFailure();
-                        smTransition(this, mInactiveState);
-                        replyToMessage(message, WifiP2pManager.CANCEL_CONNECT_SUCCEEDED);
+                        transitionTo(mP2pRejectWaitState);
+                        sendMessageDelayed(
+                                obtainMessage(
+                                        P2P_REJECTION_RESUME_AFTER_DELAY,
+                                        ++sP2pRejectionResumeAfterDelayIndex,
+                                        WifiP2pManager.CANCEL_CONNECT,
+                                        message),
+                                delay);
                         break;
                     case WifiP2pMonitor.P2P_GO_NEGOTIATION_SUCCESS_EVENT:
                         // We hit this scenario when NFC handover is invoked.
@@ -3678,15 +3732,23 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 mWifiNative.p2pCancelConnect();
                                 mWifiNative.p2pStopFind();
                             }
-                            sendP2pRejection();
+
+                            int delay = sendP2pRejection();
                             mDetailedState = NetworkInfo.DetailedState.DISCONNECTED;
                             sendP2pConnectionChangedBroadcast();
                             mSavedPeerConfig.invalidate();
+                            transitionTo(mP2pRejectWaitState);
+                            sendMessageDelayed(
+                                    obtainMessage(
+                                            P2P_REJECTION_RESUME_AFTER_DELAY,
+                                            ++sP2pRejectionResumeAfterDelayIndex,
+                                            PEER_CONNECTION_USER_REJECT),
+                                    delay);
                         } else {
                             mWifiNative.p2pCancelConnect();
                             handleGroupCreationFailure();
+                            smTransition(this, mInactiveState);
                         }
-                        smTransition(this, mInactiveState);
                         break;
                     case PEER_CONNECTION_USER_CONFIRM:
                         mSavedPeerConfig.wps.setup = WpsInfo.DISPLAY;
@@ -6890,13 +6952,16 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             return (getSupportedFeatures() & feature) == feature;
         }
 
-        private void sendP2pRejection() {
-            if (TextUtils.isEmpty(mSavedPeerConfig.deviceAddress)) return;
-
+        private int sendP2pRejection() {
+            if (TextUtils.isEmpty(mSavedPeerConfig.deviceAddress)) {
+                return 0;
+            }
             mWifiNative.p2pReject(mSavedPeerConfig.deviceAddress);
             // p2pReject() only updates the peer state, but not sends this
             // to the peer, trigger provision discovery to notify the peer.
+            // Adding the delay to send pb request with failed status attr.
             mWifiNative.p2pProvisionDiscovery(mSavedPeerConfig);
+            return P2P_REJECTION_WAIT_TIME_MS;
         }
 
         private boolean isPeerAuthorizing(String deviceAddress) {
