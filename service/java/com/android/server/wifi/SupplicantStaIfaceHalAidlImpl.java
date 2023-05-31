@@ -169,15 +169,21 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         @Override
         public void binderDied(@NonNull IBinder who) {
             synchronized (mLock) {
+                IBinder supplicantBinder = getServiceBinderMockable();
                 Log.w(TAG, "ISupplicant binder died. who=" + who + ", service="
-                        + getServiceBinderMockable());
-                if (who == getServiceBinderMockable()) {
-                    if (mWaitForDeathLatch != null) {
-                        mWaitForDeathLatch.countDown();
-                    }
-                    Log.w(TAG, "Handle supplicant death");
-                    supplicantServiceDiedHandler(who);
+                        + supplicantBinder);
+                if (supplicantBinder == null) {
+                    Log.w(TAG, "Supplicant Death EventHandler called"
+                            + " when ISupplicant/binder service is already cleared");
+                } else if (supplicantBinder != who) {
+                    Log.w(TAG, "Ignoring stale death recipient notification");
+                    return;
                 }
+                if (mWaitForDeathLatch != null) {
+                    mWaitForDeathLatch.countDown();
+                }
+                Log.w(TAG, "Handle supplicant death");
+                supplicantServiceDiedHandler();
             }
         }
     }
@@ -417,12 +423,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    private void supplicantServiceDiedHandler(IBinder who) {
+    private void supplicantServiceDiedHandler() {
         synchronized (mLock) {
-            if (who != getServiceBinderMockable()) {
-                Log.w(TAG, "Ignoring stale death recipient notification");
-                return;
-            }
             clearState();
             if (mDeathEventHandler != null) {
                 mDeathEventHandler.onDeath();
