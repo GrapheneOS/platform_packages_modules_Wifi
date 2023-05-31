@@ -29,5 +29,5 @@ android_test {
         "guava",
         "mobly-snippet-lib",
     ],
-    min_sdk_version: "31",
+    min_sdk_version: "30",
 }
