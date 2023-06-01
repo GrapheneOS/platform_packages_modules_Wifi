@@ -7609,33 +7609,51 @@ public class WifiMetrics {
         }
     }
 
-    /** Add a WifiLock acqusition session */
-    public void addWifiLockAcqSession(int lockType, long duration) {
+    /** Add a WifiLock acquisition session */
+    public void addWifiLockAcqSession(int lockType, int[] attrUids, String[] attrTags,
+            int callerType, long duration, boolean isPowersaveDisableAllowed,
+            boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
+        int lockMode;
         switch (lockType) {
             case WifiManager.WIFI_MODE_FULL_HIGH_PERF:
                 mWifiLockHighPerfAcqDurationSecHistogram.increment((int) (duration / 1000));
+                lockMode = WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_HIGH_PERF;
                 break;
 
             case WifiManager.WIFI_MODE_FULL_LOW_LATENCY:
                 mWifiLockLowLatencyAcqDurationSecHistogram.increment((int) (duration / 1000));
+                lockMode = WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_LOW_LATENCY;
                 break;
-
             default:
                 Log.e(TAG, "addWifiLockAcqSession: Invalid lock type: " + lockType);
-                break;
+                return;
         }
+        WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED,
+                attrUids,
+                attrTags,
+                callerType,
+                lockMode,
+                duration,
+                isPowersaveDisableAllowed,
+                isAppExemptedFromScreenOn,
+                isAppExemptedFromForeground);
     }
 
     /** Add a WifiLock active session */
-    public void addWifiLockActiveSession(int lockType, long duration) {
+    public void addWifiLockActiveSession(int lockType, int[] attrUids, String[] attrTags,
+            long duration, boolean isPowersaveDisableAllowed,
+            boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
+        int lockMode;
         switch (lockType) {
             case WifiManager.WIFI_MODE_FULL_HIGH_PERF:
+                lockMode = WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_HIGH_PERF;
                 mWifiLockStats.highPerfActiveTimeMs += duration;
                 mWifiLockHighPerfActiveSessionDurationSecHistogram.increment(
                         (int) (duration / 1000));
                 break;
 
             case WifiManager.WIFI_MODE_FULL_LOW_LATENCY:
+                lockMode = WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_LOW_LATENCY;
                 mWifiLockStats.lowLatencyActiveTimeMs += duration;
                 mWifiLockLowLatencyActiveSessionDurationSecHistogram.increment(
                         (int) (duration / 1000));
@@ -7643,8 +7661,16 @@ public class WifiMetrics {
 
             default:
                 Log.e(TAG, "addWifiLockActiveSession: Invalid lock type: " + lockType);
-                break;
+                return;
         }
+        WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED,
+                attrUids,
+                attrTags,
+                lockMode,
+                duration,
+                isPowersaveDisableAllowed,
+                isAppExemptedFromScreenOn,
+                isAppExemptedFromForeground);
     }
 
     /** Increments metrics counting number of addOrUpdateNetwork calls. **/
