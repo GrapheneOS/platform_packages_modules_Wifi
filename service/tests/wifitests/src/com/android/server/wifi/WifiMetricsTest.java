@@ -174,6 +174,8 @@ public class WifiMetricsTest extends WifiBaseTest {
     private static final int TEST_NETWORK_ID = 42;
     public static final String TEST_IFACE_NAME = "wlan0";
     public static final String TEST_IFACE_NAME2 = "wlan1";
+    private static final int TEST_UID = 52;
+    private static final String TEST_TAG = "TestTag";
     private MockitoSession mSession;
     @Mock Context mContext;
     MockResources mResources;
@@ -5283,15 +5285,69 @@ public class WifiMetricsTest extends WifiBaseTest {
      */
     @Test
     public void testWifiLockActiveSession() throws Exception {
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 100000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 10000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 10000000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 1000);
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 100000, true, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_HIGH_PERF, 100000,
+                        true, false, false));
 
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 90000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 900000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 9000);
-        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 20000000);
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 10000, true, true, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_HIGH_PERF, 10000,
+                        true, true, false));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 10000000, true, true, true);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_HIGH_PERF,
+                        10000000, true, true, true));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 1000, false, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_HIGH_PERF, 1000,
+                        false, false, false));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 90000, false, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 90000,
+                        false, false, false));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 900000, true, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_LOW_LATENCY,
+                        900000, true, false, false));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 9000, true, true, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 9000,
+                        true, true, false));
+
+        mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 20000000, true, true, true);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG},
+                        WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_FULL_LOW_LATENCY,
+                        20000000, true, true, true));
 
         dumpProtoAndDeserialize();
 
@@ -5324,15 +5380,70 @@ public class WifiMetricsTest extends WifiBaseTest {
      */
     @Test
     public void testWifiLockAcqSession() throws Exception {
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 100000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 10000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 10000000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF, 1000);
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 100000, false, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_HIGH_PERF, 100000,
+                        false, false, false));
 
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 90000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 900000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 9000);
-        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, 20000000);
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 10000, true, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_HIGH_PERF, 10000,
+                        true, false, false));
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 10000000, true, true, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_HIGH_PERF, 10000000,
+                        true, true, false));
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 1000, true, true, true);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_HIGH_PERF, 1000,
+                        true, true, true));
+
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 90000, false, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 90000,
+                        false, false, false));
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 900000, true, false, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 900000,
+                        true, false, false));
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 9000, true, true, false);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 9000,
+                        true, true, false));
+
+        mWifiMetrics.addWifiLockAcqSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                new int[]{TEST_UID}, new String[]{TEST_TAG}, 0, 20000000, true, true, true);
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED, new int[]{TEST_UID},
+                        new String[]{TEST_TAG}, 0,
+                        WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_FULL_LOW_LATENCY, 20000000,
+                        true, true, true));
 
         dumpProtoAndDeserialize();
 
