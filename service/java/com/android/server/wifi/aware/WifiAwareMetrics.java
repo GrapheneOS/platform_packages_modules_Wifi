@@ -139,9 +139,13 @@ public class WifiAwareMetrics {
     private long mNdpCreationTimeSumSq = 0;
     private long mNdpCreationTimeNumSamples = 0;
 
-    private SparseIntArray mHistogramNdpDuration = new SparseIntArray();
-    private SparseIntArray mHistogramNdpRequestType = new SparseIntArray();
-    private SparseLongArray mDiscoveryStartTimeMsMap = new SparseLongArray();
+    private final SparseIntArray mHistogramNdpDuration = new SparseIntArray();
+    private final SparseIntArray mHistogramNdpRequestType = new SparseIntArray();
+    private final SparseLongArray mDiscoveryStartTimeMsMap = new SparseLongArray();
+    private final SparseIntArray mDiscoveryCallerTypeMap = new SparseIntArray();
+    private final SparseArray<String> mDiscoveryAttributionTagMap = new SparseArray<>();
+    private final SparseIntArray mDiscoveryUidMap = new SparseIntArray();
+    private boolean mInstantModeEnabled;
 
     public WifiAwareMetrics(Clock clock) {
         mClock = clock;
@@ -217,7 +221,7 @@ public class WifiAwareMetrics {
      * Push information about a new attach session.
      */
     public void recordAttachSession(int uid, boolean usesIdentityCallback,
-            SparseArray<WifiAwareClientState> clients) {
+            SparseArray<WifiAwareClientState> clients, int callerType, String attributionTag) {
         // count the number of clients with the specific uid
         int currentConcurrentCount = 0;
         for (int i = 0; i < clients.size(); ++i) {
@@ -235,18 +239,19 @@ public class WifiAwareMetrics {
             data.mUsesIdentityCallback |= usesIdentityCallback;
             data.mMaxConcurrentAttaches = Math.max(data.mMaxConcurrentAttaches,
                     currentConcurrentCount);
-            recordAttachStatus(NanStatusCode.SUCCESS);
+            recordAttachStatus(NanStatusCode.SUCCESS, callerType, attributionTag, uid);
         }
     }
 
     /**
      * Push information about a new attach session status (recorded when attach session is created).
      */
-    public void recordAttachStatus(int status) {
+    public void recordAttachStatus(int status, int callerType, String attributionTag, int uid) {
         synchronized (mLock) {
             addNanHalStatusToHistogram(status, mAttachStatusData);
             WifiStatsLog.write(WifiStatsLog.WIFI_AWARE_ATTACH_REPORTED,
-                    convertNanStatusCodeToWifiStatsLogEnum(status));
+                    convertNanStatusCodeToWifiStatsLogEnum(status), callerType, attributionTag,
+                    uid);
         }
     }
 
@@ -363,14 +368,17 @@ public class WifiAwareMetrics {
      * Push information about a new discovery session status (recorded when the discovery session is
      * created).
      */
-    public void recordDiscoveryStatus(int uid, int status, boolean isPublish) {
-        recordDiscoveryStatus(uid, status, isPublish, INVALID_SESSION_ID);
+    public void recordDiscoveryStatus(int uid, int status, boolean isPublish, int callerType,
+            String attributionTag) {
+        recordDiscoveryStatus(uid, status, isPublish, INVALID_SESSION_ID, callerType,
+                attributionTag);
     }
 
     /**
      * Push information about a new discovery session status with pubSubId.
      */
-    public void recordDiscoveryStatus(int uid, int status, boolean isPublish, int sessionId) {
+    public void recordDiscoveryStatus(int uid, int status, boolean isPublish, int sessionId,
+            int callerType, String attributionTag) {
         synchronized (mLock) {
             if (isPublish) {
                 addNanHalStatusToHistogram(status, mPublishStatusData);
@@ -383,6 +391,9 @@ public class WifiAwareMetrics {
             }
             if (sessionId != INVALID_SESSION_ID) {
                 mDiscoveryStartTimeMsMap.put(sessionId, mClock.getElapsedSinceBootMillis());
+                mDiscoveryCallerTypeMap.put(sessionId, callerType);
+                mDiscoveryAttributionTagMap.put(sessionId, attributionTag);
+                mDiscoveryUidMap.put(sessionId, uid);
             }
         }
     }
@@ -390,12 +401,24 @@ public class WifiAwareMetrics {
     /**
      * Push duration information of a discovery session.
      */
-    public void recordDiscoverySessionDuration(long creationTime, boolean isPublish) {
+    public void recordDiscoverySessionDuration(long creationTime, boolean isPublish,
+            int sessionId) {
         synchronized (mLock) {
             MetricsUtils.addValueToLogHistogram(mClock.getElapsedSinceBootMillis() - creationTime,
                     isPublish ? mHistogramPublishDuration : mHistogramSubscribeDuration,
                     DURATION_LOG_HISTOGRAM);
+            mDiscoveryStartTimeMsMap.delete(sessionId);
+            mDiscoveryCallerTypeMap.delete(sessionId);
+            mDiscoveryAttributionTagMap.delete(sessionId);
+            mDiscoveryUidMap.delete(sessionId);
         }
+    }
+
+    /**
+     * Reported when the instant mode state changes
+     */
+    public void reportAwareInstantModeEnabled(boolean enabled) {
+        mInstantModeEnabled = enabled;
     }
 
     /**
@@ -510,7 +533,9 @@ public class WifiAwareMetrics {
             WifiStatsLog.write(WifiStatsLog.WIFI_AWARE_NDP_REPORTED,
                     convertNdpRoleToWifiStatsLogEnum(role), isOutOfBand,
                     convertNanStatusCodeToWifiStatsLogEnum(status),
-                    ndpLatencyMs, discoveryNdpLatencyIntMs, channelFreqMHz);
+                    ndpLatencyMs, discoveryNdpLatencyIntMs, channelFreqMHz, mInstantModeEnabled,
+                    mDiscoveryCallerTypeMap.get(sessionId),
+                    mDiscoveryAttributionTagMap.get(sessionId), mDiscoveryUidMap.get(sessionId));
             if (status == NanStatusCode.SUCCESS) {
                 MetricsUtils.addValueToLogHistogram(creationTime, mNdpCreationTimeDuration,
                         DURATION_LOG_HISTOGRAM);
