@@ -400,7 +400,7 @@ public class DeviceConfigFacade {
         mHighPerfLockDeprecated = DeviceConfig.getBoolean(NAMESPACE,
                 "high_perf_lock_deprecated", true);
         boolean oobPseudonymEnabled = DeviceConfig.getBoolean(NAMESPACE,
-                "oob_pseudonym_enabled", false);
+                "oob_pseudonym_enabled", true);
         if (mOobPseudonymEnabled.isPresent()
                 && mOobPseudonymEnabled.get() != oobPseudonymEnabled
                 && mOobPseudonymFeatureFlagChangedListener != null) {
