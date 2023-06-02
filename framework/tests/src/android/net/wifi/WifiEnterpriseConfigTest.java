@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -100,6 +101,17 @@ public class WifiEnterpriseConfigTest {
         X509Certificate[] result = mEnterpriseConfig.getCaCertificates();
         assertEquals(result.length, 2);
         assertTrue(result[0] == cert0 && result[1] == cert1);
+    }
+
+    @Test
+    public void testSetGetInvalidNumberOfCaCertificates() {
+        // Maximum number of CA certificates is 100.
+        X509Certificate[] invalidCaCertList = new X509Certificate[105];
+        Arrays.fill(invalidCaCertList, FakeKeys.CA_CERT0);
+        assertThrows(IllegalArgumentException.class, () -> {
+            mEnterpriseConfig.setCaCertificates(invalidCaCertList);
+        });
+        assertEquals(null, mEnterpriseConfig.getCaCertificates());
     }
 
     @Test
