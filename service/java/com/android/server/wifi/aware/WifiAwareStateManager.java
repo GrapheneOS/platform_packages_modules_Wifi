@@ -312,6 +312,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             "bootstrapping_come_back_cookie";
     private static final String MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST =
             "bootstrapping_is_come_back";
+    private static final String MESSAGE_BUNDLE_KEY_CALLER_TYPE = "caller_type";
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
 
@@ -1097,6 +1098,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             deferDisableAware(false);
             reEnableAware = true;
         }
+        int callerType;
+        if (SdkLevel.isAtLeastS()) {
+            AttributionSource attributionSource =
+                    extra.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE);
+            callerType = mWifiPermissionsUtil.getWifiCallerType(attributionSource);
+        } else {
+            callerType = mWifiPermissionsUtil.getWifiCallerType(uid, callingPackage);
+        }
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_CONNECT;
         msg.arg2 = clientId;
@@ -1112,6 +1121,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 notifyOnIdentityChanged);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD, forAwareOffload);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_RE_ENABLE_AWARE_FROM_OFFLOAD, reEnableAware);
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_CALLER_TYPE, callerType);
         mSm.sendMessage(msg);
         // Clean the client after the connect to avoid Aware disable
         if (!forAwareOffload) {
@@ -2599,6 +2609,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD);
                     boolean reEnableAware = msg.getData()
                             .getBoolean(MESSAGE_BUNDLE_KEY_RE_ENABLE_AWARE_FROM_OFFLOAD);
+                    int callerType = msg.getData().getInt(MESSAGE_BUNDLE_KEY_CALLER_TYPE);
                     int proceedWithOperation;
 
                     if (awareOffload || mOpportunisticSet.contains(callingPackage)) {
@@ -2618,8 +2629,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         try {
                             callback.onConnectFail(
                                     NanStatusCode.NO_RESOURCES_AVAILABLE);
-                            mAwareMetrics.recordAttachStatus(
-                                    NanStatusCode.NO_RESOURCES_AVAILABLE);
+                            mAwareMetrics.recordAttachStatus(NanStatusCode.NO_RESOURCES_AVAILABLE,
+                                    callerType, callingFeatureId, uid);
                         } catch (RemoteException e) {
                             Log.w(TAG, "displayUserApprovalDialog user refusal: RemoteException "
                                     + "(FYI): " + e);
@@ -2631,7 +2642,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                                 callingPackage, callingFeatureId, callback, configRequest,
                                 notifyIdentityChange,
                                 callbackAndAttributionSource.second,
-                                awareOffload, reEnableAware);
+                                awareOffload, reEnableAware, callerType);
                     } else { // InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER
                         waitForResponse = false;
                     }
@@ -3456,19 +3467,19 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
             boolean notifyIdentityChange, Object attributionSource, boolean awareOffload,
-            boolean reEnableAware) {
+            boolean reEnableAware, int callerType) {
         mLocalLog.log("connectLocal(): transactionId=" + transactionId + ", clientId=" + clientId
                 + ", uid=" + uid + ", pid=" + pid + ", callingPackage=" + callingPackage
                 + ", callback=" + callback + ", configRequest=" + configRequest
                 + ", notifyIdentityChange=" + notifyIdentityChange
                 + ", awareOffload" + awareOffload
                 + ", reEnableAware" + reEnableAware);
-
         if (!mUsageEnabled) {
             Log.w(TAG, "connect(): called with mUsageEnabled=false");
             try {
                 callback.onConnectFail(NanStatusCode.INTERNAL_FAILURE);
-                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE);
+                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE, callerType,
+                        callingFeatureId, uid);
             } catch (RemoteException e) {
                 Log.w(TAG, "connectLocal onConnectFail(): RemoteException (FYI): " + e);
             }
@@ -3490,7 +3501,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", incompatible with current configurations");
             try {
                 callback.onConnectFail(NanStatusCode.INTERNAL_FAILURE);
-                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE);
+                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE, callerType,
+                        callingFeatureId, uid);
             } catch (RemoteException e) {
                 Log.w(TAG, "connectLocal onConnectFail(): RemoteException (FYI): " + e);
             }
@@ -3514,11 +3526,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil, attributionSource,
-                    mLocalLog, awareOffload);
+                    mLocalLog, awareOffload, callerType);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
-            mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
+            mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
+                    callingFeatureId);
             try {
                 mLocalLog.log("Connect success for clientId:" + clientId);
                 callback.onConnectSuccess(clientId);
@@ -3562,7 +3575,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             try {
                 callback.onConnectFail(NanStatusCode.INTERNAL_FAILURE);
-                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE);
+                mAwareMetrics.recordAttachStatus(NanStatusCode.INTERNAL_FAILURE, callerType,
+                        callingFeatureId, uid);
             } catch (RemoteException e) {
                 Log.w(TAG, "connectLocal onConnectFail(): RemoteException (FYI):  " + e);
             }
@@ -3585,7 +3599,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         SparseArray<WifiAwareDiscoverySessionState> sessions = client.getSessions();
         for (int i = 0; i < sessions.size(); ++i) {
             mAwareMetrics.recordDiscoverySessionDuration(sessions.valueAt(i).getCreationTime(),
-                    sessions.valueAt(i).isPublishSession());
+                    sessions.valueAt(i).isPublishSession(), sessions.valueAt(i).getSessionId());
         }
         client.destroy();
 
@@ -3596,6 +3610,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             mCurrentRangingEnabled = false;
             mCurrentIdentityNotification = false;
             mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
+            mAwareMetrics.reportAwareInstantModeEnabled(false);
             deferDisableAware(true);
             return false;
         }
@@ -3671,7 +3686,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         if (session != null) {
             mAwareMetrics.recordDiscoverySessionDuration(session.getCreationTime(),
-                    session.isPublishSession());
+                    session.isPublishSession(), sessionId);
         }
         sendAwareResourcesChangedBroadcast();
     }
@@ -3705,7 +3720,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 Log.w(TAG, "publishLocal onSessionConfigFail(): RemoteException (FYI): " + e);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
-                    true);
+                    true, client.mCallerType, client.mCallingFeatureId);
         }
 
         return success;
@@ -3741,7 +3756,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         boolean status = session.updatePublish(transactionId, publishConfig, nik);
         if (!status) {
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
-                    true);
+                    true, client.mCallerType, client.mCallingFeatureId);
         }
         return status;
     }
@@ -3777,7 +3792,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 Log.w(TAG, "subscribeLocal onSessionConfigFail(): RemoteException (FYI): " + e);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
-                    false);
+                    false, client.mCallerType, client.mCallingFeatureId);
         }
 
         return success;
@@ -3813,7 +3828,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         boolean status = session.updateSubscribe(transactionId, subscribeConfig, nik);
         if (!status) {
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
-                    false);
+                    false, client.mCallerType, client.mCallingFeatureId);
         }
         return status;
     }
@@ -3941,6 +3956,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mCurrentRangingEnabled = false;
         mCurrentIdentityNotification = false;
         mInstantCommModeClientRequest = INSTANT_MODE_DISABLED;
+        mAwareMetrics.reportAwareInstantModeEnabled(false);
         deferDisableAware(true);
         sendAwareStateChangedBroadcast(markAsAvailable);
         if (!markAsAvailable) {
@@ -4066,14 +4082,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             String callingPackage = data.getString(MESSAGE_BUNDLE_KEY_CALLING_PACKAGE);
             String callingFeatureId = data.getString(MESSAGE_BUNDLE_KEY_CALLING_FEATURE_ID);
             boolean awareOffload = data.getBoolean(MESSAGE_BUNDLE_KEY_AWARE_OFFLOAD);
+            int callerType = data.getInt(MESSAGE_BUNDLE_KEY_CALLER_TYPE);
 
             WifiAwareClientState client = new WifiAwareClientState(mContext, clientId, uid, pid,
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil,
-                    callbackAndAttributionSource.second, mLocalLog, awareOffload);
+                    callbackAndAttributionSource.second, mLocalLog, awareOffload, callerType);
             client.enableVerboseLogging(mVerboseLoggingEnabled);
             mClients.put(clientId, client);
-            mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients);
+            mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
+                    callingFeatureId);
             try {
                 mLocalLog.log("Connect success for clientId:" + clientId);
                 callback.onConnectSuccess(clientId);
@@ -4102,8 +4120,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mCurrentIdentityNotification = doesAnyClientNeedIdentityChangeNotifications();
         mCurrentRangingEnabled = doesAnyClientNeedRanging();
         mInstantCommModeClientRequest = getInstantModeFromAllClients();
-        if (mInstantCommModeClientRequest != INSTANT_MODE_DISABLED
-                && !mInstantCommModeGlobalEnable) {
+        if (mInstantCommModeClientRequest == INSTANT_MODE_DISABLED) {
+            mAwareMetrics.reportAwareInstantModeEnabled(false);
+            return;
+        }
+        mAwareMetrics.reportAwareInstantModeEnabled(true);
+        if (!mInstantCommModeGlobalEnable) {
             // Change the instant communication mode when timeout
             mHandler.postDelayed(this::reconfigure, (long) mContext.getResources()
                     .getInteger(R.integer.config_wifiAwareInstantCommunicationModeDurationMillis));
@@ -4123,7 +4145,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             IWifiAwareEventCallback callback = callbackAndAttributionSource.first;
             try {
                 callback.onConnectFail(reason);
-                mAwareMetrics.recordAttachStatus(reason);
+                mAwareMetrics.recordAttachStatus(reason, 0, null, 0);
             } catch (RemoteException e) {
                 Log.w(TAG, "onConfigFailedLocal onConnectFail(): RemoteException (FYI): " + e);
             }
@@ -4242,7 +4264,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mAwareMetrics.recordDiscoverySession(client.getUid(), mClients);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.SUCCESS,
-                    completedCommand.arg1 == COMMAND_TYPE_PUBLISH, sessionId);
+                    completedCommand.arg1 == COMMAND_TYPE_PUBLISH, sessionId,
+                    client.mCallerType, client.mCallingFeatureId);
             sendAwareResourcesChangedBroadcast();
         } else if (completedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH
                 || completedCommand.arg1 == COMMAND_TYPE_UPDATE_SUBSCRIBE) {
@@ -4273,7 +4296,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             session.setInstantModeEnabled(enableInstantMode);
             session.setInstantModeBand(instantModeBand);
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.SUCCESS,
-                    completedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH);
+                    completedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH,
+                    client.mCallerType, client.mCallingFeatureId);
         } else {
             Log.wtf(TAG,
                     "onSessionConfigSuccessLocal: unexpected completedCommand=" + completedCommand);
@@ -4311,7 +4335,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         + e);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), reason,
-                    failedCommand.arg1 == COMMAND_TYPE_PUBLISH);
+                    failedCommand.arg1 == COMMAND_TYPE_PUBLISH, client.mCallerType,
+                    client.mCallingFeatureId);
         } else if (failedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH
                 || failedCommand.arg1 == COMMAND_TYPE_UPDATE_SUBSCRIBE) {
             int clientId = failedCommand.arg2;
@@ -4336,7 +4361,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 Log.e(TAG, "onSessionConfigFailLocal: onSessionConfigFail() RemoteException=" + e);
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), reason,
-                    failedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH);
+                    failedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH, client.mCallerType,
+                    client.mCallingFeatureId);
 
             if (reason == NanStatusCode.INVALID_SESSION_ID) {
                 client.removeSession(sessionId);
@@ -4824,7 +4850,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             reconfigure();
         }
         mAwareMetrics.recordDiscoverySessionDuration(data.second.getCreationTime(),
-                data.second.isPublishSession());
+                data.second.isPublishSession(), data.second.getSessionId());
         sendAwareResourcesChangedBroadcast();
     }
 
@@ -4857,7 +4883,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             SparseArray<WifiAwareDiscoverySessionState> sessions = client.getSessions();
             for (int j = 0; j < sessions.size(); ++j) {
                 mAwareMetrics.recordDiscoverySessionDuration(sessions.valueAt(j).getCreationTime(),
-                        sessions.valueAt(j).isPublishSession());
+                        sessions.valueAt(j).isPublishSession(), sessions.valueAt(j).getSessionId());
             }
             client.destroy();
         }
