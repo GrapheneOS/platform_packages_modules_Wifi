@@ -1202,6 +1202,7 @@ public class WifiConfigurationTest {
                 new Pair<>(KeyMgmt.OSEN, SECURITY_TYPE_OSEN),
                 new Pair<>(KeyMgmt.WPA_PSK, SECURITY_TYPE_PSK),
                 new Pair<>(KeyMgmt.WPA2_PSK, SECURITY_TYPE_PSK),
+                new Pair<>(KeyMgmt.FT_PSK, SECURITY_TYPE_PSK),
                 new Pair<>(KeyMgmt.WPA_PSK_SHA256, SECURITY_TYPE_PSK),
                 new Pair<>(KeyMgmt.SAE, SECURITY_TYPE_SAE),
                 new Pair<>(KeyMgmt.WPA_EAP, SECURITY_TYPE_EAP),
