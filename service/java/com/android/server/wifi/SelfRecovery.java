@@ -83,6 +83,7 @@ public class SelfRecovery {
     private final WifiNative mWifiNative;
     private final WifiGlobals mWifiGlobals;
     private int mSelfRecoveryReason;
+    private long mLastSelfRecoveryTimeStampMillis = -1L;
     // Self recovery state
     private @RecoveryState int mRecoveryState;
     private SubsystemRestartListenerInternal mSubsystemRestartListener;
@@ -182,13 +183,16 @@ public class SelfRecovery {
      * @param reason One of the above |REASON_*| codes.
      */
     public void trigger(@RecoveryReason int reason) {
+        long timeElapsedFromLastTrigger = getTimeElapsedFromLastTrigger();
+        mLastSelfRecoveryTimeStampMillis = mClock.getWallClockMillis();
         if (!(reason == REASON_LAST_RESORT_WATCHDOG || reason == REASON_WIFINATIVE_FAILURE
                   || reason == REASON_STA_IFACE_DOWN || reason == REASON_API_CALL
                   || reason == REASON_IFACE_ADDED)) {
             Log.e(TAG, "Invalid trigger reason. Ignoring...");
             WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                     convertSelfRecoveryReason(reason),
-                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_INVALID_REASON);
+                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_INVALID_REASON,
+                    timeElapsedFromLastTrigger);
             return;
         }
         if (reason == REASON_STA_IFACE_DOWN) {
@@ -197,7 +201,8 @@ public class SelfRecovery {
             mRecoveryState = STATE_DISABLE_WIFI;
             WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                     convertSelfRecoveryReason(reason),
-                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_IFACE_DOWN);
+                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_IFACE_DOWN,
+                    timeElapsedFromLastTrigger);
             return;
         }
 
@@ -207,7 +212,8 @@ public class SelfRecovery {
             Log.w(TAG, "Recovery on added interface is disabled. Ignoring...");
             WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                     convertSelfRecoveryReason(reason),
-                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_IFACE_ADD_DISABLED);
+                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_IFACE_ADD_DISABLED,
+                    timeElapsedFromLastTrigger);
             return;
         }
         if (reason == REASON_WIFINATIVE_FAILURE) {
@@ -219,7 +225,8 @@ public class SelfRecovery {
                 mRecoveryState = STATE_DISABLE_WIFI;
                 WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                         convertSelfRecoveryReason(reason),
-                        WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RETRY_DISABLED);
+                        WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RETRY_DISABLED,
+                        timeElapsedFromLastTrigger);
                 return;
             }
             trimPastRestartTimes();
@@ -230,7 +237,8 @@ public class SelfRecovery {
                 mRecoveryState = STATE_DISABLE_WIFI;
                 WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                         convertSelfRecoveryReason(reason),
-                        WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_ABOVE_MAX_RETRY);
+                        WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_ABOVE_MAX_RETRY,
+                        timeElapsedFromLastTrigger);
                 return;
             }
             mPastRestartTimes.add(mClock.getElapsedSinceBootMillis());
@@ -243,11 +251,14 @@ public class SelfRecovery {
             mSubsystemRestartListener.onSubsystemRestart(reason);
             WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                     convertSelfRecoveryReason(reason),
-                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RESTART_FAILURE);
+                    WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RESTART_FAILURE,
+                    timeElapsedFromLastTrigger);
+            return;
         }
         WifiStatsLog.write(WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED,
                 convertSelfRecoveryReason(reason),
-                WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RESTART_SUCCESS);
+                WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__RESULT__RES_RESTART_SUCCESS,
+                timeElapsedFromLastTrigger);
     }
 
     /**
@@ -282,6 +293,14 @@ public class SelfRecovery {
                 return WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__REASON__REASON_IFACE_ADDED;
             default:
                 return WifiStatsLog.WIFI_SELF_RECOVERY_TRIGGERED__REASON__REASON_UNKNOWN;
+        }
+    }
+
+    private long getTimeElapsedFromLastTrigger() {
+        if (mLastSelfRecoveryTimeStampMillis < 0) {
+            return -1L;
+        } else {
+            return (mClock.getWallClockMillis() - mLastSelfRecoveryTimeStampMillis);
         }
     }
 }
