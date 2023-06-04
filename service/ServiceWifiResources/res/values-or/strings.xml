@@ -51,7 +51,7 @@
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"ଏକ ଅନୁପ୍ରୟୋଗ"</string>
     <string name="accept" msgid="8346431649376483879">"ଗ୍ରହଣ କରନ୍ତୁ"</string>
     <string name="decline" msgid="4172251727603762084">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
-    <string name="ok" msgid="847575529546290102">"ଠିକ୍‍ ଅଛି"</string>
+    <string name="ok" msgid="847575529546290102">"ଠିକ ଅଛି"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"ନିମନ୍ତ୍ରଣ ପଠାଗଲା"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"ସଂଯୁକ୍ତ ହେବାକୁ ନିମନ୍ତ୍ରଣ"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"ପ୍ରେରକ:"</string>
@@ -61,7 +61,7 @@
     <string name="wifi_p2p_frequency_conflict_message" product="tablet" msgid="2875937871590955304">"<xliff:g id="DEVICE_NAME">%1$s</xliff:g> ସହ ସଂଯୁକ୍ତ ହୋଇଥିବାବେଳେ, ୱାଇ-ଫାଇଠାରୁ ଟାବଲେଟ୍‍ଟି ଅସ୍ଥାୟୀ ଭାବେ ବିଚ୍ଛିନ୍ନ ହେବ"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="tv" msgid="9133053225387001827">"ଆପଣଙ୍କର Android TV ଡିଭାଇସ୍ <xliff:g id="DEVICE_NAME">%1$s</xliff:g> ସହ ସଂଯୋଗ ହେଉଥିବା ସମୟରେ ୱାଇ-ଫାଇରୁ ଅସ୍ଥାୟୀ ଭାବେ ବିଚ୍ଛିନ୍ନ ହେବ"</string>
     <string name="wifi_p2p_frequency_conflict_message" product="default" msgid="2226863827636191980">"<xliff:g id="DEVICE_NAME">%1$s</xliff:g> ସହ ସଂଯୋଗ ଥିବାବେଳେ ଫୋନ୍‌ଟି ୱାଇ-ଫାଇରୁ ଅସ୍ଥାୟୀ ଭାବରେ ବିଚ୍ଛିନ୍ନ ହେବ"</string>
-    <string name="dlg_ok" msgid="254496739491689405">"ଠିକ୍‍ ଅଛି"</string>
+    <string name="dlg_ok" msgid="254496739491689405">"ଠିକ ଅଛି"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"<xliff:g id="SSID">%1$s</xliff:g> ସହିତ ସଂଯୋଗ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"ଗୋପନୀୟତା ସେଟିଂସ୍ ବଦଳେଇବାକୁ ଟାପ୍ କରନ୍ତୁ ଏବଂ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"ଗୋପନୀୟତା ସେଟିଂ ବଦଳେଇବେ?"</string>

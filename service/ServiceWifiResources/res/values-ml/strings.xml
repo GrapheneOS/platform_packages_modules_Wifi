@@ -39,10 +39,10 @@
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"നിങ്ങൾ കണക്റ്റ് ചെയ്യുകയാണെങ്കിൽ, സിമ്മുമായി ബന്ധപ്പെട്ട തനത് ഐഡി <xliff:g id="CARRIERNAME">%s</xliff:g> വൈഫൈ നെറ്റ്‌വർക്കുകൾ ആക്സസ് ചെയ്യുകയോ പങ്കിടുകയോ ചെയ്തേക്കാം. നിങ്ങളുടെ ഉപകരണ ലൊക്കേഷൻ ട്രാക്ക് ചെയ്യാൻ ഇത് അനുവദിച്ചേക്കാം."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"കണക്റ്റ് ചെയ്യുക"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"കണക്റ്റ് ചെയ്യരുത്"</string>
-    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"വൈഫൈ സ്വമേധയാ ഓണാകും"</string>
+    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"വൈഫൈ സ്വയമേവ ഓണാകും"</string>
     <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"നിങ്ങൾ ഉയർന്ന നിലവാരമുള്ള സംരക്ഷിക്കപ്പെട്ട നെറ്റ്‌വർക്കിനരികിലെത്തുമ്പോൾ"</string>
     <string name="wifi_wakeup_onboarding_action_disable" msgid="6209706680391785825">"തിരികെ ഓണാക്കരുത്"</string>
-    <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"വൈഫൈ സ്വമേധയാ ഓണായി"</string>
+    <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"വൈഫൈ സ്വയമേവ ഓണായി"</string>
     <string name="wifi_wakeup_enabled_content" msgid="3911262526267025882">"നിങ്ങൾ സംരക്ഷിച്ചിട്ടുള്ള ഒരു നെറ്റ്‌വർക്കിന് സമീപമാണ്: <xliff:g id="NETWORK_SSID">%1$s</xliff:g>"</string>
     <string name="wifi_watchdog_network_disabled" msgid="5769226742956006362">"Wi-Fi-ലേക്ക് കണക്‌റ്റുചെയ്യാൻ കഴിഞ്ഞില്ല"</string>
     <string name="wifi_watchdog_network_disabled_detailed" msgid="1725243835135539125">" എന്നതിന്റെ ഇന്റർനെറ്റ് കണക്ഷൻ മോശമാണ്."</string>
