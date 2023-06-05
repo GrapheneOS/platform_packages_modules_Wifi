@@ -1357,7 +1357,7 @@ public class InformationElementUtil {
      */
     public static class ExtendedCapabilities {
         private static final int RTT_RESP_ENABLE_BIT = 70;
-        private static final int SSID_UTF8_BIT = 48;
+        public static final int SSID_UTF8_BIT = 48;
 
         public BitSet capabilitiesBitSet;
 
@@ -1389,7 +1389,14 @@ public class InformationElementUtil {
          * @param ie The Information element data
          */
         public void from(InformationElement ie) {
-            capabilitiesBitSet = BitSet.valueOf(ie.bytes);
+            from(ie.bytes);
+        }
+
+        /**
+         * Parse an ExtendedCapabilities from the raw bytes of an IE.
+         */
+        public void from(byte[] data) {
+            capabilitiesBitSet = BitSet.valueOf(data);
         }
     }
 

@@ -87,7 +87,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
         ssidTranslator.handleBootCompleted();
         verify(mWifiContext).registerReceiver(
                 broadcastReceiverCaptor.capture(), any(), eq(null), eq(mHandler));
-        WifiSsid utf8Ssid = WifiSsid.fromBytes("安卓".getBytes(StandardCharsets.UTF_8));
+        WifiSsid utf8Ssid = WifiSsid.fromBytes("Android".getBytes(StandardCharsets.UTF_8));
         WifiSsid iso8859_8Ssid = WifiSsid.fromBytes("שלום".getBytes("ISO-8859-8"));
         WifiSsid gbkSsid = WifiSsid.fromBytes("安卓".getBytes("GBK"));
         WifiSsid eucKrSsid = WifiSsid.fromBytes("안드로이드".getBytes("EUC-KR"));
@@ -111,8 +111,6 @@ public class SsidTranslatorTest extends WifiBaseTest{
         // EUC-KR SSID is translated as gibberish (but valid) GBK.
         assertThat(ssidTranslator.getTranslatedSsid(eucKrSsid))
                 .isEqualTo(WifiSsid.fromBytes("救靛肺捞靛".getBytes(StandardCharsets.UTF_8)));
-        // UTF-8 SSID is not translated since UTF-8 takes precedence over alternate charsets, even
-        // though it's valid GBK.
         assertThat(ssidTranslator.getTranslatedSsid(utf8Ssid)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getTranslatedSsid(unknownSsid)).isEqualTo(unknownSsid);
 
@@ -125,10 +123,38 @@ public class SsidTranslatorTest extends WifiBaseTest{
         // GBK SSID is translated as gibberish (but valid) EUC-KR.
         assertThat(ssidTranslator.getTranslatedSsid(gbkSsid))
                 .isEqualTo(WifiSsid.fromBytes("갛六".getBytes(StandardCharsets.UTF_8)));
-        // UTF-8 SSID is not translated since UTF-8 takes precedence over alternate charsets, even
-        // though it's valid EUC-KR
         assertThat(ssidTranslator.getTranslatedSsid(utf8Ssid)).isEqualTo(utf8Ssid);
         assertThat(ssidTranslator.getTranslatedSsid(unknownSsid)).isEqualTo(unknownSsid);
+    }
+
+    /**
+     * Verifies behavior of {@link SsidTranslator#getTranslatedSsid(WifiSsid)} with SSID bytes that
+     * match both UTF-8 and the alternate encoding. The alternate encoding should take precedence
+     * over UTF-8 unless "strictly UTF-8" is specified.
+     */
+    @Test
+    public void testGetTranslatedSsidWithEncodingCollision() throws Exception {
+        ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        SsidTranslator ssidTranslator = new SsidTranslator(mWifiContext, mHandler);
+        ssidTranslator.handleBootCompleted();
+        verify(mWifiContext).registerReceiver(
+                broadcastReceiverCaptor.capture(), any(), eq(null), eq(mHandler));
+        // SSID can be UTF-8 for "安卓" or GBK for "瀹夊崜"
+        WifiSsid ambiguousSsid = WifiSsid.fromBytes(new byte[]{
+                (byte) 0xe5, (byte) 0xae, (byte) 0x89, (byte) 0xe5, (byte) 0x8d, (byte) 0x93});
+
+        // Set Locale to zh for GBK.
+        when(mLocale.getLanguage()).thenReturn("zh");
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_LOCALE_CHANGED));
+
+        // GBK should take precedence over UTF-8 since it's the alternate charset.
+        assertThat(ssidTranslator.getTranslatedSsid(ambiguousSsid).getUtf8Text())
+                .isEqualTo("瀹夊崜");
+        // If the SSID is marked as strictly UTF-8, don't translate it.
+        assertThat(ssidTranslator.getTranslatedSsidAndRecordBssidCharset(ambiguousSsid,
+                null, true)).isEqualTo(ambiguousSsid);
     }
 
     /**
@@ -215,7 +241,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(utf8Ssid);
 
         // Record a BSSID using GBK. All non-matching BSSIDs should return GBK.
-        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress);
+        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress, false);
         verify(mHandler, times(1)).postDelayed(
                 timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
         timeoutRunnables.add(timeoutRunnableCaptor.getValue());
@@ -224,7 +250,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
         assertThat(ssidTranslator.getOriginalSsid(utf8Ssid, gbkMacAddress)).isEqualTo(gbkSsid);
 
         // Record a BSSID using UTF-8. The UTF-8 and null BSSIDs should return UTF-8 now.
-        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress);
+        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress, true);
         verify(mHandler, times(2)).postDelayed(
                 timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
         timeoutRunnables.add(timeoutRunnableCaptor.getValue());
@@ -303,7 +329,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
         assertThat(ssidTranslator.getOriginalSsid(config)).isEqualTo(utf8Ssid);
 
         // Record a BSSID using GBK. All non-matching BSSIDs should return GBK.
-        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress);
+        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(gbkSsid, gbkMacAddress, false);
         verify(mHandler, times(1)).postDelayed(
                 timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
         timeoutRunnables.add(timeoutRunnableCaptor.getValue());
@@ -326,7 +352,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
         assertThat(ssidTranslator.getOriginalSsid(config)).isEqualTo(gbkSsid);
 
         // Record a BSSID using UTF-8. The UTF-8 and null BSSIDs should return UTF-8 now.
-        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress);
+        ssidTranslator.getTranslatedSsidAndRecordBssidCharset(utf8Ssid, utf8MacAddress, true);
         verify(mHandler, times(2)).postDelayed(
                 timeoutRunnableCaptor.capture(), eq(SsidTranslator.BSSID_CACHE_TIMEOUT_MS));
         timeoutRunnables.add(timeoutRunnableCaptor.getValue());

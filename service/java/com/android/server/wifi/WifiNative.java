@@ -1854,8 +1854,9 @@ public class WifiNative {
                 continue;
             }
 
+            boolean isStrictUtf8 = networkDetail.isSSID_UTF8();
             WifiSsid translatedSsid = mWifiInjector.getSsidTranslator()
-                    .getTranslatedSsidAndRecordBssidCharset(originalSsid, bssidMac);
+                    .getTranslatedSsidAndRecordBssidCharset(originalSsid, bssidMac, isStrictUtf8);
             ScanDetail scanDetail = new ScanDetail(networkDetail, translatedSsid, bssid, flags,
                     result.getSignalMbm() / 100, result.getFrequencyMhz(), result.getTsf(), ies,
                     null, result.getInformationElements());
