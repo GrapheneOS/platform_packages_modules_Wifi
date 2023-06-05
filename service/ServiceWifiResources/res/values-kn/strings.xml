@@ -31,12 +31,12 @@
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> ಸೂಚಿಸಿರುವ ನೆಟ್‌ವರ್ಕ್‌ಗಳು. ಸಾಧನಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಂಪರ್ಕಗೊಳ್ಳಬಹುದು."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"ಅನುಮತಿಸಿ"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"ಬೇಡ"</string>
-    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ಗೆ ಕನೆಕ್ಟ್ ಮಾಡುವುದೇ?"</string>
+    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಬೇಕೆ?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"ಸಾಧನದ ಸ್ಥಳವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಬಳಸಬಹುದಾದ SIM ಐಡಿಯನ್ನು ಈ ನೆಟ್‌ವರ್ಕ್‌ಗಳು ಸ್ವೀಕರಿಸುತ್ತವೆ"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"ಕನೆಕ್ಷನ್ ಅನ್ನು ಖಚಿತಪಡಿಸಬೇಕೇ?"</string>
-    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"ನೀವು ಕನೆಕ್ಟ್ ಮಾಡಿದರೆ, <xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ನೆಟ್‌ವರ್ಕ್‌ಗಳು ನಿಮ್ಮ SIM ಗೆ ಸಂಬಂಧಿಸಿದ ಅನನ್ಯ ಐಡಿಗೆ ಪ್ರವೇಶ ಪಡೆಯಬಹುದು ಅಥವಾ ಅದನ್ನು ಹಂಚಿಕೊಳ್ಳಬಹುದು. ನಿಮ್ಮ ಸಾಧನದ ಸ್ಥಳವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಇದು ಅವಕಾಶ ನೀಡಬಹುದು."</string>
+    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"ನೀವು ಕನೆಕ್ಟ್ ಮಾಡಿದರೆ, <xliff:g id="CARRIERNAME">%s</xliff:g> ವೈ-ಫೈ ನೆಟ್‌ವರ್ಕ್‌ಗಳು ನಿಮ್ಮ SIM ಗೆ ಸಂಬಂಧಿಸಿದ ಅನನ್ಯ ಐಡಿಗೆ ಆ್ಯಕ್ಸೆಸ್ ಪಡೆಯಬಹುದು ಅಥವಾ ಅದನ್ನು ಹಂಚಿಕೊಳ್ಳಬಹುದು. ನಿಮ್ಮ ಸಾಧನದ ಸ್ಥಳವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಇದು ಅವಕಾಶ ನೀಡಬಹುದು."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"ಕನೆಕ್ಟ್ ಮಾಡಿ"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"ಕನೆಕ್ಟ್ ಮಾಡಬೇಡಿ"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"ವೈ‑ಫೈ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಆನ್ ಆಗುತ್ತದೆ"</string>
@@ -82,7 +82,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ಪ್ರಮಾಣೀಕರಣ ದೋಷ 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">
-    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ Verizon ವೈ-ಫೈ ಪ್ರವೇಶ ಖಾತೆಯಲ್ಲಿ ಸಮಸ್ಯೆಯಿದೆ. ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು 800-922-0204 ಗೆ ಕರೆ ಮಾಡಿ. (ದೋಷ = 32762)"</item>
+    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ Verizon ವೈ-ಫೈ ಆ್ಯಕ್ಸೆಸ್ ಖಾತೆಯಲ್ಲಿ ಸಮಸ್ಯೆಯಿದೆ. ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು 800-922-0204 ಗೆ ಕರೆ ಮಾಡಿ. (ದೋಷ = 32762)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32763" msgid="4467733260757049969">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ಪ್ರಮಾಣೀಕರಣ ದೋಷ 32763"</string>
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
@@ -94,11 +94,11 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ಪ್ರಮಾಣೀಕರಣ ದೋಷ 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
-    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ Verizon ವೈ-ಫೈ ಪ್ರವೇಶ ಖಾತೆಯಲ್ಲಿ ಸಮಸ್ಯೆಯಿದೆ. ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು 800-922-0204 ಗೆ ಕರೆ ಮಾಡಿ. (ದೋಷ = 32765)"</item>
+    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ Verizon ವೈ-ಫೈ ಆ್ಯಕ್ಸೆಸ್ ಖಾತೆಯಲ್ಲಿ ಸಮಸ್ಯೆಯಿದೆ. ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು 800-922-0204 ಗೆ ಕರೆ ಮಾಡಿ. (ದೋಷ = 32765)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ಪ್ರಮಾಣೀಕರಣ ದೋಷ 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
-    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ ಸ್ಥಳದಿಂದ Verizon ವೈ-ಫೈ ಪ್ರವೇಶ ಲಭ್ಯವಿಲ್ಲ. ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಬೇರೊಂದು ಸ್ಥಳದಿಂದ ಪ್ರಯತ್ನಿಸಿ. (ದೋಷ = 32766)"</item>
+    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : ನಿಮ್ಮ ಸ್ಥಳದಿಂದ Verizon ವೈ-ಫೈ ಆ್ಯಕ್ಸೆಸ್ ಲಭ್ಯವಿಲ್ಲ. ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಬೇರೊಂದು ಸ್ಥಳದಿಂದ ಪ್ರಯತ್ನಿಸಿ. (ದೋಷ = 32766)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : EAP ಪ್ರಮಾಣೀಕರಣ ದೋಷ 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">

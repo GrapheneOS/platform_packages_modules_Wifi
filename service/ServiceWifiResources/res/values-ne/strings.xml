@@ -65,7 +65,7 @@
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"<xliff:g id="SSID">%1$s</xliff:g> मा जडान गर्न सकिएन"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"गोपनीयता सेटिङ परिवर्तन गर्न ट्याप गरेर फेरि प्रयास गर्नुहोस्"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"गोपनीयतासम्बन्धी सेटिङ परिवर्तन गर्ने हो?"</string>
-    <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"जोड्नका लागि <xliff:g id="SSID">%1$s</xliff:g> ले तपाईंको डिभाइसको MAC एड्रेस अर्थात् एउटा अद्वितीय पहिचानकर्ता प्रयोग गर्नु पर्ने हुन्छ। हाल, यो नेटवर्कमा लागू हुने तपाईंको गोपनीयतासम्बन्धी सेटिङले अनियमित पहिचानकर्ताको प्रयोग गर्छ। \n\nयो परिवर्तन गर्नाले वरपरका यन्त्रहरूलाई तपाईंको डिभाइसको स्थान ट्र्याक गर्न दिने सम्भावना हुन्छ।"</string>
+    <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"जोड्नका लागि <xliff:g id="SSID">%1$s</xliff:g> ले तपाईंको डिभाइसको म्याक एड्रेस अर्थात् एउटा अद्वितीय पहिचानकर्ता प्रयोग गर्नु पर्ने हुन्छ। हाल, यो नेटवर्कमा लागू हुने तपाईंको गोपनीयतासम्बन्धी सेटिङले अनियमित पहिचानकर्ताको प्रयोग गर्छ। \n\nयो परिवर्तन गर्नाले वरपरका यन्त्रहरूलाई तपाईंको डिभाइसको स्थान ट्र्याक गर्न दिने सम्भावना हुन्छ।"</string>
     <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"सेटिङ परिवर्तन गर्नुहोस्"</string>
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"सेटिङ अद्यावधिक गरियो। फेरि जोडी हेर्नुहोस्।"</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"गोपनीयता सेटिङ परिवर्तन गर्न सकिँदैन"</string>

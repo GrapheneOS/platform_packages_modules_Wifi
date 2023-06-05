@@ -117,7 +117,7 @@
     <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : Verizon Wi-Fi Access への接続中に問題が発生しました。"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"アクセス ポイントが OFF になりました"</string>
-    <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"デバイスは接続されていません。タップすると変更できます。"</string>
+    <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"デバイスは接続されていません。タップで変更できます。"</string>
     <string name="wifi_sim_required_title" msgid="2262227800991155459">"Wi-Fi が切断されました"</string>
     <string name="wifi_sim_required_message" msgid="284812212346125745">"<xliff:g id="SSID">%1$s</xliff:g> に接続するには、<xliff:g id="CARRIER_NAME">%2$s</xliff:g> の SIM を挿入します"</string>
     <string name="wifi_interface_priority_title" msgid="5117627874976875544">"<xliff:g id="APP">%1$s</xliff:g> がネットワーク リソースの使用を求めています"</string>
