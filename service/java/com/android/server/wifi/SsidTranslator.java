@@ -48,6 +48,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -80,9 +81,9 @@ public class SsidTranslator {
     private @NonNull Map<String, Charset> mMockCharsetsPerLocaleLanguage = new HashMap<>();
 
     // Maps a translated SSID to all of its BSSIDs using the alternate Charset.
-    private @NonNull Map<WifiSsid, Set<MacAddress>> mTranslatedBssids = new ArrayMap<>();
+    private @NonNull Map<WifiSsid, Set<MacAddress>> mTranslatedBssidsForSsid = new ArrayMap<>();
     // Maps a translated SSID to all of its BSSIDs not using the alternate Charset.
-    private @NonNull Map<WifiSsid, Set<MacAddress>> mUntranslatedBssids = new ArrayMap<>();
+    private @NonNull Map<WifiSsid, Set<MacAddress>> mUntranslatedBssidsForSsid = new ArrayMap<>();
     private final Map<Pair<WifiSsid, MacAddress>, Runnable> mUntranslatedBssidTimeoutRunnables =
             new ArrayMap<>();
     private final Map<Pair<WifiSsid, MacAddress>, Runnable> mTranslatedBssidTimeoutRunnables =
@@ -141,12 +142,12 @@ public class SsidTranslator {
             mWifiHandler.removeCallbacks(runnable);
         }
         mTranslatedBssidTimeoutRunnables.clear();
-        mTranslatedBssids.clear();
+        mTranslatedBssidsForSsid.clear();
         for (Runnable runnable : mUntranslatedBssidTimeoutRunnables.values()) {
             mWifiHandler.removeCallbacks(runnable);
         }
         mUntranslatedBssidTimeoutRunnables.clear();
-        mUntranslatedBssids.clear();
+        mUntranslatedBssidsForSsid.clear();
         mCurrentLocaleAlternateCharset = null;
         // Try to find the Charset for the specific language.
         String language = null;
@@ -229,13 +230,13 @@ public class SsidTranslator {
         }
         // Try translating the SSID from the alternate charset if it hasn't been declared as UTF-8.
         if (!isStrictUtf8
-                && !(mUntranslatedBssids.containsKey(ssid)
-                && mUntranslatedBssids.get(ssid).contains(bssid))) {
+                && !(mUntranslatedBssidsForSsid.containsKey(ssid)
+                && mUntranslatedBssidsForSsid.get(ssid).contains(bssid))) {
             WifiSsid translatedSsid =
                     translateSsid(ssid, mCurrentLocaleAlternateCharset, StandardCharsets.UTF_8);
             if (translatedSsid != null) {
                 if (bssid != null) {
-                    mTranslatedBssids.computeIfAbsent(translatedSsid, k -> new ArraySet<>())
+                    mTranslatedBssidsForSsid.computeIfAbsent(translatedSsid, k -> new ArraySet<>())
                             .add(bssid);
                     Pair<WifiSsid, MacAddress> ssidBssidPair = new Pair<>(translatedSsid, bssid);
                     Runnable oldRunnable = mTranslatedBssidTimeoutRunnables.remove(ssidBssidPair);
@@ -256,7 +257,7 @@ public class SsidTranslator {
         }
         // SSID should be used untranslated.
         if (bssid != null) {
-            mUntranslatedBssids.computeIfAbsent(ssid, k -> new ArraySet<>()).add(bssid);
+            mUntranslatedBssidsForSsid.computeIfAbsent(ssid, k -> new ArraySet<>()).add(bssid);
             Pair<WifiSsid, MacAddress> ssidBssidPair = new Pair<>(ssid, bssid);
             Runnable oldRunnable = mUntranslatedBssidTimeoutRunnables.remove(ssidBssidPair);
             if (oldRunnable != null) {
@@ -284,13 +285,13 @@ public class SsidTranslator {
             return;
         }
         mTranslatedBssidTimeoutRunnables.remove(mapping);
-        Set<MacAddress> bssids = mTranslatedBssids.get(ssid);
+        Set<MacAddress> bssids = mTranslatedBssidsForSsid.get(ssid);
         if (bssids == null) {
             return;
         }
         bssids.remove(bssid);
         if (bssids.isEmpty()) {
-            mTranslatedBssids.remove(ssid);
+            mTranslatedBssidsForSsid.remove(ssid);
         }
     }
 
@@ -303,53 +304,59 @@ public class SsidTranslator {
             return;
         }
         mUntranslatedBssidTimeoutRunnables.remove(mapping);
-        Set<MacAddress> bssids = mUntranslatedBssids.get(ssid);
+        Set<MacAddress> bssids = mUntranslatedBssidsForSsid.get(ssid);
         if (bssids == null) {
             return;
         }
         bssids.remove(bssid);
         if (bssids.isEmpty()) {
-            mUntranslatedBssids.remove(ssid);
+            mUntranslatedBssidsForSsid.remove(ssid);
         }
     }
 
     /**
-     * Converts the specified translated SSID back to its original Charset if the BSSID is recorded
-     * as translated, or there are translated BSSIDs but no untranslated BSSIDs for this SSID.
+     * Converts the specified translated SSID back to specified alternate Charset for the current
+     * locale language.
      *
-     * If the BSSID has not been recorded at all, then we will return the SSID as-is.
+     * The SSID will be returned as-is if the BSSID was already recorded as untranslated, or if all
+     * the BSSIDs associated with the SSID are untranslated, or if the SSID cannot be encoded with
+     * the alternate charset.
+     *
+     * Returns null if the given SSID is not valid both in the alternate Charset and as-is.
      *
      * @param translatedSsid translated SSID.
      * @param bssid optional BSSID to look up the Charset.
-     * @return original SSID. May be null if there are no valid translations back to the alternate
-     *         Charset and the translated SSID is not a valid SSID.
+     * @return original SSID.
      */
     public synchronized @Nullable WifiSsid getOriginalSsid(
             @NonNull WifiSsid translatedSsid, @Nullable MacAddress bssid) {
         if (mCurrentLocaleAlternateCharset == null) {
             return translatedSsid.getBytes().length <= 32 ? translatedSsid : null;
         }
-        boolean ssidWasTranslatedForSomeBssids = mTranslatedBssids.containsKey(translatedSsid);
-        boolean ssidWasTranslatedForThisBssid = ssidWasTranslatedForSomeBssids
-                && mTranslatedBssids.get(translatedSsid).contains(bssid);
-        boolean ssidNotTranslatedForSomeBssids = mUntranslatedBssids.containsKey(translatedSsid);
-        if (ssidWasTranslatedForThisBssid
-                || (ssidWasTranslatedForSomeBssids && !ssidNotTranslatedForSomeBssids)) {
+        Set<MacAddress> translatedBssids = mTranslatedBssidsForSsid.get(translatedSsid);
+        if (translatedBssids == null) {
+            translatedBssids = Collections.emptySet();
+        }
+        Set<MacAddress> untranslatedBssids = mUntranslatedBssidsForSsid.get(translatedSsid);
+        if (untranslatedBssids == null) {
+            untranslatedBssids = Collections.emptySet();
+        }
+        if (!untranslatedBssids.contains(bssid)
+                && !(translatedBssids.isEmpty() && !untranslatedBssids.isEmpty())) {
             // Try to get the SSID in the alternate Charset.
             WifiSsid altCharsetSsid = translateSsid(
                     translatedSsid, StandardCharsets.UTF_8, mCurrentLocaleAlternateCharset);
-            if (altCharsetSsid == null || altCharsetSsid.getBytes().length > 32) {
-                Log.e(TAG, "Could not translate " + translatedSsid + " back to "
-                        + mCurrentLocaleAlternateCharset + " for BSSID " + bssid);
-            } else {
+            if (altCharsetSsid != null && altCharsetSsid.getBytes().length <= 32) {
                 return altCharsetSsid;
             }
         }
         // Use the translated SSID as-is
-        if (translatedSsid.getBytes().length > 32) {
-            return null;
+        if (translatedSsid.getBytes().length <= 32) {
+            return translatedSsid;
         }
-        return translatedSsid;
+        // No valid original SSID.
+        Log.e(TAG, "getOriginalSsid: " + translatedSsid + " not a valid SSID!");
+        return null;
     }
 
     /**
@@ -411,14 +418,14 @@ public class SsidTranslator {
         pw.println("mCharsetsPerLocaleLanguage End ---");
         pw.println("mTranslatedBssids Begin ---");
         for (Map.Entry<WifiSsid, Set<MacAddress>> translatedBssidsEntry
-                : mTranslatedBssids.entrySet()) {
+                : mTranslatedBssidsForSsid.entrySet()) {
             pw.println("Translated SSID: " + translatedBssidsEntry.getKey() + ", BSSIDS: "
                     + Arrays.toString(translatedBssidsEntry.getValue().toArray()));
         }
         pw.println("mTranslatedBssids End ---");
         pw.println("mUntranslatedBssids Begin ---");
         for (Map.Entry<WifiSsid, Set<MacAddress>> untranslatedBssidsEntry
-                : mUntranslatedBssids.entrySet()) {
+                : mUntranslatedBssidsForSsid.entrySet()) {
             pw.println("Translated SSID: " + untranslatedBssidsEntry.getKey() + ", BSSIDS: "
                     + Arrays.toString(untranslatedBssidsEntry.getValue().toArray()));
         }
