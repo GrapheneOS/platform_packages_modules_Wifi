@@ -498,7 +498,8 @@ public class WifiInjector {
                 mDeviceConfigFacade, mActiveModeWarden, mFrameworkFacade, mWifiGlobals,
                 mExternalPnoScanRequestManager, mSsidTranslator, mWifiPermissionsUtil,
                 mWifiCarrierInfoManager, mCountryCode, mWifiDialogManager);
-        mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden);
+        mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden,
+                mWifiThreadRunner);
         mConnectionFailureNotifier = new ConnectionFailureNotifier(
                 mContext, mFrameworkFacade, mWifiConfigManager,
                 mWifiConnectivityManager, wifiHandler,
