@@ -45,7 +45,6 @@ import android.hardware.wifi.WifiDebugRxPacketFate;
 import android.hardware.wifi.WifiDebugRxPacketFateReport;
 import android.hardware.wifi.WifiDebugTxPacketFate;
 import android.hardware.wifi.WifiDebugTxPacketFateReport;
-import android.hardware.wifi.WifiInformationElement;
 import android.hardware.wifi.WifiStatusCode;
 import android.net.MacAddress;
 import android.net.apf.ApfCapabilities;
@@ -64,7 +63,6 @@ import com.android.server.wifi.WifiLinkLayerStats;
 import com.android.server.wifi.WifiLoggerHal;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.util.BitMask;
-import com.android.server.wifi.util.InformationElementUtil;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.wifi.resources.R;
 
@@ -743,27 +741,9 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
             Log.e(TAG, "Failed to get BSSID of scan result: " + e);
             return null;
         }
-        boolean isStrictUtf8 = false;
-        if (scanResult.informationElements != null) {
-            for (WifiInformationElement ie : scanResult.informationElements) {
-                if (ie == null) {
-                    continue;
-                }
-                if (ie.id == ScanResult.InformationElement.EID_EXTENDED_CAPS) {
-                    if (ie.data == null) {
-                        break;
-                    }
-                    InformationElementUtil.ExtendedCapabilities caps =
-                            new InformationElementUtil.ExtendedCapabilities();
-                    caps.from(ie.data);
-                    isStrictUtf8 = caps.isStrictUtf8();
-                    break;
-                }
-            }
-        }
         ScanResult frameworkScanResult = new ScanResult();
         frameworkScanResult.setWifiSsid(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(
-                originalSsid, bssid, isStrictUtf8));
+                originalSsid, bssid));
         frameworkScanResult.BSSID = bssid.toString();
         frameworkScanResult.level = scanResult.rssi;
         frameworkScanResult.frequency = scanResult.frequency;
