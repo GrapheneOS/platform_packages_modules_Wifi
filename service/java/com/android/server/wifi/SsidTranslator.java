@@ -202,35 +202,32 @@ public class SsidTranslator {
     }
 
     /**
-     * Translate an SSID to UTF-8 if it is encoded with the alternate Charset of the current Locale
-     * language.
+     * Translate an SSID to UTF-8 if it is not already UTF-8 and is encoded with the alternate
+     * Charset of the current Locale language.
      *
      * @param ssid SSID to translate.
      * @return translated SSID, or the given SSID if it should not be translated.
      */
     public synchronized @NonNull WifiSsid getTranslatedSsid(@NonNull WifiSsid ssid) {
-        return getTranslatedSsidAndRecordBssidCharset(ssid, null, false);
+        return getTranslatedSsidAndRecordBssidCharset(ssid, null);
     }
 
     /**
-     * Translate an SSID to UTF-8 if it is encoded with the alternate Charset of the current Locale
-     * language, and record the BSSID as translated. If the SSID is not encoded with the alternate
-     * Charset, then the SSID will not be translated and the BSSID will be recorded as untranslated.
+     * Translate an SSID to UTF-8 if it is not already UTF-8 and is encoded with the alternate
+     * Charset of the current Locale language, and record the BSSID as translated. If the SSID is
+     * already in UTF-8 or is not encoded with the alternate Charset, then the SSID will not be
+     * translated and the BSSID will be recorded as untranslated.
      *
-     * @param ssid  SSID to translate.
+     * @param ssid SSID to translate.
      * @param bssid BSSID to record the Charset of.
-     * @param isStrictUtf8 If the SSID was declared as UTF-8 in the beacon extended capabilities.
      * @return translated SSID, or the given SSID if it should not be translated.
      */
     public synchronized @NonNull WifiSsid getTranslatedSsidAndRecordBssidCharset(
-            @NonNull WifiSsid ssid, @Nullable MacAddress bssid, boolean isStrictUtf8) {
+            @NonNull WifiSsid ssid, @Nullable MacAddress bssid) {
         if (mCurrentLocaleAlternateCharset == null) {
             return ssid;
         }
-        // Try translating the SSID from the alternate charset if it hasn't been declared as UTF-8.
-        if (!isStrictUtf8
-                && !(mUntranslatedBssids.containsKey(ssid)
-                && mUntranslatedBssids.get(ssid).contains(bssid))) {
+        if (ssid.getUtf8Text() == null) {
             WifiSsid translatedSsid =
                     translateSsid(ssid, mCurrentLocaleAlternateCharset, StandardCharsets.UTF_8);
             if (translatedSsid != null) {
@@ -254,7 +251,6 @@ public class SsidTranslator {
                 return translatedSsid;
             }
         }
-        // SSID should be used untranslated.
         if (bssid != null) {
             mUntranslatedBssids.computeIfAbsent(ssid, k -> new ArraySet<>()).add(bssid);
             Pair<WifiSsid, MacAddress> ssidBssidPair = new Pair<>(ssid, bssid);
