@@ -210,7 +210,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         verify(mHalDeviceManager).registerStatusListener(
                 hdmCallbackCaptor.capture(), any(Handler.class));
         mHalDeviceManagerStatusCallbacks = hdmCallbackCaptor.getValue();
-        when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any()))
+        when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any(), anyBoolean()))
                 .thenAnswer((Answer<WifiSsid>) invocation ->
                         getTranslatedSsid(invocation.getArgument(0)));
         when(mSsidTranslator.getAllPossibleOriginalSsids(any()))
