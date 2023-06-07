@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static android.net.wifi.WifiConfiguration.MeteredOverride;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
 
 import static java.lang.StrictMath.toIntExact;
 
@@ -8588,5 +8589,13 @@ public class WifiMetrics {
         synchronized (mLock) {
             mRecentFailureAssociationStatus.increment(reason);
         }
+    }
+
+    /**
+     * Loggint the time it takes for save config to the storage.
+     * @param time
+     */
+    public void wifiConfigStored(int time) {
+        WifiStatsLog.write(WIFI_CONFIG_SAVED, time);
     }
 }
