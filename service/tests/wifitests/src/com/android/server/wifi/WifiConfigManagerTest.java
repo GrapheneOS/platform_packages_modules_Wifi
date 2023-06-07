@@ -31,6 +31,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -435,12 +436,14 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testSaveToStoreIsRejectedBeforeLoadFromStore() throws Exception {
         assertFalse(mWifiConfigManager.saveToStore(true));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
         assertTrue(mWifiConfigManager.loadFromStore());
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).read();
 
         assertTrue(mWifiConfigManager.saveToStore(true));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
     /**
@@ -598,6 +601,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         // Ensure that the write was not invoked for ephemeral network addition.
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
         List<WifiConfiguration> retrievedNetworks =
                 mWifiConfigManager.getConfiguredNetworksWithPasswords();
@@ -1476,6 +1480,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyNetworkRemoveBroadcast();
         // Ensure that the write was not invoked for Passpoint network remove.
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
     }
     /**
@@ -1681,6 +1686,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(retrievedStatus.isNetworkPermanentlyDisabled());
         verifyUpdateNetworkStatus(retrievedNetwork, WifiConfiguration.Status.DISABLED);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
 
     /**
@@ -1766,6 +1772,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         retrievedNetwork = mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
         assertFalse(retrievedNetwork.allowAutojoin);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
 
     /**
@@ -3828,6 +3835,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
     /**
@@ -3913,6 +3921,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .switchUserStoresAndRead(any(List.class));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
     /**
@@ -3938,6 +3947,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .setUserStores(any(List.class));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).read();
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
     }
 
     /**
@@ -3958,6 +3968,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
         // Now load from the store.
         assertTrue(mWifiConfigManager.loadFromStore());
@@ -3968,6 +3979,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.handleUserUnlock(user2);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, atLeastOnce()).wifiConfigStored(anyInt());
     }
 
     /**
@@ -3996,6 +4008,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
         // Now load from the store.
         assertTrue(mWifiConfigManager.loadFromStore());
@@ -4006,6 +4019,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.handleUserUnlock(user2);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, atLeastOnce()).wifiConfigStored(anyInt());
     }
 
     /**
@@ -4033,6 +4047,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, never()).wifiConfigStored(anyInt());
 
         // Now load from the store.
         assertTrue(mWifiConfigManager.loadFromStore());
@@ -4043,6 +4058,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.handleUserUnlock(user2);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .switchUserStoresAndRead(any(List.class));
+        verify(mWifiMetrics, atLeastOnce()).wifiConfigStored(anyInt());
     }
 
     /**
@@ -4302,6 +4318,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // clearing it after network removal.
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, times(2)).write(eq(false));
         verify(mListener, times(2)).onConnectChoiceRemoved(anyString());
+        verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
 
     /**
