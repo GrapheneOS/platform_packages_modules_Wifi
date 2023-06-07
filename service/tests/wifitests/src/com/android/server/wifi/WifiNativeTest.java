@@ -322,7 +322,7 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mSettingsConfigStore.get(eq(WIFI_NATIVE_SUPPORTED_FEATURES)))
                 .thenReturn(WIFI_TEST_FEATURE);
-        when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any(), anyBoolean()))
+        when(mSsidTranslator.getTranslatedSsidAndRecordBssidCharset(any(), any()))
                 .thenAnswer((Answer<WifiSsid>) invocation ->
                         getTranslatedSsid(invocation.getArgument(0)));
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
