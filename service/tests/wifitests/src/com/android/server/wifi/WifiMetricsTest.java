@@ -35,6 +35,7 @@ import static com.android.server.wifi.WifiMetricsTestUtil.buildInt32Count;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureReasonCount;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureStaEvent;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeSuccessStaEvent;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
 import static com.android.server.wifi.proto.nano.WifiMetricsProto.StaEvent.TYPE_LINK_PROBE;
 
 import static org.junit.Assert.assertEquals;
@@ -6818,5 +6819,11 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiStatsLog.AIRPLANE_MODE_SESSION_REPORTED,
                 WifiStatsLog.AIRPLANE_MODE_SESSION_REPORTED__PACKAGE_NAME__WIFI,
                 true, true, false, true, false, false, false));
+    }
+
+    @Test
+    public void testWifiConfigStored() {
+        mWifiMetrics.wifiConfigStored(120);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(WIFI_CONFIG_SAVED, 120));
     }
 }
