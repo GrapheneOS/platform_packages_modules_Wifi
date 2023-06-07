@@ -697,11 +697,12 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                     if (config.SSID != null) {
                         // No actual SSID supplied, so select from the network selection BSSID
                         // or the latest candidate BSSID.
+                        WifiSsid configSsid = WifiSsid.fromString(config.SSID);
                         WifiSsid supplicantSsid = mSsidTranslator.getOriginalSsid(config);
                         if (supplicantSsid != null) {
                             supplicantConfig.SSID = supplicantSsid.toString();
                             List<WifiSsid> allPossibleSsids = mSsidTranslator
-                                    .getAllPossibleOriginalSsids(WifiSsid.fromString(config.SSID));
+                                    .getAllPossibleOriginalSsids(configSsid);
                             WifiSsid selectedSsid = mSsidTranslator.getOriginalSsid(config);
                             allPossibleSsids.remove(selectedSsid);
                             if (!allPossibleSsids.isEmpty()) {
@@ -713,6 +714,9 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                             Log.d(TAG, "Selecting supplicant SSID " + supplicantSsid);
                             supplicantConfig.SSID = supplicantSsid.toString();
                         }
+                        // Set the actual translation of the original SSID in case the untranslated
+                        // SSID has an ambiguous encoding.
+                        mSsidTranslator.setTranslatedSsidForStaIface(configSsid, ifaceName);
                     }
                 }
                 Pair<SupplicantStaNetworkHalAidlImpl, WifiConfiguration> pair =
