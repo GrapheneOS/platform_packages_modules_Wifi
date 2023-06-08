@@ -87,6 +87,7 @@ public class SsidTranslator {
             new ArrayMap<>();
     private final Map<Pair<WifiSsid, MacAddress>, Runnable> mTranslatedBssidTimeoutRunnables =
             new ArrayMap<>();
+    private final Map<String, WifiSsid> mTranslatedSsidForStaIface = new ArrayMap<>();
 
     public SsidTranslator(@NonNull WifiContext wifiContext, @NonNull Handler wifiHandler) {
         mWifiContext = wifiContext;
@@ -210,6 +211,30 @@ public class SsidTranslator {
      */
     public synchronized @NonNull WifiSsid getTranslatedSsid(@NonNull WifiSsid ssid) {
         return getTranslatedSsidAndRecordBssidCharset(ssid, null);
+    }
+
+    /**
+     * Gets the translated SSID used for a STA iface. This may be different from the default
+     * translation if the untranslated SSID has an ambiguous encoding.
+     */
+    public synchronized @NonNull WifiSsid getTranslatedSsidForStaIface(
+            @NonNull WifiSsid untranslated, @NonNull String staIface) {
+        WifiSsid translated = mTranslatedSsidForStaIface.get(staIface);
+        if (translated == null || !getAllPossibleOriginalSsids(translated).contains(untranslated)) {
+            // No recorded translation for the iface, use the default translation.
+            return getTranslatedSsid(untranslated);
+        }
+        // Return the recorded translation.
+        return translated;
+    }
+
+    /**
+     * Record the actual translated SSID used for a STA iface in case the untranslated SSID
+     * has an ambiguous encoding.
+     */
+    public synchronized void setTranslatedSsidForStaIface(
+            @NonNull WifiSsid translated, @NonNull String staIface) {
+        mTranslatedSsidForStaIface.put(staIface, translated);
     }
 
     /**
