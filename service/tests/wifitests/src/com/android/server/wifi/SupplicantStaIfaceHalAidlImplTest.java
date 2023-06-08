@@ -245,7 +245,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         mHandler = spy(new Handler(mLooper.getLooper()));
         when(mISupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
         when(mISupplicantMock.getInterfaceVersion()).thenReturn(ISupplicant.VERSION);
-        when(mSsidTranslator.getTranslatedSsid(any())).thenReturn(TRANSLATED_SUPPLICANT_SSID);
+        when(mSsidTranslator.getTranslatedSsidForStaIface(any(), anyString()))
+                .thenReturn(TRANSLATED_SUPPLICANT_SSID);
         when(mSsidTranslator.getOriginalSsid(any())).thenAnswer((Answer<WifiSsid>) invocation ->
                 WifiSsid.fromString(((WifiConfiguration) invocation.getArgument(0)).SSID));
         when(mSsidTranslator.getAllPossibleOriginalSsids(TRANSLATED_SUPPLICANT_SSID)).thenAnswer(
@@ -2739,6 +2740,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 .saveWifiConfiguration(configCaptor.capture());
         assertTrue(TextUtils.equals(configCaptor.getValue().SSID, ssid));
         verify(mSupplicantStaNetworkMock, times(numNetworkAdditions)).select();
+        verify(mSsidTranslator).setTranslatedSsidForStaIface(any(), anyString());
     }
 
     /**

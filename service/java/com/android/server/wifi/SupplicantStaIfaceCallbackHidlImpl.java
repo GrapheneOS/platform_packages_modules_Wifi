@@ -176,8 +176,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
             mStaIfaceHal.logCallback("onStateChanged");
             SupplicantState newSupplicantState =
                     supplicantHidlStateToFrameworkState(newState);
-            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(
-                    WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid)));
+            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsidForStaIface(
+                    WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid)), mIfaceName);
             String bssidStr = NativeUtil.macAddressFromByteArray(bssid);
             if (newState != State.DISCONNECTED) {
                 // onStateChanged(DISCONNECTED) may come before onDisconnected(), so add this
@@ -369,9 +369,9 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
         assocRejectData.mboAssocDisallowedReason = halToFrameworkMboAssocDisallowedReasonCode(
                 assocRejectData.mboAssocDisallowedReason);
         assocRejectData.ssid = NativeUtil.byteArrayToArrayList(
-                mSsidTranslator.getTranslatedSsid(
-                        WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(assocRejectData.ssid)))
-                        .getBytes());
+                mSsidTranslator.getTranslatedSsidForStaIface(
+                        WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(assocRejectData.ssid)),
+                        mIfaceName).getBytes());
         AssocRejectEventInfo assocRejectInfo = new AssocRejectEventInfo(assocRejectData);
         handleAssocRejectEvent(assocRejectInfo);
     }
