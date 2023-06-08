@@ -51,6 +51,7 @@ import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
 import android.hardware.wifi.supplicant.ISupplicantStaNetwork;
 import android.hardware.wifi.supplicant.IfaceInfo;
 import android.hardware.wifi.supplicant.IfaceType;
+import android.hardware.wifi.supplicant.IpVersion;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.LegacyMode;
 import android.hardware.wifi.supplicant.MloLinksInfo;
@@ -2901,6 +2902,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         classifierParams.dstPortRange = new PortRange();
         classifierParams.flowLabelIpv6 = new byte[0];
         classifierParams.domainName = "";
+        classifierParams.ipVersion = params.getIpVersion() == QosPolicyParams.IP_VERSION_4
+                ? IpVersion.VERSION_4 : IpVersion.VERSION_6;
 
         if (params.getSourceAddress() != null) {
             paramsMask |= QosPolicyClassifierParamsMask.SRC_IP;
