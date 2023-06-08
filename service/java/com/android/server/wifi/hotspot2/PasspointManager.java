@@ -1246,6 +1246,7 @@ public class PasspointManager {
             }
             WifiConfiguration config = provider.getWifiConfig();
             config.SSID = provider.getMostRecentSsid();
+            config.getNetworkSelectionStatus().setHasEverConnected(true);
             configs.add(config);
         }
         return configs;
