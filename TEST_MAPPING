@@ -23,6 +23,9 @@
       "options": [
         {
           "exclude-annotation": "android.net.wifi.cts.VirtualDeviceNotSupported"
+        },
+        {
+          "exclude-annotation": "com.android.compatibility.common.util.NonMainlineTest"
         }
       ]
     }
