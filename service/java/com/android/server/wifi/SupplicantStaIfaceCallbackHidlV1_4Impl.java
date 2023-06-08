@@ -278,7 +278,8 @@ abstract class SupplicantStaIfaceCallbackHidlV1_4Impl extends
         if (mStaIfaceHal.connectToFallbackSsid(mIfaceName)) {
             return;
         }
-        mWifiMonitor.broadcastNetworkNotFoundEvent(mIfaceName, mSsidTranslator.getTranslatedSsid(
-                WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid))).toString());
+        mWifiMonitor.broadcastNetworkNotFoundEvent(mIfaceName,
+                mSsidTranslator.getTranslatedSsidForStaIface(WifiSsid.fromBytes(
+                        NativeUtil.byteArrayFromArrayList(ssid)), mIfaceName).toString());
     }
 }
