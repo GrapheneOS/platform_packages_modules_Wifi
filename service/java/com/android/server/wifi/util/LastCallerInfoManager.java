@@ -125,6 +125,8 @@ public class LastCallerInfoManager {
                 return "API_SET_TDLS_ENABLED";
             case WifiManager.API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS:
                 return "API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS";
+            case WifiManager.API_SET_PNO_SCAN_ENABLED:
+                return "API_SET_PNO_SCAN_ENABLED";
             default:
                 return "Unknown";
         }
