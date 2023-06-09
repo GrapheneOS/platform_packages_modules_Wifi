@@ -83,6 +83,9 @@ public class HalAidlUtil {
         mask = supplicantMaskValueToWifiConfigurationBitSet(
                 mask, KeyMgmtMask.FILS_SHA384,
                 bitset, WifiConfiguration.KeyMgmt.FILS_SHA384);
+        mask = supplicantMaskValueToWifiConfigurationBitSet(
+                mask, KeyMgmtMask.DPP,
+                bitset, WifiConfiguration.KeyMgmt.DPP);
         if (mask != 0) {
             throw new IllegalArgumentException(
                     "invalid key mgmt mask from supplicant: " + mask);
