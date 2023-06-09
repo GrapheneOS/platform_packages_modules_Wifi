@@ -132,6 +132,39 @@ public class SsidTranslatorTest extends WifiBaseTest{
     }
 
     /**
+     * Verifies behavior of {@link SsidTranslator#getTranslatedSsidForStaIface(WifiSsid, String)}.
+     */
+    @Test
+    public void testGetTranslatedSsidForStaIface() throws Exception {
+        ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor =
+                ArgumentCaptor.forClass(BroadcastReceiver.class);
+        SsidTranslator ssidTranslator = new SsidTranslator(mWifiContext, mHandler);
+        ssidTranslator.handleBootCompleted();
+        verify(mWifiContext).registerReceiver(
+                broadcastReceiverCaptor.capture(), any(), eq(null), eq(mHandler));
+        when(mLocale.getLanguage()).thenReturn("zh");
+        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
+                new Intent(Intent.ACTION_LOCALE_CHANGED));
+        String staIface = "wlan0";
+        // SSID may be "安卓" in UTF-8 or "瀹夊崜" in GBK
+        String utf8Interpretation = "\"安卓\"";
+        String gbkInterpretation = "\"瀹夊崜\"";
+        WifiSsid ambiguousSsid = WifiSsid.fromString(utf8Interpretation);
+
+        // Default translation prioritizes UTF-8 over GBK, so the SSID is translated as "安卓"
+        assertThat(ssidTranslator.getTranslatedSsidForStaIface(ambiguousSsid, staIface)
+                .toString()).isEqualTo(utf8Interpretation);
+
+        // Record that we're actually connecting with "瀹夊崜" as the intended SSID for this iface.
+        ssidTranslator.setTranslatedSsidForStaIface(
+                WifiSsid.fromString(gbkInterpretation), staIface);
+
+        // The translated SSID for the iface should map to the GBK interpretation now.
+        assertThat(ssidTranslator.getTranslatedSsidForStaIface(ambiguousSsid, staIface)
+                .toString()).isEqualTo(gbkInterpretation);
+    }
+
+    /**
      * Verifies behavior of {@link SsidTranslator#getAllPossibleOriginalSsids(WifiSsid)} .
      */
     @Test
