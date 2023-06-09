@@ -251,6 +251,8 @@ public class WifiInjector {
     private final WifiNotificationManager mWifiNotificationManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final InterfaceConflictManager mInterfaceConflictManager;
+    private final AfcManager mAfcManager;
+    private final WifiContext mContextWithAttributionTag;
     @NonNull private final WifiDialogManager mWifiDialogManager;
     @NonNull private final SsidTranslator mSsidTranslator;
     @NonNull private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
@@ -570,6 +572,12 @@ public class WifiInjector {
         mWifiPulledAtomLogger = new WifiPulledAtomLogger(
                 mContext.getSystemService(StatsManager.class), wifiHandler,
                 mContext, this);
+        mContextWithAttributionTag = new WifiContext(
+                mContext.createAttributionContext("WifiService"));
+        // The context needs to have an Attribution Tag set to get the current location using
+        // {@link LocationManager#getCurrentLocation}, so we need to pass mContextWithAttributionTag
+        // instead of mContext to the AfcManager.
+        mAfcManager = new AfcManager(mContextWithAttributionTag, this);
     }
 
     /**
@@ -1187,9 +1195,16 @@ public class WifiInjector {
     public MultiInternetManager getMultiInternetManager() {
         return mMultiInternetManager;
     }
+    public AfcManager getAfcManager() {
+        return mAfcManager;
+    }
 
     public WifiContext getContext() {
         return mContext;
+    }
+
+    public WifiContext getContextWithAttributionTag() {
+        return mContextWithAttributionTag;
     }
 
     /**

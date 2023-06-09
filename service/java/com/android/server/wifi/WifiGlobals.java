@@ -71,6 +71,7 @@ public class WifiGlobals {
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
     private boolean mIsUsingExternalScorer = false;
     private boolean mDisableUnwantedNetworkOnLowRssi = false;
+    private final boolean mIsAfcSupportedOnDevice;
     private Set<String> mMacRandomizationUnsupportedSsidPrefixes = new ArraySet<>();
 
     public WifiGlobals(Context context) {
@@ -124,6 +125,9 @@ public class WifiGlobals {
                 .getBoolean(R.bool.config_wifiWepDeprecated);
         mIsWpaPersonalDeprecated = mContext.getResources()
                 .getBoolean(R.bool.config_wifiWpaPersonalDeprecated);
+        mIsAfcSupportedOnDevice = mContext.getResources().getBoolean(R.bool.config_wifiAfcSupported)
+                && mContext.getResources().getBoolean(R.bool.config_wifiSoftap6ghzSupported)
+                && mContext.getResources().getBoolean(R.bool.config_wifi6ghzSupport);
         Set<String> unsupportedSsidPrefixes = new ArraySet<>(mContext.getResources().getStringArray(
                 R.array.config_wifiForceDisableMacRandomizationSsidPrefixList));
         if (!unsupportedSsidPrefixes.isEmpty()) {
@@ -153,6 +157,22 @@ public class WifiGlobals {
     /** Returns whether CMD_IP_REACHABILITY_LOST events should trigger disconnects. */
     public boolean getIpReachabilityDisconnectEnabled() {
         return mIpReachabilityDisconnectEnabled.get();
+    }
+
+    /**
+     * Returns the AFC server URL for a country, or null if AFC is not available in that country.
+     */
+    public String getAfcServerUrlForCountry(String countryCode) {
+        // Todo: add a list of country codes and the AFC servers associated with them in the
+        //  overlay. Then, return the URL if it exists, or null otherwise.
+        return null;
+    }
+
+    /**
+     * Returns whether this device supports AFC.
+     */
+    public boolean isAfcSupportedOnDevice() {
+        return mIsAfcSupportedOnDevice;
     }
 
     /** Sets whether CMD_IP_REACHABILITY_LOST events should trigger disconnects. */
