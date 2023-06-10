@@ -178,7 +178,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         synchronized (mLock) {
             SupplicantState newSupplicantState =
                     supplicantAidlStateToFrameworkState(newState);
-            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid));
+            WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsidForStaIface(
+                    WifiSsid.fromBytes(ssid), mIfaceName);
             String bssidStr = NativeUtil.macAddressFromByteArray(bssid);
             BitSet keyMgmtMask = null;
             if (supplicantKeyMgmtMask != 0) {
@@ -411,8 +412,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             assocRejectData.statusCode = halToFrameworkStatusCode(assocRejectData.statusCode);
             assocRejectData.mboAssocDisallowedReason = halToFrameworkMboAssocDisallowedReasonCode(
                     assocRejectData.mboAssocDisallowedReason);
-            assocRejectData.ssid = mSsidTranslator.getTranslatedSsid(
-                    WifiSsid.fromBytes(assocRejectData.ssid)).getBytes();
+            assocRejectData.ssid = mSsidTranslator.getTranslatedSsidForStaIface(
+                    WifiSsid.fromBytes(assocRejectData.ssid), mIfaceName).getBytes();
             AssocRejectEventInfo assocRejectInfo = new AssocRejectEventInfo(assocRejectData);
             handleAssocRejectEvent(assocRejectInfo);
         }
@@ -1231,7 +1232,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             return;
         }
         mWifiMonitor.broadcastNetworkNotFoundEvent(mIfaceName,
-                mSsidTranslator.getTranslatedSsid(WifiSsid.fromBytes(ssid)).toString());
+                mSsidTranslator.getTranslatedSsidForStaIface(
+                        WifiSsid.fromBytes(ssid), mIfaceName).toString());
     }
 
     @Override
