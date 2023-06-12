@@ -1379,6 +1379,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         assertEquals(1, configs.size());
         assertEquals(provider2.getConfig().getUniqueId(), configs.get(0).getPasspointUniqueId());
         assertEquals(TEST_SSID, configs.get(0).SSID);
+        assertTrue(configs.get(0).getNetworkSelectionStatus().hasEverConnected());
     }
 
     /**
