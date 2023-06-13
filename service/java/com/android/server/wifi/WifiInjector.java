@@ -266,19 +266,29 @@ public class WifiInjector {
 
         sWifiInjector = this;
         mLastCallerInfoManager = new LastCallerInfoManager();
+        mContext = context;
 
         // Now create and start handler threads
         mWifiHandlerThread = new HandlerThread("WifiHandlerThread");
         mWifiHandlerThread.start();
         Looper wifiLooper = mWifiHandlerThread.getLooper();
-        mWifiHandlerLocalLog = new LocalLog(128);
+        mWifiHandlerLocalLog = new LocalLog(1024);
+        WifiAwareMetrics awareMetrics = new WifiAwareMetrics(mClock);
+        RttMetrics rttMetrics = new RttMetrics(mClock);
+        mDppMetrics = new DppMetrics();
+        mWifiMonitor = new WifiMonitor();
+        mBatteryStats = context.getSystemService(BatteryStatsManager.class);
+        mWifiP2pMetrics = new WifiP2pMetrics(mClock, mContext);
+        mWifiMetrics = new WifiMetrics(mContext, mFrameworkFacade, mClock, wifiLooper,
+                awareMetrics, rttMetrics, new WifiPowerMetrics(mBatteryStats), mWifiP2pMetrics,
+                mDppMetrics, mWifiMonitor);
         RunnerHandler wifiHandler = new RunnerHandler(wifiLooper, context.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs),
-                mWifiHandlerLocalLog);
+                mWifiHandlerLocalLog, mWifiMetrics);
         mWifiDiagnosticsHandlerThread = new HandlerThread("WifiDiagnostics");
         mWifiDiagnosticsHandlerThread.start();
 
-        mContext = context;
+
         mWifiNotificationManager = new WifiNotificationManager(mContext);
         mWifiGlobals = new WifiGlobals(mContext);
         mScoringParams = new ScoringParams(mContext);
@@ -286,7 +296,7 @@ public class WifiInjector {
         mSettingsMigrationDataHolder = new SettingsMigrationDataHolder(mContext);
         mConnectionFailureNotificationBuilder = new ConnectionFailureNotificationBuilder(
                 mContext, mFrameworkFacade);
-        mBatteryStats = context.getSystemService(BatteryStatsManager.class);
+
         mWifiPermissionsWrapper = new WifiPermissionsWrapper(mContext);
         mUserManager = mContext.getSystemService(UserManager.class);
         mWifiPermissionsUtil = new WifiPermissionsUtil(mWifiPermissionsWrapper, mContext,
@@ -302,14 +312,6 @@ public class WifiInjector {
         mPasspointProvisionerHandlerThread =
                 new HandlerThread("PasspointProvisionerHandlerThread");
         mPasspointProvisionerHandlerThread.start();
-        WifiAwareMetrics awareMetrics = new WifiAwareMetrics(mClock);
-        RttMetrics rttMetrics = new RttMetrics(mClock);
-        mWifiP2pMetrics = new WifiP2pMetrics(mClock, mContext);
-        mDppMetrics = new DppMetrics();
-        mWifiMonitor = new WifiMonitor();
-        mWifiMetrics = new WifiMetrics(mContext, mFrameworkFacade, mClock, wifiLooper,
-                awareMetrics, rttMetrics, new WifiPowerMetrics(mBatteryStats), mWifiP2pMetrics,
-                mDppMetrics, mWifiMonitor);
         mDeviceConfigFacade = new DeviceConfigFacade(mContext, wifiHandler, mWifiMetrics);
         mAdaptiveConnectivityEnabledSettingObserver =
                 new AdaptiveConnectivityEnabledSettingObserver(wifiHandler, mWifiMetrics,
