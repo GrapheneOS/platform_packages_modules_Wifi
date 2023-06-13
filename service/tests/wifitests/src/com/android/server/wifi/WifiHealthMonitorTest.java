@@ -113,6 +113,8 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
     ActiveModeWarden mActiveModeWarden;
     @Mock
     WifiGlobals mWifiGlobals;
+    @Mock
+    WifiMetrics mWifiMetrics;
 
     private final ArrayList<String> mKeys = new ArrayList<>();
     private final ArrayList<WifiScoreCard.BlobListener> mBlobListeners = new ArrayList<>();
@@ -239,8 +241,8 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
                 .thenReturn(new int[]{-88, -77, -66, -55});
         mWifiHealthMonitor = new WifiHealthMonitor(mContext, mWifiInjector, mClock,
                 mWifiConfigManager, mWifiScoreCard,
-                new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128)), mWifiNative,
-                "some seed", mDeviceConfigFacade, mActiveModeWarden);
+                new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128), mWifiMetrics),
+                mWifiNative, "some seed", mDeviceConfigFacade, mActiveModeWarden);
         mWifiHealthMonitor.enableVerboseLogging(true);
         mLooper.dispatchAll();
         ArgumentCaptor<ModeChangeCallback> modeChangeCallbackArgumentCaptor =
