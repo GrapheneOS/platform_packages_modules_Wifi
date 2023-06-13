@@ -10288,9 +10288,13 @@ public class WifiManager {
     }
 
     /**
+     * Wi-Fi Preferred Network Offload (PNO) scanning offloads scanning to the chip to save power
+     * when Wi-Fi is disconnected and the screen is off. See
+     * {@link https://source.android.com/docs/core/connect/wifi-scan} for more details.
+     * <p>
      * This API can be used to enable or disable PNO scanning. After boot, PNO scanning is enabled
-     * by default. When PNO scanning is disabled, the Wi-Fi framework will not trigger scans when
-     * the screen is off.
+     * by default. When PNO scanning is disabled, the Wi-Fi framework will not trigger scans at all
+     * when the screen is off. This can be used to save power on devices with small batteries.
      *
      * @param enabled True - enable PNO scanning
      *                False - disable PNO scanning
