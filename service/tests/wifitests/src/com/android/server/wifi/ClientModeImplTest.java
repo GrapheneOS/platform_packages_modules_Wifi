@@ -4161,7 +4161,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mTestConfig);
         verify(mWifiNetworkFactory).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION),
-                eq(mTestConfig), eq(TEST_BSSID_STR));
+                eq(mTestConfig), eq(TEST_BSSID_STR), eq(WifiMetricsProto.ConnectionEvent
+                        .ASSOCIATION_REJECTION_AP_UNABLE_TO_HANDLE_NEW_STA));
         verify(mWifiNetworkSuggestionsManager).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_REJECTION),
                 eq(mTestConfig), eq(null));
@@ -4209,7 +4210,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mTestConfig);
         verify(mWifiNetworkFactory).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE),
-                eq(mTestConfig), eq(TEST_BSSID_STR));
+                eq(mTestConfig), eq(TEST_BSSID_STR), eq(WifiMetricsProto.ConnectionEvent
+                        .AUTH_FAILURE_WRONG_PSWD));
         verify(mWifiNetworkSuggestionsManager).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE),
                 eq(mTestConfig), eq(null));
@@ -4767,7 +4769,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mTestConfig);
         verify(mWifiNetworkFactory).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_DHCP), any(WifiConfiguration.class),
-                eq(TEST_BSSID_STR));
+                eq(TEST_BSSID_STR), eq(WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN));
         verify(mWifiNetworkSuggestionsManager).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_DHCP), any(WifiConfiguration.class),
                 any(String.class));
@@ -4802,7 +4804,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mConnectedNetwork);
         verify(mWifiNetworkFactory).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_NONE), eq(mConnectedNetwork),
-                eq(TEST_BSSID_STR));
+                eq(TEST_BSSID_STR), eq(WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN));
         verify(mWifiNetworkSuggestionsManager).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_NONE), eq(mConnectedNetwork),
                 any(String.class));
@@ -7931,7 +7933,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mTestConfig);
         verify(mWifiNetworkFactory).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_NETWORK_NOT_FOUND),
-                eq(mTestConfig), eq(TEST_BSSID_STR));
+                eq(mTestConfig), eq(TEST_BSSID_STR),
+                eq(WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN));
         verify(mWifiNetworkSuggestionsManager).handleConnectionAttemptEnded(
                 eq(WifiMetrics.ConnectionEvent.FAILURE_NETWORK_NOT_FOUND),
                 eq(mTestConfig), eq(null));
