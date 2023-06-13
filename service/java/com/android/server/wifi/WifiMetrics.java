@@ -20,6 +20,7 @@ import static android.net.wifi.WifiConfiguration.MeteredOverride;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_THREAD_TASK_EXECUTED;
 
 import static java.lang.StrictMath.toIntExact;
 
@@ -8592,10 +8593,20 @@ public class WifiMetrics {
     }
 
     /**
-     * Loggint the time it takes for save config to the storage.
-     * @param time
+     * Logging the time it takes for save config to the storage.
+     * @param time the time it take to write to the storage
      */
     public void wifiConfigStored(int time) {
         WifiStatsLog.write(WIFI_CONFIG_SAVED, time);
+    }
+
+    /**
+     * Logged when the task on the Wifi Thread has been excuted
+     * @param taskName The name of the task
+     * @param delay The dalay time after post the task on the thread
+     * @param runningTime The time usesd for executing the task
+     */
+    public void wifiThreadTaskExecuted(String taskName, int delay, int runningTime) {
+        WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, runningTime, delay, taskName);
     }
 }
