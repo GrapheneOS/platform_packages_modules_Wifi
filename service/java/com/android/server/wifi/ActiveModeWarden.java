@@ -171,7 +171,7 @@ public class ActiveModeWarden {
     @GuardedBy("mServiceApiLock")
     private Network mCurrentNetwork;
     @GuardedBy("mServiceApiLock")
-    private WifiInfo mCurrentConnectionInfo;
+    private WifiInfo mCurrentConnectionInfo = new WifiInfo();
 
     /**
      * One of  {@link WifiManager#WIFI_STATE_DISABLED},
@@ -2729,7 +2729,7 @@ public class ActiveModeWarden {
      * Get the current Wifi network connection info.
      * @return the default Wifi network connection info
      */
-    public WifiInfo getConnectionInfo() {
+    public @NonNull WifiInfo getConnectionInfo() {
         synchronized (mServiceApiLock) {
             return mCurrentConnectionInfo;
         }
