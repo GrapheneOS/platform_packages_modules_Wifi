@@ -642,6 +642,11 @@ public class WifiPermissionsUtil {
             boolean hideFromAppOps) throws SecurityException {
         checkPackage(uid, pkgName);
 
+        // Apps with NETWORK_SETTINGS or NETWORK_SETUP_WIZARD get a bypass
+        if (checkNetworkSettingsPermission(uid) || checkNetworkSetupWizardPermission(uid)) {
+            return;
+        }
+
         // Location mode must be enabled
         if (!isLocationModeEnabled()) {
             if (ignoreLocationSettings) {
