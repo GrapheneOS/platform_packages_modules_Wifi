@@ -41,9 +41,10 @@ public class RunnerHandler extends Handler {
 
     private static final String KEY_SIGNATURE = "KEY_RUNNER_HANDLER_SIGNATURE";
     private static final String KEY_WHEN = "KEY_RUNNER_HANDLER_WHEN";
+    private static final int METRICS_THRESHOLD_MILLIS = 100;
 
     private final int mRunningTimeThresholdInMilliseconds;
-
+    private final WifiMetrics mWifiMetrics;
     private Set<String> mIgnoredClasses = new HashSet<>();
     private Set<String> mIgnoredMethods = new HashSet<>();
 
@@ -52,13 +53,16 @@ public class RunnerHandler extends Handler {
 
     /**
      * The Runner handler Constructor
-     * @param looper looper for the handler
+     *
+     * @param looper    looper for the handler
      * @param threshold the running time threshold in milliseconds
      */
-    public RunnerHandler(Looper looper, int threshold, @NonNull LocalLog localLog) {
+    public RunnerHandler(Looper looper, int threshold, @NonNull LocalLog localLog,
+            WifiMetrics wifiMetrics) {
         super(looper);
         mRunningTimeThresholdInMilliseconds = threshold;
         mLocalLog = localLog;
+        mWifiMetrics = wifiMetrics;
         mIgnoredClasses.add(WifiThreadRunner.class.getName());
         mIgnoredClasses.add(WifiThreadRunner.class.getName() + "$BlockingRunnable");
         mIgnoredClasses.add(RunnerHandler.class.getName());
@@ -120,12 +124,16 @@ public class RunnerHandler extends Handler {
             Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
         }
         final long runTime = SystemClock.uptimeMillis() - start;
-        final String signatureToLog = signature != null ? signature : "<EMPTY>";
+        final String signatureToLog = signature != null ? signature : "unknown";
         if (runTime > mRunningTimeThresholdInMilliseconds) {
             mLocalLog.log(signatureToLog + " was running for " + runTime);
         }
         if (scheduleLatency > WifiThreadRunner.getScissorsTimeoutThreshold()) {
             mLocalLog.log(signatureToLog + " schedule latency " + scheduleLatency + " ms");
+        }
+        if (runTime > METRICS_THRESHOLD_MILLIS || scheduleLatency > METRICS_THRESHOLD_MILLIS) {
+            mWifiMetrics.wifiThreadTaskExecuted(signatureToLog, (int) scheduleLatency,
+                    (int) runTime);
         }
     }
 
