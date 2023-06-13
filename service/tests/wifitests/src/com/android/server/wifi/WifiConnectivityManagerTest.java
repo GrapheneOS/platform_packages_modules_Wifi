@@ -415,7 +415,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         private Message mMessage;
 
         TestHandler(Looper looper) {
-            super(looper, 100, new LocalLog(128));
+            super(looper, 100, new LocalLog(128), mWifiMetrics);
         }
 
         public List<Long> getIntervals() {
