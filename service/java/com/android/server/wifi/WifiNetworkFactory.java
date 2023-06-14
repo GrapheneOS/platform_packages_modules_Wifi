@@ -22,6 +22,9 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_UNSPECIFIED;
 import static com.android.internal.util.Preconditions.checkNotNull;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
+import static com.android.server.wifi.WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE;
+import static com.android.server.wifi.proto.nano.WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_WRONG_PSWD;
+import static com.android.server.wifi.proto.nano.WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN;
 import static com.android.server.wifi.util.NativeUtil.addEnclosingQuotes;
 
 import static java.lang.Math.toIntExact;
@@ -315,7 +318,8 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.e(TAG, "Timed-out connecting to network");
             if (mUserSelectedNetwork != null) {
                 handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID,
-                        WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT);
+                        WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT,
+                        FAILURE_REASON_UNKNOWN);
             } else {
                 Log.wtf(TAG, "mUserSelectedNetwork is null, when connection time out");
             }
@@ -372,7 +376,7 @@ public class WifiNetworkFactory extends NetworkFactory {
                 return;
             }
             handleNetworkConnectionFailure(mUserSelectedNetwork, mUserSelectedNetwork.BSSID,
-                    reason);
+                    reason, FAILURE_REASON_UNKNOWN);
         }
     }
 
@@ -1227,11 +1231,12 @@ public class WifiNetworkFactory extends NetworkFactory {
      * Invoked by {@link ClientModeImpl} on end of connection attempt to a network.
      */
     public void handleConnectionAttemptEnded(
-            int failureCode, @NonNull WifiConfiguration network, @NonNull String bssid) {
+            int failureCode, @NonNull WifiConfiguration network, @NonNull String bssid,
+            int failureReason) {
         if (failureCode == WifiMetrics.ConnectionEvent.FAILURE_NONE) {
             handleNetworkConnectionSuccess(network, bssid);
         } else {
-            handleNetworkConnectionFailure(network, bssid, failureCode);
+            handleNetworkConnectionFailure(network, bssid, failureCode, failureReason);
         }
     }
 
@@ -1259,7 +1264,7 @@ public class WifiNetworkFactory extends NetworkFactory {
      * Invoked by {@link ClientModeImpl} on failure to connect to a network.
      */
     private void handleNetworkConnectionFailure(@NonNull WifiConfiguration failedNetwork,
-            @NonNull String failedBssid, int failureCode) {
+            @NonNull String failedBssid, int failureCode, int failureReason) {
         if (mUserSelectedNetwork == null || failedNetwork == null) {
             return;
         }
@@ -1277,8 +1282,11 @@ public class WifiNetworkFactory extends NetworkFactory {
             }
             return;
         }
+        boolean isCredentialWrong = failureCode == FAILURE_AUTHENTICATION_FAILURE
+                && failureReason == AUTH_FAILURE_WRONG_PSWD;
         Log.w(TAG, "Failed to connect to network " + mUserSelectedNetwork);
-        if (mUserSelectedNetworkConnectRetryCount++ < USER_SELECTED_NETWORK_CONNECT_RETRY_MAX) {
+        if (!isCredentialWrong && mUserSelectedNetworkConnectRetryCount++
+                < USER_SELECTED_NETWORK_CONNECT_RETRY_MAX) {
             Log.i(TAG, "Retrying connection attempt, attempt# "
                     + mUserSelectedNetworkConnectRetryCount);
             connectToNetwork(mUserSelectedNetwork);
@@ -2120,7 +2128,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             case WifiMetrics.ConnectionEvent.FAILURE_ASSOCIATION_TIMED_OUT:
                 return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_ASSOCIATION;
             case WifiMetrics.ConnectionEvent.FAILURE_SSID_TEMP_DISABLED:
-            case WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE:
+            case FAILURE_AUTHENTICATION_FAILURE:
                 return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_AUTHENTICATION;
             case WifiMetrics.ConnectionEvent.FAILURE_DHCP:
                 return WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_IP_PROVISIONING;
