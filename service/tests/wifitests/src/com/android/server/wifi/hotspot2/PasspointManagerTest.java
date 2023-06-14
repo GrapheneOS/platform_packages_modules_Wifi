@@ -279,7 +279,7 @@ public class PasspointManagerTest extends WifiBaseTest {
         when(mWifiSettingsStore.isWifiPasspointEnabled())
                 .thenReturn(mConfigSettingsPasspointEnabled);
         mLooper = new TestLooper();
-        mHandler = new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128));
+        mHandler = new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128), mWifiMetrics);
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mock(FrameworkFacade.class),
                 mock(WifiContext.class), mWifiConfigStore, mHandler, mWifiMetrics, mClock,
