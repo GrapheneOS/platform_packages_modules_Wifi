@@ -6652,6 +6652,39 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
+     * See {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     */
+    @Override
+    public void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle,
+            String packageName) {
+        int callingUid = Binder.getCallingUid();
+        boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
+                || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(callingUid);
+        if (!hasPermission && SdkLevel.isAtLeastT()) {
+            // MANAGE_WIFI_NETWORK_SELECTION is a new permission added in T.
+            hasPermission = mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(
+                    callingUid);
+        }
+        if (!hasPermission) {
+            throw new SecurityException("Uid " + callingUid
+                    + " is not allowed to set PNO scan state");
+        }
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "setPnoScanEnabled " + Binder.getCallingUid() + " enabled=" + enabled
+                    + ", enablePnoScanAfterWifiToggle=" + enablePnoScanAfterWifiToggle);
+        }
+        mLastCallerInfoManager.put(
+                WifiManager.API_SET_PNO_SCAN_ENABLED,
+                Process.myTid(), Binder.getCallingUid(), Binder.getCallingPid(), packageName,
+                enabled);
+        mWifiThreadRunner.post(() -> {
+            mWifiConnectivityManager.setPnoScanEnabledByFramework(enabled,
+                    enablePnoScanAfterWifiToggle);
+        });
+    }
+
+    /**
      * See {@link WifiManager#setExternalPnoScanRequest(List, int[], Executor,
      * WifiManager.PnoScanResultsCallback)}.
      */

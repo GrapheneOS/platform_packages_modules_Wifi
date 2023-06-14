@@ -5117,6 +5117,74 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         verify(mWifiScanner, times(3)).startPnoScan(any(), any(), any());
     }
 
+    @Test
+    public void verifySetPnoScanEnabledByFramework() {
+        mWifiConnectivityManager = createConnectivityManager();
+
+        // set wifi on & disconnected to trigger pno scans when PNO scan is enabled.
+        setWifiEnabled(true);
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+
+        // Enable trusted connection. This should trigger a pno scan for auto-join.
+        mWifiConnectivityManager.setTrustedConnectionAllowed(true);
+        verify(mWifiScanner).startPnoScan(any(), any(), any());
+
+        // Verify disabling PNO scan stops the on-going PNO scan
+        mWifiConnectivityManager.setPnoScanEnabledByFramework(false, false);
+        verify(mWifiScanner).stopPnoScan(any());
+
+        // Verify that PNO scan is no longer triggered
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        verify(mWifiScanner).startPnoScan(any(), any(), any());
+
+        // Verify that PNO scan is not triggered after wifi toggle, since it's not configured to do
+        // so.
+        setWifiEnabled(false);
+        setWifiEnabled(true);
+        verify(mWifiScanner).startPnoScan(any(), any(), any());
+
+        // Verify that PNO scan is triggered again after being enabled explicitly
+        mWifiConnectivityManager.setPnoScanEnabledByFramework(true, false);
+        verify(mWifiScanner, times(2)).startPnoScan(any(), any(), any());
+    }
+
+    @Test
+    public void verifySetPnoScanEnabledAfterWifiToggle() {
+        mWifiConnectivityManager = createConnectivityManager();
+
+        // set wifi on & disconnected to trigger pno scans when PNO scan is enabled.
+        setWifiEnabled(true);
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+
+        // Enable trusted connection. This should trigger a pno scan for auto-join.
+        mWifiConnectivityManager.setTrustedConnectionAllowed(true);
+        verify(mWifiScanner).startPnoScan(any(), any(), any());
+
+        // Verify disabling PNO scan stops the on-going PNO scan
+        mWifiConnectivityManager.setPnoScanEnabledByFramework(false, true);
+        verify(mWifiScanner).stopPnoScan(any());
+
+        // Verify that PNO scan is no longer triggered
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        verify(mWifiScanner).startPnoScan(any(), any(), any());
+
+        // Verify that PNO scan is triggered again after wifi toggle
+        setWifiEnabled(false);
+        setWifiEnabled(true);
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        verify(mWifiScanner, times(2)).startPnoScan(any(), any(), any());
+    }
+
     /**
      * Verify that the increased PNO interval is used when power save is on.
      */

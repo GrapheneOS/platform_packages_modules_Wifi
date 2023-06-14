@@ -370,6 +370,8 @@ interface IWifiManager
 
     void setExternalPnoScanRequest(in IBinder binder, in IPnoScanResultsCallback callback, in List<WifiSsid> ssids, in int[] frequencies, String packageName, String featureId);
 
+    void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle, String packageName);
+
     void clearExternalPnoScanRequest();
 
     void getLastCallerInfoForApi(int api, in ILastCallerListener listener);
