@@ -2172,6 +2172,19 @@ public class WifiMetrics {
                 userToggledWifiAfterEnteringApmWithinMinute, false);
     }
 
+    /**
+     * Report a Wi-Fi state change.
+     *
+     * @param wifiState Whether Wi-Fi is enabled
+     * @param wifiWakeState Whether Wi-Fi Wake is enabled
+     * @param enabledByWifiWake Whether Wi-Fi was enabled by Wi-Fi Wake
+     */
+    public void reportWifiStateChanged(boolean wifiState, boolean wifiWakeState,
+            boolean enabledByWifiWake) {
+        WifiStatsLog.write(WifiStatsLog.WIFI_STATE_CHANGED, wifiState, wifiWakeState,
+                enabledByWifiWake);
+    }
+
     private int getConnectionResultFailureCode(int level2FailureCode, int level2FailureReason) {
         switch (level2FailureCode) {
             case ConnectionEvent.FAILURE_NONE:
