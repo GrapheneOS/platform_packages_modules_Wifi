@@ -1897,8 +1897,12 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertThrows(SecurityException.class,
                 () -> mWifiServiceImpl.setPnoScanEnabled(false, false, TEST_PACKAGE_NAME));
 
-        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
-                .thenReturn(true);
+        if (SdkLevel.isAtLeastT()) {
+            when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                    .thenReturn(true);
+        } else {
+            when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        }
         mWifiServiceImpl.setPnoScanEnabled(false, false, TEST_PACKAGE_NAME);
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_SET_PNO_SCAN_ENABLED),
                 anyInt(), anyInt(), anyInt(), eq(TEST_PACKAGE_NAME), eq(false));
