@@ -428,7 +428,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             if (curConfiguration != null
                     && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
                     || WifiConfigurationUtil.isConfigForWapiPskNetwork(curConfiguration))
-                    && !curConfiguration.getNetworkSelectionStatus().hasEverConnected()) {
+                    && !curConfiguration.getNetworkSelectionStatus().hasEverConnected()
+                    && mStateBeforeDisconnect == StaIfaceCallbackState.FOURWAY_HANDSHAKE) {
                 // Some AP implementations doesn't send de-authentication or dis-association
                 // frame after EAPOL failure. They keep retry EAPOL M1 frames. This leads to
                 // authentication timeout in supplicant. If this network was not connected before,

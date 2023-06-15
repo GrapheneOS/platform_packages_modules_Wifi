@@ -3069,6 +3069,11 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 NativeUtil.macAddressToByteArray(BSSID),
                 SUPPLICANT_NETWORK_ID,
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
+        mISupplicantStaIfaceCallback.onStateChanged(
+                StaIfaceCallbackState.FOURWAY_HANDSHAKE,
+                NativeUtil.macAddressToByteArray(BSSID),
+                SUPPLICANT_NETWORK_ID,
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
         mISupplicantStaIfaceCallback.onAuthenticationTimeout(
                 NativeUtil.macAddressToByteArray(BSSID));
         verify(mWifiMonitor).broadcastAuthenticationFailureEvent(
