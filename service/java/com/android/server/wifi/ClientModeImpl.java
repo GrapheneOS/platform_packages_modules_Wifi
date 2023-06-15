@@ -199,6 +199,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static final int IPCLIENT_STARTUP_TIMEOUT_MS = 2_000;
     private static final int IPCLIENT_SHUTDOWN_TIMEOUT_MS = 60_000; // 60 seconds
     private static final int NETWORK_AGENT_TEARDOWN_DELAY_MS = 5_000; // Max teardown delay.
+    private static final int DISASSOC_AP_BUSY_DISABLE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
     @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 30_000; // 30 secs.
     @VisibleForTesting
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
@@ -3372,6 +3373,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiConfigManager.setRecentFailureAssociationStatus(
                     mWifiInfo.getNetworkId(),
                     WifiConfiguration.RECENT_FAILURE_DISCONNECTION_AP_BUSY);
+            // Block the current BSS temporarily since it cannot handle more stations
+            WifiConfiguration config = getConnectedWifiConfigurationInternal();
+            if (config == null) {
+                config = getConnectingWifiConfigurationInternal();
+            }
+            mWifiBlocklistMonitor.blockBssidForDurationMs(mLastBssid, config,
+                    DISASSOC_AP_BUSY_DISABLE_DURATION_MS,
+                    WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA, mWifiInfo.getRssi());
         }
 
         mWifiScoreReport.stopConnectedNetworkScorer();
