@@ -18,7 +18,7 @@ package {
 
 android_test {
     name: "wifi_direct_snippet",
-    sdk_version: "current",
+    sdk_version: "system_current",
     srcs: [
         "WifiDirectSnippet.java",
     ],
