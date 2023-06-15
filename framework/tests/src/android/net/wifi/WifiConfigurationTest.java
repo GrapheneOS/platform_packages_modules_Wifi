@@ -16,6 +16,7 @@
 
 package android.net.wifi;
 
+import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_DPP;
 import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_EAP;
 import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_EAP_SUITE_B;
 import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
@@ -1206,9 +1207,15 @@ public class WifiConfigurationTest {
                 new Pair<>(KeyMgmt.WPA_PSK_SHA256, SECURITY_TYPE_PSK),
                 new Pair<>(KeyMgmt.SAE, SECURITY_TYPE_SAE),
                 new Pair<>(KeyMgmt.WPA_EAP, SECURITY_TYPE_EAP),
+                new Pair<>(KeyMgmt.FT_EAP, SECURITY_TYPE_EAP),
+                new Pair<>(KeyMgmt.IEEE8021X, SECURITY_TYPE_EAP),
+                new Pair<>(KeyMgmt.WPA_EAP_SHA256, SECURITY_TYPE_EAP),
+                new Pair<>(KeyMgmt.FILS_SHA256, SECURITY_TYPE_EAP),
+                new Pair<>(KeyMgmt.FILS_SHA384, SECURITY_TYPE_EAP),
                 new Pair<>(KeyMgmt.SUITE_B_192, SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT),
                 new Pair<>(KeyMgmt.WAPI_CERT, SECURITY_TYPE_WAPI_CERT),
                 new Pair<>(KeyMgmt.WAPI_PSK, SECURITY_TYPE_WAPI_PSK),
+                new Pair<>(KeyMgmt.DPP, SECURITY_TYPE_DPP),
         };
 
         for (Pair pair: keyMgmtSecurityTypePairs) {

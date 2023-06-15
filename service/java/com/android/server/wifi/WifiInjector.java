@@ -23,6 +23,7 @@ import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.AppOpsManager;
 import android.app.BroadcastOptions;
+import android.app.StatsManager;
 import android.content.Context;
 import android.net.IpMemoryStore;
 import android.net.LinkProperties;
@@ -208,6 +209,7 @@ public class WifiInjector {
     private final WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     private final DppMetrics mDppMetrics;
     private final DppManager mDppManager;
+    private final WifiPulledAtomLogger mWifiPulledAtomLogger;
     private final LinkProbeManager mLinkProbeManager;
     private IpMemoryStore mIpMemoryStore;
     private final WifiThreadRunner mWifiThreadRunner;
@@ -565,6 +567,9 @@ public class WifiInjector {
 
         mSimRequiredNotifier = new SimRequiredNotifier(mContext, mFrameworkFacade,
                 mWifiNotificationManager);
+        mWifiPulledAtomLogger = new WifiPulledAtomLogger(
+                mContext.getSystemService(StatsManager.class), wifiHandler,
+                mContext);
     }
 
     /**
@@ -1013,6 +1018,10 @@ public class WifiInjector {
 
     public WifiDataStall getWifiDataStall() {
         return mWifiDataStall;
+    }
+
+    public WifiPulledAtomLogger getWifiPulledAtomLogger() {
+        return mWifiPulledAtomLogger;
     }
 
     public WifiNetworkSuggestionsManager getWifiNetworkSuggestionsManager() {
