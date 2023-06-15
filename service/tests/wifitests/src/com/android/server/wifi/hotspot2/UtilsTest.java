@@ -16,9 +16,23 @@
 
 package com.android.server.wifi.hotspot2;
 
-import static org.junit.Assert.*;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NONE;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NOT_PASSPOINT;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NOT_RCOI;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_FREE;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_SETTLED;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OTHERS;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import android.net.wifi.WifiConfiguration;
 
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiConfigurationTestUtil;
 
 import org.junit.Test;
 
@@ -172,6 +186,88 @@ public class UtilsTest extends WifiBaseTest {
         assertEquals(quoted, Utils.unquote(twiceQuoted));
         assertEquals(unclosedQuoted, Utils.unquote(unclosedQuoted));
         assertEquals(unclosedQuoted, Utils.unquote(quotedUnclosedQuoted));
+    }
+
+    @Test
+    public void testIsFreeOpenRoaming() {
+        // 3 octets
+        assertFalse(Utils.isFreeOpenRoaming(0xABCDEFL));
+        assertTrue(Utils.isFreeOpenRoaming(0x5A03BAL));
+
+        // 4 octets
+        assertFalse(Utils.isFreeOpenRoaming(0xFF5A03BAL));
+        assertFalse(Utils.isFreeOpenRoaming(0x5A03BAFFL));
+
+        // 5 octets
+        assertFalse(Utils.isFreeOpenRoaming(0xEEFF5A03BAL));
+        assertTrue(Utils.isFreeOpenRoaming(0x5A03BA0000L));
+        assertTrue(Utils.isFreeOpenRoaming(0x5A03BAEEFFL));
+
+        // 6 octets
+        assertFalse(Utils.isFreeOpenRoaming(0x5A03BAEEFFFFL));
+        assertFalse(Utils.isFreeOpenRoaming(0xFF5A03BAEEFFL));
+    }
+
+    @Test
+    public void testContainsFreeOpenRoaming() {
+        assertFalse(Utils.containsFreeOpenRoaming(new long[]{0xABCDEFL}));
+        assertTrue(Utils.containsFreeOpenRoaming(new long[]{0x5A03BAL}));
+        assertTrue(Utils.containsFreeOpenRoaming(new long[]{0xABCDEFL, 0x5A03BAFFFFL, 0xABCDEFL}));
+    }
+
+    @Test
+    public void testIsSettledOpenRoaming() {
+        // 3 octets
+        assertFalse(Utils.isSettledOpenRoaming(0xABCDEFL));
+        assertTrue(Utils.isSettledOpenRoaming(0xBAA2D0L));
+
+        // 4 octets
+        assertFalse(Utils.isSettledOpenRoaming(0xBAA2D0FFL));
+        assertFalse(Utils.isSettledOpenRoaming(0xFFBAA2D0L));
+
+        // 5 octets
+        assertFalse(Utils.isSettledOpenRoaming(0xEEFFBAA2D0L));
+        assertTrue(Utils.isSettledOpenRoaming(0xBAA2D00000L));
+        assertTrue(Utils.isSettledOpenRoaming(0xBAA2D0EEFFL));
+
+        // 6 octets
+        assertFalse(Utils.isSettledOpenRoaming(0xBAA2D0EEFFFFL));
+        assertFalse(Utils.isSettledOpenRoaming(0xFFBAA2D0EEFFL));
+    }
+
+    @Test
+    public void testContainsSettledOpenRoaming() {
+        assertFalse(Utils.containsSettledOpenRoaming(new long[]{0xABCDEFL}));
+        assertTrue(Utils.containsSettledOpenRoaming(new long[]{0xBAA2D0L}));
+        assertTrue(
+                Utils.containsSettledOpenRoaming(new long[]{0xABCDEFL, 0xBAA2D0EEFFL, 0xABCDEFL}));
+    }
+
+    @Test
+    public void testGetRoamingType() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NOT_PASSPOINT);
+
+        config = WifiConfigurationTestUtil.createPasspointNetwork();
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NOT_RCOI);
+
+        config.enterpriseConfig.setSelectedRcoi(0xABCDEFL);
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OTHERS);
+
+        config.enterpriseConfig.setSelectedRcoi(0x5A03BAFFFFL);
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_FREE);
+
+        config.enterpriseConfig.setSelectedRcoi(0xBAA2D0FFFFL);
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_SETTLED);
+
+        config.isHomeProviderNetwork = true;
+        assertEquals(Utils.getRoamingType(config),
+                WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_NONE);
     }
 }
 
