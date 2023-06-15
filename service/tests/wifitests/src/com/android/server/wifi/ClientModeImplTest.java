@@ -8145,21 +8145,26 @@ public class ClientModeImplTest extends WifiBaseTest {
         mIpClientCallback.installPacketFilter(filter);
         mLooper.dispatchAll();
 
-        // just cache the data.
+        // packet filter will not be installed if the secondary STA doesn't support APF.
         verify(mWifiNative, never()).installPacketFilter(WIFI_IFACE_NAME, filter);
 
-        when(mWifiNative.readPacketFilter(WIFI_IFACE_NAME)).thenReturn(filter);
         mIpClientCallback.startReadPacketFilter();
         mLooper.dispatchAll();
-        verify(mIpClient).readPacketFilterComplete(filter);
-        // return the cached the data.
+        // Return null as packet filter is not installed.
+        verify(mIpClient).readPacketFilterComplete(eq(null));
         verify(mWifiNative, never()).readPacketFilter(WIFI_IFACE_NAME);
 
         // Now invoke role change, that should apply the APF
+        when(mWifiNative.readPacketFilter(WIFI_IFACE_NAME)).thenReturn(filter);
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         mCmi.onRoleChanged();
-        verify(mWifiNative).installPacketFilter(WIFI_IFACE_NAME, filter);
+        mIpClientCallback.installPacketFilter(filter);
+        mLooper.dispatchAll();
         verify(mWifiScoreReport, times(2)).onRoleChanged(ROLE_CLIENT_PRIMARY);
+        // verify that the APF capabilities are updated in IpClient.
+        verify(mWifiNative, times(1)).getApfCapabilities(WIFI_IFACE_NAME);
+        verify(mIpClient, times(1)).updateApfCapabilities(eq(APF_CAP));
+        verify(mWifiNative, times(1)).installPacketFilter(WIFI_IFACE_NAME, filter);
     }
 
     @Test
@@ -8188,6 +8193,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         mCmi.onRoleChanged();
         // ignore (since it was already applied)
+        verify(mIpClient, never()).updateApfCapabilities(eq(APF_CAP));
         verify(mWifiNative, times(1)).installPacketFilter(WIFI_IFACE_NAME, filter);
     }
 
