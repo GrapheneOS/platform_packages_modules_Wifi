@@ -771,6 +771,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testWifiMetricsDump() {
         mWifiServiceImpl.checkAndStartWifi();
         mLooper.dispatchAll();
+        verify(mWifiMetrics).start();
         mWifiServiceImpl.dump(new FileDescriptor(), new PrintWriter(new StringWriter()),
                 new String[]{mWifiMetrics.PROTO_DUMP_ARG});
         mLooper.dispatchAll();
@@ -1888,6 +1889,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         mWifiServiceImpl.checkAndStartWifi();
         mLooper.dispatchAll();
+        verify(mWifiMetrics).start();
         verify(mWifiConfigManager).loadFromStore();
         verify(mActiveModeWarden).start();
     }
