@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -32,6 +33,8 @@ import android.util.Log;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.compatibility.common.util.ApiLevelUtil;
+import com.android.compatibility.common.util.PollingCheck;
+import com.android.compatibility.common.util.ShellIdentityUtils;
 
 import com.google.android.mobly.snippet.Snippet;
 import com.google.android.mobly.snippet.rpc.Rpc;
@@ -47,6 +50,7 @@ public class WifiDirectSnippet implements Snippet {
     private WifiP2pInfo mP2pInfo;
     private WifiP2pGroup mP2pGroup;
     private WifiP2pManager.Channel mChannel;
+    private WifiManager mWifiManager;
 
     private final Object mLock = new Object();
 
@@ -134,6 +138,8 @@ public class WifiDirectSnippet implements Snippet {
     public WifiDirectSnippet() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         mP2pManager = mContext.getSystemService(WifiP2pManager.class);
+        mWifiManager = mContext.getSystemService(WifiManager.class);
+
         Log.d(TAG, "WifiDirectSnippet - init");
     }
 
@@ -147,7 +153,14 @@ public class WifiDirectSnippet implements Snippet {
     }
 
     @Rpc(description = "Execute p2p initialize")
-    public void initializeP2p() throws JSONException {
+    public void initializeP2p() throws Exception {
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.allowAutojoinGlobal(false));
+        ShellIdentityUtils.invokeWithShellPermissions(() -> mWifiManager.disconnect());
+        PollingCheck.check(
+                "Wifi not disconnected",
+                20000,
+                () -> mWifiManager.getConnectionInfo().getNetworkId() == -1);
         mChannel = mP2pManager.initialize(mContext,  mContext.getMainLooper(), mChannelListener);
         IntentFilter intentFilter = new IntentFilter(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
@@ -165,6 +178,7 @@ public class WifiDirectSnippet implements Snippet {
             mChannel = null;
             Log.d(TAG, "Wifi Direct close called");
         }
+        ShellIdentityUtils.invokeWithShellPermissions(() -> mWifiManager.allowAutojoinGlobal(true));
         Log.d(TAG, "Wifi Direct close completed");
     }
 
