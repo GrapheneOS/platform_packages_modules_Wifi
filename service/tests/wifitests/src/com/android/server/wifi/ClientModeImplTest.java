@@ -4478,11 +4478,14 @@ public class ClientModeImplTest extends WifiBaseTest {
         connect();
         // Disconnection with reason = DISASSOC_AP_BUSY
         DisconnectEventInfo disconnectEventInfo =
-                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 5, false);
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR,
+                        SupplicantStaIfaceHal.StaIfaceReasonCode.DISASSOC_AP_BUSY, false);
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
         verify(mWifiConfigManager).setRecentFailureAssociationStatus(anyInt(),
                 eq(WifiConfiguration.RECENT_FAILURE_DISCONNECTION_AP_BUSY));
+        verify(mWifiBlocklistMonitor).blockBssidForDurationMs(any(), any(),
+                anyLong(), eq(WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA), anyInt());
     }
 
     /**
