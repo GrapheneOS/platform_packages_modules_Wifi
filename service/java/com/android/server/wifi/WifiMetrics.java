@@ -1537,11 +1537,15 @@ public class WifiMetrics {
         mCurrentDeviceMobilityStateStartMs = mClock.getElapsedSinceBootMillis();
         mCurrentDeviceMobilityStatePnoScanStartMs = -1;
         mOnWifiUsabilityListeners = new RemoteCallbackList<>();
+        mScanMetrics = new ScanMetrics(context, clock);
+    }
 
+    /** Begin listening to broadcasts */
+    public void start() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
-        context.registerReceiver(
+        mContext.registerReceiver(
                 new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context context, Intent intent) {
@@ -1553,9 +1557,7 @@ public class WifiMetrics {
                         }
                     }
                 }, filter, null, mHandler);
-        setScreenState(context.getSystemService(PowerManager.class).isInteractive());
-
-        mScanMetrics = new ScanMetrics(context, clock);
+        setScreenState(mContext.getSystemService(PowerManager.class).isInteractive());
     }
 
     /** Sets internal ScoringParams member */
