@@ -1197,7 +1197,8 @@ public class WifiConnectivityManager {
             triggerScanOnNetworkChanges();
         }
         @Override
-        public void onNetworkUpdated(WifiConfiguration newConfig, WifiConfiguration oldConfig) {
+        public void onNetworkUpdated(WifiConfiguration newConfig, WifiConfiguration oldConfig,
+                boolean hasCredentialChanged) {
             triggerScanOnNetworkChanges();
         }
 

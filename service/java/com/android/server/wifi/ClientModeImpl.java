@@ -1211,9 +1211,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         @Override
-        public void onNetworkUpdated(WifiConfiguration newConfig, WifiConfiguration oldConfig) {
-
-            if (WifiConfigurationUtil.hasCredentialChanged(oldConfig, newConfig)) {
+        public void onNetworkUpdated(WifiConfiguration newConfig, WifiConfiguration oldConfig,
+                boolean hasCredentialChanged) {
+            if (hasCredentialChanged) {
                 // Clear invalid cached data.
                 mWifiNative.removeNetworkCachedData(oldConfig.networkId);
                 mWifiBlocklistMonitor.handleNetworkRemoved(newConfig.SSID);
