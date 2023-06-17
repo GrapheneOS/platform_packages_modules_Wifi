@@ -217,6 +217,7 @@ public class WifiMetricsTest extends WifiBaseTest {
         mWifiMetrics = new WifiMetrics(mContext, mFacade, mClock, mTestLooper.getLooper(),
                 new WifiAwareMetrics(mClock), new RttMetrics(mClock), mWifiPowerMetrics,
                 mWifiP2pMetrics, mDppMetrics, mWifiMonitor);
+        mWifiMetrics.start();
         mWifiMetrics.setWifiConfigManager(mWcm);
         mWifiMetrics.setWifiBlocklistMonitor(mWifiBlocklistMonitor);
         mWifiMetrics.setPasspointManager(mPpm);
