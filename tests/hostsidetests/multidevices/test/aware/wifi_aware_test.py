@@ -56,6 +56,15 @@ class WifiAwareTest(base_test.BaseTestClass):
             max_workers=2,
             raise_on_exception=True)
 
+    def on_fail(self, record):
+        logging.info('Collecting bugreports...')
+        android_device.take_bug_reports(
+            ads=[self.publisher, self.subscriber],
+            test_name=record.test_name,
+            begin_time=record.begin_time,
+            destination=self.current_test_info.output_path
+        )
+
     def test_discovery_base_test_case(self):
         is_unsolicited = True
         is_ranging_required = False
