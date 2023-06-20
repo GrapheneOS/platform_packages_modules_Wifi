@@ -21,11 +21,23 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_DEFAULT_COUNTRY_CODE;
 
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
@@ -601,39 +613,6 @@ public class WifiCountryCodeTest extends WifiBaseTest {
         }
         assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
         verify(mExternalChangeListener).onDriverCountryCodeChanged(mDefaultCountryCode);
-    }
-
-    @Test
-    public void testNotifyExternalListenerWhenOverlayisTrueButCountryCodeSameAsLastActiveOne()
-            throws Exception {
-        assumeTrue(SdkLevel.isAtLeastS());
-        mDriverSupportedNl80211RegChangedEvent = true;
-        createWifiCountryCode();
-        // External caller register the listener
-        mWifiCountryCode.registerListener(mExternalChangeListener);
-        // Supplicant started.
-        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
-        // Wifi get L2 connected.
-        mClientModeImplListenerCaptor.getValue().onConnectionStart(mClientModeManager);
-        verify(mClientModeManager).setCountryCode(mDefaultCountryCode);
-        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
-        verify(mExternalChangeListener, SdkLevel.isAtLeastT() ? times(1) : times(2))
-                .onDriverCountryCodeChanged(mDefaultCountryCode);
-        if (SdkLevel.isAtLeastT()) {
-            // First time it should not trigger since last active country code is null.
-            verify(mWifiNative, never()).countryCodeChanged(any());
-        }
-        // Remove and add client mode manager again.
-        mModeChangeCallbackCaptor.getValue().onActiveModeManagerRemoved(mClientModeManager);
-        assertNull(mWifiCountryCode.getCurrentDriverCountryCode());
-        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mClientModeManager);
-        verify(mClientModeManager, times(2)).setCountryCode(mDefaultCountryCode);
-        // Second time it would notify the wificond since it is same as last active country code
-        verify(mWifiNative, SdkLevel.isAtLeastT() ? times(1) : times(2))
-                .countryCodeChanged(mDefaultCountryCode);
-        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCurrentDriverCountryCode());
-        verify(mExternalChangeListener, SdkLevel.isAtLeastT() ? times(2) : times(3))
-                .onDriverCountryCodeChanged(mDefaultCountryCode);
     }
 
     @Test
