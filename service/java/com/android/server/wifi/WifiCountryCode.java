@@ -173,13 +173,6 @@ public class WifiCountryCode {
     private class CountryChangeListenerInternal implements ChangeListener {
         @Override
         public void onDriverCountryCodeChanged(String country) {
-            if (SdkLevel.isAtLeastT()) {
-                if (TextUtils.equals(country, mDriverCountryCode)) {
-                    return;
-                }
-            } else if (TextUtils.equals(country, mLastReceivedActiveDriverCountryCode)) {
-                return;
-            }
             Log.i(TAG, "Receive onDriverCountryCodeChanged " + country);
             mLastReceivedActiveDriverCountryCode = country;
             // Before T build, always handle country code changed.
@@ -772,12 +765,10 @@ public class WifiCountryCode {
     }
 
     private void handleCountryCodeChanged(String country) {
-        if (!SdkLevel.isAtLeastT() || !TextUtils.equals(mDriverCountryCode, country)) {
-            mDriverCountryCodeUpdatedTimestamp = mClock.getWallClockMillis();
-            mDriverCountryCode = country;
-            mWifiP2pMetrics.setIsCountryCodeWorldMode(isDriverCountryCodeWorldMode());
-            notifyListener(country);
-        }
+        mDriverCountryCodeUpdatedTimestamp = mClock.getWallClockMillis();
+        mDriverCountryCode = country;
+        mWifiP2pMetrics.setIsCountryCodeWorldMode(isDriverCountryCodeWorldMode());
+        notifyListener(country);
     }
 
     /**
