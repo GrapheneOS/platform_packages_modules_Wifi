@@ -8215,7 +8215,10 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.DUMP
+    })
     public void setVerboseLoggingEnabled(boolean enable) {
         enableVerboseLogging(enable ? VERBOSE_LOGGING_LEVEL_ENABLED
                 : VERBOSE_LOGGING_LEVEL_DISABLED);
@@ -8231,7 +8234,10 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.DUMP
+    })
     public void setVerboseLoggingLevel(@VerboseLoggingLevel int verbose) {
         enableVerboseLogging(verbose);
     }
@@ -8241,7 +8247,10 @@ public class WifiManager {
             maxTargetSdk = Build.VERSION_CODES.Q,
             publicAlternatives = "Use {@code #setVerboseLoggingEnabled(boolean)} instead."
     )
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.DUMP
+    })
     public void enableVerboseLogging(@VerboseLoggingLevel int verbose) {
         try {
             mService.enableVerboseLogging(verbose);
