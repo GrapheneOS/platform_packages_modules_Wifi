@@ -22,6 +22,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGI
 
 import android.annotation.NonNull;
 import android.app.ActivityManager;
+import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -434,17 +435,21 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         // check if only Aware APs are ranged.
         boolean onlyAwareApRanged = request.mRttPeers.stream().allMatch(
                 config -> config.responderType == ResponderConfig.RESPONDER_AWARE);
+        final Object attributionSource;
         if (onlyAwareApRanged && SdkLevel.isAtLeastT()) {
             // Special case: if only aware APs are ranged, then allow this request if the caller
             // has nearby permission.
-            if (!mWifiPermissionsUtil.checkNearbyDevicesPermission(extras.getParcelable(
-                            WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), true,
+            attributionSource = extras.getParcelable(
+                    WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE);
+            if (!mWifiPermissionsUtil.checkNearbyDevicesPermission(
+                    (AttributionSource) attributionSource, true,
                     "wifi aware ranging")) {
                 // No nearby permission. Still check for location permission.
                 mWifiPermissionsUtil.enforceFineLocationPermission(
                         callingPackage, callingFeatureId, uid);
             }
         } else {
+            attributionSource = null;
             mWifiPermissionsUtil.enforceFineLocationPermission(
                     callingPackage, callingFeatureId, uid);
         }
@@ -490,7 +495,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
             mRttServiceSynchronized.queueRangingRequest(uid, sourceToUse, binder, dr,
                     callingPackage, callingFeatureId, request, callback,
-                    isCalledFromPrivilegedContext, extras);
+                    isCalledFromPrivilegedContext, attributionSource);
         });
     }
 
@@ -699,7 +704,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         private void queueRangingRequest(int uid, WorkSource workSource, IBinder binder,
                 IBinder.DeathRecipient dr, String callingPackage, String callingFeatureId,
                 RangingRequest request, IRttCallback callback,
-                boolean isCalledFromPrivilegedContext, Bundle extras) {
+                boolean isCalledFromPrivilegedContext, Object attributionSource) {
             mRttMetrics.recordRequest(workSource, request);
 
             if (isRequestorSpamming(workSource)) {
@@ -726,7 +731,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             newRequest.request = request;
             newRequest.callback = callback;
             newRequest.isCalledFromPrivilegedContext = isCalledFromPrivilegedContext;
-            newRequest.extras = extras;
+            newRequest.attributionSource = attributionSource;
             mRttRequestQueue.add(newRequest);
 
             if (VDBG) {
@@ -1099,8 +1104,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 // Special case: if only aware APs are ranged, then allow this request if the caller
                 // has nearby permission.
                 permissionGranted = mWifiPermissionsUtil.checkNearbyDevicesPermission(
-                        topOfQueueRequest.extras.getParcelable(
-                                WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), true,
+                        (AttributionSource) topOfQueueRequest.attributionSource, true,
                         "wifi aware on ranging result");
             }
             if (!permissionGranted) {
@@ -1242,7 +1246,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         public RangingRequest request;
         public IRttCallback callback;
         public boolean isCalledFromPrivilegedContext;
-        public Bundle extras;
+        // This should be of Class AttributionSource, not is declared as Object for mainline
+        // backward compatibility.
+        public Object attributionSource;
 
         public int cmdId = 0; // uninitialized cmdId value
         public boolean dispatchedToNative = false;

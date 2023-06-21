@@ -200,16 +200,20 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text">Server Name:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text">Issuer Name:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
     <string name="wifi_ca_cert_dialog_message_organization_text">Organization:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
+    <string name="wifi_ca_cert_dialog_message_expiration_text">Certificate Expiration:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text">SHA-256 Fingerprint:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
     <string name="wifi_ca_cert_dialog_message_contact_text">Contact:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
-    <string name="wifi_ca_cert_dialog_message_signature_name_text">Signature:\n<xliff:g id="value">%1$s</xliff:g>\n\n</string>
     <string name="wifi_ca_cert_notification_title">Network needs to be verified</string>
     <string name="wifi_ca_cert_notification_message">Review network details for <xliff:g id="ssid">%1$s</xliff:g> before connecting. Tap to continue.</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert">Certificate installation failed.</string>
+    <string name="wifi_tofu_invalid_cert_chain_title">Can\'t connect to <xliff:g id="value">%1$s</xliff:g></string>
+    <string name="wifi_tofu_invalid_cert_chain_message">The server certificate chain is invalid.</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text">OK</string>
 
     <!-- Legacy EAP network dialog and notification text on Pre-T devices. -->
     <string name="wifi_ca_cert_dialog_preT_title">Can\'t verify this network</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text">Connect anyway</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text">Don\'t connect</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text">Stay connected</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text">Disconnect now</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint">The network <xliff:g id="ssid">%1$s</xliff:g> is missing a certificate.</string>
     <string name="wifi_ca_cert_dialog_preT_message_link">Learn how to add certificates</string>
     <string name="wifi_ca_cert_notification_preT_title">Can\'t verify this network</string>

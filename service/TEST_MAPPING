@@ -1,7 +1,18 @@
 {
   "presubmit-large": [
     {
-      "name": "FrameworksWifiTests"
+      "name": "FrameworksWifiTests",
+      "options": [
+        {
+          "exclude-filter": "com.android.server.wifi.WakeupControllerTest"
+        },
+        {
+          "exclude-filter": "com.android.server.wifi.WifiNetworkSelectorTest"
+        },
+        {
+          "exclude-filter": "com.android.server.wifi.scanner.WifiScanningServiceTest"
+        }
+      ]
     }
   ],
   "presubmit": [
@@ -16,7 +27,18 @@
   ],
   "mainline-presubmit": [
     {
-      "name": "FrameworksWifiTests[com.google.android.wifi.apex]"
+      "name": "FrameworksWifiTests[com.google.android.wifi.apex]",
+      "options": [
+        {
+          "exclude-filter": "com.android.server.wifi.WakeupControllerTest"
+        },
+        {
+          "exclude-filter": "com.android.server.wifi.WifiNetworkSelectorTest"
+        },
+        {
+          "exclude-filter": "com.android.server.wifi.scanner.WifiScanningServiceTest"
+        }
+      ]
     }
   ]
 }

@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
 import android.Manifest;
@@ -1433,6 +1434,30 @@ public class WifiConfigManager {
                     existingInternalConfig);
         }
 
+        if (config.isEnterprise()
+                && config.enterpriseConfig.isEapMethodServerCertUsed()
+                && !config.enterpriseConfig.isMandatoryParameterSetForServerCertValidation()
+                && !config.enterpriseConfig.isTrustOnFirstUseEnabled()) {
+            boolean isSettingsOrSuw = mContext.checkPermission(Manifest.permission.NETWORK_SETTINGS,
+                    -1 /* pid */, uid) == PERMISSION_GRANTED
+                    || mContext.checkPermission(Manifest.permission.NETWORK_SETUP_WIZARD,
+                    -1 /* pid */, uid) == PERMISSION_GRANTED;
+            if (!(mWifiInjector.getWifiGlobals().isInsecureEnterpriseConfigurationAllowed()
+                    && isSettingsOrSuw)) {
+                Log.e(TAG, "Enterprise network configuration is missing either a Root CA "
+                        + "or a domain name");
+                return new Pair<>(
+                        new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
+                        existingInternalConfig);
+            }
+            Log.w(TAG, "Insecure Enterprise network " + config.SSID
+                    + " configured by Settings/SUW");
+
+            // Implicit user approval, when creating an insecure connection which is allowed
+            // in the configuration of the device
+            newInternalConfig.enterpriseConfig.setUserApproveNoCaCert(true);
+        }
+
         // Update the keys for saved enterprise networks. For Passpoint, the certificates
         // and keys are installed at the time the provider is installed. For suggestion enterprise
         // network the certificates and keys are installed at the time the suggestion is added
@@ -1482,11 +1507,6 @@ public class WifiConfigManager {
                         existingInternalConfig, newInternalConfig);
         if (hasCredentialChanged) {
             newInternalConfig.getNetworkSelectionStatus().setHasEverConnected(false);
-        }
-
-        // Ensure that the user approve flag is set to false for a new network.
-        if (newNetwork && config.isEnterprise()) {
-            config.enterpriseConfig.setUserApproveNoCaCert(false);
         }
 
         // Add it to our internal map. This will replace any existing network configuration for
@@ -4130,7 +4150,7 @@ public class WifiConfigManager {
         try {
             if (newConfig.enterpriseConfig.isTrustOnFirstUseEnabled()) {
                 newConfig.enterpriseConfig.setCaCertificateForTrustOnFirstUse(caCert);
-                // setCaCertificate will mark that this CA certifiate should be removed on
+                // setCaCertificate will mark that this CA certificate should be removed on
                 // removing this configuration.
                 newConfig.enterpriseConfig.enableTrustOnFirstUse(false);
             } else {

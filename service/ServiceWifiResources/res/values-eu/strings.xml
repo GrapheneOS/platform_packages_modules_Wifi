@@ -132,14 +132,18 @@
     <string name="wifi_ca_cert_dialog_message_server_name_text" msgid="3707809865604348289">"Zerbitzariaren izena:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_issuer_name_text" msgid="1147216922475192304">"Jaulkitzailearen izena:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_organization_text" msgid="4936354600863239487">"Erakundea:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_expiration_text" msgid="1612917217606436217">"Ziurtagiriaren iraungitze-data:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
+    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="8455163626514894233">"SHA-256 aztarna digitala:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_dialog_message_contact_text" msgid="5799083318641183815">"Jarri honekin harremanetan:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
-    <string name="wifi_ca_cert_dialog_message_signature_name_text" msgid="704614002854299776">"Sinadura:\n<xliff:g id="VALUE">%1$s</xliff:g>\n\n"</string>
     <string name="wifi_ca_cert_notification_title" msgid="537569884930429796">"Sarea egiaztatu egin behar da"</string>
     <string name="wifi_ca_cert_notification_message" msgid="6413248690626616961">"Konektatu aurretik, berrikusi <xliff:g id="SSID">%1$s</xliff:g> sarearen xehetasunak. Sakatu hau aurrera egiteko."</string>
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Ezin izan da instalatu ziurtagiria."</string>
+    <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Ezin da konektatu <xliff:g id="VALUE">%1$s</xliff:g> sarera"</string>
+    <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Zerbitzari-ziurtagiriaren kateak ez du balio."</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Ados"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Ezin da egiaztatu sarea"</string>
-    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="3181614240421159530">"Konektatu halere"</string>
-    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1195575129023960325">"Ez konektatu"</string>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Egon konektatuta"</string>
+    <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"Deskonektatu"</string>
     <string name="wifi_ca_cert_dialog_preT_message_hint" msgid="5682518783200852031">"<xliff:g id="SSID">%1$s</xliff:g> sareari ziurtagiri bat falta zaio."</string>
     <string name="wifi_ca_cert_dialog_preT_message_link" msgid="6325483132538546884">"Lortu ziurtagiriak gehitzeko argibideak"</string>
     <string name="wifi_ca_cert_notification_preT_title" msgid="7255129934648316663">"Ezin da egiaztatu sarea"</string>

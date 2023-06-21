@@ -745,6 +745,11 @@ public class WifiNetworkFactory extends NetworkFactory {
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
+            if (mWifiPermissionsUtil.isGuestUser()) {
+                Log.e(TAG, "network specifier from guest user, reject");
+                releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
+                return false;
+            }
             if (Objects.equals(mActiveSpecificNetworkRequest, networkRequest)
                     || Objects.equals(mConnectedSpecificNetworkRequest, networkRequest)) {
                 Log.e(TAG, "acceptRequest: Already processing the request " + networkRequest);
@@ -819,6 +824,11 @@ public class WifiNetworkFactory extends NetworkFactory {
             // Invalid request with wifi network specifier.
             if (!isRequestWithWifiNetworkSpecifierValid(networkRequest)) {
                 Log.e(TAG, "Invalid network specifier: " + ns + ". Rejecting");
+                releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
+                return;
+            }
+            if (mWifiPermissionsUtil.isGuestUser()) {
+                Log.e(TAG, "network specifier from guest user, reject");
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return;
             }

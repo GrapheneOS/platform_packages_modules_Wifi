@@ -26,7 +26,6 @@ import android.content.Context;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.util.HexEncoding;
-import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
 import android.util.SparseArray;
@@ -66,7 +65,7 @@ public class WifiAwareClientState {
     private final @Nullable String mCallingFeatureId;
     private final boolean mNotifyIdentityChange;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
-    private final Bundle mExtra;
+    private final Object mAttributionSource;
 
     private final AppOpsManager mAppOps;
     private final long mCreationTime;
@@ -78,7 +77,7 @@ public class WifiAwareClientState {
             String callingPackage, @Nullable String callingFeatureId,
             IWifiAwareEventCallback callback, ConfigRequest configRequest,
             boolean notifyIdentityChange, long creationTime,
-            WifiPermissionsUtil wifiPermissionsUtil, Bundle extra) {
+            WifiPermissionsUtil wifiPermissionsUtil, Object attributionSource) {
         mContext = context;
         mClientId = clientId;
         mUid = uid;
@@ -92,7 +91,7 @@ public class WifiAwareClientState {
         mAppOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         mCreationTime = creationTime;
         mWifiPermissionsUtil = wifiPermissionsUtil;
-        mExtra = extra;
+        mAttributionSource = attributionSource;
     }
 
     /**
@@ -147,8 +146,8 @@ public class WifiAwareClientState {
         return mSessions;
     }
 
-    public Bundle getExtra() {
-        return mExtra;
+    public Object getAttributionSource() {
+        return mAttributionSource;
     }
     /**
      * Searches the discovery sessions of this client and returns the one
