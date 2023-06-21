@@ -211,6 +211,10 @@ public class WifiSettingsStore {
         return getPersistedWifiPasspointEnabled();
     }
 
+    public synchronized boolean isWifiScanThrottleEnabled() {
+        return getPersistedWifiScanThrottleEnabled();
+    }
+
     public synchronized int getWifiMultiInternetMode() {
         return getPersistedWifiMultiInternetMode();
     }
@@ -480,6 +484,11 @@ public class WifiSettingsStore {
     private boolean getPersistedWifiPasspointEnabled() {
         return mSettingsConfigStore.get(
                 WifiSettingsConfigStore.WIFI_PASSPOINT_ENABLED);
+    }
+
+    private boolean getPersistedWifiScanThrottleEnabled() {
+        return mSettingsConfigStore.get(
+                WifiSettingsConfigStore.WIFI_SCAN_THROTTLE_ENABLED);
     }
 
     private int getPersistedWifiMultiInternetMode() {

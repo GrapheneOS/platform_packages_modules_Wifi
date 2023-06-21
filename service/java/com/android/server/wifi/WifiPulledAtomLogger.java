@@ -43,12 +43,15 @@ public class WifiPulledAtomLogger {
     private final StatsManager mStatsManager;
     private final Handler mWifiHandler;
     private final Context mContext;
+    private final WifiInjector mWifiInjector;
     private StatsManager.StatsPullAtomCallback mStatsPullAtomCallback;
-    public WifiPulledAtomLogger(StatsManager statsManager, Handler handler, Context context) {
+    public WifiPulledAtomLogger(StatsManager statsManager, Handler handler, Context context,
+            WifiInjector wifiInjector) {
         mStatsManager = statsManager;
         mWifiHandler = handler;
         mStatsPullAtomCallback = new WifiPullAtomCallback();
         mContext = context;
+        mWifiInjector = wifiInjector;
     }
 
     /**
