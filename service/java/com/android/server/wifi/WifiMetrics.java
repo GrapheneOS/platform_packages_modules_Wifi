@@ -1850,13 +1850,13 @@ public class WifiMetrics {
                     endConnectionEvent(ifaceName,
                             ConnectionEvent.FAILURE_REDUNDANT_CONNECTION_ATTEMPT,
                             WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0);
+                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, -1);
                 } else {
                     // End Connection Event due to new connection attempt to different network
                     endConnectionEvent(ifaceName,
                             ConnectionEvent.FAILURE_NEW_CONNECTION_ATTEMPT,
                             WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0);
+                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, -1);
                 }
             }
             // If past maximum connection events, start removing the oldest
@@ -2054,7 +2054,8 @@ public class WifiMetrics {
             int level2FailureCode,
             int connectivityFailureCode,
             int level2FailureReason,
-            int frequency) {
+            int frequency,
+            int statusCode) {
         synchronized (mLock) {
             ConnectionEvent currentConnectionEvent = mCurrentConnectionEventPerIface.get(ifaceName);
             if (currentConnectionEvent != null) {
@@ -2101,7 +2102,8 @@ public class WifiMetrics {
                         timeSinceConnectedSeconds,
                         currentConnectionEvent.mIsCarrierWifi,
                         currentConnectionEvent.mIsOobPseudonymEnabled,
-                        currentConnectionEvent.mRole);
+                        currentConnectionEvent.mRole,
+                        statusCode);
 
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);
