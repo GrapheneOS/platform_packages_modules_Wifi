@@ -3845,6 +3845,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             if (mVerboseLoggingEnabled) {
                                 logd("Found a match " + mSavedPeerConfig);
                             }
+                            if (TextUtils.isEmpty(mSavedPeerConfig.wps.pin)) {
+                                // Some implementations get the PIN OOB and deliver it from
+                                // Supplicant. This is to avoid connecting with the dialog box
+                                mSavedPeerConfig.wps.pin = provDisc.pin;
+                            }
                             // we already have the pin
                             if (!TextUtils.isEmpty(mSavedPeerConfig.wps.pin)) {
                                 p2pConnectWithPinDisplay(mSavedPeerConfig,

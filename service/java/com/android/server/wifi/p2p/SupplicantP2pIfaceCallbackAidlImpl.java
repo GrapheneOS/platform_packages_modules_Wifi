@@ -480,6 +480,7 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
             mMonitor.broadcastP2pProvisionDiscoveryShowPin(mInterface, event);
         } else if (!isRequest && (configMethods & WpsConfigMethods.DISPLAY) != 0) {
             event.event = WifiP2pProvDiscEvent.ENTER_PIN;
+            event.pin = generatedPin;
             mMonitor.broadcastP2pProvisionDiscoveryEnterPin(mInterface, event);
         } else if (isRequest && (configMethods & WpsConfigMethods.DISPLAY) != 0) {
             event.event = WifiP2pProvDiscEvent.SHOW_PIN;
