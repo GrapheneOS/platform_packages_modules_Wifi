@@ -16,10 +16,12 @@
 
 package com.android.server.wifi;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +29,7 @@ import android.app.StatsManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.test.TestLooper;
 import android.util.StatsEvent;
@@ -35,6 +38,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.server.wifi.proto.WifiStatsLog;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import org.junit.After;
 import org.junit.Before;
@@ -59,6 +63,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     @Mock private Context mContext;
     @Mock private WifiInjector mWifiInjector;
     @Mock private PackageManager mPackageManager;
+    @Mock private WifiSettingsStore mWifiSettingsStore;
     @Captor ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
 
     @Before
@@ -66,6 +71,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         mLooper = new TestLooper();
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
+        when(mWifiInjector.getWifiSettingsStore()).thenReturn(mWifiSettingsStore);
         mWifiPulledAtomLogger = new WifiPulledAtomLogger(mStatsManager,
                 new Handler(mLooper.getLooper()), mContext, mWifiInjector);
 
@@ -150,5 +156,58 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
                 WifiStatsLog.WIFI_MODULE_INFO,
                 WifiPulledAtomLogger.WIFI_VERSION_NUMBER,
                 WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_PREBUILT));
+    }
+
+    @Test
+    public void testWifiSettingsPull() {
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_SETTING_INFO);
+        verify(mStatsManager).setPullAtomCallback(eq(WifiStatsLog.WIFI_SETTING_INFO), any(), any(),
+                mPullAtomCallbackArgumentCaptor.capture());
+        assertNotNull(mPullAtomCallbackArgumentCaptor.getValue());
+
+        when(mWifiInjector.getFrameworkFacade()).thenReturn(mock(FrameworkFacade.class));
+        when(mWifiInjector.getWakeupController()).thenReturn(mock(WakeupController.class));
+        when(mWifiInjector.getOpenNetworkNotifier()).thenReturn(mock(OpenNetworkNotifier.class));
+        when(mWifiInjector.getWifiPermissionsUtil()).thenReturn(mock(WifiPermissionsUtil.class));
+
+        // Verify that all 8 settings were retrieved.
+        List<StatsEvent> data = new ArrayList<>();
+        assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
+                .onPullAtom(WifiStatsLog.WIFI_SETTING_INFO, data));
+        assertEquals(8, data.size());
+    }
+
+    @Test
+    public void testWifiComplexSettingsPull_valid() {
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO);
+        verify(mStatsManager).setPullAtomCallback(eq(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO),
+                any(), any(), mPullAtomCallbackArgumentCaptor.capture());
+        assertNotNull(mPullAtomCallbackArgumentCaptor.getValue());
+
+        // Framework and atom should indicate DBS AP mode.
+        int frameworkMode = WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP;
+        int atomMode = WifiStatsLog
+                .WIFI_COMPLEX_SETTING_INFO__MULTI_INTERNET_MODE__MULTI_INTERNET_MODE_DBS_AP;
+        when(mWifiSettingsStore.getWifiMultiInternetMode()).thenReturn(frameworkMode);
+
+        List<StatsEvent> data = new ArrayList<>();
+        assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
+                .onPullAtom(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO, data));
+        assertEquals(1, data.size());
+        ExtendedMockito.verify(() -> WifiStatsLog.buildStatsEvent(
+                WifiStatsLog.WIFI_COMPLEX_SETTING_INFO, atomMode));
+    }
+
+    @Test
+    public void testWifiComplexSettingsPull_invalid() {
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO);
+        verify(mStatsManager).setPullAtomCallback(eq(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO),
+                any(), any(), mPullAtomCallbackArgumentCaptor.capture());
+        assertNotNull(mPullAtomCallbackArgumentCaptor.getValue());
+
+        // Invalid WifiMultiInternetMode value should cause the pull to fail.
+        when(mWifiSettingsStore.getWifiMultiInternetMode()).thenReturn(9999);
+        assertEquals(StatsManager.PULL_SKIP, mPullAtomCallbackArgumentCaptor.getValue()
+                .onPullAtom(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO, new ArrayList<>()));
     }
 }
