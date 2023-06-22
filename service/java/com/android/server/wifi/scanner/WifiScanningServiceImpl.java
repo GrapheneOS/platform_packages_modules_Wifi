@@ -227,19 +227,20 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     false, false);
         } catch (SecurityException e) {
             localLog("registerScanListener: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid  + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
         mWifiThreadRunner.post(() -> {
             if (mClients.get(listener) != null) {
-                logw("duplicate client connection: " + uid + ", listener=" + listener);
+                logw("duplicate client connection: " + uid + ", listener=" + listener
+                        + " AttributionTag " + featureId);
                 return;
             }
             final ExternalClientInfo client = new ExternalClientInfo(uid, packageName,
                     listener);
             client.register();
-            localLog("register scan listener: " + client);
+            localLog("register scan listener: " + client + " AttributionTag " + featureId);
             logScanRequest("registerScanListener", client, null, null, null);
             mSingleScanListeners.addRequest(client, null, null);
             client.replySucceeded();
@@ -256,13 +257,14 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     true, false);
         } catch (SecurityException e) {
             localLog("unregisterScanListener: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
         ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
         if (client == null) {
-            logw("no client registered: " + uid + ", listener=" + listener);
+            logw("no client registered: " + uid + ", listener=" + listener
+                    + " AttributionTag " + featureId);
             return;
         }
         mWifiThreadRunner.post(() -> {
@@ -338,10 +340,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     false, false);
         } catch (SecurityException e) {
             localLog("getScanResults: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             return false;
         }
-        localLog("get scan result: " + packageName);
+        localLog("get scan result: " + packageName + " AttributionTag " + featureId);
         mBackgroundScanStateMachine.sendMessage(WifiScanner.CMD_GET_SCAN_RESULTS);
         return true;
     }
@@ -382,7 +384,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     shouldHideFromAppsForSingleScan(settings));
         } catch (SecurityException e) {
             localLog("startScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
@@ -394,7 +396,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 client = new ExternalClientInfo(uid, packageName, listener);
                 client.register();
             }
-            localLog("start scan: " + client + " package " + packageName);
+            localLog("start scan: " + client + " package " + packageName + " AttributionTag "
+                    + featureId);
             Message msg = Message.obtain();
             msg.what = WifiScanner.CMD_START_SINGLE_SCAN;
             msg.obj = new ScanParams(listener, settings, workSource);
@@ -412,7 +415,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     true, false);
         } catch (SecurityException e) {
             localLog("stopScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
@@ -422,7 +425,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 Log.e(TAG, "listener not found " + listener);
                 return;
             }
-            localLog("stop scan: " + client);
+            localLog("stop scan: " + client + " AttributionTag " + featureId);
             Message msg = Message.obtain();
             msg.what = WifiScanner.CMD_STOP_SINGLE_SCAN;
             msg.obj = new ScanParams(listener, null, null);
@@ -433,7 +436,8 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
     @Override
     public List<ScanResult> getSingleScanResults(String packageName, String featureId) {
-        localLog("get single scan result: package " + packageName);
+        localLog("get single scan result: package " + packageName
+                + " AttributionTag " + featureId);
         final int uid = Binder.getCallingUid();
         try {
             enforcePermission(uid, packageName, featureId,
@@ -441,7 +445,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     false, false);
         } catch (SecurityException e) {
             localLog("getSingleScanResults: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             return new ArrayList<>();
         }
         return mWifiThreadRunner.call(() -> mSingleScanStateMachine.filterCachedScanResultsByAge(),
@@ -458,7 +462,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     false, false);
         } catch (SecurityException e) {
             localLog("startPnoScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
@@ -468,7 +472,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 client = new ExternalClientInfo(uid, packageName, listener);
                 client.register();
             }
-            localLog("start pno scan: " + client);
+            localLog("start pno scan: " + client + " AttributionTag " + featureId);
             Message msg = Message.obtain();
             msg.what = WifiScanner.CMD_START_PNO_SCAN;
             msg.obj = new ScanParams(listener, scanSettings, pnoSettings, null, null, null);
@@ -486,7 +490,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     true, false);
         } catch (SecurityException e) {
             localLog("stopPnoScan: failed to authorize app: " + packageName + " uid "
-                    + uid);
+                    + uid + " AttributionTag " + featureId);
             notifyFailure(listener, WifiScanner.REASON_NOT_AUTHORIZED, "Not authorized");
             return;
         }
@@ -496,7 +500,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 Log.e(TAG, "listener not found " + listener);
                 return;
             }
-            localLog("stop pno scan: " + client);
+            localLog("stop pno scan: " + client + " AttributionTag " + featureId);
             Message msg = Message.obtain();
             msg.what = WifiScanner.CMD_STOP_PNO_SCAN;
             msg.obj = new ScanParams(listener, null, null);
