@@ -116,6 +116,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -203,6 +204,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final SsidTranslator mSsidTranslator;
     private final WifiDiagnostics mWifiDiagnostics;
     private final DeviceConfigFacade mDeviceConfig;
+    private final AfcClient mAfcClient;
     private static final int[] OP_MODE_LIST = {
             WifiAvailableChannel.OP_MODE_STA,
             WifiAvailableChannel.OP_MODE_SAP,
@@ -406,6 +408,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     + " targetNetworkId=" + targetNetworkId
                     + " targetBssid=" + targetBssid);
         }
+
         @Override
         public void onNetworkSwitchRejected(
                 int sessionId, int targetNetworkId, String targetBssid) {
@@ -450,6 +453,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mSsidTranslator = wifiInjector.getSsidTranslator();
         mWifiDiagnostics = wifiInjector.getWifiDiagnostics();
         mDeviceConfig = wifiInjector.getDeviceConfigFacade();
+        mAfcClient = wifiInjector.getAfcClient();
     }
 
     private String getOpModeName(@WifiAvailableChannel.OpMode int mode) {
@@ -1935,6 +1939,56 @@ public class WifiShellCommand extends BasicShellCommandHandler {
 
                     return 0;
                 }
+                case "configure-afc-server":
+                    final String url = getNextArgRequired();
+                    if (!url.startsWith("http")) {
+                        pw.println("The required URL first argument is not a valid server URL for"
+                                + " a HTTP request.");
+                        return -1;
+                    }
+
+                    String secondOption = getNextOption();
+                    Map<String, String> requestProperties = new HashMap<>();
+                    if (secondOption != null && secondOption.equals("-r")) {
+
+                        String key = getNextArg();
+                        while (key != null) {
+
+                            String value = getNextArg();
+                            // Check if there is a next value
+                            if (value != null) {
+                                requestProperties.put(key, value);
+                            } else {
+                                // Fail to proceed as there is no value given for the corresponding
+                                // key
+                                pw.println(
+                                        "No value provided for the corresponding key " + key
+                                                + ". There must be an even number of request"
+                                                + " property arguments provided after the -r "
+                                                + "option.");
+                                return -1;
+                            }
+                            key = getNextArg();
+                        }
+
+                    } else {
+                        pw.println("No -r option was provided as second argument so the HTTP "
+                                + "request will have no request properties.");
+                    }
+
+                    mWifiThreadRunner.post(() -> {
+                        mAfcClient.setServerURL(url);
+                        mAfcClient.setRequestPropertyPairs(requestProperties);
+                    });
+
+                    pw.println("The URL is set to " + url);
+                    pw.println("The request properties are set to: ");
+
+                    for (Map.Entry<String, String> requestProperty : requestProperties.entrySet()) {
+                        pw.println("Key: " + requestProperty.getKey() + ", Value: "
+                                + requestProperty.getValue());
+                    }
+                    return 0;
                 case "set-mock-wifimodem-service":
                     String opt = null;
                     String serviceName = null;
@@ -3003,6 +3057,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 + "place of the list of allowed channels.");
         pw.println("    Example: set-afc-channel-allowance -e 30 -c none -f "
                 + "5925,6020,23:6020,6050,1");
+        pw.println("  configure-afc-server <url> [-r [<request property key> <request property "
+                + "value>] ...]");
+        pw.println("    Sets the server URL and request properties for the HTTP request which the "
+                + "mAfcClient will query.");
+        pw.println("    -r - HTTP header fields that come in pairs of key and value which are added"
+                + " to the HTTP request. Must be an even number of arguments. If there is no -r "
+                + "option provided or no arguments provided after the -r option, then set the "
+                + "request properties to none in the request.");
+        pw.println("    Example: configure-afc-server https://testURL -r key1 value1 key2 value2");
     }
 
     @Override
