@@ -818,9 +818,6 @@ public class WifiLockManager {
                 clientModeManager.setLowLatencyMode(!enabled);
                 return false;
             }
-            mIsLowLatencyActivated = enabled;
-            notifyLowLatencyActivated();
-            notifyLowLatencyActiveUsersChanged();
         } else if (lowLatencySupport == LOW_LATENCY_NOT_SUPPORTED) {
             // Only set power save mode
             if (!setPowerSave(clientModeManager, ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
@@ -830,6 +827,9 @@ public class WifiLockManager {
             }
         }
 
+        mIsLowLatencyActivated = enabled;
+        notifyLowLatencyActivated();
+        notifyLowLatencyActiveUsersChanged();
         return true;
     }
 
