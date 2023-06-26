@@ -757,7 +757,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
                 networks, retrievedNetworks);
         verify(mWcmListener).onNetworkUpdated(
-                wifiConfigCaptor.capture(), wifiConfigCaptor.capture());
+                wifiConfigCaptor.capture(), wifiConfigCaptor.capture(), anyBoolean());
         WifiConfiguration newConfig = wifiConfigCaptor.getAllValues().get(1);
         WifiConfiguration oldConfig = wifiConfigCaptor.getAllValues().get(0);
         assertEquals(openNetwork.networkId, newConfig.networkId);
@@ -823,7 +823,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
                 networks, retrievedNetworks);
         verify(mWcmListener).onNetworkUpdated(
-                wifiConfigCaptor.capture(), wifiConfigCaptor.capture());
+                wifiConfigCaptor.capture(), wifiConfigCaptor.capture(), anyBoolean());
         WifiConfiguration newConfig = wifiConfigCaptor.getAllValues().get(1);
         WifiConfiguration oldConfig = wifiConfigCaptor.getAllValues().get(0);
         assertEquals(openNetwork.networkId, newConfig.networkId);
@@ -943,7 +943,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 mWifiConfigManager.addOrUpdateNetwork(openNetwork, TEST_CREATOR_UID);
         assertNotEquals(WifiConfiguration.INVALID_NETWORK_ID, networkUpdateResult.getNetworkId());
         verify(mWcmListener).onNetworkUpdated(
-                wifiConfigCaptor.capture(), wifiConfigCaptor.capture());
+                wifiConfigCaptor.capture(), wifiConfigCaptor.capture(), anyBoolean());
         WifiConfiguration newConfig = wifiConfigCaptor.getAllValues().get(1);
         assertEquals(WifiConfiguration.RANDOMIZATION_AUTO, newConfig.macRandomizationSetting);
         assertEquals(openNetwork.networkId, newConfig.networkId);
