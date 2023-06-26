@@ -149,9 +149,11 @@ public class WifiConfigManager {
          *
          * @param newConfig Updated WifiConfiguration object.
          * @param oldConfig Prev WifiConfiguration object.
+         * @param hasCredentialChanged true if credential is changed, false otherwise.
          */
         default void onNetworkUpdated(
-                @NonNull WifiConfiguration newConfig, @NonNull WifiConfiguration oldConfig) { };
+                @NonNull WifiConfiguration newConfig, @NonNull WifiConfiguration oldConfig,
+                boolean hasCredentialChanged) { };
 
         /**
          * Invoked when user connect choice is set.
@@ -1649,7 +1651,8 @@ public class WifiConfigManager {
             } else {
                 listener.onNetworkUpdated(
                         createExternalWifiConfiguration(newConfig, true, Process.WIFI_UID),
-                        createExternalWifiConfiguration(existingConfig, true, Process.WIFI_UID));
+                        createExternalWifiConfiguration(existingConfig, true, Process.WIFI_UID),
+                        result.hasCredentialChanged());
             }
         }
         return result;
