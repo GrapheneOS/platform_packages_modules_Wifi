@@ -17,6 +17,7 @@
 package com.android.server.wifi.p2p;
 
 import static android.net.NetworkInfo.DetailedState.CONNECTING;
+import static android.net.NetworkInfo.DetailedState.DISCONNECTED;
 import static android.net.NetworkInfo.DetailedState.FAILED;
 import static android.net.NetworkInfo.DetailedState.IDLE;
 import static android.net.wifi.WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE;
@@ -7102,6 +7103,24 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_REJECT);
         verify(mWifiNative).p2pReject(eq(mTestWifiP2pDevice.deviceAddress));
+    }
+
+    /**
+     * Verifies that we broadcast WIFI_P2P_CONNECTION_CHANGED_ACTION with DISCONNECTED state upon
+     * user reject for negotiation request.
+     * @throws Exception
+     */
+    @Test
+    public void testBroadcastDisconnectedStateOnRejectRequest() throws Exception {
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        forceP2pEnabled(mClient1);
+
+        mockEnterUserAuthorizingNegotiationRequestState(WpsInfo.PBC);
+
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_REJECT);
+        verify(mContext).sendBroadcastWithMultiplePermissions(
+                argThat(new WifiP2pServiceImplTest
+                        .P2pConnectionChangedIntentMatcherForNetworkState(DISCONNECTED)), any());
     }
 
     @Test
