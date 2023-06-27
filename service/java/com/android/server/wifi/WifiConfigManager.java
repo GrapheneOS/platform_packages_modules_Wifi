@@ -237,8 +237,7 @@ public class WifiConfigManager {
 
     @VisibleForTesting
     public static final int SCAN_RESULT_MISSING_COUNT_THRESHOLD = 1;
-    @VisibleForTesting
-    protected static final String NON_PERSISTENT_MAC_RANDOMIZATION_FEATURE_FORCE_ENABLE_FLAG =
+    public static final String NON_PERSISTENT_MAC_RANDOMIZATION_FEATURE_FORCE_ENABLE_FLAG =
             "non_persistent_mac_randomization_force_enabled";
     private static final int NON_CARRIER_MERGED_NETWORKS_SCAN_CACHE_QUERY_DURATION_MS =
             10 * 60 * 1000; // 10 minutes

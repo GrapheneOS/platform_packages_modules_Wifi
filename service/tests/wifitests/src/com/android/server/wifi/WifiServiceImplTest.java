@@ -1917,6 +1917,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.checkAndStartWifi();
         mLooper.dispatchAll();
         verify(mWifiPulledAtomLogger).setPullAtomCallback(WifiStatsLog.WIFI_MODULE_INFO);
+        verify(mWifiPulledAtomLogger).setPullAtomCallback(WifiStatsLog.WIFI_SETTING_INFO);
+        verify(mWifiPulledAtomLogger).setPullAtomCallback(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO);
     }
 
     /**

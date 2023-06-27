@@ -20,6 +20,7 @@ import android.app.StatsManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.util.Log;
 import android.util.StatsEvent;
@@ -82,6 +83,10 @@ public class WifiPulledAtomLogger {
             switch (atomTag) {
                 case WifiStatsLog.WIFI_MODULE_INFO:
                     return handleWifiVersionPull(atomTag, data);
+                case WifiStatsLog.WIFI_SETTING_INFO:
+                    return handleWifiSettingsPull(atomTag, data);
+                case WifiStatsLog.WIFI_COMPLEX_SETTING_INFO:
+                    return handleWifiComplexSettingsPull(atomTag, data);
                 default:
                     return StatsManager.PULL_SKIP;
             }
@@ -112,6 +117,69 @@ public class WifiPulledAtomLogger {
                 ? WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_BUILT_FROM_SOURCE
                 : WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_PREBUILT;
         data.add(WifiStatsLog.buildStatsEvent(atomTag, WIFI_VERSION_NUMBER, mWifiBuildType));
+        return StatsManager.PULL_SUCCESS;
+    }
+
+    private int handleWifiSettingsPull(int atomTag, List<StatsEvent> data) {
+        WifiSettingsStore settingsStore = mWifiInjector.getWifiSettingsStore();
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_SCAN_ALWAYS_AVAILABLE,
+                settingsStore.isScanAlwaysAvailable()));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_SCAN_THROTTLE,
+                settingsStore.isWifiScanThrottleEnabled()));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_SCORING,
+                settingsStore.isWifiScoringEnabled()));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_PASSPOINT,
+                settingsStore.isWifiPasspointEnabled()));
+
+        boolean nonPersistentMacRandEnabled = mWifiInjector.getFrameworkFacade().getIntegerSetting(
+                mContext,
+                WifiConfigManager.NON_PERSISTENT_MAC_RANDOMIZATION_FEATURE_FORCE_ENABLE_FLAG, 0)
+                == 1 ? true : false;
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_ENHANCED_MAC_RANDOMIZATION,
+                nonPersistentMacRandEnabled));
+
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_WAKE,
+                mWifiInjector.getWakeupController().isEnabled()));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFI_NETWORKS_AVAILABLE_NOTIFICATION,
+                mWifiInjector.getOpenNetworkNotifier().isSettingEnabled()));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__LOCATION_MODE,
+                mWifiInjector.getWifiPermissionsUtil().isLocationModeEnabled()));
+        return StatsManager.PULL_SUCCESS;
+    }
+
+    private static int frameworkToAtomMultiInternetMode(
+            @WifiManager.WifiMultiInternetMode int mode) {
+        switch (mode) {
+            case WifiManager.WIFI_MULTI_INTERNET_MODE_DISABLED:
+                return WifiStatsLog
+                        .WIFI_COMPLEX_SETTING_INFO__MULTI_INTERNET_MODE__MULTI_INTERNET_MODE_DISABLED;
+            case WifiManager.WIFI_MULTI_INTERNET_MODE_DBS_AP:
+                return WifiStatsLog
+                        .WIFI_COMPLEX_SETTING_INFO__MULTI_INTERNET_MODE__MULTI_INTERNET_MODE_DBS_AP;
+            case WifiManager.WIFI_MULTI_INTERNET_MODE_MULTI_AP:
+                return WifiStatsLog
+                        .WIFI_COMPLEX_SETTING_INFO__MULTI_INTERNET_MODE__MULTI_INTERNET_MODE_MULTI_AP;
+            default:
+                Log.i(TAG, "Invalid multi-internet mode: " + mode);
+                return -1;
+        }
+    }
+
+    private int handleWifiComplexSettingsPull(int atomTag, List<StatsEvent> data) {
+        int multiInternetMode = frameworkToAtomMultiInternetMode(
+                mWifiInjector.getWifiSettingsStore().getWifiMultiInternetMode());
+        if (multiInternetMode == -1) {
+            return StatsManager.PULL_SKIP;
+        }
+        data.add(WifiStatsLog.buildStatsEvent(atomTag, multiInternetMode));
         return StatsManager.PULL_SUCCESS;
     }
 }
