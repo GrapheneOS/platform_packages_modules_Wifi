@@ -1981,4 +1981,38 @@ public class WifiLockManagerTest extends WifiBaseTest {
         inOrder.verify(testListener, never()).onActivatedStateChanged(anyBoolean());
         inOrder.verify(testListener, never()).onActiveUsersChanged(any());
     }
+
+    /**
+     * Verify that low latency lock listeners are triggered even when chip is not supporting low
+     * latency mode
+     */
+    @Test
+    public void testWifiLowLatencyLockListenerWithNoChipSupport() throws Exception {
+        // Setup mock listener.
+        IWifiLowLatencyLockListener testListener = mock(IWifiLowLatencyLockListener.class);
+        when(testListener.asBinder()).thenReturn(mock(IBinder.class));
+        InOrder inOrder = inOrder(testListener);
+
+        // Register the listener and test current state and ownership are notified immediately after
+        // registration. Active users is not notified since the lock is not activated.
+        mWifiLockManager.addWifiLowLatencyLockListener(testListener);
+        inOrder.verify(testListener).onActivatedStateChanged(false);
+        inOrder.verify(testListener).onOwnershipChanged(eq(new int[0]));
+        inOrder.verify(testListener, never()).onActiveUsersChanged(any());
+
+        // Test notification when the chip does not support low latency mode.
+        setScreenState(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(true);
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_1)).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.getSupportedFeatures()).thenReturn(
+                ~WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "", mBinder, mWorkSource);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+        inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+        inOrder.verify(testListener).onActivatedStateChanged(true);
+        inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+    }
 }
