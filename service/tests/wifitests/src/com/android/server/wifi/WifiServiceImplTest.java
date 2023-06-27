@@ -1874,6 +1874,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         // show key mode is always disabled at the beginning.
         verify(mWifiGlobals).setShowKeyVerboseLoggingModeEnabled(eq(false));
         verify(mActiveModeWarden).start();
+        assertTrue(mWifiThreadRunner.mVerboseLoggingEnabled);
     }
 
     /**
@@ -5085,6 +5086,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.enableVerboseLogging(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED);
         verify(mWifiSettingsConfigStore).put(WIFI_VERBOSE_LOGGING_ENABLED, true);
         verify(mActiveModeWarden).enableVerboseLogging(anyBoolean());
+        assertTrue(mWifiThreadRunner.mVerboseLoggingEnabled);
     }
 
     /**
