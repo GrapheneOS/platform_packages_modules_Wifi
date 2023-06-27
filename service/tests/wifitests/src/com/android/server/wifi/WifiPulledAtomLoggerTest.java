@@ -57,6 +57,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     private TestLooper mLooper;
     @Mock private StatsManager mStatsManager;
     @Mock private Context mContext;
+    @Mock private WifiInjector mWifiInjector;
     @Mock private PackageManager mPackageManager;
     @Captor ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
 
@@ -66,7 +67,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         mLooper = new TestLooper();
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         mWifiPulledAtomLogger = new WifiPulledAtomLogger(mStatsManager,
-                new Handler(mLooper.getLooper()), mContext);
+                new Handler(mLooper.getLooper()), mContext, mWifiInjector);
 
         mSession = ExtendedMockito.mockitoSession()
                 .strictness(Strictness.LENIENT)
@@ -82,7 +83,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     @Test
     public void testNullStatsManagerNoCrash() {
         mWifiPulledAtomLogger = new WifiPulledAtomLogger(null,
-                new Handler(mLooper.getLooper()), mContext);
+                new Handler(mLooper.getLooper()), mContext, mWifiInjector);
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_MODULE_INFO);
     }
 

@@ -569,7 +569,7 @@ public class WifiInjector {
                 mWifiNotificationManager);
         mWifiPulledAtomLogger = new WifiPulledAtomLogger(
                 mContext.getSystemService(StatsManager.class), wifiHandler,
-                mContext);
+                mContext, this);
     }
 
     /**
