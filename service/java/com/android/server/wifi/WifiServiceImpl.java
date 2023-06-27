@@ -5411,7 +5411,11 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public void enableVerboseLogging(int verbose) {
         enforceAccessPermission();
-        enforceNetworkSettingsPermission();
+        if (!checkNetworkSettingsPermission(Binder.getCallingPid(), Binder.getCallingUid())
+                && mContext.checkPermission(android.Manifest.permission.DUMP,
+                Binder.getCallingPid(), Binder.getCallingUid()) != PERMISSION_GRANTED) {
+            throw new SecurityException("Caller has neither NETWORK_SETTING nor dump permissions");
+        }
         mLog.info("enableVerboseLogging uid=% verbose=%")
                 .c(Binder.getCallingUid())
                 .c(verbose).flush();
