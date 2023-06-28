@@ -3291,6 +3291,25 @@ public class SoftApManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void testBridgedModeFallbackToSingleModeDueToCountryCodeChangedToWorldMode()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        String worldModeCC = "00";
+        when(mContext.getResources()
+                .getString(R.string.config_wifiDriverWorldModeCountryCode)).thenReturn(worldModeCC);
+
+        SoftApCapability testCapability = new SoftApCapability(mTestSoftApCapability);
+        Builder configBuilder = new SoftApConfiguration.Builder(
+                generateBridgedModeSoftApConfig(null));
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                testCapability, worldModeCC);
+        // Reset band to 2.4G | 5G to generate expected configuration
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ);
+        startSoftApAndVerifyEnabled(apConfig, configBuilder.build(), false);
+    }
+
+    @Test
     public void testBridgedModeKeepWhenCoexChangedToSoftUnsafe()
             throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());

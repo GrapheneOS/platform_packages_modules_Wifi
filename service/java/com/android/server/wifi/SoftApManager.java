@@ -1047,6 +1047,7 @@ public class SoftApManager implements ActiveModeManager {
                         quitNow();
                         break;
                     case CMD_START:
+                        boolean isCountryCodeChanged = false;
                         mRequestorWs = (WorkSource) message.obj;
                         WifiSsid wifiSsid = mCurrentSoftApConfiguration != null
                                 ? mCurrentSoftApConfiguration.getWifiSsid() : null;
@@ -1059,6 +1060,15 @@ public class SoftApManager implements ActiveModeManager {
                                     false, WifiManager.SAP_START_FAILURE_GENERAL);
                             mModeListener.onStartFailure(SoftApManager.this);
                             break;
+                        }
+                        if (!TextUtils.isEmpty(mCountryCode)
+                                && !TextUtils.equals(
+                                mCountryCode, mCurrentSoftApCapability.getCountryCode())) {
+                            isCountryCodeChanged = true;
+                            Log.i(getTag(), "CountryCode changed - "
+                                    + " mCountryCode = " + mCountryCode
+                                    + ", base country in SoftApCapability = "
+                                    + mCurrentSoftApCapability.getCountryCode());
                         }
                         if (isBridgedMode()) {
                             boolean isFallbackToSingleAp = false;
@@ -1089,28 +1099,26 @@ public class SoftApManager implements ActiveModeManager {
                                     isFallbackToSingleAp = true;
                                 }
                             }
-                            if (mWifiNative.isSoftApInstanceDiedHandlerSupported()
-                                    && !TextUtils.equals(mCountryCode,
-                                      mCurrentSoftApCapability.getCountryCode())) {
-                                Log.i(getTag(), "CountryCode changed, bypass the supported band"
-                                        + "capability check, mCountryCode = " + mCountryCode
-                                        + ", base country in SoftApCapability = "
-                                        + mCurrentSoftApCapability.getCountryCode());
-                            } else {
-                                SoftApConfiguration tempConfig =
-                                        ApConfigUtil.removeUnavailableBandsFromConfig(
-                                                mCurrentSoftApConfiguration,
-                                                mCurrentSoftApCapability, mCoexManager, mContext);
-                                if (tempConfig == null) {
-                                    handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
-                                    break;
-                                }
-                                mCurrentSoftApConfiguration = tempConfig;
-                                if (mCurrentSoftApConfiguration.getBands().length == 1) {
-                                    isFallbackToSingleAp = true;
-                                    Log.i(getTag(), "Removed unavailable bands"
-                                            + " - fallback to single AP");
-                                }
+                            if (isCountryCodeChanged && mCountryCode.equalsIgnoreCase(
+                                    mContext.getResources().getString(
+                                            R.string.config_wifiDriverWorldModeCountryCode))) {
+                                Log.i(getTag(), "Country code changed to world mode"
+                                        + " - fallback to single AP");
+                                isFallbackToSingleAp = true;
+                            }
+                            SoftApConfiguration tempConfig =
+                                    ApConfigUtil.removeUnavailableBandsFromConfig(
+                                            mCurrentSoftApConfiguration,
+                                            mCurrentSoftApCapability, mCoexManager, mContext);
+                            if (tempConfig == null) {
+                                handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                                break;
+                            }
+                            mCurrentSoftApConfiguration = tempConfig;
+                            if (mCurrentSoftApConfiguration.getBands().length == 1) {
+                                isFallbackToSingleAp = true;
+                                Log.i(getTag(), "Removed unavailable bands"
+                                        + " - fallback to single AP");
                             }
                             // Fall back to Single AP if it's not possible to create a Bridged AP.
                             if (!mWifiNative.isItPossibleToCreateBridgedApIface(mRequestorWs)) {
@@ -1195,9 +1203,7 @@ public class SoftApManager implements ActiveModeManager {
                         }
                         if (mContext.getResources().getBoolean(
                                 R.bool.config_wifiDriverSupportedNl80211RegChangedEvent)
-                                && !TextUtils.isEmpty(mCountryCode)
-                                && !TextUtils.equals(
-                                        mCountryCode, mCurrentSoftApCapability.getCountryCode())) {
+                                && isCountryCodeChanged) {
                             Log.i(getTag(), "Need to wait for driver country code update before"
                                     + " starting");
                             transitionTo(mWaitingForDriverCountryCodeChangedState);
@@ -1273,6 +1279,38 @@ public class SoftApManager implements ActiveModeManager {
                             ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(
                                     mCurrentSoftApCapability, mContext, mWifiNative);
                     updateSafeChannelFrequencyList();
+                    if (isBridgedMode()) {
+                        SoftApConfiguration tempConfig =
+                                ApConfigUtil.removeUnavailableBandsFromConfig(
+                                        mCurrentSoftApConfiguration,
+                                        mCurrentSoftApCapability, mCoexManager, mContext);
+                        if (tempConfig == null) {
+                            handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                            transitionTo(mIdleState);
+                            return HANDLED;
+                        }
+                        mCurrentSoftApConfiguration = tempConfig;
+                        if (mCurrentSoftApConfiguration.getBands().length == 1) {
+                            Log.i(getTag(), "Moving to single AP after updating the CC and band."
+                                    + " Teardown bridged interface and setup single AP interface");
+                            mWifiNative.teardownInterface(mApInterfaceName);
+                            mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
+                                    mWifiNativeInterfaceCallback, mRequestorWs,
+                                    mCurrentSoftApConfiguration.getBand(), isBridgeRequired(),
+                                    SoftApManager.this);
+                            if (TextUtils.isEmpty(mApInterfaceName)) {
+                                Log.e(getTag(), "setup failure when creating single AP iface");
+                                updateApState(WifiManager.WIFI_AP_STATE_FAILED,
+                                        WifiManager.WIFI_AP_STATE_DISABLED,
+                                        WifiManager.SAP_START_FAILURE_GENERAL);
+                                mWifiMetrics.incrementSoftApStartResult(
+                                        false, WifiManager.SAP_START_FAILURE_GENERAL);
+                                handleStartSoftApFailure(ERROR_GENERIC);
+                                transitionTo(mIdleState);
+                                return HANDLED;
+                            }
+                        }
+                    }
                 } else if (message.what == CMD_DRIVER_COUNTRY_CODE_CHANGE_TIMED_OUT) {
                     Log.i(getTag(), "Timed out waiting for driver country code change, "
                             + "continue starting anyway.");
