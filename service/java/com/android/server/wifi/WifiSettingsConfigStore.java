@@ -71,11 +71,16 @@ public class WifiSettingsConfigStore {
             new Key<>("wifi_scan_throttle_enabled", true);
 
     /**
-     * Setting to enable verbose logging in Wi-Fi; disabled by default, and setting to 1
-     * will enable it. In the future, additional values may be supported.
+     * Setting to enable verbose logging in Wi-Fi.
      */
     public static final Key<Boolean> WIFI_VERBOSE_LOGGING_ENABLED =
             new Key<>("wifi_verbose_logging_enabled", false);
+
+    /**
+     * Setting to enable verbose logging in Wi-Fi Aware.
+     */
+    public static final Key<Boolean> WIFI_AWARE_VERBOSE_LOGGING_ENABLED =
+            new Key<>("wifi_aware_verbose_logging_enabled", false);
 
     /**
      * The Wi-Fi peer-to-peer device name

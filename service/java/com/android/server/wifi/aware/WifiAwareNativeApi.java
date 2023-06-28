@@ -44,7 +44,7 @@ import java.util.Map;
  */
 public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellCommand {
     private static final String TAG = "WifiAwareNativeApi";
-    private static final boolean VDBG = false; // STOPSHIP if true
+    private boolean mVdbg = false; // STOPSHIP if true
     private boolean mVerboseLoggingEnabled = false;
 
     private final WifiAwareNativeManager mHal;
@@ -53,26 +53,27 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
     public WifiAwareNativeApi(WifiAwareNativeManager wifiAwareNativeManager) {
         mHal = wifiAwareNativeManager;
         onReset();
-        if (VDBG) {
-            mTransactionIds = new SparseIntArray();
-        }
     }
 
     /**
      * Enable/Disable verbose logging.
      *
      */
-    public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
+    public void enableVerboseLogging(boolean verboseEnabled, boolean vDbg) {
         mVerboseLoggingEnabled = verboseEnabled;
+        mVdbg = vDbg;
     }
 
     private void recordTransactionId(int transactionId) {
-        if (!VDBG) return;
+        if (!mVdbg) return;
 
         if (transactionId == 0) {
             return; // tid == 0 is used as a placeholder transaction ID in several commands
         }
 
+        if (mTransactionIds == null) {
+            mTransactionIds = new SparseIntArray();
+        }
         int count = mTransactionIds.get(transactionId);
         if (count != 0) {
             Log.wtf(TAG, "Repeated transaction ID == " + transactionId);
@@ -176,18 +177,18 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         final PrintWriter pw = parentShell.getErrPrintWriter();
 
         String subCmd = parentShell.getNextArgRequired();
-        if (VDBG) Log.v(TAG, "onCommand: subCmd='" + subCmd + "'");
+        if (mVdbg) Log.v(TAG, "onCommand: subCmd='" + subCmd + "'");
         switch (subCmd) {
             case "set": {
                 String name = parentShell.getNextArgRequired();
-                if (VDBG) Log.v(TAG, "onCommand: name='" + name + "'");
+                if (mVdbg) Log.v(TAG, "onCommand: name='" + name + "'");
                 if (!mSettableParameters.containsKey(name)) {
                     pw.println("Unknown parameter name -- '" + name + "'");
                     return -1;
                 }
 
                 String valueStr = parentShell.getNextArgRequired();
-                if (VDBG) Log.v(TAG, "onCommand: valueStr='" + valueStr + "'");
+                if (mVdbg) Log.v(TAG, "onCommand: valueStr='" + valueStr + "'");
                 int value;
                 try {
                     value = Integer.valueOf(valueStr);
@@ -203,7 +204,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                 String name = parentShell.getNextArgRequired();
                 String valueStr = parentShell.getNextArgRequired();
 
-                if (VDBG) {
+                if (mVdbg) {
                     Log.v(TAG, "onCommand: mode='" + mode + "', name='" + name + "'" + ", value='"
                             + valueStr + "'");
                 }
@@ -229,7 +230,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             }
             case "get": {
                 String name = parentShell.getNextArgRequired();
-                if (VDBG) Log.v(TAG, "onCommand: name='" + name + "'");
+                if (mVdbg) Log.v(TAG, "onCommand: name='" + name + "'");
                 if (!mSettableParameters.containsKey(name)) {
                     pw.println("Unknown parameter name -- '" + name + "'");
                     return -1;
@@ -241,7 +242,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             case "get-power": {
                 String mode = parentShell.getNextArgRequired();
                 String name = parentShell.getNextArgRequired();
-                if (VDBG) Log.v(TAG, "onCommand: mode='" + mode + "', name='" + name + "'");
+                if (mVdbg) Log.v(TAG, "onCommand: mode='" + mode + "', name='" + name + "'");
                 if (!mSettablePowerParameters.containsKey(mode)) {
                     pw.println("Unknown mode -- '" + mode + "'");
                     return -1;

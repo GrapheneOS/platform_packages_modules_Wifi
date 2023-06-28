@@ -19,7 +19,7 @@ package com.android.server.wifi.aware;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256;
 
-import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_AWARE_VERBOSE_LOGGING_ENABLED;
 
 import android.Manifest;
 import android.annotation.NonNull;
@@ -140,22 +140,23 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                     interfaceConflictManager);
 
             settingsConfigStore.registerChangeListener(
-                    WIFI_VERBOSE_LOGGING_ENABLED,
+                    WIFI_AWARE_VERBOSE_LOGGING_ENABLED,
                     (key, newValue) -> enableVerboseLogging(newValue),
                     mHandler);
-            enableVerboseLogging(settingsConfigStore.get(WIFI_VERBOSE_LOGGING_ENABLED));
+            enableVerboseLogging(settingsConfigStore.get(WIFI_AWARE_VERBOSE_LOGGING_ENABLED));
         });
     }
 
     private void enableVerboseLogging(boolean verboseEnabled) {
         mVerboseHalLoggingEnabled = verboseEnabled;
         updateVerboseLoggingEnabled();
-        mStateManager.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseLoggingEnabled);
-        mWifiAwareNativeCallback.enableVerboseLogging(mVerboseLoggingEnabled,
-                mVerboseLoggingEnabled);
+        boolean vDbg = verboseEnabled || mContext.getResources()
+                .getBoolean(R.bool.config_aware_vdbg_enable_on_verbose_logging);
+        mStateManager.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseLoggingEnabled, vDbg);
+        mWifiAwareNativeCallback.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiAwareNativeManager.enableVerboseLogging(mVerboseLoggingEnabled,
                 mVerboseLoggingEnabled);
-        mWifiAwareNativeApi.enableVerboseLogging(mVerboseLoggingEnabled, mVerboseLoggingEnabled);
+        mWifiAwareNativeApi.enableVerboseLogging(mVerboseLoggingEnabled, vDbg);
     }
 
     /**

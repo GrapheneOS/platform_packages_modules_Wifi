@@ -18,7 +18,7 @@ package com.android.server.wifi.aware;
 
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 
-import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_AWARE_VERBOSE_LOGGING_ENABLED;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -159,7 +159,8 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         when(mDeviceConfigFacade.isAwareSuspensionEnabled()).thenReturn(true);
         Characteristics characteristics = getCharacteristics(mDeviceConfigFacade);
         when(mAwareStateManagerMock.getCharacteristics()).thenReturn(characteristics);
-        when(mWifiSettingsConfigStore.get(eq(WIFI_VERBOSE_LOGGING_ENABLED))).thenReturn(true);
+        when(mWifiSettingsConfigStore.get(WIFI_AWARE_VERBOSE_LOGGING_ENABLED))
+                .thenReturn(true);
         // mock target SDK version to be pre-T by default to keep existing tests working.
         when(mWifiPermissionsUtil.isTargetSdkLessThan(any(), eq(Build.VERSION_CODES.TIRAMISU),
                 anyInt())).thenReturn(true);
