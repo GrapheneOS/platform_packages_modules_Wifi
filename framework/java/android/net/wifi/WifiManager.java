@@ -8964,11 +8964,18 @@ public class WifiManager {
     @SystemApi
     public static final int VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY = 2;
 
+    /**
+     * Verbose logging mode: only enable for Wi-Fi Aware feature.
+     * @hide
+     */
+    public static final int VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY = 3;
+
     /** @hide */
     @IntDef(prefix = {"VERBOSE_LOGGING_LEVEL_"}, value = {
             VERBOSE_LOGGING_LEVEL_DISABLED,
             VERBOSE_LOGGING_LEVEL_ENABLED,
             VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY,
+            VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface VerboseLoggingLevel {

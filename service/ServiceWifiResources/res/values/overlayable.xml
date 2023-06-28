@@ -326,6 +326,7 @@
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeEnd" />
           <item type="bool" name="config_wifiUpdateCountryCodeFromScanResultGeneric" />
           <item type="bool" name="config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand" />
+          <item type="bool" name ="config_aware_vdbg_enable_on_verbose_logging" />
 
           <!-- Params from config.xml that can be overlayed -->
 

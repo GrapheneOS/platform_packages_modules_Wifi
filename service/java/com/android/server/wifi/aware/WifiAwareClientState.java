@@ -49,7 +49,7 @@ import java.util.Arrays;
  */
 public class WifiAwareClientState {
     private static final String TAG = "WifiAwareClientState";
-    private static final boolean VDBG = false; // STOPSHIP if true
+    private boolean mVdbg = false; // STOPSHIP if true
     private boolean mDbg = false;
 
     private final Context mContext;
@@ -104,8 +104,9 @@ public class WifiAwareClientState {
     /**
      * Enable verbose logging.
      */
-    public void enableVerboseLogging(boolean verbose) {
-        mDbg = verbose | VDBG;
+    public void enableVerboseLogging(boolean verbose, boolean vDbg) {
+        mDbg = verbose;
+        mVdbg = vDbg;
     }
 
     /**
@@ -260,7 +261,7 @@ public class WifiAwareClientState {
                     mCallingPackage, mCallingFeatureId, mUid,
                     /* coarseForTargetSdkLessThanQ */ true, null);
             try {
-                if (VDBG) Log.v(TAG, "hasPermission=" + hasPermission);
+                if (mVdbg) Log.v(TAG, "hasPermission=" + hasPermission);
                 mCallback.onIdentityChanged(hasPermission ? mac : ALL_ZERO_MAC);
             } catch (RemoteException e) {
                 Log.w(TAG, "onIdentityChanged: RemoteException - ignored: " + e);
@@ -302,7 +303,7 @@ public class WifiAwareClientState {
         boolean hasPermission = mWifiPermissionsUtil.checkCallersLocationPermission(
                 mCallingPackage, mCallingFeatureId, mUid,
                 /* coarseForTargetSdkLessThanQ */ true, null);
-        if (VDBG) Log.v(TAG, "hasPermission=" + hasPermission);
+        if (mVdbg) Log.v(TAG, "hasPermission=" + hasPermission);
         if (!Arrays.equals(currentDiscoveryInterfaceMac, mLastDiscoveryInterfaceMac)) {
             try {
                 mCallback.onIdentityChanged(
