@@ -580,6 +580,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mWifiInjector.getWifiScanAlwaysAvailableSettingsCompatibility().initialize();
             mWifiInjector.getWifiNotificationManager().createNotificationChannels();
             mWifiMetrics.start();
+            mWifiConnectivityManager.initialization();
             mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
