@@ -1351,16 +1351,41 @@ public class ClientModeImplTest extends WifiBaseTest {
         String expectedDecoratedPseudonym = "abc-123@wlan.mnc456.mcc123.3gppnetwork.org";
         when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(any(), eq(expectedPseudonym)))
                 .thenReturn(expectedDecoratedPseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
         listenerCaptor.getValue().onUpdated(CARRIER_ID_1, expectedPseudonym);
         mLooper.dispatchAll();
 
-        if (SdkLevel.isAtLeastT()) {
-            verify(mWifiNative).setEapAnonymousIdentity(
-                    anyString(), eq(expectedDecoratedPseudonym), eq(true));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(
-                    anyString(), anyString(), anyBoolean());
-        }
+        verify(mWifiNative).setEapAnonymousIdentity(
+                anyString(), eq(expectedDecoratedPseudonym), eq(true));
+
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT,
+                new DisconnectEventInfo(mConnectedNetwork.SSID, TEST_BSSID_STR, 0, false));
+        mLooper.dispatchAll();
+
+        assertEquals("DisconnectedState", getCurrentState().getName());
+        verify(mWifiPseudonymManager)
+                .unregisterPseudonymUpdatingListener(eq(listenerCaptor.getValue()));
+    }
+
+    @Test
+    public void testNotUpdatingOobPseudonymToSupplicant() throws Exception {
+        when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(anyInt())).thenReturn(true);
+        when(mDeviceConfigFacade.isOobPseudonymEnabled()).thenReturn(true);
+
+        ArgumentCaptor<WifiPseudonymManager.PseudonymUpdatingListener> listenerCaptor =
+                ArgumentCaptor.forClass(WifiPseudonymManager.PseudonymUpdatingListener.class);
+        setupEapSimConnection();
+        verify(mWifiPseudonymManager).registerPseudonymUpdatingListener(listenerCaptor.capture());
+        String expectedPseudonym = "abc-123";
+        String expectedDecoratedPseudonym = "abc-123@wlan.mnc456.mcc123.3gppnetwork.org";
+        when(mWifiCarrierInfoManager.decoratePseudonymWith3GppRealm(any(), eq(expectedPseudonym)))
+                .thenReturn(expectedDecoratedPseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(false);
+        listenerCaptor.getValue().onUpdated(CARRIER_ID_1, expectedPseudonym);
+        mLooper.dispatchAll();
+
+        verify(mWifiNative, never()).setEapAnonymousIdentity(
+                anyString(), anyString(), anyBoolean());
 
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT,
                 new DisconnectEventInfo(mConnectedNetwork.SSID, TEST_BSSID_STR, 0, false));
@@ -1605,6 +1630,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
         when(mWifiNative.getEapAnonymousIdentity(anyString()))
                 .thenReturn(pseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
 
         WifiSsid wifiSsid = WifiSsid.fromBytes(
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
@@ -1613,12 +1639,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        if (SdkLevel.isAtLeastT()) {
-            // No decorated pseudonum, only update the cached data.
-            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
-        }
+        // No decorated pseudonum, only update the cached data.
+        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1667,6 +1689,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
         when(mWifiNative.getEapAnonymousIdentity(anyString()))
                 .thenReturn(pseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
 
         WifiSsid wifiSsid = WifiSsid.fromBytes(
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
@@ -1675,12 +1698,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        if (SdkLevel.isAtLeastT()) {
-            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym + "@" + realm),
-                    eq(true));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
-        }
+        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym + "@" + realm),
+                eq(true));
         assertEquals(pseudonym + "@" + realm,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1726,6 +1745,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
         when(mWifiNative.getEapAnonymousIdentity(anyString()))
                 .thenReturn(pseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
 
         WifiSsid wifiSsid = WifiSsid.fromBytes(
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
@@ -1734,12 +1754,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        if (SdkLevel.isAtLeastT()) {
-            // No decorated pseudonum, only update the cached data.
-            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
-        }
+        // No decorated pseudonum, only update the cached data.
+        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
@@ -1785,6 +1801,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
         when(mWifiNative.getEapAnonymousIdentity(anyString()))
                 .thenReturn(pseudonymFromSupplicant);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
 
         WifiSsid wifiSsid = WifiSsid.fromBytes(
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
@@ -1793,13 +1810,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        if (SdkLevel.isAtLeastT()) {
-            // No decorated pseudonum, only update the cached data.
-            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonymFromSupplicant),
-                    eq(false));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
-        }
+        // No decorated pseudonum, only update the cached data.
+        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonymFromSupplicant),
+                eq(false));
         verify(mWifiPseudonymManager).setInBandPseudonym(anyInt(), eq(pseudonymFromSupplicant));
         assertEquals(pseudonymFromSupplicant,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
@@ -1843,6 +1856,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
         when(mWifiNative.getEapAnonymousIdentity(anyString()))
                 .thenReturn(pseudonym);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)).thenReturn(true);
 
         WifiSsid wifiSsid = WifiSsid.fromBytes(
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
@@ -1851,12 +1865,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).getEapAnonymousIdentity(any());
-        if (SdkLevel.isAtLeastT()) {
-            // No decorated pseudonum, only update the cached data.
-            verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
-        } else {
-            verify(mWifiNative, never()).setEapAnonymousIdentity(any(), any(), anyBoolean());
-        }
+        // No decorated pseudonum, only update the cached data.
+        verify(mWifiNative).setEapAnonymousIdentity(any(), eq(pseudonym), eq(false));
         assertEquals(pseudonym,
                 mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
         // Verify that WifiConfigManager#addOrUpdateNetwork() was called if there we received a
