@@ -1337,6 +1337,27 @@ public class WifiConnectivityManager {
         mWifiCountryCode = wifiCountryCode;
         mWifiDialogManager = wifiDialogManager;
 
+        // Listen to WifiConfigManager network update events
+        mEventHandler.postToFront(() ->
+                mConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
+        // Listen to WifiNetworkSuggestionsManager suggestion update events
+        mWifiNetworkSuggestionsManager.addOnSuggestionUpdateListener(
+                new OnSuggestionUpdateListener());
+        mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallback());
+        mMultiInternetManager.setConnectionStatusListener(
+                new InternalMultiInternetConnectionStatusListener());
+        mAllSingleScanListener = new AllSingleScanListener();
+        mInternalAllSingleScanListener = new WifiScannerInternal.ScanListener(
+                mAllSingleScanListener, mEventHandler);
+        mPnoScanListener = new PnoScanListener();
+        mInternalPnoScanListener = new WifiScannerInternal.ScanListener(mPnoScanListener,
+                mEventHandler);
+    }
+
+    /**
+     * Register broadcast receiver
+     */
+    public void initialization() {
         // Listen for screen state change events.
         // TODO: We should probably add a shared broadcast receiver in the wifi stack which
         // can used by various modules to listen to common system events. Creating multiple
@@ -1357,22 +1378,6 @@ public class WifiConnectivityManager {
                     }
                 }, filter, null, mEventHandler);
         handleScreenStateChanged(mPowerManager.isInteractive());
-
-        // Listen to WifiConfigManager network update events
-        mEventHandler.postToFront(() ->
-                mConfigManager.addOnNetworkUpdateListener(new OnNetworkUpdateListener()));
-        // Listen to WifiNetworkSuggestionsManager suggestion update events
-        mWifiNetworkSuggestionsManager.addOnSuggestionUpdateListener(
-                new OnSuggestionUpdateListener());
-        mActiveModeWarden.registerModeChangeCallback(new ModeChangeCallback());
-        mMultiInternetManager.setConnectionStatusListener(
-                new InternalMultiInternetConnectionStatusListener());
-        mAllSingleScanListener = new AllSingleScanListener();
-        mInternalAllSingleScanListener = new WifiScannerInternal.ScanListener(
-                mAllSingleScanListener, mEventHandler);
-        mPnoScanListener = new PnoScanListener();
-        mInternalPnoScanListener = new WifiScannerInternal.ScanListener(mPnoScanListener,
-                mEventHandler);
     }
 
     @NonNull
