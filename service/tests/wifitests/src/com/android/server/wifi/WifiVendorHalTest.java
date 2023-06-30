@@ -134,6 +134,8 @@ public class WifiVendorHalTest extends WifiBaseTest {
     private SoftApManager mSoftApManager;
     @Mock
     private SsidTranslator mSsidTranslator;
+    @Mock
+    WifiChip.AfcChannelAllowance mAfcChannelAllowance;
 
     private ArgumentCaptor<List> mListCaptor = ArgumentCaptor.forClass(List.class);
 
@@ -1792,5 +1794,18 @@ public class WifiVendorHalTest extends WifiBaseTest {
         assertEquals(-1, mWifiVendorHal.getMaxMloStrLinkCount(TEST_IFACE_NAME));
         assertEquals(-1, mWifiVendorHal.getMaxMloAssociationLinkCount(TEST_IFACE_NAME));
         assertEquals(-1, mWifiVendorHal.getMaxSupportedConcurrentTdlsSessions(TEST_IFACE_NAME));
+    }
+
+    /**
+     * Verifies that setAfcChannelAllowance() calls underlying WifiChip.
+     */
+    @Test
+    public void testSetAfcChannelAllowance() {
+        assertTrue(mWifiVendorHal.startVendorHal());
+        assertNotNull(mWifiVendorHal.createApIface(null, null,
+                SoftApConfiguration.BAND_2GHZ, false, mSoftApManager));
+
+        mWifiVendorHal.setAfcChannelAllowance(mAfcChannelAllowance);
+        verify(mWifiChip).setAfcChannelAllowance(mAfcChannelAllowance);
     }
 }

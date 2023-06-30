@@ -586,6 +586,15 @@ public class WifiChipHidlImpl implements IWifiChip {
         return false;
     }
 
+    /**
+     * See comments for {@link IWifiChip#setAfcChannelAllowance(WifiChip.AfcChannelAllowance)}
+     */
+    @Override
+    public boolean setAfcChannelAllowance(WifiChip.AfcChannelAllowance afcChannelAllowance) {
+        Log.d(TAG, "setAfcChannelAllowance() is not implemented in hidl.");
+        return false;
+    }
+
     // Internal Implementations
 
     private boolean configureChipInternal(String methodStr, int modeId) {

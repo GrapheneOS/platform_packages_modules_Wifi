@@ -101,6 +101,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ClientMode.LinkProbeCallback;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.coex.CoexUtils;
+import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.ArrayUtils;
@@ -1804,6 +1805,136 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "set-afc-channel-allowance": {
+                    WifiChip.AfcChannelAllowance afcChannelAllowance =
+                            new WifiChip.AfcChannelAllowance();
+                    boolean expiryTimeArgumentIncluded = false;
+                    boolean frequencyOrChannelArgumentIncluded = false;
+                    afcChannelAllowance.availableAfcFrequencyInfos = new ArrayList<>();
+                    afcChannelAllowance.availableAfcChannelInfos = new ArrayList<>();
+
+                    String option;
+                    while ((option = getNextOption()) != null) {
+                        switch (option) {
+                            case "-e": {
+                                int secondsUntilExpiry = Integer.parseInt(getNextArgRequired());
+                                // AfcChannelAllowance requires this field to be a UNIX timestamp
+                                // in milliseconds.
+                                afcChannelAllowance.availabilityExpireTimeMs =
+                                        System.currentTimeMillis() + secondsUntilExpiry * 1000;
+                                expiryTimeArgumentIncluded = true;
+
+                                break;
+                            }
+                            case "-f": {
+                                frequencyOrChannelArgumentIncluded = true;
+                                String frequenciesInput = getNextArgRequired();
+
+                                if (frequenciesInput.equals(("none"))) {
+                                    break;
+                                }
+
+                                // parse frequency list, and add it to the AfcChannelAllowance
+                                String[] unparsedFrequencies = frequenciesInput.split(":");
+                                afcChannelAllowance.availableAfcFrequencyInfos = new ArrayList<>();
+
+                                for (int i = 0; i < unparsedFrequencies.length; ++i) {
+                                    String[] frequencyPieces = unparsedFrequencies[i].split(",");
+
+                                    if (frequencyPieces.length != 3) {
+                                        throw new IllegalArgumentException("Each frequency in the "
+                                                + "available frequency list should have 3 values, "
+                                                + "but found one with " + frequencyPieces.length);
+                                    }
+
+                                    WifiChip.AvailableAfcFrequencyInfo frequencyInfo = new
+                                            WifiChip.AvailableAfcFrequencyInfo();
+
+                                    frequencyInfo.startFrequencyMhz =
+                                            Integer.parseInt(frequencyPieces[0]);
+                                    frequencyInfo.endFrequencyMhz =
+                                            Integer.parseInt(frequencyPieces[1]);
+                                    frequencyInfo.maxPsdDbmPerMhz =
+                                            Integer.parseInt(frequencyPieces[2]);
+
+                                    afcChannelAllowance.availableAfcFrequencyInfos
+                                                    .add(frequencyInfo);
+                                }
+
+                                break;
+                            }
+                            case "-c": {
+                                frequencyOrChannelArgumentIncluded = true;
+                                String channelsInput = getNextArgRequired();
+
+                                if (channelsInput.equals("none")) {
+                                    break;
+                                }
+
+                                // parse channel list, and add it to the AfcChannelAllowance
+                                String[] unparsedChannels = channelsInput.split(":");
+                                afcChannelAllowance.availableAfcChannelInfos = new ArrayList<>();
+
+                                for (int i = 0; i < unparsedChannels.length; ++i) {
+                                    String[] channelPieces = unparsedChannels[i].split(",");
+
+                                    if (channelPieces.length != 3) {
+                                        throw new IllegalArgumentException("Each channel in the "
+                                                + "available channel list should have 3 values, "
+                                                + "but found one with " + channelPieces.length);
+                                    }
+
+                                    WifiChip.AvailableAfcChannelInfo channelInfo = new
+                                            WifiChip.AvailableAfcChannelInfo();
+
+                                    channelInfo.globalOperatingClass =
+                                            Integer.parseInt(channelPieces[0]);
+                                    channelInfo.channelCfi = Integer.parseInt(channelPieces[1]);
+                                    channelInfo.maxEirpDbm = Integer.parseInt(channelPieces[2]);
+
+                                    afcChannelAllowance.availableAfcChannelInfos.add(channelInfo);
+                                }
+
+                                break;
+                            }
+                            default: {
+                                pw.println("Unrecognized command line argument.");
+                                return -1;
+                            }
+                        }
+                    }
+                    if (!expiryTimeArgumentIncluded) {
+                        pw.println("Please include the -e flag to set the seconds until the "
+                                + "availability expires.");
+                        return -1;
+                    }
+                    if (!frequencyOrChannelArgumentIncluded) {
+                        pw.println("Please include at least one of the -f or -c flags to set the "
+                                + "frequency or channel availability.");
+                        return -1;
+                    }
+
+                    ArrayBlockingQueue<String> queue = new ArrayBlockingQueue<>(1);
+                    mWifiThreadRunner.post(() -> {
+                        if (mWifiNative.setAfcChannelAllowance(afcChannelAllowance)) {
+                            queue.offer("Successfully set the allowed AFC channels and "
+                                    + "frequencies.");
+                        } else {
+                            queue.offer("Setting the allowed AFC channels and frequencies "
+                                    + "failed.");
+                        }
+                    });
+
+                    // block until msg is received, or timed out
+                    String msg = queue.poll(3000, TimeUnit.MILLISECONDS);
+                    if (msg == null) {
+                        pw.println("Setting the allowed AFC channels and frequencies timed out.");
+                    } else {
+                        pw.println(msg);
+                    }
+
+                    return 0;
+                }
                 case "set-mock-wifimodem-service":
                     String opt = null;
                     String serviceName = null;
@@ -2856,6 +2987,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Clears the SSID translation charsets set in set-ssid-charset.");
         pw.println("  get-last-caller-info api_type");
         pw.println("    Get the last caller information for a WifiManager.ApiType");
+        pw.println("  set-afc-channel-allowance -e <secs_until_expiry> [-f <low_freq>,<high_freq>,"
+                + "<psd>:...|none] [-c <operating_class>,<channel_cfi>,<max_eirp>:...|none]");
+        pw.println("    Sets the allowed AFC channels and frequencies.");
+        pw.println("    -e - Seconds until the availability expires.");
+        pw.println("    -f - Colon-separated list of available frequency info.");
+        pw.println("      Note: each frequency should contain 3 comma separated values, where "
+                + "the first is the low frequency (MHz), the second the high frequency (MHz), the "
+                + "third the max PSD (dBm per MHz). To set an empty frequency list, enter \"none\" "
+                + "in place of the list of allowed frequencies.");
+        pw.println("    -c - Colon-separated list of available channel info.");
+        pw.println("      Note: each channel should contain 3 comma separated values, where "
+                + "the first is the global operating class, the second the channel CFI, "
+                + "the third the max EIRP in dBm. To set an empty channel list, enter \"none\" in "
+                + "place of the list of allowed channels.");
+        pw.println("    Example: set-afc-channel-allowance -e 30 -c none -f "
+                + "5925,6020,23:6020,6050,1");
     }
 
     @Override

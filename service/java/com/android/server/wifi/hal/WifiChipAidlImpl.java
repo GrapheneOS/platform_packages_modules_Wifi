@@ -21,6 +21,9 @@ import static android.net.wifi.CoexUnsafeChannel.POWER_CAP_NONE;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.hardware.wifi.AfcChannelAllowance;
+import android.hardware.wifi.AvailableAfcChannelInfo;
+import android.hardware.wifi.AvailableAfcFrequencyInfo;
 import android.hardware.wifi.IWifiApIface;
 import android.hardware.wifi.IWifiChip.ChannelCategoryMask;
 import android.hardware.wifi.IWifiChip.CoexRestriction;
@@ -1616,6 +1619,79 @@ public class WifiChipAidlImpl implements IWifiChip {
         return frameworkCombos;
     }
 
+    /**
+     * Converts the framework version of an AvailableAfcFrequencyInfo object to its AIDL equivalent.
+     */
+    private static AvailableAfcFrequencyInfo frameworkToHalAvailableAfcFrequencyInfo(
+            WifiChip.AvailableAfcFrequencyInfo availableFrequencyInfo) {
+        if (availableFrequencyInfo == null) {
+            return null;
+        }
+
+        AvailableAfcFrequencyInfo halAvailableAfcFrequencyInfo = new AvailableAfcFrequencyInfo();
+        halAvailableAfcFrequencyInfo.startFrequencyMhz = availableFrequencyInfo.startFrequencyMhz;
+        halAvailableAfcFrequencyInfo.endFrequencyMhz = availableFrequencyInfo.endFrequencyMhz;
+        halAvailableAfcFrequencyInfo.maxPsd = availableFrequencyInfo.maxPsdDbmPerMhz;
+
+        return halAvailableAfcFrequencyInfo;
+    }
+
+    /**
+     * Converts the framework version of an AvailableAfcChannelInfo object to its AIDL equivalent.
+     */
+    private static AvailableAfcChannelInfo frameworkToHalAvailableAfcChannelInfo(
+            WifiChip.AvailableAfcChannelInfo availableChannelInfo) {
+        if (availableChannelInfo == null) {
+            return null;
+        }
+
+        AvailableAfcChannelInfo halAvailableAfcChannelInfo = new AvailableAfcChannelInfo();
+        halAvailableAfcChannelInfo.globalOperatingClass = availableChannelInfo.globalOperatingClass;
+        halAvailableAfcChannelInfo.channelCfi = availableChannelInfo.channelCfi;
+        halAvailableAfcChannelInfo.maxEirpDbm = availableChannelInfo.maxEirpDbm;
+
+        return halAvailableAfcChannelInfo;
+    }
+
+    private static AfcChannelAllowance frameworkToHalAfcChannelAllowance(
+            WifiChip.AfcChannelAllowance afcChannelAllowance) {
+        AfcChannelAllowance halAfcChannelAllowance = new AfcChannelAllowance();
+
+        // convert allowed frequencies and channels to their HAL version
+        if (afcChannelAllowance.availableAfcFrequencyInfos == null) {
+            // this should not be left uninitialized, or it may result in an exception
+            halAfcChannelAllowance.availableAfcFrequencyInfos = new AvailableAfcFrequencyInfo[0];
+        } else {
+            halAfcChannelAllowance.availableAfcFrequencyInfos = new AvailableAfcFrequencyInfo[
+                    afcChannelAllowance.availableAfcFrequencyInfos.size()];
+
+            for (int i = 0; i < afcChannelAllowance.availableAfcFrequencyInfos.size(); ++i) {
+                halAfcChannelAllowance.availableAfcFrequencyInfos[i] =
+                        frameworkToHalAvailableAfcFrequencyInfo(
+                                afcChannelAllowance.availableAfcFrequencyInfos.get(i));
+            }
+        }
+
+        if (afcChannelAllowance.availableAfcChannelInfos == null) {
+            // this should not be left uninitialized, or it may result in an exception
+            halAfcChannelAllowance.availableAfcChannelInfos = new AvailableAfcChannelInfo[0];
+        } else {
+            halAfcChannelAllowance.availableAfcChannelInfos = new AvailableAfcChannelInfo[
+                    afcChannelAllowance.availableAfcChannelInfos.size()];
+
+            for (int i = 0; i < afcChannelAllowance.availableAfcChannelInfos.size(); ++i) {
+                halAfcChannelAllowance.availableAfcChannelInfos[i] =
+                        frameworkToHalAvailableAfcChannelInfo(
+                                afcChannelAllowance.availableAfcChannelInfos.get(i));
+            }
+        }
+
+        halAfcChannelAllowance.availabilityExpireTimeMs =
+                afcChannelAllowance.availabilityExpireTimeMs;
+
+        return halAfcChannelAllowance;
+    }
+
     private static WifiChip.WifiChipCapabilities halToFrameworkWifiChipCapabilities(
             WifiChipCapabilities halCapabilities) {
         return new WifiChip.WifiChipCapabilities(halCapabilities.maxMloAssociationLinkCount,
@@ -1682,6 +1758,26 @@ public class WifiChipAidlImpl implements IWifiChip {
             }
             return errorCode;
         }
+    }
+
+    /**
+     * See comments for {@link IWifiChip#setAfcChannelAllowance(WifiChip.AfcChannelAllowance)}
+     */
+    @Override
+    public boolean setAfcChannelAllowance(WifiChip.AfcChannelAllowance afcChannelAllowance) {
+        final String methodStr = "setAfcChannelAllowance";
+
+        try {
+            AfcChannelAllowance halAfcChannelAllowance =
+                    frameworkToHalAfcChannelAllowance(afcChannelAllowance);
+            mWifiChip.setAfcChannelAllowance(halAfcChannelAllowance);
+            return true;
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+        } catch (ServiceSpecificException e) {
+            handleServiceSpecificException(e, methodStr);
+        }
+        return false;
     }
 
     private @android.hardware.wifi.IWifiChip.ChipMloMode int frameworkToAidlMloMode(

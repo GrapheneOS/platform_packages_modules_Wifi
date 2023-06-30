@@ -455,4 +455,13 @@ public interface IWifiChip {
      * @return true if successful, false otherwise.
      */
     boolean enableStaChannelForPeerNetwork(boolean enableIndoorChannel, boolean enableDfsChannel);
+
+    /**
+     * Sends the AFC allowed channels and frequencies to the driver.
+     *
+     * @param afcChannelAllowance the allowed frequencies and channels received from
+     * querying the AFC server.
+     * @return whether the channel allowance was set successfully.
+     */
+    boolean setAfcChannelAllowance(WifiChip.AfcChannelAllowance afcChannelAllowance);
 }
