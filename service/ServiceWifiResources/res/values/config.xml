@@ -1200,4 +1200,7 @@
          regulatory approval (for example, FCC pre-approval is required according to "594280 D01
          Software Configuration Control v02r01").-->
     <bool translatable="false" name ="config_wifiUpdateCountryCodeFromScanResultGeneric">false</bool>
+    <!-- Boolean indication whether enable VDBG for more detailed log when Wi-Fi aware verbose
+    logging is enabled -->
+    <bool translatable="false" name ="config_aware_vdbg_enable_on_verbose_logging">false</bool>
 </resources>

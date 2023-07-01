@@ -113,7 +113,7 @@ import java.util.function.Consumer;
  */
 public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShellCommand {
     private static final String TAG = "WifiAwareStateManager";
-    private static final boolean VDBG = false; // STOPSHIP if true - for detailed state machine
+    private boolean mVdbg = false; // STOPSHIP if true - for detailed state machine
     private boolean mVerboseLoggingEnabled = false;
 
     @VisibleForTesting
@@ -406,10 +406,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     /**
      * Enable/Disable verbose logging.
      */
-    public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
+    public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseLogging,
+            boolean vDbg) {
         mVerboseLoggingEnabled = verboseEnabled;
-        mDataPathMgr.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
-        mSm.setDbg(halVerboseEnabled);
+        mDataPathMgr.enableVerboseLogging(verboseEnabled, vDbg);
+        mSm.setDbg(halVerboseLogging);
+        mVdbg = vDbg;
     }
 
     /**
@@ -633,7 +635,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mInterfaceConflictMgr = interfaceConflictMgr;
         mSm = new WifiAwareStateMachine(TAG, looper);
-        mSm.setDbg(VDBG);
+        mSm.setDbg(mVdbg);
         mSm.start();
         mHandler = new Handler(looper);
 
@@ -834,7 +836,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public void requestMacAddresses(int uid, int[] peerIds,
             IWifiAwareMacAddressProvider callback) {
         mSm.getHandler().post(() -> {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "requestMacAddresses: uid=" + uid + ", peerIds="
                         + Arrays.toString(peerIds));
             }
@@ -2162,7 +2164,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         private class DefaultState extends State {
             @Override
             public boolean processMessage(Message msg) {
-                if (VDBG) {
+                if (mVdbg) {
                     Log.v(TAG, getName() + msg.toString());
                 }
 
@@ -2213,7 +2215,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         private class WaitState extends State {
             @Override
             public boolean processMessage(Message msg) {
-                if (VDBG) {
+                if (mVdbg) {
                     Log.v(TAG, getName() + msg.toString());
                 }
 
@@ -2259,7 +2261,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
             @Override
             public boolean processMessage(Message msg) {
-                if (VDBG) {
+                if (mVdbg) {
                     Log.v(TAG, getName() + msg.toString());
                 }
 
@@ -2303,7 +2305,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         private void processNotification(Message msg) {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "processNotification: msg=" + msg);
             }
 
@@ -2385,7 +2387,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 case NOTIFICATION_TYPE_ON_MESSAGE_SEND_SUCCESS: {
                     short transactionId = (short) msg.arg2;
                     Message queuedSendCommand = mFwQueuedSendMessages.get(transactionId);
-                    if (VDBG) {
+                    if (mVdbg) {
                         Log.v(TAG, "NOTIFICATION_TYPE_ON_MESSAGE_SEND_SUCCESS: queuedSendCommand="
                                 + queuedSendCommand);
                     }
@@ -2408,7 +2410,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     short transactionId = (short) msg.arg2;
                     int reason = (Integer) msg.obj;
                     Message sentMessage = mFwQueuedSendMessages.get(transactionId);
-                    if (VDBG) {
+                    if (mVdbg) {
                         Log.v(TAG, "NOTIFICATION_TYPE_ON_MESSAGE_SEND_FAIL: sentMessage="
                                 + sentMessage);
                     }
@@ -2564,7 +2566,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
          * disconnected/terminate commands failure is not possible.
          */
         private boolean processCommand(Message msg) {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "processCommand: msg=" + msg);
             }
 
@@ -2715,7 +2717,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case COMMAND_TYPE_ENQUEUE_SEND_MESSAGE: {
-                    if (VDBG) {
+                    if (mVdbg) {
                         Log.v(TAG, "processCommand: ENQUEUE_SEND_MESSAGE - messageId="
                                 + msg.getData().getInt(MESSAGE_BUNDLE_KEY_MESSAGE_ID)
                                 + ", mSendArrivalSequenceCounter=" + mSendArrivalSequenceCounter);
@@ -2803,13 +2805,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
                 case COMMAND_TYPE_TRANSMIT_NEXT_MESSAGE: {
                     if (mSendQueueBlocked || mHostQueuedSendMessages.size() == 0) {
-                        if (VDBG) {
+                        if (mVdbg) {
                             Log.v(TAG, "processCommand: SEND_TOP_OF_QUEUE_MESSAGE - blocked or "
                                     + "empty host queue");
                         }
                         waitForResponse = false;
                     } else {
-                        if (VDBG) {
+                        if (mVdbg) {
                             Log.v(TAG, "processCommand: SEND_TOP_OF_QUEUE_MESSAGE - "
                                     + "sendArrivalSequenceCounter="
                                     + mHostQueuedSendMessages.keyAt(0));
@@ -2844,7 +2846,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         waitForResponse = mWifiAwareNativeApi.getCapabilities(
                                 mCurrentTransactionId);
                     } else {
-                        if (VDBG) {
+                        if (mVdbg) {
                             Log.v(TAG, "COMMAND_TYPE_GET_CAPABILITIES: already have capabilities - "
                                     + "skipping");
                         }
@@ -2968,7 +2970,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         private void processResponse(Message msg) {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "processResponse: msg=" + msg);
             }
 
@@ -3013,7 +3015,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         transmitNextMessage();
                     }
 
-                    if (VDBG) {
+                    if (mVdbg) {
                         Log.v(TAG, "processResponse: ON_MESSAGE_SEND_QUEUED_SUCCESS - arrivalSeq="
                                 + sentMessage.getData().getInt(
                                 MESSAGE_BUNDLE_KEY_MESSAGE_ARRIVAL_SEQ));
@@ -3021,7 +3023,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_MESSAGE_SEND_QUEUED_FAIL: {
-                    if (VDBG) {
+                    if (mVdbg) {
                         Log.v(TAG, "processResponse: ON_MESSAGE_SEND_QUEUED_FAIL - blocking!");
                     }
                     int reason = (Integer) msg.obj;
@@ -3033,7 +3035,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         mHostQueuedSendMessages.put(arrivalSeq, sentMessage);
                         mSendQueueBlocked = true;
 
-                        if (VDBG) {
+                        if (mVdbg) {
                             Log.v(TAG, "processResponse: ON_MESSAGE_SEND_QUEUED_FAIL - arrivalSeq="
                                     + arrivalSeq + " -- blocking");
                         }
@@ -3332,7 +3334,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         private void updateSendMessageTimeout() {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "updateSendMessageTimeout: mHostQueuedSendMessages.size()="
                         + mHostQueuedSendMessages.size() + ", mFwQueuedSendMessages.size()="
                         + mFwQueuedSendMessages.size() + ", mSendQueueBlocked="
@@ -3438,7 +3440,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void sendAwareStateChangedBroadcast(boolean enabled) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "sendAwareStateChangedBroadcast: enabled=" + enabled);
         }
         final Intent intent = new Intent(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED);
@@ -3450,7 +3452,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (!SdkLevel.isAtLeastT()) {
             return;
         }
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "sendAwareResourcesChangedBroadcast");
         }
         final Intent intent = new Intent(WifiAwareManager.ACTION_WIFI_AWARE_RESOURCE_CHANGED);
@@ -3490,7 +3492,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.e(TAG, "connectLocal: entry already exists for clientId=" + clientId);
         }
 
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "mCurrentAwareConfiguration=" + mCurrentAwareConfiguration
                     + ", mCurrentIdentityNotification=" + mCurrentIdentityNotification);
         }
@@ -3507,7 +3509,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 Log.w(TAG, "connectLocal onConnectFail(): RemoteException (FYI): " + e);
             }
             return false;
-        } else if (VDBG) {
+        } else if (mVdbg) {
             Log.v(TAG, "connectLocal: merged=" + merged);
         }
 
@@ -3527,7 +3529,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil, attributionSource,
                     mLocalLog, awareOffload, callerType);
-            client.enableVerboseLogging(mVerboseLoggingEnabled);
+            client.enableVerboseLogging(mVerboseLoggingEnabled, mVdbg);
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
@@ -3646,7 +3648,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean reconfigureLocal(short transactionId) {
-        if (VDBG) Log.v(TAG, "reconfigureLocal(): transactionId=" + transactionId);
+        if (mVdbg) Log.v(TAG, "reconfigureLocal(): transactionId=" + transactionId);
 
         if (mClients.size() == 0) {
             // no clients - Aware is not enabled, nothing to reconfigure
@@ -3728,7 +3730,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean updatePublishLocal(short transactionId, int clientId, int sessionId,
             PublishConfig publishConfig) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "updatePublishLocal(): transactionId=" + transactionId + ", clientId="
                     + clientId + ", sessionId=" + sessionId + ", publishConfig=" + publishConfig);
         }
@@ -3800,7 +3802,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean updateSubscribeLocal(short transactionId, int clientId, int sessionId,
             SubscribeConfig subscribeConfig) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG,
                     "updateSubscribeLocal(): transactionId=" + transactionId + ", clientId="
                             + clientId + ", sessionId=" + sessionId + ", subscribeConfig="
@@ -3836,7 +3838,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean initiateNanPairingRequestLocal(short transactionId, int clientId, int sessionId,
             int peerId, String password, int requestType, int akm,
             byte[] pmk, int cipherSuite) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "initiateNanPairingRequestLocal: transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
         }
@@ -3860,7 +3862,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean respondToPairingRequestLocal(short transactionId, int clientId, int sessionId,
             int peerId, int pairingId, boolean accept, int requestType, byte[] pmk,
             String password, int akm, int cipherSuite) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG,
                     "respondToPairingRequestLocal: transactionId=" + transactionId + ", clientId="
                             + clientId + ", sessionId=" + sessionId + ", peerId="
@@ -3887,7 +3889,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean initiateBootstrappingRequestLocal(short transactionId, int clientId,
             int sessionId, int peerId, int method, byte[] cookie) {
         String methodString = "initiateBootstrappingRequestLocal";
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, methodString + ": transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
         }
@@ -3902,7 +3904,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean respondToBootstrappingRequestLocal(short transactionId, int clientId,
             int sessionId, int peerId, int bootstrappingId, boolean accept, int method) {
         String methodString = "respondToBootstrappingRequestLocal";
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, methodString + ": transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
         }
@@ -4088,7 +4090,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     callingPackage, callingFeatureId, callback, configRequest, notifyIdentityChange,
                     SystemClock.elapsedRealtime(), mWifiPermissionsUtil,
                     callbackAndAttributionSource.second, mLocalLog, awareOffload, callerType);
-            client.enableVerboseLogging(mVerboseLoggingEnabled);
+            client.enableVerboseLogging(mVerboseLoggingEnabled, mVdbg);
             mClients.put(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
                     callingFeatureId);
@@ -4133,7 +4135,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onConfigFailedLocal(Message failedCommand, int reason) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG,
                     "onConfigFailedLocal: failedCommand=" + failedCommand + ", reason=" + reason);
         }
@@ -4189,7 +4191,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void onSessionConfigSuccessLocal(Message completedCommand, byte pubSubId,
             boolean isPublish) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onSessionConfigSuccessLocal: completedCommand=" + completedCommand
                     + ", pubSubId=" + pubSubId + ", isPublish=" + isPublish);
         }
@@ -4311,7 +4313,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onSessionConfigFailLocal(Message failedCommand, boolean isPublish, int reason) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onSessionConfigFailLocal: failedCommand=" + failedCommand + ", isPublish="
                     + isPublish + ", reason=" + reason);
         }
@@ -4401,7 +4403,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void onMessageSendFailLocal(Message failedCommand, int reason) {
         String methodString = "onMessageSendFailLocal";
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, methodString + ": failedCommand=" + failedCommand + ", reason=" + reason);
         }
 
@@ -4423,7 +4425,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onCapabilitiesUpdatedResponseLocal(Capabilities capabilities) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onCapabilitiesUpdatedResponseLocal: capabilites=" + capabilities);
         }
 
@@ -4433,13 +4435,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void onCreateDataPathInterfaceResponseLocal(Message command, boolean success,
             int reasonOnFailure) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onCreateDataPathInterfaceResponseLocal: command=" + command + ", success="
                     + success + ", reasonOnFailure=" + reasonOnFailure);
         }
 
         if (success) {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "onCreateDataPathInterfaceResponseLocal: successfully created interface "
                         + command.obj);
             }
@@ -4454,13 +4456,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void onDeleteDataPathInterfaceResponseLocal(Message command, boolean success,
             int reasonOnFailure) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onDeleteDataPathInterfaceResponseLocal: command=" + command + ", success="
                     + success + ", reasonOnFailure=" + reasonOnFailure);
         }
 
         if (success) {
-            if (VDBG) {
+            if (mVdbg) {
                 Log.v(TAG, "onDeleteDataPathInterfaceResponseLocal: successfully deleted interface "
                         + command.obj);
             }
@@ -4666,7 +4668,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onInitiateDataPathResponseFailLocal(Message command, int reason) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onInitiateDataPathResponseFailLocal: command=" + command + ", reason="
                     + reason);
         }
@@ -4676,7 +4678,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean onRespondToDataPathSetupRequestResponseLocal(Message command, boolean success,
             int reasonOnFailure) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onRespondToDataPathSetupRequestResponseLocal: command=" + command
                     + ", success=" + success + ", reasonOnFailure=" + reasonOnFailure);
         }
@@ -4685,7 +4687,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onEndPathEndResponseLocal(Message command, boolean success, int reasonOnFailure) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onEndPathEndResponseLocal: command=" + command
                     + ", success=" + success + ", reasonOnFailure=" + reasonOnFailure);
         }
@@ -4758,7 +4760,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mClusterId = clusterId;
         mClusterEventType = clusterEventType;
 
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG, "onClusterChange: clusterEventType=" + clusterEventType + ", clusterId="
                     + String.valueOf(HexEncoding.encode(clusterId)));
         }
@@ -4811,7 +4813,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onMatchExpiredLocal(int pubSubId, int requestorInstanceId) {
-        if (VDBG) {
+        if (mVdbg) {
             Log.v(TAG,
                     "onMatchExpiredNotification: pubSubId=" + pubSubId
                             + ", requestorInstanceId=" + requestorInstanceId);

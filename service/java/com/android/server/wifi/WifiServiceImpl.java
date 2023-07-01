@@ -28,6 +28,7 @@ import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.ERROR_NO_CHA
 import static android.net.wifi.WifiManager.NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE;
 import static android.net.wifi.WifiManager.PnoScanResultsCallback.REGISTER_PNO_CALLBACK_PNO_NOT_SUPPORTED;
 import static android.net.wifi.WifiManager.SAP_START_FAILURE_NO_CHANNEL;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLED;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLED;
@@ -56,6 +57,7 @@ import static com.android.server.wifi.ScanRequestProxy.createBroadcastOptionsFor
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_AWARE_VERBOSE_LOGGING_ENABLED;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import android.Manifest;
@@ -5420,8 +5422,11 @@ public class WifiServiceImpl extends BaseWifiService {
         mLog.info("enableVerboseLogging uid=% verbose=%")
                 .c(Binder.getCallingUid())
                 .c(verbose).flush();
-        boolean enabled = verbose > 0;
+        boolean enabled = verbose == WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED
+                || verbose == WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY;
         mWifiInjector.getSettingsConfigStore().put(WIFI_VERBOSE_LOGGING_ENABLED, enabled);
+        mWifiInjector.getSettingsConfigStore().put(WIFI_AWARE_VERBOSE_LOGGING_ENABLED, enabled
+                || verbose == VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY);
         onVerboseLoggingStatusChanged(enabled);
         enableVerboseLoggingInternal(verbose);
     }
@@ -5449,7 +5454,7 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     private void enableVerboseLoggingInternal(int verboseLoggingLevel) {
-        if (verboseLoggingLevel > WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED
+        if (verboseLoggingLevel == WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY
                 && mBuildProperties.isUserBuild()) {
             throw new SecurityException(TAG + ": Not allowed for the user build.");
         }
@@ -5467,7 +5472,9 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         updateVerboseLoggingEnabled();
         final boolean halVerboseEnabled =
-                WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED != mVerboseLoggingLevel;
+                WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED == mVerboseLoggingLevel
+                        || WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY
+                        == mVerboseLoggingLevel;
         mActiveModeWarden.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiLockManager.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiMulticastLockManager.enableVerboseLogging(mVerboseLoggingEnabled);

@@ -33,7 +33,7 @@ import java.io.PrintWriter;
  */
 public class WifiAwareNativeManager {
     private static final String TAG = "WifiAwareNativeManager";
-    private boolean mVerboseHalLoggingEnabled = false;
+    private boolean mVerboseLoggingEnabled = false;
 
     // to be used for synchronizing access to any of the WifiAwareNative objects
     private final Object mLock = new Object();
@@ -58,9 +58,9 @@ public class WifiAwareNativeManager {
      * Enable/Disable verbose logging.
      */
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
-        mVerboseHalLoggingEnabled = halVerboseEnabled;
+        mVerboseLoggingEnabled = verboseEnabled;
         if (mWifiNanIface != null) {
-            mWifiNanIface.enableVerboseLogging(mVerboseHalLoggingEnabled);
+            mWifiNanIface.enableVerboseLogging(halVerboseEnabled);
         }
     }
 
@@ -76,7 +76,7 @@ public class WifiAwareNativeManager {
                 new HalDeviceManager.ManagerStatusListener() {
                     @Override
                     public void onStatusChanged() {
-                        if (mVerboseHalLoggingEnabled) Log.v(TAG, "onStatusChanged");
+                        if (mVerboseLoggingEnabled) Log.v(TAG, "onStatusChanged");
                         // only care about isStarted (Wi-Fi started) not isReady - since if not
                         // ready then Wi-Fi will also be down.
                         if (mHalDeviceManager.isStarted()) {
@@ -107,7 +107,7 @@ public class WifiAwareNativeManager {
      */
     public void tryToGetAware(@NonNull WorkSource requestorWs) {
         synchronized (mLock) {
-            if (mVerboseHalLoggingEnabled) {
+            if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "tryToGetAware: mWifiNanIface=" + mWifiNanIface
                         + ", mReferenceCount=" + mReferenceCount + ", requestorWs=" + requestorWs);
             }
@@ -129,7 +129,7 @@ public class WifiAwareNativeManager {
                 Log.e(TAG, "Was not able to obtain a WifiNanIface (even though enabled!?)");
                 awareIsDown(true);
             } else {
-                if (mVerboseHalLoggingEnabled) Log.v(TAG, "Obtained a WifiNanIface");
+                if (mVerboseLoggingEnabled) Log.v(TAG, "Obtained a WifiNanIface");
                 if (!iface.registerFrameworkCallback(mWifiAwareNativeCallback)) {
                     Log.e(TAG, "Unable to register callback with WifiNanIface");
                     mHalDeviceManager.removeIface(iface);
@@ -138,7 +138,7 @@ public class WifiAwareNativeManager {
                 }
                 mWifiNanIface = iface;
                 mReferenceCount = 1;
-                mWifiNanIface.enableVerboseLogging(mVerboseHalLoggingEnabled);
+                mWifiNanIface.enableVerboseLogging(mVerboseLoggingEnabled);
             }
         }
     }
@@ -147,7 +147,7 @@ public class WifiAwareNativeManager {
      * Release the HAL NAN interface.
      */
     public void releaseAware() {
-        if (mVerboseHalLoggingEnabled) {
+        if (mVerboseLoggingEnabled) {
             Log.d(TAG, "releaseAware: mWifiNanIface=" + mWifiNanIface + ", mReferenceCount="
                     + mReferenceCount);
         }
@@ -178,7 +178,7 @@ public class WifiAwareNativeManager {
      */
     public boolean replaceRequestorWs(@NonNull WorkSource requestorWs) {
         synchronized (mLock) {
-            if (mVerboseHalLoggingEnabled) {
+            if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "replaceRequestorWs: mWifiNanIface=" + mWifiNanIface
                         + ", mReferenceCount=" + mReferenceCount + ", requestorWs=" + requestorWs);
             }
@@ -198,7 +198,7 @@ public class WifiAwareNativeManager {
 
     private void awareIsDown(boolean markAsAvailable) {
         synchronized (mLock) {
-            if (mVerboseHalLoggingEnabled) {
+            if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "awareIsDown: mWifiNanIface=" + mWifiNanIface
                         + ", mReferenceCount =" + mReferenceCount);
             }
@@ -214,7 +214,7 @@ public class WifiAwareNativeManager {
 
         @Override
         public void onDestroyed(@NonNull String ifaceName) {
-            if (mVerboseHalLoggingEnabled) {
+            if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "Interface was destroyed: mWifiNanIface=" + mWifiNanIface
                         + ", active=" + active);
             }

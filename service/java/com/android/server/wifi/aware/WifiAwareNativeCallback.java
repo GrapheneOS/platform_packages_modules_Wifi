@@ -43,7 +43,7 @@ import java.util.List;
 public class WifiAwareNativeCallback implements WifiNanIface.Callback,
         WifiAwareShellCommand.DelegatedShellCommand {
     private static final String TAG = "WifiAwareNativeCallback";
-    private boolean mVerboseHalLoggingEnabled = false;
+    private boolean mVerboseLoggingEnabled = false;
 
     private final WifiAwareStateManager mWifiAwareStateManager;
 
@@ -55,8 +55,8 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
      * Enable/Disable verbose logging.
      *
      */
-    public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
-        mVerboseHalLoggingEnabled = halVerboseEnabled;
+    public void enableVerboseLogging(boolean verboseEnabled) {
+        mVerboseLoggingEnabled = verboseEnabled;
     }
 
     /*
