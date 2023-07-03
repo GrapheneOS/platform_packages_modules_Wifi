@@ -7210,6 +7210,59 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
 
+    private void runProvisioningFailureCalledAfterReachabilityFailureTest(int lossReason)
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        connect();
+        expectRegisterNetworkAgent((agentConfig) -> { }, (cap) -> { });
+        reset(mWifiNetworkAgent);
+
+        // Save current IpClientCallbacks instance and verify an immediate IP provisioning
+        // failure event from this instance after IP reachability failure still triggers a
+        // WiFi disconnection due to the race, for example:
+        // - IpClient sends onReachabilityFailure callback, wifi module receives this callback
+        //   and post CMD_IP_REACHABILITY_FAILURE, return;
+        // - IpClient sends onProvisioningFailure callback, wifi module receives this callback
+        //   and post CMD_IP_CONFIGURATION_LOST, return;
+        // - state machine processes CMD_IP_REACHABILITY_FAILURE first and eventually transition
+        //   to WaitBeforeL3ProvisioningState and recreate an IpClient instance there.
+        // - state machine receives CMD_IP_CONFIGURATION_LOST from the old IpClientCallbacks
+        //   instanceat at WaitBeforeL3ProvisioningState, but defer the command to its parent state
+        //   until transition to L3ProvisioningState.
+        // - CMD_IP_CONFIGURATION_LOST is processed at L2ConnectedState eventually, and trigger
+        //   WiFi disconnection there.
+        final IpClientCallbacks callback = mIpClientCallback;
+        final ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", lossReason);
+        callback.onReachabilityFailure(lossInfo);
+        callback.onProvisioningFailure(new LinkProperties());
+        mLooper.dispatchAll();
+        verify(mWifiNetworkAgent).unregisterAfterReplacement(anyInt());
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
+    public void testProvisioningFailureCalledAfterReachabilityFailure_postRoam()
+            throws Exception {
+        runProvisioningFailureCalledAfterReachabilityFailureTest(ReachabilityLossReason.ROAM);
+    }
+
+    @Test
+    public void testProvisioningFailureCalledAfterReachabilityFailure_rssiConfirm()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+
+        runProvisioningFailureCalledAfterReachabilityFailureTest(ReachabilityLossReason.CONFIRM);
+    }
+
+    @Test
+    public void testProvisioningFailureCalledAfterReachabilityFailure_organicKernel()
+            throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+
+        runProvisioningFailureCalledAfterReachabilityFailureTest(ReachabilityLossReason.ORGANIC);
+    }
+
     @Test
     public void testIpReachabilityLostAndRoamEventsRace() throws Exception {
         connect();
