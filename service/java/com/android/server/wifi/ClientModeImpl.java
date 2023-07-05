@@ -5540,7 +5540,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             // network. Consider that older releases might not be able to have
                             // the vendor partition updated, only update to native service on T
                             // or newer.
-                            if (SdkLevel.isAtLeastT()) {
+                            if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)) {
                                 mWifiNative.setEapAnonymousIdentity(mInterfaceName,
                                         anonymousIdentity, updateToNativeService);
                             }
@@ -5604,7 +5604,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         log("OOB pseudonym is not applied.");
                         break;
                     }
-                    if (SdkLevel.isAtLeastT()) {
+                    if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(1)) {
                         log("send OOB pseudonym to supplicant");
                         String pseudonym = (String) message.obj;
                         mWifiNative.setEapAnonymousIdentity(mInterfaceName,
