@@ -67,6 +67,7 @@ import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
 import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.FrameParser;
 import com.android.server.wifi.util.InformationElementUtil;
 import com.android.server.wifi.util.NativeUtil;
@@ -504,7 +505,10 @@ public class WifiNative {
         @Override
         public void onScanFailed() {
             Log.d(TAG, "Pno Scan failed event");
-            mWifiMetrics.incrementPnoScanFailedCount();
+            WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                    WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                    0, false, false, false, false, // default values
+                    WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__WIFICOND_SCAN_FAILURE);
         }
     }
 
@@ -1932,8 +1936,11 @@ public class WifiNative {
 
                     @Override
                     public void onPnoRequestFailed() {
-                        mWifiMetrics.incrementPnoScanStartAttemptCount();
-                        mWifiMetrics.incrementPnoScanFailedCount();
+                        WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                                WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                                0, false, false, false, false, // default values
+                                WifiStatsLog
+                                        .PNO_SCAN_STOPPED__FAILURE_CODE__WIFICOND_REQUEST_FAILURE);
                     }
                 });
     }

@@ -39,6 +39,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,13 +63,16 @@ import android.text.TextUtils;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.hal.WifiChip;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.AdditionalMatchers;
@@ -76,6 +80,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
@@ -275,6 +281,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock WifiChip.AfcChannelAllowance mAfcChannelAllowance;
 
+    private MockitoSession mSession;
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
             ArgumentCaptor.forClass(WifiNl80211Manager.ScanEventCallback.class);
 
@@ -330,12 +337,26 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mDeviceConfigFacade.isInterfaceFailureBugreportEnabled()).thenReturn(false);
 
+        // Mock static methods from WifiStatsLog.
+        mSession = ExtendedMockito.mockitoSession()
+                .strictness(Strictness.LENIENT)
+                .mockStatic(WifiStatsLog.class)
+                .startMocking();
+
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mStaIfaceHal, mHostapdHal, mWificondControl,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
                 mHandler, mRandom, mBuildProperties, mWifiInjector);
         mWifiNative.enableVerboseLogging(true, true);
         mWifiNative.initialize();
+    }
+
+    @After
+    public void tearDown() {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /** Mock translating an SSID */
@@ -748,7 +769,10 @@ public class WifiNativeTest extends WifiBaseTest {
                 any(), mScanCallbackCaptor.capture());
 
         mScanCallbackCaptor.getValue().onScanFailed();
-        verify(mWifiMetrics).incrementPnoScanFailedCount();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                0, false, false, false, false,
+                WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__WIFICOND_SCAN_FAILURE));
     }
 
     /**
@@ -836,7 +860,10 @@ public class WifiNativeTest extends WifiBaseTest {
                 any(), mScanCallbackCaptor.capture());
 
         mScanCallbackCaptor.getValue().onScanFailed();
-        verify(mWifiMetrics).incrementPnoScanFailedCount();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                0, false, false, false, false,
+                WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__WIFICOND_SCAN_FAILURE));
     }
 
     /**
@@ -962,8 +989,10 @@ public class WifiNativeTest extends WifiBaseTest {
         verify(mWificondControl).startPnoScan(eq(WIFI_IFACE_NAME),
                 eq(TEST_PNO_SETTINGS.toNativePnoSettings()), any(), captor.capture());
         captor.getValue().onPnoRequestFailed();
-        verify(mWifiMetrics).incrementPnoScanStartAttemptCount();
-        verify(mWifiMetrics).incrementPnoScanFailedCount();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                0, false, false, false, false,
+                WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__WIFICOND_REQUEST_FAILURE));
     }
 
     /**
