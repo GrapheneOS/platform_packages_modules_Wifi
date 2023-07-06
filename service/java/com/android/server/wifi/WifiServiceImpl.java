@@ -5324,17 +5324,22 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     @Override
-    public boolean acquireWifiLock(IBinder binder, int lockMode, String tag, WorkSource ws) {
-        mLog.info("acquireWifiLock uid=% lockMode=%")
+    public boolean acquireWifiLock(IBinder binder, int lockMode, String tag, WorkSource ws,
+            @NonNull String packageName, Bundle extras) {
+        mLog.info("acquireWifiLock uid=% lockMode=% packageName=%")
                 .c(Binder.getCallingUid())
-                .c(lockMode).flush();
+                .c(lockMode).c(getPackageName(extras)).flush();
+
+        if (packageName == null) {
+            throw new NullPointerException("Package name should not be null");
+        }
 
         // Check on permission to make this call
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.WAKE_LOCK, null);
 
         // If no UID is provided in worksource, use the calling UID
         WorkSource updatedWs = (ws == null || ws.isEmpty())
-                ? new WorkSource(Binder.getCallingUid()) : ws;
+                ? new WorkSource(Binder.getCallingUid(), packageName) : ws;
 
         if (!WifiLockManager.isValidLockMode(lockMode)) {
             throw new IllegalArgumentException("lockMode =" + lockMode);
@@ -5345,8 +5350,11 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     @Override
-    public void updateWifiLockWorkSource(IBinder binder, WorkSource ws) {
-        mLog.info("updateWifiLockWorkSource uid=%").c(Binder.getCallingUid()).flush();
+    public void updateWifiLockWorkSource(IBinder binder, WorkSource ws, String packageName,
+            Bundle extras) {
+        mLog.info("updateWifiLockWorkSource uid=% package name=%")
+                .c(Binder.getCallingUid())
+                .c(getPackageName(extras)).flush();
 
         // Check on permission to make this call
         mContext.enforceCallingOrSelfPermission(
@@ -5354,7 +5362,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // If no UID is provided in worksource, use the calling UID
         WorkSource updatedWs = (ws == null || ws.isEmpty())
-                ? new WorkSource(Binder.getCallingUid()) : ws;
+                ? new WorkSource(Binder.getCallingUid(), packageName) : ws;
 
         mWifiThreadRunner.run(() ->
                 mWifiLockManager.updateWifiLockWorkSource(binder, updatedWs));
