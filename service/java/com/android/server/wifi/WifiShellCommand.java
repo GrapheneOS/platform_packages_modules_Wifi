@@ -40,6 +40,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.display.DisplayManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.Network;
@@ -205,6 +207,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final WifiDiagnostics mWifiDiagnostics;
     private final DeviceConfigFacade mDeviceConfig;
     private final AfcClient mAfcClient;
+    private final AfcManager mAfcManager;
     private static final int[] OP_MODE_LIST = {
             WifiAvailableChannel.OP_MODE_STA,
             WifiAvailableChannel.OP_MODE_SAP,
@@ -454,6 +457,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mWifiDiagnostics = wifiInjector.getWifiDiagnostics();
         mDeviceConfig = wifiInjector.getDeviceConfigFacade();
         mAfcClient = wifiInjector.getAfcClient();
+        mAfcManager = wifiInjector.getAfcManager();
     }
 
     private String getOpModeName(@WifiAvailableChannel.OpMode int mode) {
@@ -1809,6 +1813,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "trigger-afc-location-update":
+                    Double longitude = Double.parseDouble(getNextArgRequired());
+                    Double latitude = Double.parseDouble(getNextArgRequired());
+                    Double height = Double.parseDouble(getNextArgRequired());
+                    Location location = new Location(LocationManager.FUSED_PROVIDER);
+                    location.setLongitude(longitude);
+                    location.setLatitude(latitude);
+                    location.setAltitude(height);
+                    mWifiThreadRunner.post(() -> mAfcManager.onLocationChange(location));
+                    pw.println("The updated location with longitude of " + longitude + "degrees, "
+                            + "latitude of " + latitude + " degrees, and height of " + height
+                            + " meters was passed into the Afc Manager onLocationChange method.");
+                    return 0;
                 case "set-afc-channel-allowance": {
                     WifiChip.AfcChannelAllowance afcChannelAllowance =
                             new WifiChip.AfcChannelAllowance();
@@ -3041,6 +3058,12 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Clears the SSID translation charsets set in set-ssid-charset.");
         pw.println("  get-last-caller-info api_type");
         pw.println("    Get the last caller information for a WifiManager.ApiType");
+        pw.println("  trigger-afc-location-update <longitude> <latitude> <height>");
+        pw.println("    Passes in longitude, latitude, and height values as arguments of type "
+                + "double for a fake location update to trigger framework logic to query the AFC "
+                + "server. The longitude and latitude pair is in decimal degrees and the height"
+                + " is the altitude in meters.");
+        pw.println("    Example: trigger-afc-location-update 37.425056 -122.984157 3.043");
         pw.println("  set-afc-channel-allowance -e <secs_until_expiry> [-f <low_freq>,<high_freq>,"
                 + "<psd>:...|none] [-c <operating_class>,<channel_cfi>,<max_eirp>:...|none]");
         pw.println("    Sets the allowed AFC channels and frequencies.");
