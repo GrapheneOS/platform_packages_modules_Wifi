@@ -230,9 +230,9 @@ public class DeviceConfigFacadeTest extends WifiBaseTest {
         assertEquals(true, mDeviceConfigFacade.isOobPseudonymEnabled());
         mLooper.dispatchAll();
         verify(mOobPseudonymFeatureFlagChangedListener, never()).accept(anyBoolean());
-        assertEquals(false, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
+        assertEquals(true, mDeviceConfigFacade.isApplicationQosPolicyApiEnabled());
         assertEquals(true, mDeviceConfigFacade.isAdjustPollRssiIntervalEnabled());
-        assertEquals(false, mDeviceConfigFacade.includePasspointSsidsInPnoScans());
+        assertEquals(true, mDeviceConfigFacade.includePasspointSsidsInPnoScans());
         assertEquals(true, mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled());
     }
 
