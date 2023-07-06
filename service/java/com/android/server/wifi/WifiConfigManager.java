@@ -1739,7 +1739,8 @@ public class WifiConfigManager {
             numExcessNetworks = networkList.size() - maxNumTotalConfigs;
         }
 
-        if (callerIsApp && maxNumAppAddedConfigs >= 0) {
+        if (callerIsApp && maxNumAppAddedConfigs >= 0
+                && networkList.size() > maxNumAppAddedConfigs) {
             List<WifiConfiguration> appAddedNetworks = networkList
                     .stream()
                     .filter(n -> !isDeviceOwnerProfileOwnerOrSystem(n.creatorUid, n.creatorName))
