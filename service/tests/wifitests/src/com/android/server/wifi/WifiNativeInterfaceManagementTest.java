@@ -932,8 +932,9 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
                 mNetworkObserverCaptor0, false, true, 0);
 
         // Start softap
-        assertTrue(mWifiNative.startSoftAp(IFACE_NAME_0, new SoftApConfiguration.Builder().build(),
-                true, mock(WifiNative.SoftApHalCallback.class)));
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
+                mWifiNative.startSoftAp(IFACE_NAME_0, new SoftApConfiguration.Builder().build(),
+                        true, mock(WifiNative.SoftApHalCallback.class)));
 
         mInOrder.verify(mHostapdHal).isApInfoCallbackSupported();
         mInOrder.verify(mHostapdHal).registerApCallback(any(), any());
@@ -959,8 +960,9 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
                 mNetworkObserverCaptor0, false, true, 0);
 
         // Start softap
-        assertTrue(mWifiNative.startSoftAp(IFACE_NAME_0, new SoftApConfiguration.Builder().build(),
-                true, mock(WifiNative.SoftApHalCallback.class)));
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
+                mWifiNative.startSoftAp(IFACE_NAME_0, new SoftApConfiguration.Builder().build(),
+                        true, mock(WifiNative.SoftApHalCallback.class)));
 
         mInOrder.verify(mHostapdHal).isApInfoCallbackSupported();
         mInOrder.verify(mWificondControl).registerApCallback(any(), any(), any());

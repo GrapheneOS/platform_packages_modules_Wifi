@@ -306,7 +306,8 @@ public class SoftApManagerTest extends WifiBaseTest {
         when(mWifiNative.isApSetMacAddressSupported(any())).thenReturn(true);
         when(mWifiNative.setApMacAddress(any(), any())).thenReturn(true);
         when(mWifiNative.startSoftAp(eq(TEST_INTERFACE_NAME), any(), anyBoolean(),
-                any(WifiNative.SoftApHalCallback.class))).thenReturn(true);
+                any(WifiNative.SoftApHalCallback.class)))
+                .thenReturn(SoftApManager.START_RESULT_SUCCESS);
         when(mWifiNative.setupInterfaceForSoftApMode(any(), any(), anyInt(), anyBoolean(),
                 any()))
                 .thenReturn(TEST_INTERFACE_NAME);
@@ -892,7 +893,8 @@ public class SoftApManagerTest extends WifiBaseTest {
     @Test
     public void startSoftApApInterfaceFailedToStart() throws Exception {
         when(mWifiNative.startSoftAp(eq(TEST_INTERFACE_NAME), any(), anyBoolean(),
-                any(WifiNative.SoftApHalCallback.class))).thenReturn(false);
+                any(WifiNative.SoftApHalCallback.class))).thenReturn(
+                        SoftApManager.START_RESULT_FAILURE_ADD_AP_HOSTAPD);
 
         SoftApModeConfiguration softApModeConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, mDefaultApConfig,

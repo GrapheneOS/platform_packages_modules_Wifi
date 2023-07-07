@@ -2087,18 +2087,18 @@ public class WifiNative {
      * Start Soft AP operation using the provided configuration.
      *
      * @param ifaceName Name of the interface.
-     * @param config Configuration to use for the soft ap created.
+     * @param config    Configuration to use for the soft ap created.
      * @param isMetered Indicates the network is metered or not.
-     * @param callback Callback for AP events.
-     * @return true on success, false otherwise.
+     * @param callback  Callback for AP events.
+     * @return one of {@link SoftApManager.StartResult}
      */
-    public boolean startSoftAp(
+    public @SoftApManager.StartResult int startSoftAp(
             @NonNull String ifaceName, SoftApConfiguration config, boolean isMetered,
             SoftApHalCallback callback) {
         if (mHostapdHal.isApInfoCallbackSupported()) {
             if (!mHostapdHal.registerApCallback(ifaceName, callback)) {
                 Log.e(TAG, "Failed to register ap hal event callback");
-                return false;
+                return SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_HOSTAPD;
             }
         } else {
             SoftApHalCallbackFromWificond softApHalCallbackFromWificond =
@@ -2106,7 +2106,7 @@ public class WifiNative {
             if (!mWifiCondManager.registerApCallback(ifaceName,
                     Runnable::run, softApHalCallbackFromWificond)) {
                 Log.e(TAG, "Failed to register ap hal event callback from wificond");
-                return false;
+                return SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND;
             }
         }
 
@@ -2116,10 +2116,10 @@ public class WifiNative {
             mWifiMetrics.incrementNumSetupSoftApInterfaceFailureDueToHostapd();
             takeBugReportInterfaceFailureIfNeeded("Wi-Fi BugReport (softap interface failure)",
                     errorMsg);
-            return false;
+            return SoftApManager.START_RESULT_FAILURE_ADD_AP_HOSTAPD;
         }
 
-        return true;
+        return SoftApManager.START_RESULT_SUCCESS;
     }
 
     /**
