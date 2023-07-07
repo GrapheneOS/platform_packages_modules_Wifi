@@ -1143,7 +1143,8 @@ public class SoftApManager implements ActiveModeManager {
                         // Note: 6GHz only band is already handled by initial validation
                         SoftApConfiguration tempConfig =
                                 ApConfigUtil.remove6gBandForUnsupportedSecurity(
-                                    mCurrentSoftApConfiguration);
+                                        mContext.getResources(),
+                                        mCurrentSoftApConfiguration, isBridgedMode());
                         if (tempConfig == null) {
                             handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
                             break;
