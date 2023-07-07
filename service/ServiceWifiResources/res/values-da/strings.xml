@@ -100,11 +100,11 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
-    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Verizon Wi-Fi Access er ikke tilgængeligt i dit område. Prøv igen senere eller fra en anden placering (fejl = 32766)."</item>
+    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Verizon Wi-Fi Access er ikke tilgængeligt i dit område. Prøv igen senere eller fra en anden lokation (fejl = 32766)."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Du kan ikke oprette forbindelse til Verizon Wi-Fi Access. Prøv igen senere eller fra et andet sted. (Fejl = 32767)"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Du kan ikke oprette forbindelse til Verizon Wi-Fi Access. Prøv igen senere eller fra en anden lokation. (Fejl = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
