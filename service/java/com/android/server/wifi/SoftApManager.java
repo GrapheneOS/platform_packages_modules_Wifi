@@ -18,11 +18,6 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.SAP_CLIENT_DISCONNECT_REASON_CODE_UNSPECIFIED;
 
-import static com.android.server.wifi.util.ApConfigUtil.ERROR_GENERIC;
-import static com.android.server.wifi.util.ApConfigUtil.ERROR_NO_CHANNEL;
-import static com.android.server.wifi.util.ApConfigUtil.ERROR_UNSUPPORTED_CONFIGURATION;
-import static com.android.server.wifi.util.ApConfigUtil.SUCCESS;
-
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.compat.CompatChanges;
@@ -51,6 +46,8 @@ import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.IntDef;
+
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IState;
 import com.android.internal.util.Preconditions;
@@ -68,6 +65,8 @@ import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -90,6 +89,84 @@ public class SoftApManager implements ActiveModeManager {
     @VisibleForTesting
     public static final String SOFT_AP_SEND_MESSAGE_TIMEOUT_TAG = TAG
             + " Soft AP Send Message Timeout on ";
+
+    // Start result codes. These should reflect the SoftApStopped.StartResult metrics codes.
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {
+            START_RESULT_UNKNOWN,
+            START_RESULT_SUCCESS,
+            START_RESULT_FAILURE_GENERAL,
+            START_RESULT_FAILURE_NO_CHANNEL,
+            START_RESULT_FAILURE_UNSUPPORTED_CONFIG,
+            START_RESULT_FAILURE_START_HAL,
+            START_RESULT_FAILURE_START_HOSTAPD,
+            START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED,
+            START_RESULT_FAILURE_INTERFACE_CONFLICT,
+            START_RESULT_FAILURE_CREATE_INTERFACE,
+            START_RESULT_FAILURE_SET_COUNTRY_CODE,
+            START_RESULT_FAILURE_SET_MAC_ADDRESS,
+            START_RESULT_FAILURE_REGISTER_AP_CALLBACK_HOSTAPD,
+            START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND,
+            START_RESULT_FAILURE_ADD_AP_HOSTAPD,
+    })
+    public @interface StartResult {}
+
+    // Unknown start result
+    public static final int START_RESULT_UNKNOWN = 0;
+    // Successful start
+    public static final int START_RESULT_SUCCESS = 1;
+    // General failure
+    public static final int START_RESULT_FAILURE_GENERAL = 2;
+    // Failed due to no channel available
+    public static final int START_RESULT_FAILURE_NO_CHANNEL = 3;
+    // Failed due to config being unsupported
+    public static final int START_RESULT_FAILURE_UNSUPPORTED_CONFIG = 4;
+    // Failed to start the HAL
+    public static final int START_RESULT_FAILURE_START_HAL = 5;
+    // Failed to start hostapd
+    public static final int START_RESULT_FAILURE_START_HOSTAPD = 6;
+    // Failed due to interface conflict with user rejection
+    public static final int START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED = 7;
+    // Failed due to interface conflict
+    public static final int START_RESULT_FAILURE_INTERFACE_CONFLICT = 8;
+    // Failed to create interface in vendor HAL
+    public static final int START_RESULT_FAILURE_CREATE_INTERFACE = 9;
+    // Failed to set country code
+    public static final int START_RESULT_FAILURE_SET_COUNTRY_CODE = 10;
+    // Failed to set mac address
+    public static final int START_RESULT_FAILURE_SET_MAC_ADDRESS = 11;
+    // Failed to register AP callback with hostapd
+    public static final int START_RESULT_FAILURE_REGISTER_AP_CALLBACK_HOSTAPD = 12;
+    // Failed to register AP callback with wificond
+    public static final int START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND = 13;
+    // Failed to add AP to hostapd
+    public static final int START_RESULT_FAILURE_ADD_AP_HOSTAPD = 14;
+
+    // Stop event codes. These should reflect the SoftApStopped.StopEvent metrics codes.
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {
+            STOP_EVENT_UNKNOWN,
+            STOP_EVENT_STOPPED,
+            STOP_EVENT_INTERFACE_DOWN,
+            STOP_EVENT_INTERFACE_DESTROYED,
+            STOP_EVENT_HOSTAPD_FAILURE,
+            STOP_EVENT_NO_USAGE_TIMEOUT,
+    })
+    public @interface StopEvent {}
+
+    // Unknown stop event
+    public static final int STOP_EVENT_UNKNOWN = 0;
+    // Stopped by the user
+    public static final int STOP_EVENT_STOPPED = 1;
+    // Stopped due to interface down
+    public static final int STOP_EVENT_INTERFACE_DOWN = 2;
+    // Stopped due to interface destroyed
+    public static final int STOP_EVENT_INTERFACE_DESTROYED = 3;
+    // Stopped due to hostapd failure
+    public static final int STOP_EVENT_HOSTAPD_FAILURE = 4;
+    // Stopped due to no usage timeout
+    public static final int STOP_EVENT_NO_USAGE_TIMEOUT = 5;
+
     private final WifiContext mContext;
     private final FrameworkFacade mFrameworkFacade;
     private final WifiNative mWifiNative;
@@ -665,16 +742,16 @@ public class SoftApManager implements ActiveModeManager {
             if (mWifiNative.isApSetMacAddressSupported(mApInterfaceName)) {
                 if (!mWifiNative.setApMacAddress(mApInterfaceName, mac)) {
                     Log.e(getTag(), "failed to set explicitly requested MAC address");
-                    return ERROR_GENERIC;
+                    return START_RESULT_FAILURE_SET_MAC_ADDRESS;
                 }
             } else if (!mIsUnsetBssid) {
                 // If hardware does not support MAC address setter,
                 // only report the error for non randomization.
-                return ERROR_UNSUPPORTED_CONFIGURATION;
+                return START_RESULT_FAILURE_UNSUPPORTED_CONFIG;
             }
         }
 
-        return SUCCESS;
+        return START_RESULT_SUCCESS;
     }
 
     /**
@@ -693,17 +770,17 @@ public class SoftApManager implements ActiveModeManager {
         return false;
     }
 
-    private int setCountryCode() {
+    private boolean setCountryCode() {
         int band = mCurrentSoftApConfiguration.getBand();
         if (TextUtils.isEmpty(mCountryCode)) {
             if (band == SoftApConfiguration.BAND_5GHZ || band == SoftApConfiguration.BAND_6GHZ) {
                 // Country code is mandatory for 5GHz/6GHz band.
                 Log.e(getTag(), "Invalid country code, "
                         + "required for setting up soft ap in band:" + band);
-                return ERROR_GENERIC;
+                return false;
             }
             // Absence of country code is not fatal for 2Ghz & Any band options.
-            return SUCCESS;
+            return true;
         }
         if (!mWifiNative.setApCountryCode(
                 mApInterfaceName, mCountryCode.toUpperCase(Locale.ROOT))) {
@@ -712,19 +789,19 @@ public class SoftApManager implements ActiveModeManager {
                 // 5GHz/6GHz band.
                 Log.e(getTag(), "Failed to set country code, "
                         + "required for setting up soft ap in band: " + band);
-                return ERROR_GENERIC;
+                return false;
             }
             // Failure to set country code is not fatal for other band options.
         }
-        return SUCCESS;
+        return true;
     }
 
     /**
      * Start a soft AP instance as configured.
      *
-     * @return integer result code
+     * @return One of {@link StartResult}
      */
-    private int startSoftAp() {
+    private @StartResult int startSoftAp() {
         if (SdkLevel.isAtLeastS()) {
             Log.d(getTag(), "startSoftAp: channels " + mCurrentSoftApConfiguration.getChannels()
                     + " iface " + mApInterfaceName + " country " + mCountryCode);
@@ -732,21 +809,21 @@ public class SoftApManager implements ActiveModeManager {
             Log.d(getTag(), "startSoftAp: band " + mCurrentSoftApConfiguration.getBand());
         }
 
-        int result = setMacAddress();
-        if (result != SUCCESS) {
-            return result;
+        int startResult = setMacAddress();
+        if (startResult != START_RESULT_SUCCESS) {
+            return startResult;
         }
 
         // Make a copy of configuration for updating AP band and channel.
         SoftApConfiguration.Builder localConfigBuilder =
                 new SoftApConfiguration.Builder(mCurrentSoftApConfiguration);
 
-        result = ApConfigUtil.updateApChannelConfig(
+        startResult = ApConfigUtil.updateApChannelConfig(
                 mWifiNative, mCoexManager, mContext.getResources(), mCountryCode,
                 localConfigBuilder, mCurrentSoftApConfiguration, mCurrentSoftApCapability);
-        if (result != SUCCESS) {
+        if (startResult != START_RESULT_SUCCESS) {
             Log.e(getTag(), "Failed to update AP band and channel");
-            return result;
+            return startResult;
         }
 
         if (mCurrentSoftApConfiguration.isHiddenSsid()) {
@@ -757,39 +834,47 @@ public class SoftApManager implements ActiveModeManager {
                 mCurrentSoftApConfiguration, mCurrentSoftApCapability)) {
             Log.d(getTag(), "Unsupported Configuration detect! config = "
                     + mCurrentSoftApConfiguration);
-            return ERROR_UNSUPPORTED_CONFIGURATION;
+            return START_RESULT_FAILURE_UNSUPPORTED_CONFIG;
         }
 
-        if (!mWifiNative.startSoftAp(mApInterfaceName,
+        startResult = mWifiNative.startSoftAp(mApInterfaceName,
                   localConfigBuilder.build(),
-                  mOriginalModeConfiguration.getTargetMode() ==  WifiManager.IFACE_IP_MODE_TETHERED,
-                  mSoftApHalCallback)) {
+                mOriginalModeConfiguration.getTargetMode() == WifiManager.IFACE_IP_MODE_TETHERED,
+                  mSoftApHalCallback);
+        if (startResult != START_RESULT_SUCCESS) {
             Log.e(getTag(), "Soft AP start failed");
-            return ERROR_GENERIC;
+            return startResult;
         }
 
         mWifiDiagnostics.startLogging(mApInterfaceName);
         mStartTimestamp = FORMATTER.format(new Date(System.currentTimeMillis()));
         Log.d(getTag(), "Soft AP is started ");
 
-        return SUCCESS;
+        return START_RESULT_SUCCESS;
     }
 
-    private void handleStartSoftApFailure(int result) {
-        if (result == SUCCESS) {
+    /**
+     * Handles a start failure and writes the start failure metrics.
+     * @param startResult One of {@link StartResult}.
+     */
+    private void handleStartSoftApFailure(@StartResult int startResult) {
+        if (startResult == START_RESULT_SUCCESS) {
             return;
         }
-        int failureReason = WifiManager.SAP_START_FAILURE_GENERAL;
-        if (result == ERROR_NO_CHANNEL) {
-            failureReason = WifiManager.SAP_START_FAILURE_NO_CHANNEL;
-        } else if (result == ERROR_UNSUPPORTED_CONFIGURATION) {
-            failureReason = WifiManager.SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION;
+
+        int wifiManagerFailureReason = WifiManager.SAP_START_FAILURE_GENERAL;
+        if (startResult == START_RESULT_FAILURE_NO_CHANNEL) {
+            wifiManagerFailureReason = WifiManager.SAP_START_FAILURE_NO_CHANNEL;
+        } else if (startResult == START_RESULT_FAILURE_UNSUPPORTED_CONFIG) {
+            wifiManagerFailureReason = WifiManager.SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION;
+        } else if (startResult == START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED) {
+            wifiManagerFailureReason = WifiManager.SAP_START_FAILURE_USER_REJECTED;
         }
         updateApState(WifiManager.WIFI_AP_STATE_FAILED,
                 WifiManager.WIFI_AP_STATE_ENABLING,
-                failureReason);
+                wifiManagerFailureReason);
         stopSoftAp();
-        mWifiMetrics.incrementSoftApStartResult(false, failureReason);
+        mWifiMetrics.incrementSoftApStartResult(false, wifiManagerFailureReason);
         mModeListener.onStartFailure(SoftApManager.this);
     }
 
@@ -1102,7 +1187,8 @@ public class SoftApManager implements ActiveModeManager {
                                                 mCurrentSoftApConfiguration,
                                                 mCurrentSoftApCapability, mCoexManager, mContext);
                                 if (tempConfig == null) {
-                                    handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                                    handleStartSoftApFailure(
+                                            START_RESULT_FAILURE_UNSUPPORTED_CONFIG);
                                     break;
                                 }
                                 mCurrentSoftApConfiguration = tempConfig;
@@ -1146,7 +1232,7 @@ public class SoftApManager implements ActiveModeManager {
                                         mContext.getResources(),
                                         mCurrentSoftApConfiguration, isBridgedMode());
                         if (tempConfig == null) {
-                            handleStartSoftApFailure(ERROR_UNSUPPORTED_CONFIGURATION);
+                            handleStartSoftApFailure(START_RESULT_FAILURE_UNSUPPORTED_CONFIG);
                             break;
                         }
                         mCurrentSoftApConfiguration = tempConfig;
@@ -1162,10 +1248,8 @@ public class SoftApManager implements ActiveModeManager {
                                         mRequestorWs, bypassDialog);
                         if (icmResult == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(getTag(), "User refused to set up interface");
-                            updateApState(WifiManager.WIFI_AP_STATE_FAILED,
-                                    WifiManager.WIFI_AP_STATE_DISABLED,
-                                    WifiManager.SAP_START_FAILURE_USER_REJECTED);
-                            mModeListener.onStartFailure(SoftApManager.this);
+                            handleStartSoftApFailure(
+                                    START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED);
                             break;
                         } else if (icmResult
                                 == InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER) {
@@ -1189,9 +1273,8 @@ public class SoftApManager implements ActiveModeManager {
                         mSoftApNotifier.dismissSoftApShutdownTimeoutExpiredNotification();
                         updateApState(WifiManager.WIFI_AP_STATE_ENABLING,
                                 WifiManager.WIFI_AP_STATE_DISABLED, 0);
-                        int result = setCountryCode();
-                        if (result != SUCCESS) {
-                            handleStartSoftApFailure(result);
+                        if (!setCountryCode()) {
+                            handleStartSoftApFailure(START_RESULT_FAILURE_SET_COUNTRY_CODE);
                             break;
                         }
                         if (mContext.getResources().getBoolean(
@@ -1204,9 +1287,9 @@ public class SoftApManager implements ActiveModeManager {
                             transitionTo(mWaitingForDriverCountryCodeChangedState);
                             break;
                         }
-                        result = startSoftAp();
-                        if (result != SUCCESS) {
-                            handleStartSoftApFailure(result);
+                        int startResult = startSoftAp();
+                        if (startResult != START_RESULT_SUCCESS) {
+                            handleStartSoftApFailure(startResult);
                             break;
                         }
                         transitionTo(mStartedState);
@@ -1283,9 +1366,9 @@ public class SoftApManager implements ActiveModeManager {
                     deferMessage(message);
                     return HANDLED;
                 }
-                int result = startSoftAp();
-                if (result != SUCCESS) {
-                    handleStartSoftApFailure(result);
+                int startResult = startSoftAp();
+                if (startResult != START_RESULT_SUCCESS) {
+                    handleStartSoftApFailure(startResult);
                     transitionTo(mIdleState);
                     return HANDLED;
                 }
