@@ -1203,4 +1203,12 @@
     <!-- Boolean indication whether enable VDBG for more detailed log when Wi-Fi aware verbose
     logging is enabled -->
     <bool translatable="false" name ="config_aware_vdbg_enable_on_verbose_logging">false</bool>
+    <!-- Boolean indicating the Hal support for mapping WPA3 transition mode to WPA3 for Softap in
+         6GHz band. WPA3 transition mode or SAE+WPA_PSK key management(AKM) is not allowed in 6GHz.
+         By default, framework removes 6GHz band for WPA3_SAE_TRANSITION security type.
+         Enabling this config allows framework to send the 6GHz band to Hostapd HAL for
+         WPA3_SAE_TRANSITION security type. Only enable this flag if Hostapd HAL has the
+         implementation to convert WPA3 transition mode to WPA3 only. otherwise driver/firmware may
+         fail to set up the AP.-->
+    <bool translatable="false" name="config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand">false</bool>
 </resources>
