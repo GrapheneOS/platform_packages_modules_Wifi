@@ -7490,6 +7490,44 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies that {@link WifiConfigManager#filterNonAppAddedNetworks(List)} properly filters
+     * out non app-added networks. Also checks that the permissions are cached for networks
+     * with the same creator.
+     */
+    @Test
+    public void testFilterNonAppAddedNetworks() {
+        int totalConfigs = 3;
+        List<WifiConfiguration> configs = new ArrayList<>();
+        for (int i = 0; i < totalConfigs; i++) {
+            configs.add(WifiConfigurationTestUtil.createPskNetwork());
+        }
+
+        // Configs 0 and 1 will belong to the same creator.
+        configs.get(0).creatorUid = 1;
+        configs.get(1).creatorUid = 1;
+        configs.get(2).creatorUid = 2;
+
+        configs.get(0).creatorName = "common";
+        configs.get(1).creatorName = "common";
+        configs.get(2).creatorName = "different";
+
+        // UIDs 1 and 2 belong to a PO and an app, respectively.
+        when(mWifiPermissionsUtil.isProfileOwner(eq(1), anyString())).thenReturn(true);
+        when(mWifiPermissionsUtil.isProfileOwner(eq(2), anyString())).thenReturn(false);
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(any(), anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSignedWithPlatformKey(anyInt())).thenReturn(false);
+
+        // Verify that the non app-added networks (those created by UID 1) are filtered out.
+        List<WifiConfiguration> appAddedNetworks =
+                mWifiConfigManager.filterNonAppAddedNetworks(configs);
+        assertEquals(1, appAddedNetworks.size());
+
+        // Permissions should only be checked once per unique creator.
+        verify(mWifiPermissionsUtil, times(2)).isProfileOwner(anyInt(), any());
+    }
+
+    /**
      * Verifies that adding a network fails if the amount of saved networks is maxed out and the
      * next network to be removed is the same as the added network.
      */
