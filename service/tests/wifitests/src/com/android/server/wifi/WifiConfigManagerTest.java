@@ -7490,6 +7490,67 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies that excess app-added networks are only considered for removal
+     * if the total number of networks reaches the app-added limit.
+     *
+     * This directly tests an optimization for enforcing the app-added limit. Retrieving the
+     * list of app-added configs is expensive (since we need to check the permissions on
+     * all the stored configs), so we should only retrieve it when necessary.
+     */
+    @Test
+    public void testFilterAtAppAddedLimit() {
+        final int maxTotalConfigs = 4;
+        final int maxAppAddedConfigs = 3;
+        mResources.setInteger(R.integer.config_wifiMaxNumWifiConfigurations, maxTotalConfigs);
+        mResources.setInteger(R.integer.config_wifiMaxNumWifiConfigurationsAddedByAllApps,
+                maxAppAddedConfigs);
+
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isProfileOwner(anyInt(), any())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(any(), eq(TEST_CREATOR_UID)))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isSystem(any(), eq(TEST_OTHER_USER_UID)))
+                .thenReturn(false);
+
+        // Add the maximum number of app-added configs.
+        for (int i = 0; i < maxAppAddedConfigs; i++) {
+            WifiConfiguration appAddedConfig = WifiConfigurationTestUtil.createPskNetwork();
+            appAddedConfig.creatorUid = TEST_OTHER_USER_UID;
+            verifyAddNetworkToWifiConfigManager(appAddedConfig);
+        }
+        assertEquals(maxAppAddedConfigs, mWifiConfigManager.getConfiguredNetworks().size());
+
+        // Since the app-added limit was not exceeded, the app-added config list was not retrieved.
+        // We only expect a single permission check per add.
+        int expectedNumPermissionChecks = maxAppAddedConfigs;
+        verify(mWifiPermissionsUtil, times(expectedNumPermissionChecks))
+                .isProfileOwner(anyInt(), any());
+
+        // The next app-added config will trigger the retrieval of the app-added config list.
+        // Expect the normal permission check, plus one additional from when
+        // the app-added config list is generated.
+        WifiConfiguration appAddedConfig = WifiConfigurationTestUtil.createPskNetwork();
+        appAddedConfig.creatorUid = TEST_OTHER_USER_UID;
+        verifyAddNetworkToWifiConfigManager(appAddedConfig);
+        assertEquals(maxAppAddedConfigs, mWifiConfigManager.getConfiguredNetworks().size());
+
+        expectedNumPermissionChecks += 2;
+        verify(mWifiPermissionsUtil, times(expectedNumPermissionChecks))
+                .isProfileOwner(anyInt(), any());
+
+        // Adding a system config will not trigger the retrieval of the app-added config list.
+        // We only expect a single permission check for this add.
+        WifiConfiguration systemConfig = WifiConfigurationTestUtil.createPskNetwork();
+        systemConfig.creatorUid = TEST_CREATOR_UID;
+        verifyAddNetworkToWifiConfigManager(systemConfig);
+        assertEquals(maxTotalConfigs, mWifiConfigManager.getConfiguredNetworks().size());
+
+        expectedNumPermissionChecks += 1;
+        verify(mWifiPermissionsUtil, times(expectedNumPermissionChecks))
+                .isProfileOwner(anyInt(), any());
+    }
+
+    /**
      * Verifies that {@link WifiConfigManager#filterNonAppAddedNetworks(List)} properly filters
      * out non app-added networks. Also checks that the permissions are cached for networks
      * with the same creator.
