@@ -4027,7 +4027,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     private void validateUiStartParams(boolean expectedIsReqForSingeNetwork) {
         ArgumentCaptor<Intent> intentArgumentCaptor = ArgumentCaptor.forClass(Intent.class);
         verify(mContext, atLeastOnce()).startActivityAsUser(
-                intentArgumentCaptor.capture(), eq(UserHandle.getUserHandleForUid(TEST_UID_1)));
+                intentArgumentCaptor.capture(), eq(UserHandle.CURRENT));
         Intent intent = intentArgumentCaptor.getValue();
         assertNotNull(intent);
         assertEquals(intent.getAction(), WifiNetworkFactory.UI_START_INTENT_ACTION);
