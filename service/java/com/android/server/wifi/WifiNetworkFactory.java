@@ -1723,8 +1723,7 @@ public class WifiNetworkFactory extends NetworkFactory {
                         mActiveSpecificNetworkRequest.getRequestorUid()));
         intent.putExtra(UI_START_INTENT_EXTRA_REQUEST_IS_FOR_SINGLE_NETWORK,
                 isActiveRequestForSingleNetwork());
-        mContext.startActivityAsUser(intent, UserHandle.getUserHandleForUid(
-                mActiveSpecificNetworkRequest.getRequestorUid()));
+        mContext.startActivityAsUser(intent, UserHandle.CURRENT);
     }
 
     // Helper method to determine if the specifier does not contain any patterns and matches
