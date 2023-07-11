@@ -61,6 +61,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 /** Unit tests for {@link WifiLockManager}. */
 @SmallTest
@@ -2014,5 +2015,162 @@ public class WifiLockManagerTest extends WifiBaseTest {
         inOrder.verify(testListener).onOwnershipChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
         inOrder.verify(testListener).onActivatedStateChanged(true);
         inOrder.verify(testListener).onActiveUsersChanged(eq(new int[]{DEFAULT_TEST_UID_1}));
+    }
+
+    /**
+     * Test if a 'Screen ON' exempted app which is in foreground acquires a low-latency lock,
+     * that lock becomes active even when screen is OFF and reported to the battery stats. A
+     * change in screen state (ON or OFF) should not trigger further battery stats report.
+     */
+    @Test
+    public void testScreenOffExemptionBlaming() throws Exception {
+        // Setup for low latency lock for exempted app
+        setScreenState(false);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                DEFAULT_TEST_UID_1)).thenReturn(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(true);
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_1)).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+
+        // Acquire the lock should report
+        assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource));
+        assertThat(mWifiLockManager.getStrongestLockMode(),
+                not(WifiManager.WIFI_MODE_NO_LOCKS_HELD));
+        InOrder inOrder = inOrder(mBinder, mBatteryStats);
+        inOrder.verify(mBatteryStats).reportFullWifiLockAcquiredFromSource(mWorkSource);
+        // Check for low latency
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+
+        // Screen on should not report for exempted UID
+        setScreenState(true);
+        inOrder.verify(mBatteryStats, never()).reportFullWifiLockAcquiredFromSource(mWorkSource);
+        // Screen off should not report for exempted UID
+        setScreenState(false);
+        inOrder.verify(mBatteryStats, never()).reportFullWifiLockReleasedFromSource(mWorkSource);
+        // Disconnect Wi-Fi should report un-blame
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, false);
+        inOrder.verify(mBatteryStats).reportFullWifiLockReleasedFromSource(mWorkSource);
+        // Connect Wi-Fi should report blame
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+        inOrder.verify(mBatteryStats).reportFullWifiLockAcquiredFromSource(mWorkSource);
+    }
+
+    /**
+     * Test if a 'foreground' exempted app which is in foreground-service acquires a low-latency
+     * lock, that lock becomes active and reported to the battery stats. A change in state from
+     * foreground to foreground service and vice versa  should not trigger further battery stats
+     * report.
+     */
+    @Test
+    public void testForegroundExemptionBlaming() throws Exception {
+        // Setup for low latency lock for foreground exempted app
+        setScreenState(true);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                DEFAULT_TEST_UID_1)).thenReturn(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(true);
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_1)).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+
+        // Acquire the lock should report
+        assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource));
+        captureUidImportanceListener();
+        assertThat(mWifiLockManager.getStrongestLockMode(),
+                not(WifiManager.WIFI_MODE_NO_LOCKS_HELD));
+        InOrder inOrder = inOrder(mBinder, mBatteryStats);
+        inOrder.verify(mBatteryStats).reportFullWifiLockAcquiredFromSource(mWorkSource);
+        // Check for low latency
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+
+        // App going to foreground service should not be reported
+        mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
+        mLooper.dispatchAll();
+        inOrder.verify(mBatteryStats, never()).reportFullWifiLockReleasedFromSource(mWorkSource);
+        // App going to foreground should not be reported
+        mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        mLooper.dispatchAll();
+        inOrder.verify(mBatteryStats, never()).reportFullWifiLockReleasedFromSource(mWorkSource);
+        // App going to background should be reported
+        mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND);
+        mLooper.dispatchAll();
+        inOrder.verify(mBatteryStats).reportFullWifiLockReleasedFromSource(mWorkSource);
+    }
+
+    /**
+     * Test a series of low latency lock blaming and un-blaming with exempted app and make sure
+     * the reporting is balanced.
+     */
+    @Test
+    public void testExemptionBlaming() throws Exception {
+        // Setup for low latency lock for foreground exempted app
+        setScreenState(true);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                DEFAULT_TEST_UID_1)).thenReturn(true);
+        when(mClientModeManager.setPowerSave(eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK),
+                anyBoolean())).thenReturn(true);
+        when(mActivityManager.getUidImportance(DEFAULT_TEST_UID_1)).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        when(mClientModeManager.setLowLatencyMode(anyBoolean())).thenReturn(true);
+        when(mClientModeManager.getSupportedFeatures()).thenReturn(
+                WifiManager.WIFI_FEATURE_LOW_LATENCY);
+        mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+
+        // Acquire --> reportFullWifiLockAcquiredFromSource
+        assertTrue(mWifiLockManager.acquireWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource));
+        captureUidImportanceListener();
+        assertThat(mWifiLockManager.getStrongestLockMode(),
+                not(WifiManager.WIFI_MODE_NO_LOCKS_HELD));
+        // Check for low latency
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+
+        Random mRandom = new Random();
+        int iterate;
+        for (iterate = 0; iterate < mRandom.nextInt(100); ++iterate) {
+            mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
+            mLooper.dispatchAll();
+            // background --> reportFullWifiLockReleasedFromSource
+            mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND);
+            mLooper.dispatchAll();
+            // foreground --> reportFullWifiLockAcquiredFromSource
+            mUidImportanceListener.onUidImportance(DEFAULT_TEST_UID_1,
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+            mLooper.dispatchAll();
+            setScreenState(false);
+            setScreenState(true);
+            setScreenState(false);
+            // disconnected --> reportFullWifiLockReleasedFromSource
+            mWifiLockManager.updateWifiClientConnected(mClientModeManager, false);
+            // connected --> reportFullWifiLockAcquiredFromSource
+            mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
+            setScreenState(true);
+        }
+        // Release --> reportFullWifiLockReleasedFromSource
+        assertTrue(mWifiLockManager.releaseWifiLock(mBinder));
+
+        // number of reports = (number of activate/deactivate) * iterations + acquire/release
+        int numReports = 2 * iterate + 1;
+        // Check for balance
+        verify(mBatteryStats, times(numReports)).reportFullWifiLockAcquiredFromSource(mWorkSource);
+        verify(mBatteryStats, times(numReports)).reportFullWifiLockReleasedFromSource(mWorkSource);
     }
 }
