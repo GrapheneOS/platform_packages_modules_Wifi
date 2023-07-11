@@ -24,6 +24,7 @@ import static java.security.cert.PKIXReason.NO_TRUST_ANCHOR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.net.MacAddress;
@@ -136,6 +137,7 @@ public class PasspointManager {
     private final Clock mClock;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiSettingsStore mSettingsStore;
+    private final boolean mIsLowMemory;
 
     /**
      * Map of package name of an app to the app ops changed listener for the app.
@@ -145,7 +147,8 @@ public class PasspointManager {
     // Counter used for assigning unique identifier to each provider.
     private long mProviderIndex;
     private boolean mVerboseLoggingEnabled = false;
-    private boolean mEnabled;
+    // Set default value to false before receiving boot completed event.
+    private boolean mEnabled = false;
 
     private class CallbackHandler implements PasspointEventHandler.Callbacks {
         private final Context mContext;
@@ -379,6 +382,8 @@ public class PasspointManager {
                 new SharedDataSourceHandler()));
         mPasspointProvisioner = objectFactory.makePasspointProvisioner(context, wifiNative,
                 this, wifiMetrics);
+        ActivityManager activityManager = context.getSystemService(ActivityManager.class);
+        mIsLowMemory = activityManager.isLowRamDevice();
         mAppOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         sPasspointManager = this;
         mMacAddressUtil = macAddressUtil;
@@ -477,8 +482,18 @@ public class PasspointManager {
             Log.e(TAG, "Set isTrusted to false on a non suggestion passpoint is not allowed");
             return false;
         }
+        if (config.getServiceFriendlyNames() != null && isFromSuggestion) {
+            Log.e(TAG, "Passpoint from suggestion should not have ServiceFriendlyNames");
+            return false;
+        }
         if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
             Log.e(TAG, "UID " + uid + " not visible to the current user");
+            return false;
+        }
+        if (getPasspointProviderWithPackage(packageName).size()
+                >= WifiManager.getMaxNumberOfNetworkSuggestionsPerApp(mIsLowMemory)) {
+            Log.e(TAG, "packageName " + packageName + " has too many passpoint with exceed the "
+                    + "limitation");
             return false;
         }
 

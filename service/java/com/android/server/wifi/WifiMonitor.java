@@ -40,7 +40,6 @@ import com.android.server.wifi.hotspot2.WnmData;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,8 +108,8 @@ public class WifiMonitor {
     /* Transition Disable Indication */
     public static final int TRANSITION_DISABLE_INDICATION        = BASE + 72;
 
-    /* Trust On First Use Root CA Certification */
-    public static final int TOFU_ROOT_CA_CERTIFICATE             = BASE + 73;
+    /* Trust On First Use incoming certificate event */
+    public static final int TOFU_CERTIFICATE_EVENT               = BASE + 73;
 
     /* Auxiliary supplicant event */
     public static final int AUXILIARY_SUPPLICANT_EVENT           = BASE + 74;
@@ -619,11 +618,11 @@ public class WifiMonitor {
      * @param networkId ID of the network in wpa_supplicant.
      * @param ssid SSID of the network.
      * @param depth the depth of this cert in the chain, 0 is the leaf, i.e. the server cert.
-     * @param cert the certificate data.
+     * @param certificateEventInfo the certificate data.
      */
     public void broadcastCertificationEvent(String iface, int networkId, String ssid,
-            int depth, X509Certificate cert) {
-        sendMessage(iface, TOFU_ROOT_CA_CERTIFICATE, networkId, depth, cert);
+            int depth, CertificateEventInfo certificateEventInfo) {
+        sendMessage(iface, TOFU_CERTIFICATE_EVENT, networkId, depth, certificateEventInfo);
     }
 
     /**
