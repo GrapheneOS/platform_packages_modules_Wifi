@@ -737,33 +737,58 @@ public class ApConfigUtil {
     }
 
     /**
+     * Checks whether HAL support converting the restricted security type to an allowed one in 6GHz
+     * band configuration.
+     * @param resources the resources to get the OEM configuration for HAL support.
+     * @param type security type.
+     * @return true if HAL support to map WPA3 transition mode to WPA3 in 6GHz band,
+     * false otherwise.
+     */
+    public static boolean canHALConvertRestrictedSecurityTypeFor6GHz(@NonNull Resources resources,
+            @SoftApConfiguration.SecurityType int type) {
+        return type == SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION
+                && resources.getBoolean(R.bool
+                        .config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand);
+    }
+
+    /**
      * Remove {@link SoftApConfiguration#BAND_6GHZ} if multiple bands are configured
      * as a mask when security type is restricted to operate in this band.
      *
+     * @param resources the resources to get the OEM configuration for HAL support.
      * @param config The current {@link SoftApConfiguration}.
+     * @param isBridgedMode true if bridged mode is enabled, false otherwise.
      *
      * @return the updated SoftApConfiguration.
      */
     public static SoftApConfiguration remove6gBandForUnsupportedSecurity(
-            SoftApConfiguration config) {
+            @NonNull Resources resources,
+            SoftApConfiguration config, boolean isBridgedMode) {
         SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder(config);
 
         try {
+            int securityType = config.getSecurityType();
             if (config.getBands().length == 1) {
                 int configuredBand = config.getBand();
                 if ((configuredBand & SoftApConfiguration.BAND_6GHZ) != 0
                         && isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
                     Log.i(TAG, "remove BAND_6G if multiple bands are configured "
-                            + "as a mask since security type is restricted");
+                            + "as a mask when security type is restricted");
                     builder.setBand(configuredBand & ~SoftApConfiguration.BAND_6GHZ);
                 }
             } else if (SdkLevel.isAtLeastS()) {
                 SparseIntArray channels = config.getChannels();
                 SparseIntArray newChannels = new SparseIntArray(channels.size());
-                if (isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
+                if (isSecurityTypeRestrictedFor6gBand(securityType)) {
                     for (int i = 0; i < channels.size(); i++) {
                         int band = channels.keyAt(i);
-                        if ((band & SoftApConfiguration.BAND_6GHZ) != 0) {
+                        if ((band & SoftApConfiguration.BAND_6GHZ) != 0
+                                && canHALConvertRestrictedSecurityTypeFor6GHz(resources,
+                                securityType) && isBridgedMode) {
+                            Log.i(TAG, "Do not remove BAND_6G in bridged mode for"
+                                    + " security type: " + securityType
+                                    + " as HAL can convert the security type");
+                        } else {
                             Log.i(TAG, "remove BAND_6G if multiple bands are configured "
                                     + "as a mask when security type is restricted");
                             band &= ~SoftApConfiguration.BAND_6GHZ;
