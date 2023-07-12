@@ -276,6 +276,8 @@ public class SoftApManager implements ActiveModeManager {
 
     private boolean mIsPlugged = false;
 
+    private int mCurrentApState = WifiManager.WIFI_AP_STATE_DISABLED;
+
     /**
      * A map stores shutdown timeouts for each Soft Ap instance.
      * There are three timeout messages now.
@@ -706,6 +708,7 @@ public class SoftApManager implements ActiveModeManager {
      * @param reason       Failure reason if the new AP state is in failure state
      */
     private void updateApState(int newState, int currentState, int reason) {
+        mCurrentApState = newState;
         mSoftApCallback.onStateChanged(newState, reason);
 
         //send the AP state change broadcast
@@ -871,7 +874,7 @@ public class SoftApManager implements ActiveModeManager {
             wifiManagerFailureReason = WifiManager.SAP_START_FAILURE_USER_REJECTED;
         }
         updateApState(WifiManager.WIFI_AP_STATE_FAILED,
-                WifiManager.WIFI_AP_STATE_ENABLING,
+                mCurrentApState,
                 wifiManagerFailureReason);
         stopSoftAp();
         mWifiMetrics.incrementSoftApStartResult(false, wifiManagerFailureReason);
@@ -1137,12 +1140,7 @@ public class SoftApManager implements ActiveModeManager {
                                 ? mCurrentSoftApConfiguration.getWifiSsid() : null;
                         if (wifiSsid == null || wifiSsid.getBytes().length == 0) {
                             Log.e(getTag(), "Unable to start soft AP without valid configuration");
-                            updateApState(WifiManager.WIFI_AP_STATE_FAILED,
-                                    WifiManager.WIFI_AP_STATE_DISABLED,
-                                    WifiManager.SAP_START_FAILURE_GENERAL);
-                            mWifiMetrics.incrementSoftApStartResult(
-                                    false, WifiManager.SAP_START_FAILURE_GENERAL);
-                            mModeListener.onStartFailure(SoftApManager.this);
+                            handleStartSoftApFailure(START_RESULT_FAILURE_GENERAL);
                             break;
                         }
                         if (isBridgedMode()) {
@@ -1262,12 +1260,7 @@ public class SoftApManager implements ActiveModeManager {
                                 SoftApManager.this);
                         if (TextUtils.isEmpty(mApInterfaceName)) {
                             Log.e(getTag(), "setup failure when creating ap interface.");
-                            updateApState(WifiManager.WIFI_AP_STATE_FAILED,
-                                    WifiManager.WIFI_AP_STATE_DISABLED,
-                                    WifiManager.SAP_START_FAILURE_GENERAL);
-                            mWifiMetrics.incrementSoftApStartResult(
-                                    false, WifiManager.SAP_START_FAILURE_GENERAL);
-                            mModeListener.onStartFailure(SoftApManager.this);
+                            handleStartSoftApFailure(START_RESULT_FAILURE_GENERAL);
                             break;
                         }
                         mSoftApNotifier.dismissSoftApShutdownTimeoutExpiredNotification();
