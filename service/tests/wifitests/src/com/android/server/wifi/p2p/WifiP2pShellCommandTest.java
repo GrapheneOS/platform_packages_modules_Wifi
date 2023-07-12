@@ -314,11 +314,19 @@ public class WifiP2pShellCommandTest extends WifiBaseTest {
     public void testP2pConnect() {
         String deviceAddress = "aa:bb:cc:11:22:33";
         runP2pCommandAsRoot("init");
-        runP2pCommandAsRoot("connect", deviceAddress);
+        if (SdkLevel.isAtLeastT()) {
+            runP2pCommandAsRoot("connect", deviceAddress, "-i", "10", "-m", "1");
+        } else {
+            runP2pCommandAsRoot("connect", deviceAddress, "-i", "10");
+        }
         ArgumentCaptor<WifiP2pConfig> captor = ArgumentCaptor.forClass(WifiP2pConfig.class);
         verify(mWifiP2pManager).connect(eq(mWifiP2pChannel), captor.capture(), any());
         WifiP2pConfig config = captor.getValue();
         assertEquals(deviceAddress, config.deviceAddress);
+        assertEquals(10, config.groupOwnerIntent);
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(1, config.getGroupClientIpProvisioningMode());
+        }
     }
 
     @Test
