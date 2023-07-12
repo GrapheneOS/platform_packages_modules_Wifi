@@ -5016,7 +5016,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         TestWifiVerboseLoggingStatusChangedListener listener =
                 new TestWifiVerboseLoggingStatusChangedListener();
         mWifiServiceImpl.addWifiVerboseLoggingStatusChangedListener(listener);
-        mLooper.dispatchAll();
         mWifiServiceImpl.enableVerboseLogging(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED);
         verify(mWifiSettingsConfigStore).put(WIFI_VERBOSE_LOGGING_ENABLED, true);
         verify(mActiveModeWarden).enableVerboseLogging(anyBoolean());
@@ -5029,7 +5028,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         // unregister the callback and verify no more updates happen.
         mWifiServiceImpl.removeWifiVerboseLoggingStatusChangedListener(listener);
-        mLooper.dispatchAll();
         mWifiServiceImpl.enableVerboseLogging(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED);
         assertEquals(2, listener.numStatusChangedCounts);
         assertFalse(listener.lastReceivedValue);

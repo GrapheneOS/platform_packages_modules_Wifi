@@ -6205,9 +6205,7 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new IllegalArgumentException("Listener must not be null");
         }
         enforceAccessPermission();
-        // Post operation to handler thread
-        mWifiThreadRunner.post(() ->
-                mRegisteredWifiLoggingStatusListeners.register(listener));
+        mRegisteredWifiLoggingStatusListeners.register(listener);
     }
 
     /**
@@ -6226,9 +6224,7 @@ public class WifiServiceImpl extends BaseWifiService {
             throw new IllegalArgumentException("Listener must not be null");
         }
         enforceAccessPermission();
-        // Post operation to handler thread
-        mWifiThreadRunner.post(() ->
-                mRegisteredWifiLoggingStatusListeners.unregister(listener));
+        mRegisteredWifiLoggingStatusListeners.unregister(listener);
     }
 
     /**
