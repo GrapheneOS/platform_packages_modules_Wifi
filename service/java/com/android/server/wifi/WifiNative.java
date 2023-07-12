@@ -64,6 +64,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.HexDump;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyStatus;
+import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.util.FrameParser;
@@ -4983,5 +4984,16 @@ public class WifiNative {
      */
     public Set<List<Integer>> getSupportedBandCombinations(@NonNull String ifaceName) {
         return mWifiVendorHal.getSupportedBandCombinations(ifaceName);
+    }
+
+    /**
+     * Sends the AFC allowed channels and frequencies to the driver.
+     *
+     * @param afcChannelAllowance the allowed frequencies and channels received from
+     * querying the AFC server.
+     * @return whether the channel allowance was set successfully.
+     */
+    public boolean setAfcChannelAllowance(WifiChip.AfcChannelAllowance afcChannelAllowance) {
+        return mWifiVendorHal.setAfcChannelAllowance(afcChannelAllowance);
     }
 }

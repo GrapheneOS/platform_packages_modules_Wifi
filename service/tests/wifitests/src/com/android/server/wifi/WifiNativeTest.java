@@ -64,6 +64,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
+import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.wifi.resources.R;
@@ -272,6 +273,7 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiGlobals mWifiGlobals;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
+    @Mock WifiChip.AfcChannelAllowance mAfcChannelAllowance;
 
     ArgumentCaptor<WifiNl80211Manager.ScanEventCallback> mScanCallbackCaptor =
             ArgumentCaptor.forClass(WifiNl80211Manager.ScanEventCallback.class);
@@ -1617,5 +1619,14 @@ public class WifiNativeTest extends WifiBaseTest {
         mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
                 mConcreteClientModeManager);
         verify(mWifiVendorHal).enableStaChannelForPeerNetwork(true, true);
+    }
+
+    /**
+     * Verifies that setAfcChannelAllowance() calls underlying WifiVendorHal.
+     */
+    @Test
+    public void testSetAfcChannelAllowance() {
+        mWifiNative.setAfcChannelAllowance(mAfcChannelAllowance);
+        verify(mWifiVendorHal).setAfcChannelAllowance(mAfcChannelAllowance);
     }
 }

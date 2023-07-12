@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.hardware.wifi.AfcChannelAllowance;
 import android.hardware.wifi.IWifiChip;
 import android.hardware.wifi.WifiDebugHostWakeReasonRxIcmpPacketDetails;
 import android.hardware.wifi.WifiDebugHostWakeReasonRxMulticastPacketDetails;
@@ -50,10 +51,12 @@ import com.android.server.wifi.WlanWakeReasonAndCounts;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -350,5 +353,87 @@ public class WifiChipAidlImplTest extends WifiBaseTest {
         int channelCategoryEnableFlag = IWifiChip.ChannelCategoryMask.INDOOR_CHANNEL
                 | IWifiChip.ChannelCategoryMask.DFS_CHANNEL;
         verify(mIWifiChipMock).enableStaChannelForPeerNetwork(eq(channelCategoryEnableFlag));
+    }
+
+    /**
+     * Verifies that setAfcChannelAllowance() calls underlying WifiVendorHAL, and that the
+     * AfcChannelAllowance is correctly converted from the framework version to the HAL version.
+     */
+    @Test
+    public void testSetAfcChannelAllowance() throws RemoteException {
+        WifiChip.AfcChannelAllowance afcChannelAllowance = makeAfcChannelAllowance();
+        mDut.setAfcChannelAllowance(afcChannelAllowance);
+
+        ArgumentCaptor<AfcChannelAllowance> afcChannelAllowanceCaptor = ArgumentCaptor.forClass(
+                AfcChannelAllowance.class);
+        verify(mIWifiChipMock).setAfcChannelAllowance(afcChannelAllowanceCaptor.capture());
+        AfcChannelAllowance halAfcChannelAllowance = afcChannelAllowanceCaptor.getValue();
+
+        // Verify that the AFC allowance object was correctly converted from the framework version
+        // to the HAL version.
+        assertEquals(halAfcChannelAllowance.availableAfcFrequencyInfos.length,
+                afcChannelAllowance.availableAfcFrequencyInfos.size());
+        assertEquals(halAfcChannelAllowance.availableAfcChannelInfos.length,
+                afcChannelAllowance.availableAfcChannelInfos.size());
+        assertEquals(halAfcChannelAllowance.availabilityExpireTimeMs,
+                afcChannelAllowance.availabilityExpireTimeMs);
+
+        for (int i = 0; i < halAfcChannelAllowance.availableAfcFrequencyInfos.length; ++i) {
+            assertEquals(halAfcChannelAllowance.availableAfcFrequencyInfos[i].startFrequencyMhz,
+                    afcChannelAllowance.availableAfcFrequencyInfos.get(i).startFrequencyMhz);
+            assertEquals(halAfcChannelAllowance.availableAfcFrequencyInfos[i].endFrequencyMhz,
+                    afcChannelAllowance.availableAfcFrequencyInfos.get(i).endFrequencyMhz);
+            assertEquals(halAfcChannelAllowance.availableAfcFrequencyInfos[i].maxPsd,
+                    afcChannelAllowance.availableAfcFrequencyInfos.get(i).maxPsdDbmPerMhz);
+        }
+
+        for (int i = 0; i < halAfcChannelAllowance.availableAfcChannelInfos.length; ++i) {
+            assertEquals(halAfcChannelAllowance.availableAfcChannelInfos[i].globalOperatingClass,
+                    afcChannelAllowance.availableAfcChannelInfos.get(i).globalOperatingClass);
+            assertEquals(halAfcChannelAllowance.availableAfcChannelInfos[i].channelCfi,
+                    afcChannelAllowance.availableAfcChannelInfos.get(i).channelCfi);
+            assertEquals(halAfcChannelAllowance.availableAfcChannelInfos[i].maxEirpDbm,
+                    afcChannelAllowance.availableAfcChannelInfos.get(i).maxEirpDbm);
+        }
+    }
+
+    /**
+     * Creates and returns an object used to set the allowed AFC channels and frequencies.
+     */
+    WifiChip.AfcChannelAllowance makeAfcChannelAllowance() {
+        WifiChip.AfcChannelAllowance afcChannelAllowance = new WifiChip.AfcChannelAllowance();
+
+        int[] startFrequencies = {5995, 6150, 6350};
+        int[] endFrequencies = {6110, 6300, 6590};
+        int[] maxPsds = {13, 27, 14};
+
+        afcChannelAllowance.availableAfcFrequencyInfos = new ArrayList<>();
+        afcChannelAllowance.availableAfcChannelInfos = new ArrayList<>();
+        afcChannelAllowance.availabilityExpireTimeMs = 1000L;
+
+        for (int i = 0; i < startFrequencies.length; ++i) {
+            afcChannelAllowance.availableAfcFrequencyInfos.add(
+                    new WifiChip.AvailableAfcFrequencyInfo());
+            afcChannelAllowance.availableAfcFrequencyInfos.get(i).startFrequencyMhz =
+                    startFrequencies[i];
+            afcChannelAllowance.availableAfcFrequencyInfos.get(i).endFrequencyMhz =
+                    endFrequencies[i];
+            afcChannelAllowance.availableAfcFrequencyInfos.get(i).maxPsdDbmPerMhz = maxPsds[i];
+        }
+
+        int[] globalOperatingClasses = {3, 5, 17};
+        int[] channelCfis = {20, 25, 35};
+        int[] maxEirpDbms = {100, 200, 950};
+
+        for (int i = 0; i < globalOperatingClasses.length; ++i) {
+            afcChannelAllowance.availableAfcChannelInfos.add(
+                    new WifiChip.AvailableAfcChannelInfo());
+            afcChannelAllowance.availableAfcChannelInfos.get(i).globalOperatingClass =
+                    globalOperatingClasses[i];
+            afcChannelAllowance.availableAfcChannelInfos.get(i).channelCfi = channelCfis[i];
+            afcChannelAllowance.availableAfcChannelInfos.get(i).maxEirpDbm = maxEirpDbms[i];
+        }
+
+        return afcChannelAllowance;
     }
 }
