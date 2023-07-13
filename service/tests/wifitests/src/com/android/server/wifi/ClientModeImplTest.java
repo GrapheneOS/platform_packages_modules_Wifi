@@ -9090,7 +9090,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                     FRAMEWORK_NETWORK_ID, 0, certificateEventInfo);
             mLooper.dispatchAll();
             verify(mInsecureEapNetworkHandler).addPendingCertificate(
-                    eq(eapTlsConfig.SSID), eq(0), eq(certificateEventInfo));
+                    eq(eapTlsConfig.networkId), eq(0), eq(certificateEventInfo));
 
             // Adding a certificate in depth 0 will cause a disconnection when TOFU is supported
             DisconnectEventInfo disconnectEventInfo =

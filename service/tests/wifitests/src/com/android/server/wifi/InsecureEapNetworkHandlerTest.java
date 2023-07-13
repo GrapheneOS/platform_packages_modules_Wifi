@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static com.android.server.wifi.InsecureEapNetworkHandler.TOFU_ANONYMOUS_IDENTITY;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
@@ -597,7 +598,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         setupTest(config, true, true);
 
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(type);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, true,
                 true, false, null, mockServerCert.getCert(),
                 null);
@@ -621,8 +622,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         // CA_CERT is also in the trust store
         CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA_CERT);
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1, mockCaCert);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
 
         List<String> aliases = new ArrayList<>();
         aliases.add("TEST_GEN_CA_CERT");
@@ -763,8 +764,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA_CERT);
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1, mockCaCert);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
 
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
@@ -788,7 +789,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         CertificateEventInfo mockSelfSignedCert =
                 generateMockCertEventInfo(TEST_GEN_SELF_SIGNED_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockSelfSignedCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockSelfSignedCert);
 
         verifyTrustOnFirstUseFlow(config, ACTION_FORGET, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockSelfSignedCert.getCert(),
@@ -832,9 +833,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         config.enterpriseConfig.enableTrustOnFirstUse(false);
         setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
 
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1,
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1,
                 generateMockCertEventInfo(TEST_GEN_CA_CERT));
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0,
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0,
                 generateMockCertEventInfo(TEST_GEN_SERVER_CERT));
 
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
@@ -860,9 +861,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         setupTest(config, isAtLeastT, isTrustOnFirstUseSupported,
                 isInsecureEnterpriseConfigurationAllowed);
 
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1,
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1,
                 generateMockCertEventInfo(TEST_GEN_CA_CERT));
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0,
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0,
                 generateMockCertEventInfo(TEST_GEN_SERVER_CERT));
 
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
@@ -883,8 +884,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA2_CERT);
         // Missing intermediate cert.
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1, mockCaCert);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
 
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
         verify(mCallbacks).onError(eq(config.SSID));
@@ -909,8 +910,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         // Fake Root CA that didn't sign the server cert
         CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_FAKE_CA_CERT);
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1, mockCaCert);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
 
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
         verify(mCallbacks).onError(eq(config.SSID));
@@ -940,7 +941,9 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mHandler);
         CertificateEventInfo mockSelfSignedCert =
                 generateMockCertEventInfo(TEST_GEN_SELF_SIGNED_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate("NotExist", 0, mockSelfSignedCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(WifiConfiguration.INVALID_NETWORK_ID, 0,
+                mockSelfSignedCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(0xF1AF, 0, mockSelfSignedCert);
     }
 
     @Test
@@ -952,7 +955,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
 
         // Missing root CA cert.
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0,
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0,
                 generateMockCertEventInfo(TEST_GEN_SERVER_CERT));
 
         // The wrong cert chain should be cleared after this call.
@@ -960,7 +963,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         CertificateEventInfo mockSelfSignedCert =
                 generateMockCertEventInfo(TEST_GEN_SELF_SIGNED_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockSelfSignedCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockSelfSignedCert);
 
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
         verify(mCallbacks, never()).onError(any());
@@ -976,7 +979,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         CertificateEventInfo mockSelfSignedCert =
                 generateMockCertEventInfo(TEST_GEN_SELF_SIGNED_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockSelfSignedCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockSelfSignedCert);
 
         // Pass another PSK config which is not the same as the current one.
         WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
@@ -989,6 +992,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         WifiConfiguration anotherEapConfig = spy(WifiConfigurationTestUtil.createEapNetwork(
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE));
         anotherEapConfig.networkId = FRAMEWORK_NETWORK_ID + 1;
+        assertFalse(mInsecureEapNetworkHandler.addPendingCertificate(anotherEapConfig.networkId, 0,
+                mockSelfSignedCert));
         mInsecureEapNetworkHandler.prepareConnection(anotherEapConfig);
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
         verify(mCallbacks, never()).onError(any());
@@ -1000,8 +1005,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA_CERT);
         CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
         if (isTrustOnFirstUseSupported) {
-            mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 1, mockCaCert);
-            mInsecureEapNetworkHandler.addPendingCertificate(config.SSID, 0, mockServerCert);
+            mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+            mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
         }
         verifyTrustOnFirstUseFlow(config, action, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
