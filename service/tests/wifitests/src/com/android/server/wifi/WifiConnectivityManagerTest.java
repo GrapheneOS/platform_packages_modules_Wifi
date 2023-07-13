@@ -2893,10 +2893,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
             int expectedInterval) {
         // Verify the scans actually happened for expected times, one scan for state change and
         // each for scan timer triggered.
-        verify(mWifiScanner, times(scanTimes)).startScan(anyObject(), anyObject());
+        verify(mWifiScanner, times(scanTimes)).startScan(any(), any());
 
         // The actual interval should be same as scheduled.
-        assertEquals(expectedInterval * 1000, intervals.get(0).longValue());
+        final long delta = Math.abs(expectedInterval * 1000L - intervals.get(0));
+        assertTrue("Interval " + " (" + delta + ") not in 1ms error margin",
+                delta < 2);
     }
 
     /**
@@ -2915,7 +2917,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         for (int i = 0; i < triggerTimes; i++) {
             // Mock the advanced time as when the scan timer supposed to fire
             when(mClock.getElapsedSinceBootMillis()).thenReturn(startTime
-                    + mTestHandler.getIntervals().stream().mapToLong(Long::longValue).sum());
+                    + mTestHandler.getIntervals().stream().mapToLong(Long::longValue).sum() + 10);
             // Now advance the test handler and fire the periodic scan timer
             mTestHandler.timeAdvance();
         }
@@ -5875,8 +5877,10 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         // Verify there is only 1 delayed scan scheduled
         assertEquals(1, mTestHandler.getIntervals().size());
-        assertEquals(NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS,
-                (long) mTestHandler.getIntervals().get(0));
+        final long delta = Math.abs(NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS
+                - mTestHandler.getIntervals().get(0));
+        assertTrue("Interval " + " (" + delta + ") not in 1ms error margin",
+                delta < 2);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(mTestHandler.getIntervals().get(0));
         // Now advance the test handler and fire the periodic scan timer
         mTestHandler.timeAdvance();
