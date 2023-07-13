@@ -69,7 +69,7 @@ public class AfcServerResponse {
 
         afcServerResponse.setHttpResponseCode(httpResponseCode);
         afcServerResponse.setAfcResponseCode(parseAfcResponseCode(spectrumInquiryResponse));
-        afcServerResponse.setAfcResponseDescription(getResponseShortDescription(
+        afcServerResponse.setAfcResponseDescription(getResponseShortDescriptionFromJSON(
                 spectrumInquiryResponse));
 
         // if encountered an error when parsing AFC response code, return null
@@ -179,7 +179,7 @@ public class AfcServerResponse {
      * Returns the short description of an available spectrum inquiry response, or an empty string
      * if it does not exist.
      */
-    static String getResponseShortDescription(JSONObject responseJSON) {
+    static String getResponseShortDescriptionFromJSON(JSONObject responseJSON) {
         try {
             // parse and return the response description. Throws an error if a field does not exist.
             return responseJSON.getJSONObject("response").getString("shortDescription");
@@ -228,6 +228,13 @@ public class AfcServerResponse {
      */
     public int getHttpResponseCode() {
         return mHttpResponseCode;
+    }
+
+    /**
+     * Returns the AFC response description.
+     */
+    public String getAfcResponseDescription() {
+        return mAfcResponseDescription;
     }
 
     /**
