@@ -3346,11 +3346,14 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     private void registerLOHSRequestFull() {
+        mLooper.startAutoDispatch();
         setupLohsPermissions();
         int result = mWifiServiceImpl.startLocalOnlyHotspot(mLohsCallback, TEST_PACKAGE_NAME,
                 TEST_FEATURE_ID, null, mExtras);
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
         assertEquals(LocalOnlyHotspotCallback.REQUEST_REGISTERED, result);
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
     }
 
     /**
@@ -3359,9 +3362,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testStartLocalOnlyHotspotSingleRegistrationReturnsRequestRegistered() {
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
         verify(mActiveModeWarden).startSoftAp(mSoftApModeConfigCaptor.capture(), any());
     }
 
@@ -3543,9 +3544,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test(expected = IllegalStateException.class)
     public void testStartLocalOnlyHotspotThrowsExceptionWhenCallerAlreadyRegistered() {
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
 
         // now do the second request that will fail
         mWifiServiceImpl.startLocalOnlyHotspot(
@@ -3571,12 +3570,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testStopLocalOnlyHotspotDoesNothingWithRemainingRequest() throws Exception {
-        mLooper.startAutoDispatch();
+
         // register a request that will remain after the stopLOHS call
         mWifiServiceImpl.registerLOHSForTest(mPid, mRequestInfo);
-
+        mLooper.dispatchAll();
         setupLocalOnlyHotspot();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
         // Since we are calling with the same pid, the second register call will be removed
         mWifiServiceImpl.stopLocalOnlyHotspot();
         mLooper.dispatchAll();
@@ -3613,9 +3611,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         SoftApConfiguration lohsConfig = createValidSoftApConfiguration();
         when(mWifiApConfigStore.generateLocalOnlyHotspotConfig(
                 eq(mContext), eq(null), any())).thenReturn(lohsConfig);
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
         verify(mWifiApConfigStore).generateLocalOnlyHotspotConfig(
                 eq(mContext), eq(null), any());
         verifyLohsBand(SoftApConfiguration.BAND_2GHZ);
@@ -3855,17 +3851,18 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testServiceImplNotCalledWhenBinderDeathTriggeredWithRequests() throws Exception {
-        mLooper.startAutoDispatch();
         LocalOnlyRequestorCallback binderDeathCallback =
                 mWifiServiceImpl.new LocalOnlyRequestorCallback();
 
         // registering a request directly from the test will not trigger a message to start
         // softap mode
         mWifiServiceImpl.registerLOHSForTest(mPid, mRequestInfo);
+        mLooper.dispatchAll();
 
         setupLocalOnlyHotspot();
 
         binderDeathCallback.onLocalOnlyHotspotRequestorDeath(mRequestInfo);
+        mLooper.dispatchAll();
         verify(mActiveModeWarden, never()).stopSoftAp(anyInt());
 
         reset(mActiveModeWarden);
@@ -3873,8 +3870,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         // now stop as the second request and confirm CMD_SET_AP will be sent to make sure binder
         // death requestor was removed
         mWifiServiceImpl.stopLocalOnlyHotspot();
+        mLooper.dispatchAll();
         verify(mActiveModeWarden).stopSoftAp(WifiManager.IFACE_IP_MODE_LOCAL_ONLY);
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
     }
 
     /**
@@ -4358,9 +4355,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         SoftApConfiguration lohsConfig = createValidSoftApConfiguration();
         when(mWifiApConfigStore.generateLocalOnlyHotspotConfig(
                 eq(mContext), eq(null), any())).thenReturn(lohsConfig);
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
         verify(mWifiApConfigStore).generateLocalOnlyHotspotConfig(
                 eq(mContext), eq(null), any());
         mWifiServiceImpl.registerLOHSForTest(TEST_PID, mRequestInfo);
@@ -4380,14 +4375,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testRegisterLocalOnlyHotspotRequestAfterAlreadyStartedGetsOnStartedCallback()
             throws Exception {
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.registerLOHSForTest(TEST_PID, mRequestInfo);
+        mLooper.dispatchAll();
 
         changeLohsState(WIFI_AP_STATE_ENABLED, WIFI_AP_STATE_DISABLED, HOTSPOT_NO_ERROR);
         mWifiServiceImpl.updateInterfaceIpState(WIFI_IFACE_NAME, IFACE_IP_MODE_LOCAL_ONLY);
 
         registerLOHSRequestFull();
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
         verify(mLohsCallback).onHotspotStarted(any());
     }
 
@@ -4435,7 +4429,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testCallOnFailedLocalOnlyHotspotRequestWhenTetheringStarts() throws Exception {
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
 
         mWifiServiceImpl.updateInterfaceIpState(WIFI_IFACE_NAME, IFACE_IP_MODE_LOCAL_ONLY);
@@ -4453,7 +4446,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         mWifiServiceImpl.updateInterfaceIpState(WIFI_IFACE_NAME, IFACE_IP_MODE_TETHERED);
         verifyZeroInteractions(ignoreStubs(mLohsCallback));
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
     }
 
     /**
@@ -4463,10 +4455,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testRegisterLocalOnlyHotspotRequestWhenStoppedDoesNotGetOnStoppedCallback()
             throws Exception {
-        mLooper.startAutoDispatch();
         registerLOHSRequestFull();
         verifyZeroInteractions(ignoreStubs(mLohsCallback));
-        stopAutoDispatchWithDispatchAllBeforeStopAndIgnoreExceptions(mLooper);
     }
 
     /**
