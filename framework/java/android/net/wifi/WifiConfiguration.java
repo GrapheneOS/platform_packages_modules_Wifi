@@ -1435,6 +1435,20 @@ public class WifiConfiguration implements Parcelable {
     @SystemApi
     public boolean allowAutojoin = true;
 
+    /**
+     * @hide
+     */
+    public void setIpProvisioningTimedOut(boolean value) {
+        mIpProvisioningTimedOut = value;
+    }
+
+    /**
+     * @hide
+     */
+    public boolean isIpProvisioningTimedOut() {
+        return mIpProvisioningTimedOut;
+    }
+
     /** @hide **/
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
     public static int INVALID_RSSI = -127;
@@ -1621,6 +1635,11 @@ public class WifiConfiguration implements Parcelable {
      * True if this configuration is intended to be repeater enabled to expand coverage.
      */
     private boolean mIsRepeaterEnabled;
+
+    /**
+     * @hide
+     */
+    private boolean mIpProvisioningTimedOut;
 
     /**
      * Sets if this configuration is intended to be repeater enabled for expanded coverage.
@@ -3244,6 +3263,7 @@ public class WifiConfiguration implements Parcelable {
         mHasPreSharedKeyChanged = false;
         mEncryptedPreSharedKey = new byte[0];
         mEncryptedPreSharedKeyIv = new byte[0];
+        mIpProvisioningTimedOut = false;
     }
 
     /**
@@ -4009,6 +4029,7 @@ public class WifiConfiguration implements Parcelable {
                     ? source.mEncryptedPreSharedKey.clone() : new byte[0];
             mEncryptedPreSharedKeyIv = source.mEncryptedPreSharedKeyIv != null
                     ? source.mEncryptedPreSharedKeyIv.clone() : new byte[0];
+            mIpProvisioningTimedOut = source.mIpProvisioningTimedOut;
         }
     }
 
@@ -4106,6 +4127,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeBoolean(mHasPreSharedKeyChanged);
         dest.writeByteArray(mEncryptedPreSharedKey);
         dest.writeByteArray(mEncryptedPreSharedKeyIv);
+        dest.writeBoolean(mIpProvisioningTimedOut);
     }
 
     /** Implement the Parcelable interface {@hide} */
@@ -4223,6 +4245,7 @@ public class WifiConfiguration implements Parcelable {
                 if (config.mEncryptedPreSharedKeyIv == null) {
                     config.mEncryptedPreSharedKeyIv = new byte[0];
                 }
+                config.mIpProvisioningTimedOut = in.readBoolean();
                 return config;
             }
 

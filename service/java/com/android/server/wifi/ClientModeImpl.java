@@ -2564,6 +2564,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /** Check whether this connection is for local only network due to Ip Provisioning Timeout. */
+    @Override
     public boolean isIpProvisioningTimedOut() {
         return mIpProvisioningTimedOut;
     }
@@ -6866,6 +6867,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiConnectivityManager.handleConnectionStateChanged(
                     mClientModeManager,
                     WifiConnectivityManager.WIFI_STATE_CONNECTED);
+            mWifiConfigManager.setIpProvisioningTimedOut(mLastNetworkId, true);
             sendNetworkChangeBroadcast(DetailedState.CONNECTED);
         };
 
@@ -6887,6 +6889,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         public void exitImpl() {
             mIpProvisioningTimedOut = false;
             removeMessages(CMD_IP_PROVISIONING_TIMEOUT);
+            mWifiConfigManager.setIpProvisioningTimedOut(mLastNetworkId, false);
         }
 
         @Override
