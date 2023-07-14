@@ -406,9 +406,12 @@ public class WifiDialogActivity extends Activity  {
                             // Round up to the nearest whole second.
                             secondsRemaining++;
                         }
-                        dialog.setMessage(MessageFormat.format(
+                        TextView timeRemaining = dialog.getWindow().findViewById(
+                                getWifiViewId("time_remaining"));
+                        timeRemaining.setText(MessageFormat.format(
                                 getWifiString("wifi_p2p_invitation_seconds_remaining"),
                                 secondsRemaining));
+                        timeRemaining.setVisibility(View.VISIBLE);
                     }
                 }
 
@@ -586,15 +589,15 @@ public class WifiDialogActivity extends Activity  {
             @Nullable final String deviceName,
             final boolean isPinRequested,
             @Nullable final String displayPin) {
-        final View textEntryView = getWifiLayoutInflater()
-                .inflate(getWifiLayoutId("wifi_p2p_dialog"), null);
-        ViewGroup group = textEntryView.findViewById(getWifiViewId("info"));
         if (TextUtils.isEmpty(deviceName)) {
             Log.w(TAG, "P2P Invitation Received dialog device name is null or empty."
                     + " id=" + dialogId
                     + " deviceName=" + deviceName
                     + " displayPin=" + displayPin);
         }
+        final View textEntryView = getWifiLayoutInflater()
+                .inflate(getWifiLayoutId("wifi_p2p_dialog"), null);
+        ViewGroup group = textEntryView.findViewById(getWifiViewId("info"));
         addRowToP2pDialog(group, getWifiString("wifi_p2p_from_message"), deviceName);
 
         final EditText pinEditText;
@@ -612,8 +615,6 @@ public class WifiDialogActivity extends Activity  {
 
         AlertDialog dialog = getWifiAlertDialogBuilder("wifi_p2p_invitation_received_dialog")
                 .setTitle(getWifiString("wifi_p2p_invitation_to_connect_title"))
-                // Set the message to "" to allow us to modify it after building (b/36913966).
-                .setMessage("")
                 .setView(textEntryView)
                 .setPositiveButton(getWifiString("accept"), (dialogPositive, which) -> {
                     String pin = null;
