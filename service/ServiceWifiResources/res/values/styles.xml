@@ -46,6 +46,8 @@
     <style name="wifi_dialog" parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert" />
     <style name="wifi_p2p_invitation_received_dialog" parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert" />
 
+    <style name="wifi_p2p_dialog_timeout" parent="@style/wifi_item" />
+
     <style name="wifi_p2p_dialog_row_label" parent="@style/wifi_item_label" />
 
     <style name="wifi_p2p_dialog_row_content" parent="@style/wifi_item_content">

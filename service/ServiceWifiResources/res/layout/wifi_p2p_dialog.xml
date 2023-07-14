@@ -23,6 +23,10 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <TextView android:id="@+id/time_remaining"
+                  style="@style/wifi_p2p_dialog_timeout"
+                  android:visibility="gone"/>
+
         <LinearLayout android:id="@+id/info"
             style="@style/wifi_section" />
 
