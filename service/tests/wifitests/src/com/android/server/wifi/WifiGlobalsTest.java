@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static junit.framework.Assert.assertEquals;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +36,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.List;
 
 
 /** Unit tests for {@link WifiGlobals} */
@@ -59,6 +62,7 @@ public class WifiGlobalsTest extends WifiBaseTest {
         mResources.setBoolean(R.bool.config_wifiSaveFactoryMacToWifiConfigStore, true);
         mResources.setStringArray(R.array.config_wifiForceDisableMacRandomizationSsidPrefixList,
                 new String[] {TEST_SSID});
+        mResources.setStringArray(R.array.config_wifiAfcServerUrlsForCountry, new String[] {});
         when(mContext.getResources()).thenReturn(mResources);
 
         mWifiGlobals = new WifiGlobals(mContext);
@@ -177,5 +181,35 @@ public class WifiGlobalsTest extends WifiBaseTest {
         config.allowedProtocols.clear(WifiConfiguration.Protocol.RSN);
 
         assertTrue(mWifiGlobals.isDeprecatedSecurityTypeNetwork(config));
+    }
+
+    /**
+     * Test that the correct AFC server URLs are returned for a country.
+     */
+    @Test
+    public void testAfcServerUrlByCountry() {
+        String afcServerUS1 = "https://example.com/";
+        String afcServerUS2 = "https://www.google.com/";
+        String afcServerUS3 = "https://www.android.com/";
+        mResources.setStringArray(R.array.config_wifiAfcServerUrlsForCountry,
+                new String[] {"US," + afcServerUS1 + "," + afcServerUS2 + "," + afcServerUS3});
+        mWifiGlobals = new WifiGlobals(mContext);
+
+        List<String> afcServersForUS = mWifiGlobals.getAfcServerUrlsForCountry("US");
+        assertEquals(3, afcServersForUS.size());
+        assertEquals(afcServerUS1, afcServersForUS.get(0));
+        assertEquals(afcServerUS2, afcServersForUS.get(1));
+        assertEquals(afcServerUS3, afcServersForUS.get(2));
+    }
+
+    /**
+     * Verify that null is returned when attempting to access the AFC server URL list of a country
+     * where AFC is not available.
+     */
+    @Test
+    public void testAfcServerUrlCountryUnavailable() {
+        mResources.setStringArray(R.array.config_wifiAfcServerUrlsForCountry, new String[] {});
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertNull(mWifiGlobals.getAfcServerUrlsForCountry("US"));
     }
 }

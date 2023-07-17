@@ -308,6 +308,7 @@
           <item type="bool" name="config_wifiAwareNdpSecurityUpdateOnSameNdi" />
           <item type="array" name="config_wifiBackgroundRttThrottleExceptionList" />
           <item type="array" name="config_wifiCharsetsForSsidTranslation" />
+          <item type="array" name="config_wifiAfcServerUrlsForCountry" />
           <item type="string" name="config_wifiBugreportDeepLink" />
           <item type="bool" name="config_wifiWaitForDestroyedListeners" />
           <item type="integer" name="config_wifiNetworkSpecifierMaxPreferredChannels" />

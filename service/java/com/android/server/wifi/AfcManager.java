@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.annotation.Nullable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -59,6 +60,7 @@ public class AfcManager {
     private boolean mVerboseLoggingEnabled = false;
     private AfcLocation mLastAfcLocationInSuccessfulQuery;
     private AfcServerResponse mLatestAfcServerResponse;
+    private String mAfcServerUrl;
 
     public AfcManager(WifiContext context, WifiInjector wifiInjector) {
         mContext = context;
@@ -67,7 +69,6 @@ public class AfcManager {
         mWifiHandlerThread = wifiInjector.getWifiHandlerThread();
         mWifiGlobals = wifiInjector.getWifiGlobals();
         mWifiNative = wifiInjector.getWifiNative();
-
         mAfcLocationUtil = wifiInjector.getAfcLocationUtil();
         mAfcClient = wifiInjector.getAfcClient();
 
@@ -212,6 +213,7 @@ public class AfcManager {
         // Convert the Location object to an AfcLocation object
         AfcLocation afcLocationForQuery = mAfcLocationUtil.createAfcLocation(
                 location);
+        mAfcClient.setServerURL(mAfcServerUrl);
 
         mAfcClient.queryAfcServer(afcLocationForQuery, new Handler(mWifiHandlerThread.getLooper()),
                 mCallback);
@@ -228,12 +230,16 @@ public class AfcManager {
             return;
         }
         mLastKnownCountryCode = countryCode;
+        List<String> afcServerUrlsForCountry = mWifiGlobals.getAfcServerUrlsForCountry(countryCode);
 
-        String afcServerUrlForCountry = mWifiGlobals.getAfcServerUrlForCountry(countryCode);
-        // Todo: set the AFC server URL based on country code
+        if (afcServerUrlsForCountry == null || afcServerUrlsForCountry.size() == 0) {
+            mAfcServerUrl = null;
+        } else {
+            mAfcServerUrl = afcServerUrlsForCountry.get(0);
+        }
 
         // if AFC support has not changed, we do not need to do anything else
-        if (mIsAfcSupportedForCurrentCountry == (afcServerUrlForCountry != null)) return;
+        if (mIsAfcSupportedForCurrentCountry == (afcServerUrlsForCountry != null)) return;
 
         mIsAfcSupportedForCurrentCountry = !mIsAfcSupportedForCurrentCountry;
         getLocationManager();
@@ -251,7 +257,6 @@ public class AfcManager {
             afcChannelAllowance.availableAfcFrequencyInfos = new ArrayList<>();
             afcChannelAllowance.availableAfcChannelInfos = new ArrayList<>();
             setAfcChannelAllowance(afcChannelAllowance);
-
             return;
         }
 
@@ -353,5 +358,11 @@ public class AfcManager {
     @VisibleForTesting
     AfcLocation getLastAfcLocationInSuccessfulQuery() {
         return mLastAfcLocationInSuccessfulQuery;
+    }
+
+    @VisibleForTesting
+    @Nullable
+    String getAfcServerUrl() {
+        return mAfcServerUrl;
     }
 }
