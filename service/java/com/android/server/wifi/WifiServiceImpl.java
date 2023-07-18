@@ -5203,13 +5203,11 @@ public class WifiServiceImpl extends BaseWifiService {
                 err.getFileDescriptor(), args);
     }
 
+
     private void updateWifiMetrics() {
-        mWifiThreadRunner.run(() -> {
-            mWifiMetrics.updateSavedNetworks(
-                    mWifiConfigManager.getSavedNetworks(WIFI_UID));
-            mActiveModeWarden.updateMetrics();
-            mPasspointManager.updateMetrics();
-        });
+        mWifiMetrics.updateSavedNetworks(mWifiConfigManager.getSavedNetworks(WIFI_UID));
+        mActiveModeWarden.updateMetrics();
+        mPasspointManager.updateMetrics();
         boolean isNonPersistentMacRandEnabled = mFrameworkFacade.getIntegerSetting(mContext,
                 WifiConfigManager.NON_PERSISTENT_MAC_RANDOMIZATION_FEATURE_FORCE_ENABLE_FLAG, 0)
                 == 1 ? true : false;
