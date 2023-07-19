@@ -778,16 +778,6 @@ public class WifiConnectivityManager {
         WifiConfiguration candidate = mNetworkSelector.selectNetwork(candidates);
         if (candidate != null) {
             localLog(listenerName + ":  WNS candidate-" + candidate.SSID);
-            if (hasMultiInternetConnection()) {
-                // Disconnect secondary cmm first before connecting the primary.
-                final ConcreteClientModeManager secondaryCcm = mActiveModeWarden
-                        .getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED);
-                if (secondaryCcm != null && isClientModeManagerConnectedOrConnectingToCandidate(
-                        secondaryCcm, candidate)) {
-                    localLog("Disconnect secondary first.");
-                    secondaryCcm.disconnect();
-                }
-            }
             connectToNetworkForPrimaryCmmUsingMbbIfAvailable(candidate);
             handleScanResultsWithCandidate(handleScanResultsListener);
         } else {
@@ -1744,6 +1734,16 @@ public class WifiConnectivityManager {
                     + " does not match the config specified BSSID " + targetNetwork.BSSID
                     + ". Drop it!");
             return;
+        }
+        if (hasMultiInternetConnection() && clientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+            // Disconnect secondary cmm first before connecting the primary.
+            final ConcreteClientModeManager secondaryCcm = mActiveModeWarden
+                    .getClientModeManagerInRole(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+            if (secondaryCcm != null && isClientModeManagerConnectedOrConnectingToCandidate(
+                    secondaryCcm, targetNetwork)) {
+                localLog("Disconnect secondary first.");
+                secondaryCcm.disconnect();
+            }
         }
 
         WifiConfiguration currentNetwork = coalesce(
