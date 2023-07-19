@@ -132,6 +132,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.hardware.wifi.WifiStatusCode;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.DhcpInfo;
 import android.net.DhcpOption;
 import android.net.DhcpResultsParcelable;
@@ -450,6 +452,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock LinkProbeManager mLinkProbeManager;
     @Mock IOnWifiDriverCountryCodeChangedListener mIOnWifiDriverCountryCodeChangedListener;
     @Mock WifiShellCommand mWifiShellCommand;
+    @Mock AfcManager mAfcManager;
+    @Mock LocationManager mLocationManager;
     @Mock DevicePolicyManager mDevicePolicyManager;
     @Mock HalDeviceManager mHalDeviceManager;
     @Mock WifiDialogManager mWifiDialogManager;
@@ -459,7 +463,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock WifiPulledAtomLogger mWifiPulledAtomLogger;
     @Mock ScoringParams mScoringParams;
     @Mock ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
-
+    @Mock Location mLocation;
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
     @Captor ArgumentCaptor<List> mListCaptor;
 
@@ -510,6 +514,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getBuildProperties()).thenReturn(mBuildProperties);
         when(mWifiInjector.getLinkProbeManager()).thenReturn(mLinkProbeManager);
         when(mWifiInjector.makeWifiShellCommand(any())).thenReturn(mWifiShellCommand);
+        when(mWifiInjector.getAfcManager()).thenReturn(mAfcManager);
         // needed to mock this to call "handleBootCompleted"
         when(mWifiInjector.getPasspointProvisionerHandlerThread())
                 .thenReturn(mock(HandlerThread.class));
@@ -527,6 +532,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mFrameworkFacade.getSettingsWorkSource(any())).thenReturn(TEST_SETTINGS_WORKSOURCE);
         when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mContext.getSystemService(Context.APP_OPS_SERVICE)).thenReturn(mAppOpsManager);
+        when(mContext.getSystemService(LocationManager.class)).thenReturn(mLocationManager);
         IPowerManager powerManagerService = mock(IPowerManager.class);
         IThermalService thermalService = mock(IThermalService.class);
         mPowerManager =
@@ -631,6 +637,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getScoringParams()).thenReturn(mScoringParams);
         when(mWifiInjector.getApplicationQosPolicyRequestHandler())
                 .thenReturn(mApplicationQosPolicyRequestHandler);
+        when(mLocationManager.getProviders(anyBoolean())).thenReturn(List.of(
+                LocationManager.FUSED_PROVIDER, LocationManager.PASSIVE_PROVIDER,
+                LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER));
 
         doAnswer(new AnswerWithArguments() {
             public void answer(Runnable onStoppedListener) throws Throwable {
@@ -11669,5 +11678,18 @@ public class WifiServiceImplTest extends WifiBaseTest {
             }));
         }
         assertTrue(entries == supportedBandsSet.size());
+    }
+
+    /**
+     * Verify that on a country code change, we inform the AFC Manager.
+     */
+    @Test
+    public void testInformAfcManagerOnCountryCodeChange() {
+        final String newCountryCode = "US";
+        mWifiServiceImpl.mCountryCodeTracker.onDriverCountryCodeChanged(newCountryCode);
+        mLooper.dispatchAll();
+
+        // check that we let the AFC Manager know that the country code has changed
+        verify(mAfcManager).onCountryCodeChange(newCountryCode);
     }
 }

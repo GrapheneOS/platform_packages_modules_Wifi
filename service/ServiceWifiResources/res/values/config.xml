@@ -33,6 +33,13 @@
     <!-- boolean indicating whether the WiFi chipset has 6GHz band support -->
     <bool translatable="false" name ="config_wifi6ghzSupport">false</bool>
 
+    <!-- Boolean indicating whether the device supports AFC.
+            Note that this flag should remain disabled unless the device is allowed to
+            use AFC by the regulatory rules.
+            Note that enabling AFC will result in the device's location being shared
+            with the AFC server. -->
+    <bool translatable="false" name ="config_wifiAfcSupported">false</bool>
+
     <!-- boolean indicating whether the WiFi chipset has 60GHz band support -->
     <bool translatable="false" name ="config_wifi60ghzSupport">false</bool>
 
