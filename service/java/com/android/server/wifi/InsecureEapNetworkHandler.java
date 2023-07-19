@@ -259,19 +259,23 @@ public class InsecureEapNetworkHandler {
     /**
      * Stores a received certificate for later use.
      *
-     * @param ssid the target network SSID.
+     * @param networkId networkId of the target network.
      * @param depth the depth of this cert. The Root CA should be 0 or
      *        a positive number, and the server cert is 0.
      * @param certInfo a certificate info object from the server.
      * @return true if the cert is cached; otherwise, false.
      */
-    public boolean addPendingCertificate(@NonNull String ssid, int depth,
+    public boolean addPendingCertificate(int networkId, int depth,
             @NonNull CertificateEventInfo certInfo) {
         String configProfileKey = mCurrentTofuConfig != null
                 ? mCurrentTofuConfig.getProfileKey() : "null";
-        if (TextUtils.isEmpty(ssid)) return false;
+        if (networkId == WifiConfiguration.INVALID_NETWORK_ID) {
+            return false;
+        }
         if (null == mCurrentTofuConfig) return false;
-        if (!TextUtils.equals(ssid, mCurrentTofuConfig.SSID)) return false;
+        if (mCurrentTofuConfig.networkId != networkId) {
+            return false;
+        }
         if (null == certInfo) return false;
         if (depth < 0) return false;
 
@@ -295,8 +299,9 @@ public class InsecureEapNetworkHandler {
 
         if (!mServerCertChain.contains(certInfo.getCert())) {
             mServerCertChain.addFirst(certInfo.getCert());
-            Log.d(TAG, "addPendingCertificate: " + "SSID=" + ssid + " depth=" + depth
-                    + " certHash=" + certInfo.getCertHash() + " current config=" + configProfileKey
+            Log.d(TAG, "addPendingCertificate: " + "SSID=" + mCurrentTofuConfig.SSID
+                    + " depth=" + depth + " certHash=" + certInfo.getCertHash()
+                    + " current config=" + configProfileKey
                     + "\ncertificate content:\n" + certInfo.getCert());
         }
 
