@@ -626,12 +626,26 @@ public class WifiMetrics {
         private long mSessionEndTimeMillis;
         private int mBand;
         private int mAuthType;
+        private ConnectionEvent mConnectionEvent;
+        private long mLastRoamCompleteMillis;
 
-        SessionData(String ssid, long sessionStartTimeMillis, int band, int authType) {
+        SessionData(ConnectionEvent connectionEvent, String ssid, long sessionStartTimeMillis,
+                int band, int authType) {
+            mConnectionEvent = connectionEvent;
             mSsid = ssid;
             mSessionStartTimeMillis = sessionStartTimeMillis;
             mBand = band;
             mAuthType = authType;
+            mLastRoamCompleteMillis = sessionStartTimeMillis;
+        }
+    }
+
+    /**
+     * Sets the timestamp after roaming is complete.
+     */
+    public void onRoamComplete() {
+        if (mCurrentSession != null) {
+            mCurrentSession.mLastRoamCompleteMillis = mClock.getElapsedSinceBootMillis();
         }
     }
 
@@ -2117,7 +2131,8 @@ public class WifiMetrics {
                                 - currentConnectionEvent.mConnectionEvent.startTimeSinceBootMillis);
 
                 if (connectionSucceeded) {
-                    mCurrentSession = new SessionData(currentConnectionEvent.mConfigSsid,
+                    mCurrentSession = new SessionData(currentConnectionEvent,
+                            currentConnectionEvent.mConfigSsid,
                             mClock.getElapsedSinceBootMillis(),
                             band, currentConnectionEvent.mAuthType);
 
@@ -2175,7 +2190,7 @@ public class WifiMetrics {
      * @param linkSpeed Last seen link speed.
      */
     public void reportNetworkDisconnect(String ifaceName, int disconnectReason, int rssi,
-            int linkSpeed) {
+            int linkSpeed, long lastRssiUpdateMillis) {
         synchronized (mLock) {
             if (!isPrimary(ifaceName)) {
                 return;
@@ -2189,6 +2204,10 @@ public class WifiMetrics {
                 mCurrentSession.mSessionEndTimeMillis = mClock.getElapsedSinceBootMillis();
                 int durationSeconds = (int) (mCurrentSession.mSessionEndTimeMillis
                         - mCurrentSession.mSessionStartTimeMillis) / 1000;
+                int connectedSinceLastRoamSeconds = (int) (mCurrentSession.mSessionEndTimeMillis
+                        - mCurrentSession.mLastRoamCompleteMillis) / 1000;
+                int timeSinceLastRssiUpdateSeconds = (int) (mClock.getElapsedSinceBootMillis()
+                        - lastRssiUpdateMillis) / 1000;
 
                 WifiStatsLog.write(WifiStatsLog.WIFI_DISCONNECT_REPORTED,
                         durationSeconds,
@@ -2196,7 +2215,13 @@ public class WifiMetrics {
                         mCurrentSession.mBand,
                         mCurrentSession.mAuthType,
                         rssi,
-                        linkSpeed);
+                        linkSpeed,
+                        timeSinceLastRssiUpdateSeconds,
+                        connectedSinceLastRoamSeconds,
+                        mCurrentSession.mConnectionEvent.mRole,
+                        toMetricEapType(mCurrentSession.mConnectionEvent.mEapType),
+                        toMetricPhase2Method(mCurrentSession.mConnectionEvent.mPhase2Method),
+                        0);
 
                 mPreviousSession = mCurrentSession;
                 mCurrentSession = null;

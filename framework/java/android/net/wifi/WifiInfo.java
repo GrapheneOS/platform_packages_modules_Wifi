@@ -38,6 +38,7 @@ import android.net.TransportInfo;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.SystemClock;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
 
@@ -213,6 +214,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * Received Signal Strength Indicator
      */
     private int mRssi;
+    private long mLastRssiUpdateMillis;
 
     /**
      * Wi-Fi standard for the connection
@@ -969,6 +971,14 @@ public class WifiInfo implements TransportInfo, Parcelable {
         if (rssi > MAX_RSSI)
             rssi = MAX_RSSI;
         mRssi = rssi;
+        mLastRssiUpdateMillis = SystemClock.elapsedRealtime();
+    }
+
+    /**
+     * @hide
+     */
+    public long getLastRssiUpdateMillis() {
+        return mLastRssiUpdateMillis;
     }
 
     /**
