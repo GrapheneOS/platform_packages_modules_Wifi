@@ -105,11 +105,11 @@ public class DppManagerTest extends WifiBaseTest {
     private static final int TEST_PEER_ID = 1;
     private static final int TEST_BOOTSTRAP_ID = 1;
     private static final int TEST_LISTEN_CHANNEL = 6;
-    private static final String TEST_SSID = "\"Test_SSID\"";
+    private static final String TEST_SSID = "\"テストSSID\""; // Make sure we test with non-ASCII
     private static final String TEST_SSID_NO_QUOTE = TEST_SSID.replace("\"", "");
-    private static final String TEST_SSID_ENCODED = "546573745f53534944";
-    private static final String TEST_PASSWORD = "\"secretPassword\"";
-    private static final String TEST_PASSWORD_ENCODED = "73656372657450617373776f7264";
+    private static final String TEST_SSID_ENCODED = "e38386e382b9e3838853534944";
+    private static final String TEST_PASSWORD = "\"テストPassword\"";
+    private static final String TEST_PASSWORD_ENCODED = "e38386e382b9e3838850617373776f7264";
     private static final int TEST_NETWORK_ID = 1;
     private static final String TEST_BSSID = "01:02:03:04:05:06";
     private static final String TEST_PACKAGE_NAME = "TestPackage";
