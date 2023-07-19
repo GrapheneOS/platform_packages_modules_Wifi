@@ -253,6 +253,7 @@ public class WifiInjector {
     private final InterfaceConflictManager mInterfaceConflictManager;
     private final AfcManager mAfcManager;
     private final WifiContext mContextWithAttributionTag;
+    private final AfcClient mAfcClient;
     @NonNull private final WifiDialogManager mWifiDialogManager;
     @NonNull private final SsidTranslator mSsidTranslator;
     @NonNull private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
@@ -578,6 +579,7 @@ public class WifiInjector {
         // {@link LocationManager#getCurrentLocation}, so we need to pass mContextWithAttributionTag
         // instead of mContext to the AfcManager.
         mAfcManager = new AfcManager(mContextWithAttributionTag, this);
+        mAfcClient = new AfcClient();
     }
 
     /**
@@ -1195,6 +1197,7 @@ public class WifiInjector {
     public MultiInternetManager getMultiInternetManager() {
         return mMultiInternetManager;
     }
+
     public AfcManager getAfcManager() {
         return mAfcManager;
     }
@@ -1205,6 +1208,10 @@ public class WifiInjector {
 
     public WifiContext getContextWithAttributionTag() {
         return mContextWithAttributionTag;
+    }
+
+    public AfcClient getAfcClient() {
+        return mAfcClient;
     }
 
     /**

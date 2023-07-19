@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import android.location.Location;
+import android.util.Log;
 
 import org.json.JSONObject;
 
@@ -27,17 +28,17 @@ import java.util.Random;
  * center point of the ellipse with a center leeway parameter.
  */
 public class AfcEllipseLocation extends AfcLocation {
+    private static final String TAG = "WifiAfcEllipseLocation";
+    static final int DEFAULT_SEMI_MAJOR_AXIS_METERS = 500;
+    static final int DEFAULT_SEMI_MINOR_AXIS_METERS = 500;
+    static final float DEFAULT_ORIENTATION = 90f;
+    static final int DEFAULT_CENTER_LEEWAY_METERS = 250;
     double mLatitude;
     double mLongitude;
     int mSemiMajorAxis;
     int mSemiMinorAxis;
     double mOrientation;
     double mCenterLeeway;
-
-    static final int DEFAULT_SEMI_MAJOR_AXIS_METERS = 500;
-    static final int DEFAULT_SEMI_MINOR_AXIS_METERS = 500;
-    static final float DEFAULT_ORIENTATION = 90f;
-    static final int DEFAULT_CENTER_LEEWAY_METERS = 250;
 
     /**
      * @param semiMinorAxisMeters The length of the semi major axis of an ellipse which is a
@@ -71,10 +72,36 @@ public class AfcEllipseLocation extends AfcLocation {
                 - mCenterLeeway);
     }
 
-    // TODO(b/288195475): Implement in future CL
+    /**
+     * Create a location JSONObject that has the ellipse fields for AFC server queries.
+     */
     @Override
     public JSONObject toJson() {
-        return null;
+        try {
+            JSONObject location = new JSONObject();
+            JSONObject ellipse = new JSONObject();
+            JSONObject center = new JSONObject();
+
+            center.put("latitude", mLatitude);
+            center.put("longitude", mLongitude);
+            ellipse.put("center", center);
+            ellipse.put("majorAxis", mSemiMajorAxis);
+            ellipse.put("minorAxis", mSemiMinorAxis);
+            ellipse.put("orientation", mOrientation);
+            location.put("ellipse", ellipse);
+
+            JSONObject elevation = new JSONObject();
+            elevation.put("height", mHeight);
+            elevation.put("verticalUncertainty", mVerticalUncertainty);
+            elevation.put("height_type", mHeightType);
+            location.put("elevation", elevation);
+            location.put("indoorDeployment", mLocationType);
+
+            return location;
+        } catch (Exception e) {
+            Log.e(TAG, "Encountered error when building JSON object: " + e);
+            return null;
+        }
     }
 
     /**
