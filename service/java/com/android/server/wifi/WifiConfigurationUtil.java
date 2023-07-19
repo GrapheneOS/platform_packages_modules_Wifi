@@ -475,8 +475,7 @@ public class WifiConfigurationUtil {
         return true;
     }
 
-    private static boolean validatePassword(String password, boolean isAdd, boolean isSae,
-            boolean isWapi) {
+    private static boolean validatePassword(String password, boolean isAdd, boolean isSae) {
         if (isAdd) {
             if (password == null) {
                 Log.e(TAG, "validatePassword: null string");
@@ -518,10 +517,7 @@ public class WifiConfigurationUtil {
             }
         } else {
             // HEX PSK string
-            if (isWapi && password.length() > 100) {
-                // Protect system against malicious actors injecting arbitrarily large passwords.
-                return false;
-            } else if (password.length() != PSK_SAE_HEX_LEN) {
+            if (password.length() != PSK_SAE_HEX_LEN) {
                 Log.e(TAG, "validatePassword failed: hex string size mismatch: "
                         + password.length());
                 return false;
@@ -729,15 +725,15 @@ public class WifiConfigurationUtil {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
-                && !validatePassword(config.preSharedKey, isAdd, false, false)) {
+                && !validatePassword(config.preSharedKey, isAdd, false)) {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)
-                && !validatePassword(config.preSharedKey, isAdd, true, false)) {
+                && !validatePassword(config.preSharedKey, isAdd, true)) {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK)
-                && !validatePassword(config.preSharedKey, isAdd, false, true)) {
+                && !validatePassword(config.preSharedKey, isAdd, false)) {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_DPP)
@@ -901,11 +897,11 @@ public class WifiConfigurationUtil {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
-                && !validatePassword(config.preSharedKey, true, false, false)) {
+                && !validatePassword(config.preSharedKey, true, false)) {
             return false;
         }
         if (config.isSecurityType(WifiConfiguration.SECURITY_TYPE_SAE)
-                && !validatePassword(config.preSharedKey, true, true, false)) {
+                && !validatePassword(config.preSharedKey, true, true)) {
             return false;
         }
         // TBD: Validate some enterprise params as well in the future here.
