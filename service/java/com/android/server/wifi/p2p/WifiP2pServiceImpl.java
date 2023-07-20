@@ -3926,6 +3926,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         mGroup = (WifiP2pGroup) message.obj;
                         if (mVerboseLoggingEnabled) logd(getName() + " group started");
+                        if (mWifiNative.p2pExtListen(false, 0, 0)) {
+                            sendP2pListenChangedBroadcast(false);
+                        }
+                        mWifiNative.p2pStopFind();
                         if (mGroup.isGroupOwner()
                                 && EMPTY_DEVICE_ADDRESS.equals(mGroup.getOwner().deviceAddress)) {
                             // wpa_supplicant doesn't set own device address to go_dev_addr.
@@ -4069,6 +4073,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                         .setFallbackToNegotiationOnInviteStatusInfoUnavailable();
                                 p2pConnectWithPinDisplay(mSavedPeerConfig,
                                         P2P_CONNECT_TRIGGER_OTHER);
+                            } else {
+                                mWifiNative.p2pStopFind();
+                                if (mWifiNative.p2pExtListen(true,
+                                        mContext.getResources().getInteger(
+                                                R.integer.config_wifiP2pExtListenPeriodMs),
+                                        mContext.getResources().getInteger(
+                                                R.integer.config_wifiP2pExtListenIntervalMs))) {
+                                    logd(" started listen to receive the invitation Request"
+                                            + " frame from Peer device.");
+                                    sendP2pListenChangedBroadcast(true);
+                                }
                             }
                         } else if (status == P2pStatus.NO_COMMON_CHANNEL) {
                             smTransition(this, mFrequencyConflictState);
