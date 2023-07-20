@@ -209,7 +209,6 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final SsidTranslator mSsidTranslator;
     private final WifiDiagnostics mWifiDiagnostics;
     private final DeviceConfigFacade mDeviceConfig;
-    private final AfcClient mAfcClient;
     private final AfcManager mAfcManager;
     private static final int[] OP_MODE_LIST = {
             WifiAvailableChannel.OP_MODE_STA,
@@ -459,7 +458,6 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mSsidTranslator = wifiInjector.getSsidTranslator();
         mWifiDiagnostics = wifiInjector.getWifiDiagnostics();
         mDeviceConfig = wifiInjector.getDeviceConfigFacade();
-        mAfcClient = wifiInjector.getAfcClient();
         mAfcManager = wifiInjector.getAfcManager();
     }
 
@@ -1824,8 +1822,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     location.setLongitude(longitude);
                     location.setLatitude(latitude);
                     location.setAltitude(height);
-                    mWifiThreadRunner.post(() -> mAfcManager.onLocationChange(location));
-                    pw.println("The updated location with longitude of " + longitude + "degrees, "
+                    mWifiThreadRunner.post(() -> mAfcManager.onLocationChange(location, true));
+                    pw.println("The updated location with longitude of " + longitude + " degrees, "
                             + "latitude of " + latitude + " degrees, and height of " + height
                             + " meters was passed into the Afc Manager onLocationChange method.");
                     return 0;
@@ -1961,6 +1959,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 }
                 case "configure-afc-server":
                     final String url = getNextArgRequired();
+
                     if (!url.startsWith("http")) {
                         pw.println("The required URL first argument is not a valid server URL for"
                                 + " a HTTP request.");
@@ -1997,8 +1996,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
 
                     mWifiThreadRunner.post(() -> {
-                        mAfcClient.setServerURL(url);
-                        mAfcClient.setRequestPropertyPairs(requestProperties);
+                        mAfcManager.setServerUrlAndRequestPropertyPairs(url, requestProperties);
                     });
 
                     pw.println("The URL is set to " + url);
@@ -3065,7 +3063,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Passes in longitude, latitude, and height values as arguments of type "
                 + "double for a fake location update to trigger framework logic to query the AFC "
                 + "server. The longitude and latitude pair is in decimal degrees and the height"
-                + " is the altitude in meters.");
+                + " is the altitude in meters. The server URL needs to have been previously set "
+                + "with the configure-afc-server shell command.");
         pw.println("    Example: trigger-afc-location-update 37.425056 -122.984157 3.043");
         pw.println("  set-afc-channel-allowance -e <secs_until_expiry> [-f <low_freq>,<high_freq>,"
                 + "<psd>:...|none] [-c <operating_class>,<channel_cfi>,<max_eirp>:...|none]");
@@ -3086,7 +3085,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  configure-afc-server <url> [-r [<request property key> <request property "
                 + "value>] ...]");
         pw.println("    Sets the server URL and request properties for the HTTP request which the "
-                + "mAfcClient will query.");
+                + "AFC Client will query.");
         pw.println("    -r - HTTP header fields that come in pairs of key and value which are added"
                 + " to the HTTP request. Must be an even number of arguments. If there is no -r "
                 + "option provided or no arguments provided after the -r option, then set the "
