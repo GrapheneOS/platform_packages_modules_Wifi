@@ -23,6 +23,8 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -31,6 +33,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.WifiContext;
+import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 
@@ -38,9 +41,12 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.HandlerExecutor;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -52,26 +58,35 @@ import java.util.function.Consumer;
  */
 @SmallTest
 public class AfcManagerTest extends WifiBaseTest {
+    @Captor ArgumentCaptor<AfcClient.Callback> mAfcClientCallbackCaptor;
     @Mock Clock mClock;
     @Mock WifiContext mContext;
-    @Mock Location mLocation;
+    @Mock AfcLocation mAfcLocation;
     @Mock LocationManager mLocationManager;
+    @Mock Location mLocation;
     @Mock Looper mLooper;
     @Mock HandlerThread mWifiHandlerThread;
     @Mock WifiInjector mWifiInjector;
     @Mock WifiNative mWifiNative;
     @Mock WifiGlobals mWifiGlobals;
+    @Mock AfcLocationUtil mAfcLocationUtil;
+    @Mock AfcClient mAfcClient;
     private AfcManager mAfcManager;
+    private static final String EXPIRATION_DATE = "2020-11-03T13:34:05Z";
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+
+        mAfcClientCallbackCaptor = ArgumentCaptor.forClass(AfcClient.Callback.class);
 
         when(mContext.getSystemService(LocationManager.class)).thenReturn(mLocationManager);
         when(mWifiInjector.getWifiHandlerThread()).thenReturn(mWifiHandlerThread);
         when(mWifiInjector.getClock()).thenReturn(mClock);
         when(mWifiInjector.getWifiNative()).thenReturn(mWifiNative);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(mWifiInjector.getAfcLocationUtil()).thenReturn(mAfcLocationUtil);
+        when(mWifiInjector.getAfcClient()).thenReturn(mAfcClient);
         when(mWifiHandlerThread.getLooper()).thenReturn(mLooper);
         when(mWifiGlobals.isAfcSupportedOnDevice()).thenReturn(true);
         when(mWifiGlobals.getAfcServerUrlForCountry(anyString())).thenReturn(
@@ -80,10 +95,30 @@ public class AfcManagerTest extends WifiBaseTest {
         when(mLocationManager.getProviders(anyBoolean())).thenReturn(List.of(
                 LocationManager.FUSED_PROVIDER, LocationManager.PASSIVE_PROVIDER,
                 LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER));
+        when(mAfcLocationUtil.createAfcLocation(mLocation)).thenReturn(mAfcLocation);
     }
 
-    AfcManager makeAfcManager() {
+    private AfcManager makeAfcManager() {
         return new AfcManager(mContext, mWifiInjector);
+    }
+
+    /**
+     * Returns a valid mock AfcServerResponse from the AFC sever.
+     */
+    private AfcServerResponse buildSuccessfulSpectrumInquiryResponse() throws JSONException {
+        JSONObject inquiryResponse = new JSONObject();
+        inquiryResponse.put("requestId", String.valueOf(0));
+
+        // This response's expire time in milliseconds is 1687463240000L as tested by
+        // AfcClientTest#testExpireTimeSetCorrectly
+        inquiryResponse.put("availabilityExpireTime", AfcManagerTest.EXPIRATION_DATE);
+
+        JSONObject responseResultObject = new JSONObject();
+        responseResultObject.put("responseCode", 0);
+        responseResultObject.put("shortDescription", "Success");
+        inquiryResponse.put("response", responseResultObject);
+
+        return AfcServerResponse.fromSpectrumInquiryResponse(200, inquiryResponse);
     }
 
     /**
@@ -100,7 +135,8 @@ public class AfcManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that a when a location change occurs, we update the lastKnownLocation variable.
+     * Verify that a when a location change occurs, we query the Afc server for the first time
+     * and update the lastKnownLocation variable.
      */
     @Test
     public void testUpdateLastKnownLocationOnLocationChange() {
@@ -108,6 +144,9 @@ public class AfcManagerTest extends WifiBaseTest {
         when(mClock.getElapsedSinceBootMillis()).thenReturn(9999L);
 
         mAfcManager.onLocationChange(mLocation);
+
+        verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class), any(AfcClient
+                .Callback.class));
         assertThat(mAfcManager.getLastKnownLocation()).isEqualTo(mLocation);
         assertThat(mAfcManager.getLocationManager()).isEqualTo(mLocationManager);
     }
@@ -134,10 +173,14 @@ public class AfcManagerTest extends WifiBaseTest {
         locationConsumer.accept(mLocation);
         assertThat(mAfcManager.getLastKnownLocation()).isEqualTo(mLocation);
 
+        // check that the AfcClient makes a query
+        verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class), any(AfcClient
+                .Callback.class));
+
         // check that when a query is sent to the server, we are caching information
         // about the request
         assertThat(mAfcManager.getLastAfcServerQueryTime()).isEqualTo(now);
-        assertThat(mAfcManager.getLastLocationUsedInAfcServerQuery()).isEqualTo(mLocation);
+        verify(mAfcLocationUtil).createAfcLocation(mLocation);
 
         // verify we are setting lastKnownLocation to null when a null location is passed in
         locationConsumer.accept(null);
@@ -212,5 +255,98 @@ public class AfcManagerTest extends WifiBaseTest {
         mAfcManager.onCountryCodeChange("00");
 
         verify(mLocationManager).removeUpdates(locationListener);
+    }
+
+    /**
+     * Test that no query is executed if the location passed into AfcManager#onLocationChange is
+     * null.
+     */
+    @Test
+    public void testNullLocationChange() {
+        mAfcManager = makeAfcManager();
+        mAfcManager.onLocationChange(null);
+        verify(mAfcClient, never()).queryAfcServer(any(AfcLocation.class), any(Handler.class),
+                any(AfcClient.Callback.class));
+    }
+
+    /**
+     * Verify that the AFC Manager triggers a query of the AFC server upon a location change if the
+     * availability expiration time of the last server response has expired.
+     */
+    @Test
+    public void testQueryAfterExpiredTime() throws JSONException {
+        mAfcManager = makeAfcManager();
+
+        mAfcManager.onLocationChange(mLocation);
+
+        verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class),
+                mAfcClientCallbackCaptor.capture());
+        AfcClient.Callback afcClientCallback = mAfcClientCallbackCaptor.getValue();
+
+        // Set the response to the test AFC server response which has an expiration time that is
+        // expired.
+        afcClientCallback.onResult(buildSuccessfulSpectrumInquiryResponse(), mAfcLocation);
+
+        // Ensure that the current time is before the expiration date
+        when(mClock.getWallClockMillis()).thenReturn(AfcServerResponse
+                .convertExpireTimeStringToTimestamp(EXPIRATION_DATE) - 10);
+        mAfcManager.onLocationChange(mLocation);
+        // Ensure that a query is not executed because the expiration time has not passed
+        verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
+                any(Handler.class), any(AfcClient.Callback.class));
+
+        // Ensure that the current time is past the expiration date
+        when(mClock.getWallClockMillis()).thenReturn(AfcServerResponse
+                .convertExpireTimeStringToTimestamp(EXPIRATION_DATE) + 10);
+        mAfcManager.onLocationChange(mLocation);
+        // Ensure that a query is executed because the expiration time has passed
+        verify(mAfcClient, times(2)).queryAfcServer(any(AfcLocation.class),
+                any(Handler.class), any(AfcClient.Callback.class));
+    }
+
+    /**
+     * Verify that the AFC Manager triggers a query of the AFC server if the location
+     * change moves outside the bounds of the AfcLocation from the last successful AFC server query.
+     */
+    @Test
+    public void testQueryAfterLocationChange() throws JSONException {
+        mAfcManager = makeAfcManager();
+        mAfcManager.onLocationChange(mLocation);
+
+        verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class),
+                mAfcClientCallbackCaptor.capture());
+        AfcClient.Callback afcClientCallback = mAfcClientCallbackCaptor.getValue();
+
+        afcClientCallback.onResult(buildSuccessfulSpectrumInquiryResponse(), mAfcLocation);
+
+        // Ensure that the current time is before the expiration date
+        when(mClock.getWallClockMillis()).thenReturn(AfcServerResponse
+                .convertExpireTimeStringToTimestamp(EXPIRATION_DATE) - 10);
+
+        // Ensure that a query is not executed because the location is inside the AfcLocation
+        when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
+                .thenReturn(AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
+        mAfcManager.onLocationChange(mLocation);
+        verify(mAfcLocationUtil).checkLocation(any(AfcLocation.class), any(Location.class));
+        verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
+                any(Handler.class), any(AfcClient.Callback.class));
+
+        // Ensure that a query is not executed because the location is on the border
+        when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
+                .thenReturn(AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
+        mAfcManager.onLocationChange(mLocation);
+        verify(mAfcLocationUtil, times(2)).checkLocation(any(AfcLocation
+                .class), any(Location.class));
+        verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
+                any(Handler.class), any(AfcClient.Callback.class));
+
+        // Ensure that a query is executed because the location is outside the AfcLocation
+        when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
+                .thenReturn(AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
+        mAfcManager.onLocationChange(mLocation);
+        verify(mAfcLocationUtil, times(3)).checkLocation(any(AfcLocation
+                .class), any(Location.class));
+        verify(mAfcClient, times(2)).queryAfcServer(any(AfcLocation.class),
+                any(Handler.class), any(AfcClient.Callback.class));
     }
 }

@@ -39,36 +39,58 @@ import java.util.List;
 public class AfcManager {
     private static final String TAG = "WifiAfcManager";
     private static final long MINUTE_IN_MILLIS = 60 * 1000;
-    private static final long LOCATION_MIN_TIME_MILLIS = 1 * MINUTE_IN_MILLIS;
+    private static final long LOCATION_MIN_TIME_MILLIS = MINUTE_IN_MILLIS;
     private static final float LOCATION_MIN_DISTANCE_METERS = 200;
     private final HandlerThread mWifiHandlerThread;
-    private final WifiInjector mWifiInjector;
     private final WifiContext mContext;
     private final WifiNative mWifiNative;
     private final WifiGlobals mWifiGlobals;
     private final Clock mClock;
     private final LocationListener mLocationListener;
+    private final AfcClient mAfcClient;
+    private final AfcLocationUtil mAfcLocationUtil;
+    private final AfcClient.Callback mCallback;
     private Location mLastKnownLocation;
     private String mLastKnownCountryCode;
     private LocationManager mLocationManager;
     private long mLastAfcServerQueryTime;
-    private Location mLastKnownLocationUsedInAfcServerQuery;
     private String mProviderForLocationRequest = "";
     private boolean mIsAfcSupportedForCurrentCountry = false;
+    private boolean mVerboseLoggingEnabled = false;
+    private AfcLocation mLastAfcLocationInSuccessfulQuery;
+    private AfcServerResponse mLatestAfcServerResponse;
 
     public AfcManager(WifiContext context, WifiInjector wifiInjector) {
         mContext = context;
-        mWifiInjector = wifiInjector;
         mClock = wifiInjector.getClock();
 
-        mWifiHandlerThread = mWifiInjector.getWifiHandlerThread();
-        mWifiGlobals = mWifiInjector.getWifiGlobals();
-        mWifiNative = mWifiInjector.getWifiNative();
+        mWifiHandlerThread = wifiInjector.getWifiHandlerThread();
+        mWifiGlobals = wifiInjector.getWifiGlobals();
+        mWifiNative = wifiInjector.getWifiNative();
 
-        mLocationListener = new LocationListener() {
+        mAfcLocationUtil = wifiInjector.getAfcLocationUtil();
+        mAfcClient = wifiInjector.getAfcClient();
+
+        mLocationListener = this::onLocationChange;
+
+        mCallback = new AfcClient.Callback() {
+            // Cache the server response and pass the AFC channel allowance to the driver.
             @Override
-            public void onLocationChanged(Location location) {
-                onLocationChange(location);
+            public void onResult(AfcServerResponse serverResponse, AfcLocation afcLocation) {
+                mLatestAfcServerResponse = serverResponse;
+                mLastAfcLocationInSuccessfulQuery = afcLocation;
+
+                boolean allowanceSetSuccessfully = setAfcChannelAllowance(mLatestAfcServerResponse
+                        .getAfcChannelAllowance());
+                if (!allowanceSetSuccessfully) {
+                    Log.e(TAG, "The AFC allowed channels and frequencies were not set "
+                            + "successfully in the driver.");
+                }
+            }
+
+            @Override
+            public void onFailure(int reasonCode, String description) {
+                Log.e(TAG, "Reason Code: " + reasonCode + "\nDescription: " + description);
             }
         };
     }
@@ -116,21 +138,61 @@ public class AfcManager {
     }
 
     /**
-     * Check if the current location is outside the bounds of the most recent boundary we provided
-     * to the AFC server, and if so, then perform a re-query.
+     * Perform a re-query if the server hasn't been queried before, if the expiration time
+     * of the last successful AfcResponse has expired, or if the location parameter is outside the
+     * bounds of the AfcLocation from the last successful AFC server query.
      */
     public void onLocationChange(Location location) {
         mLastKnownLocation = location;
 
         if (location == null) {
-            Log.e(TAG, "Location is null");
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "Location is null");
+            }
             return;
         }
 
-        /*
-        Todo: query the AFC server if device has moved outside of location boundary,
-            or too much time has passed since the last query was made
-        */
+        // If there was no prior successful query, then query the server.
+        if (mLastAfcLocationInSuccessfulQuery == null) {
+            queryServerAndInformDriver(location);
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "This is the first query of the server.");
+            }
+            return;
+        }
+
+        // If the expiration time of the last successful Afc response has expired, then query the
+        // server.
+        if (mClock.getWallClockMillis() >= mLatestAfcServerResponse.getAfcChannelAllowance()
+                .availabilityExpireTimeMs) {
+            queryServerAndInformDriver(location);
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "The availability expiration time of the last query has expired"
+                        + " so a query of the AFC server is executed.");
+            }
+            return;
+        }
+
+        AfcLocationUtil.InBoundsCheckResult inBoundsResult = mAfcLocationUtil.checkLocation(
+                mLastAfcLocationInSuccessfulQuery, location);
+
+        // Query the AFC server if the new parameter location is outside the AfcLocation
+        // boundary.
+        if (inBoundsResult == AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION) {
+            queryServerAndInformDriver(location);
+
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "The location is outside the bounds of the Afc location object so a"
+                        + " query of the AFC server is executed with a new AfcLocation object.");
+            }
+        } else {
+            // Don't query since the location parameter is either inside the AfcLocation boundary
+            // or on the border.
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "The current location is " + inBoundsResult + " so a query "
+                        + "will not be executed.");
+            }
+        }
     }
 
     /**
@@ -146,15 +208,13 @@ public class AfcManager {
      */
     private void queryServerAndInformDriver(Location location) {
         mLastAfcServerQueryTime = mClock.getElapsedSinceBootMillis();
-        mLastKnownLocationUsedInAfcServerQuery = location;
 
-        /*
-        Todo: To be implemented in Milestones 1 and 2:
-             - convert Location -> AfcLocation object
-             - create a JSON object for the AFC request in the required form
-             - make API call to the AFC server and get response
-             - parse response, and update the driver with the allowed channels and frequencies
-         */
+        // Convert the Location object to an AfcLocation object
+        AfcLocation afcLocationForQuery = mAfcLocationUtil.createAfcLocation(
+                location);
+
+        mAfcClient.queryAfcServer(afcLocationForQuery, new Handler(mWifiHandlerThread.getLooper()),
+                mCallback);
     }
 
     /**
@@ -291,7 +351,7 @@ public class AfcManager {
     }
 
     @VisibleForTesting
-    Location getLastLocationUsedInAfcServerQuery() {
-        return mLastKnownLocationUsedInAfcServerQuery;
+    AfcLocation getLastAfcLocationInSuccessfulQuery() {
+        return mLastAfcLocationInSuccessfulQuery;
     }
 }

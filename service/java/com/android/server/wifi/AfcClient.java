@@ -116,7 +116,7 @@ public class AfcClient {
                                     .getAfcResponseCode()));
                 } else {
                     // Post the server response to the callback
-                    wifiHandler.post(() -> callback.onResult(serverResponse));
+                    wifiHandler.post(() -> callback.onResult(serverResponse, afcLocation));
                 }
             } catch (ServiceEntitlementException e) {
                 wifiHandler.post(() -> callback.onFailure(REASON_SERVICE_ENTITLEMENT_FAILURE,
@@ -279,7 +279,7 @@ public class AfcClient {
         /**
          * Indicates that an AfcServerResponse was received successfully.
          */
-        void onResult(AfcServerResponse serverResponse);
+        void onResult(AfcServerResponse serverResponse, AfcLocation afcLocation);
         /**
          * Indicate a failure happens when receiving the AfcServerResponse.
          * @param reasonCode The failure reason code.
