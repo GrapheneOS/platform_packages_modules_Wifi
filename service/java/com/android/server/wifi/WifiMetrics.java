@@ -1085,6 +1085,10 @@ public class WifiMetrics {
         private boolean mIsCarrierWifi;
         private boolean mIsOobPseudonymEnabled;
         private int mRole;
+        private int mCarrierId;
+        private int mEapType;
+        private int mPhase2Method;
+        private int mPasspointRoamingType;
 
         private ConnectionEvent() {
             mConnectionEvent = new WifiMetricsProto.ConnectionEvent();
@@ -1903,6 +1907,13 @@ public class WifiMetrics {
                         mNetworkIdToNominatorId.get(config.networkId,
                                 WifiMetricsProto.ConnectionEvent.NOMINATOR_UNKNOWN);
                 currentConnectionEvent.mConnectionEvent.isCarrierMerged = config.carrierMerged;
+                currentConnectionEvent.mCarrierId = config.carrierId;
+                if (config.enterpriseConfig != null) {
+                    currentConnectionEvent.mEapType = config.enterpriseConfig.getEapMethod();
+                    currentConnectionEvent.mPhase2Method =
+                            config.enterpriseConfig.getPhase2Method();
+                    // TODO(b/254304144) comput the passpoint roaming type.
+                }
 
                 ScanResult candidate = config.getNetworkSelectionStatus().getCandidate();
                 if (candidate != null) {
@@ -2039,6 +2050,44 @@ public class WifiMetrics {
         }
     }
 
+    private int toMetricEapType(int eapType) {
+        switch (eapType) {
+            case WifiEnterpriseConfig.Eap.TLS:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_TLS;
+            case WifiEnterpriseConfig.Eap.TTLS:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_TTLS;
+            case WifiEnterpriseConfig.Eap.SIM:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_SIM;
+            case WifiEnterpriseConfig.Eap.AKA:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_AKA;
+            case WifiEnterpriseConfig.Eap.AKA_PRIME:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_AKA_PRIME;
+            case WifiEnterpriseConfig.Eap.WAPI_CERT:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_WAPI_CERT;
+            case WifiEnterpriseConfig.Eap.UNAUTH_TLS:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_UNAUTH_TLS;
+            case WifiEnterpriseConfig.Eap.PEAP:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_PEAP;
+            case WifiEnterpriseConfig.Eap.PWD:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_PWD;
+            default:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_TYPE__TYPE_EAP_OTHERS;
+        }
+    }
+
+    private int toMetricPhase2Method(int phase2Method) {
+        switch (phase2Method) {
+            case WifiEnterpriseConfig.Phase2.PAP:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_INNER_METHOD__METHOD_PAP;
+            case WifiEnterpriseConfig.Phase2.MSCHAP:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_INNER_METHOD__METHOD_MSCHAP;
+            case WifiEnterpriseConfig.Phase2.MSCHAPV2:
+                return WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_INNER_METHOD__METHOD_MSCHAP_V2;
+            default:
+                return  WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__EAP_INNER_METHOD__METHOD_OTHERS;
+        }
+    }
+
     /**
      * End a Connection event record. Call when wifi connection attempt succeeds or fails.
      * If a Connection event has not been started and is active when .end is called, then this
@@ -2103,7 +2152,10 @@ public class WifiMetrics {
                         currentConnectionEvent.mIsCarrierWifi,
                         currentConnectionEvent.mIsOobPseudonymEnabled,
                         currentConnectionEvent.mRole,
-                        statusCode);
+                        statusCode,
+                        toMetricEapType(currentConnectionEvent.mEapType),
+                        toMetricPhase2Method(currentConnectionEvent.mPhase2Method),
+                        0);
 
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);
