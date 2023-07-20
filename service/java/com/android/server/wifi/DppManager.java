@@ -49,6 +49,7 @@ import com.android.server.wifi.WifiNative.DppEventCallback;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -147,16 +148,16 @@ public class DppManager {
         });
     }
 
-    private static String encodeStringToHex(String str) {
+    private static String encodeStringToUtf8Hex(String str) {
         if ((str.length() > 1) && (str.charAt(0) == '"') && (str.charAt(str.length() - 1) == '"')) {
             // Remove the surrounding quotes
             str = str.substring(1, str.length() - 1);
 
             // Convert to Hex
-            char[] charsArray = str.toCharArray();
+            byte[] bytesArray = str.getBytes(StandardCharsets.UTF_8);
             StringBuffer hexBuffer = new StringBuffer();
-            for (int i = 0; i < charsArray.length; i++) {
-                hexBuffer.append(Integer.toHexString((int) charsArray[i]));
+            for (int i = 0; i < bytesArray.length; i++) {
+                hexBuffer.append(Integer.toHexString(0xFF & bytesArray[i]));
             }
             return hexBuffer.toString();
         }
@@ -368,14 +369,14 @@ public class DppManager {
         String ssidEncoded;
         WifiSsid originalSsid = mWifiInjector.getSsidTranslator().getOriginalSsid(selectedNetwork);
         if (originalSsid != null) {
-            ssidEncoded = encodeStringToHex(originalSsid.toString());
+            ssidEncoded = encodeStringToUtf8Hex(originalSsid.toString());
         } else {
-            ssidEncoded = encodeStringToHex(selectedNetwork.SSID);
+            ssidEncoded = encodeStringToUtf8Hex(selectedNetwork.SSID);
         }
         String passwordEncoded = null;
 
         if (password != null) {
-            passwordEncoded = encodeStringToHex(selectedNetwork.preSharedKey);
+            passwordEncoded = encodeStringToUtf8Hex(selectedNetwork.preSharedKey);
         }
 
         if (!mWifiNative.startDppConfiguratorInitiator(mClientIfaceName,
