@@ -1854,13 +1854,13 @@ public class WifiMetrics {
                     endConnectionEvent(ifaceName,
                             ConnectionEvent.FAILURE_REDUNDANT_CONNECTION_ATTEMPT,
                             WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, -1);
+                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, 0);
                 } else {
                     // End Connection Event due to new connection attempt to different network
                     endConnectionEvent(ifaceName,
                             ConnectionEvent.FAILURE_NEW_CONNECTION_ATTEMPT,
                             WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, -1);
+                            WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0, 0);
                 }
             }
             // If past maximum connection events, start removing the oldest

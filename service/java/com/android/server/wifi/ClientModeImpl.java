@@ -6898,7 +6898,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 WifiMetrics.ConnectionEvent.FAILURE_ROAM_TIMEOUT,
                                 WifiMetricsProto.ConnectionEvent.HLF_NONE,
                                 WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN,
-                                mWifiInfo.getFrequency(), -1);
+                                mWifiInfo.getFrequency(), 0);
                         mRoamFailCount++;
                         handleNetworkDisconnect(false,
                                 WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__ROAM_WATCHDOG_TIMER);
