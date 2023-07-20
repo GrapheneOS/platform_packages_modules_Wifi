@@ -3055,35 +3055,35 @@ public class WifiServiceImpl extends BaseWifiService {
 
     @Override
     public void getWifiActivityEnergyInfoAsync(IOnWifiActivityEnergyInfoListener listener) {
+        enforceAccessPermission();
         if (mVerboseLoggingEnabled) {
             mLog.info("getWifiActivityEnergyInfoAsync uid=%")
                     .c(Binder.getCallingUid())
                     .flush();
         }
-        // getWifiActivityEnergyInfo() performs permission checking
-        WifiActivityEnergyInfo info = getWifiActivityEnergyInfo();
-        try {
-            listener.onWifiActivityEnergyInfo(info);
-        } catch (RemoteException e) {
-            Log.e(TAG, "onWifiActivityEnergyInfo: RemoteException -- ", e);
+        if ((getSupportedFeatures() & WifiManager.WIFI_FEATURE_LINK_LAYER_STATS) == 0) {
+            try {
+                listener.onWifiActivityEnergyInfo(null);
+            } catch (RemoteException e) {
+                Log.e(TAG, "onWifiActivityEnergyInfo: RemoteException -- ", e);
+            }
+            return;
         }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onWifiActivityEnergyInfo(getWifiActivityEnergyInfo());
+            } catch (RemoteException e) {
+                Log.e(TAG, "onWifiActivityEnergyInfo: RemoteException -- ", e);
+            }
+        });
     }
 
     private WifiActivityEnergyInfo getWifiActivityEnergyInfo() {
-        enforceAccessPermission();
-        if (mVerboseLoggingEnabled) {
-            mLog.info("getWifiActivityEnergyInfo uid=%").c(Binder.getCallingUid()).flush();
-        }
-        if ((getSupportedFeatures() & WifiManager.WIFI_FEATURE_LINK_LAYER_STATS) == 0) {
-            return null;
-        }
-        WifiLinkLayerStats stats = mWifiThreadRunner.call(
-                () -> mActiveModeWarden.getPrimaryClientModeManager().getWifiLinkLayerStats(),
-                null);
+        WifiLinkLayerStats stats = mActiveModeWarden
+                .getPrimaryClientModeManager().getWifiLinkLayerStats();
         if (stats == null) {
             return null;
         }
-
         final long rxIdleTimeMillis = stats.on_time - stats.tx_time - stats.rx_time;
         if (VDBG || rxIdleTimeMillis < 0 || stats.on_time < 0 || stats.tx_time < 0
                 || stats.rx_time < 0 || stats.on_time_scan < 0) {
@@ -3094,7 +3094,6 @@ public class WifiServiceImpl extends BaseWifiService {
                     + " rxIdleTimeMillis=" + rxIdleTimeMillis
                     + " scan_time_millis=" + stats.on_time_scan);
         }
-
         // Convert the LinkLayerStats into WifiActivityEnergyInfo
         return new WifiActivityEnergyInfo(
                 mClock.getElapsedSinceBootMillis(),

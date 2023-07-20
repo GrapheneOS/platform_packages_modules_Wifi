@@ -8550,9 +8550,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void getWifiActivityEnergyInfoAsyncFeatureUnsupported() throws Exception {
         when(mActiveModeWarden.getSupportedFeatureSet()).thenReturn(0L);
 
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.getWifiActivityEnergyInfoAsync(mOnWifiActivityEnergyInfoListener);
-        mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mOnWifiActivityEnergyInfoListener).onWifiActivityEnergyInfo(null);
     }
 
@@ -8564,9 +8562,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void getWifiActivityEnergyInfoAsyncSuccess() throws Exception {
         when(mActiveModeWarden.getSupportedFeatureSet()).thenReturn(Long.MAX_VALUE);
         setupReportActivityInfo();
-        mLooper.startAutoDispatch();
         mWifiServiceImpl.getWifiActivityEnergyInfoAsync(mOnWifiActivityEnergyInfoListener);
-        mLooper.stopAutoDispatch();
+        mLooper.dispatchAll();
         ArgumentCaptor<WifiActivityEnergyInfo> infoCaptor =
                 ArgumentCaptor.forClass(WifiActivityEnergyInfo.class);
         verify(mOnWifiActivityEnergyInfoListener).onWifiActivityEnergyInfo(infoCaptor.capture());
