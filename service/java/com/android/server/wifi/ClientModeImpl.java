@@ -6279,8 +6279,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         mWifiNative.disconnect(mInterfaceName);
                     } else {
                         handleSuccessfulIpConfiguration();
-                        sendConnectedState();
                         transitionTo(mL3ConnectedState);
+                        sendConnectedState();
                     }
                     break;
                 }
