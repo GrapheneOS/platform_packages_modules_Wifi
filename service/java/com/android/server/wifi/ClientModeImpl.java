@@ -6280,7 +6280,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     } else {
                         handleSuccessfulIpConfiguration();
                         transitionTo(mL3ConnectedState);
-                        sendConnectedState();
                     }
                     break;
                 }
@@ -7028,6 +7027,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // So only record success here.
             mWifiMetrics.noteFirstL3ConnectionAfterBoot(true);
             updateCurrentConnectionInfo();
+            sendConnectedState();
         }
 
         @Override
