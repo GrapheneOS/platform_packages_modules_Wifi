@@ -23,6 +23,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA256;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_FILS_SHA384;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_LINK_LAYER_STATS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TDLS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 
@@ -1566,11 +1567,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
         mLastLinkLayerStatsUpdate = mClock.getWallClockMillis();
         WifiLinkLayerStats stats = null;
-        if (isPrimary()) {
-            stats = mWifiNative.getWifiLinkLayerStats(mInterfaceName);
-        } else {
-            if (mVerboseLoggingEnabled) {
-                Log.w(getTag(), "Can't getWifiLinkLayerStats on secondary iface");
+        if (isLinkLayerStatsSupported()) {
+            if (isPrimary()) {
+                stats = mWifiNative.getWifiLinkLayerStats(mInterfaceName);
+            } else {
+                if (mVerboseLoggingEnabled) {
+                    Log.w(getTag(), "Can't getWifiLinkLayerStats on secondary iface");
+                }
             }
         }
         if (stats != null) {
@@ -1587,6 +1590,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mWifiMetrics.incrementWifiLinkLayerUsageStats(mInterfaceName, stats);
         updateCurrentConnectionInfo();
         return stats;
+    }
+
+    private boolean isLinkLayerStatsSupported() {
+        return (getSupportedFeatures() & WIFI_FEATURE_LINK_LAYER_STATS) != 0;
     }
 
     /**
