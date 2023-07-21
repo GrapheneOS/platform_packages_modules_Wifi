@@ -31,6 +31,8 @@ import android.service.notification.StatusBarNotification;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -54,6 +56,7 @@ public class WifiNotificationManagerTest extends WifiBaseTest {
     @Mock private Notification mNotification;
     @Mock private Resources mResources;
     @Mock private StatusBarNotification mStatusBarNotification;
+    @Mock private UserHandle mUser;
 
     @Before
     public void setUp() throws Exception {
@@ -113,5 +116,28 @@ public class WifiNotificationManagerTest extends WifiBaseTest {
         verify(mNotificationManagerForAnotherUser).notify(eq(NOTIFICATION_TAG), eq(TEST_MESSAGE_ID),
                 any());
         verify(mNotificationManager, never()).notify(anyString(), anyInt(), any());
+    }
+
+    @Test
+    public void testApmNotificationNotCancelled() {
+        mWifiNotificationManager.createNotificationChannels();
+        verify(mNotificationManager).createNotificationChannels(any());
+        mWifiNotificationManager.notify(TEST_MESSAGE_ID, mNotification);
+        mWifiNotificationManager.notify(SystemMessage.NOTE_WIFI_APM_NOTIFICATION, mNotification);
+        verify(mNotificationManager).notify(eq(NOTIFICATION_TAG), eq(TEST_MESSAGE_ID), any());
+        verify(mNotificationManager).notify(eq(NOTIFICATION_TAG),
+                eq(SystemMessage.NOTE_WIFI_APM_NOTIFICATION), any());
+        // clearing existing notifications doesn't cancel the APM notification
+        StatusBarNotification testNotification = new StatusBarNotification("pkg", "opPkg",
+                TEST_MESSAGE_ID, NOTIFICATION_TAG, 0, 0, 0, mNotification, mUser, 0);
+        StatusBarNotification apmNotification = new StatusBarNotification("pkg", "opPkg",
+                SystemMessage.NOTE_WIFI_APM_NOTIFICATION, NOTIFICATION_TAG, 0, 0, 0, mNotification,
+                mUser, 0);
+        when(mNotificationManager.getActiveNotifications()).thenReturn(
+                new StatusBarNotification[]{testNotification, apmNotification});
+        mWifiNotificationManager.createNotificationChannels();
+        verify(mNotificationManager).cancel(eq(NOTIFICATION_TAG), eq(TEST_MESSAGE_ID));
+        verify(mNotificationManager, never()).cancel(eq(NOTIFICATION_TAG),
+                eq(SystemMessage.NOTE_WIFI_APM_NOTIFICATION));
     }
 }
