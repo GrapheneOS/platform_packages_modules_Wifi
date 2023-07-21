@@ -36,6 +36,7 @@ public class AfcServerResponse {
     private static final String TAG = "WifiAfcServerResponse";
     static final int SUCCESS_AFC_RESPONSE_CODE = 0;
     static final int SUCCESS_HTTP_RESPONSE_CODE = 200;
+
     /*
      * The value represented by the AFC response code is mapped out as follows, taken from the AFC
      * server specs:
@@ -45,6 +46,7 @@ public class AfcServerResponse {
      * 300 – 399: Error events specific to message exchanges for the Available Spectrum Inquiry
      */
     private int mAfcResponseCode;
+    // HTTP response code is 200 if the request succeeded, otherwise the request failed
     private int mHttpResponseCode;
     private String mAfcResponseDescription;
     private WifiChip.AfcChannelAllowance mAfcChannelAllowance;
@@ -86,8 +88,8 @@ public class AfcServerResponse {
             WifiChip.AfcChannelAllowance afcChannelAllowance = new WifiChip.AfcChannelAllowance();
             afcChannelAllowance.availableAfcFrequencyInfos = parseAvailableFrequencyInfo(
                     spectrumInquiryResponse.optJSONArray("availableFrequencyInfo"));
-
-            // Todo: parse the available channel info in a later CL
+            afcChannelAllowance.availableAfcChannelInfos = parseAvailableChannelInfo(
+                    spectrumInquiryResponse.optJSONArray("availableChannelInfo"));
 
             // expiry time is required as we know the response was successful
             String availabilityExpireTimeString = spectrumInquiryResponse.getString(
@@ -104,7 +106,7 @@ public class AfcServerResponse {
     }
 
     /**
-     * Parses the available frequencies of an AfcServerResponse
+     * Parses the available frequencies of an AfcServerResponse.
      */
     private static List<WifiChip.AvailableAfcFrequencyInfo> parseAvailableFrequencyInfo(
             JSONArray availableFrequencyInfoJSON) {
@@ -130,6 +132,40 @@ public class AfcServerResponse {
                 return availableFrequencyInfo;
             } catch (JSONException | NullPointerException e) {
                 Log.e(TAG, "Error occurred when parsing available AFC frequency info.");
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Parses the available channels of an AfcServerResponse.
+     */
+    private static List<WifiChip.AvailableAfcChannelInfo> parseAvailableChannelInfo(
+            JSONArray availableChannelInfoJSON) {
+        if (availableChannelInfoJSON != null) {
+            List<WifiChip.AvailableAfcChannelInfo> availableChannelInfo = new ArrayList<>();
+
+            try {
+                for (int i = 0; i < availableChannelInfoJSON.length(); ++i) {
+                    int globalOperatingClass = availableChannelInfoJSON
+                            .getJSONObject(i).getInt("globalOperatingClass");
+
+                    for (int j = 0; j < availableChannelInfoJSON.getJSONObject(i).getJSONArray(
+                            "channelCfi").length(); ++j) {
+                        WifiChip.AvailableAfcChannelInfo availableChannel = new WifiChip
+                                .AvailableAfcChannelInfo();
+
+                        availableChannel.globalOperatingClass = globalOperatingClass;
+                        availableChannel.channelCfi = availableChannelInfoJSON.getJSONObject(i)
+                                        .getJSONArray("channelCfi").getInt(j);
+                        availableChannel.maxEirpDbm = availableChannelInfoJSON.getJSONObject(i)
+                                        .getJSONArray("maxEirp").getInt(j);
+                        availableChannelInfo.add(availableChannel);
+                    }
+                }
+                return availableChannelInfo;
+            } catch (JSONException | NullPointerException e) {
+                Log.e(TAG, "Error occurred when parsing available AFC channel info.");
             }
         }
         return null;
