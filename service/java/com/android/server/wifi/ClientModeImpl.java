@@ -2678,8 +2678,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     + " RxLinkSpeed=" + newRxLinkSpeed);
         }
 
-        /* Set link specific signal poll results */
-        for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+        /* Set link specific signal poll results for associated links */
+        for (MloLink link : mWifiInfo.getAssociatedMloLinks()) {
             int linkId = link.getLinkId();
             link.setRssi(pollResults.getRssi(linkId));
             link.setTxLinkSpeedMbps(pollResults.getTxLinkSpeed(linkId));
