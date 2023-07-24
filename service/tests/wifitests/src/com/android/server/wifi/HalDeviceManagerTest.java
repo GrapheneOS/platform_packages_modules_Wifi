@@ -944,6 +944,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         networkInfo.setDetailedState(NetworkInfo.DetailedState.DISCONNECTED, null, null);
         connectionIntent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, networkInfo);
         brCaptor.getValue().onReceive(mContext, connectionIntent);
+        assertFalse("Should not treat disconnected P2P as privileged iface",
+                mDut.creatingIfaceWillDeletePrivilegedIface(
+                        HDM_CREATE_IFACE_NAN, TEST_WORKSOURCE_2));
         nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
         assertNotNull("Should create this NAN", nanDetails);
@@ -3235,9 +3238,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             );
             collector.checkThat("STA created", staIface, IsNull.notNullValue());
         } else {
-            List<Pair<Integer, WorkSource>> staDetails = mDut.reportImpactToCreateIface(
-                    HDM_CREATE_IFACE_STA, true, requiredChipCapabilities, TEST_WORKSOURCE_1);
-            assertNull("Should not create this STA", staDetails);
+            assertFalse("Should not be able to create this STA", mDut.isItPossibleToCreateIface(
+                    HDM_CREATE_IFACE_STA, requiredChipCapabilities, TEST_WORKSOURCE_1));
             staIface = mDut.createStaIface(
                     requiredChipCapabilities, null, null, TEST_WORKSOURCE_1,
                     mConcreteClientModeManager);
@@ -3263,9 +3265,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             );
             collector.checkThat("AP created", apIface, IsNull.notNullValue());
         } else {
-            List<Pair<Integer, WorkSource>> apDetails = mDut.reportImpactToCreateIface(
-                    HDM_CREATE_IFACE_AP, true, requiredChipCapabilities, TEST_WORKSOURCE_0);
-            assertNull("Should not create this AP", apDetails);
+            assertFalse("Should not be able to create this AP", mDut.isItPossibleToCreateIface(
+                    HDM_CREATE_IFACE_AP, requiredChipCapabilities, TEST_WORKSOURCE_0));
             apIface = mDut.createApIface(
                     requiredChipCapabilities, null, null, TEST_WORKSOURCE_0, false, mSoftApManager);
             collector.checkThat("AP should not be created", apIface, IsNull.nullValue());
@@ -4133,7 +4134,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // check if can create interface
         List<Pair<Integer, WorkSource>> details = mDut.reportImpactToCreateIface(
-                createIfaceType, true, requiredChipCapabilities, requestorWs);
+                createIfaceType, true, requestorWs);
         if (tearDownList == null || tearDownList.length == 0) {
             assertTrue("Details list must be empty - can create" + details, details.isEmpty());
         } else { // TODO: assumes that at most a single entry - which is the current usage
