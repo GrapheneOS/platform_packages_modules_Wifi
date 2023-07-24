@@ -172,6 +172,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "get-ipreach-disconnect",
             "take-bugreport",
             "get-allowed-channel",
+            "set-mock-wifimodem-service",
+            "get-mock-wifimodem-service",
+            "set-mock-wifimodem-methods",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -1818,7 +1821,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                 return -1;
                         }
                     }
-                    mWifiNative.setMockWifiService(serviceName);
+                    mWifiService.setMockWifiService(serviceName);
                     // The result will be checked, must print result "true"
                     pw.print("true");
                     return 0;
@@ -1827,7 +1830,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     return 0;
                 case "set-mock-wifimodem-methods":
                     String methods = getNextArgRequired();
-                    if (mWifiNative.setMockWifiMethods(methods)) {
+                    if (mWifiService.setMockWifiMethods(methods)) {
                         pw.print("true");
                     } else {
                         pw.print("fail to set mock method: " + methods);
