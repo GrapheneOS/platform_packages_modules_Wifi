@@ -23,10 +23,13 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.validateMockitoUsage;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import android.location.Location;
+import android.os.Handler;
+import android.os.test.TestLooper;
 
 import androidx.test.filters.SmallTest;
 
@@ -37,7 +40,9 @@ import com.android.server.wifi.entitlement.http.HttpClient;
 import com.android.server.wifi.entitlement.http.HttpRequest;
 import com.android.server.wifi.entitlement.http.HttpResponse;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,19 +60,30 @@ import java.util.Random;
  */
 @SmallTest
 public class AfcClientTest {
+    @Captor ArgumentCaptor<AfcServerResponse> mAfcServerResponseCaptor;
     @Captor ArgumentCaptor<HttpRequest> mHttpRequestCaptor;
     @Mock private Location mLocation;
     @Mock private Random mRandom;
+    @Mock AfcClient.Callback mCallback;
     private AfcClient mAfcClient;
     private MockitoSession mSession;
-    private HttpResponse mHttpResponse;
     private AfcLocation mAfcLocation;
+    private TestLooper mTestLooper;
+    private Handler mWifiHandler;
     private static final double LONGITUDE = -122;
     private static final double LATITUDE = 37;
+    private static final int HTTP_RESPONSE_CODE = 200;
+    private static final String AVAILABILITY_EXPIRE_TIME = "2020-11-03T13:34:05Z";
 
     @Before
-    public void setUp() throws MalformedURLException, ServiceEntitlementException {
+    public void setUp() throws MalformedURLException, ServiceEntitlementException, JSONException {
         MockitoAnnotations.initMocks(this);
+
+        mAfcServerResponseCaptor = ArgumentCaptor.forClass(AfcServerResponse.class);
+        mHttpRequestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+
+        mTestLooper = new TestLooper();
+        mWifiHandler = new Handler(mTestLooper.getLooper());
 
         when(mRandom.nextDouble()).thenReturn(0.5);
         when(mLocation.getLongitude()).thenReturn(LONGITUDE);
@@ -79,20 +95,38 @@ public class AfcClientTest {
                 AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS, mRandom, mLocation
         );
 
-        mHttpRequestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
-        // Create new AfcClient with a testing server URL
-        mAfcClient = new AfcClient();
-        mAfcClient.setServerURL("https://testingURL");
-
-        mHttpResponse = HttpResponse.builder().setResponseCode(0).setBody(
-                "Test body").build();
+        HttpResponse httpResponse = HttpResponse.builder().setResponseCode(
+                HTTP_RESPONSE_CODE).setBody(
+                getHttpResponseJSONBody()).build();
 
         // Start a mockitoSession to mock HttpClient's static request method
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(HttpClient.class, withSettings().lenient())
-                .initMocks(this)
                 .startMocking();
-        when(HttpClient.request(any(HttpRequest.class))).thenReturn(mHttpResponse);
+        when(HttpClient.request(any(HttpRequest.class))).thenReturn(httpResponse);
+
+        // Create new AfcClient with a testing server URL
+        Handler backgroundHandler = new Handler(mTestLooper.getLooper());
+        mAfcClient = new AfcClient(backgroundHandler);
+        mAfcClient.setServerURL("https://testingURL");
+    }
+
+    /**
+     * Create a test HttpResponse JSON body to be received by server queries.
+     */
+    private String getHttpResponseJSONBody() throws JSONException {
+        JSONObject responseObject = new JSONObject();
+        JSONArray inquiryResponses = new JSONArray();
+        JSONObject inquiryResponse = new JSONObject();
+        inquiryResponse.put("requestId", String.valueOf(0));
+        inquiryResponse.put("availabilityExpireTime", AVAILABILITY_EXPIRE_TIME);
+        JSONObject responseResultObject = new JSONObject();
+        responseResultObject.put("responseCode", 0);
+        responseResultObject.put("shortDescription", "Success");
+        inquiryResponse.put("response", responseResultObject);
+        inquiryResponses.put(0, inquiryResponse);
+        responseObject.put("availableSpectrumInquiryResponses", inquiryResponses);
+        return responseObject.toString();
     }
 
     /**
@@ -103,7 +137,9 @@ public class AfcClientTest {
     public void testHTTPRequestInitialization() throws JSONException {
         StaticInOrder inOrder = inOrder(staticMockMarker(HttpClient.class));
 
-        mAfcClient.queryAfcServer(mAfcLocation);
+        mAfcClient.queryAfcServer(mAfcLocation, mWifiHandler, mCallback);
+        mTestLooper.dispatchAll();
+
         inOrder.verify(() -> HttpClient.request(mHttpRequestCaptor.capture()));
         HttpRequest httpRequest1 = mHttpRequestCaptor.getValue();
         assertThat(httpRequest1.postData().getJSONArray("availableSpectrumInquiryRequests")
@@ -118,37 +154,55 @@ public class AfcClientTest {
         assertThat(httpRequest1.postData().getJSONArray("availableSpectrumInquiryRequests")
                 .getJSONObject(0).get("requestId")).isEqualTo("0");
 
-        mAfcClient.queryAfcServer(mAfcLocation);
+        mAfcClient.queryAfcServer(mAfcLocation, mWifiHandler, mCallback);
+        mTestLooper.dispatchAll();
+
         inOrder.verify(() -> HttpClient.request(mHttpRequestCaptor.capture()));
         HttpRequest httpRequest2 = mHttpRequestCaptor.getValue();
 
         // Ensure that the request ID has been incremented
         assertThat(httpRequest2.postData().getJSONArray("availableSpectrumInquiryRequests")
                 .getJSONObject(0).get("requestId")).isEqualTo("1");
-
-        mAfcClient.queryAfcServer(mAfcLocation);
-        inOrder.verify(() -> HttpClient.request(mHttpRequestCaptor.capture()));
-        HttpRequest httpRequest3 = mHttpRequestCaptor.getValue();
-
-        // Ensure that the request ID has been incremented
-        assertThat(httpRequest3.postData().getJSONArray("availableSpectrumInquiryRequests")
-                .getJSONObject(0).get("requestId")).isEqualTo("2");
     }
 
     /**
-     * Verify that the response received from the HttpClient request method matches the return
-     * value of AfcClient#queryAfcServer.
+     * Verify that the AfcClient retrieves the HTTP request object and that the background thread
+     * successfully sends a request to the AFC server. Checks that the response is passed to the
+     * Wi-Fi handler callback with expected fields.
      */
     @Test
-    public void testReceiveHttpResponse() {
-        HttpResponse afcServerHttpResponse = mAfcClient.queryAfcServer(mAfcLocation);
-
-        // Verify that the response from the AfcClient method matches the response from HttpClient
-        assertThat(afcServerHttpResponse).isEqualTo(mHttpResponse);
-        assertThat(afcServerHttpResponse.body()).isEqualTo("Test body");
-        assertThat(afcServerHttpResponse.responseCode()).isEqualTo(0);
+    public void testSendRequestAndReceiveResponse() {
+        mAfcClient.queryAfcServer(mAfcLocation, mWifiHandler, mCallback);
+        mTestLooper.dispatchAll();
+        assertThat(mAfcClient.getAfcHttpRequestObject(mAfcLocation).url()).isEqualTo(
+                "https://testingURL");
+        verify(mCallback).onResult(mAfcServerResponseCaptor.capture());
+        AfcServerResponse serverResponse = mAfcServerResponseCaptor.getValue();
+        assertThat(serverResponse.getAfcChannelAllowance().availabilityExpireTimeMs)
+                .isEqualTo(AfcServerResponse.convertExpireTimeStringToTimestamp(
+                        AVAILABILITY_EXPIRE_TIME));
+        assertThat(serverResponse.getHttpResponseCode()).isEqualTo(HTTP_RESPONSE_CODE);
+        assertThat(serverResponse.getAfcResponseCode()).isEqualTo(0);
+        assertThat(serverResponse.getAfcResponseDescription()).isEqualTo("Success");
     }
+
     /**
+     * Verify that sending the callback onFailure method is called with the correct reason code and
+     * message when the request sent to the server throws a ServiceEntitlementException.
+     */
+    @Test
+    public void testSendHTTPRequestFail() throws ServiceEntitlementException {
+        when(HttpClient.request(any(HttpRequest.class))).thenThrow(
+                new ServiceEntitlementException(-1, "Test message"));
+        mAfcClient.queryAfcServer(mAfcLocation, mWifiHandler, mCallback);
+        mTestLooper.dispatchAll();
+        verify(mCallback).onFailure(AfcClient.REASON_SERVICE_ENTITLEMENT_FAILURE,
+                "Encountered Service Entitlement Exception when sending request to server. "
+                        + "com.android.wifi.x.com.android.libraries.entitlement."
+                        + "ServiceEntitlementException: Test message");
+    }
+
+     /**
      * Called after each test.
      */
     @After

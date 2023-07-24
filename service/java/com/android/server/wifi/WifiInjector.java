@@ -51,6 +51,7 @@ import android.util.LocalLog;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.aware.WifiAwareMetrics;
 import com.android.server.wifi.coex.CoexManager;
@@ -579,7 +580,7 @@ public class WifiInjector {
         // {@link LocationManager#getCurrentLocation}, so we need to pass mContextWithAttributionTag
         // instead of mContext to the AfcManager.
         mAfcManager = new AfcManager(mContextWithAttributionTag, this);
-        mAfcClient = new AfcClient();
+        mAfcClient = new AfcClient(BackgroundThread.getHandler());
     }
 
     /**

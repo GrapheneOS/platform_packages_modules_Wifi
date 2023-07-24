@@ -16,7 +16,10 @@
 
 package com.android.server.wifi;
 
+import android.annotation.IntDef;
+import android.annotation.NonNull;
 import android.net.wifi.ScanResult;
+import android.os.Handler;
 import android.util.Log;
 
 import com.android.libraries.entitlement.ServiceEntitlementException;
@@ -29,6 +32,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +42,20 @@ import java.util.Map;
  */
 public class AfcClient {
     private static final String TAG = "WifiAfcClient";
+    public static final int REASON_NO_URL_SPECIFIED = 0;
+    public static final int REASON_AFC_RESPONSE_CODE_ERROR = 1;
+    public static final int REASON_SERVICE_ENTITLEMENT_FAILURE = 2;
+    public static final int REASON_JSON_FAILURE = 3;
+    public static final int REASON_UNDEFINED_FAILURE = 4;
+    @IntDef(prefix = { "REASON_" }, value = {
+            REASON_NO_URL_SPECIFIED,
+            REASON_AFC_RESPONSE_CODE_ERROR,
+            REASON_SERVICE_ENTITLEMENT_FAILURE,
+            REASON_JSON_FAILURE,
+            REASON_UNDEFINED_FAILURE,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface FailureReasonCode {}
     static final int CONNECT_TIMEOUT_SECS = 30;
     static final int LOW_FREQUENCY = ScanResult.BAND_6_GHZ_START_FREQ_MHZ;
 
@@ -48,53 +67,91 @@ public class AfcClient {
     static final String ID = "EFGHIJK";
     static final String RULE_SET_ID = "US_47_CFR_PART_15_SUBPART_E";
     static final String VERSION = "1.2";
-    static int sRequestId;
     private static String sServerUrl;
     private static HashMap<String, String> sRequestProperties;
+    private final Handler mBackgroundHandler;
+    private int mRequestId;
 
-    AfcClient() {
-        sRequestId = 0;
+    AfcClient(Handler backgroundHandler) {
+        mRequestId = 0;
         sRequestProperties = new HashMap<>();
+        mBackgroundHandler = backgroundHandler;
     }
 
     /**
-     * Query the AFC server through building an HTTP request object and return the HTTP response.
+     * Query the AFC server using the background thread and post the response to the callback on
+     * the Wi-Fi handler thread.
      */
-    public HttpResponse queryAfcServer(AfcLocation afcLocation) {
-
+    public void queryAfcServer(@NonNull AfcLocation afcLocation, @NonNull Handler wifiHandler,
+            @NonNull Callback callback) {
         // If no URL is provided, then fail to proceed with sending request to AFC server
         if (sServerUrl == null) {
-            Log.e(TAG,
-                    "No Server URL was provided through command line argument. Must provide "
-                            + "URL through configure-afc-server wifi shell command.");
-            return null;
+            wifiHandler.post(() -> callback.onFailure(REASON_NO_URL_SPECIFIED,
+                    "No Server URL was provided through command line argument. Must "
+                            + "provide URL through configure-afc-server wifi shell command."
+            ));
+            return;
         }
 
+        HttpRequest httpRequest = getAfcHttpRequestObject(afcLocation);
+        mBackgroundHandler.post(() -> {
+            try {
+                HttpResponse httpResponse = HttpClient.request(httpRequest);
+                JSONObject httpResponseBodyJSON = new JSONObject(httpResponse.body());
+
+                AfcServerResponse serverResponse = AfcServerResponse
+                        .fromSpectrumInquiryResponse(getHttpResponseCode(httpResponse),
+                                getAvailableSpectrumInquiryResponse(httpResponseBodyJSON,
+                                        mRequestId));
+                if (serverResponse == null) {
+                    wifiHandler.post(() -> callback.onFailure(REASON_JSON_FAILURE,
+                            "Encountered JSON error when parsing AFC server's "
+                                    + "response."
+                    ));
+                } else if (serverResponse.getAfcChannelAllowance() == null) {
+                    wifiHandler.post(() -> callback.onFailure(
+                            REASON_AFC_RESPONSE_CODE_ERROR, "Server error. "
+                                    + "HttpResponseCode=" + serverResponse.getHttpResponseCode()
+                                    + " AfcServerResponseCode=" + serverResponse
+                                    .getAfcResponseCode()));
+                } else {
+                    // Post the server response to the callback
+                    wifiHandler.post(() -> callback.onResult(serverResponse));
+                }
+            } catch (ServiceEntitlementException e) {
+                wifiHandler.post(() -> callback.onFailure(REASON_SERVICE_ENTITLEMENT_FAILURE,
+                        "Encountered Service Entitlement Exception when sending "
+                                + "request to server. " + e));
+            } catch (JSONException e) {
+                wifiHandler.post(() -> callback.onFailure(REASON_JSON_FAILURE,
+                        "Encountered JSON error when parsing HTTP response." + e
+                ));
+            } catch (Exception e) {
+                wifiHandler.post(() -> callback.onFailure(REASON_UNDEFINED_FAILURE,
+                        "Encountered error when parsing AFC server's response." + e));
+            } finally {
+                // Increment the request ID by 1 for the next request
+                mRequestId++;
+            }
+        });
+    }
+
+    /**
+     * Create and return the HttpRequest object that queries the AFC server for the afcLocation
+     * object.
+     */
+    public HttpRequest getAfcHttpRequestObject(AfcLocation afcLocation) {
         HttpRequest.Builder httpRequestBuilder = HttpRequest.builder()
                 .setUrl(sServerUrl)
                 .setRequestMethod(RequestMethod.POST)
                 .setTimeoutInSec(CONNECT_TIMEOUT_SECS);
-
         for (Map.Entry<String, String> requestProperty : sRequestProperties.entrySet()) {
             httpRequestBuilder.addRequestProperty(requestProperty.getKey(),
                     requestProperty.getValue());
         }
-
         JSONObject jsonRequestObject = getAfcRequestJSONObject(afcLocation);
         httpRequestBuilder.setPostData(jsonRequestObject);
-        HttpRequest httpRequest = httpRequestBuilder.build();
-        HttpResponse httpResponse = null;
-
-        try {
-            httpResponse = HttpClient.request(httpRequest);
-        } catch (ServiceEntitlementException e) {
-            Log.e(TAG, "Service Entitlement Exception: " + e);
-        }
-
-        // Increment the request ID by 1 for the next request
-        sRequestId++;
-
-        return httpResponse;
+        return httpRequestBuilder.build();
     }
 
     /**
@@ -105,7 +162,8 @@ public class AfcClient {
             JSONObject requestObject = new JSONObject();
             JSONArray inquiryRequests = new JSONArray();
             JSONObject inquiryRequest = new JSONObject();
-            inquiryRequest.put("requestId", String.valueOf(sRequestId));
+
+            inquiryRequest.put("requestId", String.valueOf(mRequestId));
 
             JSONObject deviceDescriptor = new JSONObject();
             deviceDescriptor.put("serialNumber", AfcClient.SERIAL_NUMBER);
@@ -139,6 +197,50 @@ public class AfcClient {
     }
 
     /**
+     * Parses the AFC server's HTTP response and finds an Available Spectrum Inquiry Response with
+     * a matching request ID.
+     *
+     * @param httpResponseJSON the response of the AFC server
+     * @return the Available Spectrum Inquiry Response as a JSON Object with a request ID matching
+     * the ID used in the request, or null if no object with a matching ID is found.
+     */
+    private JSONObject getAvailableSpectrumInquiryResponse(JSONObject httpResponseJSON,
+            int requestId) {
+        if (httpResponseJSON == null) {
+            return null;
+        }
+        String requestIdString = Integer.toString(requestId);
+
+        try {
+            JSONArray spectrumInquiryResponses = httpResponseJSON.getJSONArray(
+                    "availableSpectrumInquiryResponses");
+
+            // iterate through responses to find one with a matching request ID
+            for (int i = 0, numResponses = spectrumInquiryResponses.length();
+                    i < numResponses; i++) {
+                JSONObject spectrumInquiryResponse = spectrumInquiryResponses.getJSONObject(i);
+                if (requestIdString.equals(spectrumInquiryResponse.getString("requestId"))) {
+                    return spectrumInquiryResponse;
+                }
+            }
+
+            Log.e(TAG, "Did not find an available spectrum inquiry response with request ID: "
+                    + requestIdString);
+        } catch (JSONException e) {
+            Log.e(TAG, "Error occurred while parsing available spectrum inquiry response: "
+                    + e);
+        }
+        return null;
+    }
+
+    /**
+     * @return the http response code, or 500 if it does not exist
+     */
+    private int getHttpResponseCode(HttpResponse httpResponse) {
+        return httpResponse == null ? 500 : httpResponse.responseCode();
+    }
+
+    /**
      * Set the server URL used to query the AFC server.
      */
     public void setServerURL(String url) {
@@ -168,5 +270,21 @@ public class AfcClient {
      */
     public Map<String, String> getRequestProperties() {
         return sRequestProperties;
+    }
+
+    /**
+     * Callback which will be called after AfcResponse retrieval.
+     */
+    public interface Callback {
+        /**
+         * Indicates that an AfcServerResponse was received successfully.
+         */
+        void onResult(AfcServerResponse serverResponse);
+        /**
+         * Indicate a failure happens when receiving the AfcServerResponse.
+         * @param reasonCode The failure reason code.
+         * @param description The description of the failure.
+         */
+        void onFailure(@FailureReasonCode int reasonCode, String description);
     }
 }
