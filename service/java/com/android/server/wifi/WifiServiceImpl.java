@@ -5368,14 +5368,14 @@ public class WifiServiceImpl extends BaseWifiService {
     @Override
     public void acquireMulticastLock(IBinder binder, String tag) {
         enforceMulticastChangePermission();
-        mLog.info("acquireMulticastLock uid=%").c(Binder.getCallingUid()).flush();
+        mLog.info("acquireMulticastLock uid=% tag=%").c(Binder.getCallingUid()).c(tag).flush();
         mWifiMulticastLockManager.acquireLock(binder, tag);
     }
 
     @Override
     public void releaseMulticastLock(String tag) {
         enforceMulticastChangePermission();
-        mLog.info("releaseMulticastLock uid=%").c(Binder.getCallingUid()).flush();
+        mLog.info("releaseMulticastLock uid=% tag=%").c(Binder.getCallingUid()).c(tag).flush();
         mWifiMulticastLockManager.releaseLock(tag);
     }
 
