@@ -812,7 +812,7 @@ public class HalDeviceManager {
             Log.d(TAG, "isItPossibleToCreateIface: createIfaceType=" + createIfaceType
                     + ", requiredChipCapabilities=" + requiredChipCapabilities);
         }
-        return reportImpactToCreateIface(createIfaceType, true, requiredChipCapabilities,
+        return getIfacesToDestroyForRequest(createIfaceType, true, requiredChipCapabilities,
                 requestorWs) != null;
     }
 
@@ -831,9 +831,8 @@ public class HalDeviceManager {
     }
 
     /**
-     * Returns the details of what it would take to create the provided Iface requested by the
-     * specified requestor. The details are the list of other interfaces which would have to be
-     * destroyed.
+     * Returns the list of interfaces that would be deleted to create the provided Iface requested
+     * by the specified requestor.
      *
      * Return types imply:
      * - null: interface cannot be created
@@ -848,14 +847,13 @@ public class HalDeviceManager {
      *                                 See the HAL for documentation.
      * @param requestorWs Requestor worksource. This will be used to determine priority of this
      *                    interface using rules based on the requestor app's context.
-     * @return the list of interfaces that would have to be destroyed and their worksource. The
-     * interface type is described using @HdmIfaceTypeForCreation.
+     * @return the list of interfaces that would have to be destroyed.
      */
-    public List<Pair<Integer, WorkSource>> reportImpactToCreateIface(
+    private List<WifiIfaceInfo> getIfacesToDestroyForRequest(
             @HdmIfaceTypeForCreation int createIfaceType, boolean queryForNewInterface,
             long requiredChipCapabilities, WorkSource requestorWs) {
         if (VDBG) {
-            Log.d(TAG, "reportImpactToCreateIface: ifaceType=" + createIfaceType
+            Log.d(TAG, "getIfacesToDestroyForRequest: ifaceType=" + createIfaceType
                     + ", requiredChipCapabilities=" + requiredChipCapabilities
                     + ", requestorWs=" + requestorWs);
         }
@@ -863,18 +861,18 @@ public class HalDeviceManager {
         IfaceCreationData creationData;
         synchronized (mLock) {
             if (!mWifiHal.isInitializationComplete()) {
-                Log.e(TAG, "reportImpactToCreateIface: Wifi Hal is not available");
+                Log.e(TAG, "getIfacesToDestroyForRequest: Wifi Hal is not available");
                 return null;
             }
             WifiChipInfo[] chipInfos = getAllChipInfo();
             if (chipInfos == null) {
-                Log.e(TAG, "createIface: no chip info found");
+                Log.e(TAG, "getIfacesToDestroyForRequest: no chip info found");
                 stopWifi(); // major error: shutting down
                 return null;
             }
 
             if (!validateInterfaceCacheAndRetrieveRequestorWs(chipInfos)) {
-                Log.e(TAG, "createIface: local cache is invalid!");
+                Log.e(TAG, "getIfacesToDestroyForRequest: local cache is invalid!");
                 stopWifi(); // major error: shutting down
                 return null;
             }
@@ -895,53 +893,63 @@ public class HalDeviceManager {
             return null; // impossible to create requested interface
         }
 
-        List<Pair<Integer, WorkSource>> details = new ArrayList<>();
+        List<WifiIfaceInfo> ifaces = new ArrayList<>();
         boolean isModeConfigNeeded = !creationData.chipInfo.currentModeIdValid
                 || creationData.chipInfo.currentModeId != creationData.chipModeId;
         if (!isModeConfigNeeded && (creationData.interfacesToBeRemovedFirst == null
                 || creationData.interfacesToBeRemovedFirst.isEmpty())) {
             // can create interface w/o deleting any other interfaces
-            return details;
+            return ifaces;
         }
 
         if (isModeConfigNeeded) {
             if (VDBG) {
-                Log.d(TAG, "isItPossibleToCreateIfaceDetails: mode change from - "
+                Log.d(TAG, "getIfacesToDestroyForRequest: mode change from - "
                         + creationData.chipInfo.currentModeId + ", to - "
                         + creationData.chipModeId);
             }
             for (WifiIfaceInfo[] ifaceInfos: creationData.chipInfo.ifaces) {
-                for (WifiIfaceInfo ifaceInfo : ifaceInfos) {
-                    details.add(Pair.create(ifaceInfo.createType,
-                            ifaceInfo.requestorWsHelper.getWorkSource()));
-                }
+                ifaces.addAll(Arrays.asList(ifaceInfos));
             }
         } else {
-            for (WifiIfaceInfo ifaceInfo : creationData.interfacesToBeRemovedFirst) {
-                details.add(Pair.create(ifaceInfo.createType,
-                        ifaceInfo.requestorWsHelper.getWorkSource()));
-            }
+            ifaces.addAll(creationData.interfacesToBeRemovedFirst);
         }
 
-        return details;
+        return ifaces;
     }
 
     /**
-     * See {@link #reportImpactToCreateIface(int, boolean, long, WorkSource)}.
+     * Returns the details of what it would take to create the provided Iface requested by the
+     * specified requestor. The details are the list of other interfaces which would have to be
+     * destroyed.
      *
-     * @param ifaceType Type of iface requested.
+     * Return types imply:
+     * - null: interface cannot be created
+     * - empty list: interface can be crated w/o destroying any other interfaces
+     * - otherwise: a list of interfaces to be destroyed
+     *
+     * @param createIfaceType Type of iface requested.
      * @param queryForNewInterface True: request another interface of the specified type, False: if
      *                             there's already an interface of the specified type then no need
      *                             for further operation.
      * @param requestorWs Requestor worksource. This will be used to determine priority of this
      *                    interface using rules based on the requestor app's context.
-     * @return the list of interfaces that would have to be destroyed and their worksource.
+     * @return the list of interfaces that would have to be destroyed and their worksource. The
+     * interface type is described using @HdmIfaceTypeForCreation.
      */
     public List<Pair<Integer, WorkSource>> reportImpactToCreateIface(
-            @HdmIfaceTypeForCreation int ifaceType, boolean queryForNewInterface,
+            @HdmIfaceTypeForCreation int createIfaceType, boolean queryForNewInterface,
             WorkSource requestorWs) {
-        return reportImpactToCreateIface(ifaceType, queryForNewInterface, CHIP_CAPABILITY_ANY,
-                requestorWs);
+        List<WifiIfaceInfo> ifaces = getIfacesToDestroyForRequest(createIfaceType,
+                queryForNewInterface, CHIP_CAPABILITY_ANY, requestorWs);
+        if (ifaces == null) {
+            return null;
+        }
+        List<Pair<Integer, WorkSource>> impact = new ArrayList<>();
+        for (WifiIfaceInfo iface : ifaces) {
+            impact.add(new Pair<>(iface.createType, iface.requestorWsHelper.getWorkSource()));
+        }
+        return impact;
     }
 
     /**
@@ -950,14 +958,14 @@ public class HalDeviceManager {
      */
     public boolean creatingIfaceWillDeletePrivilegedIface(
             @HdmIfaceTypeForCreation int ifaceType, WorkSource requestorWs) {
-        List<Pair<Integer, WorkSource>> impact =
-                reportImpactToCreateIface(ifaceType, true, requestorWs);
-        if (impact == null) {
+        List<WifiIfaceInfo> ifaces = getIfacesToDestroyForRequest(ifaceType, true,
+                CHIP_CAPABILITY_ANY, requestorWs);
+        if (ifaces == null) {
             return false;
         }
-        for (Pair<Integer, WorkSource> pair : impact) {
-            if (mWifiInjector.makeWsHelper(pair.second).getRequestorWsPriority()
-                    == WorkSourceHelper.PRIORITY_PRIVILEGED) {
+        for (WifiIfaceInfo iface : ifaces) {
+            if (iface.requestorWsHelper.getRequestorWsPriority()
+                    == WorkSourceHelper.PRIORITY_PRIVILEGED && !isDisconnectedP2p(iface)) {
                 return true;
             }
         }
@@ -2034,21 +2042,9 @@ public class HalDeviceManager {
 
         // Allow FG apps to delete any disconnected P2P iface if they are older than
         // config_disconnectedP2pIfaceLowPriorityTimeoutMs.
-        int unusedP2pTimeoutMs = mContext.getResources().getInteger(
-                R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs);
         if (newRequestorWsPriority > WorkSourceHelper.PRIORITY_BG
-                && existingCreateType == HDM_CREATE_IFACE_P2P
-                && !mIsP2pConnected
-                && unusedP2pTimeoutMs >= 0) {
-            InterfaceCacheEntry ifaceCacheEntry = mInterfaceInfoCache.get(
-                    Pair.create(existingIfaceInfo.name, getType(existingIfaceInfo.iface)));
-            if (ifaceCacheEntry != null && mClock.getElapsedSinceBootMillis()
-                    >= ifaceCacheEntry.creationTime + unusedP2pTimeoutMs) {
-                if (mDbg) {
-                    Log.i(TAG, "Allowed to delete disconnected P2P iface: " + ifaceCacheEntry);
-                }
-                return true;
-            }
+                && isDisconnectedP2p(existingIfaceInfo)) {
+            return true;
         }
 
         // Defer deletion decision to the InterfaceConflictManager dialog.
@@ -2149,6 +2145,25 @@ public class HalDeviceManager {
 
         // rule 4, the requestedCreateType is either AP/AP_BRIDGED or STA
         return true;
+    }
+
+    private boolean isDisconnectedP2p(WifiIfaceInfo p2pInfo) {
+        int unusedP2pTimeoutMs = mContext.getResources().getInteger(
+                R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs);
+        if (p2pInfo.createType == HDM_CREATE_IFACE_P2P
+                && !mIsP2pConnected
+                && unusedP2pTimeoutMs >= 0) {
+            InterfaceCacheEntry ifaceCacheEntry = mInterfaceInfoCache.get(
+                    Pair.create(p2pInfo.name, getType(p2pInfo.iface)));
+            if (ifaceCacheEntry != null && mClock.getElapsedSinceBootMillis()
+                    >= ifaceCacheEntry.creationTime + unusedP2pTimeoutMs) {
+                if (mDbg) {
+                    Log.i(TAG, "Allowed to delete disconnected P2P iface: " + ifaceCacheEntry);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
