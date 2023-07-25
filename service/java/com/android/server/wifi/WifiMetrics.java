@@ -6652,7 +6652,7 @@ public class WifiMetrics {
     }
 
     private android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[]
-            convertContentionTimeStats(WifiLinkLayerStats stats) {
+            convertContentionTimeStats(WifiLinkLayerStats.LinkSpecificStats stats) {
         android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[] contentionTimeStatsArray =
                 new android.net.wifi.WifiUsabilityStatsEntry.ContentionTimeStats[
                         android.net.wifi.WifiUsabilityStatsEntry.NUM_WME_ACCESS_CATEGORIES];
@@ -6706,7 +6706,7 @@ public class WifiMetrics {
     }
 
     private android.net.wifi.WifiUsabilityStatsEntry.RateStats[] convertRateStats(
-            WifiLinkLayerStats stats) {
+            WifiLinkLayerStats.LinkSpecificStats stats) {
         android.net.wifi.WifiUsabilityStatsEntry.RateStats[] rateStats = null;
         if (stats.peerInfo != null && stats.peerInfo.length > 0
                 && stats.peerInfo[0].rateStats != null) {
@@ -6747,7 +6747,7 @@ public class WifiMetrics {
             // Mlolink or WifiInfo (non-MLO case).
             android.net.wifi.WifiUsabilityStatsEntry.LinkStats outStat =
                     new android.net.wifi.WifiUsabilityStatsEntry.LinkStats(inStat.link_id,
-                            inStat.radio_id, inStat.state,
+                            inStat.state, inStat.radio_id,
                             (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
                                     new MloLink()).getRssi() : info.getRssi(),
                             (mloLinks.size() > 0) ? mloLinks.get(inStat.link_id,
@@ -6756,7 +6756,7 @@ public class WifiMetrics {
                                     new MloLink()).getRxLinkSpeedMbps() : info.getRxLinkSpeedMbps(),
                             inStat.txmpdu_be + inStat.txmpdu_bk + inStat.txmpdu_vi
                                     + inStat.txmpdu_vo,
-                            inStat.retries_be + inStat.retries_be + inStat.retries_vi
+                            inStat.retries_be + inStat.retries_bk + inStat.retries_vi
                                     + inStat.retries_vo,
                             inStat.lostmpdu_be + inStat.lostmpdu_bk + inStat.lostmpdu_vo
                                     + inStat.lostmpdu_vi,
@@ -6765,8 +6765,8 @@ public class WifiMetrics {
                             inStat.beacon_rx, inStat.timeSliceDutyCycleInPercent,
                             (channelStatsMap != null) ? channelStatsMap.ccaBusyTimeMs : 0 ,
                             (channelStatsMap != null) ? channelStatsMap.radioOnTimeMs : 0,
-                            convertContentionTimeStats(stats),
-                            convertRateStats(stats));
+                            convertContentionTimeStats(inStat),
+                            convertRateStats(inStat));
             linkStats.put(inStat.link_id, outStat);
         }
 
@@ -6878,7 +6878,8 @@ public class WifiMetrics {
      * Converts bandwidth enum in proto to WifiUsabilityStatsEntry type.
      * @param value
      */
-    private static int convertBandwidthEnumToUsabilityStatsType(int value) {
+    @VisibleForTesting
+    public static int convertBandwidthEnumToUsabilityStatsType(int value) {
         switch (value) {
             case RateStats.WIFI_BANDWIDTH_20_MHZ:
                 return android.net.wifi.WifiUsabilityStatsEntry.WIFI_BANDWIDTH_20_MHZ;
@@ -6902,7 +6903,8 @@ public class WifiMetrics {
      * Converts spatial streams enum in proto to WifiUsabilityStatsEntry type.
      * @param value
      */
-    private static int convertSpatialStreamEnumToUsabilityStatsType(int value) {
+    @VisibleForTesting
+    public static int convertSpatialStreamEnumToUsabilityStatsType(int value) {
         switch (value) {
             case RateStats.WIFI_SPATIAL_STREAMS_ONE:
                 return android.net.wifi.WifiUsabilityStatsEntry.WIFI_SPATIAL_STREAMS_ONE;
@@ -6920,7 +6922,8 @@ public class WifiMetrics {
      * Converts preamble type enum in proto to WifiUsabilityStatsEntry type.
      * @param value
      */
-    private static int convertPreambleTypeEnumToUsabilityStatsType(int value) {
+    @VisibleForTesting
+    public static int convertPreambleTypeEnumToUsabilityStatsType(int value) {
         switch (value) {
             case RateStats.WIFI_PREAMBLE_OFDM:
                 return android.net.wifi.WifiUsabilityStatsEntry.WIFI_PREAMBLE_OFDM;
