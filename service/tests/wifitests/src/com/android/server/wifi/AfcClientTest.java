@@ -176,7 +176,7 @@ public class AfcClientTest {
         mTestLooper.dispatchAll();
         assertThat(mAfcClient.getAfcHttpRequestObject(mAfcLocation).url()).isEqualTo(
                 "https://testingURL");
-        verify(mCallback).onResult(mAfcServerResponseCaptor.capture());
+        verify(mCallback).onResult(mAfcServerResponseCaptor.capture(), any(AfcLocation.class));
         AfcServerResponse serverResponse = mAfcServerResponseCaptor.getValue();
         assertThat(serverResponse.getAfcChannelAllowance().availabilityExpireTimeMs)
                 .isEqualTo(AfcServerResponse.convertExpireTimeStringToTimestamp(
