@@ -6467,7 +6467,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(),
@@ -6486,7 +6486,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(),
@@ -6511,7 +6511,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(),
@@ -6549,25 +6549,33 @@ public class WifiMetricsTest extends WifiBaseTest {
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
                 WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY);
 
+        long connectionEndTimeMs = 1000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(connectionEndTimeMs);
         mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
                 WifiMetrics.ConnectionEvent.FAILURE_NONE,
                 WifiMetricsProto.ConnectionEvent.HLF_NONE,
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
+        long wifiDisconnectTimeMs = 2000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(wifiDisconnectTimeMs);
         int linkSpeed = 100;
         int reason = 42;
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
-                linkSpeed);
+                linkSpeed, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
-                WifiStatsLog.WIFI_DISCONNECT_REPORTED,
-                0,
-                reason,
-                WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__BAND__BAND_2G,
-                WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK,
-                TEST_CANDIDATE_LEVEL,
-                linkSpeed));
+                eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                eq((int) (wifiDisconnectTimeMs - connectionEndTimeMs) / 1000),
+                eq(reason),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__BAND__BAND_2G),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK),
+                eq(TEST_CANDIDATE_LEVEL),
+                eq(linkSpeed),
+                eq((int) wifiDisconnectTimeMs / 1000),
+                eq((int) (wifiDisconnectTimeMs - connectionEndTimeMs) / 1000),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY),
+                anyInt(), anyInt(), anyInt()));
     }
 
     @Test
@@ -6576,6 +6584,8 @@ public class WifiMetricsTest extends WifiBaseTest {
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
                 WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY);
 
+        long connectionEndTimeMs = 1000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(connectionEndTimeMs);
         mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
                 WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE,
                 WifiMetricsProto.ConnectionEvent.HLF_DHCP,
@@ -6583,23 +6593,27 @@ public class WifiMetricsTest extends WifiBaseTest {
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
 
+        long wifiDisconnectTimeMs = 2000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(wifiDisconnectTimeMs);
         int linkSpeed = 100;
         int reason = 42;
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
-                linkSpeed);
+                linkSpeed, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt()),
                 times(0));
     }
 
     @Test
     public void testWifiDisconnectAtomNotEmittedWithNoSession() {
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, TEST_CANDIDATE_LEVEL, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, TEST_CANDIDATE_LEVEL, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt()),
                 times(0));
     }
@@ -6626,7 +6640,7 @@ public class WifiMetricsTest extends WifiBaseTest {
         int linkSpeed = 100;
         int reason = 42;
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
-                linkSpeed);
+                linkSpeed, 0);
 
         // FALSE must be emitted
         ExtendedMockito.verify(() -> WifiStatsLog.write(
@@ -6657,7 +6671,7 @@ public class WifiMetricsTest extends WifiBaseTest {
         int linkSpeed = 100;
         int reason = 42;
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
-                linkSpeed);
+                linkSpeed, 0);
 
         // But we still expect FALSE to be emitted
         ExtendedMockito.verify(() -> WifiStatsLog.write(
@@ -6688,7 +6702,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 anyBoolean(), eq(10), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt()));
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
 
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 30 * 1000);
 
@@ -6709,7 +6723,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 anyBoolean(), eq(20), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt()));
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
     }
 
     @Test
