@@ -3669,7 +3669,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.enableRssiPolling(true);
         connect();
         mLooper.dispatchAll();
-        assertRssiChangeBroadcastSent();
+        assertRssiChangeBroadcastSent(1);
         when(mClock.getWallClockMillis()).thenReturn(startMillis + 3333);
         mLooper.dispatchAll();
         WifiInfo wifiInfo = mWifiInfo;
@@ -3683,6 +3683,92 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mPerNetwork, atLeastOnce()).getTxLinkBandwidthKbps();
         verify(mPerNetwork, atLeastOnce()).getRxLinkBandwidthKbps();
         verify(mWifiScoreCard).noteSignalPoll(any());
+    }
+
+    /**
+     * Verify that RSSI polling will send RSSI broadcasts if the RSSI signal level has changed
+     */
+    @Test
+    public void verifyConnectedModeRssiPollingWithSameSignalLevel() throws Exception {
+        final long startMillis = 1_500_000_000_100L;
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, -42, 65, 54, sFreq);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                WifiManager.WIFI_FEATURE_LINK_LAYER_STATS);
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+        when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
+        mCmi.enableRssiPolling(true);
+        connect();
+        mLooper.dispatchAll();
+        when(mClock.getWallClockMillis()).thenReturn(startMillis + 3333);
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        // Two broadcasts, one when enabling RSSI polling and the other for RSSI polling after
+        // IP configuration success resets the current level.
+        assertRssiChangeBroadcastSent(2);
+
+        // Same RSSI should not send another broadcast
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        assertRssiChangeBroadcastSent(2);
+
+        // Same signal level should not send another broadcast
+        signalPollResults.addEntry(0, -43, 65, 54, sFreq);
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        assertRssiChangeBroadcastSent(2);
+
+        // Different signal level should send another broadcast
+        signalPollResults.addEntry(0, -70, 65, 54, sFreq);
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        assertRssiChangeBroadcastSent(3);
+    }
+
+    /**
+     * Verify that RSSI polling with verbose logging enabled by the user will send RSSI broadcasts
+     * if the RSSI has changed at all.
+     */
+    @Test
+    public void verifyConnectedModeRssiPollingWithSameSignalLevelVerboseLoggingEnabled()
+            throws Exception {
+        when(mWifiGlobals.getVerboseLoggingLevel())
+                .thenReturn(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED);
+        final long startMillis = 1_500_000_000_100L;
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, -42, 65, 54, sFreq);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                WifiManager.WIFI_FEATURE_LINK_LAYER_STATS);
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+        when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
+        mCmi.enableRssiPolling(true);
+        connect();
+        mLooper.dispatchAll();
+        when(mClock.getWallClockMillis()).thenReturn(startMillis + 3333);
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        // Two broadcasts, one when enabling RSSI polling and the other for RSSI polling after
+        // IP configuration success resets the current level.
+        assertRssiChangeBroadcastSent(2);
+
+        // Same RSSI should not send another broadcast
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        assertRssiChangeBroadcastSent(2);
+
+        // Different RSSI but same signal level should send another broadcast since we're verbose.
+        signalPollResults.addEntry(0, -43, 65, 54, sFreq);
+        mLooper.moveTimeForward(mWifiGlobals.getPollRssiIntervalMillis());
+        mLooper.dispatchAll();
+        assertRssiChangeBroadcastSent(3);
     }
 
     /**
@@ -5576,13 +5662,15 @@ public class ClientModeImplTest extends WifiBaseTest {
     /**
      * Verifies that RSSI change broadcast is sent.
      */
-    private void assertRssiChangeBroadcastSent() throws Exception {
+    private void assertRssiChangeBroadcastSent(int times) throws Exception {
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
-        verify(mContext).sendBroadcastAsUser(intentCaptor.capture(),
+        verify(mContext, times(times)).sendBroadcastAsUser(intentCaptor.capture(),
                 eq(UserHandle.ALL), eq(Manifest.permission.ACCESS_WIFI_STATE), any());
-        Intent intent = intentCaptor.getValue();
-        assertNotNull(intent);
-        assertEquals(WifiManager.RSSI_CHANGED_ACTION, intent.getAction());
+        if (times > 0) {
+            Intent intent = intentCaptor.getValue();
+            assertNotNull(intent);
+            assertEquals(WifiManager.RSSI_CHANGED_ACTION, intent.getAction());
+        }
     }
 
     /**
