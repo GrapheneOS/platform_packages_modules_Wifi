@@ -1102,6 +1102,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 if (getCurrentState() == mDefaultState && !scanSettings.ignoreLocationSettings) {
                     // Reject regular scan requests if scanning is disabled.
                     ci.replyFailed(WifiScanner.REASON_UNSPECIFIED, "not available");
+                    ci.cleanup();
                     return;
                 }
                 mWifiMetrics.incrementOneshotScanCount();
@@ -1143,6 +1144,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             } else {
                 logCallback("singleScanInvalidRequest", ci, "bad request");
                 ci.replyFailed(WifiScanner.REASON_INVALID_REQUEST, "bad request");
+                ci.cleanup();
                 mWifiMetrics.incrementScanReturnEntry(
                         WifiMetricsProto.WifiLog.SCAN_FAILURE_INVALID_CONFIGURATION, 1);
             }
@@ -1551,8 +1553,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 try {
                     entry.clientInfo.mListener.onFailure(reason, description);
                 } catch (RemoteException e) {
-                    loge("Failed to call onFullResult: " + entry.clientInfo);
+                    loge("Failed to call onFailure: " + entry.clientInfo);
                 }
+                entry.clientInfo.unregister();
             }
             clientHandlers.clear();
         }
