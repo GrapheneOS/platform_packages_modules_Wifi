@@ -26,6 +26,10 @@ import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -66,7 +70,7 @@ public class WifiGlobals {
     private final int mNetworkNotFoundEventThreshold;
     private final boolean mIsWepDeprecated;
     private final boolean mIsWpaPersonalDeprecated;
-
+    private final Map<String, List<String>> mCountryCodeToAfcServers;
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
     private boolean mIsUsingExternalScorer = false;
@@ -130,6 +134,7 @@ public class WifiGlobals {
                 && mContext.getResources().getBoolean(R.bool.config_wifi6ghzSupport);
         Set<String> unsupportedSsidPrefixes = new ArraySet<>(mContext.getResources().getStringArray(
                 R.array.config_wifiForceDisableMacRandomizationSsidPrefixList));
+        mCountryCodeToAfcServers = getCountryCodeToAfcServersMap();
         if (!unsupportedSsidPrefixes.isEmpty()) {
             for (String ssid : unsupportedSsidPrefixes) {
                 String cleanedSsid = ssid.length() > 1 && (ssid.charAt(0) == '"')
@@ -138,6 +143,29 @@ public class WifiGlobals {
                 mMacRandomizationUnsupportedSsidPrefixes.add(cleanedSsid);
             }
         }
+    }
+
+    private Map<String, List<String>> getCountryCodeToAfcServersMap() {
+        Map<String, List<String>> countryCodeToAfcServers = new HashMap<>();
+        String[] countryCodeToAfcServersFromConfig = mContext.getResources().getStringArray(
+                R.array.config_wifiAfcServerUrlsForCountry);
+
+        if (countryCodeToAfcServersFromConfig == null) {
+            return countryCodeToAfcServers;
+        }
+
+        // each entry should be of the form: countryCode,url1,url2...
+        for (String entry : countryCodeToAfcServersFromConfig) {
+            String[] countryAndUrls = entry.split(",");
+
+            // if no servers are specified for a country, then continue to the next entry
+            if (countryAndUrls.length < 2) {
+                continue;
+            }
+            countryCodeToAfcServers.put(countryAndUrls[0], Arrays.asList(Arrays.copyOfRange(
+                    countryAndUrls, 1, countryAndUrls.length)));
+        }
+        return countryCodeToAfcServers;
     }
 
     public Set<String> getMacRandomizationUnsupportedSsidPrefixes() {
@@ -160,12 +188,11 @@ public class WifiGlobals {
     }
 
     /**
-     * Returns the AFC server URL for a country, or null if AFC is not available in that country.
+     * Returns a list of AFC server URLs for a country, or null if AFC is not available in that
+     * country.
      */
-    public String getAfcServerUrlForCountry(String countryCode) {
-        // Todo: add a list of country codes and the AFC servers associated with them in the
-        //  overlay. Then, return the URL if it exists, or null otherwise.
-        return null;
+    public @Nullable List<String> getAfcServerUrlsForCountry(String countryCode) {
+        return mCountryCodeToAfcServers.get(countryCode);
     }
 
     /**

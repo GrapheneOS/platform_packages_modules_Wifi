@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -50,6 +51,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -73,6 +75,7 @@ public class AfcManagerTest extends WifiBaseTest {
     @Mock AfcClient mAfcClient;
     private AfcManager mAfcManager;
     private static final String EXPIRATION_DATE = "2020-11-03T13:34:05Z";
+    private static String sAfcServerUrl1 = "https://example.com/";
 
     @Before
     public void setUp() throws Exception {
@@ -89,8 +92,8 @@ public class AfcManagerTest extends WifiBaseTest {
         when(mWifiInjector.getAfcClient()).thenReturn(mAfcClient);
         when(mWifiHandlerThread.getLooper()).thenReturn(mLooper);
         when(mWifiGlobals.isAfcSupportedOnDevice()).thenReturn(true);
-        when(mWifiGlobals.getAfcServerUrlForCountry(anyString())).thenReturn(
-                "https://example.com/");
+        when(mWifiGlobals.getAfcServerUrlsForCountry(anyString())).thenReturn(Arrays.asList(
+                sAfcServerUrl1));
 
         when(mLocationManager.getProviders(anyBoolean())).thenReturn(List.of(
                 LocationManager.FUSED_PROVIDER, LocationManager.PASSIVE_PROVIDER,
@@ -164,6 +167,7 @@ public class AfcManagerTest extends WifiBaseTest {
         ArgumentCaptor<Consumer<Location>> consumerArgumentCaptor =
                 ArgumentCaptor.forClass(Consumer.class);
 
+        assertEquals(sAfcServerUrl1, (mAfcManager).getAfcServerUrl());
         // check that we fetch a new location
         verify(mLocationManager).getCurrentLocation(anyString(), any(),
                 any(HandlerExecutor.class), consumerArgumentCaptor.capture());
@@ -242,8 +246,9 @@ public class AfcManagerTest extends WifiBaseTest {
         mAfcManager = makeAfcManager();
         ArgumentCaptor<LocationListener> locationListenerCaptor =
                 ArgumentCaptor.forClass(LocationListener.class);
-
         mAfcManager.onCountryCodeChange("US");
+
+        assertEquals(sAfcServerUrl1, (mAfcManager).getAfcServerUrl());
         // check that we listen for location updates
         verify(mLocationManager).requestLocationUpdates(anyString(), anyLong(),
                 anyFloat(), locationListenerCaptor.capture(), any(Looper.class));
@@ -251,9 +256,10 @@ public class AfcManagerTest extends WifiBaseTest {
 
         // Mock another country code change, this time with AFC not available, and check that the
         // location listener is removed from location updates.
-        when(mWifiGlobals.getAfcServerUrlForCountry(anyString())).thenReturn(null);
+        when(mWifiGlobals.getAfcServerUrlsForCountry(anyString())).thenReturn(null);
         mAfcManager.onCountryCodeChange("00");
 
+        assertEquals(null, (mAfcManager).getAfcServerUrl());
         verify(mLocationManager).removeUpdates(locationListener);
     }
 

@@ -1142,6 +1142,18 @@
         -->
     </string-array>
 
+    <!-- Lists available AFC servers for each country, based on country code. Each country may
+     have more than one server listed. If a country is not present in the list, then AFC is not
+     available in that country, and the device will behave as if AFC is disabled.
+     Entries should be in the format:
+     <item>countryCode,url1,url2,url3...</item> -->
+    <string-array translatable="false" name="config_wifiAfcServerUrlsForCountry">
+        <!-- Below is a sample configuration for this list:
+            <item>US,https://example.com/,https://google.com/</item>
+            <item>CA,https://example.com/</item>
+        -->
+    </string-array>
+
     <!-- ACTION_FILE_BUG_DEEPLINK intent name -->
     <string name="config_wifiBugreportDeepLink" translatable="false">com.google.android.apps.betterbug.intent.FILE_BUG_DEEPLINK</string>
 
