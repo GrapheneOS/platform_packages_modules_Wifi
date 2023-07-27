@@ -33,11 +33,8 @@ import java.util.List;
  * This is used to log pulled atoms to StatsD via Callback.
  */
 public class WifiPulledAtomLogger {
-    // Internal version number for tracking.
-    // Digits 0-1 is target build SDK level
-    // Digits 2-3 is the month of the mainline train
-    public static final int WIFI_VERSION_NUMBER = 340899999;
     public static final String WIFI_BUILD_FROM_SOURCE_PACKAGE_NAME = "com.android.wifi";
+    private static final String WIFI_PACKAGE_NAME_SUFFIX = ".android.wifi";
     private int mWifiBuildType = 0;
 
     private static final String TAG = "WifiPulledAtomLogger";
@@ -46,6 +43,9 @@ public class WifiPulledAtomLogger {
     private final Context mContext;
     private final WifiInjector mWifiInjector;
     private StatsManager.StatsPullAtomCallback mStatsPullAtomCallback;
+
+    private int mApexVersionNumber = -1;
+
     public WifiPulledAtomLogger(StatsManager statsManager, Handler handler, Context context,
             WifiInjector wifiInjector) {
         mStatsManager = statsManager;
@@ -96,27 +96,17 @@ public class WifiPulledAtomLogger {
     private int handleWifiVersionPull(int atomTag, List<StatsEvent> data) {
         if (mWifiBuildType != 0) {
             // build type already cached. No need to get it again.
-            data.add(WifiStatsLog.buildStatsEvent(atomTag, WIFI_VERSION_NUMBER, mWifiBuildType));
+            data.add(WifiStatsLog.buildStatsEvent(atomTag, mApexVersionNumber, mWifiBuildType));
             return StatsManager.PULL_SUCCESS;
         }
-        // Query build type and cache if not already cached.
         PackageManager pm = mContext.getPackageManager();
         if (pm == null) {
             Log.e(TAG, "Failed to get package manager");
             return StatsManager.PULL_SKIP;
         }
-        List<PackageInfo> packageInfos = pm.getInstalledPackages(PackageManager.MATCH_APEX);
-        boolean found = false;
-        for (PackageInfo packageInfo : packageInfos) {
-            if (WIFI_BUILD_FROM_SOURCE_PACKAGE_NAME.equals(packageInfo.packageName)) {
-                found = true;
-                break;
-            }
-        }
-        mWifiBuildType = found
-                ? WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_BUILT_FROM_SOURCE
-                : WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_PREBUILT;
-        data.add(WifiStatsLog.buildStatsEvent(atomTag, WIFI_VERSION_NUMBER, mWifiBuildType));
+        updateBuildTypeAndVersionCode(pm);
+
+        data.add(WifiStatsLog.buildStatsEvent(atomTag, mApexVersionNumber, mWifiBuildType));
         return StatsManager.PULL_SUCCESS;
     }
 
@@ -181,5 +171,27 @@ public class WifiPulledAtomLogger {
         }
         data.add(WifiStatsLog.buildStatsEvent(atomTag, multiInternetMode));
         return StatsManager.PULL_SUCCESS;
+    }
+
+    private void updateBuildTypeAndVersionCode(PackageManager pm) {
+        // Query build type and cache if not already cached.
+        List<PackageInfo> packageInfos = pm.getInstalledPackages(PackageManager.MATCH_APEX);
+        boolean found = false;
+        String wifiPackageName = null;
+        for (PackageInfo packageInfo : packageInfos) {
+            if (packageInfo.packageName.endsWith(WIFI_PACKAGE_NAME_SUFFIX)) {
+                mApexVersionNumber = (int) packageInfo.getLongVersionCode();
+                wifiPackageName = packageInfo.packageName;
+                if (packageInfo.packageName.equals(WIFI_BUILD_FROM_SOURCE_PACKAGE_NAME)) {
+                    found = true;
+                }
+                break;
+            }
+        }
+        mWifiBuildType = found
+                ? WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_BUILT_FROM_SOURCE
+                : WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_PREBUILT;
+        Log.i(TAG, "Wifi Module package name is " + wifiPackageName
+                + ", version is " + mApexVersionNumber);
     }
 }

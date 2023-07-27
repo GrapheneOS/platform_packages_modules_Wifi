@@ -56,6 +56,8 @@ import java.util.List;
 @SmallTest
 public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     public static final int TEST_INVALID_ATOM_ID = -1;
+
+    public static final int WIFI_VERSION_NUMBER = 340899999;
     private WifiPulledAtomLogger mWifiPulledAtomLogger;
     private MockitoSession mSession;
     private TestLooper mLooper;
@@ -124,6 +126,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         List<PackageInfo> packageInfos = new ArrayList<>();
         PackageInfo packageInfo = new PackageInfo();
         packageInfo.packageName = WifiPulledAtomLogger.WIFI_BUILD_FROM_SOURCE_PACKAGE_NAME;
+        packageInfo.setLongVersionCode(WIFI_VERSION_NUMBER);
         packageInfos.add(packageInfo);
         when(mPackageManager.getInstalledPackages(anyInt())).thenReturn(packageInfos);
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
@@ -131,7 +134,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         assertEquals(1, data.size());
         ExtendedMockito.verify(() -> WifiStatsLog.buildStatsEvent(
                 WifiStatsLog.WIFI_MODULE_INFO,
-                WifiPulledAtomLogger.WIFI_VERSION_NUMBER,
+                WIFI_VERSION_NUMBER,
                 WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_BUILT_FROM_SOURCE));
     }
 
@@ -147,6 +150,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         List<PackageInfo> packageInfos = new ArrayList<>();
         PackageInfo packageInfo = new PackageInfo();
         packageInfo.packageName = "com.google.android.wifi";
+        packageInfo.setLongVersionCode(WIFI_VERSION_NUMBER);
         packageInfos.add(packageInfo);
         when(mPackageManager.getInstalledPackages(anyInt())).thenReturn(packageInfos);
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
@@ -154,7 +158,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         assertEquals(1, data.size());
         ExtendedMockito.verify(() -> WifiStatsLog.buildStatsEvent(
                 WifiStatsLog.WIFI_MODULE_INFO,
-                WifiPulledAtomLogger.WIFI_VERSION_NUMBER,
+                WIFI_VERSION_NUMBER,
                 WifiStatsLog.WIFI_MODULE_INFO__BUILD_TYPE__TYPE_PREBUILT));
     }
 
