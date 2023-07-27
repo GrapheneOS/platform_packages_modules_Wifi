@@ -8071,8 +8071,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @Override
     public boolean setWifiConnectedNetworkScorer(IBinder binder,
-            IWifiConnectedNetworkScorer scorer) {
-        return mWifiScoreReport.setWifiConnectedNetworkScorer(binder, scorer);
+            IWifiConnectedNetworkScorer scorer, int callerUid) {
+        return mWifiScoreReport.setWifiConnectedNetworkScorer(binder, scorer, callerUid);
     }
 
     @Override

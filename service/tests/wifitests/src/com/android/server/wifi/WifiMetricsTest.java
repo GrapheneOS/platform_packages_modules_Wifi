@@ -39,6 +39,7 @@ import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureR
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureStaEvent;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeSuccessStaEvent;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED;
 import static com.android.server.wifi.proto.nano.WifiMetricsProto.StaEvent.TYPE_LINK_PROBE;
 
 import static org.junit.Assert.assertEquals;
@@ -91,6 +92,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.test.TestLooper;
 import android.telephony.TelephonyManager;
@@ -3728,6 +3730,38 @@ public class WifiMetricsTest extends WifiBaseTest {
     }
 
     /**
+     * Generate WifiIsUnUsableReported and verify that they are logged correctly when no external
+     * scorer is ON.
+     */
+    @Test
+    public void testWifiIsUnUsableReportedWithNoExternalScorer() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiIsUnusableEventMetricsEnabled, true);
+        generateAllUnusableEvents(mWifiMetrics);
+        for (int i = 0; i < mTestUnusableEvents.length; i++) {
+            int index = i;
+            ExtendedMockito.verify(() -> WifiStatsLog.write(WIFI_IS_UNUSABLE_REPORTED,
+                     mTestUnusableEvents[index][0], Process.WIFI_UID, false));
+        }
+    }
+
+    /**
+     * Generate WifiIsUnUsableReported and verify that they are logged correctly when external
+     * scorer is ON.
+     */
+    @Test
+    public void testWifiIsUnUsableReportedWithExternalScorer() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiIsUnusableEventMetricsEnabled, true);
+        mWifiMetrics.setIsExternalWifiScorerOn(true, TEST_UID);
+        mWifiMetrics.setScorerPredictedWifiUsability(true);
+        generateAllUnusableEvents(mWifiMetrics);
+        for (int i = 0; i < mTestUnusableEvents.length; i++) {
+            int index = i;
+            ExtendedMockito.verify(() -> WifiStatsLog.write(WIFI_IS_UNUSABLE_REPORTED,
+                    mTestUnusableEvents[index][0], TEST_UID, true));
+        }
+    }
+
+    /**
      * Verify that the number of WifiIsUnusableEvents does not exceed MAX_UNUSABLE_EVENTS
      */
     @Test
@@ -6007,7 +6041,7 @@ public class WifiMetricsTest extends WifiBaseTest {
      */
     @Test
     public void testIsExternalWifiScorerOn() throws Exception {
-        mWifiMetrics.setIsExternalWifiScorerOn(true);
+        mWifiMetrics.setIsExternalWifiScorerOn(true, TEST_UID);
         dumpProtoAndDeserialize();
         assertEquals(true, mDecodedProto.isExternalWifiScorerOn);
     }
@@ -6991,15 +7025,19 @@ public class WifiMetricsTest extends WifiBaseTest {
         mWifiMetrics.incrementConnectionDuration(3000, true, true, -50, 10002, 10001);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, 3000, true, true,
-                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_5G_HIGH, -50, 10002, 10001));
+                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_5G_HIGH, -50, 10002, 10001,
+                Process.WIFI_UID, false));
 
         when(wifiInfo.getFrequency()).thenReturn(2412);
+        mWifiMetrics.setIsExternalWifiScorerOn(true, TEST_UID);
+        mWifiMetrics.setScorerPredictedWifiUsability(true);
         mWifiMetrics.incrementWifiScoreCount("",  30);
         mWifiMetrics.handlePollResult(TEST_IFACE_NAME, wifiInfo);
         mWifiMetrics.incrementConnectionDuration(2000, false, true, -55, 20002, 20001);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, 2000, true, true,
-                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_2G, -55, 20002, 20001));
+                WifiStatsLog.WIFI_HEALTH_STAT_REPORTED__BAND__BAND_2G, -55, 20002, 20001, TEST_UID,
+                true));
     }
 
     /**

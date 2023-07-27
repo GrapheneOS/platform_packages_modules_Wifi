@@ -92,7 +92,12 @@ public interface ClientMode {
      */
     void setLinkLayerStatsPollingInterval(int newIntervalMs);
 
-    boolean setWifiConnectedNetworkScorer(IBinder binder, IWifiConnectedNetworkScorer scorer);
+    /**
+     * See {@link android.net.wifi.WifiManager#setWifiConnectedNetworkScorer(Executor,
+     * WifiManager.WifiConnectedNetworkScorer)}
+     */
+    boolean setWifiConnectedNetworkScorer(IBinder binder, IWifiConnectedNetworkScorer scorer,
+            int callerUid);
 
     void clearWifiConnectedNetworkScorer();
 

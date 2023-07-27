@@ -94,6 +94,7 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
     private static final int TEST_ACTIVE_SUBSCRIPTION_ID = 1;
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
     private static final WorkSource TEST_WORKSOURCE2 = new WorkSource();
+    private static final int TEST_UID = 435546654;
 
     TestLooper mLooper;
 
@@ -1542,14 +1543,14 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         IBinder iBinder = mock(IBinder.class);
         IWifiConnectedNetworkScorer iScorer = mock(IWifiConnectedNetworkScorer.class);
-        mClientModeManager.setWifiConnectedNetworkScorer(iBinder, iScorer);
-        verify(mClientModeImpl).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mClientModeManager.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
+        verify(mClientModeImpl).setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
 
         mClientModeManager.clearWifiConnectedNetworkScorer();
         verify(mClientModeImpl).clearWifiConnectedNetworkScorer();
 
-        mClientModeManager.setWifiConnectedNetworkScorer(iBinder, iScorer);
-        verify(mClientModeImpl, times(2)).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mClientModeManager.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
+        verify(mClientModeImpl, times(2)).setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
 
         mClientModeManager.onNetworkSwitchAccepted(1, "macAddress");
         verify(mClientModeImpl).onNetworkSwitchAccepted(1, "macAddress");
