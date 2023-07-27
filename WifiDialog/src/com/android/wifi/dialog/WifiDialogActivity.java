@@ -664,7 +664,8 @@ public class WifiDialogActivity extends Activity  {
                     pinEditText.requestFocus();
                     pinEditText.setSelection(pinEditText.getText().length());
                 }
-                dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(false);
+                dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(
+                        pinEditText.length() == 4 || pinEditText.length() == 8);
             });
             pinEditText.addTextChangedListener(new TextWatcher() {
                 @Override
@@ -685,11 +686,8 @@ public class WifiDialogActivity extends Activity  {
                         // configuration change.
                         intent.putExtra(EXTRA_DIALOG_P2P_PIN_INPUT, s);
                     }
-                    if (s.length() == 4 || s.length() == 8) {
-                        dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(true);
-                    } else {
-                        dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(false);
-                    }
+                    dialog.getButton(Dialog.BUTTON_POSITIVE).setEnabled(
+                            s.length() == 4 || s.length() == 8);
                 }
             });
         } else {
