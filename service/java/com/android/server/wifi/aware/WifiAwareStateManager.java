@@ -22,7 +22,29 @@ import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INVALID_SESSION;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
 
+import static com.android.server.wifi.aware.WifiAwareMetrics.convertNanStatusCodeToWifiStatsLogEnum;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_API_UNKNOWN;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_CONFIG_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_CREATE_DATA_INTERFACE_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_DELETE_DATA_INTERFACE_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_DISABLE_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_ENABLE_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_GET_CAPABILITIES_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_BOOTSTRAPPING_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_DATA_PATH_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_PAIRING_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_BOOTSTRAPPING_INDICATION_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_DATA_PATH_INDICATION_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_PAIRING_INDICATION_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESUME_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_START_PUBLISH_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_START_SUBSCRIBE_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_SUSPEND_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TERMINATE_DATA_PATH_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TERMINATE_PAIRING_REQUEST;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TRANSMIT_FOLLOW_UP_REQUEST;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -367,6 +389,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private final SparseArray<PairingInfo> mPairingRequest = new SparseArray<>();
     private final SparseArray<BootStrppingInfo> mBootstrappingRequest = new SparseArray<>();
     private WifiAwarePullAtomCallback mWifiAwarePullAtomCallback = null;
+
+    private long mStartTime;
 
     private static class PairingInfo {
         public final int mClientId;
@@ -2255,6 +2279,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mTimeoutMessage = new WakeupMessage(mContext, getHandler(), HAL_COMMAND_TIMEOUT_TAG,
                         MESSAGE_TYPE_RESPONSE_TIMEOUT, mCurrentCommand.arg1, mCurrentTransactionId);
                 mTimeoutMessage.schedule(SystemClock.elapsedRealtime() + AWARE_COMMAND_TIMEOUT);
+                mStartTime = SystemClock.elapsedRealtime();
             }
 
             @Override
@@ -2982,13 +3007,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 mCurrentTransactionId = TRANSACTION_ID_IGNORE;
                 return;
             }
+            int reason = NanStatusCode.SUCCESS;
 
             switch (msg.arg1) {
                 case RESPONSE_TYPE_ON_CONFIG_SUCCESS:
                     onConfigCompletedLocal(mCurrentCommand);
                     break;
                 case RESPONSE_TYPE_ON_CONFIG_FAIL: {
-                    int reason = (Integer) msg.obj;
+                    reason = (Integer) msg.obj;
 
                     onConfigFailedLocal(mCurrentCommand, reason);
                     break;
@@ -3001,7 +3027,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_SESSION_CONFIG_FAIL: {
-                    int reason = (Integer) msg.obj;
+                    reason = (int) msg.obj;
                     boolean isPublish = msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SESSION_TYPE);
 
                     onSessionConfigFailLocal(mCurrentCommand, isPublish, reason);
@@ -3029,10 +3055,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     if (mVdbg) {
                         Log.v(TAG, "processResponse: ON_MESSAGE_SEND_QUEUED_FAIL - blocking!");
                     }
-                    int reason = (Integer) msg.obj;
+                    reason = (int) msg.obj;
+                    Message sentMessage = mCurrentCommand.getData().getParcelable(
+                            MESSAGE_BUNDLE_KEY_SENT_MESSAGE);
                     if (reason == NanStatusCode.FOLLOWUP_TX_QUEUE_FULL) {
-                        Message sentMessage = mCurrentCommand.getData().getParcelable(
-                                MESSAGE_BUNDLE_KEY_SENT_MESSAGE);
                         int arrivalSeq = sentMessage.getData().getInt(
                                 MESSAGE_BUNDLE_KEY_MESSAGE_ARRIVAL_SEQ);
                         mHostQueuedSendMessages.put(arrivalSeq, sentMessage);
@@ -3043,8 +3069,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                                     + arrivalSeq + " -- blocking");
                         }
                     } else {
-                        Message sentMessage = mCurrentCommand.getData().getParcelable(
-                                MESSAGE_BUNDLE_KEY_SENT_MESSAGE);
                         onMessageSendFailLocal(sentMessage, NanStatusCode.INTERNAL_FAILURE);
                         if (!mSendQueueBlocked) {
                             transmitNextMessage();
@@ -3057,14 +3081,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_CREATE_INTERFACE:
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     onCreateDataPathInterfaceResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
-                            msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
+                            reason);
                     break;
                 case RESPONSE_TYPE_ON_DELETE_INTERFACE:
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     onDeleteDataPathInterfaceResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
-                            msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
+                            reason);
                     break;
                 case RESPONSE_TYPE_ON_INITIATE_DATA_PATH_SUCCESS: {
                     int ndpId = (int) msg.obj;
@@ -3079,16 +3105,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                                 SystemClock.elapsedRealtime() + AWARE_WAIT_FOR_DP_CONFIRM_TIMEOUT);
                         sendAwareResourcesChangedBroadcast();
                     }
-
                     break;
                 }
                 case RESPONSE_TYPE_ON_INITIATE_DATA_PATH_FAIL:
-                    onInitiateDataPathResponseFailLocal(mCurrentCommand, (int) msg.obj);
+                    reason = (int) msg.obj;
+                    onInitiateDataPathResponseFailLocal(mCurrentCommand, reason);
                     break;
                 case RESPONSE_TYPE_ON_RESPOND_TO_DATA_PATH_SETUP_REQUEST: {
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     boolean success = onRespondToDataPathSetupRequestResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
-                            msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
+                            reason);
                     if (success) {
                         int ndpId = mCurrentCommand.arg2;
                         WakeupMessage timeout = new WakeupMessage(mContext, getHandler(),
@@ -3101,14 +3128,19 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_END_DATA_PATH:
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     onEndPathEndResponseLocal(mCurrentCommand,
                             msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG),
-                            msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE));
+                            reason);
                     break;
                 case RESPONSE_TYPE_ON_END_PAIRING:
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
+                    onPairingEndResponseLocal(mCurrentCommand,
+                            msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG), reason);
                     break;
                 case RESPONSE_TYPE_ON_DISABLE:
-                    onDisableResponseLocal(mCurrentCommand, (Integer) msg.obj);
+                    reason = (int) msg.obj;
+                    onDisableResponseLocal(mCurrentCommand, reason);
                     break;
                 case RESPONSE_TYPE_ON_INITIATE_PAIRING_SUCCESS: {
                     int pairingId = (int) msg.obj;
@@ -3122,11 +3154,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         timeout.schedule(SystemClock.elapsedRealtime()
                                 + AWARE_WAIT_FOR_PAIRING_CONFIRM_TIMEOUT);
                     }
-
                     break;
                 }
                 case RESPONSE_TYPE_ON_INITIATE_PAIRING_FAIL: {
-                    int reason = (int) msg.obj;
+                    reason = (int) msg.obj;
                     onInitiatePairingResponseFailLocal(mCurrentCommand, reason);
                     break;
                 }
@@ -3146,7 +3177,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_RESPONSE_PAIRING_FAIL: {
-                    int reason = (int) msg.obj;
+                    reason = (int) msg.obj;
                     onRespondToPairingIndicationResponseFail(mCurrentCommand, reason);
                     break;
                 }
@@ -3166,7 +3197,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_INITIATE_BOOTSTRAPPING_FAIL: {
-                    int reason = (int) msg.obj;
+                    reason = (int) msg.obj;
                     onInitiateBootStrappingResponseFailLocal(mCurrentCommand, reason);
                     break;
                 }
@@ -3175,20 +3206,20 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case RESPONSE_TYPE_ON_RESPONSE_BOOTSTRAPPING_FAIL: {
-                    int reason = (int) msg.obj;
+                    reason = (int) msg.obj;
                     Log.e(TAG, "RespondToBootstrappingIndication failed, reason: " + reason);
                     break;
                 }
                 case RESPONSE_TYPE_ON_SUSPEND: {
-                    int statusCode = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     boolean success = msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG);
-                    onSuspendResponseLocal(mCurrentCommand, success, statusCode);
+                    onSuspendResponseLocal(mCurrentCommand, success, reason);
                     break;
                 }
                 case RESPONSE_TYPE_ON_RESUME: {
-                    int statusCode = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
+                    reason = msg.getData().getInt(MESSAGE_BUNDLE_KEY_STATUS_CODE);
                     boolean success = msg.getData().getBoolean(MESSAGE_BUNDLE_KEY_SUCCESS_FLAG);
-                    onResumeResponseLocal(mCurrentCommand, success, statusCode);
+                    onResumeResponseLocal(mCurrentCommand, success, reason);
                     break;
                 }
                 default:
@@ -3196,6 +3227,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     mCurrentCommand = null;
                     mCurrentTransactionId = TRANSACTION_ID_IGNORE;
                     return;
+            }
+            if (msg.arg1 != RESPONSE_TYPE_ON_CONFIG_SUCCESS
+                    && msg.arg1 != RESPONSE_TYPE_ON_CONFIG_FAIL) {
+                // Config response handle separately to identify it's connect or reconfigure
+                recordHalApiCall(mCurrentCommand.arg1, reason, mStartTime);
             }
 
             mCurrentCommand = null;
@@ -4098,6 +4134,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             if (mCurrentAwareConfiguration == null) { // enabled (as opposed to re-configured)
                 queryCapabilities();
                 mDataPathMgr.createAllInterfaces();
+                recordHalApiCall(COMMAND_TYPE_CONNECT, NanStatusCode.SUCCESS, mStartTime);
+            } else {
+                recordHalApiCall(COMMAND_TYPE_RECONFIGURE, NanStatusCode.SUCCESS, mStartTime);
             }
 
             Bundle data = completedCommand.getData();
@@ -4136,10 +4175,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
         } else if (completedCommand.arg1 == COMMAND_TYPE_DISCONNECT) {
+            recordHalApiCall(COMMAND_TYPE_RECONFIGURE, NanStatusCode.SUCCESS, mStartTime);
             /*
              * NOP (i.e. updated configuration after disconnecting a client)
              */
         } else if (completedCommand.arg1 == COMMAND_TYPE_RECONFIGURE) {
+            recordHalApiCall(COMMAND_TYPE_RECONFIGURE, NanStatusCode.SUCCESS, mStartTime);
             /*
              * NOP (i.e. updated configuration at power saving event)
              */
@@ -4184,7 +4225,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             } catch (RemoteException e) {
                 Log.w(TAG, "onConfigFailedLocal onConnectFail(): RemoteException (FYI): " + e);
             }
+            recordHalApiCall(COMMAND_TYPE_CONNECT, reason, mStartTime);
         } else if (failedCommand.arg1 == COMMAND_TYPE_DISCONNECT) {
+            recordHalApiCall(COMMAND_TYPE_RECONFIGURE, reason, mStartTime);
             /*
              * NOP (tried updating configuration after disconnecting a client -
              * shouldn't fail but there's nothing to do - the old configuration
@@ -4193,6 +4236,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
              * OR: timed-out getting a response to a disable. Either way a NOP.
              */
         } else if (failedCommand.arg1 == COMMAND_TYPE_RECONFIGURE) {
+            recordHalApiCall(COMMAND_TYPE_RECONFIGURE, reason, mStartTime);
             /*
              * NOP (configuration change as part of possibly power saving event - should not
              * fail but there's nothing to do).
@@ -4747,7 +4791,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG, "onInitiateDataPathResponseFailLocal: command=" + command + ", reason="
                     + reason);
         }
-
         mDataPathMgr.onDataPathInitiateFail((WifiAwareNetworkSpecifier) command.obj, reason);
     }
 
@@ -4766,8 +4809,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.v(TAG, "onEndPathEndResponseLocal: command=" + command
                     + ", success=" + success + ", reasonOnFailure=" + reasonOnFailure);
         }
-
         // TODO: do something with this
+    }
+
+    private void onPairingEndResponseLocal(Message command, boolean success, int reasonOnFailure) {
+        if (mVdbg) {
+            Log.v(TAG, "onPairingEndResponseLocal: command=" + command
+                    + ", success=" + success + ", reasonOnFailure=" + reasonOnFailure);
+        }
     }
 
     private boolean suspendSessionLocal(short transactionId, int clientId, int sessionId) {
@@ -5455,5 +5504,58 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
         }
         return false;
+    }
+
+    private int covertFrameworkHalCommandToEnum(int cmd) {
+        switch (cmd) {
+            case COMMAND_TYPE_CONNECT:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_ENABLE_REQUEST;
+            case COMMAND_TYPE_RECONFIGURE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_CONFIG_REQUEST;
+            case COMMAND_TYPE_DISABLE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_DISABLE_REQUEST;
+            case COMMAND_TYPE_PUBLISH:
+            case COMMAND_TYPE_UPDATE_PUBLISH:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_START_PUBLISH_REQUEST;
+            case COMMAND_TYPE_SUBSCRIBE:
+            case COMMAND_TYPE_UPDATE_SUBSCRIBE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_START_SUBSCRIBE_REQUEST;
+            case COMMAND_TYPE_TRANSMIT_NEXT_MESSAGE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TRANSMIT_FOLLOW_UP_REQUEST;
+            case COMMAND_TYPE_INITIATE_PAIRING_REQUEST:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_PAIRING_REQUEST;
+            case COMMAND_TYPE_RESPONSE_PAIRING_REQUEST:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_PAIRING_INDICATION_REQUEST;
+            case COMMAND_TYPE_INITIATE_BOOTSTRAPPING_REQUEST:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_BOOTSTRAPPING_REQUEST;
+            case COMMAND_TYPE_RESPONSE_BOOTSTRAPPING_REQUEST:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_BOOTSTRAPPING_INDICATION_REQUEST;
+            case COMMAND_TYPE_GET_CAPABILITIES:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_GET_CAPABILITIES_REQUEST;
+            case COMMAND_TYPE_CREATE_DATA_PATH_INTERFACE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_CREATE_DATA_INTERFACE_REQUEST;
+            case COMMAND_TYPE_DELETE_DATA_PATH_INTERFACE:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_DELETE_DATA_INTERFACE_REQUEST;
+            case COMMAND_TYPE_INITIATE_DATA_PATH_SETUP:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_INITIATE_DATA_PATH_REQUEST;
+            case COMMAND_TYPE_RESPOND_TO_DATA_PATH_SETUP_REQUEST:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESPOND_TO_DATA_PATH_INDICATION_REQUEST;
+            case COMMAND_TYPE_END_DATA_PATH:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TERMINATE_DATA_PATH_REQUEST;
+            case COMMAND_TYPE_END_PAIRING:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_TERMINATE_PAIRING_REQUEST;
+            case COMMAND_TYPE_SUSPEND_SESSION:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_SUSPEND_REQUEST;
+            case COMMAND_TYPE_RESUME_SESSION:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_RESUME_REQUEST;
+            default:
+                return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_API_UNKNOWN;
+        }
+    }
+
+    private void recordHalApiCall(int command, int state, long starTime) {
+        WifiStatsLog.write(WIFI_AWARE_HAL_API_CALLED, covertFrameworkHalCommandToEnum(command),
+                convertNanStatusCodeToWifiStatsLogEnum(state),
+                (int) (SystemClock.elapsedRealtime() - starTime));
     }
 }
