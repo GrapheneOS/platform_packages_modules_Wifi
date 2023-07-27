@@ -44,6 +44,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.Manifest;
+import android.app.StatsManager;
 import android.app.test.TestAlarmManager;
 import android.content.Context;
 import android.content.Intent;
@@ -157,6 +158,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     @Mock private PowerManager mMockPowerManager;
     @Mock private WifiInjector mWifiInjector;
     @Mock private PairingConfigManager mPairingConfigManager;
+    @Mock private StatsManager mStatsManager;
 
     @Rule
     public ErrorCollector collector = new ErrorCollector();
@@ -185,6 +187,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         when(mMockContext.getSystemServiceName(PowerManager.class)).thenReturn(
                 Context.POWER_SERVICE);
         when(mMockContext.getSystemService(PowerManager.class)).thenReturn(mMockPowerManager);
+        when(mMockContext.getSystemService(StatsManager.class)).thenReturn(mStatsManager);
 
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
                 any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(), anyBoolean()))

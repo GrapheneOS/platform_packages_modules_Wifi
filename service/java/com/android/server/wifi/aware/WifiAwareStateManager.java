@@ -22,8 +22,11 @@ import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INVALID_SESSION;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
 
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.StatsManager;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -70,6 +73,7 @@ import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
+import android.util.StatsEvent;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.MessageUtils;
@@ -85,6 +89,7 @@ import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.aware.PairingConfigManager.PairingSecurityAssociationInfo;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -361,6 +366,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean mAwareIsDisabling = false;
     private final SparseArray<PairingInfo> mPairingRequest = new SparseArray<>();
     private final SparseArray<BootStrppingInfo> mBootstrappingRequest = new SparseArray<>();
+    private WifiAwarePullAtomCallback mWifiAwarePullAtomCallback = null;
 
     private static class PairingInfo {
         public final int mClientId;
@@ -4463,6 +4469,31 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         mCapabilities = capabilities;
         mCharacteristics = null;
+        if (mWifiAwarePullAtomCallback != null) {
+            //Should only register this callback once
+            return;
+        }
+        StatsManager statsManager = mContext.getSystemService(StatsManager.class);
+        if (statsManager != null) {
+            mWifiAwarePullAtomCallback = new WifiAwarePullAtomCallback();
+            statsManager.setPullAtomCallback(WIFI_AWARE_CAPABILITIES, null,
+                    new HandlerExecutor(mHandler), mWifiAwarePullAtomCallback);
+        }
+    }
+    private class WifiAwarePullAtomCallback implements StatsManager.StatsPullAtomCallback {
+
+        @Override
+        public int onPullAtom(int atomTag, @androidx.annotation.NonNull List<StatsEvent> data) {
+            data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                    mCapabilities.isInstantCommunicationModeSupported,
+                    mCapabilities.isNanPairingSupported,
+                    mCapabilities.isSuspensionSupported,
+                    mCapabilities.supportedDataPathCipherSuites,
+                    mCapabilities.maxNdiInterfaces,
+                    mCapabilities.maxNdpSessions,
+                    mCapabilities.maxPublishes));
+            return StatsManager.PULL_SUCCESS;
+        }
     }
 
     private void onCreateDataPathInterfaceResponseLocal(Message command, boolean success,
