@@ -20,6 +20,7 @@ import static android.net.wifi.WifiConfiguration.MeteredOverride;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_THREAD_TASK_EXECUTED;
 
 import static java.lang.StrictMath.toIntExact;
@@ -59,6 +60,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.SystemProperties;
@@ -297,6 +299,8 @@ public class WifiMetrics {
     private IntCounter mRecentFailureAssociationStatus = new IntCounter();
     private boolean mFirstConnectionAfterBoot = true;
     private long mLastTotalBeaconRx = 0;
+    private int mScorerUid = Process.WIFI_UID;
+    private boolean mIsScorerPredictedWifiUsable = false;
 
     /**
      * Metrics are stored within an instance of the WifiLog proto during runtime,
@@ -6410,6 +6414,26 @@ public class WifiMetrics {
         if (mWifiIsUnusableList.size() > MAX_UNUSABLE_EVENTS) {
             mWifiIsUnusableList.removeFirst();
         }
+
+        WifiStatsLog.write(WIFI_IS_UNUSABLE_REPORTED, convertWifiUnUsableTypeToProto(triggerType),
+                mScorerUid, mIsScorerPredictedWifiUsable);
+    }
+
+    private int convertWifiUnUsableTypeToProto(int triggerType) {
+        switch (triggerType) {
+            case WifiIsUnusableEvent.TYPE_DATA_STALL_BAD_TX:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_DATA_STALL_BAD_TX;
+            case WifiIsUnusableEvent.TYPE_DATA_STALL_TX_WITHOUT_RX:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_DATA_STALL_TX_WITHOUT_RX;
+            case WifiIsUnusableEvent.TYPE_DATA_STALL_BOTH:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_DATA_STALL_BOTH;
+            case WifiIsUnusableEvent.TYPE_FIRMWARE_ALERT:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_FIRMWARE_ALERT;
+            case WifiIsUnusableEvent.TYPE_IP_REACHABILITY_LOST:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_IP_REACHABILITY_LOST;
+            default:
+                return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__TYPE__TYPE_UNKNOWN;
+        }
     }
 
     /**
@@ -8008,16 +8032,17 @@ public class WifiMetrics {
             int band = KnownBandsChannelHelper.getBand(mLastPollFreq);
             WifiStatsLog.write(WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, timeDeltaLastTwoPollsMs,
                     isThroughputSufficient || !mWifiWins,  isCellularDataAvailable, band, rssi,
-                    txKbps, rxKbps);
+                    txKbps, rxKbps, mScorerUid, mIsScorerPredictedWifiUsable);
         }
     }
 
     /**
      * Sets the status to indicate whether external WiFi connected network scorer is present or not.
      */
-    public void setIsExternalWifiScorerOn(boolean value) {
+    public void setIsExternalWifiScorerOn(boolean value, int callerUid) {
         synchronized (mLock) {
             mWifiLogProto.isExternalWifiScorerOn = value;
+            mScorerUid = callerUid;
         }
     }
 
@@ -8731,5 +8756,12 @@ public class WifiMetrics {
      */
     public void wifiThreadTaskExecuted(String taskName, int delay, int runningTime) {
         WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, runningTime, delay, taskName);
+    }
+
+    /**
+     * Set Wi-Fi is usable (by network scorer) or not.
+     */
+    public void setScorerPredictedWifiUsability(boolean isUsable) {
+        mIsScorerPredictedWifiUsable = isUsable;
     }
 }

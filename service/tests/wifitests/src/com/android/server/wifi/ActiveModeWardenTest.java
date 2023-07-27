@@ -4115,17 +4115,18 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     public void propagateConnectedWifiScorerToPrimaryClientModeManager() throws Exception {
         IBinder iBinder = mock(IBinder.class);
         IWifiConnectedNetworkScorer iScorer = mock(IWifiConnectedNetworkScorer.class);
-        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
         verify(iScorer).onSetScoreUpdateObserver(mExternalScoreUpdateObserverProxy);
         enterClientModeActiveState();
         assertInEnabledState();
-        verify(mClientModeManager).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        verify(mClientModeManager).setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
 
         mActiveModeWarden.clearWifiConnectedNetworkScorer();
         verify(mClientModeManager).clearWifiConnectedNetworkScorer();
 
-        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer);
-        verify(mClientModeManager, times(2)).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
+        verify(mClientModeManager, times(2)).setWifiConnectedNetworkScorer(iBinder, iScorer,
+                TEST_UID);
     }
 
     @Test
@@ -4133,11 +4134,11 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             throws Exception {
         IBinder iBinder = mock(IBinder.class);
         IWifiConnectedNetworkScorer iScorer = mock(IWifiConnectedNetworkScorer.class);
-        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
         verify(iScorer).onSetScoreUpdateObserver(mExternalScoreUpdateObserverProxy);
         enterClientModeActiveState();
         assertInEnabledState();
-        verify(mClientModeManager).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        verify(mClientModeManager).setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
 
         enterScanOnlyModeActiveState(true);
 
@@ -4149,12 +4150,13 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         IBinder iBinder = mock(IBinder.class);
         IWifiConnectedNetworkScorer iScorer = mock(IWifiConnectedNetworkScorer.class);
         doThrow(new RemoteException()).when(iScorer).onSetScoreUpdateObserver(any());
-        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer);
+        mActiveModeWarden.setWifiConnectedNetworkScorer(iBinder, iScorer, TEST_UID);
         verify(iScorer).onSetScoreUpdateObserver(mExternalScoreUpdateObserverProxy);
         enterClientModeActiveState();
         assertInEnabledState();
         // Ensure we did not propagate the scorer.
-        verify(mClientModeManager, never()).setWifiConnectedNetworkScorer(iBinder, iScorer);
+        verify(mClientModeManager, never()).setWifiConnectedNetworkScorer(iBinder, iScorer,
+                TEST_UID);
     }
 
     /** Verify that the primary changed callback is triggered when entering client mode. */
