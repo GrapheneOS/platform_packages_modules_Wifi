@@ -132,6 +132,8 @@ import com.android.server.wifi.proto.nano.WifiMetricsProto.WifiUsabilityStatsEnt
 import com.android.server.wifi.rtt.RttMetrics;
 import com.android.server.wifi.scanner.KnownBandsChannelHelper;
 import com.android.server.wifi.util.InformationElementUtil;
+import com.android.server.wifi.util.InformationElementUtil.ApType6GHz;
+import com.android.server.wifi.util.InformationElementUtil.WifiMode;
 import com.android.server.wifi.util.IntCounter;
 import com.android.server.wifi.util.IntHistogram;
 import com.android.server.wifi.util.MetricsUtils;
@@ -656,6 +658,25 @@ public class WifiMetrics {
     class RouterFingerPrint {
         private final WifiMetricsProto.RouterFingerPrint mRouterFingerPrintProto =
                 new WifiMetricsProto.RouterFingerPrint();
+        // Additional parameters which is not captured in WifiMetricsProto.RouterFingerPrint.
+        private boolean mIsFrameworkInitiatedRoaming = false;
+        private @WifiConfiguration.SecurityType int mSecurityMode =
+                WifiConfiguration.SECURITY_TYPE_OPEN;
+        private boolean mIsIncorrectlyConfiguredAsHidden = false;
+        private int mWifiStandard = WifiMode.MODE_UNDEFINED;
+        private boolean mIs11bSupported = false;
+        private boolean mIsMboSupported = false;
+        private boolean mIsOceSupported = false;
+        private boolean mIsFilsSupported = false;
+        private boolean mIsIndividualTwtSupported = false;
+        private boolean mIsBroadcastTwtSupported = false;
+        private boolean mIsRestrictedTwtSupported = false;
+        private boolean mIsTwtRequired = false;
+        private boolean mIs11AzSupported = false;
+        private boolean mIs11McSupported = false;
+        private boolean mIsEcpsPriorityAccessSupported = false;
+        private NetworkDetail.HSRelease mHsRelease = NetworkDetail.HSRelease.Unknown;
+        private ApType6GHz mApType6GHz = ApType6GHz.AP_TYPE_6GHZ_UNKNOWN;
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -675,6 +696,22 @@ public class WifiMetrics {
                         .maxSupportedTxLinkSpeedMbps);
                 sb.append(", mMaxSupportedRxLinkSpeedMbps=" + mRouterFingerPrintProto
                         .maxSupportedRxLinkSpeedMbps);
+                sb.append(", mIsFrameworkInitiatedRoaming=" + mIsFrameworkInitiatedRoaming);
+                sb.append(", mIsIncorrectlyConfiguredAsHidden=" + mIsIncorrectlyConfiguredAsHidden);
+                sb.append(", mWifiStandard=" + mWifiStandard);
+                sb.append(", mIs11bSupported=" + mIs11bSupported);
+                sb.append(", mIsMboSupported=" + mIsMboSupported);
+                sb.append(", mIsOceSupported=" + mIsOceSupported);
+                sb.append(", mIsFilsSupported=" + mIsFilsSupported);
+                sb.append(", mIsIndividualTwtSupported=" + mIsIndividualTwtSupported);
+                sb.append(", mIsBroadcastTwtSupported=" + mIsBroadcastTwtSupported);
+                sb.append(", mIsRestrictedTwtSupported=" + mIsRestrictedTwtSupported);
+                sb.append(", mIsTwtRequired=" + mIsTwtRequired);
+                sb.append(", mIs11mcSupported=" + mIs11McSupported);
+                sb.append(", mIs11azSupported=" + mIs11AzSupported);
+                sb.append(", mApType6Ghz=" + mApType6GHz);
+                sb.append(", mIsEcpsPriorityAccessSupported=" + mIsEcpsPriorityAccessSupported);
+                sb.append(", mHsRelease=" + mHsRelease);
             }
             return sb.toString();
         }
@@ -1979,6 +2016,41 @@ public class WifiMetrics {
                             WifiMetricsProto.ConnectionEvent.TYPE_OPEN;
                 }
 
+                if (null != params) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            params.getSecurityType();
+                } else if (WifiConfigurationUtil.isConfigForWpa3Enterprise192BitNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT;
+                } else if (WifiConfigurationUtil.isConfigForWpa3EnterpriseNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
+                } else if (WifiConfigurationUtil.isConfigForDppNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                        WifiConfiguration.SECURITY_TYPE_DPP;
+                } else if (WifiConfigurationUtil.isConfigForSaeNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_SAE;
+                } else if (WifiConfigurationUtil.isConfigForWapiPskNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_WAPI_PSK;
+                } else if (WifiConfigurationUtil.isConfigForWapiCertNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_WAPI_CERT;
+                } else if (WifiConfigurationUtil.isConfigForPskNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_PSK;
+                } else if (WifiConfigurationUtil.isConfigForOweNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_OWE;
+                } else if (WifiConfigurationUtil.isConfigForWepNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_WEP;
+                } else if (WifiConfigurationUtil.isConfigForOpenNetwork(config)) {
+                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                            WifiConfiguration.SECURITY_TYPE_OPEN;
+                }
+
                 if (!config.fromWifiNetworkSuggestion) {
                     currentConnectionEvent.mConnectionEvent.networkCreator =
                             WifiMetricsProto.ConnectionEvent.CREATOR_USER;
@@ -2177,6 +2249,9 @@ public class WifiMetrics {
                         currentConnectionEvent.mPasspointRoamingType,
                         currentConnectionEvent.mCarrierId);
 
+                if (connectionSucceeded) {
+                    reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
+                }
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);
                 if (!connectionSucceeded) {
@@ -2185,6 +2260,161 @@ public class WifiMetrics {
                 mWifiStatusBuilder.setConnected(connectionSucceeded);
             }
         }
+    }
+
+    int convertSecurityModeToProto(@WifiConfiguration.SecurityType int securityMode) {
+        switch (securityMode) {
+            case WifiConfiguration.SECURITY_TYPE_OPEN:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_NONE;
+            case WifiConfiguration.SECURITY_TYPE_WEP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WEP;
+            case WifiConfiguration.SECURITY_TYPE_PSK:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA2_PERSONAL;
+            case WifiConfiguration.SECURITY_TYPE_PASSPOINT_R1_R2:
+                // Passpoint R1 & R2 uses WPA2 Enterprise (Legacy)
+            case WifiConfiguration.SECURITY_TYPE_EAP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA_ENTERPRISE_LEGACY;
+            case WifiConfiguration.SECURITY_TYPE_SAE:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_PERSONAL;
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_ENTERPRISE_192_BIT;
+            case WifiConfiguration.SECURITY_TYPE_OWE:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_OWE;
+            case WifiConfiguration.SECURITY_TYPE_WAPI_PSK:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WAPI_PSK;
+            case WifiConfiguration.SECURITY_TYPE_WAPI_CERT:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WAPI_CERT;
+            case WifiConfiguration.SECURITY_TYPE_PASSPOINT_R3:
+                // Passpoint R3 uses WPA3 Enterprise
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_ENTERPRISE;
+            case WifiConfiguration.SECURITY_TYPE_DPP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_DPP;
+            default:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_UNKNOWN;
+        }
+    }
+
+    private int convertHsReleasetoProto(NetworkDetail.HSRelease hsRelease) {
+        if (hsRelease == NetworkDetail.HSRelease.R1) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__PASSPOINT_RELEASE__PASSPOINT_RELEASE_1;
+        } else if (hsRelease == NetworkDetail.HSRelease.R2) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__PASSPOINT_RELEASE__PASSPOINT_RELEASE_2;
+        } else if (hsRelease == NetworkDetail.HSRelease.R3) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__PASSPOINT_RELEASE__PASSPOINT_RELEASE_3;
+        } else {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__PASSPOINT_RELEASE__PASSPOINT_RELEASE_UNKNOWN;
+        }
+    }
+
+    private int convertApType6GhzToProto(ApType6GHz apType6Ghz) {
+        if (apType6Ghz == ApType6GHz.AP_TYPE_6GHZ_INDOOR) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__AP_TYPE_6GHZ__AP_TYPE_6GHZ_INDOOR;
+        } else if (apType6Ghz == ApType6GHz.AP_TYPE_6GHZ_STANDARD_POWER) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__AP_TYPE_6GHZ__AP_TYPE_6GHZ_STANDARD_POWER;
+        } else {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__AP_TYPE_6GHZ__AP_TYPE_6HZ_UNKNOWN;
+        }
+    }
+
+    private int convertWifiStandardToProto(int wifiMode) {
+        switch (wifiMode) {
+            case WifiMode.MODE_11A:
+            case WifiMode.MODE_11B:
+            case WifiMode.MODE_11G:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_LEGACY;
+            case WifiMode.MODE_11N:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_11N;
+            case WifiMode.MODE_11AC:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_11AC;
+            case WifiMode.MODE_11AX:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_11AX;
+            case WifiMode.MODE_11BE:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_11BE;
+            case WifiMode.MODE_UNDEFINED:
+            default:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_UNKNOWN;
+        }
+
+    }
+
+    private int convertEapMethodToProto(int eapMethod) {
+        switch (eapMethod) {
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_WAPI_CERT:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_WAPI_CERT;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_TLS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_TLS;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_UNAUTH_TLS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_UNAUTH_TLS;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_PEAP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_PEAP;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_PWD:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_PWD;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_TTLS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_TTLS;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_SIM:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_SIM;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_AKA:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_AKA;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_AKA_PRIME:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_AKA_PRIME;
+            default:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_UNKNOWN;
+        }
+    }
+
+    private int convertEapInnerMethodToProto(int phase2Method) {
+        switch (phase2Method) {
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_PAP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_PAP;
+            case WifiEnterpriseConfig.Phase2.MSCHAP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_MSCHAP;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_MSCHAPV2:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_MSCHAP_V2;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_GTC:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_GTC;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_SIM:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_SIM;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_AKA:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_AKA;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_AKA_PRIME:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_AKA_PRIME;
+            default:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_UNKNOWN;
+        }
+    }
+
+    private int convertOcspTypeToProto(int ocspType) {
+        switch (ocspType) {
+            case WifiMetricsProto.RouterFingerPrint.TYPE_OCSP_NONE:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_NONE;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_OCSP_REQUEST_CERT_STATUS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_REQUEST_CERT_STATUS;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_OCSP_REQUIRE_CERT_STATUS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_REQUIRE_CERT_STATUS;
+            case WifiMetricsProto.RouterFingerPrint.TYPE_OCSP_REQUIRE_ALL_NON_TRUSTED_CERTS_STATUS:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_REQUIRE_ALL_NON_TRUSTED_CERTS_STATUS;
+            default:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_UNKNOWN;
+        }
+    }
+
+    private void reportRouterCapabilities(RouterFingerPrint r) {
+        WifiStatsLog.write(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED,
+                r.mIsFrameworkInitiatedRoaming, r.mRouterFingerPrintProto.channelInfo,
+                KnownBandsChannelHelper.getBand(r.mRouterFingerPrintProto.channelInfo),
+                r.mRouterFingerPrintProto.dtim, convertSecurityModeToProto(r.mSecurityMode),
+                r.mRouterFingerPrintProto.hidden, r.mIsIncorrectlyConfiguredAsHidden,
+                convertWifiStandardToProto(r.mWifiStandard), r.mIs11bSupported,
+                convertEapMethodToProto(r.mRouterFingerPrintProto.eapMethod),
+                convertEapInnerMethodToProto(r.mRouterFingerPrintProto.authPhase2Method),
+                convertOcspTypeToProto(r.mRouterFingerPrintProto.ocspType),
+                r.mRouterFingerPrintProto.pmkCacheEnabled, r.mIsMboSupported, r.mIsOceSupported,
+                r.mIsFilsSupported, r.mIsTwtRequired, r.mIsIndividualTwtSupported,
+                r.mIsBroadcastTwtSupported, r.mIsRestrictedTwtSupported, r.mIs11McSupported,
+                r.mIs11AzSupported, convertHsReleasetoProto(r.mHsRelease),
+                r.mRouterFingerPrintProto.isPasspointHomeProvider,
+                convertApType6GhzToProto(r.mApType6GHz), r.mIsEcpsPriorityAccessSupported);
     }
 
     /**
@@ -2320,6 +2550,12 @@ public class WifiMetrics {
             currentConnectionEvent.mRouterFingerPrint.mRouterFingerPrintProto.dtim =
                     dtimInterval;
         }
+
+        if (currentConnectionEvent.mRouterFingerPrint.mRouterFingerPrintProto.hidden
+                && !networkDetail.isHiddenBeaconFrame()) {
+            currentConnectionEvent.mRouterFingerPrint.mIsIncorrectlyConfiguredAsHidden = true;
+        }
+
         final int connectionWifiMode;
         switch (networkDetail.getWifiMode()) {
             case InformationElementUtil.WifiMode.MODE_UNDEFINED:
@@ -2329,6 +2565,7 @@ public class WifiMetrics {
                 connectionWifiMode = WifiMetricsProto.RouterFingerPrint.ROUTER_TECH_A;
                 break;
             case InformationElementUtil.WifiMode.MODE_11B:
+                currentConnectionEvent.mRouterFingerPrint.mIs11bSupported = true;
                 connectionWifiMode = WifiMetricsProto.RouterFingerPrint.ROUTER_TECH_B;
                 break;
             case InformationElementUtil.WifiMode.MODE_11G:
@@ -2349,6 +2586,7 @@ public class WifiMetrics {
         }
         currentConnectionEvent.mRouterFingerPrint.mRouterFingerPrintProto.routerTechnology =
                 connectionWifiMode;
+        currentConnectionEvent.mRouterFingerPrint.mWifiStandard = networkDetail.getWifiMode();
 
         if (networkDetail.isMboSupported()) {
             mWifiLogProto.numConnectToNetworkSupportingMbo++;
@@ -2356,6 +2594,26 @@ public class WifiMetrics {
                 mWifiLogProto.numConnectToNetworkSupportingOce++;
             }
         }
+
+        currentConnectionEvent.mRouterFingerPrint.mApType6GHz =
+                networkDetail.getApType6GHz();
+        currentConnectionEvent.mRouterFingerPrint.mIsBroadcastTwtSupported =
+                networkDetail.isBroadcastTwtSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIsRestrictedTwtSupported =
+                networkDetail.isRestrictedTwtSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIsIndividualTwtSupported =
+                networkDetail.isIndividualTwtSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIsTwtRequired = networkDetail.isTwtRequired();
+        currentConnectionEvent.mRouterFingerPrint.mIsFilsSupported = networkDetail.isFilsCapable();
+        currentConnectionEvent.mRouterFingerPrint.mIs11AzSupported =
+                networkDetail.is11azSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIs11McSupported =
+                networkDetail.is80211McResponderSupport();
+        currentConnectionEvent.mRouterFingerPrint.mIsMboSupported = networkDetail.isMboSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIsOceSupported = networkDetail.isOceSupported();
+        currentConnectionEvent.mRouterFingerPrint.mIsEcpsPriorityAccessSupported =
+                networkDetail.isEpcsPriorityAccessSupported();
+        currentConnectionEvent.mRouterFingerPrint.mHsRelease = networkDetail.getHSRelease();
     }
 
     /**
@@ -5642,14 +5900,22 @@ public class WifiMetrics {
     public void logStaEvent(String ifaceName, int type, int frameworkDisconnectReason,
             WifiConfiguration config) {
         switch (type) {
+            case StaEvent.TYPE_CMD_START_ROAM:
+                ConnectionEvent currentConnectionEvent = mCurrentConnectionEventPerIface.get(
+                        ifaceName);
+                if (currentConnectionEvent != null) {
+                    currentConnectionEvent.mRouterFingerPrint.mIsFrameworkInitiatedRoaming = true;
+                }
+                break;
             case StaEvent.TYPE_CMD_IP_CONFIGURATION_SUCCESSFUL:
             case StaEvent.TYPE_CMD_IP_CONFIGURATION_LOST:
             case StaEvent.TYPE_CMD_IP_REACHABILITY_LOST:
             case StaEvent.TYPE_CMD_START_CONNECT:
-            case StaEvent.TYPE_CMD_START_ROAM:
             case StaEvent.TYPE_CONNECT_NETWORK:
+                break;
             case StaEvent.TYPE_NETWORK_AGENT_VALID_NETWORK:
                 mWifiStatusBuilder.setValidated(true);
+                break;
             case StaEvent.TYPE_FRAMEWORK_DISCONNECT:
             case StaEvent.TYPE_SCORE_BREACH:
             case StaEvent.TYPE_MAC_CHANGE:

@@ -7203,4 +7203,104 @@ public class WifiMetricsTest extends WifiBaseTest {
         mWifiMetrics.wifiConfigStored(120);
         ExtendedMockito.verify(() -> WifiStatsLog.write(WIFI_CONFIG_SAVED, 120));
     }
+
+    @Test
+    public void testApCapabilitiesReported() throws Exception {
+        //Setup mock configs and scan details
+        NetworkDetail networkDetail = mock(NetworkDetail.class);
+        when(networkDetail.getWifiMode()).thenReturn(NETWORK_DETAIL_WIFIMODE);
+        when(networkDetail.getSSID()).thenReturn(SSID);
+        when(networkDetail.getDtimInterval()).thenReturn(NETWORK_DETAIL_DTIM);
+
+        ScanResult scanResult = mock(ScanResult.class);
+        scanResult.level = SCAN_RESULT_LEVEL;
+        scanResult.capabilities = "EAP/SHA1";
+        scanResult.frequency = TEST_CANDIDATE_FREQ;
+
+        WifiConfiguration config = mock(WifiConfiguration.class);
+        config.SSID = "\"" + SSID + "\"";
+        config.dtimInterval = CONFIG_DTIM;
+        config.macRandomizationSetting = WifiConfiguration.RANDOMIZATION_AUTO;
+        config.allowedKeyManagement = new BitSet();
+        config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_EAP);
+        config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.IEEE8021X);
+        config.enterpriseConfig = new WifiEnterpriseConfig();
+        config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.TTLS);
+        config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.MSCHAPV2);
+        config.enterpriseConfig.setOcsp(WifiEnterpriseConfig.OCSP_REQUIRE_CERT_STATUS);
+        config.hiddenSSID = true;
+
+        WifiConfiguration.NetworkSelectionStatus networkSelectionStat =
+                mock(WifiConfiguration.NetworkSelectionStatus.class);
+        when(networkSelectionStat.getCandidate()).thenReturn(scanResult);
+        when(config.getNetworkSelectionStatus()).thenReturn(networkSelectionStat);
+
+        ScanDetail scanDetail = mock(ScanDetail.class);
+        when(scanDetail.getNetworkDetail()).thenReturn(networkDetail);
+        when(scanDetail.getScanResult()).thenReturn(scanResult);
+        when(networkDetail.isMboSupported()).thenReturn(true);
+        when(networkDetail.isOceSupported()).thenReturn(true);
+        when(networkDetail.getApType6GHz()).thenReturn(
+                InformationElementUtil.ApType6GHz.AP_TYPE_6GHZ_STANDARD_POWER);
+        when(networkDetail.isBroadcastTwtSupported()).thenReturn(true);
+        when(networkDetail.isRestrictedTwtSupported()).thenReturn(true);
+        when(networkDetail.isIndividualTwtSupported()).thenReturn(true);
+        when(networkDetail.isTwtRequired()).thenReturn(true);
+        when(networkDetail.isFilsCapable()).thenReturn(true);
+        when(networkDetail.is11azSupported()).thenReturn(true);
+        when(networkDetail.is80211McResponderSupport()).thenReturn(true);
+        when(networkDetail.isEpcsPriorityAccessSupported()).thenReturn(true);
+        when(networkDetail.getHSRelease()).thenReturn(NetworkDetail.HSRelease.Unknown);
+        when(networkDetail.isHiddenBeaconFrame()).thenReturn(false);
+        when(networkDetail.getWifiMode()).thenReturn(InformationElementUtil.WifiMode.MODE_11BE);
+
+        SecurityParams securityParams = mock(SecurityParams.class);
+        when(config.getDefaultSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isEnterpriseSecurityType()).thenReturn(true);
+        when(config.isPasspoint()).thenReturn(false);
+        config.isHomeProviderNetwork = false;
+
+        //Create a connection event using only the config
+        mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, config,
+                "Red", WifiMetricsProto.ConnectionEvent.ROAM_NONE, false,
+                WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY);
+        mWifiMetrics.setConnectionScanDetail(TEST_IFACE_NAME, scanDetail);
+        mWifiMetrics.logBugReport();
+        mWifiMetrics.logStaEvent(TEST_IFACE_NAME, StaEvent.TYPE_CMD_START_ROAM,
+                StaEvent.DISCONNECT_UNKNOWN, null);
+        mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
+                WifiMetrics.ConnectionEvent.FAILURE_NONE,
+                WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0,
+                TEST_CONNECTION_FAILURE_STATUS_CODE);
+
+        ExtendedMockito.verify(
+                () -> WifiStatsLog.write(eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED),
+                        eq(true), // mIsFrameworkInitiatedRoaming
+                        eq(TEST_CANDIDATE_FREQ),
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__BAND_MHZ__BAND_2G),
+                        eq(NETWORK_DETAIL_DTIM),
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_NONE),
+                        eq(true), // hidden
+                        eq(true), // mIsIncorrectlyConfiguredAsHidden
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__STANDARD__WIFI_STANDARD_11BE),
+                        eq(false), // mIs11bSupported
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_TTLS),
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_MSCHAP_V2),
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__OCSP_TYPE__TYPE_OCSP_REQUIRE_CERT_STATUS),
+                        eq(false), // pmkCacheEnabled
+                        eq(true), // mIsMboSupported
+                        eq(true), // mIsOceSupported
+                        eq(true), // mIsFilsSupported
+                        eq(true), // mIsTwtRequired
+                        eq(true), // mIsIndividualTwtSupported
+                        eq(true), // mIsBroadcastTwtSupported
+                        eq(true), // mIsRestrictedTwtSupported
+                        eq(true), // mIs11McSupported
+                        eq(true), // mIs11AzSupported
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__PASSPOINT_RELEASE__PASSPOINT_RELEASE_UNKNOWN),
+                        eq(false), // isPasspointHomeProvider
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__AP_TYPE_6GHZ__AP_TYPE_6GHZ_STANDARD_POWER),
+                        eq(true))); // mIsEcpsPriorityAccessSupported
+    }
 }
