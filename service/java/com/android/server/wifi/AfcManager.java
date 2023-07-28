@@ -16,6 +16,7 @@
 
 package com.android.server.wifi;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -32,7 +33,9 @@ import com.android.server.wifi.hal.WifiChip;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class that handles interactions with the AFC server and passing its response to the driver
@@ -61,6 +64,8 @@ public class AfcManager {
     private AfcLocation mLastAfcLocationInSuccessfulQuery;
     private AfcServerResponse mLatestAfcServerResponse;
     private String mAfcServerUrl;
+    private String mServerUrlSetFromShellCommand;
+    private Map<String, String> mServerRequestPropertiesSetFromShellCommand;
 
     public AfcManager(WifiContext context, WifiInjector wifiInjector) {
         mContext = context;
@@ -72,7 +77,12 @@ public class AfcManager {
         mAfcLocationUtil = wifiInjector.getAfcLocationUtil();
         mAfcClient = wifiInjector.getAfcClient();
 
-        mLocationListener = this::onLocationChange;
+        mLocationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                onLocationChange(location, false);
+            }
+        };
 
         mCallback = new AfcClient.Callback() {
             // Cache the server response and pass the AFC channel allowance to the driver.
@@ -142,9 +152,18 @@ public class AfcManager {
      * Perform a re-query if the server hasn't been queried before, if the expiration time
      * of the last successful AfcResponse has expired, or if the location parameter is outside the
      * bounds of the AfcLocation from the last successful AFC server query.
+     *
+     * @param location the device's current location.
+     * @param isCalledFromShellCommand whether this method is being called from a shell command.
+     *                                 Used to bypass the flag in the overlay for AFC being enabled
+     *                                 or disabled.
      */
-    public void onLocationChange(Location location) {
+    public void onLocationChange(Location location, boolean isCalledFromShellCommand) {
         mLastKnownLocation = location;
+
+        if (!mIsAfcSupportedForCurrentCountry && !isCalledFromShellCommand) {
+            return;
+        }
 
         if (location == null) {
             if (mVerboseLoggingEnabled) {
@@ -155,7 +174,7 @@ public class AfcManager {
 
         // If there was no prior successful query, then query the server.
         if (mLastAfcLocationInSuccessfulQuery == null) {
-            queryServerAndInformDriver(location);
+            queryServerAndInformDriver(location, isCalledFromShellCommand);
             if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "This is the first query of the server.");
             }
@@ -166,7 +185,7 @@ public class AfcManager {
         // server.
         if (mClock.getWallClockMillis() >= mLatestAfcServerResponse.getAfcChannelAllowance()
                 .availabilityExpireTimeMs) {
-            queryServerAndInformDriver(location);
+            queryServerAndInformDriver(location, isCalledFromShellCommand);
             if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "The availability expiration time of the last query has expired"
                         + " so a query of the AFC server is executed.");
@@ -180,7 +199,7 @@ public class AfcManager {
         // Query the AFC server if the new parameter location is outside the AfcLocation
         // boundary.
         if (inBoundsResult == AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION) {
-            queryServerAndInformDriver(location);
+            queryServerAndInformDriver(location, isCalledFromShellCommand);
 
             if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "The location is outside the bounds of the Afc location object so a"
@@ -206,14 +225,29 @@ public class AfcManager {
     /**
      * Query the AFC server to get allowed AFC frequencies and channels, then update the driver with
      * these values.
+     *
+     * @param location the location used to construct the location boundary sent to the server.
+     * @param isCalledFromShellCommand whether this method is being called from a shell command.
      */
-    private void queryServerAndInformDriver(Location location) {
+    private void queryServerAndInformDriver(Location location, boolean isCalledFromShellCommand) {
         mLastAfcServerQueryTime = mClock.getElapsedSinceBootMillis();
 
+        if (isCalledFromShellCommand) {
+            if (mServerUrlSetFromShellCommand == null) {
+                Log.e(TAG, "The AFC server URL has not been set. Please use the "
+                        + "configure-afc-server shell command to set the server URL before "
+                        + "attempting to query the server from a shell command.");
+                return;
+            }
+
+            mAfcClient.setServerURL(mServerUrlSetFromShellCommand);
+            mAfcClient.setRequestPropertyPairs(mServerRequestPropertiesSetFromShellCommand);
+        } else {
+            mAfcClient.setServerURL(mAfcServerUrl);
+        }
+
         // Convert the Location object to an AfcLocation object
-        AfcLocation afcLocationForQuery = mAfcLocationUtil.createAfcLocation(
-                location);
-        mAfcClient.setServerURL(mAfcServerUrl);
+        AfcLocation afcLocationForQuery = mAfcLocationUtil.createAfcLocation(location);
 
         mAfcClient.queryAfcServer(afcLocationForQuery, new Handler(mWifiHandlerThread.getLooper()),
                 mCallback);
@@ -275,11 +309,7 @@ public class AfcManager {
                         return;
                     }
 
-                /*
-                Todo: Call a function that queries the AFC server with the updated location
-                   to get allowed frequencies and channels
-                 */
-                    queryServerAndInformDriver(currentLocation);
+                    queryServerAndInformDriver(currentLocation, false);
                 });
     }
 
@@ -313,6 +343,21 @@ public class AfcManager {
             }
         }
         return mProviderForLocationRequest;
+    }
+
+    /**
+     * Set the server URL and request properties map used to query the AFC server. This is called
+     * from the configure-afc-server Wi-Fi shell command.
+     *
+     * @param url the URL of the AFC server
+     * @param requestProperties A map with key and value Strings for the HTTP header's request
+     *                          property fields.
+     */
+    public void setServerUrlAndRequestPropertyPairs(@NonNull String url,
+            @NonNull Map<String, String> requestProperties) {
+        mServerUrlSetFromShellCommand = url;
+        mServerRequestPropertiesSetFromShellCommand = new HashMap<>();
+        mServerRequestPropertiesSetFromShellCommand.putAll(requestProperties);
     }
 
     /**
@@ -358,6 +403,11 @@ public class AfcManager {
     @VisibleForTesting
     AfcLocation getLastAfcLocationInSuccessfulQuery() {
         return mLastAfcLocationInSuccessfulQuery;
+    }
+
+    @VisibleForTesting
+    public void setIsAfcSupportedInCurrentCountry(boolean isAfcSupported) {
+        mIsAfcSupportedForCurrentCountry = isAfcSupported;
     }
 
     @VisibleForTesting

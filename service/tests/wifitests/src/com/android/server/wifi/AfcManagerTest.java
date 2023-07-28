@@ -52,7 +52,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -75,7 +77,8 @@ public class AfcManagerTest extends WifiBaseTest {
     @Mock AfcClient mAfcClient;
     private AfcManager mAfcManager;
     private static final String EXPIRATION_DATE = "2020-11-03T13:34:05Z";
-    private static String sAfcServerUrl1 = "https://example.com/";
+    private static String sAfcServerUrl1;
+    private static Map<String, String> sAfcRequestProperties1;
 
     @Before
     public void setUp() throws Exception {
@@ -99,6 +102,9 @@ public class AfcManagerTest extends WifiBaseTest {
                 LocationManager.FUSED_PROVIDER, LocationManager.PASSIVE_PROVIDER,
                 LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER));
         when(mAfcLocationUtil.createAfcLocation(mLocation)).thenReturn(mAfcLocation);
+
+        sAfcServerUrl1 = "https://example.com/";
+        sAfcRequestProperties1 = new HashMap<>();
     }
 
     private AfcManager makeAfcManager() {
@@ -133,7 +139,7 @@ public class AfcManagerTest extends WifiBaseTest {
         mAfcManager = makeAfcManager();
         when(mClock.getElapsedSinceBootMillis()).thenReturn(9999L);
 
-        mAfcManager.onLocationChange(null);
+        mAfcManager.onLocationChange(null, false);
         assertThat(mAfcManager.getLastKnownLocation()).isEqualTo(null);
     }
 
@@ -144,9 +150,10 @@ public class AfcManagerTest extends WifiBaseTest {
     @Test
     public void testUpdateLastKnownLocationOnLocationChange() {
         mAfcManager = makeAfcManager();
+        mAfcManager.setIsAfcSupportedInCurrentCountry(true);
         when(mClock.getElapsedSinceBootMillis()).thenReturn(9999L);
 
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
 
         verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class), any(AfcClient
                 .Callback.class));
@@ -270,7 +277,7 @@ public class AfcManagerTest extends WifiBaseTest {
     @Test
     public void testNullLocationChange() {
         mAfcManager = makeAfcManager();
-        mAfcManager.onLocationChange(null);
+        mAfcManager.onLocationChange(null, false);
         verify(mAfcClient, never()).queryAfcServer(any(AfcLocation.class), any(Handler.class),
                 any(AfcClient.Callback.class));
     }
@@ -282,8 +289,9 @@ public class AfcManagerTest extends WifiBaseTest {
     @Test
     public void testQueryAfterExpiredTime() throws JSONException {
         mAfcManager = makeAfcManager();
+        mAfcManager.setIsAfcSupportedInCurrentCountry(true);
 
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
 
         verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class),
                 mAfcClientCallbackCaptor.capture());
@@ -296,7 +304,7 @@ public class AfcManagerTest extends WifiBaseTest {
         // Ensure that the current time is before the expiration date
         when(mClock.getWallClockMillis()).thenReturn(AfcServerResponse
                 .convertExpireTimeStringToTimestamp(EXPIRATION_DATE) - 10);
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
         // Ensure that a query is not executed because the expiration time has not passed
         verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
                 any(Handler.class), any(AfcClient.Callback.class));
@@ -304,7 +312,7 @@ public class AfcManagerTest extends WifiBaseTest {
         // Ensure that the current time is past the expiration date
         when(mClock.getWallClockMillis()).thenReturn(AfcServerResponse
                 .convertExpireTimeStringToTimestamp(EXPIRATION_DATE) + 10);
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
         // Ensure that a query is executed because the expiration time has passed
         verify(mAfcClient, times(2)).queryAfcServer(any(AfcLocation.class),
                 any(Handler.class), any(AfcClient.Callback.class));
@@ -317,7 +325,8 @@ public class AfcManagerTest extends WifiBaseTest {
     @Test
     public void testQueryAfterLocationChange() throws JSONException {
         mAfcManager = makeAfcManager();
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.setIsAfcSupportedInCurrentCountry(true);
+        mAfcManager.onLocationChange(mLocation, false);
 
         verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class),
                 mAfcClientCallbackCaptor.capture());
@@ -332,7 +341,7 @@ public class AfcManagerTest extends WifiBaseTest {
         // Ensure that a query is not executed because the location is inside the AfcLocation
         when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
                 .thenReturn(AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
         verify(mAfcLocationUtil).checkLocation(any(AfcLocation.class), any(Location.class));
         verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
                 any(Handler.class), any(AfcClient.Callback.class));
@@ -340,7 +349,7 @@ public class AfcManagerTest extends WifiBaseTest {
         // Ensure that a query is not executed because the location is on the border
         when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
                 .thenReturn(AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
         verify(mAfcLocationUtil, times(2)).checkLocation(any(AfcLocation
                 .class), any(Location.class));
         verify(mAfcClient, times(1)).queryAfcServer(any(AfcLocation.class),
@@ -349,10 +358,24 @@ public class AfcManagerTest extends WifiBaseTest {
         // Ensure that a query is executed because the location is outside the AfcLocation
         when(mAfcLocationUtil.checkLocation(any(AfcLocation.class), any(Location.class)))
                 .thenReturn(AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
-        mAfcManager.onLocationChange(mLocation);
+        mAfcManager.onLocationChange(mLocation, false);
         verify(mAfcLocationUtil, times(3)).checkLocation(any(AfcLocation
                 .class), any(Location.class));
         verify(mAfcClient, times(2)).queryAfcServer(any(AfcLocation.class),
                 any(Handler.class), any(AfcClient.Callback.class));
+    }
+
+    /*
+     * Verify that when a shell command triggers a location update, that a server query is made
+     * regardless of whether AFC is currently supported.
+     */
+    @Test
+    public void testQueryMadeFromShellCommand() {
+        mAfcManager = makeAfcManager();
+        mAfcManager.setServerUrlAndRequestPropertyPairs(sAfcServerUrl1, sAfcRequestProperties1);
+        when(mWifiGlobals.isAfcSupportedOnDevice()).thenReturn(false);
+        mAfcManager.onLocationChange(mLocation, true);
+        verify(mAfcClient).queryAfcServer(any(AfcLocation.class), any(Handler.class),
+                any(AfcClient.Callback.class));
     }
 }
