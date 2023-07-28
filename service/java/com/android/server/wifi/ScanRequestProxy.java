@@ -49,7 +49,6 @@ import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.resources.R;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -152,19 +151,24 @@ public class ScanRequestProxy {
                 Log.d(TAG, "Received " + scanResults.length + " scan results");
             }
             // Only process full band scan results.
-            if (WifiScanner.isFullBandScan(scanData.getScannedBandsInternal(), false)) {
-                // Store the last scan results & send out the scan completion broadcast.
+            boolean isFullBandScan = WifiScanner.isFullBandScan(
+                    scanData.getScannedBandsInternal(), false);
+            if (isFullBandScan) {
+                // If is full scan, clear the map and cache so only the latest data is available
                 mLastScanResultsMap.clear();
-                Arrays.stream(scanResults).forEach(s -> {
-                    ScanResult scanResult = mLastScanResultsMap.get(s.BSSID);
-                    // If a hidden network is configured, wificond may report two scan results for
-                    // the same BSS, ie. One with the SSID and another one without SSID. So avoid
-                    // overwriting the scan result of the same BSS with Hidden SSID scan result
-                    if (scanResult == null
-                            || TextUtils.isEmpty(scanResult.SSID) || !TextUtils.isEmpty(s.SSID)) {
-                        mLastScanResultsMap.put(s.BSSID, s);
-                    }
-                });
+            }
+            for (ScanResult s : scanResults) {
+                ScanResult scanResult = mLastScanResultsMap.get(s.BSSID);
+                // If a hidden network is configured, wificond may report two scan results for
+                // the same BSS, ie. One with the SSID and another one without SSID. So avoid
+                // overwriting the scan result of the same BSS with Hidden SSID scan result
+                if (scanResult == null
+                        || TextUtils.isEmpty(scanResult.SSID) || !TextUtils.isEmpty(s.SSID)) {
+                    mLastScanResultsMap.put(s.BSSID, s);
+                }
+            }
+            if (isFullBandScan) {
+                // Only trigger broadcasts for full scans
                 sendScanResultBroadcast(true);
                 sendScanResultsAvailableToCallbacks();
             }
