@@ -1926,7 +1926,7 @@ public class WifiMetrics {
                     currentConnectionEvent.mEapType = config.enterpriseConfig.getEapMethod();
                     currentConnectionEvent.mPhase2Method =
                             config.enterpriseConfig.getPhase2Method();
-                    // TODO(b/254304144) comput the passpoint roaming type.
+                    currentConnectionEvent.mPasspointRoamingType = Utils.getRoamingType(config);
                 }
 
                 ScanResult candidate = config.getNetworkSelectionStatus().getCandidate();
@@ -2170,7 +2170,8 @@ public class WifiMetrics {
                         statusCode,
                         toMetricEapType(currentConnectionEvent.mEapType),
                         toMetricPhase2Method(currentConnectionEvent.mPhase2Method),
-                        0);
+                        currentConnectionEvent.mPasspointRoamingType,
+                        currentConnectionEvent.mCarrierId);
 
                 // ConnectionEvent already added to ConnectionEvents List. Safe to remove here.
                 mCurrentConnectionEventPerIface.remove(ifaceName);
@@ -2221,7 +2222,8 @@ public class WifiMetrics {
                         mCurrentSession.mConnectionEvent.mRole,
                         toMetricEapType(mCurrentSession.mConnectionEvent.mEapType),
                         toMetricPhase2Method(mCurrentSession.mConnectionEvent.mPhase2Method),
-                        0);
+                        mCurrentSession.mConnectionEvent.mPasspointRoamingType,
+                        mCurrentSession.mConnectionEvent.mCarrierId);
 
                 mPreviousSession = mCurrentSession;
                 mCurrentSession = null;
