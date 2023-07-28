@@ -131,6 +131,39 @@ public class NetworkDetail {
     private final boolean mMboCellularDataAware;
     private final boolean mOceSupported;
 
+    // Target wake time (TWT) allows an AP to manage activity in the BSS in order to minimize
+    // contention between STAs and to reduce the required amount of time that a STA utilizing a
+    // power management mode needs to be awake.
+
+    // The HE AP requests that STAs participate in TWT by setting the TWT Required subfield to 1
+    // in HE Operation elements. STAs that support TWT and receive an HE Operation element with
+    // the TWT Required subfield set to 1 must either negotiate individual TWT agreements or
+    // participate in broadcast TWT operation.
+    private final boolean mTwtRequired;
+    // With Individual TWT operation, a STA negotiate a wake schedule with an access point, allowing
+    // it to wake up only when required.
+    private final boolean mIndividualTwtSupported;
+    // In Broadcast TWT operation, an AP can set up a shared TWT session for a group of stations
+    // and specify the TWT parameters periodically in Beacon frames.
+    private final boolean mBroadcastTwtSupported;
+    // Restricted Target Wake Time (TWT) is a feature that allows an access point to allocate
+    // exclusive access to a medium at specified times.
+    private final boolean mRestrictedTwtSupported;
+
+    // EPCS priority access is a mechanism that provides prioritized access to the wireless
+    // medium for authorized users to increase their probability of successful communication
+    // during periods of network congestion.
+    private final boolean mEpcsPriorityAccessSupported;
+
+    // Fast Initial Link Setup (FILS)
+    private final boolean mFilsCapable;
+
+    // 6 GHz Access Point Type
+    private final InformationElementUtil.ApType6GHz mApType6GHz;
+
+    // IEEE 802.11az
+    private final boolean mIs11azSupported;
+
     // MLO Attributes
     private MacAddress mMldMacAddress = null;
     private int mMloLinkId = MloLink.INVALID_MLO_LINK_ID;
@@ -331,6 +364,15 @@ public class NetworkDetail {
         mANQPElements = null;
         //set up channel info
         mPrimaryFreq = freq;
+        mTwtRequired = heOperation.isTwtRequired();
+        mIndividualTwtSupported = heCapabilities.isTwtResponderSupported();
+        mBroadcastTwtSupported = heCapabilities.isBroadcastTwtSupported();
+        mRestrictedTwtSupported = ehtCapabilities.isRestrictedTwtSupported();
+        mEpcsPriorityAccessSupported = ehtCapabilities.isEpcsPriorityAccessSupported();
+        mFilsCapable = extendedCapabilities.isFilsCapable();
+        mApType6GHz = heOperation.getApType6GHz();
+        mIs11azSupported = extendedCapabilities.isTriggerBasedRangingRespSupported()
+                || extendedCapabilities.isNonTriggerBasedRangingRespSupported();
         int channelWidth = ScanResult.UNSPECIFIED;
         int centerFreq0 = mPrimaryFreq;
         int centerFreq1 = 0;
@@ -509,6 +551,14 @@ public class NetworkDetail {
         mMboCellularDataAware = base.mMboCellularDataAware;
         mOceSupported = base.mOceSupported;
         mMboAssociationDisallowedReasonCode = base.mMboAssociationDisallowedReasonCode;
+        mTwtRequired = base.mTwtRequired;
+        mIndividualTwtSupported = base.mIndividualTwtSupported;
+        mBroadcastTwtSupported = base.mBroadcastTwtSupported;
+        mRestrictedTwtSupported = base.mRestrictedTwtSupported;
+        mEpcsPriorityAccessSupported = base.mEpcsPriorityAccessSupported;
+        mFilsCapable = base.mFilsCapable;
+        mApType6GHz = base.mApType6GHz;
+        mIs11azSupported = base.mIs11azSupported;
     }
 
     public NetworkDetail complete(Map<Constants.ANQPElementType, ANQPElement> anqpElements) {
@@ -732,5 +782,60 @@ public class NetworkDetail {
 
     public boolean isOceSupported() {
         return mOceSupported;
+    }
+
+    /** Return whether the AP supports IEEE 802.11az **/
+    public boolean is11azSupported() {
+        return mIs11azSupported;
+    }
+    /**
+     * Return whether the AP requires HE stations to participate either in individual TWT
+     * agreements or Broadcast TWT operation.
+     **/
+    public boolean isTwtRequired() {
+        return mTwtRequired;
+    }
+
+    /** Return whether individual TWT is supported. */
+    public boolean isIndividualTwtSupported() {
+        return mIndividualTwtSupported;
+    }
+
+    /** Return whether broadcast TWT is supported */
+    public boolean isBroadcastTwtSupported() {
+        return mBroadcastTwtSupported;
+    }
+
+    /**
+     * Returns whether restricted TWT is supported or not. It enables enhanced medium access
+     * protection and resource reservation mechanisms for delivery of latency sensitive
+     * traffic.
+     */
+    public boolean isRestrictedTwtSupported() {
+        return mRestrictedTwtSupported;
+    }
+
+    /**
+     * Returns whether EPCS priority access supported or not. EPCS priority access is a
+     * mechanism that provides prioritized access to the wireless medium for authorized users to
+     * increase their probability of successful communication during periods of network
+     * congestion.
+     */
+    public boolean isEpcsPriorityAccessSupported() {
+        return mEpcsPriorityAccessSupported;
+    }
+
+    /**
+     * @return true if Fast Initial Link Setup (FILS) capable
+     */
+    public boolean isFilsCapable() {
+        return mFilsCapable;
+    }
+
+    /**
+     * Return 6Ghz AP type as defined in {@link InformationElementUtil.ApType6GHz}
+     **/
+    public InformationElementUtil.ApType6GHz getApType6GHz() {
+        return mApType6GHz;
     }
 }

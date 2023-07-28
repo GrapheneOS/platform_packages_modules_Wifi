@@ -29,6 +29,7 @@ import androidx.test.filters.SmallTest;
 import com.android.server.wifi.MboOceConstants;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.hotspot2.NetworkDetail;
+import com.android.server.wifi.util.InformationElementUtil.ApType6GHz;
 import com.android.server.wifi.util.InformationElementUtil.HeOperation;
 import com.android.server.wifi.util.InformationElementUtil.HtOperation;
 import com.android.server.wifi.util.InformationElementUtil.VhtOperation;
@@ -1093,6 +1094,11 @@ public class InformationElementUtilTest extends WifiBaseTest {
         extendedCap.from(ie);
         assertFalse(extendedCap.isStrictUtf8());
         assertFalse(extendedCap.is80211McRTTResponder());
+        assertFalse(extendedCap.isTriggerBasedRangingRespSupported());
+        assertFalse(extendedCap.isNonTriggerBasedRangingRespSupported());
+        assertFalse(extendedCap.isTwtRequesterSupported());
+        assertFalse(extendedCap.isTwtResponderSupported());
+        assertFalse(extendedCap.isFilsCapable());
     }
 
     /**
@@ -1130,6 +1136,28 @@ public class InformationElementUtilTest extends WifiBaseTest {
         extendedCap.from(ie);
         assertFalse(extendedCap.isStrictUtf8());
         assertTrue(extendedCap.is80211McRTTResponder());
+    }
+
+    /**
+     * Verify Extended Capabilities: trigger and non-trigger based ranging support, TWT requester
+     * and responder support and FILS support.
+     */
+    @Test
+    public void testExtendedCapabilitiesMisc() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENDED_CAPS;
+        ie.bytes = new byte[] { (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x61, (byte) 0x00, (byte) 0x0c };
+
+        InformationElementUtil.ExtendedCapabilities extendedCap =
+                new InformationElementUtil.ExtendedCapabilities();
+        extendedCap.from(ie);
+        assertTrue(extendedCap.isTriggerBasedRangingRespSupported());
+        assertTrue(extendedCap.isNonTriggerBasedRangingRespSupported());
+        assertTrue(extendedCap.isTwtRequesterSupported());
+        assertTrue(extendedCap.isTwtResponderSupported());
+        assertTrue(extendedCap.isFilsCapable());
     }
 
     /**
@@ -1546,7 +1574,7 @@ public class InformationElementUtilTest extends WifiBaseTest {
          *          3                1            2           0/3           0/1         0/5
          *
          * HE Operation Info:
-         *    |  Misc | VHT Operatoin Info | Misc | 6 GHz Operation Info Present | reserved |
+         *    |  Misc | VHT Operation Info | Misc | 6 GHz Operation Info Present | reserved |
          * bits:  14           1              2                   1                   6
          *
          * 6GHz Info Format:
@@ -1591,7 +1619,7 @@ public class InformationElementUtilTest extends WifiBaseTest {
          *          3                1            2           0/3           0/1         0/5
          *
          * HE Operation Info:
-         *    |  Misc | VHT Operatoin Info | Misc | 6 GHz Operation Info Present | reserved |
+         *    |  Misc | VHT Operation Info | Misc | 6 GHz Operation Info Present | reserved |
          * bits:  14           1              2                   1                   6
          *
          * 6GHz Info Format:
@@ -1636,7 +1664,7 @@ public class InformationElementUtilTest extends WifiBaseTest {
          *          3                1            2           0/3           0/1         0/5
          *
          * HE Operation Info:
-         *    |  Misc | VHT Operatoin Info | Misc | 6 GHz Operation Info Present | reserved |
+         *    |  Misc | VHT Operation Info | Misc | 6 GHz Operation Info Present | reserved |
          * bits:  14           1              2                   1                   6
          *
          */
@@ -1675,7 +1703,7 @@ public class InformationElementUtilTest extends WifiBaseTest {
          *          3                1            2           0/3           0/1         0/5
          *
          * HE Operation Info:
-         *    |  Misc | VHT Operatoin Info | Misc | 6 GHz Operation Info Present | reserved |
+         *    |  Misc | VHT Operation Info | Misc | 6 GHz Operation Info Present | reserved |
          * bits:  14           1              2                   1                   6
          *
          * VHT Operation Info Format:
@@ -1702,6 +1730,45 @@ public class InformationElementUtilTest extends WifiBaseTest {
         assertEquals(5200, vhtOperation.getCenterFreq0());
         assertEquals(0, vhtOperation.getCenterFreq1());
     }
+
+    /**
+     * Verify TWT Info, 6 Ghz Access Point Type
+     */
+    @Test
+    public void testHeOperationMisc() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_HE_OPERATION;
+        /**
+         * HE Operation Format:
+         * | HE Operation Info | BSS Color | Basic HE-MCS | VHT Info  | Cohosted BSS| 6GH Info |
+         *          3                1            2           0/3           0/1         0/5
+         *
+         * HE Operation Info:
+         *    |  Misc | VHT Operation Info | Misc | 6 GHz Operation Info Present | reserved |
+         * bits:  14           1              2                   1                   6
+         *
+         * 6GHz Info Format:
+         * | Primary Channel | Control | Center Freq Seg 0 | Center Freq Seg 1 | Min Rate |
+         *         1             1               1                  1               1
+         *
+         * Control Field:
+         *       | Channel Width | Duplicate Beacon | Reg Info | Reserved |
+         * bits:        2             1                  3          2
+         *
+         */
+        ie.bytes = new byte[]{(byte) 0x08, (byte) 0x00, (byte) 0x02,  //HE Operation Info
+            (byte) 0x00, (byte) 0x00, (byte) 0x00,  // BSS Color and HE-MCS
+            (byte) 0x10, (byte) 0x0B, (byte) 0x14, (byte) 0x1C, (byte) 0x00};
+
+        HeOperation heOperation = new HeOperation();
+        heOperation.from(ie);
+        assertTrue(heOperation.isPresent());
+        assertTrue(heOperation.is6GhzInfoPresent());
+        assertTrue(heOperation.isTwtRequired());
+        assertEquals(ApType6GHz.AP_TYPE_6GHZ_STANDARD_POWER, heOperation.getApType6GHz());
+    }
+
     /**
      * Verify that the expected max number of spatial stream is parsed correctly from
      * HT capabilities IE
@@ -1791,6 +1858,34 @@ public class InformationElementUtilTest extends WifiBaseTest {
         heCapabilities.from(ie);
         assertEquals(8, heCapabilities.getMaxNumberSpatialStreams());
         assertEquals(true, heCapabilities.isPresent());
+    }
+
+    @Test
+    public void testTwtHeCapabilities() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_HE_CAPABILITIES;
+        /**
+         * HE Capabilities IE Format:
+         * | HE MAC Capabilities Info | HE PHY Capabilities Info | Supported HE-MCS and NSS Set |
+         *           6                              11                     4
+         *
+         * HE MAC Capabilities Info format:
+         *      B1 : TWT Requester Support
+         *      B2 : TWT Responder Support
+         *      B20: Broadcast TWT Support
+         */
+        ie.bytes = new byte[]{(byte) 0x06, (byte) 0x00, (byte) 0x10, (byte) 0x02, (byte) 0x40,
+            (byte) 0x04, (byte) 0x70, (byte) 0x0c, (byte) 0x80, (byte) 0x00, (byte) 0x07,
+            (byte) 0x80, (byte) 0x04, (byte) 0x00, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa,
+            (byte) 0xaa, (byte) 0x7f, (byte) 0x1c, (byte) 0xc7, (byte) 0x71, (byte) 0x1c,
+            (byte) 0xc7, (byte) 0x71};
+        InformationElementUtil.HeCapabilities heCapabilities =
+                new InformationElementUtil.HeCapabilities();
+        heCapabilities.from(ie);
+        assertEquals(true, heCapabilities.isTwtRequesterSupported());
+        assertEquals(true, heCapabilities.isTwtResponderSupported());
+        assertEquals(true, heCapabilities.isBroadcastTwtSupported());
     }
 
     /**
@@ -2094,4 +2189,38 @@ public class InformationElementUtilTest extends WifiBaseTest {
         assertEquals("US", country.getCountryCode());
     }
     // TODO: SAE, OWN, SUITE_B
+
+    /**
+     * Verify EHT capabilities default values.
+     */
+    @Test
+    public void testEhtCapabilitiesNotSet() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_EHT_CAPABILITIES;
+        ie.bytes = new byte[2];
+
+        InformationElementUtil.EhtCapabilities ehtCapabilities =
+                new InformationElementUtil.EhtCapabilities();
+        ehtCapabilities.from(ie);
+        assertFalse(ehtCapabilities.isRestrictedTwtSupported());
+        assertFalse(ehtCapabilities.isEpcsPriorityAccessSupported());
+    }
+
+    /**
+     * Verify EHT Capabilities, R-TWT support and EPCS priority support.
+     */
+    @Test
+    public void testEhtCapabilities() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_EHT_CAPABILITIES;
+        ie.bytes = new byte[]{(byte) 0x11, (byte) 0x00};
+
+        InformationElementUtil.EhtCapabilities ehtCapabilities =
+                new InformationElementUtil.EhtCapabilities();
+        ehtCapabilities.from(ie);
+        assertTrue(ehtCapabilities.isRestrictedTwtSupported());
+        assertTrue(ehtCapabilities.isEpcsPriorityAccessSupported());
+    }
 }
