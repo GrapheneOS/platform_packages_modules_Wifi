@@ -131,6 +131,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkAgentSpecifier;
 import android.net.wifi.WifiNetworkSpecifier;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
@@ -487,6 +488,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     static final int TEST_IPV6_ONLY_NETWORK_MAX_DTIM_MULTIPLIER = 2;
     static final int TEST_IPV4_ONLY_NETWORK_MAX_DTIM_MULTIPLIER = 9;
     static final int TEST_DUAL_STACK_NETWORK_MAX_DTIM_MULTIPLIER = 2;
+    static final int TEST_CHANNEL = 6;
+    static final int TEST_CHANNEL_1 = 44;
 
     ClientModeImpl mCmi;
     HandlerThread mWifiCoreThread;
@@ -9440,9 +9443,13 @@ public class ClientModeImplTest extends WifiBaseTest {
     private void setScanResultWithMloInfo() {
         List<MloLink> mloLinks = new ArrayList<>();
         MloLink link1 = new MloLink();
+        link1.setBand(WifiScanner.WIFI_BAND_24_GHZ);
+        link1.setChannel(TEST_CHANNEL);
         link1.setApMacAddress(MacAddress.fromString(TEST_BSSID_STR));
         link1.setLinkId(TEST_MLO_LINK_ID);
         MloLink link2 = new MloLink();
+        link2.setBand(WifiScanner.WIFI_BAND_5_GHZ);
+        link2.setChannel(TEST_CHANNEL_1);
         link2.setApMacAddress(MacAddress.fromString(TEST_BSSID_STR1));
         link2.setLinkId(TEST_MLO_LINK_ID_1);
         mloLinks.add(link1);
@@ -10191,5 +10198,66 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiInfo wifiInfo = mWifiInfo;
         assertEquals(sFreq1, wifiInfo.getFrequency());
+    }
+
+    /**
+     * Verify that static attributes (channel, state, link id and band) of the affiliated MLO links
+     * are not changed after signal poll.
+     */
+    @Test
+    public void testMloLinkAttributesAfterSignalPoll() throws Exception {
+        connect();
+        setScanResultWithMloInfo();
+
+        // Associate to one link only
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
+        info.links = new WifiNative.ConnectionMloLink[1];
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MAX_VALUE, 2437);
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+
+        // Verify the link attributes
+        List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
+        assertEquals(links.get(0).getBand(), WifiScanner.WIFI_BAND_24_GHZ);
+        assertEquals(links.get(0).getChannel(), TEST_CHANNEL);
+        assertEquals(links.get(0).getLinkId(), TEST_MLO_LINK_ID);
+        assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_UNASSOCIATED);
+        assertEquals(links.get(1).getBand(), WifiScanner.WIFI_BAND_5_GHZ);
+        assertEquals(links.get(1).getChannel(), TEST_CHANNEL_1);
+        assertEquals(links.get(1).getLinkId(), TEST_MLO_LINK_ID_1);
+
+        // Signal poll for associated link only
+        final long startMillis = 1_500_000_000_100L;
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(TEST_MLO_LINK_ID, -42, 65, 54, sFreq);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                WifiManager.WIFI_FEATURE_LINK_LAYER_STATS);
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+        when(mClock.getWallClockMillis()).thenReturn(startMillis + 0);
+        mCmi.enableRssiPolling(true);
+        mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
+        mLooper.dispatchAll();
+
+        // Make sure static link attributes has not changed
+        links = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(links.get(0).getState(), MloLink.MLO_LINK_STATE_ACTIVE);
+        assertEquals(links.get(0).getBand(), WifiScanner.WIFI_BAND_24_GHZ);
+        assertEquals(links.get(0).getChannel(), TEST_CHANNEL);
+        assertEquals(links.get(0).getLinkId(), TEST_MLO_LINK_ID);
+        assertEquals(links.get(1).getState(), MloLink.MLO_LINK_STATE_UNASSOCIATED);
+        assertEquals(links.get(1).getBand(), WifiScanner.WIFI_BAND_5_GHZ);
+        assertEquals(links.get(1).getChannel(), TEST_CHANNEL_1);
+        assertEquals(links.get(1).getLinkId(), TEST_MLO_LINK_ID_1);
     }
 }
