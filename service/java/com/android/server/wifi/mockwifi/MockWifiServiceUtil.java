@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.mockwifi;
 
+import static android.os.UserHandle.CURRENT;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -95,7 +97,8 @@ public class MockWifiServiceUtil {
         intent.setComponent(new ComponentName(mPackageName, mServiceName));
         intent.setAction(actionName);
 
-        status = mContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        status = mContext.createContextAsUser(CURRENT, 0)
+                .bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         return status;
     }
 
