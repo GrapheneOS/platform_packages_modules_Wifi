@@ -1874,7 +1874,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).loadFromStore();
         verify(mActiveModeWarden).enableVerboseLogging(true);
         // show key mode is always disabled at the beginning.
-        verify(mWifiGlobals).setShowKeyVerboseLoggingModeEnabled(eq(false));
+        verify(mWifiGlobals).setVerboseLoggingLevel(eq(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED));
         verify(mActiveModeWarden).start();
         assertTrue(mWifiThreadRunner.mVerboseLoggingEnabled);
     }
@@ -5099,12 +5099,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.enableVerboseLogging(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY);
         verify(mWifiSettingsConfigStore).put(WIFI_VERBOSE_LOGGING_ENABLED, true);
         verify(mActiveModeWarden).enableVerboseLogging(anyBoolean());
-        verify(mWifiGlobals).setShowKeyVerboseLoggingModeEnabled(eq(true));
+        verify(mWifiGlobals).setVerboseLoggingLevel(
+                eq(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY));
 
         // After auto disable show key mode after the countdown
         mLooper.moveTimeForward(WifiServiceImpl.AUTO_DISABLE_SHOW_KEY_COUNTDOWN_MILLIS + 1);
         mLooper.dispatchAll();
-        verify(mWifiGlobals).setShowKeyVerboseLoggingModeEnabled(eq(false));
+        verify(mWifiGlobals).setVerboseLoggingLevel(eq(WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED));
     }
 
     /**
