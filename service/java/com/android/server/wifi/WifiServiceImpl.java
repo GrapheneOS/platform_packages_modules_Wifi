@@ -5439,13 +5439,10 @@ public class WifiServiceImpl extends BaseWifiService {
 
         // Update wifi globals before sending the verbose logging change.
         mWifiThreadRunner.removeCallbacks(mAutoDisableShowKeyVerboseLoggingModeRunnable);
+        mWifiGlobals.setVerboseLoggingLevel(verboseLoggingLevel);
         if (WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY == mVerboseLoggingLevel) {
-            mWifiGlobals.setShowKeyVerboseLoggingModeEnabled(true);
             mWifiThreadRunner.postDelayed(mAutoDisableShowKeyVerboseLoggingModeRunnable,
                     AUTO_DISABLE_SHOW_KEY_COUNTDOWN_MILLIS);
-        } else {
-            // Ensure the show key mode is disabled.
-            mWifiGlobals.setShowKeyVerboseLoggingModeEnabled(false);
         }
         updateVerboseLoggingEnabled();
         final boolean halVerboseEnabled =

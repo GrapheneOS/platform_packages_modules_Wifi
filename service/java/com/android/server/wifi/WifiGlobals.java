@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.util.ArraySet;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -72,7 +73,7 @@ public class WifiGlobals {
     private final boolean mIsWpaPersonalDeprecated;
     private final Map<String, List<String>> mCountryCodeToAfcServers;
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
-    private boolean mIsShowKeyVerboseLoggingModeEnabled = false;
+    private int mVerboseLoggingLevel = WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
     private boolean mIsUsingExternalScorer = false;
     private boolean mDisableUnwantedNetworkOnLowRssi = false;
     private final boolean mIsAfcSupportedOnDevice;
@@ -319,14 +320,21 @@ public class WifiGlobals {
         return mIsWpa3SaeH2eSupported;
     }
 
-    /** Set if show key verbose logging mode is enabled. */
-    public void setShowKeyVerboseLoggingModeEnabled(boolean enable) {
-        mIsShowKeyVerboseLoggingModeEnabled = enable;
+    /**
+     * Record the verbose logging level
+     */
+    public void setVerboseLoggingLevel(int level) {
+        mVerboseLoggingLevel = level;
+    }
+
+    /** Return the currently set verbose logging level. */
+    public int getVerboseLoggingLevel() {
+        return mVerboseLoggingLevel;
     }
 
     /** Check if show key verbose logging mode is enabled. */
     public boolean getShowKeyVerboseLoggingModeEnabled() {
-        return mIsShowKeyVerboseLoggingModeEnabled;
+        return mVerboseLoggingLevel == WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY;
     }
 
     /** Set whether the external scorer is being used **/

@@ -2727,6 +2727,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 Log.wtf(getTag(), "Error! +ve value RSSI: " + newRssi);
                 newRssi -= 256;
             }
+            int oldRssi = mWifiInfo.getRssi();
             mWifiInfo.setRssi(newRssi);
             /*
              * Rather than sending the raw RSSI out every time it
@@ -2742,6 +2743,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (newSignalLevel != mLastSignalLevel) {
                 sendRssiChangeBroadcast(newRssi);
                 updateNetworkCapabilities = true;
+            } else if (newRssi != oldRssi
+                    && mWifiGlobals.getVerboseLoggingLevel()
+                    != WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED) {
+                // Send the raw RSSI if verbose logging is enabled by the user so we can show
+                // granular RSSI changes in Settings.
+                sendRssiChangeBroadcast(newRssi);
             }
             updateLinkBandwidthAndCapabilities(stats, updateNetworkCapabilities, txBytes,
                     rxBytes);
