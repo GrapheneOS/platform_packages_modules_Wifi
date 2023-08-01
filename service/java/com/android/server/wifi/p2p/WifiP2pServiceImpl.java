@@ -4100,6 +4100,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             smTransition(this, mInactiveState);
                         }
                         break;
+                    case WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT:
+                        loge("Peer rejected the connection request - status: " + message.arg1);
+                        mWifiP2pMetrics.endConnectionEvent(
+                                P2pConnectionEvent.CLF_GROUP_REMOVED);
+                        handleGroupCreationFailure();
+                        smTransition(this, mInactiveState);
+                        break;
                     case WifiP2pMonitor.AP_STA_CONNECTED_EVENT:
                     case WifiP2pMonitor.AP_STA_DISCONNECTED_EVENT:
                         // Group owner needs to wait for tethering completion before
