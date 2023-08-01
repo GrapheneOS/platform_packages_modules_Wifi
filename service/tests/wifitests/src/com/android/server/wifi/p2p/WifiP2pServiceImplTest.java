@@ -2723,7 +2723,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendSimpleMsg(mClientMessenger, WifiP2pManager.START_LISTEN);
         // p2pFlush should be invoked once in forceP2pEnabled.
         verify(mWifiNative).p2pFlush();
-        verify(mWifiNative).p2pStopFind();
+        verify(mWifiNative, times(2)).p2pStopFind();
         verify(mWifiNative).p2pExtListen(eq(true), eq(P2P_EXT_LISTEN_PERIOD_MS),
                 eq(P2P_EXT_LISTEN_INTERVAL_MS));
         assertTrue(mClientHandler.hasMessages(WifiP2pManager.START_LISTEN_SUCCEEDED));
@@ -7355,6 +7355,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testGroupStartedTetheringDirectCallback() throws Exception {
+        when(mWifiNative.p2pExtListen(anyBoolean(), anyInt(), anyInt())).thenReturn(true);
         assumeTrue(SdkLevel.isAtLeastS());
         forceP2pEnabled(mClient1);
         verify(mTetheringManager).registerTetheringEventCallback(any(), any());
@@ -7371,6 +7372,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendGroupStartedMsg(group);
         simulateTetherReady();
         verify(mWifiP2pMetrics).startGroupEvent(group);
+        verify(mWifiNative).p2pStopFind();
+        verify(mWifiNative).p2pExtListen(eq(false), anyInt(), anyInt());
         sendGroupRemovedMsg();
 
         //force to back disabled state
@@ -7418,6 +7421,30 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pConnect(eq(mTestWifiP2pPeerConfig), anyBoolean());
         verify(mWifiP2pMetrics).setFallbackToNegotiationOnInviteStatusInfoUnavailable();
+    }
+
+    @Test
+    public void testSetListenOnInviteStatusCodeInfoUnavailable() throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pExtListen(anyBoolean(), anyInt(), anyInt())).thenReturn(true);
+        when(mWifiNative.getGroupCapability(any())).thenReturn(0);
+        when(mWifiNative.p2pReinvoke(anyInt(), any())).thenReturn(true);
+        when(mWifiNative.p2pGetSsid(any())).thenReturn(null);
+        when(mTestWifiP2pDevice.isGroupOwner()).thenReturn(false);
+        when(mTestWifiP2pDevice.isInvitationCapable()).thenReturn(true);
+        when(mResources.getBoolean(R.bool
+                .config_p2pWaitForPeerInviteOnInviteStatusInfoUnavailable)).thenReturn(true);
+
+        mockPeersList();
+        // Trigger reinvoke to enter Group Negotiation state
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.KEYPAD;
+        sendConnectMsg(mClientMessenger, mTestWifiP2pPeerConfig);
+        // Got Fail: information is currently unavailable
+        sendInvitationResultMsg(WifiP2pServiceImpl.P2pStatus.INFORMATION_IS_CURRENTLY_UNAVAILABLE);
+
+        verify(mWifiNative, times(2)).p2pStopFind();
+        verify(mWifiNative).p2pExtListen(eq(true), eq(P2P_EXT_LISTEN_PERIOD_MS),
+                eq(P2P_EXT_LISTEN_INTERVAL_MS));
     }
 
     /**
