@@ -61,7 +61,7 @@ public class AfcEllipseLocationTest {
                 AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_ORIENTATION,
-                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS, mRandom, mLocation
+                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES, mRandom, mLocation
         );
 
         mLongitudeCenterOfEllipse = mAfcEllipseLocation.mLongitude;
@@ -78,13 +78,13 @@ public class AfcEllipseLocationTest {
     @Test
     public void verifyCenterValues() {
         assertThat(mLongitudeCenterOfEllipse).isEqualTo(
-                RANDOM_DOUBLE * 2 * AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS + (
+                RANDOM_DOUBLE * 2 * AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES + (
                         STARTING_LONGITUDE
-                                - AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS));
+                                - AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES));
         assertThat(mLatitudeCenterOfEllipse).isEqualTo(
-                RANDOM_DOUBLE * 2 * AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS + (
+                RANDOM_DOUBLE * 2 * AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES + (
                         STARTING_LATITUDE
-                                - AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS));
+                                - AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES));
     }
 
     /**

@@ -92,7 +92,7 @@ public class AfcClientTest {
                 AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_ORIENTATION,
-                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS, mRandom, mLocation
+                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES, mRandom, mLocation
         );
 
         HttpResponse httpResponse = HttpResponse.builder().setResponseCode(
