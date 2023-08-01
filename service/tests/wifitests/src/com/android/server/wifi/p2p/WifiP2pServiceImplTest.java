@@ -3569,6 +3569,27 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify the connection event ends when peer reject the connect request in negotiation flow.
+     */
+    @Test
+    public void testEndConnectionEventWhenPeerRejectTheConnectRequestInNegotiationFlow()
+            throws Exception {
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pGroupAdd(anyBoolean())).thenReturn(true);
+        mockEnterGroupNegotiationState();
+
+        WifiP2pProvDiscEvent pdEvent = new WifiP2pProvDiscEvent();
+        pdEvent.device = mTestWifiP2pDevice;
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_FAILURE_EVENT,
+                WifiP2pMonitor.PROV_DISC_STATUS_REJECTED,
+                pdEvent);
+
+        verify(mWifiP2pMetrics).endConnectionEvent(
+                eq(P2pConnectionEvent.CLF_GROUP_REMOVED));
+    }
+
+    /**
      * Verify WifiP2pManager.RESPONSE_DEVICE_INFO is returned with null object when a caller
      * without proper permission attempts.
      */
