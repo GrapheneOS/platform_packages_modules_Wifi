@@ -1416,8 +1416,8 @@ public class ConcreteClientModeManager implements ClientModeManager {
 
     @Override
     public boolean setWifiConnectedNetworkScorer(
-            IBinder binder, IWifiConnectedNetworkScorer scorer) {
-        return getClientMode().setWifiConnectedNetworkScorer(binder, scorer);
+            IBinder binder, IWifiConnectedNetworkScorer scorer, int callerUid) {
+        return getClientMode().setWifiConnectedNetworkScorer(binder, scorer, callerUid);
     }
 
     @Override

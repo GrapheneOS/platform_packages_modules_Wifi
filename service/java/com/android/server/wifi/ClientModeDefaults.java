@@ -73,7 +73,7 @@ public interface ClientModeDefaults extends ClientMode {
     default void setLinkLayerStatsPollingInterval(int newIntervalMs) { }
 
     default boolean setWifiConnectedNetworkScorer(
-            IBinder binder, IWifiConnectedNetworkScorer scorer) {
+            IBinder binder, IWifiConnectedNetworkScorer scorer, int callerUid) {
         // don't fail the public API when wifi is off.
         return true;
     }

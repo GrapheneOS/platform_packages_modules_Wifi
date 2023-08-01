@@ -32,6 +32,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -296,6 +297,7 @@ public class WifiScoreReport {
                         : ConnectedScore.WIFI_TRANSITION_SCORE - 1);
             }
             mWifiInfo.setUsable(mIsUsable);
+            mWifiMetrics.setScorerPredictedWifiUsability(mIsUsable);
         }
 
         @Override
@@ -918,11 +920,9 @@ public class WifiScoreReport {
 
     /**
      * Set a scorer for Wi-Fi connected network score handling.
-     * @param binder
-     * @param scorer
      */
     public boolean setWifiConnectedNetworkScorer(IBinder binder,
-            IWifiConnectedNetworkScorer scorer) {
+            IWifiConnectedNetworkScorer scorer, int callerUid) {
         if (binder == null || scorer == null) return false;
         // Enforce that only a single scorer can be set successfully.
         if (mWifiConnectedNetworkScorerHolder != null) {
@@ -942,7 +942,7 @@ public class WifiScoreReport {
 
         // Disable AOSP scorer
         mVelocityBasedConnectedScore = null;
-        mWifiMetrics.setIsExternalWifiScorerOn(true);
+        mWifiMetrics.setIsExternalWifiScorerOn(true, callerUid);
         // If there is already a connection, start a new session
         final int netId = getCurrentNetId();
         if (netId > 0 && !mShouldReduceNetworkScore) {
@@ -1129,7 +1129,7 @@ public class WifiScoreReport {
         mWifiConnectedNetworkScorerHolder = null;
         mWifiGlobals.setUsingExternalScorer(false);
         mExternalScoreUpdateObserverProxy.unregisterCallback(mScoreUpdateObserverCallback);
-        mWifiMetrics.setIsExternalWifiScorerOn(false);
+        mWifiMetrics.setIsExternalWifiScorerOn(false, Process.WIFI_UID);
     }
 
     /**
