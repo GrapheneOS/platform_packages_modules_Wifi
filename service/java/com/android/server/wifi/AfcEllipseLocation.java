@@ -32,7 +32,11 @@ public class AfcEllipseLocation extends AfcLocation {
     static final int DEFAULT_SEMI_MAJOR_AXIS_METERS = 500;
     static final int DEFAULT_SEMI_MINOR_AXIS_METERS = 500;
     static final float DEFAULT_ORIENTATION = 90f;
-    static final int DEFAULT_CENTER_LEEWAY_METERS = 250;
+    static final double DEFAULT_CENTER_LEEWAY_DEGREES = 0.001;
+    private static final int MIN_LONGITUDE = -180;
+    private static final int MAX_LONGITUDE = 180;
+    private static final int MIN_LATITUDE = -90;
+    private static final int MAX_LATITUDE = 90;
     double mLatitude;
     double mLongitude;
     int mSemiMajorAxis;
@@ -47,9 +51,10 @@ public class AfcEllipseLocation extends AfcLocation {
      *                            positive integer in meters.
      * @param orientation         The orientation of the majorAxis field in decimal degrees,
      *                            measured clockwise from True North.
-     * @param centerLeeway        The amount in meters that the center of the generated ellipse
-     *                            will be randomly shifted +- by. This variable be reasonably
-     *                            smaller than the major and minor axes.
+     * @param centerLeeway        The max amount in degrees that the longitude and latitude
+     *                            coordinates of the generated ellipse will be randomly shifted +-
+     *                            by. This variable should be reasonably smaller than the longitude
+     *                            and latitude ranges. Each 0.001 degree is roughly 111 meters.
      * @param random              The random variable to randomize the center ellipse coordinates.
      * @param location            The geographic coordinates within which the AP or Fixed Client
      *                            Device is located and the AfcEllipseLocation is centered around.
@@ -63,13 +68,27 @@ public class AfcEllipseLocation extends AfcLocation {
         mCenterLeeway = centerLeeway;
         mOrientation = orientation;
 
+        // The ellipse longitude point is in between the location longitude point +- mCenterLeeway
+        mLongitude = random.nextDouble() * (2 * mCenterLeeway) + (location.getLongitude()
+                - mCenterLeeway);
+
+        // Adjust for allowed range for longitude which is -180 to 180.
+        if (mLongitude < MIN_LONGITUDE) {
+            mLongitude = MIN_LONGITUDE;
+        } else if (mLongitude > MAX_LONGITUDE) {
+            mLongitude = MAX_LONGITUDE;
+        }
+
         // The ellipse latitude point is in between the location latitude point +- mCenterLeeway
         mLatitude = random.nextDouble() * (2 * mCenterLeeway) + (location.getLatitude()
                 - mCenterLeeway);
 
-        // The ellipse longitude point is in between the location longitude point +- mCenterLeeway
-        mLongitude = random.nextDouble() * (2 * mCenterLeeway) + (location.getLongitude()
-                - mCenterLeeway);
+        // Adjust for allowed range for latitude which is -90 to 90.
+        if (mLatitude < MIN_LATITUDE) {
+            mLatitude = MIN_LATITUDE;
+        } else if (mLatitude > MAX_LATITUDE) {
+            mLatitude = MAX_LATITUDE;
+        }
     }
 
     /**

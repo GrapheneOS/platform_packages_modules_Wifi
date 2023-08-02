@@ -40,7 +40,7 @@ public class AfcLocationUtil {
         return new AfcEllipseLocation(AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS,
                 AfcEllipseLocation.DEFAULT_ORIENTATION,
-                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_METERS,
+                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES,
                 new Random(), location
         );
     }
