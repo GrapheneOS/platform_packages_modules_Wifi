@@ -5449,6 +5449,7 @@ public class WifiServiceImpl extends BaseWifiService {
                 WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED == mVerboseLoggingLevel
                         || WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY
                         == mVerboseLoggingLevel;
+        mAfcManager.enableVerboseLogging(mVerboseLoggingEnabled);
         mActiveModeWarden.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiLockManager.enableVerboseLogging(mVerboseLoggingEnabled);
         mWifiMulticastLockManager.enableVerboseLogging(mVerboseLoggingEnabled);

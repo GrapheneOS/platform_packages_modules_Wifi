@@ -93,6 +93,12 @@ public class AfcManager {
 
                 boolean allowanceSetSuccessfully = setAfcChannelAllowance(mLatestAfcServerResponse
                         .getAfcChannelAllowance());
+
+                if (mVerboseLoggingEnabled) {
+                    Log.i(TAG, "The AFC Client Query was successful and had the response:\n"
+                            + serverResponse);
+                }
+
                 if (!allowanceSetSuccessfully) {
                     Log.e(TAG, "The AFC allowed channels and frequencies were not set "
                             + "successfully in the driver.");
@@ -101,7 +107,7 @@ public class AfcManager {
 
             @Override
             public void onFailure(int reasonCode, String description) {
-                Log.e(TAG, "Reason Code: " + reasonCode + "\nDescription: " + description);
+                Log.e(TAG, "Reason Code: " + reasonCode + ", Description: " + description);
             }
         };
     }
@@ -167,17 +173,18 @@ public class AfcManager {
 
         if (location == null) {
             if (mVerboseLoggingEnabled) {
-                Log.d(TAG, "Location is null");
+                Log.i(TAG, "Location is null");
             }
             return;
         }
 
         // If there was no prior successful query, then query the server.
         if (mLastAfcLocationInSuccessfulQuery == null) {
-            queryServerAndInformDriver(location, isCalledFromShellCommand);
             if (mVerboseLoggingEnabled) {
-                Log.d(TAG, "This is the first query of the server.");
+                Log.i(TAG, "There is no prior successful query so a new query of the server is"
+                        + " executed.");
             }
+            queryServerAndInformDriver(location, isCalledFromShellCommand);
             return;
         }
 
@@ -187,8 +194,8 @@ public class AfcManager {
                 .availabilityExpireTimeMs) {
             queryServerAndInformDriver(location, isCalledFromShellCommand);
             if (mVerboseLoggingEnabled) {
-                Log.d(TAG, "The availability expiration time of the last query has expired"
-                        + " so a query of the AFC server is executed.");
+                Log.i(TAG, "The availability expiration time of the last query has expired"
+                        + " so a new query of the AFC server is executed.");
             }
             return;
         }
@@ -202,14 +209,14 @@ public class AfcManager {
             queryServerAndInformDriver(location, isCalledFromShellCommand);
 
             if (mVerboseLoggingEnabled) {
-                Log.d(TAG, "The location is outside the bounds of the Afc location object so a"
+                Log.i(TAG, "The location is outside the bounds of the Afc location object so a"
                         + " query of the AFC server is executed with a new AfcLocation object.");
             }
         } else {
             // Don't query since the location parameter is either inside the AfcLocation boundary
             // or on the border.
             if (mVerboseLoggingEnabled) {
-                Log.d(TAG, "The current location is " + inBoundsResult + " so a query "
+                Log.i(TAG, "The current location is " + inBoundsResult + " so a query "
                         + "will not be executed.");
             }
         }
@@ -380,6 +387,13 @@ public class AfcManager {
         }
 
         pw.println("AfcManager - Last time the server was queried: " + mLastAfcServerQueryTime);
+    }
+
+    /**
+     * Enable verbose logging in AfcManager.
+     */
+    public void enableVerboseLogging(boolean verboseLoggingEnabled) {
+        mVerboseLoggingEnabled = verboseLoggingEnabled;
     }
 
     @VisibleForTesting

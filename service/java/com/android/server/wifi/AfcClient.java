@@ -60,7 +60,7 @@ public class AfcClient {
     static final int LOW_FREQUENCY = ScanResult.BAND_6_GHZ_START_FREQ_MHZ;
 
     // TODO(b/291774201): Update max frequency since server is currently returning errors with
-    // higher values than 6425.
+    //  higher values than 6425.
     static final int HIGH_FREQUENCY = 6425;
     static final String SERIAL_NUMBER = "ABCDEFG";
     static final String NRA = "FCC";
@@ -110,10 +110,11 @@ public class AfcClient {
                     ));
                 } else if (serverResponse.getAfcChannelAllowance() == null) {
                     wifiHandler.post(() -> callback.onFailure(
-                            REASON_AFC_RESPONSE_CODE_ERROR, "Server error. "
+                            REASON_AFC_RESPONSE_CODE_ERROR, "Response code server error. "
                                     + "HttpResponseCode=" + serverResponse.getHttpResponseCode()
-                                    + " AfcServerResponseCode=" + serverResponse
-                                    .getAfcResponseCode()));
+                                    + ", AfcServerResponseCode=" + serverResponse
+                                    .getAfcResponseCode() + ", Short Description: "
+                                    + serverResponse.getAfcResponseDescription()));
                 } else {
                     // Post the server response to the callback
                     wifiHandler.post(() -> callback.onResult(serverResponse, afcLocation));
@@ -128,7 +129,8 @@ public class AfcClient {
                 ));
             } catch (Exception e) {
                 wifiHandler.post(() -> callback.onFailure(REASON_UNDEFINED_FAILURE,
-                        "Encountered error when parsing AFC server's response." + e));
+                        "Encountered unexpected error when parsing AFC server's response."
+                                + e));
             } finally {
                 // Increment the request ID by 1 for the next request
                 mRequestId++;
