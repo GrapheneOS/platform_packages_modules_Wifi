@@ -84,7 +84,6 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
-import android.util.LocalLog;
 
 import androidx.test.filters.SmallTest;
 
@@ -163,7 +162,6 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     public ErrorCollector collector = new ErrorCollector();
     private MockResources mResources;
     private Bundle mExtras = new Bundle();
-    private LocalLog mLocalLog = new LocalLog(512);
 
     /**
      * Initialize mocks.
@@ -201,7 +199,6 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         if (SdkLevel.isAtLeastS()) {
             when(mWifiPermissionsUtil.getWifiCallerType(any())).thenReturn(6);
         }
-        when(mWifiInjector.getWifiAwareLocalLog()).thenReturn(mLocalLog);
 
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
         mDut.setNative(mMockNativeManager, mMockNative);
