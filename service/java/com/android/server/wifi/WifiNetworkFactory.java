@@ -593,10 +593,23 @@ public class WifiNetworkFactory extends NetworkFactory {
         mFacade = facade;
         mMultiInternetManager = multiInternetManager;
 
+        // register the data store for serializing/deserializing data.
+        configStore.registerStoreData(
+                wifiInjector.makeNetworkRequestStoreData(new NetworkRequestDataSource()));
+
+        activeModeWarden.registerModeChangeCallback(new ModeChangeCallback());
+
+        setScoreFilter(SCORE_FILTER);
+    }
+
+    /**
+     * Finished the setup after boot completed
+     */
+    public void start() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
-        context.registerReceiver(
+        mContext.registerReceiver(
                 new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context context, Intent intent) {
@@ -608,15 +621,7 @@ public class WifiNetworkFactory extends NetworkFactory {
                         }
                     }
                 }, filter, null, mHandler);
-        handleScreenStateChanged(context.getSystemService(PowerManager.class).isInteractive());
-
-        // register the data store for serializing/deserializing data.
-        configStore.registerStoreData(
-                wifiInjector.makeNetworkRequestStoreData(new NetworkRequestDataSource()));
-
-        activeModeWarden.registerModeChangeCallback(new ModeChangeCallback());
-
-        setScoreFilter(SCORE_FILTER);
+        handleScreenStateChanged(mContext.getSystemService(PowerManager.class).isInteractive());
     }
 
     private void saveToStore() {

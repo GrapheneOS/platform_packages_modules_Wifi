@@ -298,6 +298,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 mWifiConfigManager, mWifiConfigStore, mWifiPermissionsUtil, mWifiMetrics,
                 mWifiNative, mActiveModeWarden, mConnectHelper, mCmiMonitor, mFrameworkFacade,
                 mMultiInternetManager);
+        mWifiNetworkFactory.start();
 
         verify(mContext, atLeastOnce()).registerReceiver(
                 mBroadcastReceiverCaptor.capture(), any(), any(), any());
