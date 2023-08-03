@@ -185,7 +185,6 @@ public class WifiInjector {
     private final WifiConfigManager mWifiConfigManager;
     private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final LocalLog mConnectivityLocalLog;
-    private final LocalLog mWifiAwareLocalLog;
     private final LocalLog mWifiHandlerLocalLog;
     private final ThroughputScorer mThroughputScorer;
     private final WifiNetworkSelector mWifiNetworkSelector;
@@ -385,9 +384,6 @@ public class WifiInjector {
         int maxLinesHighRam = mContext.getResources().getInteger(
                 R.integer.config_wifiConnectivityLocalLogMaxLinesHighRam);
         mConnectivityLocalLog = new LocalLog(
-                mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? maxLinesLowRam
-                        : maxLinesHighRam);
-        mWifiAwareLocalLog = new LocalLog(
                 mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? maxLinesLowRam
                         : maxLinesHighRam);
         mWifiDiagnostics = new WifiDiagnostics(
@@ -1227,11 +1223,6 @@ public class WifiInjector {
     @NonNull
     public BufferedReader createBufferedReader(String filename) throws FileNotFoundException {
         return new BufferedReader(new FileReader(filename));
-    }
-
-    @NonNull
-    public LocalLog getWifiAwareLocalLog() {
-        return mWifiAwareLocalLog;
     }
 
     @NonNull

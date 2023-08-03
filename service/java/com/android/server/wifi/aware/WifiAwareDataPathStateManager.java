@@ -46,7 +46,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.ArrayMap;
-import android.util.LocalLog;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -122,17 +121,14 @@ public class WifiAwareDataPathStateManager {
     private Handler mHandler;
     private WifiAwareNetworkFactory mNetworkFactory;
     public NetdWrapper mNetdWrapper;
-    private final LocalLog mLocalLog;
     private final SparseArray<Object> mDelayNetworkValidationMap = new SparseArray<>();
 
     // internal debug flag to override API check
     /* package */ boolean mAllowNdpResponderFromAnyOverride = false;
 
-    public WifiAwareDataPathStateManager(WifiAwareStateManager mgr, Clock clock,
-            LocalLog localLog) {
+    public WifiAwareDataPathStateManager(WifiAwareStateManager mgr, Clock clock) {
         mMgr = mgr;
         mClock = clock;
-        mLocalLog = localLog;
     }
 
     private static NetworkCapabilities makeNetworkCapabilitiesFilter() {
@@ -391,8 +387,10 @@ public class WifiAwareDataPathStateManager {
      */
     public boolean onDataPathRequest(int pubSubId, byte[] mac, int ndpId,
             byte[] message) {
-        mLocalLog.log("onDataPathRequest: pubSubId=" + pubSubId + ", mac=" + String.valueOf(
-                HexEncoding.encode(mac)) + ", ndpId=" + ndpId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "onDataPathRequest: pubSubId=" + pubSubId + ", mac=" + String.valueOf(
+                    HexEncoding.encode(mac)) + ", ndpId=" + ndpId);
+        }
 
         // it is also possible that this is an initiator-side data-path request indication (which
         // happens when the Responder responds). In such a case it will be matched by the NDP ID.
@@ -512,7 +510,9 @@ public class WifiAwareDataPathStateManager {
      * @return true if framework start to waiting for the confirm
      */
     public boolean onRespondToDataPathRequest(int ndpId, boolean success, int reasonOnFailure) {
-        mLocalLog.log("onRespondToDataPathRequest: ndpId=" + ndpId + ", success=" + success);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "onRespondToDataPathRequest: ndpId=" + ndpId + ", success=" + success);
+        }
         Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
                 getNetworkRequestByNdpId(ndpId);
 
@@ -580,11 +580,13 @@ public class WifiAwareDataPathStateManager {
      */
     public boolean onDataPathConfirm(int ndpId, byte[] mac, boolean accept,
             int reason, byte[] message, List<WifiAwareChannelInfo> channelInfo) {
-        mLocalLog.log("onDataPathConfirm: ndpId=" + ndpId
-                + ", mac=" + String.valueOf(HexEncoding.encode(mac))
-                + ", accept=" + accept + ", reason=" + reason
-                + ", message.length=" + ((message == null) ? 0 : message.length)
-                + ", channelInfo=" + channelInfo);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "onDataPathConfirm: ndpId=" + ndpId
+                    + ", mac=" + String.valueOf(HexEncoding.encode(mac))
+                    + ", accept=" + accept + ", reason=" + reason
+                    + ", message.length=" + ((message == null) ? 0 : message.length)
+                    + ", channelInfo=" + channelInfo);
+        }
 
         Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
                 getNetworkRequestByNdpId(ndpId);
@@ -740,7 +742,9 @@ public class WifiAwareDataPathStateManager {
                     ndpInfo.peerPort, ndpInfo.peerTransportProtocol,
                     ndpInfo.channelInfos);
             ncBuilder.setTransportInfo(ni);
-            mLocalLog.log("onDataPathConfirm: AwareNetworkInfo=" + ni);
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "onDataPathConfirm: AwareNetworkInfo=" + ni);
+            }
             final NetworkAgentConfig naConfig = new NetworkAgentConfig.Builder()
                     .setLegacyType(ConnectivityManager.TYPE_NONE)
                     .setLegacyTypeName(NETWORK_TAG)
@@ -784,7 +788,9 @@ public class WifiAwareDataPathStateManager {
      * @param ndpId The ID of the terminated data-path.
      */
     public void onDataPathEnd(int ndpId) {
-        mLocalLog.log("onDataPathEnd: ndpId=" + ndpId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "onDataPathEnd: ndpId=" + ndpId);
+        }
 
         cleanNetworkValidationTask(ndpId);
 
@@ -913,7 +919,9 @@ public class WifiAwareDataPathStateManager {
 
         @Override
         public boolean acceptRequest(NetworkRequest request) {
-            mLocalLog.log("WifiAwareNetworkFactory.acceptRequest: request=" + request);
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiAwareNetworkFactory.acceptRequest: request=" + request);
+            }
 
             NetworkSpecifier networkSpecifierBase = request.getNetworkSpecifier();
             if (!(networkSpecifierBase instanceof WifiAwareNetworkSpecifier)) {
@@ -973,9 +981,11 @@ public class WifiAwareDataPathStateManager {
             Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> primaryRequest =
                     getNetworkRequestByCanonicalDescriptor(nnri.getCanonicalDescriptor());
             if (primaryRequest != null) {
-                mLocalLog.log("WifiAwareNetworkFactory.acceptRequest: request=" + request
-                        + ", already has a primary request=" + primaryRequest.getKey()
-                        + " with state=" + primaryRequest.getValue().state);
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "WifiAwareNetworkFactory.acceptRequest: request=" + request
+                            + ", already has a primary request=" + primaryRequest.getKey()
+                            + " with state=" + primaryRequest.getValue().state);
+                }
 
                 if (primaryRequest.getValue().state
                         == AwareNetworkRequestInformation.STATE_TERMINATING) {
@@ -994,7 +1004,9 @@ public class WifiAwareDataPathStateManager {
 
         @Override
         protected void needNetworkFor(NetworkRequest networkRequest) {
-            mLocalLog.log("WifiAwareNetworkFactory.needNetworkFor: networkRequest=");
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiAwareNetworkFactory.needNetworkFor: networkRequest=");
+            }
 
             NetworkSpecifier networkSpecifierObj = networkRequest.getNetworkSpecifier();
             WifiAwareNetworkSpecifier networkSpecifier = null;
@@ -1051,8 +1063,10 @@ public class WifiAwareDataPathStateManager {
 
         @Override
         protected void releaseNetworkFor(NetworkRequest networkRequest) {
-            mLocalLog.log("WifiAwareNetworkFactory.releaseNetworkFor: networkRequest="
-                    + networkRequest);
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiAwareNetworkFactory.releaseNetworkFor: networkRequest="
+                        + networkRequest);
+            }
 
             NetworkSpecifier networkSpecifierObj = networkRequest.getNetworkSpecifier();
             WifiAwareNetworkSpecifier networkSpecifier = null;
@@ -1157,13 +1171,17 @@ public class WifiAwareDataPathStateManager {
     }
 
     private void tearDownInterfaceIfPossible(AwareNetworkRequestInformation nnri) {
-        mLocalLog.log("tearDownInterfaceIfPossible: nnri=" + nnri);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "tearDownInterfaceIfPossible: nnri=" + nnri);
+        }
 
         if (!TextUtils.isEmpty(nnri.interfaceName)) {
             boolean interfaceUsedByAnotherNdp = isInterfaceUpAndUsedByAnotherNdp(nnri);
             if (interfaceUsedByAnotherNdp) {
-                mLocalLog.log("tearDownInterfaceIfPossible: interfaceName=" + nnri.interfaceName
-                        + ", still in use - not turning down");
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "tearDownInterfaceIfPossible: interfaceName=" + nnri.interfaceName
+                            + ", still in use - not turning down");
+                }
             } else {
                 try {
                     mNetdWrapper.setInterfaceDown(nnri.interfaceName);
