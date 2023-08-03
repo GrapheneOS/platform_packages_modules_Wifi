@@ -46,6 +46,7 @@ import android.util.SparseIntArray;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.SoftApManager;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.coex.CoexManager;
@@ -668,7 +669,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         configBuilder.setChannel(36, SoftApConfiguration.BAND_5GHZ);
 
         when(mWifiNative.isHalStarted()).thenReturn(false);
-        assertEquals(ApConfigUtil.SUCCESS,
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(), mCapability));
         /* Verify default band and channel is used. */
@@ -685,7 +686,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         Builder configBuilder = new SoftApConfiguration.Builder();
         configBuilder.setBand(SoftApConfiguration.BAND_5GHZ);
         when(mWifiNative.isHalStarted()).thenReturn(true);
-        assertEquals(ApConfigUtil.ERROR_GENERIC,
+        assertEquals(SoftApManager.START_RESULT_FAILURE_GENERAL,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources, null,
                         configBuilder, configBuilder.build(), mCapability));
     }
@@ -698,7 +699,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         Builder configBuilder = new SoftApConfiguration.Builder();
         configBuilder.setChannel(36, SoftApConfiguration.BAND_5GHZ);
         when(mWifiNative.isHalStarted()).thenReturn(true);
-        assertEquals(ApConfigUtil.SUCCESS,
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(), mCapability));
         assertEquals(SoftApConfiguration.BAND_5GHZ, configBuilder.build().getBand());
@@ -717,7 +718,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         when(mWifiNative.getChannelsForBand(WifiScanner.WIFI_BAND_5_GHZ))
                 .thenReturn(EMPTY_CHANNEL_LIST);
         mCapability.setSupportedChannelList(SoftApConfiguration.BAND_5GHZ, new int[0]);
-        assertEquals(ApConfigUtil.ERROR_NO_CHANNEL,
+        assertEquals(SoftApManager.START_RESULT_FAILURE_NO_CHANNEL,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(), mCapability));
     }
@@ -747,7 +748,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
                 .thenReturn(ALLOWED_5G_FREQS); // ch# 149, 153
         mCapability = ApConfigUtil.updateSoftApCapabilityWithAvailableChannelList(mCapability,
                 mContext, mWifiNative);
-        assertEquals(ApConfigUtil.SUCCESS,
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(),
                         mCapability));
@@ -771,7 +772,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
         when(mWifiNative.isHalStarted()).thenReturn(true);
         when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt()))
                 .thenReturn(new ArrayList<>());
-        assertEquals(ApConfigUtil.SUCCESS,
+        assertEquals(SoftApManager.START_RESULT_SUCCESS,
                 ApConfigUtil.updateApChannelConfig(mWifiNative, mCoexManager, mResources,
                         TEST_COUNTRY_CODE, configBuilder, configBuilder.build(),
                         mCapability));
