@@ -46,6 +46,17 @@ public class InformationElementUtil {
     private static final String TAG = "InformationElementUtil";
     private static final boolean DBG = false;
 
+    /**
+     * 6 GHz Access Point type as encoded in the Regulatory Info subfield in the Control field of
+     * the 6 GHz Operation Information field of the HE Operation element.
+     * Reference E.2.7 6 GHz band (IEEE Std 802.11ax-2021).
+     */
+    public enum ApType6GHz {
+        AP_TYPE_6GHZ_UNKNOWN,
+        AP_TYPE_6GHZ_INDOOR,
+        AP_TYPE_6GHZ_STANDARD_POWER,
+    }
+
     /** Converts InformationElement to hex string */
     public static String toHexString(InformationElement e) {
         StringBuilder sb = new StringBuilder();
@@ -526,17 +537,22 @@ public class InformationElementUtil {
     public static class HeOperation {
 
         private static final int HE_OPERATION_BASIC_LENGTH = 6;
+        private static final int TWT_REQUIRED_MASK = 0x08;
         private static final int VHT_OPERATION_INFO_PRESENT_MASK = 0x40;
         private static final int HE_6GHZ_INFO_PRESENT_MASK = 0x02;
         private static final int HE_6GHZ_CH_WIDTH_MASK = 0x03;
+        private static final int HE_6GHZ_REG_INFO_MASK = 0x38;
+        private static final int HE_6GHZ_REG_INFO_SHIFT = 3;
         private static final int CO_HOSTED_BSS_PRESENT_MASK = 0x80;
         private static final int VHT_OPERATION_INFO_START_INDEX = 6;
         private static final int HE_BW_80_80_160 = 3;
 
         private boolean mPresent = false;
+        private boolean mTwtRequired = false;
         private boolean mVhtInfoPresent = false;
         private boolean m6GhzInfoPresent = false;
         private int mChannelWidth;
+        private ApType6GHz mApType6GHz = ApType6GHz.AP_TYPE_6GHZ_UNKNOWN;
         private int mPrimaryChannel;
         private int mCenterFreqSeg0;
         private int mCenterFreqSeg1;
@@ -549,6 +565,21 @@ public class InformationElementUtil {
             return mPresent;
         }
 
+        /**
+         * Return whether the AP requires HE stations to participate either in individual TWT
+         * agreements or Broadcast TWT operation. Reference 9.4.2.249 HE Operation element (IEEE
+         * Std 802.11ax™-2021).
+         **/
+        public boolean isTwtRequired() {
+            return mTwtRequired;
+        }
+
+        /**
+         * Return 6Ghz AP type as defined in {@link ApType6GHz}
+         **/
+        public ApType6GHz getApType6GHz() {
+            return mApType6GHz;
+        }
         /**
          * Returns whether VHT Information field is present.
          */
@@ -650,6 +681,7 @@ public class InformationElementUtil {
                 return;
             }
 
+            mTwtRequired = (ie.bytes[0] & TWT_REQUIRED_MASK) != 0;
             mVhtInfoPresent = (ie.bytes[1] & VHT_OPERATION_INFO_PRESENT_MASK) != 0;
             m6GhzInfoPresent = (ie.bytes[2] & HE_6GHZ_INFO_PRESENT_MASK) != 0;
             boolean coHostedBssPresent = (ie.bytes[1] & CO_HOSTED_BSS_PRESENT_MASK) != 0;
@@ -680,6 +712,13 @@ public class InformationElementUtil {
                         + (coHostedBssPresent ? 1 : 0);
 
                 mChannelWidth = ie.bytes[startIndx + 1] & HE_6GHZ_CH_WIDTH_MASK;
+                int regInfo = (ie.bytes[startIndx + 1] & HE_6GHZ_REG_INFO_MASK)
+                        >> HE_6GHZ_REG_INFO_SHIFT;
+                if (regInfo == 0) {
+                    mApType6GHz = ApType6GHz.AP_TYPE_6GHZ_INDOOR;
+                } else if (regInfo == 1) {
+                    mApType6GHz = ApType6GHz.AP_TYPE_6GHZ_STANDARD_POWER;
+                }
                 mPrimaryChannel = ie.bytes[startIndx] & Constants.BYTE_MASK;
                 mCenterFreqSeg0 = ie.bytes[startIndx + 2] & Constants.BYTE_MASK;
                 mCenterFreqSeg1 = ie.bytes[startIndx + 3] & Constants.BYTE_MASK;
@@ -798,8 +837,52 @@ public class InformationElementUtil {
      * HeCapabilities: represents the HE Capabilities IE
      */
     public static class HeCapabilities {
+
+        /**
+         * Represents HE MAC Capabilities Information field. Reference 9.4.2.248.2 HE MAC
+         * Capabilities Information field (IEEE Std 802.11ax-2021).
+         */
+        private static class HeMacCapabilitiesInformation {
+            public static int startOffset = 0;
+            public static int endOffset = 5;
+            public static final int TWT_REQUESTER_SUPPORT_BIT = 1;
+            public static final int TWT_RESPONDER_SUPPORT_BIT = 2;
+            public static final int BROADCAST_TWT_SUPPORT_BIT = 20;
+            public boolean isTwtRequesterSupported = false;
+            public boolean isTwtResponderSupported = false;
+            public boolean isBroadcastTwtSupported = false;
+            private BitSet mBitSet = new BitSet();
+
+            /** Parse HE MAC capabilities Information from the byte array. */
+            public void from(byte[] bytes) {
+                mBitSet = BitSet.valueOf(bytes);
+                isTwtRequesterSupported = mBitSet.get(TWT_REQUESTER_SUPPORT_BIT);
+                isTwtResponderSupported = mBitSet.get(TWT_RESPONDER_SUPPORT_BIT);
+                isBroadcastTwtSupported = mBitSet.get(BROADCAST_TWT_SUPPORT_BIT);
+            }
+        }
+
+        private HeMacCapabilitiesInformation mHeMacCapabilitiesInformation =
+                new HeMacCapabilitiesInformation();
         private int mMaxNumberSpatialStreams = 1;
         private boolean mPresent = false;
+
+        /**
+         * Return whether TWT requester is supported. Set by HE Stations to indicate TWT support
+         */
+        public boolean isTwtRequesterSupported() {
+            return mHeMacCapabilitiesInformation.isTwtRequesterSupported;
+        }
+        /** Return whether TWT responder is supported. Set by HE AP to indicate TWT support. */
+        public boolean isTwtResponderSupported() {
+            return mHeMacCapabilitiesInformation.isTwtResponderSupported;
+        }
+
+        /** Return whether broadcast TWT is supported */
+        public boolean isBroadcastTwtSupported() {
+            return mHeMacCapabilitiesInformation.isBroadcastTwtSupported;
+        }
+
         /** Returns whether HE Capabilities IE is present */
         public boolean isPresent() {
             return mPresent;
@@ -827,17 +910,63 @@ public class InformationElementUtil {
                     + (ie.bytes[17] & Constants.BYTE_MASK);
             mMaxNumberSpatialStreams = parseMaxNumberSpatialStreamsFromMcsMap(mcsMap);
             mPresent = true;
+            mHeMacCapabilitiesInformation.from(Arrays.copyOfRange(ie.bytes,
+                    mHeMacCapabilitiesInformation.startOffset,
+                    mHeMacCapabilitiesInformation.endOffset));
         }
     }
 
     /**
-     * EhtCapabilities: represents the EHT Capabilities IE
+     * EhtCapabilities: represents the EHT Capabilities IE. Reference 9.4.2.313 EHT Capabilities
+     * element (IEEE P802.11be/D3.1).
      */
     public static class EhtCapabilities {
+        /**
+         * EhtMacCapabilitiesInformation: represents the EHT MAC Capabilities Information element.
+         * Reference 9.4.2.313.2 EHT MAC Capabilities Information field (IEEE P802.11be/D3.1).
+         */
+        public static class EhtMacCapabilitiesInformation {
+            public static int startOffset = 0;
+            public static int endOffset = 1;
+            public static final int EPCS_PRIORITY_ACCESS_SUPPORT_BIT = 0;
+            public static final int RESTRICTED_TWT_SUPPORT_BIT = 4;
+            public boolean isEpcsPriorityAccessSupported = false;
+            public boolean isRestrictedTwtSupported = false;
+            private BitSet mBitSet = new BitSet();
+
+            /** Parse EHT MAC Capabilities Information from the bytes. **/
+            public void from(byte[] bytes) {
+                mBitSet = BitSet.valueOf(bytes);
+                isEpcsPriorityAccessSupported = mBitSet.get(EPCS_PRIORITY_ACCESS_SUPPORT_BIT);
+                isRestrictedTwtSupported = mBitSet.get(RESTRICTED_TWT_SUPPORT_BIT);
+            }
+        }
         private boolean mPresent = false;
-        /** Returns whether HE Capabilities IE is present */
+
+        private EhtMacCapabilitiesInformation mEhtMacCapabilitiesInformation =
+                new EhtMacCapabilitiesInformation();
+        /** Returns whether HE Capabilities IE is present.  */
         public boolean isPresent() {
             return mPresent;
+        }
+
+        /**
+         * Returns whether restricted TWT is supported or not. It enables enhanced medium access
+         * protection and resource reservation mechanisms for delivery of latency sensitive
+         * traffic.
+         */
+        public boolean isRestrictedTwtSupported() {
+            return mEhtMacCapabilitiesInformation.isRestrictedTwtSupported;
+        }
+
+        /**
+         * Returns whether EPCS priority access supported or not. EPCS priority access is a
+         * mechanism that provides prioritized access to the wireless medium for authorized users to
+         * increase their probability of successful communication during periods of network
+         * congestion.
+         */
+        public boolean isEpcsPriorityAccessSupported() {
+            return mEhtMacCapabilitiesInformation.isEpcsPriorityAccessSupported;
         }
 
         /** Parse EHT Capabilities IE */
@@ -847,8 +976,9 @@ public class InformationElementUtil {
                 throw new IllegalArgumentException("Element id is not EHT_CAPABILITIES: " + ie.id);
             }
             mPresent = true;
-
-            //TODO Add code to parse the IE
+            mEhtMacCapabilitiesInformation.from(Arrays.copyOfRange(ie.bytes,
+                    mEhtMacCapabilitiesInformation.startOffset,
+                    mEhtMacCapabilitiesInformation.endOffset));
         }
     }
 
@@ -1358,8 +1488,49 @@ public class InformationElementUtil {
     public static class ExtendedCapabilities {
         private static final int RTT_RESP_ENABLE_BIT = 70;
         private static final int SSID_UTF8_BIT = 48;
+        private static final int FILS_CAPABILITY_BIT = 72;
+        private static final int TWT_REQUESTER_CAPABILITY_BIT = 77;
+        private static final int TWT_RESPONDER_CAPABILITY_BIT = 78;
+        private static final int NO_TB_RANGING_RESPONDER = 90;
+        private static final int TB_RANGING_RESPONDER = 91;
 
         public BitSet capabilitiesBitSet;
+
+        /**
+         * @return true if Trigger based ranging responder supported. Refer P802.11az/D7.0,
+         * September 2022, section 9.4.2.26 Extended Capabilities element.
+         */
+        public boolean isTriggerBasedRangingRespSupported() {
+            return capabilitiesBitSet.get(TB_RANGING_RESPONDER);
+        }
+
+        /**
+         * @return true if Non trigger based ranging responder supported. Refer P802.11az/D7.0,
+         * September 2022, section 9.4.2.26 Extended Capabilities element.
+         */
+        public boolean isNonTriggerBasedRangingRespSupported() {
+            return capabilitiesBitSet.get(NO_TB_RANGING_RESPONDER);
+        }
+
+        /**
+         * @return true if TWT Requester capability is set
+         */
+        public boolean isTwtRequesterSupported() {
+            return capabilitiesBitSet.get(TWT_REQUESTER_CAPABILITY_BIT);
+        }
+
+        /**
+         * @return true if TWT Responder capability is set
+         */
+        public boolean isTwtResponderSupported() {
+            return capabilitiesBitSet.get(TWT_RESPONDER_CAPABILITY_BIT);
+        }
+        /**
+         * @return true if Fast Initial Link Setup (FILS) capable
+         */
+        public boolean isFilsCapable() {
+            return capabilitiesBitSet.get(FILS_CAPABILITY_BIT);
+        }
 
         /**
          * @return true if SSID should be interpreted using UTF-8 encoding
