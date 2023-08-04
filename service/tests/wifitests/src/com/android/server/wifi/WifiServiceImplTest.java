@@ -1906,6 +1906,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).initialization();
         verify(mWifiConfigManager).loadFromStore();
         verify(mActiveModeWarden).start();
+        verify(mWifiNetworkFactory).start();
     }
 
     @Test
