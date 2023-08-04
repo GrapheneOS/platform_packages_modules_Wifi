@@ -50,6 +50,10 @@ public class AfcEllipseLocationTest {
     private static final double RANDOM_DOUBLE = .5;
     private static final double STARTING_LATITUDE = 9.9;
     private static final double STARTING_LONGITUDE = 2.5;
+    private static final double SEMI_MINOR_AXIS_DEGREES = AfcEllipseLocation
+            .DEFAULT_SEMI_MINOR_AXIS_METERS / AfcEllipseLocation.ONE_DEGREE_LONGITUDE_IN_METERS;
+    private static final double SEMI_MAJOR_AXIS_DEGREES = AfcEllipseLocation
+            .DEFAULT_SEMI_MAJOR_AXIS_METERS / AfcEllipseLocation.ONE_DEGREE_LONGITUDE_IN_METERS;
 
     @Before
     public void setUp() {
@@ -101,25 +105,31 @@ public class AfcEllipseLocationTest {
                 AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
 
         double movingLongitudePoint =
-                mLongitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS - 2;
+                mLongitudeCenterOfEllipse + SEMI_MAJOR_AXIS_DEGREES - .0004;
         when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
 
         movingLongitudePoint =
-                mLongitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS;
+                mLongitudeCenterOfEllipse + SEMI_MAJOR_AXIS_DEGREES;
         when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
 
         movingLongitudePoint =
-                mLongitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS + 2;
+                mLongitudeCenterOfEllipse - SEMI_MAJOR_AXIS_DEGREES;
+        when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
+        assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
+
+        movingLongitudePoint =
+                mLongitudeCenterOfEllipse + SEMI_MAJOR_AXIS_DEGREES + 2;
         when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
 
         movingLongitudePoint =
-                mLongitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS + 10;
+                mLongitudeCenterOfEllipse + SEMI_MAJOR_AXIS_DEGREES + 10;
         when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
@@ -139,27 +149,81 @@ public class AfcEllipseLocationTest {
                 AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
 
         double movingLatitudePoint =
-                mLatitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS - 2;
+                mLatitudeCenterOfEllipse + SEMI_MINOR_AXIS_DEGREES - .0004;
         when(mLocation.getLatitude()).thenReturn(movingLatitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
 
         movingLatitudePoint =
-                mLatitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS;
+                mLatitudeCenterOfEllipse + SEMI_MINOR_AXIS_DEGREES;
         when(mLocation.getLatitude()).thenReturn(movingLatitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
 
         movingLatitudePoint =
-                mLatitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS + 2;
+                mLatitudeCenterOfEllipse - SEMI_MINOR_AXIS_DEGREES;
+        when(mLocation.getLatitude()).thenReturn(movingLatitudePoint);
+        assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.ON_BORDER);
+
+        movingLatitudePoint =
+                mLatitudeCenterOfEllipse + SEMI_MINOR_AXIS_DEGREES + 2;
         when(mLocation.getLatitude()).thenReturn(movingLatitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
 
         movingLatitudePoint =
-                mLatitudeCenterOfEllipse + AfcEllipseLocation.DEFAULT_SEMI_MAJOR_AXIS_METERS + 10;
+                mLatitudeCenterOfEllipse + SEMI_MINOR_AXIS_DEGREES + 10;
         when(mLocation.getLatitude()).thenReturn(movingLatitudePoint);
         assertThat(mAfcEllipseLocation.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
+    }
+
+    /**
+     * Verify that an ellipse that goes across the maximum longitude accurately checks the bounds
+     * of locations.
+     */
+    @Test
+    public void testEllipseOverMaximumLongitude() {
+        when(mLocation.getLatitude()).thenReturn(mLatitudeCenterOfEllipse);
+        when(mLocation.getLongitude()).thenReturn(AfcEllipseLocation.MAX_LONGITUDE - 0.001);
+        AfcEllipseLocation afcEllipseOverPrimeMeridianEast = new AfcEllipseLocation(
+                AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS, AfcEllipseLocation
+                .DEFAULT_SEMI_MAJOR_AXIS_METERS, AfcEllipseLocation.DEFAULT_ORIENTATION,
+                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES, mRandom, mLocation);
+
+        double movingLongitudePoint = AfcEllipseLocation.MIN_LONGITUDE + 0.001;
+        when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
+        assertThat(afcEllipseOverPrimeMeridianEast.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
+
+        movingLongitudePoint = AfcEllipseLocation.MIN_LONGITUDE + 4;
+        when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
+        assertThat(afcEllipseOverPrimeMeridianEast.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
+    }
+
+    /**
+     * Verify that an ellipse that goes across the minimum longitude accurately checks the bounds
+     * of locations.
+     */
+    @Test
+    public void testEllipseOverMinimumLongitude() {
+        when(mLocation.getLongitude()).thenReturn(AfcEllipseLocation.MIN_LONGITUDE + 0.001);
+        when(mLocation.getLatitude()).thenReturn(mLatitudeCenterOfEllipse);
+        AfcEllipseLocation afcEllipseOverPrimeMeridianWest = new AfcEllipseLocation(
+                AfcEllipseLocation.DEFAULT_SEMI_MINOR_AXIS_METERS, AfcEllipseLocation
+                .DEFAULT_SEMI_MAJOR_AXIS_METERS, AfcEllipseLocation.DEFAULT_ORIENTATION,
+                AfcEllipseLocation.DEFAULT_CENTER_LEEWAY_DEGREES, mRandom, mLocation);
+
+        double movingLongitudePoint = AfcEllipseLocation.MAX_LONGITUDE - 0.001;
+        when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
+        assertThat(afcEllipseOverPrimeMeridianWest.checkLocation(mLocation)).isEqualTo(
+                AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION);
+
+        movingLongitudePoint = AfcEllipseLocation.MAX_LONGITUDE - 5;
+        when(mLocation.getLongitude()).thenReturn(movingLongitudePoint);
+        assertThat(afcEllipseOverPrimeMeridianWest.checkLocation(mLocation)).isEqualTo(
                 AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION);
     }
 }

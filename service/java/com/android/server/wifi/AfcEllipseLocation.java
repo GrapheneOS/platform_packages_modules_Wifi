@@ -29,14 +29,15 @@ import java.util.Random;
  */
 public class AfcEllipseLocation extends AfcLocation {
     private static final String TAG = "WifiAfcEllipseLocation";
-    static final int DEFAULT_SEMI_MAJOR_AXIS_METERS = 500;
+    static final double ONE_DEGREE_LONGITUDE_IN_METERS = 111139.0; // Used in double division
     static final int DEFAULT_SEMI_MINOR_AXIS_METERS = 500;
+    static final int DEFAULT_SEMI_MAJOR_AXIS_METERS = 500;
     static final float DEFAULT_ORIENTATION = 90f;
     static final double DEFAULT_CENTER_LEEWAY_DEGREES = 0.001;
-    private static final int MIN_LONGITUDE = -180;
-    private static final int MAX_LONGITUDE = 180;
-    private static final int MIN_LATITUDE = -90;
-    private static final int MAX_LATITUDE = 90;
+    static final int MIN_LONGITUDE = -180;
+    static final int MAX_LONGITUDE = 180;
+    static final int MIN_LATITUDE = -90;
+    static final int MAX_LATITUDE = 90;
     double mLatitude;
     double mLongitude;
     int mSemiMajorAxis;
@@ -132,14 +133,26 @@ public class AfcEllipseLocation extends AfcLocation {
         double comparingLongitude = comparingLocation.getLongitude();
         AfcLocationUtil.InBoundsCheckResult inBoundsResult;
 
-        // Equation for circles and ellipses on the cartesian plane that have the major axis
-        // centered on the x-axis
-        double checkPoint = Math.pow((comparingLongitude - mLongitude) / mSemiMajorAxis, 2)
-                + Math.pow((comparingLatitude - mLatitude) / mSemiMinorAxis, 2);
+        double semiMinorAxisDegrees = mSemiMinorAxis / ONE_DEGREE_LONGITUDE_IN_METERS;
+        double semiMajorAxisDegrees = mSemiMajorAxis / ONE_DEGREE_LONGITUDE_IN_METERS;
 
-        if (checkPoint > 1.005) {
+        // Adjust comparingLongitude if the ellipse goes above the maximum longitude or below the
+        // minimum longitude
+        if (mLongitude + semiMajorAxisDegrees > MAX_LONGITUDE && comparingLongitude < 0) {
+            comparingLongitude = comparingLongitude + 360;
+        } else if (mLongitude - semiMajorAxisDegrees < MIN_LONGITUDE && comparingLongitude > 0) {
+            comparingLongitude = comparingLongitude - 360;
+        }
+
+        // Equation for circles and ellipses on the cartesian plane that have the major axis
+        // centered on the x-axis. Divide axes by 111139 to convert from meters to degrees which is
+        // the same units as coordinates.
+        double checkPoint = Math.pow((comparingLongitude - mLongitude) / semiMajorAxisDegrees, 2)
+                + Math.pow((comparingLatitude - mLatitude) / semiMinorAxisDegrees, 2);
+
+        if (checkPoint > 1.001) {
             inBoundsResult = AfcLocationUtil.InBoundsCheckResult.OUTSIDE_AFC_LOCATION;
-        } else if (checkPoint < 0.995) {
+        } else if (checkPoint < 0.999) {
             inBoundsResult = AfcLocationUtil.InBoundsCheckResult.INSIDE_AFC_LOCATION;
         } else {
             inBoundsResult = AfcLocationUtil.InBoundsCheckResult.ON_BORDER;
