@@ -284,6 +284,11 @@ public class WifiScanningServiceTest extends WifiBaseTest {
                     anyInt());
         }
 
+        private void verifyUnlinkedToDeath() throws Exception {
+            verify(listener, atLeastOnce()).asBinder();
+            verify(mIBinder, atLeastOnce()).unlinkToDeath(any(), anyInt());
+        }
+
         private void registerScanListener() throws Exception {
             mWifiScanningServiceImpl.registerScanListener(listener, TEST_PACKAGE_NAME,
                     TEST_FEATURE_ID);
@@ -1206,6 +1211,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyFailedResponse(WifiScanner.REASON_UNSPECIFIED,
                 "Scan was interrupted");
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
     }
 
@@ -1244,6 +1250,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyFailedResponse(WifiScanner.REASON_UNSPECIFIED,
                 "Scan was interrupted");
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
     }
 
@@ -2164,6 +2171,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         client1.verifyScanResultsReceived(results.getScanData());
         client1.verifySingleScanCompletedReceived();
         client.verifyScanResultsReceived(results.getScanData());
+        client1.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
         verifyNoMoreInteractions(client1.listener);
         assertDumpContainsRequestLog("registerScanListener");
@@ -2211,6 +2219,8 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client1.verifyScanResultsReceived(results.getScanData());
         client1.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
+        client1.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
         verifyNoMoreInteractions(client1.listener);
 
@@ -2778,6 +2788,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
 
         mLooper.dispatchAll();
@@ -2792,6 +2803,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
     }
 
@@ -2866,6 +2878,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource));
         assertDumpContainsRequestLog("addSingleScanRequest");
@@ -3399,6 +3412,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource));
         assertDumpContainsRequestLog("addSingleScanRequest");
@@ -3504,6 +3518,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(workSource));
         assertDumpContainsRequestLog("addSingleScanRequest");
@@ -3758,6 +3773,7 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         mLooper.dispatchAll();
         client.verifyScanResultsReceived(results.getScanData());
         client.verifySingleScanCompletedReceived();
+        client.verifyUnlinkedToDeath();
         verifyNoMoreInteractions(client.listener);
 
         // Verify that now isScanning = false
