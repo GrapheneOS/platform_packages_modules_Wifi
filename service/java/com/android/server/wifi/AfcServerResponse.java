@@ -74,9 +74,6 @@ public class AfcServerResponse {
         afcServerResponse.setAfcResponseDescription(getResponseShortDescriptionFromJSON(
                 spectrumInquiryResponse));
 
-        // if encountered an error when parsing AFC response code, return null
-        if (afcServerResponse.getAfcResponseCode() == Integer.MIN_VALUE) return null;
-
         // no need to keep parsing if either the AFC or HTTP codes indicate a failed request
         if (afcServerResponse.mAfcResponseCode != SUCCESS_AFC_RESPONSE_CODE
                 || afcServerResponse.mHttpResponseCode != SUCCESS_HTTP_RESPONSE_CODE) {
@@ -199,15 +196,16 @@ public class AfcServerResponse {
             int responseCode = spectrumInquiryResponse.getJSONObject("response")
                     .getInt("responseCode");
 
-            if (responseCode != SUCCESS_AFC_RESPONSE_CODE) {
-                Log.e(TAG, "AFC server response code: " + responseCode);
-            }
-
             return responseCode;
         } catch (JSONException | NullPointerException e) {
-            Log.e(TAG, "Invalid response code: the available spectrum inquiry response does "
-                    + "not contain a response code field.");
-            return Integer.MIN_VALUE;
+            Log.e(TAG, "The available spectrum inquiry response does not contain a response "
+                    + "code field.");
+
+            // Currently the internal Google AFC server doesn't provide an AFC response code of 0
+            // for successful queries.
+            // TODO (b/294594249): If the server is modified to correctly provide an AFC response
+            //  code of 0 upon a successful query, handle this case accordingly.
+            return 0;
         }
     }
 
@@ -215,10 +213,10 @@ public class AfcServerResponse {
      * Returns the short description of an available spectrum inquiry response, or an empty string
      * if it does not exist.
      */
-    static String getResponseShortDescriptionFromJSON(JSONObject responseJSON) {
+    static String getResponseShortDescriptionFromJSON(JSONObject spectrumInquiryResponse) {
         try {
             // parse and return the response description. Throws an error if a field does not exist.
-            return responseJSON.getJSONObject("response").getString("shortDescription");
+            return spectrumInquiryResponse.getJSONObject("response").getString("shortDescription");
         } catch (JSONException | NullPointerException e) {
             return "";
         }
