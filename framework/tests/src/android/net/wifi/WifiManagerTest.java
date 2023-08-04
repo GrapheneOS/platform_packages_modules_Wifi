@@ -33,6 +33,10 @@ import static android.net.wifi.WifiManager.OnWifiActivityEnergyInfoListener;
 import static android.net.wifi.WifiManager.SAP_START_FAILURE_GENERAL;
 import static android.net.wifi.WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS;
 import static android.net.wifi.WifiManager.STATUS_SUGGESTION_CONNECTION_FAILURE_AUTHENTICATION;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
@@ -4068,5 +4072,23 @@ public class WifiManagerTest {
         Consumer<Integer> resultsGetCallback = mock(Consumer.class);
         mWifiManager.getMloMode(executor, resultsGetCallback);
         verify(mWifiService).getMloMode(any(IIntegerListener.Stub.class));
+    }
+
+    @Test
+    public void testVerboseLogging() throws RemoteException {
+        mWifiManager.setVerboseLoggingEnabled(true);
+        verify(mWifiService).enableVerboseLogging(VERBOSE_LOGGING_LEVEL_ENABLED);
+        mWifiManager.setVerboseLoggingEnabled(false);
+        verify(mWifiService).enableVerboseLogging(VERBOSE_LOGGING_LEVEL_DISABLED);
+        when(mWifiService.getVerboseLoggingLevel()).thenReturn(VERBOSE_LOGGING_LEVEL_ENABLED);
+        assertTrue(mWifiManager.isVerboseLoggingEnabled());
+        when(mWifiService.getVerboseLoggingLevel())
+                .thenReturn(VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY);
+        assertTrue(mWifiManager.isVerboseLoggingEnabled());
+        when(mWifiService.getVerboseLoggingLevel())
+                .thenReturn(VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY);
+        assertFalse(mWifiManager.isVerboseLoggingEnabled());
+        when(mWifiService.getVerboseLoggingLevel()).thenReturn(VERBOSE_LOGGING_LEVEL_DISABLED);
+        assertFalse(mWifiManager.isVerboseLoggingEnabled());
     }
 }
