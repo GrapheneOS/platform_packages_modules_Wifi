@@ -8284,7 +8284,9 @@ public class WifiManager {
      */
     @SystemApi
     public boolean isVerboseLoggingEnabled() {
-        return getVerboseLoggingLevel() > 0;
+        int verboseLoggingLevel = getVerboseLoggingLevel();
+        return verboseLoggingLevel == VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY
+                || verboseLoggingLevel == VERBOSE_LOGGING_LEVEL_ENABLED;
     }
 
     /**
