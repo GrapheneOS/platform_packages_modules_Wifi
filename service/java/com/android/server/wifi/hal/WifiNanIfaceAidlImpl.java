@@ -439,6 +439,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -460,6 +461,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.respondToPairingIndicationRequest((char) transactionId, request);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -481,6 +483,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.initiatePairingRequest((char) transactionId, nanPairingRequest);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -497,6 +500,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -516,6 +520,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.initiateBootstrappingRequest((char) transactionId, request);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -535,6 +540,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
                 mWifiNanIface.respondToBootstrappingIndicationRequest((char) transactionId,
                         request);
+                return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
