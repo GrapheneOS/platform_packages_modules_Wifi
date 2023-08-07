@@ -87,6 +87,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -3020,6 +3021,18 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
         private final WorkSource mWorkSource;
         private boolean mScanWorkReported = false;
         protected final IWifiScannerListener mListener;
+        protected DeathRecipient mDeathRecipient = new DeathRecipient() {
+            @Override
+            public void binderDied() {
+                mWifiThreadRunner.post(() -> {
+                    if (DBG) localLog("binder died: client listener: " + mListener);
+                    if (isVerboseLoggingEnabled()) {
+                        Log.i(TAG, "binder died: client listener: " + mListener);
+                    }
+                    cleanup();
+                });
+            }
+        };
 
         ClientInfo(int uid, String packageName, IWifiScannerListener listener) {
             mUid = uid;
@@ -3047,6 +3060,12 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 Log.i(TAG, "Unregistering listener= " + mListener + " uid=" + mUid
                         + " packageName=" + mPackageName + " workSource=" + mWorkSource);
             }
+            try {
+                mListener.asBinder().unlinkToDeath(mDeathRecipient, 0);
+            } catch (NoSuchElementException e) {
+                Log.e(TAG, "Failed to unregister death recipient! " + mListener);
+            }
+
             mClients.remove(mListener);
         }
 
@@ -3160,18 +3179,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             super(uid, packageName, listener);
             if (DBG) localLog("New client, listener: " + listener);
             try {
-                listener.asBinder().linkToDeath(new DeathRecipient() {
-                    @Override
-                    public void binderDied() {
-                        mWifiThreadRunner.post(() -> {
-                            if (DBG) localLog("binder died: client listener: " + listener);
-                            if (isVerboseLoggingEnabled()) {
-                                Log.i(TAG, "binder died: client listener: " + listener);
-                            }
-                            cleanup();
-                        });
-                    }
-                }, 0);
+                listener.asBinder().linkToDeath(mDeathRecipient, 0);
             } catch (RemoteException e) {
                 Log.e(TAG, "can't register death recipient! " + listener);
             }
