@@ -1197,16 +1197,24 @@ public class PasspointManager {
             return Collections.emptyList();
         }
         List<WifiConfiguration> configs = new ArrayList<>();
-        Set<String> uniqueIdSet = new HashSet<>();
-        uniqueIdSet.addAll(idList);
+        Set<String> uniqueIdSet = new HashSet<>(idList);
+        boolean refreshed = false;
         for (String uniqueId : uniqueIdSet) {
             PasspointProvider provider = mProviders.get(uniqueId);
             if (provider == null) {
                 continue;
             }
-            WifiConfiguration config = provider.getWifiConfig();
-            config = mWifiConfigManager.getConfiguredNetwork(config.getProfileKey());
+            String profileKey = provider.getWifiConfig().getProfileKey();
+            WifiConfiguration config = mWifiConfigManager
+                    .getConfiguredNetwork(profileKey);
+            if (config == null && !refreshed) {
+                // Refresh the WifiConfigManager, this may caused by new ANQP response
+                mPasspointNetworkNominateHelper.refreshWifiConfigsForProviders();
+                refreshed = true;
+                config = mWifiConfigManager.getConfiguredNetwork(profileKey);
+            }
             if (config == null) {
+                Log.e(TAG, "After refresh, still not in the WifiConfig, ignore");
                 continue;
             }
             // If the Passpoint configuration is from a suggestion, check if the app shares this

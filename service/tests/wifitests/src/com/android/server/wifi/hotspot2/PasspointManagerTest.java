@@ -1304,11 +1304,13 @@ public class PasspointManagerTest extends WifiBaseTest {
         WifiConfiguration config4 = provider4.getWifiConfig();
         when(mWifiConfigManager.getConfiguredNetwork(provider4.getConfig().getUniqueId()))
                 .thenReturn(config4);
-
+        verify(mPasspointNetworkNominateHelper, times(4)).refreshWifiConfigsForProviders();
+        reset(mPasspointNetworkNominateHelper);
         List<WifiConfiguration> wifiConfigurationList = mManager.getWifiConfigsForPasspointProfiles(
                 List.of(provider1.getConfig().getUniqueId(), provider2.getConfig().getUniqueId(),
                         provider3.getConfig().getUniqueId(), provider4.getConfig().getUniqueId(),
                         TEST_FQDN + "_353ab8c93", TEST_FQDN + "_83765319aca"));
+        verify(mPasspointNetworkNominateHelper).refreshWifiConfigsForProviders();
         assertEquals(2, wifiConfigurationList.size());
         Set<String> uniqueIdSet = wifiConfigurationList
                 .stream()
