@@ -199,7 +199,9 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         public static final int UNSUPPORTED_CONCURRENCY_NAN_DISABLED = 12;
         public static final int INVALID_PAIRING_ID = 13;
         public static final int INVALID_BOOTSTRAPPING_ID = 14;
-
+        public static final int REDUNDANT_REQUEST = 15;
+        public static final int NOT_SUPPORTED = 16;
+        public static final int NO_CONNECTION = 17;
 
         /**
          * Convert NanStatusCode from HIDL to framework.
@@ -273,6 +275,12 @@ public class WifiNanIface implements WifiHal.WifiInterface {
                     return INVALID_PAIRING_ID;
                 case android.hardware.wifi.NanStatusCode.INVALID_BOOTSTRAPPING_ID:
                     return INVALID_BOOTSTRAPPING_ID;
+                case android.hardware.wifi.NanStatusCode.REDUNDANT_REQUEST:
+                    return REDUNDANT_REQUEST;
+                case android.hardware.wifi.NanStatusCode.NOT_SUPPORTED:
+                    return NOT_SUPPORTED;
+                case android.hardware.wifi.NanStatusCode.NO_CONNECTION:
+                    return NO_CONNECTION;
                 default:
                     Log.e(TAG, "Unknown NanStatusType received from AIDL: " + code);
                     return -1;
