@@ -22,18 +22,27 @@ import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.hardware.wifi.IWifiNanIface;
 import android.hardware.wifi.NanBandIndex;
+import android.hardware.wifi.NanBootstrappingRequest;
+import android.hardware.wifi.NanBootstrappingResponse;
 import android.hardware.wifi.NanConfigRequest;
 import android.hardware.wifi.NanConfigRequestSupplemental;
 import android.hardware.wifi.NanDataPathSecurityType;
 import android.hardware.wifi.NanEnableRequest;
+import android.hardware.wifi.NanPairingRequest;
+import android.hardware.wifi.NanPairingRequestType;
+import android.hardware.wifi.NanPairingSecurityType;
 import android.hardware.wifi.NanPublishRequest;
 import android.hardware.wifi.NanRangingIndication;
+import android.hardware.wifi.NanRespondToPairingIndicationRequest;
 import android.hardware.wifi.NanSubscribeRequest;
 import android.net.MacAddress;
 import android.net.wifi.aware.ConfigRequest;
@@ -95,12 +104,12 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
                 "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
 
-        mDut.publish(tid, pid, pubDefault, null);
-        mDut.publish(tid, pid, pubWithRanging, null);
-        mDut.subscribe(tid, pid, subDefault, null);
-        mDut.subscribe(tid, pid, subWithMin, null);
-        mDut.subscribe(tid, pid, subWithMax, null);
-        mDut.subscribe(tid, pid, subWithMinMax, null);
+        assertTrue(mDut.publish(tid, pid, pubDefault, null));
+        assertTrue(mDut.publish(tid, pid, pubWithRanging, null));
+        assertTrue(mDut.subscribe(tid, pid, subDefault, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMin, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMax, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMinMax, null));
 
         verify(mIWifiNanIfaceMock, times(2))
                 .startPublishRequest(eq((char) tid), pubCaptor.capture());
@@ -398,7 +407,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
     public void testSuspendRequest() throws Exception {
         short tid = 250;
         byte pid = 34;
-        mDut.suspend(tid, pid);
+        assertTrue(mDut.suspend(tid, pid));
         verify(mIWifiNanIfaceMock).suspendRequest(eq((char) tid), eq(pid));
     }
 
@@ -406,8 +415,91 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
     public void testResumeRequest() throws Exception {
         short tid = 251;
         byte pid = 35;
-        mDut.resume(tid, pid);
+        assertTrue(mDut.resume(tid, pid));
         verify(mIWifiNanIfaceMock).resumeRequest(eq((char) tid), eq(pid));
+    }
+
+    @Test
+    public void testEndDataPath() throws Exception {
+        short tid = 251;
+        int ndpId = 35;
+        assertTrue(mDut.endDataPath(tid, ndpId));
+        verify(mIWifiNanIfaceMock).terminateDataPathRequest(eq((char) tid), eq(ndpId));
+    }
+    @Test
+    public void testRespondToPairingRequest() throws Exception {
+        short tid = 251;
+        ArgumentCaptor<NanRespondToPairingIndicationRequest> reqCaptor = ArgumentCaptor.forClass(
+                NanRespondToPairingIndicationRequest.class);
+        assertTrue(mDut.respondToPairingRequest(tid, 1, true, null, true,
+                NanPairingRequestType.NAN_PAIRING_SETUP, null, null , 0, 0));
+        verify(mIWifiNanIfaceMock).respondToPairingIndicationRequest(eq((char) tid),
+                reqCaptor.capture());
+        NanRespondToPairingIndicationRequest request = reqCaptor.getValue();
+        assertEquals(NanPairingRequestType.NAN_PAIRING_SETUP, request.requestType);
+        assertTrue(request.acceptRequest);
+        assertEquals(1, request.pairingInstanceId);
+        assertEquals(NanPairingSecurityType.OPPORTUNISTIC, request.securityConfig.securityType);
+        assertArrayEquals(new byte[32], request.securityConfig.pmk);
+        assertArrayEquals(new byte[0], request.securityConfig.passphrase);
+        assertTrue(request.enablePairingCache);
+        assertArrayEquals(new byte[16], request.pairingIdentityKey);
+    }
+
+    @Test
+    public void testInitiateNanPairingRequest() throws Exception {
+        short tid = 251;
+        MacAddress peer = MacAddress.fromString("00:01:02:03:04:05");
+        ArgumentCaptor<NanPairingRequest> reqCaptor = ArgumentCaptor.forClass(
+                NanPairingRequest.class);
+        assertTrue(mDut.initiateNanPairingRequest(tid, 1, peer, null, true,
+                NanPairingRequestType.NAN_PAIRING_SETUP, null, null , 0, 0));
+        verify(mIWifiNanIfaceMock).initiatePairingRequest(eq((char) tid),
+                reqCaptor.capture());
+        NanPairingRequest request = reqCaptor.getValue();
+        assertEquals(NanPairingRequestType.NAN_PAIRING_SETUP, request.requestType);
+        assertEquals(1, request.peerId);
+        assertEquals(NanPairingSecurityType.OPPORTUNISTIC, request.securityConfig.securityType);
+        assertArrayEquals(new byte[32], request.securityConfig.pmk);
+        assertArrayEquals(new byte[0], request.securityConfig.passphrase);
+        assertTrue(request.enablePairingCache);
+        assertArrayEquals(new byte[16], request.pairingIdentityKey);
+    }
+
+    @Test
+    public void testEndPairing() throws Exception {
+        short tid = 251;
+        assertTrue(mDut.endPairing(tid, 1));
+        verify(mIWifiNanIfaceMock).terminatePairingRequest(eq((char) tid), eq(1));
+    }
+
+    @Test
+    public void testInitiateNanBootstrappingRequest() throws Exception {
+        short tid = 251;
+        MacAddress peer = MacAddress.fromString("00:01:02:03:04:05");
+        ArgumentCaptor<NanBootstrappingRequest> reqCaptor = ArgumentCaptor.forClass(
+                NanBootstrappingRequest.class);
+        assertTrue(mDut.initiateNanBootstrappingRequest(tid, 1, peer, 2, null));
+        verify(mIWifiNanIfaceMock).initiateBootstrappingRequest(eq((char) tid),
+                reqCaptor.capture());
+        NanBootstrappingRequest request = reqCaptor.getValue();
+        assertEquals(1, request.peerId);
+        assertEquals(2, request.requestBootstrappingMethod);
+        assertArrayEquals(peer.toByteArray(), request.peerDiscMacAddr);
+        assertArrayEquals(new byte[0], request.cookie);
+    }
+
+    @Test
+    public void testRespondToNanBootstrappingRequest() throws Exception {
+        short tid = 251;
+        ArgumentCaptor<NanBootstrappingResponse> reqCaptor = ArgumentCaptor.forClass(
+                NanBootstrappingResponse.class);
+        assertTrue(mDut.respondToNanBootstrappingRequest(tid, 1, true));
+        verify(mIWifiNanIfaceMock).respondToBootstrappingIndicationRequest(eq((char) tid),
+                reqCaptor.capture());
+        NanBootstrappingResponse request = reqCaptor.getValue();
+        assertEquals(1, request.bootstrappingInstanceId);
+        assertTrue(request.acceptRequest);
     }
 
     // utilities
@@ -416,10 +508,10 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
             short transactionId, ConfigRequest configRequest, boolean notifyIdentityChange,
             boolean initialConfiguration, boolean isInteractive, boolean isIdle,
             int discoveryWindow24Ghz, int discoveryWindow5Ghz) throws RemoteException {
-        mDut.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
+        assertTrue(mDut.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
                 initialConfiguration, false, false, 2437, -1 /* clusterId */,
                 1800 /* PARAM_MAC_RANDOM_INTERVAL_SEC_DEFAULT */,
-                getPowerParams(isInteractive, isIdle, discoveryWindow24Ghz, discoveryWindow5Ghz));
+                getPowerParams(isInteractive, isIdle, discoveryWindow24Ghz, discoveryWindow5Ghz)));
 
         ArgumentCaptor<NanEnableRequest> enableReqCaptor = ArgumentCaptor.forClass(
                 NanEnableRequest.class);
@@ -501,8 +593,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                     .build();
         }
 
-        mDut.initiateDataPath(tid, peerId, channelRequestType, channel, peer, interfaceName,
-                isOutOfBand, appInfo, TEST_CAPABILITIES, securityConfig, pubSubId);
+        assertTrue(mDut.initiateDataPath(tid, peerId, channelRequestType, channel, peer,
+                interfaceName, isOutOfBand, appInfo, TEST_CAPABILITIES, securityConfig, pubSubId));
 
         verify(mIWifiNanIfaceMock).initiateDataPathRequest(eq((char) tid), captor.capture());
 
@@ -576,8 +668,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                     .build();
         }
 
-        mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, TEST_CAPABILITIES, securityConfig, pubSubId);
+        assertTrue(mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
+                appInfo, isOutOfBand, TEST_CAPABILITIES, securityConfig, pubSubId));
 
         verify(mIWifiNanIfaceMock)
                 .respondToDataPathIndicationRequest(eq((char) tid), captor.capture());
