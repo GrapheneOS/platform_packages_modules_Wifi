@@ -3519,8 +3519,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         setSuspendOptimizationsNative(SUSPEND_DUE_TO_DHCP, true);
         setPowerSave(POWER_SAVE_CLIENT_DHCP, true);
 
-        mWifiP2pConnection.sendMessage(
-                WifiP2pServiceImpl.BLOCK_DISCOVERY, WifiP2pServiceImpl.DISABLED);
+        if (mWifiP2pConnection.isConnected()) {
+            mWifiP2pConnection.sendMessage(
+                    WifiP2pServiceImpl.BLOCK_DISCOVERY, WifiP2pServiceImpl.DISABLED);
+        }
 
         // Set the coexistence mode back to its default value
         mWifiNative.setBluetoothCoexistenceMode(
