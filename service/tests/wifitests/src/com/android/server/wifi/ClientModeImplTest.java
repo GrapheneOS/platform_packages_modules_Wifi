@@ -4386,7 +4386,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         DisconnectEventInfo disconnectEventInfo =
                 new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
+        mIpClientCallback.onReachabilityLost("CMD_IP_REACHABILITY_LOST");
         mLooper.dispatchAll();
 
         verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
@@ -6051,7 +6051,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void testTakebugreportbyIpReachabilityLost() throws Exception {
         connect();
 
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
+        mIpClientCallback.onReachabilityLost("CMD_IP_REACHABILITY_LOST");
         mLooper.dispatchAll();
         verify(mWifiDiagnostics).triggerBugReportDataCapture(
                 eq(WifiDiagnostics.REPORT_REASON_REACHABILITY_LOST));
@@ -6067,7 +6067,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiDiagnostics).triggerBugReportDataCapture(
                 eq(WifiDiagnostics.REPORT_REASON_REACHABILITY_FAILURE));
@@ -6155,7 +6155,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void verifyIpReachabilityLostMsgUpdatesWifiUsabilityMetrics() throws Exception {
         connect();
 
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
+        mIpClientCallback.onReachabilityLost("CMD_IP_REACHABILITY_LOST");
         mLooper.dispatchAll();
         verify(mWifiMetrics).logWifiIsUnusableEvent(WIFI_IFACE_NAME,
                 WifiIsUnusableEvent.TYPE_IP_REACHABILITY_LOST);
@@ -6176,7 +6176,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.CONFIRM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiMetrics).logWifiIsUnusableEvent(WIFI_IFACE_NAME,
                 WifiIsUnusableEvent.TYPE_IP_REACHABILITY_LOST);
@@ -6607,8 +6607,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         l2Packet.dstMacAddress = TEST_GLOBAL_MAC_ADDRESS;
         l2Packet.payload = new byte[] {0x00, 0x12, 0x13, 0x00, 0x12, 0x13, 0x00, 0x12, 0x13,
                 0x12, 0x13, 0x00, 0x12, 0x13, 0x00, 0x12, 0x13, 0x00, 0x12, 0x13, 0x55, 0x66};
-        mCmi.sendMessage(ClientModeImpl.CMD_START_FILS_CONNECTION, 0, 0,
-                Collections.singletonList(l2Packet));
+        mIpClientCallback.onPreconnectionStart(Collections.singletonList(l2Packet));
         mLooper.dispatchAll();
         assertEquals("L2ConnectingState", mCmi.getCurrentState().getName());
     }
@@ -7177,7 +7176,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Trigger ip reachability failure and ensure we trigger a disconnect.
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.CONFIRM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
@@ -7194,7 +7193,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // on U and above, but wifi should still disconnect on previous platforms.
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", lossReason);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         if (!shouldWifiDisconnect) {
             verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
@@ -7232,7 +7231,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Trigger ip reachability failure and ensure we trigger a disconnect.
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ORGANIC);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
@@ -7268,7 +7267,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Trigger ip reachability failure and ensure we disconnect.
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
@@ -7283,7 +7282,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Trigger ip reachability failure and ensure we do not trigger a disconnect.
         ReachabilityLossInfoParcelable lossInfo =
                 new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ROAM);
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_FAILURE, lossInfo);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNetworkAgent).unregisterAfterReplacement(anyInt());
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
@@ -7353,6 +7352,13 @@ public class ClientModeImplTest extends WifiBaseTest {
         callback.onProvisioningFailure(new LinkProperties());
         mLooper.dispatchAll();
         verify(mWifiNetworkAgent).unregisterAfterReplacement(anyInt());
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+        assertEquals("L3ProvisioningState", getCurrentState().getName());
+
+        // Verify that onProvisioningFailure from the current IpClientCallbacks instance
+        // triggers wifi disconnection.
+        mIpClientCallback.onProvisioningFailure(new LinkProperties());
+        mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
     }
 
@@ -7385,7 +7391,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         reset(mWifiNetworkAgent);
 
         // Trigger ip reachability loss and ensure we trigger a disconnect.
-        mCmi.sendMessage(ClientModeImpl.CMD_IP_REACHABILITY_LOST);
+        mIpClientCallback.onReachabilityLost("CMD_IP_REACHABILITY_LOST");
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
 
