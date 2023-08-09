@@ -19,10 +19,18 @@ package com.android.server.wifi.aware;
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_RESUME_INTERNAL_ERROR;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_RESUME_INVALID_SESSION;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_RESUME_REDUNDANT_REQUEST;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_CANNOT_SUSPEND;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INTERNAL_ERROR;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INVALID_SESSION;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
 
 import static com.android.server.wifi.aware.WifiAwareMetrics.convertNanStatusCodeToWifiStatsLogEnum;
+import static com.android.server.wifi.hal.WifiNanIface.NanStatusCode.NOT_SUPPORTED;
+import static com.android.server.wifi.hal.WifiNanIface.NanStatusCode.NO_CONNECTION;
+import static com.android.server.wifi.hal.WifiNanIface.NanStatusCode.REDUNDANT_REQUEST;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_API_UNKNOWN;
@@ -4742,8 +4750,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
     }
 
-    private void onSuspendResponseLocal(Message command, boolean success,
-            @WifiAwareManager.SessionSuspensionFailedReasonCode int reason) {
+    private void onSuspendResponseLocal(Message command, boolean success, int reason) {
         String methodString = "onSuspendResponseLocal";
         if (mVdbg) {
             Log.v(TAG, methodString + ": command=" + command + ", success=" + success
@@ -4761,7 +4768,21 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (success) {
             session.onSuspendSuccess();
         } else {
-            session.onSuspendFail(reason);
+            session.onSuspendFail(convertFrameworkStatusToSuspensionFailedReason(reason));
+        }
+    }
+
+    @WifiAwareManager.SessionSuspensionFailedReasonCode
+    private int convertFrameworkStatusToSuspensionFailedReason(int reason) {
+        switch (reason) {
+            case REDUNDANT_REQUEST:
+                return WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
+            case NOT_SUPPORTED:
+                return WIFI_AWARE_SUSPEND_INVALID_SESSION;
+            case NO_CONNECTION:
+                return WIFI_AWARE_SUSPEND_CANNOT_SUSPEND;
+            default:
+                return WIFI_AWARE_SUSPEND_INTERNAL_ERROR;
         }
     }
 
@@ -4782,9 +4803,23 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return;
         }
         if (!success) {
-            session.onResumeFail(reason);
+            session.onResumeFail(convertFrameworkStatusToResumptionFailedReasonCode(reason));
         }
     }
+
+    @WifiAwareManager.SessionResumptionFailedReasonCode
+    private int convertFrameworkStatusToResumptionFailedReasonCode(int reason) {
+        switch (reason) {
+            case REDUNDANT_REQUEST:
+                return WIFI_AWARE_RESUME_REDUNDANT_REQUEST;
+            case NOT_SUPPORTED:
+                return WIFI_AWARE_RESUME_INVALID_SESSION;
+            default:
+                return WIFI_AWARE_RESUME_INTERNAL_ERROR;
+        }
+    }
+
+
 
     private void onInitiateDataPathResponseFailLocal(Message command, int reason) {
         if (mVdbg) {
@@ -4856,11 +4891,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
         if (!session.isSuspendable()) {
-            session.onResumeFail(WIFI_AWARE_SUSPEND_INVALID_SESSION);
+            session.onResumeFail(WIFI_AWARE_RESUME_INVALID_SESSION);
             return false;
         }
         if (!session.isSessionSuspended()) {
-            session.onResumeFail(WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST);
+            session.onResumeFail(WIFI_AWARE_RESUME_REDUNDANT_REQUEST);
             return false;
         }
 
@@ -5506,7 +5541,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         return false;
     }
 
-    private int covertFrameworkHalCommandToEnum(int cmd) {
+    private int convertFrameworkHalCommandToEnum(int cmd) {
         switch (cmd) {
             case COMMAND_TYPE_CONNECT:
                 return WIFI_AWARE_HAL_API_CALLED__COMMAND__AWARE_ENABLE_REQUEST;
@@ -5554,7 +5589,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void recordHalApiCall(int command, int state, long starTime) {
-        WifiStatsLog.write(WIFI_AWARE_HAL_API_CALLED, covertFrameworkHalCommandToEnum(command),
+        WifiStatsLog.write(
+                WIFI_AWARE_HAL_API_CALLED,
+                convertFrameworkHalCommandToEnum(command),
                 convertNanStatusCodeToWifiStatsLogEnum(state),
                 (int) (SystemClock.elapsedRealtime() - starTime));
     }
