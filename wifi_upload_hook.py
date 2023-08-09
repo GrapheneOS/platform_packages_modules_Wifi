@@ -20,6 +20,14 @@ from argparse import ArgumentParser
 import subprocess
 import sys
 
+BASE_DIR = "service/ServiceWifiResources/res/"
+OVERLAY_FILE = BASE_DIR + "values/overlayable.xml"
+CONFIG_FILE = BASE_DIR + "values/config.xml"
+STRING_FILE = BASE_DIR + "values/strings.xml"
+STYLES_FILE = BASE_DIR + "values/styles.xml"
+DRAWABLE_DIR = BASE_DIR + "drawable/"
+LAYOUT_DIR = BASE_DIR + "layout/"
+
 def is_commit_msg_valid(commit_msg):
     for line in commit_msg.splitlines():
         line = line.strip().lower()
@@ -39,27 +47,26 @@ def is_in_aosp():
     # otherwise assume in AOSP
     return True
 
-def get_changed_resource_file(base_dir, commit_files):
-    config_file = base_dir + "values/config.xml"
-    string_file = base_dir + "values/strings.xml"
-    styles_file = base_dir + "values/styles.xml"
-    drawable_dir = base_dir + "drawable/"
-    layout_dir = base_dir + "layout/"
-
+def get_changed_resource_file(commit_files):
     for commit_file in commit_files:
-        if commit_file == config_file:
+        if commit_file == STRING_FILE:
+            return STRING_FILE
+        if commit_file == CONFIG_FILE:
             return commit_file
-        if commit_file == string_file:
+        if commit_file == STYLES_FILE:
             return commit_file
-        if commit_file == styles_file:
+        if commit_file.startswith(DRAWABLE_DIR):
             return commit_file
-        if commit_file.startswith(drawable_dir):
-            return commit_file
-        if commit_file.startswith(layout_dir):
+        if commit_file.startswith(LAYOUT_DIR):
             return commit_file
     return None
 
-
+def is_commit_msg_has_translation_bug_id(commit_msg):
+    for line in commit_msg.splitlines():
+        line = line.strip().lower()
+        if line.startswith('bug: 294871353'):
+            return True
+    return False
 
 
 def main():
@@ -68,18 +75,25 @@ def main():
     parser.add_argument('commit_files', type=str, nargs='*', help='files changed in the commit')
     args = parser.parse_args()
 
-    base_dir = "service/ServiceWifiResources/res/"
-    overlay_file = base_dir + "values/overlayable.xml"
     commit_msg = args.commit_msg
     commit_files = args.commit_files
 
     if is_in_aosp():
         return 0
 
-    changed_file = get_changed_resource_file(base_dir, commit_files)
+    changed_file = get_changed_resource_file(commit_files)
 
     if not changed_file:
         return 0
+    if changed_file == STRING_FILE:
+        if not is_commit_msg_has_translation_bug_id(commit_msg):
+            print('This commit has changed: "{changed_file}".'.format(changed_file=changed_file))
+            print()
+            print('Please add the following line to your commit message')
+            print()
+            print('Bug: 294871353')
+            print()
+            return 1
 
     if is_commit_msg_valid(commit_msg):
         return 0
@@ -87,7 +101,7 @@ def main():
     print('This commit has changed: "{changed_file}".'.format(changed_file=changed_file))
     print()
     print('If this change added/changed/removed overlayable resources used by the Wifi Module, ')
-    print('please update the "{overlay_file}".'.format(overlay_file=overlay_file))
+    print('please update the "{overlay_file}".'.format(overlay_file=OVERLAY_FILE))
     print('and acknowledge you have done so by adding this line to your commit message:')
     print()
     print('Updated-Overlayable: TRUE')
