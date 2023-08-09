@@ -50,6 +50,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.SoftApManager;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.wifi.resources.R;
@@ -78,12 +79,6 @@ public class ApConfigUtil {
     public static final int DEFAULT_AP_BAND = SoftApConfiguration.BAND_2GHZ;
     public static final int DEFAULT_AP_CHANNEL = 6;
     public static final int HIGHEST_2G_AP_CHANNEL = 14;
-
-    /* Return code for updateConfiguration. */
-    public static final int SUCCESS = 0;
-    public static final int ERROR_NO_CHANNEL = 1;
-    public static final int ERROR_GENERIC = 2;
-    public static final int ERROR_UNSUPPORTED_CONFIGURATION = 3;
 
     /* Random number generator used for AP channel selection. */
     private static final Random sRandom = new Random();
@@ -816,9 +811,9 @@ public class ApConfigUtil {
      * @param countryCode country code
      * @param config configuration to update
      * @param capability soft ap capability
-     * @return an integer result code
+     * @return the corresponding {@link SoftApManager.StartResult} result code.
      */
-    public static int updateApChannelConfig(WifiNative wifiNative,
+    public static @SoftApManager.StartResult int updateApChannelConfig(WifiNative wifiNative,
             @NonNull CoexManager coexManager,
             Resources resources,
             String countryCode,
@@ -828,14 +823,14 @@ public class ApConfigUtil {
         /* Use default band and channel for device without HAL. */
         if (!wifiNative.isHalStarted()) {
             configBuilder.setChannel(DEFAULT_AP_CHANNEL, DEFAULT_AP_BAND);
-            return SUCCESS;
+            return SoftApManager.START_RESULT_SUCCESS;
         }
 
         /* Country code is mandatory for 5GHz band. */
         if (config.getBand() == SoftApConfiguration.BAND_5GHZ
                 && countryCode == null) {
             Log.e(TAG, "5GHz band is not allowed without country code");
-            return ERROR_GENERIC;
+            return SoftApManager.START_RESULT_FAILURE_GENERAL;
         }
         if (!capability.areFeaturesSupported(SOFTAP_FEATURE_ACS_OFFLOAD)) {
             /* Select a channel if it is not specified and ACS is not enabled */
@@ -845,7 +840,7 @@ public class ApConfigUtil {
                 if (freq == -1) {
                     /* We're not able to get channel from wificond. */
                     Log.e(TAG, "Failed to get available channel.");
-                    return ERROR_NO_CHANNEL;
+                    return SoftApManager.START_RESULT_FAILURE_NO_CHANNEL;
                 }
                 configBuilder.setChannel(
                         ScanResult.convertFrequencyMhzToChannelIfSupported(freq),
@@ -866,7 +861,7 @@ public class ApConfigUtil {
             }
         }
 
-        return SUCCESS;
+        return SoftApManager.START_RESULT_SUCCESS;
     }
 
     /**
