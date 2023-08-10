@@ -35,6 +35,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.net.NetworkCapabilities;
 import android.net.wifi.EAPConstants;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.MloLink;
@@ -44,12 +45,14 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiUsabilityStatsEntry.ProbeStatus;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.ProvisioningCallback;
@@ -9031,5 +9034,310 @@ public class WifiMetrics {
      */
     public void setScorerPredictedWifiUsability(boolean isUsable) {
         mIsScorerPredictedWifiUsable = isUsable;
+    }
+
+    private static int getSoftApStartedStartResult(@SoftApManager.StartResult int startResult) {
+        switch (startResult) {
+            case SoftApManager.START_RESULT_UNKNOWN:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_UNKNOWN;
+            case SoftApManager.START_RESULT_SUCCESS:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_SUCCESS;
+            case SoftApManager.START_RESULT_FAILURE_GENERAL:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_GENERAL;
+
+            case SoftApManager.START_RESULT_FAILURE_NO_CHANNEL:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_NO_CHANNEL;
+            case SoftApManager.START_RESULT_FAILURE_UNSUPPORTED_CONFIG:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_UNSUPPORTED_CONFIG;
+            case SoftApManager.START_RESULT_FAILURE_START_HAL:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_START_HAL;
+            case SoftApManager.START_RESULT_FAILURE_START_HOSTAPD:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_START_HOSTAPD;
+            case SoftApManager.START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED;
+            case SoftApManager.START_RESULT_FAILURE_INTERFACE_CONFLICT:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_INTERFACE_CONFLICT;
+            case SoftApManager.START_RESULT_FAILURE_CREATE_INTERFACE:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_CREATE_INTERFACE;
+            case SoftApManager.START_RESULT_FAILURE_SET_COUNTRY_CODE:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_SET_COUNTRY_CODE;
+            case SoftApManager.START_RESULT_FAILURE_SET_MAC_ADDRESS:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_SET_MAC_ADDRESS;
+            case SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_HOSTAPD:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_REGISTER_AP_CALLBACK_HOSTAPD;
+            case SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND;
+            case SoftApManager.START_RESULT_FAILURE_ADD_AP_HOSTAPD:
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_FAILURE_ADD_AP_HOSTAPD;
+            default:
+                Log.wtf(TAG, "getSoftApStartedStartResult: unknown StartResult" + startResult);
+                return WifiStatsLog.SOFT_AP_STARTED__RESULT__START_RESULT_UNKNOWN;
+        }
+    }
+
+    private static int getSoftApStartedRole(ActiveModeManager.SoftApRole role) {
+        if (ActiveModeManager.ROLE_SOFTAP_LOCAL_ONLY.equals(role)) {
+            return WifiStatsLog.SOFT_AP_STARTED__ROLE__ROLE_LOCAL_ONLY;
+        } else if (ActiveModeManager.ROLE_SOFTAP_TETHERED.equals(role)) {
+            return WifiStatsLog.SOFT_AP_STARTED__ROLE__ROLE_TETHERING;
+        }
+        Log.wtf(TAG, "getSoftApStartedRole: unknown role " + role);
+        return WifiStatsLog.SOFT_AP_STARTED__ROLE__ROLE_UNKNOWN;
+    }
+
+    private static int getSoftApStartedStaApConcurrency(
+            boolean isStaApSupported, boolean isStaDbsSupported) {
+        if (isStaDbsSupported) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_DBS;
+        }
+        if (isStaApSupported) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_SINGLE;
+        }
+        return WifiStatsLog.SOFT_AP_STARTED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_UNSUPPORTED;
+    }
+
+    private static int getSoftApStartedStaStatus(int staFreqMhz) {
+        if (staFreqMhz == WifiInfo.UNKNOWN_FREQUENCY) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_DISCONNECTED;
+        }
+        if (ScanResult.is24GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_CONNECTED_2_GHZ;
+        }
+        if (ScanResult.is5GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_CONNECTED_5_GHZ;
+        }
+        if (ScanResult.is6GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_CONNECTED_6_GHZ;
+        }
+        Log.wtf(TAG, "getSoftApStartedStaStatus: unknown band for freq " + staFreqMhz);
+        return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_UNKNOWN;
+    }
+
+    private static int getSoftApStartedAuthType(
+            @SoftApConfiguration.SecurityType int securityType) {
+        switch (securityType) {
+            case SoftApConfiguration.SECURITY_TYPE_OPEN:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_NONE;
+            case SoftApConfiguration.SECURITY_TYPE_WPA2_PSK:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_SAE_TRANSITION;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_SAE:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_SAE;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_OWE_TRANSITION;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_OWE:
+                return WifiStatsLog.SOFT_AP_STARTED__AUTH_TYPE__AUTH_TYPE_OWE;
+            default:
+                Log.wtf(TAG, "getSoftApStartedAuthType: unknown type " + securityType);
+                return WifiStatsLog.SOFT_AP_STARTED__STA_STATUS__STA_STATUS_UNKNOWN;
+        }
+    }
+
+    /**
+     * Writes the SoftApStarted event to WifiStatsLog.
+     */
+    public void writeSoftApStartedEvent(@SoftApManager.StartResult int startResult,
+            @NonNull ActiveModeManager.SoftApRole role,
+            @WifiScanner.WifiBand int band1,
+            @WifiScanner.WifiBand int band2,
+            boolean isDbsSupported,
+            boolean isStaApSupported,
+            boolean isStaDbsSupported,
+            int staFreqMhz,
+            @SoftApConfiguration.SecurityType int securityType) {
+        WifiStatsLog.write(WifiStatsLog.SOFT_AP_STARTED,
+                getSoftApStartedStartResult(startResult),
+                getSoftApStartedRole(role),
+                band1,
+                band2,
+                isDbsSupported,
+                getSoftApStartedStaApConcurrency(isStaApSupported, isStaDbsSupported),
+                getSoftApStartedStaStatus(staFreqMhz),
+                getSoftApStartedAuthType(securityType));
+    }
+
+    private static int getSoftApStoppedStopEvent(@SoftApManager.StopEvent int stopEvent) {
+        switch (stopEvent) {
+            case SoftApManager.STOP_EVENT_UNKNOWN:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_UNKNOWN;
+            case SoftApManager.STOP_EVENT_STOPPED:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_STOPPED;
+            case SoftApManager.STOP_EVENT_INTERFACE_DOWN:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_INTERFACE_DOWN;
+            case SoftApManager.STOP_EVENT_INTERFACE_DESTROYED:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_INTERFACE_DESTROYED;
+            case SoftApManager.STOP_EVENT_HOSTAPD_FAILURE:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_HOSTAPD_FAILURE;
+            case SoftApManager.STOP_EVENT_NO_USAGE_TIMEOUT:
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_NO_USAGE_TIMEOUT;
+            default:
+                Log.wtf(TAG, "getSoftApStoppedStopEvent: unknown StopEvent " + stopEvent);
+                return WifiStatsLog.SOFT_AP_STOPPED__STOP_EVENT__STOP_EVENT_UNKNOWN;
+        }
+    }
+
+    private static int getSoftApStoppedRole(ActiveModeManager.SoftApRole role) {
+        if (ActiveModeManager.ROLE_SOFTAP_LOCAL_ONLY.equals(role)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__ROLE__ROLE_LOCAL_ONLY;
+        } else if (ActiveModeManager.ROLE_SOFTAP_TETHERED.equals(role)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__ROLE__ROLE_TETHERING;
+        }
+        Log.wtf(TAG, "getSoftApStoppedRole: unknown role " + role);
+        return WifiStatsLog.SOFT_AP_STOPPED__ROLE__ROLE_UNKNOWN;
+    }
+
+    private static int getSoftApStoppedStaApConcurrency(
+            boolean isStaApSupported, boolean isStaDbsSupported) {
+        if (isStaDbsSupported) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_DBS;
+        }
+        if (isStaApSupported) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_SINGLE;
+        }
+        return WifiStatsLog.SOFT_AP_STOPPED__STA_AP_CONCURRENCY__STA_AP_CONCURRENCY_UNSUPPORTED;
+    }
+    private static int getSoftApStoppedStaStatus(int staFreqMhz) {
+        if (staFreqMhz == WifiInfo.UNKNOWN_FREQUENCY) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_DISCONNECTED;
+        }
+        if (ScanResult.is24GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_CONNECTED_2_GHZ;
+        }
+        if (ScanResult.is5GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_CONNECTED_5_GHZ;
+        }
+        if (ScanResult.is6GHz(staFreqMhz)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_CONNECTED_6_GHZ;
+        }
+        Log.wtf(TAG, "getSoftApStoppedStaStatus: unknown band for freq " + staFreqMhz);
+        return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_UNKNOWN;
+    }
+
+    private static int getSoftApStoppedAuthType(
+            @SoftApConfiguration.SecurityType int securityType) {
+        switch (securityType) {
+            case SoftApConfiguration.SECURITY_TYPE_OPEN:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_NONE;
+            case SoftApConfiguration.SECURITY_TYPE_WPA2_PSK:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_SAE_TRANSITION;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_SAE:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_SAE;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_OWE_TRANSITION:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_OWE_TRANSITION;
+            case SoftApConfiguration.SECURITY_TYPE_WPA3_OWE:
+                return WifiStatsLog.SOFT_AP_STOPPED__AUTH_TYPE__AUTH_TYPE_OWE;
+            default:
+                Log.wtf(TAG, "getSoftApStoppedAuthType: unknown type " + securityType);
+                return WifiStatsLog.SOFT_AP_STOPPED__STA_STATUS__STA_STATUS_UNKNOWN;
+        }
+    }
+
+    private static int getSoftApStoppedStandard(@WifiAnnotations.WifiStandard int standard) {
+        switch (standard) {
+            case ScanResult.WIFI_STANDARD_UNKNOWN:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_UNKNOWN;
+            case ScanResult.WIFI_STANDARD_LEGACY:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_LEGACY;
+            case ScanResult.WIFI_STANDARD_11N:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_11N;
+            case ScanResult.WIFI_STANDARD_11AC:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_11AC;
+            case ScanResult.WIFI_STANDARD_11AX:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_11AX;
+            case ScanResult.WIFI_STANDARD_11AD:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_11AD;
+            case ScanResult.WIFI_STANDARD_11BE:
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_11BE;
+            default:
+                Log.wtf(TAG, "getSoftApStoppedStandard: unknown standard " + standard);
+                return WifiStatsLog.SOFT_AP_STOPPED__STANDARD__WIFI_STANDARD_UNKNOWN;
+        }
+    }
+
+    private static int getSoftApStoppedUpstreamType(@Nullable NetworkCapabilities caps) {
+        if (caps == null) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_UNKNOWN;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                    return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_WIFI_CELLULAR_VPN;
+                }
+                return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_WIFI_VPN;
+            }
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_CELLULAR_VPN;
+            }
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH)) {
+                return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_BLUETOOTH_VPN;
+            }
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_ETHERNET_VPN;
+            }
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_WIFI;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_CELLULAR;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_BLUETOOTH;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_ETHERNET;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_WIFI_AWARE;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_LOWPAN)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_LOWPAN;
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_TEST)) {
+            return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_TEST;
+        }
+        Log.wtf(TAG, "getSoftApStoppedStandard: unknown transport types for caps "
+                + Arrays.toString(caps.getTransportTypes()));
+        return WifiStatsLog.SOFT_AP_STOPPED__UPSTREAM_TRANSPORT__TT_UNKNOWN;
+    }
+
+    /**
+     * Writes the SoftApStoppedEvent to WifiStatsLog.
+     */
+    public void writeSoftApStoppedEvent(@SoftApManager.StopEvent int stopEvent,
+            @NonNull ActiveModeManager.SoftApRole role,
+            @WifiScanner.WifiBand int band,
+            boolean isDbs,
+            boolean isStaApSupported,
+            boolean isStaBridgedApSupported,
+            int staFreqMhz,
+            boolean isTimeoutEnabled,
+            int sessionDurationSeconds,
+            @SoftApConfiguration.SecurityType int securityType,
+            @WifiAnnotations.WifiStandard int standard,
+            int maxClients,
+            boolean isDbsTimeoutEnabled,
+            int dbsFailureBand,
+            int dbsTimeoutBand,
+            @Nullable NetworkCapabilities upstreamCaps) {
+        WifiStatsLog.write(WifiStatsLog.SOFT_AP_STOPPED,
+                getSoftApStoppedStopEvent(stopEvent),
+                getSoftApStoppedRole(role),
+                band,
+                isDbs,
+                getSoftApStoppedStaApConcurrency(isStaApSupported, isStaBridgedApSupported),
+                getSoftApStoppedStaStatus(staFreqMhz),
+                isTimeoutEnabled,
+                sessionDurationSeconds,
+                getSoftApStoppedAuthType(securityType),
+                getSoftApStoppedStandard(standard),
+                maxClients,
+                isDbsTimeoutEnabled,
+                dbsFailureBand,
+                dbsTimeoutBand,
+                getSoftApStoppedUpstreamType(upstreamCaps));
     }
 }

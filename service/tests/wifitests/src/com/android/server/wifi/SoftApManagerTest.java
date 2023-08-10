@@ -302,6 +302,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         mLooper = new TestLooper();
 
+        when(mWifiNative.isItPossibleToCreateApIface(any())).thenReturn(true);
         when(mWifiNative.isItPossibleToCreateBridgedApIface(any())).thenReturn(true);
         when(mWifiNative.isApSetMacAddressSupported(any())).thenReturn(true);
         when(mWifiNative.setApMacAddress(any(), any())).thenReturn(true);
@@ -326,6 +327,10 @@ public class SoftApManagerTest extends WifiBaseTest {
                 .config_wifiFrameworkSoftApShutDownIdleInstanceInBridgedModeTimeoutMillisecond))
                 .thenReturn(
                 (int) TEST_DEFAULT_SHUTDOWN_IDLE_INSTANCE_IN_BRIDGED_MODE_TIMEOUT_MILLIS);
+        when(mResources.getBoolean(R.bool.config_wifiBridgedSoftApSupported))
+                .thenReturn(true);
+        when(mResources.getBoolean(R.bool.config_wifiStaWithBridgedSoftApConcurrencySupported))
+                .thenReturn(true);
         when(mWifiNative.setApCountryCode(
                 TEST_INTERFACE_NAME, TEST_COUNTRY_CODE.toUpperCase(Locale.ROOT)))
                 .thenReturn(true);
@@ -357,7 +362,6 @@ public class SoftApManagerTest extends WifiBaseTest {
         when(mWifiNative.forceClientDisconnect(any(), any(), anyInt())).thenReturn(true);
         when(mWifiInjector.getWifiHandlerLocalLog()).thenReturn(mLocalLog);
         when(mWifiInjector.getWifiCountryCode()).thenReturn(mWifiCountryCode);
-        when(mContext.getResources()).thenReturn(mResources);
 
         // Init Test SoftAp infos
         mTestSoftApInfo = new SoftApInfo();
@@ -480,6 +484,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_FAILED,
                 WifiManager.SAP_START_FAILURE_USER_REJECTED);
         verify(mListener).onStartFailure(mSoftApManager);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_INTERFACE_CONFLICT_USER_REJECTED),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /** Verifies startSoftAp will skip checking for user approval for the Tethering case. */
@@ -553,6 +561,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         checkApStateChangedBroadcast(capturedIntents.get(0), WIFI_AP_STATE_FAILED,
                 WIFI_AP_STATE_DISABLED, WifiManager.SAP_START_FAILURE_GENERAL, null,
                 nullApConfig.getTargetMode());
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_GENERAL),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /**
@@ -587,6 +599,49 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         verify(mWifiMetrics).incrementSoftApStartResult(false,
                 WifiManager.SAP_START_FAILURE_GENERAL);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_GENERAL),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
+    }
+
+    /**
+     * Test that not being able to create a SoftAp interface is a failure and increments the
+     * corresponding metrics and proper state updates are sent out.
+     */
+    @Test
+    public void testStartSoftApNotPossibleToCreateApInterfaceIncrementsMetrics()
+            throws Exception {
+        when(mWifiNative.isItPossibleToCreateApIface(any())).thenReturn(false);
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ);
+        configBuilder.setSsid(TEST_SSID);
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                IFACE_IP_MODE_LOCAL_ONLY, configBuilder.build(),
+                mTestSoftApCapability, TEST_COUNTRY_CODE);
+        mSoftApManager = createSoftApManager(apConfig, ROLE_SOFTAP_TETHERED);
+        verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_FAILED,
+                WifiManager.SAP_START_FAILURE_GENERAL);
+        verify(mListener).onStartFailure(mSoftApManager);
+        ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        if (SdkLevel.isAtLeastSv2()) {
+            verify(mContext).sendBroadcastAsUser(intentCaptor.capture(),
+                    eq(UserHandle.ALL), eq(android.Manifest.permission.ACCESS_WIFI_STATE));
+        } else {
+            verify(mContext).sendStickyBroadcastAsUser(intentCaptor.capture(),
+                    eq(UserHandle.ALL));
+        }
+
+        checkApStateChangedBroadcast(intentCaptor.getValue(), WIFI_AP_STATE_FAILED,
+                WIFI_AP_STATE_DISABLED, WifiManager.SAP_START_FAILURE_GENERAL, null,
+                apConfig.getTargetMode());
+
+        verify(mWifiMetrics).incrementSoftApStartResult(false,
+                WifiManager.SAP_START_FAILURE_GENERAL);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_INTERFACE_CONFLICT),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /**
@@ -620,6 +675,10 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         verify(mWifiMetrics).incrementSoftApStartResult(false,
                 WifiManager.SAP_START_FAILURE_GENERAL);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_CREATE_INTERFACE),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /**
@@ -654,6 +713,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         checkApStateChangedBroadcast(capturedIntents.get(1), WIFI_AP_STATE_FAILED,
                 WIFI_AP_STATE_ENABLING, WifiManager.SAP_START_FAILURE_GENERAL, TEST_INTERFACE_NAME,
                 softApConfig.getTargetMode());
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_SET_COUNTRY_CODE),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /**
@@ -907,6 +970,10 @@ public class SoftApManagerTest extends WifiBaseTest {
                 WifiManager.SAP_START_FAILURE_GENERAL);
         verify(mListener).onStartFailure(mSoftApManager);
         verify(mWifiNative).teardownInterface(TEST_INTERFACE_NAME);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_ADD_AP_HOSTAPD),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     /**
@@ -969,6 +1036,7 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         // reset to clear verified Intents for ap state change updates
         reset(mContext);
+        when(mContext.getResources()).thenReturn(mResources);
 
         InOrder order = inOrder(mCallback, mListener, mContext);
 
@@ -1040,6 +1108,7 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         // reset to clear verified Intents for ap state change updates
         reset(mContext, mCallback, mWifiNative);
+        when(mContext.getResources()).thenReturn(mResources);
 
         InOrder order = inOrder(mCallback, mListener, mContext);
 
@@ -1069,6 +1138,9 @@ public class SoftApManagerTest extends WifiBaseTest {
         checkApStateChangedBroadcast(capturedIntents.get(2), WIFI_AP_STATE_DISABLED,
                 WIFI_AP_STATE_DISABLING, HOTSPOT_NO_ERROR, TEST_INTERFACE_NAME,
                 softApModeConfig.getTargetMode());
+        verify(mWifiMetrics).writeSoftApStoppedEvent(eq(SoftApManager.STOP_EVENT_INTERFACE_DOWN),
+                any(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(), anyBoolean(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt(), anyInt(), any());
     }
 
     /**
@@ -1103,6 +1175,7 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         // reset to clear verified Intents for ap state change updates
         reset(mContext, mCallback, mWifiNative);
+        when(mContext.getResources()).thenReturn(mResources);
 
         InOrder order = inOrder(mCallback, mListener, mContext);
         mSoftApHalCallbackCaptor.getValue().onFailure();
@@ -1130,6 +1203,9 @@ public class SoftApManagerTest extends WifiBaseTest {
         checkApStateChangedBroadcast(capturedIntents.get(2), WIFI_AP_STATE_DISABLED,
                 WIFI_AP_STATE_DISABLING, HOTSPOT_NO_ERROR, TEST_INTERFACE_NAME,
                 softApModeConfig.getTargetMode());
+        verify(mWifiMetrics).writeSoftApStoppedEvent(eq(SoftApManager.STOP_EVENT_HOSTAPD_FAILURE),
+                any(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(), anyBoolean(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt(), anyInt(), any());
     }
 
     /**
@@ -1938,6 +2014,9 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         verify(mWifiNative).teardownInterface(TEST_INTERFACE_NAME);
         verify(mFakeSoftApNotifier).showSoftApShutdownTimeoutExpiredNotification();
+        verify(mWifiMetrics).writeSoftApStoppedEvent(eq(SoftApManager.STOP_EVENT_NO_USAGE_TIMEOUT),
+                any(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(), anyBoolean(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt(), anyInt(), any());
     }
 
     @Test
@@ -2503,6 +2582,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mWifiMetrics).incrementSoftApStartResult(false,
                 WifiManager.SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION);
         verify(mListener).onStartFailure(mSoftApManager);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_UNSUPPORTED_CONFIG),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     @Test
@@ -2524,6 +2607,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_FAILED,
                 WifiManager.SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION);
         verify(mListener).onStartFailure(mSoftApManager);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_UNSUPPORTED_CONFIG),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     @Test
@@ -2553,6 +2640,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mWifiMetrics).incrementSoftApStartResult(false,
                 WifiManager.SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION);
         verify(mListener).onStartFailure(mSoftApManager);
+        verify(mWifiMetrics).writeSoftApStartedEvent(
+                eq(SoftApManager.START_RESULT_FAILURE_UNSUPPORTED_CONFIG),
+                any(), anyInt(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyInt(),
+                anyInt());
     }
 
     @Test

@@ -1369,6 +1369,7 @@ public class WifiNative {
                 Log.e(TAG, errorMsg);
                 mWifiMetrics.incrementNumSetupSoftApInterfaceFailureDueToHal();
                 takeBugReportInterfaceFailureIfNeeded(bugTitle, errorMsg);
+                softApManager.writeSoftApStartedEvent(SoftApManager.START_RESULT_FAILURE_START_HAL);
                 return null;
             }
             if (!startHostapd()) {
@@ -1376,6 +1377,8 @@ public class WifiNative {
                 Log.e(TAG, errorMsg);
                 mWifiMetrics.incrementNumSetupSoftApInterfaceFailureDueToHostapd();
                 takeBugReportInterfaceFailureIfNeeded(bugTitle, errorMsg);
+                softApManager.writeSoftApStartedEvent(
+                        SoftApManager.START_RESULT_FAILURE_START_HOSTAPD);
                 return null;
             }
             Iface iface = mIfaceMgr.allocateIface(Iface.IFACE_TYPE_AP);

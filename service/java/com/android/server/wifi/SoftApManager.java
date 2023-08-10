@@ -35,6 +35,7 @@ import android.net.wifi.WifiClient;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.os.BatteryManager;
 import android.os.Handler;
@@ -277,6 +278,8 @@ public class SoftApManager implements ActiveModeManager {
     private boolean mIsPlugged = false;
 
     private int mCurrentApState = WifiManager.WIFI_AP_STATE_DISABLED;
+
+    private boolean mIsSoftApStartedEventWritten = false;
 
     /**
      * A map stores shutdown timeouts for each Soft Ap instance.
@@ -862,6 +865,7 @@ public class SoftApManager implements ActiveModeManager {
      */
     private void handleStartSoftApFailure(@StartResult int startResult) {
         if (startResult == START_RESULT_SUCCESS) {
+            Log.wtf(TAG, "handleStartSoftApFailure called with START_RESULT_SUCCESS");
             return;
         }
 
@@ -879,6 +883,7 @@ public class SoftApManager implements ActiveModeManager {
         stopSoftAp();
         mWifiMetrics.incrementSoftApStartResult(false, wifiManagerFailureReason);
         mModeListener.onStartFailure(SoftApManager.this);
+        writeSoftApStartedEvent(startResult);
     }
 
     /**
@@ -1132,6 +1137,7 @@ public class SoftApManager implements ActiveModeManager {
             public boolean processMessageImpl(Message message) {
                 switch (message.what) {
                     case CMD_STOP:
+                        writeSoftApStoppedEvent(STOP_EVENT_STOPPED);
                         quitNow();
                         break;
                     case CMD_START:
@@ -1262,13 +1268,19 @@ public class SoftApManager implements ActiveModeManager {
                             break;
                         }
 
+                        // Only check if it's possible to create single AP, since a DBS request
+                        // already falls back to single AP if we can't create DBS.
+                        if (!mWifiNative.isItPossibleToCreateApIface(mRequestorWs)) {
+                            handleStartSoftApFailure(START_RESULT_FAILURE_INTERFACE_CONFLICT);
+                            break;
+                        }
                         mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
                                 mWifiNativeInterfaceCallback, mRequestorWs,
                                 mCurrentSoftApConfiguration.getBand(), isBridgeRequired(),
                                 SoftApManager.this);
                         if (TextUtils.isEmpty(mApInterfaceName)) {
                             Log.e(getTag(), "setup failure when creating ap interface.");
-                            handleStartSoftApFailure(START_RESULT_FAILURE_GENERAL);
+                            handleStartSoftApFailure(START_RESULT_FAILURE_CREATE_INTERFACE);
                             break;
                         }
                         mSoftApNotifier.dismissSoftApShutdownTimeoutExpiredNotification();
@@ -1291,6 +1303,7 @@ public class SoftApManager implements ActiveModeManager {
                             handleStartSoftApFailure(startResult);
                             break;
                         }
+
                         transitionTo(mStartedState);
                         break;
                     case CMD_UPDATE_CAPABILITY:
@@ -1776,6 +1789,7 @@ public class SoftApManager implements ActiveModeManager {
                 mConnectedClientWithApInfoMap.clear();
                 mPendingDisconnectClients.clear();
                 mEverReportMetricsForMaxClient = false;
+                writeSoftApStartedEvent(START_RESULT_SUCCESS);
             }
 
             @Override
@@ -1920,6 +1934,7 @@ public class SoftApManager implements ActiveModeManager {
                         Log.i(getTag(), "Timeout message received. Stopping soft AP.");
                         updateApState(WifiManager.WIFI_AP_STATE_DISABLING,
                                 WifiManager.WIFI_AP_STATE_ENABLED, 0);
+                        writeSoftApStoppedEvent(STOP_EVENT_NO_USAGE_TIMEOUT);
                         quitNow();
                         break;
                     case CMD_NO_ASSOCIATED_STATIONS_TIMEOUT_ON_ONE_INSTANCE:
@@ -1942,6 +1957,7 @@ public class SoftApManager implements ActiveModeManager {
                         updateApState(WifiManager.WIFI_AP_STATE_DISABLING,
                                 WifiManager.WIFI_AP_STATE_ENABLED, 0);
                         mIfaceIsDestroyed = true;
+                        writeSoftApStoppedEvent(STOP_EVENT_INTERFACE_DESTROYED);
                         quitNow();
                         break;
                     case CMD_FAILURE:
@@ -1970,6 +1986,7 @@ public class SoftApManager implements ActiveModeManager {
                             }
                         }
                         Log.w(getTag(), "hostapd failure, stop and report failure");
+                        writeSoftApStoppedEvent(STOP_EVENT_HOSTAPD_FAILURE);
                         /* fall through */
                     case CMD_INTERFACE_DOWN:
                         Log.w(getTag(), "interface error, stop and report failure");
@@ -1978,6 +1995,7 @@ public class SoftApManager implements ActiveModeManager {
                                 WifiManager.SAP_START_FAILURE_GENERAL);
                         updateApState(WifiManager.WIFI_AP_STATE_DISABLING,
                                 WifiManager.WIFI_AP_STATE_FAILED, 0);
+                        writeSoftApStoppedEvent(STOP_EVENT_INTERFACE_DOWN);
                         quitNow();
                         break;
                     case CMD_UPDATE_CAPABILITY:
@@ -2120,5 +2138,85 @@ public class SoftApManager implements ActiveModeManager {
                 return HANDLED;
             }
         }
+    }
+
+    // Logging code
+
+    private int getCurrentStaFreqMhz() {
+        int staFreqMhz = WifiInfo.UNKNOWN_FREQUENCY;
+        for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
+            WifiInfo wifiConnectedInfo = cmm.getConnectionInfo();
+            if (wifiConnectedInfo != null) {
+                staFreqMhz = wifiConnectedInfo.getFrequency();
+                break;
+            }
+        }
+        return staFreqMhz;
+    }
+
+    /**
+     * Writes the SoftApStarted event to metrics. Only the first call will write the metrics, any
+     * subsequent calls will be ignored.
+     */
+    public void writeSoftApStartedEvent(@StartResult int startResult) {
+        if (mIsSoftApStartedEventWritten) {
+            return;
+        }
+        mIsSoftApStartedEventWritten = true;
+        int band1 = WifiScanner.WIFI_BAND_UNSPECIFIED;
+        int band2 = WifiScanner.WIFI_BAND_UNSPECIFIED;
+        @SoftApConfiguration.SecurityType int securityType = SoftApConfiguration.SECURITY_TYPE_OPEN;
+        if (mCurrentSoftApConfiguration != null) {
+            int[] bands = mCurrentSoftApConfiguration.getBands();
+            if (bands.length >= 1) {
+                band1 = bands[0];
+            }
+            if (bands.length >= 2) {
+                band2 = bands[1];
+            }
+            securityType = mCurrentSoftApConfiguration.getSecurityType();
+        }
+        mWifiMetrics.writeSoftApStartedEvent(startResult,
+                getRole(),
+                band1,
+                band2,
+                ApConfigUtil.isBridgedModeSupported(mContext),
+                mWifiNative.isStaApConcurrencySupported(),
+                ApConfigUtil.isStaWithBridgedModeSupported(mContext),
+                getCurrentStaFreqMhz(),
+                securityType);
+    }
+
+    private void writeSoftApStoppedEvent(@StopEvent int stopEvent) {
+        @WifiScanner.WifiBand int band = WifiScanner.WIFI_BAND_UNSPECIFIED;
+        @WifiAnnotations.WifiStandard int standard = ScanResult.WIFI_STANDARD_UNKNOWN;
+        for (SoftApInfo info : mCurrentSoftApInfoMap.values()) {
+            band |= ScanResult.toBand(info.getFrequency());
+            if (SdkLevel.isAtLeastS()) {
+                standard = info.getWifiStandard();
+            }
+        }
+        @SoftApConfiguration.SecurityType int securityType = SoftApConfiguration.SECURITY_TYPE_OPEN;
+        if (mCurrentSoftApConfiguration != null) {
+            securityType = mCurrentSoftApConfiguration.getSecurityType();
+        }
+        // TODO(b/245824786): Fill out the rest of the fields
+        mWifiMetrics.writeSoftApStoppedEvent(
+                stopEvent,
+                getRole(),
+                band,
+                isBridgedMode(),
+                mWifiNative.isStaApConcurrencySupported(),
+                ApConfigUtil.isStaWithBridgedModeSupported(mContext),
+                getCurrentStaFreqMhz(),
+                mDefaultShutdownTimeoutMillis > 0,
+                -1,
+                securityType,
+                standard,
+                -1,
+                mDefaultShutdownIdleInstanceInBridgedModeTimeoutMillis > 0,
+                -1,
+                -1,
+                null);
     }
 }
