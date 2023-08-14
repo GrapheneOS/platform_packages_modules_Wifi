@@ -3,19 +3,7 @@
     {
       // run service unit tests for API changes (since API changes can break service, but not the
       // other way around)
-      "name": "FrameworksWifiTests",
-      // TODO(b/275744125): should remove this when we find a better way to avoid test failure.
-      "options": [
-        {
-          "exclude-filter": "com.android.server.wifi.WakeupControllerTest"
-        },
-        {
-          "exclude-filter": "com.android.server.wifi.WifiNetworkSelectorTest"
-        },
-        {
-          "exclude-filter": "com.android.server.wifi.scanner.WifiScanningServiceTest"
-        }
-      ]
+      "name": "FrameworksWifiTests"
     }
   ],
   "presubmit": [
@@ -28,18 +16,7 @@
       "name": "FrameworksWifiApiTests[com.google.android.wifi.apex]"
     },
     {
-      "name": "FrameworksWifiTests[com.google.android.wifi.apex]",
-      "options": [
-        {
-          "exclude-filter": "com.android.server.wifi.WakeupControllerTest"
-        },
-        {
-          "exclude-filter": "com.android.server.wifi.WifiNetworkSelectorTest"
-        },
-        {
-          "exclude-filter": "com.android.server.wifi.scanner.WifiScanningServiceTest"
-        }
-      ]
+      "name": "FrameworksWifiTests[com.google.android.wifi.apex]"
     }
   ]
 }

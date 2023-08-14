@@ -65,9 +65,18 @@ java_library {
         "framework-statsd.stubs.module_lib",
         "framework-tethering.stubs.module_lib",
         "unsupportedappusage",
+        "app-compat-annotations",
+        "auto_value_annotations",
+    ],
+
+    plugins: [
+        "auto_value_plugin",
     ],
 
     static_libs: [
+        // AIDL vendor hal implementation
+        "android.hardware.wifi-V1-java",
+        // HIDL vendor hal implementation
         "android.hardware.wifi-V1.0-java",
         "android.hardware.wifi-V1.1-java",
         "android.hardware.wifi-V1.2-java",
@@ -83,7 +92,7 @@ java_library {
         "android.hardware.wifi.hostapd-V1.2-java",
         "android.hardware.wifi.hostapd-V1.3-java",
         // AIDL supplicant implementation
-        "android.hardware.wifi.supplicant-V1-java",
+        "android.hardware.wifi.supplicant-V2-java",
         // HIDL supplicant implementation
         "android.hardware.wifi.supplicant-V1.0-java",
         "android.hardware.wifi.supplicant-V1.1-java",
@@ -99,10 +108,12 @@ java_library {
         // the necessary core platform APIs.
         "libprotobuf-java-lite",
         "libnanohttpd",
+        "modules-utils-backgroundthread",
         "modules-utils-locallog",
         "netd-client",
         "networkstack-client",
         "net-utils-services-common",
+        "service-entitlement",
         "wifi-lite-protos",
         "wifi-nano-protos",
     ],
@@ -112,23 +123,26 @@ java_library {
 // ============================================================
 java_library {
     name: "service-wifi",
-    defaults: ["wifi-service-common"],
+    defaults: [
+        "wifi-service-common",
+        "standalone-system-server-module-optimize-defaults",
+    ],
     installable: true,
     static_libs: ["wifi-service-pre-jarjar"],
 
     // need to include `libs` so that Soong doesn't complain about missing classes after jarjaring
     libs: [
         "framework-wifi.impl",
+        "auto_value_annotations",
+    ],
+
+    plugins: [
+        "auto_value_plugin",
     ],
 
     sdk_version: "system_server_current",
 
     jarjar_rules: ":wifi-jarjar-rules",
-    optimize: {
-        enabled: true,
-        shrink: true,
-        proguard_flags_files: ["proguard.flags"],
-    },
 
     visibility: [
         "//frameworks/opt/net/wifi/service/apex",

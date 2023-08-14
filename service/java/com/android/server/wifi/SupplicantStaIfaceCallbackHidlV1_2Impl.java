@@ -37,17 +37,24 @@ abstract class SupplicantStaIfaceCallbackHidlV1_2Impl extends
     private final SupplicantStaIfaceHalHidlImpl mStaIfaceHal;
     private final String mIfaceName;
     private final Context mContext;
+    private final @NonNull SsidTranslator mSsidTranslator;
     private final SupplicantStaIfaceHalHidlImpl.SupplicantStaIfaceHalCallbackV1_1 mCallbackV11;
 
     SupplicantStaIfaceCallbackHidlV1_2Impl(@NonNull SupplicantStaIfaceHalHidlImpl staIfaceHal,
             @NonNull String ifaceName,
-            @NonNull Context context) {
+            @NonNull Context context,
+            @NonNull SsidTranslator ssidTranslator) {
         mStaIfaceHal = staIfaceHal;
         mIfaceName = ifaceName;
         mContext = context;
+        mSsidTranslator = ssidTranslator;
         // Create an older callback for function delegation,
         // and it would cascadingly create older one.
         mCallbackV11 = mStaIfaceHal.new SupplicantStaIfaceHalCallbackV1_1(mIfaceName);
+    }
+
+    public SupplicantStaIfaceHalHidlImpl.SupplicantStaIfaceHalCallback getCallbackV10() {
+        return mCallbackV11.getCallbackV10();
     }
 
     @Override
@@ -167,8 +174,8 @@ abstract class SupplicantStaIfaceCallbackHidlV1_2Impl extends
         WifiConfiguration newWifiConfiguration = new WifiConfiguration();
 
         // Set up SSID
-        WifiSsid wifiSsid =
-                WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid));
+        WifiSsid wifiSsid = mSsidTranslator.getTranslatedSsid(
+                WifiSsid.fromBytes(NativeUtil.byteArrayFromArrayList(ssid)));
 
         newWifiConfiguration.SSID = wifiSsid.toString();
 
@@ -195,7 +202,8 @@ abstract class SupplicantStaIfaceCallbackHidlV1_2Impl extends
                 .getNameForUid(Process.WIFI_UID);
         newWifiConfiguration.status = WifiConfiguration.Status.ENABLED;
 
-        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration);
+        mStaIfaceHal.getDppCallback().onSuccessConfigReceived(newWifiConfiguration,
+                false);
     }
 
     @Override

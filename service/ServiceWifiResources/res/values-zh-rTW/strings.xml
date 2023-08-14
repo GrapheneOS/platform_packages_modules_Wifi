@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"網路狀態"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"網路警示"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"有可用的網路"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM 警示"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"是否允許系統連線到建議的 Wi‑Fi 網路？"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"「<xliff:g id="NAME">%s</xliff:g>」建議的網路。裝置可能會自動連線到這些網路。"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"允許"</string>
@@ -54,6 +55,7 @@
     <string name="ok" msgid="847575529546290102">"確定"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"邀請函已傳送"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"連線邀請"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{請在 # 秒內接受。}other{請在 # 秒內接受。}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"寄件者："</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"收件者："</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"請輸入必要的 PIN："</string>
@@ -102,19 +104,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 連線至 Verizon Wi-Fi Access 時發生問題，請稍後再試。你也可以換個地點，然後再試一次。"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題，請稍後再試。你也可以換個地點，然後再試一次 (錯誤 = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 發生錯誤 16384，因此無法連線至 Verizon Wi-Fi Access。"</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 16384)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 發生錯誤 16385，因此無法連線至 Verizon Wi-Fi Access。"</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 16385)"</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 (錯誤代碼不明)"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g> : 連線至 Verizon Wi-Fi Access 時發生問題。"</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi 時發生問題 (錯誤 = 不明)"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"無線基地台已關閉"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"未連線到任何裝置，輕觸即可修改。"</string>
@@ -125,6 +127,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"這可能會導致以下應用程式發生問題：<xliff:g id="APPS">%3$s</xliff:g>。"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"允許"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"不允許"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi‑Fi 無線基地台"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi‑Fi 無線基地台"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi-Fi Direct"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"這是受信任的網路嗎？"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"是，連線"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"否，不要連線"</string>
@@ -154,4 +161,15 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"你可以透過快速設定關閉 Wi-Fi"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允許"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允許"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"在飛航模式下保持 Wi-Fi 開啟狀態"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"如果你不關閉 Wi-Fi，下次手機進入飛航模式時，Wi-Fi 將保持開啟"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi 會保持開啟狀態"</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"手機會記得在飛航模式下保持 Wi-Fi 開啟。如果不要保持開啟，請關閉 Wi-Fi。"</string>
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"網路無法使用"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"你的系統管理員已停用 <xliff:g id="SSID">%1$s</xliff:g>。"</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"關閉"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"是否要切換至 Wi‑Fi 網路？"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> 似乎並未連上網際網路，是否要切換至 <xliff:g id="SSID_1">%2$s</xliff:g>？"</string>
+    <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切換"</string>
+    <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不要切換"</string>
 </resources>

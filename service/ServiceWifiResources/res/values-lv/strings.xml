@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"Tīkla statuss"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"Tīkla brīdinājumi"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"Tīkls ir pieejams"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM brīdinājumi"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"Vai atļaut ieteiktos Wi‑Fi tīklus?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"Lietotnes <xliff:g id="NAME">%s</xliff:g> ieteiktie tīkli. Ierīcē var tikt automātiski izveidots savienojums."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Atļaut"</string>
@@ -54,6 +55,7 @@
     <string name="ok" msgid="847575529546290102">"Labi"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Uzaicinājums ir nosūtīts."</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Uzaicinājums izveidot savienojumu"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{Atlikusi # sekunde, lai pieņemtu.}zero{Atlikušas # sekundes, lai pieņemtu.}one{Atlikusi # sekunde, lai pieņemtu.}other{Atlikušas # sekundes, lai pieņemtu.}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"No:"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"Kam:"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"Ierakstiet pieprasīto PIN:"</string>
@@ -102,19 +104,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>: EAP autentificēšanas kļūda 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar pakalpojumu Verizon Wi-Fi Access, radās problēma. Vēlāk mēģiniet vēlreiz, vai arī mēģiniet izveidot savienojumu no citas atrašanās vietas."</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar pakalpojumu Verizon Wi-Fi Access, radās problēma. Vēlāk mēģiniet vēlreiz, vai arī mēģiniet izveidot savienojumu no citas atrašanās vietas. (Kļūdas kods — 32767.)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>: EAP autentificēšanas kļūda 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar pakalpojumu Verizon Wi-Fi Access, radās problēma kļūdas Nr. 16384 dēļ."</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar Verizon Wi-Fi, radās problēma (kļūdas kods — 16384)."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g>: EAP autentificēšanas kļūda 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar pakalpojumu Verizon Wi-Fi Access, radās problēma kļūdas Nr. 16385 dēļ."</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar Verizon Wi-Fi, radās problēma (kļūdas kods — 16385)."</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g>: EAP autentificēšanas kļūda, nezināms kļūdas kods"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar pakalpojumu Verizon Wi-Fi Access, radās problēma."</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: veidojot savienojumu ar Verizon Wi-Fi, radās problēma (nezināma kļūda)."</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"Tīklājs ir izslēgts"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"Nav pievienota neviena ierīce. Pieskarieties, lai mainītu iestatījumus."</string>
@@ -125,6 +127,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"Var rasties problēmas ar šīm lietotnēm: <xliff:g id="APPS">%3$s</xliff:g>."</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"Atļaut"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"Neatļaut"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"Stacijas režīms (STA)"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi-Fi tīklājs"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi-Fi tīklājs"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi-Fi Direct"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Vai šis tīkls ir uzticams?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Jā, izveidot savienojumu"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"Nē, neizveidot savienojumu"</string>
@@ -154,4 +161,15 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"Varat izslēgt Wi-Fi savienojumu ātrajos iestatījumos."</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Atļaut"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Neatļaut"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi‑Fi ieslēgts lidojuma režīmā"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Ja Wi‑Fi savienojums paliks ieslēgts, tālrunī tas paliks ieslēgts arī nākamreiz, kad ieslēgsiet lidojuma režīmu."</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi joprojām ieslēgts"</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Tālrunī joprojām būs ieslēgts Wi-Fi savienojums lidojuma režīmā. Izslēdziet Wi‑Fi savienojumu, ja nevēlaties, lai tas paliktu ieslēgts."</string>
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Nepieejams tīkls"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administrators atspējoja tīklu <xliff:g id="SSID">%1$s</xliff:g>."</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Aizvērt"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Vai pāriet uz citu Wi-Fi tīklu?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Šķiet, tīklā <xliff:g id="SSID_0">%1$s</xliff:g> nav savienojuma ar internetu. Vai vēlaties pāriet uz tīklu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Pāriet"</string>
+    <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nepāriet"</string>
 </resources>
