@@ -33,7 +33,7 @@
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Eman baimena"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Ez, eskerrik asko"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sarera konektatu nahi duzu?"</string>
-    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Sare hauek SIM ID bat jasotzen dute, gailuaren kokapenaren jarraipena egin ahal izateko"</string>
+    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Sare hauek SIM identifikatzaile bat jasotzen dute, gailuaren kokapenaren jarraipena egin ahal izateko"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Konektatu"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Ez konektatu"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Konexioa berretsi nahi duzu?"</string>
