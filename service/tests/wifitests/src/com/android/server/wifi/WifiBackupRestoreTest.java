@@ -233,10 +233,12 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                     + "<NetworkList>\n"
                     + "<Network>\n"
                     + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;WPA_PSK</string>\n"
-                    + "<string name=\"SSID\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;</string>\n"
+                    + "<string name=\"ConfigKey\">&quot;"
+                    + WifiConfigurationTestUtil.TEST_SSID
+                    + "&quot;WPA_PSK</string>\n"
+                    + "<string name=\"SSID\">&quot;"
+                    + WifiConfigurationTestUtil.TEST_SSID
+                    + "&quot;</string>\n"
                     + "<null name=\"PreSharedKey\" />\n"
                     + "<null name=\"WEPKeys\" />\n"
                     + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
@@ -251,6 +253,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                     + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
                     + "<boolean name=\"Shared\" value=\"true\" />\n"
                     + "<boolean name=\"AutoJoinEnabled\" value=\"false\" />\n"
+                    + "<int name=\"Priority\" value=\"0\" />\n"
                     + "<int name=\"DeletionPriority\" value=\"0\" />\n"
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"

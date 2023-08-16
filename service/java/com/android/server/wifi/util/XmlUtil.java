@@ -366,6 +366,7 @@ public class XmlUtil {
         public static final String XML_TAG_CARRIER_ID = "CarrierId";
         public static final String XML_TAG_SUBSCRIPTION_ID = "SubscriptionId";
         public static final String XML_TAG_IS_AUTO_JOIN = "AutoJoinEnabled";
+        public static final String XML_TAG_PRIORITY = "Priority";
         public static final String XML_TAG_DELETION_PRIORITY = "DeletionPriority";
         public static final String XML_TAG_NUM_REBOOTS_SINCE_LAST_USE = "NumRebootsSinceLastUse";
 
@@ -591,6 +592,7 @@ public class XmlUtil {
                     configuration.allowedSuiteBCiphers.toByteArray());
             XmlUtil.writeNextValue(out, XML_TAG_SHARED, configuration.shared);
             XmlUtil.writeNextValue(out, XML_TAG_IS_AUTO_JOIN, configuration.allowAutojoin);
+            XmlUtil.writeNextValue(out, XML_TAG_PRIORITY, configuration.priority);
             XmlUtil.writeNextValue(
                     out, XML_TAG_DELETION_PRIORITY,
                     configuration.getDeletionPriority());
@@ -995,6 +997,9 @@ public class XmlUtil {
                             break;
                         case XML_TAG_IS_AUTO_JOIN:
                             configuration.allowAutojoin = (boolean) value;
+                            break;
+                        case XML_TAG_PRIORITY:
+                            configuration.priority = (int) value;
                             break;
                         case XML_TAG_DELETION_PRIORITY:
                             configuration.setDeletionPriority((int) value);
