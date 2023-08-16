@@ -35,6 +35,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -3973,6 +3974,23 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
         assertInDisabledState();
+    }
+
+    @Test
+    public void testGetActiveModeManagersOrder() throws Exception {
+        enableWifi();
+        enterSoftApActiveMode();
+        assertInEnabledState();
+
+        Collection<ActiveModeManager> activeModeManagers =
+                mActiveModeWarden.getActiveModeManagers();
+        if (activeModeManagers == null) {
+            fail("activeModeManagers list should not be null");
+        }
+        Object[] modeManagers = activeModeManagers.toArray();
+        assertEquals(2, modeManagers.length);
+        assertTrue(modeManagers[0] instanceof SoftApManager);
+        assertTrue(modeManagers[1] instanceof ConcreteClientModeManager);
     }
 
     @Test
