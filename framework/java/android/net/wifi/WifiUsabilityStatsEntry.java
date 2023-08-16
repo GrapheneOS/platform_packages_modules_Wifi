@@ -53,6 +53,18 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
             LINK_STATE_IN_USE})
     public @interface LinkState {}
 
+    /** @hide */
+    public static String getLinkStateString(@LinkState int state) {
+        switch (state) {
+            case LINK_STATE_NOT_IN_USE:
+                return "LINK_STATE_NOT_IN_USE";
+            case LINK_STATE_IN_USE:
+                return "LINK_STATE_IN_USE";
+            default:
+                return "LINK_STATE_UNKNOWN";
+        }
+    }
+
     /** Chip does not support reporting the state of the link. */
     public static final int LINK_STATE_UNKNOWN = 0;
     /**
