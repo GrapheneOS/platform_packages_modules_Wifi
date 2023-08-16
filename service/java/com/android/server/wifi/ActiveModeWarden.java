@@ -1272,12 +1272,33 @@ public class ActiveModeWarden {
         }
     }
 
+    private List<ConcreteClientModeManager> getClientModeManagersPrimaryLast() {
+        List<ConcreteClientModeManager> primaries = new ArrayList<>();
+        List<ConcreteClientModeManager> others = new ArrayList<>();
+        for (ConcreteClientModeManager clientModeManager : mClientModeManagers) {
+            if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                primaries.add(clientModeManager);
+            } else {
+                others.add(clientModeManager);
+            }
+        }
+        if (primaries.size() > 1) {
+            Log.wtf(TAG, "More than 1 primary CMM detected when turning off Wi-Fi");
+            mWifiDiagnostics.takeBugReport("Wi-Fi ActiveModeWarden bugreport",
+                    "Multiple primary CMMs detected when turning off Wi-Fi.");
+        }
+        List<ConcreteClientModeManager> result = new ArrayList<>();
+        result.addAll(others);
+        result.addAll(primaries);
+        return result;
+    }
+
     /**
      * Method to stop all client mode mangers.
      */
     private void stopAllClientModeManagers() {
         Log.d(TAG, "Shutting down all client mode managers");
-        for (ConcreteClientModeManager clientModeManager : mClientModeManagers) {
+        for (ConcreteClientModeManager clientModeManager : getClientModeManagersPrimaryLast()) {
             clientModeManager.stop();
         }
     }
@@ -1446,8 +1467,8 @@ public class ActiveModeWarden {
     @VisibleForTesting
     Collection<ActiveModeManager> getActiveModeManagers() {
         ArrayList<ActiveModeManager> activeModeManagers = new ArrayList<>();
-        activeModeManagers.addAll(mClientModeManagers);
         activeModeManagers.addAll(mSoftApManagers);
+        activeModeManagers.addAll(getClientModeManagersPrimaryLast());
         return activeModeManagers;
     }
 
