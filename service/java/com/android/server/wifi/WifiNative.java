@@ -840,11 +840,13 @@ public class WifiNative {
     private class SupplicantDeathHandlerInternal implements SupplicantDeathEventHandler {
         @Override
         public void onDeath() {
-            synchronized (mLock) {
-                Log.i(TAG, "wpa_supplicant died. Cleaning up internal state.");
-                onNativeDaemonDeath();
-                mWifiMetrics.incrementNumSupplicantCrashes();
-            }
+            mHandler.post(() -> {
+                synchronized (mLock) {
+                    Log.i(TAG, "wpa_supplicant died. Cleaning up internal state.");
+                    onNativeDaemonDeath();
+                    mWifiMetrics.incrementNumSupplicantCrashes();
+                }
+            });
         }
     }
 
