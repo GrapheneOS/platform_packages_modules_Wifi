@@ -912,8 +912,9 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         executeAndValidateSetupClientInterface(
                 false, false, IFACE_NAME_0, mIfaceCallback0, mIfaceDestroyedListenerCaptor0,
                 mNetworkObserverCaptor0);
-        // Trigger wificond death
+        // Trigger supplicant death
         mSupplicantDeathHandlerCaptor.getValue().onDeath();
+        mLooper.dispatchAll();
 
         mInOrder.verify(mWifiMetrics).incrementNumSupplicantCrashes();
 
