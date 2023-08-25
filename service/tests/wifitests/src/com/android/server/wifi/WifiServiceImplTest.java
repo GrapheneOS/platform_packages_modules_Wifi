@@ -6433,6 +6433,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiScoreCard).clear();
         verify(mWifiHealthMonitor).clear();
         verify(mPasspointManager).getProviderConfigs(anyInt(), anyBoolean());
+        verify(mContext).resetResourceCache();
     }
 
     /**
