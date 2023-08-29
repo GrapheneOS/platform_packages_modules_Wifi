@@ -27,6 +27,7 @@ import android.Manifest;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -45,6 +46,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -66,6 +68,7 @@ import com.android.server.wifi.util.CertificateSubjectInfo;
 import com.android.server.wifi.util.LruConnectionTracker;
 import com.android.server.wifi.util.MissingCounterTimerLockList;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import org.xmlpull.v1.XmlPullParserException;
@@ -116,6 +119,23 @@ public class WifiConfigManager {
      */
     @VisibleForTesting
     public static final String PASSWORD_MASK = "*";
+
+    private final AlarmManager mAlarmManager;
+    private final FeatureFlags mFeatureFlags;
+    private boolean mBufferedWritePending;
+    /** Alarm tag to use for starting alarms for buffering file writes. */
+    @VisibleForTesting public static final String BUFFERED_WRITE_ALARM_TAG = "WriteBufferAlarm";
+    /** Time interval for buffering file writes for non-forced writes */
+    private static final int BUFFERED_WRITE_ALARM_INTERVAL_MS = 10 * 1000;
+    /** Alarm listener for flushing out any buffered writes. */
+    private final AlarmManager.OnAlarmListener mBufferedWriteListener =
+            new AlarmManager.OnAlarmListener() {
+                public void onAlarm() {
+                    if (mBufferedWritePending) {
+                        writeBufferedData(true);
+                    }
+                }
+            };
 
     /**
      * Interface for other modules to listen to the network updated events.
@@ -328,6 +348,7 @@ public class WifiConfigManager {
 
     private final FrameworkFacade mFrameworkFacade;
     private final DeviceConfigFacade mDeviceConfigFacade;
+    private final Handler mHandler;
 
     /**
      * Verbose logging flag. Toggled by developer options.
@@ -400,9 +421,7 @@ public class WifiConfigManager {
     }
     private final Map<NetworkIdentifier, List<DhcpOption>> mCustomDhcpOptions = new HashMap<>();
 
-    /**
-     * Create new instance of WifiConfigManager.
-     */
+    /** Create new instance of WifiConfigManager. */
     WifiConfigManager(
             Context context,
             WifiKeyStore wifiKeyStore,
@@ -411,8 +430,10 @@ public class WifiConfigManager {
             NetworkListUserStoreData networkListUserStoreData,
             RandomizedMacStoreData randomizedMacStoreData,
             LruConnectionTracker lruConnectionTracker,
-            WifiInjector wifiInjector) {
+            WifiInjector wifiInjector,
+            Handler handler) {
         mContext = context;
+        mHandler = handler;
         mWifiInjector = wifiInjector;
         mClock = wifiInjector.getClock();
         mUserManager = wifiInjector.getUserManager();
@@ -424,6 +445,7 @@ public class WifiConfigManager {
         mWifiPermissionsUtil = wifiInjector.getWifiPermissionsUtil();
         mFrameworkFacade = wifiInjector.getFrameworkFacade();
         mDeviceConfigFacade = wifiInjector.getDeviceConfigFacade();
+        mFeatureFlags = mDeviceConfigFacade.getFeatureFlags();
         mMacAddressUtil = wifiInjector.getMacAddressUtil();
         mBuildProperties = wifiInjector.getBuildProperties();
 
@@ -449,6 +471,7 @@ public class WifiConfigManager {
         mLocalLog = new LocalLog(
                 context.getSystemService(ActivityManager.class).isLowRamDevice() ? 128 : 256);
         mLruConnectionTracker = lruConnectionTracker;
+        mAlarmManager = context.getSystemService(AlarmManager.class);
     }
 
     /**
@@ -3294,7 +3317,7 @@ public class WifiConfigManager {
         }
         // Switch out the user store file.
         if (loadFromUserStoreAfterUnlockOrSwitch(userId)) {
-            saveToStore(true);
+            writeBufferedData(true);
             mPendingUnlockStoreRead = false;
         }
     }
@@ -3332,7 +3355,7 @@ public class WifiConfigManager {
             return new HashSet<>();
         }
         if (mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
-            saveToStore(true);
+            writeBufferedData(true);
         }
         // Remove any private networks of the old user before switching the userId.
         Set<Integer> removedNetworkIds = clearInternalDataForUser(mCurrentUserId);
@@ -3391,7 +3414,7 @@ public class WifiConfigManager {
         }
         if (userId == mCurrentUserId
                 && mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
-            saveToStore(true);
+            writeBufferedData(true);
             clearInternalDataForUser(mCurrentUserId);
         }
     }
@@ -3700,6 +3723,37 @@ public class WifiConfigManager {
             Log.e(TAG, "Cannot save to store before store is read!");
             return false;
         }
+        if (mFeatureFlags.delaySaveToStore()) {
+            // When feature enabled, always do a delay write
+            startBufferedWriteAlarm();
+            return true;
+        }
+        return writeBufferedData(forceWrite);
+    }
+
+    /** Helper method to start a buffered write alarm if one doesn't already exist. */
+    private void startBufferedWriteAlarm() {
+        if (!mBufferedWritePending) {
+            mAlarmManager.set(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    mClock.getElapsedSinceBootMillis() + BUFFERED_WRITE_ALARM_INTERVAL_MS,
+                    BUFFERED_WRITE_ALARM_TAG,
+                    mBufferedWriteListener,
+                    mHandler);
+            mBufferedWritePending = true;
+        }
+    }
+
+    /** Helper method to stop a buffered write alarm if one exists. */
+    private void stopBufferedWriteAlarm() {
+        if (mBufferedWritePending) {
+            mAlarmManager.cancel(mBufferedWriteListener);
+            mBufferedWritePending = false;
+        }
+    }
+
+    private boolean writeBufferedData(Boolean forceWrite) {
+        stopBufferedWriteAlarm();
         ArrayList<WifiConfiguration> sharedConfigurations = new ArrayList<>();
         ArrayList<WifiConfiguration> userConfigurations = new ArrayList<>();
         // List of network IDs for legacy Passpoint configuration to be removed.

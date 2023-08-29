@@ -14,3 +14,11 @@ flag {
     bug: "282821585"
 }
 
+
+flag {
+    name: "delay_save_to_store"
+    namespace: "wifi"
+    description: "Control the feature delay the save to store in batch to reduce the blocking time"
+    bug: "302172794"
+}
+

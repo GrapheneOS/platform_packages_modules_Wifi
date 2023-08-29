@@ -398,11 +398,17 @@ public class WifiInjector {
                 mWifiScoreCard, mScoringParams, mWifiMetrics, mWifiPermissionsUtil);
         mWifiMetrics.setWifiBlocklistMonitor(mWifiBlocklistMonitor);
         // Config Manager
-        mWifiConfigManager = new WifiConfigManager(mContext, mWifiKeyStore, mWifiConfigStore,
-                new NetworkListSharedStoreData(mContext),
-                new NetworkListUserStoreData(mContext),
-                new RandomizedMacStoreData(),
-                mLruConnectionTracker, this);
+        mWifiConfigManager =
+                new WifiConfigManager(
+                        mContext,
+                        mWifiKeyStore,
+                        mWifiConfigStore,
+                        new NetworkListSharedStoreData(mContext),
+                        new NetworkListUserStoreData(mContext),
+                        new RandomizedMacStoreData(),
+                        mLruConnectionTracker,
+                        this,
+                        wifiHandler);
         mSettingsConfigStore = new WifiSettingsConfigStore(context, wifiHandler,
                 mSettingsMigrationDataHolder, mWifiConfigManager, mWifiConfigStore);
         mSettingsStore = new WifiSettingsStore(mContext, mSettingsConfigStore, mWifiThreadRunner,
