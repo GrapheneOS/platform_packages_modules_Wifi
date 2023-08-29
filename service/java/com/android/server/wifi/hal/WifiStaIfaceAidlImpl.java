@@ -238,6 +238,9 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
     public WifiNative.ScanCapabilities getBackgroundScanCapabilities() {
         final String methodStr = "getBackgroundScanCapabilities";
         synchronized (mLock) {
+            if (!checkIfaceAndLogFailure(methodStr)) {
+                return null;
+            }
             try {
                 StaBackgroundScanCapabilities halCaps =
                         mWifiStaIface.getBackgroundScanCapabilities();
