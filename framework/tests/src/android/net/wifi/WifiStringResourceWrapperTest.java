@@ -30,6 +30,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.when;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.telephony.SubscriptionManager;
 
@@ -51,6 +52,7 @@ public class WifiStringResourceWrapperTest {
 
     @Mock WifiContext mContext;
     @Mock Resources mResources;
+    @Mock Context mApkContext;
 
     WifiStringResourceWrapper mDut;
 
@@ -117,6 +119,7 @@ public class WifiStringResourceWrapperTest {
                 eq(RES_NAME_DISABLE_THRESHOLD + CARRIER_ID_RESOURCE_NAME_SUFFIX),
                 eq("array"), any())).thenReturn(RES_ID_NOT_FOUND);
 
+        when(mContext.getResourcesApkContext()).thenReturn(mApkContext);
         mDut = new WifiStringResourceWrapper(mContext, SUB_ID, CARRIER_ID);
         when(mResources.getIdentifier(eq(RES_NAME_OOB_PSEUDONYM_ENABLED), eq("bool"), any()))
                 .thenReturn(RES_ID_OOB_PSEUDONYM_ENABLED);
