@@ -41,6 +41,7 @@ import android.os.Parcelable;
 import android.os.SystemClock;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
+import android.util.SparseArray;
 
 import androidx.annotation.RequiresApi;
 
@@ -131,6 +132,9 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * Only applicable for Wi-Fi 7 access points.
      */
     private int mApMloLinkId;
+
+    /** Maps link id to Affiliated MLO links. */
+    private SparseArray<MloLink> mAffiliatedMloLinksMap = new SparseArray<>();
 
     /**
      * The Multi-Link Operation (MLO) affiliated Links.
@@ -807,6 +811,13 @@ public class WifiInfo implements TransportInfo, Parcelable {
         mApMloLinkId = linkId;
     }
 
+    private void mapAffiliatedMloLinks() {
+        mAffiliatedMloLinksMap.clear();
+        for (MloLink link : mAffiliatedMloLinks) {
+            mAffiliatedMloLinksMap.put(link.getLinkId(), link);
+        }
+    }
+
     /**
      * Set the Multi-Link Operation (MLO) affiliated Links.
      * Only applicable for Wi-Fi 7 access points.
@@ -815,6 +826,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      */
     public void setAffiliatedMloLinks(@NonNull List<MloLink> links) {
         mAffiliatedMloLinks = new ArrayList<MloLink>(links);
+        mapAffiliatedMloLinks();
     }
 
     /**
@@ -923,6 +935,11 @@ public class WifiInfo implements TransportInfo, Parcelable {
     @NonNull
     public List<MloLink> getAffiliatedMloLinks() {
         return new ArrayList<MloLink>(mAffiliatedMloLinks);
+    }
+
+    /** @hide */
+    public MloLink getAffiliatedMloLink(int linkId) {
+        return mAffiliatedMloLinksMap.get(linkId);
     }
 
     /**

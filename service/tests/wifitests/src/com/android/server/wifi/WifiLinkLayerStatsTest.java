@@ -17,14 +17,21 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+
+import android.net.MacAddress;
+import android.net.wifi.MloLink;
+import android.net.wifi.WifiScanner;
 
 import androidx.test.filters.SmallTest;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -46,6 +53,40 @@ public class WifiLinkLayerStatsTest extends WifiBaseTest {
     public void setUp() throws Exception {
         mWifiInfo = new ExtendedWifiInfo(mock(WifiGlobals.class), WIFI_IFACE_NAME);
         mWifiLinkLayerStats = new WifiLinkLayerStats();
+    }
+
+    private void setupLinkStats() {
+        if (mWifiLinkLayerStats == null) return;
+        final int numLinks = 2;
+        int[] freqs = {2412, 5652};
+
+        mWifiLinkLayerStats.links = new WifiLinkLayerStats.LinkSpecificStats[numLinks];
+        for (int i = 0; i < numLinks; i++) {
+            mWifiLinkLayerStats.links[i] = new WifiLinkLayerStats.LinkSpecificStats();
+            mWifiLinkLayerStats.links[i].link_id = i + 1;
+            mWifiLinkLayerStats.links[i].radio_id = mRandom.nextInt(5);
+            mWifiLinkLayerStats.links[i].rssi_mgmt = mRandom.nextInt(127);
+            mWifiLinkLayerStats.links[i].beacon_rx = mRandom.nextInt(1000);
+            mWifiLinkLayerStats.links[i].frequencyMhz = freqs[i];
+        }
+    }
+
+    private void setupMloLinks() {
+        List<MloLink> mloLinks = new ArrayList<>();
+        MloLink link1 = new MloLink();
+        link1.setBand(WifiScanner.WIFI_BAND_24_GHZ);
+        link1.setChannel(6);
+        link1.setApMacAddress(MacAddress.fromString("01:02:03:04:05:06"));
+        link1.setLinkId(1);
+        MloLink link2 = new MloLink();
+        link2.setBand(WifiScanner.WIFI_BAND_5_GHZ);
+        link2.setChannel(44);
+        link2.setApMacAddress(MacAddress.fromString("01:02:03:04:05:07"));
+        link2.setLinkId(2);
+        mloLinks.add(link1);
+        mloLinks.add(link2);
+
+        mWifiInfo.setAffiliatedMloLinks(mloLinks);
     }
 
     /**
@@ -81,6 +122,30 @@ public class WifiLinkLayerStatsTest extends WifiBaseTest {
         s.txmpdu_vo += txg & m3;
         s.lostmpdu_vo += txb & m3;
         s.retries_vo += txr & m3;
+
+        if (s.links == null) return;
+
+        for (WifiLinkLayerStats.LinkSpecificStats l : s.links) {
+            l.rxmpdu_be += rxg & m0;
+            l.txmpdu_be += txg & m0;
+            l.lostmpdu_be += txb & m0;
+            l.retries_be += txr & m0;
+
+            l.rxmpdu_bk += rxg & m1;
+            l.txmpdu_bk += txg & m1;
+            l.lostmpdu_bk += txb & m1;
+            l.retries_bk += txr & m1;
+
+            l.rxmpdu_vi += rxg & m2;
+            l.txmpdu_vi += txg & m2;
+            l.lostmpdu_vi += txb & m2;
+            l.retries_vi += txr & m2;
+
+            l.rxmpdu_vo += rxg & m3;
+            l.txmpdu_vo += txg & m3;
+            l.lostmpdu_vo += txb & m3;
+            l.retries_vo += txr & m3;
+        }
     }
 
     /**
@@ -96,6 +161,11 @@ public class WifiLinkLayerStatsTest extends WifiBaseTest {
         int txr = mRandom.nextInt(100);
         int txb = mRandom.nextInt(100);
         int rxg = mRandom.nextInt(1000);
+        setupLinkStats();
+        setupMloLinks();
+        assertNotNull(mWifiInfo.getAffiliatedMloLinks());
+        assertNotNull(mWifiLinkLayerStats.links);
+
         int n = 3 * 5; // Time constant is 3 seconds, 5 times time constant should get 99% there
         for (int i = 0; i < n; i++) {
             bumpCounters(mWifiLinkLayerStats, txg, txr, txb, rxg);
@@ -112,6 +182,18 @@ public class WifiLinkLayerStatsTest extends WifiBaseTest {
         assertEquals(mWifiInfo.txRetries, n * txr);
         assertEquals(mWifiInfo.txBad, n * txb);
         assertEquals(mWifiInfo.rxSuccess, n * rxg);
+
+        for (MloLink mloLink : mWifiInfo.getAffiliatedMloLinks()) {
+            assertEquals((double) txg, mloLink.getSuccessfulTxPacketsPerSecond(), txg * 0.02);
+            assertEquals((double) txr, mloLink.getRetriedTxPacketsPerSecond(), txr * 0.02);
+            assertEquals((double) txb, mloLink.getLostTxPacketsPerSecond(), txb * 0.02);
+            assertEquals((double) rxg, mloLink.getSuccessfulRxPacketsPerSecond(), rxg * 0.02);
+
+            assertEquals(mloLink.txSuccess, n * ((long) txg));
+            assertEquals(mloLink.txRetries, n * ((long) txr));
+            assertEquals(mloLink.txBad, n * ((long) txb));
+            assertEquals(mloLink.rxSuccess, n * ((long) rxg));
+        }
     }
 
     /**
