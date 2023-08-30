@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import android.annotation.NonNull;
+import android.net.wifi.MloLink;
 import android.net.wifi.WifiInfo;
 
 /**
@@ -61,7 +62,19 @@ public class ExtendedWifiInfo extends WifiInfo {
         long txretries = stats.retries_be + stats.retries_bk + stats.retries_vi + stats.retries_vo;
         long txbad = stats.lostmpdu_be + stats.lostmpdu_bk + stats.lostmpdu_vi + stats.lostmpdu_vo;
         long rxgood = stats.rxmpdu_be + stats.rxmpdu_bk + stats.rxmpdu_vi + stats.rxmpdu_vo;
-        update(SOURCE_LLSTATS, txgood, txretries, txbad, rxgood, timeStamp);
+        updateWifiInfoRates(SOURCE_LLSTATS, txgood, txretries, txbad, rxgood, timeStamp);
+        // Process link stats if available.
+        if (stats.links == null) return;
+        for (WifiLinkLayerStats.LinkSpecificStats link : stats.links) {
+            updateMloRates(
+                    link.link_id,
+                    SOURCE_LLSTATS,
+                    link.txmpdu_be + link.txmpdu_bk + link.txmpdu_vi + link.txmpdu_vo,
+                    link.retries_be + link.retries_bk + link.retries_vi + link.retries_vo,
+                    link.lostmpdu_be + link.lostmpdu_bk + link.lostmpdu_vi + link.lostmpdu_vo,
+                    link.rxmpdu_be + link.rxmpdu_bk + link.rxmpdu_vi + link.rxmpdu_vo,
+                    timeStamp);
+        }
     }
 
     /**
@@ -69,11 +82,61 @@ public class ExtendedWifiInfo extends WifiInfo {
      * at the Wifi HAL
      */
     public void updatePacketRates(long txPackets, long rxPackets, long timeStamp) {
-        update(SOURCE_TRAFFIC_COUNTERS, txPackets, 0, 0, rxPackets, timeStamp);
+        updateWifiInfoRates(SOURCE_TRAFFIC_COUNTERS, txPackets, 0, 0, rxPackets, timeStamp);
     }
 
-    private void update(int source, long txgood, long txretries, long txbad, long rxgood,
+    private void updateMloRates(
+            int linkId,
+            int source,
+            long txgood,
+            long txretries,
+            long txbad,
+            long rxgood,
             long timeStamp) {
+        MloLink link = getAffiliatedMloLink(linkId);
+        if (link == null) return;
+        if (source == mLastSource
+                && link.lastPacketCountUpdateTimeStamp != RESET_TIME_STAMP
+                && link.lastPacketCountUpdateTimeStamp < timeStamp
+                && link.txBad <= txbad
+                && link.txSuccess <= txgood
+                && link.rxSuccess <= rxgood
+                && link.txRetries <= txretries) {
+            long timeDelta = timeStamp - link.lastPacketCountUpdateTimeStamp;
+            double lastSampleWeight = Math.exp(-1.0 * timeDelta / FILTER_TIME_CONSTANT);
+            double currentSampleWeight = 1.0 - lastSampleWeight;
+
+            link.setLostTxPacketsPerSecond(
+                    link.getLostTxPacketsPerSecond() * lastSampleWeight
+                            + (txbad - link.txBad) * 1000.0 / timeDelta * currentSampleWeight);
+            link.setSuccessfulTxPacketsPerSecond(
+                    link.getSuccessfulTxPacketsPerSecond() * lastSampleWeight
+                            + (txgood - link.txSuccess) * 1000.0 / timeDelta * currentSampleWeight);
+            link.setSuccessfulRxPacketsPerSecond(
+                    link.getSuccessfulRxPacketsPerSecond() * lastSampleWeight
+                            + (rxgood - link.rxSuccess) * 1000.0 / timeDelta * currentSampleWeight);
+            link.setRetriedTxPacketsRate(
+                    link.getRetriedTxPacketsPerSecond() * lastSampleWeight
+                            + (txretries - link.txRetries)
+                                    * 1000.0
+                                    / timeDelta
+                                    * currentSampleWeight);
+        } else {
+            link.setLostTxPacketsPerSecond(0);
+            link.setSuccessfulTxPacketsPerSecond(0);
+            link.setSuccessfulRxPacketsPerSecond(0);
+            link.setRetriedTxPacketsRate(0);
+            mLastSource = source;
+        }
+        link.txBad = txbad;
+        link.txSuccess = txgood;
+        link.rxSuccess = rxgood;
+        link.txRetries = txretries;
+        link.lastPacketCountUpdateTimeStamp = timeStamp;
+    }
+
+    private void updateWifiInfoRates(
+            int source, long txgood, long txretries, long txbad, long rxgood, long timeStamp) {
         if (source == mLastSource
                 && mLastPacketCountUpdateTimeStamp != RESET_TIME_STAMP
                 && mLastPacketCountUpdateTimeStamp < timeStamp

@@ -611,6 +611,36 @@ public class WifiMetrics {
 
     private final WifiToWifiSwitchStats mWifiToWifiSwitchStats = new WifiToWifiSwitchStats();
 
+    /** Wi-Fi link specific metrics (MLO). */
+    public static class LinkMetrics {
+        private long mTotalBeaconRx = 0;
+        private @android.net.wifi.WifiUsabilityStatsEntry.LinkState int mLinkUsageState =
+                android.net.wifi.WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+
+        /** Get Total beacon received on this link */
+        public long getTotalBeaconRx() {
+            return mTotalBeaconRx;
+        }
+
+        /** Set Total beacon received on this link */
+        public void setTotalBeaconRx(long totalBeaconRx) {
+            this.mTotalBeaconRx = totalBeaconRx;
+        }
+
+        /** Get link usage state */
+        public @android.net.wifi.WifiUsabilityStatsEntry.LinkState int getLinkUsageState() {
+            return mLinkUsageState;
+        }
+
+        /** Set link usage state */
+        public void setLinkUsageState(
+                @android.net.wifi.WifiUsabilityStatsEntry.LinkState int linkUsageState) {
+            this.mLinkUsageState = linkUsageState;
+        }
+    }
+
+    public SparseArray<LinkMetrics> mLastLinkMetrics = new SparseArray<>();
+
     @VisibleForTesting
     static class NetworkSelectionExperimentResults {
         public static final int MAX_CHOICES = 10;
@@ -7058,9 +7088,14 @@ public class WifiMetrics {
         for (MloLink link: info.getAffiliatedMloLinks()) {
             mloLinks.put(link.getLinkId(), link);
         }
+        mLastLinkMetrics.clear();
         // Fill per link stats.
         for (WifiLinkLayerStats.LinkSpecificStats inStat : stats.links) {
             if (inStat == null) break;
+            LinkMetrics linkMetrics = new LinkMetrics();
+            linkMetrics.setTotalBeaconRx(inStat.beacon_rx);
+            linkMetrics.setLinkUsageState(inStat.state);
+            mLastLinkMetrics.put(inStat.link_id, linkMetrics);
             WifiLinkLayerStats.ChannelStats channelStatsMap = stats.channelStatsMap.get(
                     inStat.frequencyMhz);
             // Note: RSSI, Tx & Rx link speed are derived from signal poll stats which is updated in
@@ -8477,6 +8512,20 @@ public class WifiMetrics {
      */
     public long getTotalBeaconRxCount() {
         return mLastTotalBeaconRx;
+    }
+
+    /** Get total beacon receive count for the link */
+    public long getTotalBeaconRxCount(int linkId) {
+        if (!mLastLinkMetrics.contains(linkId)) return 0;
+        return mLastLinkMetrics.get(linkId).getTotalBeaconRx();
+    }
+
+    /** Get link usage state */
+    public @android.net.wifi.WifiUsabilityStatsEntry.LinkState int getLinkUsageState(int linkId) {
+        if (!mLastLinkMetrics.contains(linkId)) {
+            return android.net.wifi.WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+        }
+        return mLastLinkMetrics.get(linkId).getLinkUsageState();
     }
 
     /** Note whether Wifi was enabled at boot time. */
