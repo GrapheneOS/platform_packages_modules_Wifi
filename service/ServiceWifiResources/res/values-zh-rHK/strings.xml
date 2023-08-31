@@ -37,14 +37,14 @@
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"連接"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"不要連線"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"確定要連線嗎？"</string>
-    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"連線後，「<xliff:g id="CARRIERNAME">%s</xliff:g>」的 Wi‑Fi 網絡就能存取或分享與 SIM 卡相關的獨有 ID，有心人或許可藉此追蹤您裝置的位置。"</string>
+    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"連線後，「<xliff:g id="CARRIERNAME">%s</xliff:g>」的 Wi‑Fi 網絡就能存取或分享與 SIM 卡相關的獨有 ID，有心人或許可藉此追蹤你裝置的位置。"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"連線"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"不要連線"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi-Fi 將會自動開啟"</string>
-    <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"當您位於已儲存的高品質網絡信號範圍內時"</string>
+    <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"當你位於已儲存的高品質網絡信號範圍內時"</string>
     <string name="wifi_wakeup_onboarding_action_disable" msgid="6209706680391785825">"不要重新開啟"</string>
     <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"已自動開啟 Wi‑Fi"</string>
-    <string name="wifi_wakeup_enabled_content" msgid="3911262526267025882">"您附近有已儲存的網絡：<xliff:g id="NETWORK_SSID">%1$s</xliff:g>"</string>
+    <string name="wifi_wakeup_enabled_content" msgid="3911262526267025882">"你附近有已儲存的網絡：<xliff:g id="NETWORK_SSID">%1$s</xliff:g>"</string>
     <string name="wifi_watchdog_network_disabled" msgid="5769226742956006362">"無法連線至 Wi-Fi"</string>
     <string name="wifi_watchdog_network_disabled_detailed" msgid="1725243835135539125">" 互聯網連線欠佳。"</string>
     <string name="wifi_connect_alert_title" msgid="2368200646665663612">"允許連線？"</string>
@@ -67,7 +67,7 @@
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"無法連接「<xliff:g id="SSID">%1$s</xliff:g>」"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"輕按以更改私隱設定，然後重試"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"要更改私隱設定嗎？"</string>
-    <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"<xliff:g id="SSID">%1$s</xliff:g> 需要使用您裝置的 MAC 位址 (不重複的識別碼) 連接。此網絡的私隱設定目前使用隨機識別碼。\n\n此變更可能會令附近裝置能夠追蹤您裝置的位置。"</string>
+    <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"<xliff:g id="SSID">%1$s</xliff:g> 需要使用你裝置的 MAC 位址 (不重複的識別碼) 連接。此網絡的私隱設定目前使用隨機識別碼。\n\n此變更可能會令附近裝置能夠追蹤你裝置的位置。"</string>
     <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"更改設定"</string>
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"已更新設定，請嘗試重新連線。"</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"無法更改私隱設定"</string>
@@ -80,15 +80,15 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32761" msgid="3962610712123291591">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32761"</string>
   <string-array name="wifi_eap_error_message_code_32761_carrier_overrides">
-    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：您未訂閱 Verizon Wi-Fi Access。請致電 800-922-0204 與我們聯絡 (錯誤 = 32761)"</item>
+    <item msgid="5173744897521799785">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：你未訂閱 Verizon Wi-Fi Access。請致電 800-922-0204 與我們聯絡 (錯誤 = 32761)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">
-    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帳戶發生問題。請致電 800-922-0204 與我們聯絡 (錯誤 = 32762)"</item>
+    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：你的 Verizon Wi-Fi Access 帳戶發生問題。請致電 800-922-0204 與我們聯絡 (錯誤 = 32762)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32763" msgid="4467733260757049969">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32763"</string>
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
-    <item msgid="591026649262091217">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：您已連線至 Verizon Wi-Fi Access (錯誤 = 32763)"</item>
+    <item msgid="591026649262091217">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：你已連線至 Verizon Wi-Fi Access (錯誤 = 32763)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32764" msgid="7349538467012877101">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32764"</string>
   <string-array name="wifi_eap_error_message_code_32764_carrier_overrides">
@@ -96,15 +96,15 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
-    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帳戶發生問題。請致電 800-922-0204 與我們聯絡 (錯誤 = 32765)"</item>
+    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：你的 Verizon Wi-Fi Access 帳戶發生問題。請致電 800-922-0204 與我們聯絡 (錯誤 = 32765)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g> : EAP 驗證錯誤 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
-    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：您目前的所在地點無法使用 Verizon Wi-Fi Access，請稍後再試。您亦可換個地點，然後再試一次 (錯誤 = 32766)"</item>
+    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：你目前的所在地點無法使用 Verizon Wi-Fi Access，請稍後再試。你亦可換個地點，然後再試一次 (錯誤 = 32766)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。請稍後再試。您亦可換個地點，然後再試一次 (錯誤 = 32767)"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g>：連線至 Verizon Wi-Fi Access 時發生問題。請稍後再試。你亦可換個地點，然後再試一次 (錯誤 = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 驗證錯誤 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
@@ -158,18 +158,18 @@
     <string name="wifi_ca_cert_notification_preT_continue_text" msgid="1525418430746943670">"仍要連線"</string>
     <string name="wifi_ca_cert_notification_preT_abort_text" msgid="8307996031461071854">"不要連線"</string>
     <string name="wifi_enable_request_dialog_title" msgid="3577459145316177148">"允許「<xliff:g id="APP_NAME">%1$s</xliff:g>」開啟 Wi‑Fi 嗎？"</string>
-    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"您可以在「快速設定」中關閉 Wi-Fi"</string>
+    <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"你可以在「快速設定」中關閉 Wi-Fi"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允許"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允許"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"在飛行模式下開啟 Wi-Fi"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"如果您不關閉 Wi-Fi，下次手機進入飛行模式時，Wi-Fi 將保持開啟"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"如果你不關閉 Wi-Fi，下次裝置進入飛行模式時，Wi-Fi 將保持開啟"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"保持 Wi-Fi 連線"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"手機會記得在飛行模式下保持 Wi-Fi 開啟。如果您不希望保持開啟，請關閉 Wi-Fi。"</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"裝置會記得在飛行模式下保持 Wi-Fi 開啟。如果你不希望保持開啟，請關閉 Wi-Fi。"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"無法使用網絡"</string>
-    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"您的管理員已停用「<xliff:g id="SSID">%1$s</xliff:g>」。"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"你的管理員已停用「<xliff:g id="SSID">%1$s</xliff:g>」。"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"關閉"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"要切換至 Wi-Fi 網絡嗎？"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"「<xliff:g id="SSID_0">%1$s</xliff:g>」似乎尚未連線至互聯網。要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"「<xliff:g id="SSID_0">%1$s</xliff:g>」似乎未連線至互聯網。要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"「<xliff:g id="SSID_0">%1$s</xliff:g>」品質偏低，要切換至「<xliff:g id="SSID_1">%2$s</xliff:g>」嗎？"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切換"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不要切換"</string>
 </resources>

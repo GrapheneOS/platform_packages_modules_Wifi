@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Povolit"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Nepovolovat"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Zapnutá Wi-Fi v režimu Letadlo"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Pokud Wi-Fi necháte zapnutou, telefon si zapamatuje, že ji má příště v režimu Letadlo ponechat zapnutou"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Pokud Wi-Fi necháte zapnutou, zařízení si zapamatuje, že ji má příště v režimu Letadlo ponechat zapnutou"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi zůstane zapnutá"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Telefon si pamatuje, že má v režimu Letadlo ponechat zapnutou Wi-Fi. Pokud nechcete, aby Wi-Fi zůstala zapnutá, vypněte ji."</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Zařízení si pamatuje, že má v režimu Letadlo ponechat zapnutou Wi-Fi. Pokud nechcete, aby Wi-Fi zůstala zapnutá, vypněte ji."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Nedostupná síť"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Funkce <xliff:g id="SSID">%1$s</xliff:g> byla deaktivována administrátorem."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Zavřít"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Přepnout sítě Wi-Fi?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Zdá se, že síť <xliff:g id="SSID_0">%1$s</xliff:g> není připojena k internetu. Přepnout na síť <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"Zdá se, že síť <xliff:g id="SSID_0">%1$s</xliff:g> není připojena k internetu. Přepnout na síť <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"Síť <xliff:g id="SSID_0">%1$s</xliff:g> není kvalitní. Přepnout na síť <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Přepnout"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nepřepínat"</string>
 </resources>

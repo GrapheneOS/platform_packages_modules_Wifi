@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"İcazə verin"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"İcazə verməyin"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Təyyarə rejimində Wi‑Fi aktiv qalsın"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Wi‑Fi\'ı aktiv saxlasanız, növbəti dəfə təyyarə rejimində olduqda telefonunuz onu aktiv saxlayacaq"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Wi‑Fi aktiv qalarsa, cihaz növbəti dəfə təyyarə rejimində onu aktiv saxlayacaq"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi aktiv qalacaq"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Telefonunuz təyyarə rejimində Wi‑Fi\'ı aktiv saxlayacaq. Aktiv qalmasını istəmirsinizsə, Wi‑Fi\'ı deaktiv edin."</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Cihaz təyyarə rejimində Wi‑Fi-ı aktiv saxlayır. İstəmirsinizsə, Wi‑Fi-ı deaktiv edin."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Əlçatan Şəbəkə"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> administratorunuz tərəfindən deaktiv edilib."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Bağlayın"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Wi‑Fi şəbəkələri dəyişilsin?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> internetə qoşulmayıb. <xliff:g id="SSID_1">%2$s</xliff:g> şəbəkəsinə dəyişilsin?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> internetə qoşulmayıb. <xliff:g id="SSID_1">%2$s</xliff:g> seçiminə dəyişilsin?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> aşağı keyfiyyətlidir. <xliff:g id="SSID_1">%2$s</xliff:g> seçiminə dəyişilsin?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Dəyişin"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Dəyişməyin"</string>
 </resources>

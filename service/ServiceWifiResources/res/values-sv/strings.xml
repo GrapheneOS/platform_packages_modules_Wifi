@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Tillåt"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Tillåt inte"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifi är aktiverat i flygplansläget"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Om du håller wifi aktiverat kommer telefonen ihåg att hålla det aktiverat nästa gång du använder flygplansläge."</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Om du håller wifi aktiverat kommer enheten ihåg att hålla det aktiverat nästa gång du använder flygplansläge."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifi inaktiveras inte"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Telefonen håller wifi aktiverat i flygplansläge. Inaktivera wifi om du inte vill att wifi ska hållas aktiverat."</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Enheten kommer ihåg att hålla wifi aktiverat i flygplansläge. Inaktivera wifi om du inte vill att wifi ska hållas aktiverat."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Otillgängligt nätverk"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> har inaktiverats av administratören."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Stäng"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Vill du byta wifi-nätverk?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> verkar inte vara ansluten till internet. Vill du byta till <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> verkar inte vara ansluten till internet. Vill du byta till <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> håller låg kvalitet. Vill du byta till <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Byt"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Byt inte"</string>
 </resources>

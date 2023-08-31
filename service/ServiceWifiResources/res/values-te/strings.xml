@@ -65,7 +65,7 @@
     <string name="wifi_p2p_frequency_conflict_message" product="default" msgid="2226863827636191980">"ఫోన్ <xliff:g id="DEVICE_NAME">%1$s</xliff:g>కి కనెక్ట్ అయినప్పుడు అది Wi-Fi నుండి తాత్కాలికంగా డిస్‌కనెక్ట్ చేయబడుతుంది"</string>
     <string name="dlg_ok" msgid="254496739491689405">"సరే"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"<xliff:g id="SSID">%1$s</xliff:g>కు కనెక్ట్ చేయడం సాధ్యపడదు"</string>
-    <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"మీ గోప్యతా సెట్టింగ్‌లను మార్చడానికి నొక్కి, మళ్లీ ప్రయత్నించండి"</string>
+    <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"మీ గోప్యతా సెట్టింగ్‌లను మార్చడానికి నొక్కి, మళ్లీ ట్రై చేయండి"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"గోప్యతా సెట్టింగ్‌ను మార్చాలా?"</string>
     <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"కనెక్ట్ చేయడానికి, <xliff:g id="SSID">%1$s</xliff:g> అనేది ప్రత్యేకమైన ఐడెంటిఫయర్ అయిన మీ పరికరం యొక్క MAC అడ్రస్‌ను ఉపయోగించాల్సి ఉంటుంది. ప్రస్తుతం, ఈ నెట్‌వర్క్ కోసం మీ గోప్యతా సెట్టింగ్ యాదృచ్ఛిక ఐడెంటిఫయర్‌ను ఉపయోగిస్తుంది. \n\nఈ మార్పు వలన మీ పరికర లొకేషన్‌ను ట్రాక్ చేయడానికి సమీప పరికరాలకు అనుమతి లభించవచ్చు."</string>
     <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"సెట్టింగ్‌ను మార్చండి"</string>
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"అనుమతించండి"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"అనుమతించవద్దు"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"విమానం మోడ్‌లో Wi‑Fi ఆన్ చేయబడింది"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"మీరు Wi‑Fiని ఆన్‌లో ఉంచినట్లయితే, మీరు తదుపరిసారి విమానం మోడ్‌లో ఉన్నప్పుడు దాన్ని ఆన్‌లో ఉంచాలని మీ ఫోన్ గుర్తుంచుకుంటుంది"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"మీరు Wi‑Fiని ఆన్‌లో ఉంచినట్లయితే, మీరు తదుపరిసారి విమానం మోడ్‌లో ఉన్నప్పుడు దాన్ని ఆన్‌లో ఉంచాలని మీ పరికరం గుర్తుంచుకుంటుంది"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi ఆన్‌లోనే ఉంటుంది"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"మీ ఫోన్ విమానం మోడ్‌లో Wi‑Fiని ఆన్‌లో ఉంచాలని గుర్తుంచుకుంటుంది. Wi‑Fi ఆన్‌లో ఉండకూడదనుకుంటే దాన్ని ఆఫ్ చేయండి."</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"మీ పరికరం విమానం మోడ్‌లో Wi‑Fiని ఆన్‌లో ఉంచాలని గుర్తుంచుకుంటుంది. Wi‑Fi ఆన్‌లో ఉండకూడదనుకుంటే దాన్ని ఆఫ్ చేయండి."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"నెట్‌వర్క్ అందుబాటులో లేదు"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g>ను మీ అడ్మినిస్ట్రేటర్ డిజేబుల్ చేశారు."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"మూసివేయండి"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Wi‑Fi నెట్‌వర్క్‌లను మార్చలా?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ఇంటర్నెట్‌కు కనెక్ట్ అయి లేనట్లు కనిపిస్తోంది. <xliff:g id="SSID_1">%2$s</xliff:g>‌కు మారాలా?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ఇంటర్నెట్‌కు కనెక్ట్ అయి లేనట్లు కనిపిస్తోంది. <xliff:g id="SSID_1">%2$s</xliff:g>‌కు మారాలా?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> తక్కువ క్వాలిటీలో ఉంది. <xliff:g id="SSID_1">%2$s</xliff:g>‌కు మారాలా?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"మారండి"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"మారద్దు"</string>
 </resources>

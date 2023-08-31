@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Engedélyezés"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Tiltás"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"A Wi‑Fi bekapcsolva marad Repülős üzemmódban"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Ha bekapcsolva tartja a Wi-Fi-t, a telefon emlékezni fog arra, hogy a következő alkalommal, amikor Repülős üzemmódban van, bekapcsolva tartsa a funkciót"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Ha bekapcsolva tartja a Wi-Fi-t, az eszköz emlékezni fog arra, hogy a következő alkalommal, amikor Repülős üzemmódban van, bekapcsolva tartsa a funkciót"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"A Wi‑Fi bekapcsolva marad"</string>
-    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"A telefon bekapcsolva tartja a Wi‑Fi-t Repülős üzemmódban. Kapcsolja ki a Wi-Fi-t, ha nem szeretné, hogy bekapcsolva maradjon."</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Az eszköz bekapcsolva tartja a Wi‑Fi-t Repülős üzemmódban. Kapcsolja ki a Wi-Fi-t, ha nem szeretné, hogy bekapcsolva maradjon."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Hozzáférhetetlen hálózat"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> letiltva a rendszergazda által."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Bezárás"</string>
-    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Szeretne Wi‑Fi-hálózatot váltani?"</string>
-    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Úgy tűnik, a(z) <xliff:g id="SSID_0">%1$s</xliff:g> nem csatlakozik az internethez. Szeretne a következőre váltani: <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"Úgy tűnik, a(z) <xliff:g id="SSID_0">%1$s</xliff:g> nem csatlakozik az internethez. Szeretne a következőre váltani: <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"A(z) <xliff:g id="SSID_0">%1$s</xliff:g> gyenge minőségű. Szeretne a következőre váltani: <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Váltás"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nincs váltás"</string>
 </resources>
