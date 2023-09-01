@@ -1383,6 +1383,30 @@ public class SoftApManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void testHostapdInstanceFailureBeforeSecondInstanceInitialized()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, generateBridgedModeSoftApConfig(null),
+                mTestSoftApCapability, TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
+        startSoftApAndVerifyEnabled(apConfig);
+        when(mWifiNative.getBridgedApInstances(any()))
+                .thenReturn(new ArrayList<>(ImmutableList.of(TEST_FIRST_INSTANCE_NAME,
+                        TEST_SECOND_INSTANCE_NAME)));
+        // SoftApInfo updated for first instance only
+        mockApInfoChangedEvent(mTestSoftApInfoOnFirstInstance);
+        mLooper.dispatchAll();
+
+        // Trigger onInstanceFailure on the first instance
+        mSoftApHalCallbackCaptor.getValue().onInstanceFailure(TEST_FIRST_INSTANCE_NAME);
+        mLooper.dispatchAll();
+        // Verify AP remains up while waiting for the second instance.
+        verify(mWifiNative).removeIfaceInstanceFromBridgedApIface(eq(TEST_INTERFACE_NAME),
+                eq(TEST_FIRST_INSTANCE_NAME));
+        verify(mWifiNative, never()).teardownInterface(TEST_INTERFACE_NAME);
+    }
+
+    @Test
     public void updatesMetricsOnChannelSwitchedEvent() throws Exception {
         SoftApModeConfiguration apConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,

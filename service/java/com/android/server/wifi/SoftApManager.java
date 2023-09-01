@@ -2064,6 +2064,11 @@ public class SoftApManager implements ActiveModeManager {
                                 if (mCurrentSoftApInfoMap.size() == 1) {
                                     break;
                                 }
+                                // Check if there's any instances that aren't done initializing.
+                                if (mWifiNative.getBridgedApInstances(mApInterfaceName)
+                                        .size() > 0) {
+                                    break;
+                                }
                             } else if (mCurrentSoftApInfoMap.size() == 1 && instances != null
                                     && instances.size() == 1) {
                                 if (!mCurrentSoftApInfoMap.containsKey(instances.get(0))) {

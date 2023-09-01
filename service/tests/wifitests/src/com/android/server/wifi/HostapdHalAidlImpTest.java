@@ -1194,15 +1194,50 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
         mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
 
         // Trigger on info changed and verify.
+        mockApInfoChangedAndVerify(IFACE_NAME, 1, mIHostapdCallback, mSoftApHalCallback);
         mockApInfoChangedAndVerify(IFACE_NAME, 2, mIHostapdCallback, mSoftApHalCallback);
 
-        // Trigger on failure from first instance.
+        // Trigger on instance failure from first instance.
         mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE);
         verify(mSoftApHalCallback).onInstanceFailure(TEST_AP_INSTANCE);
 
         // Trigger on failure from second instance.
         mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE_2);
-        verify(mSoftApHalCallback).onFailure();
+        verify(mSoftApHalCallback).onInstanceFailure(TEST_AP_INSTANCE_2);
+    }
+
+    /**
+     * Verifies the onFailure is ignored if it's for an instance that was already removed.
+     */
+    @Test
+    public void testHostapdCallbackOnFailureIgnoredForAlreadyRemovedInstance() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        executeAndValidateInitializationSequence(true);
+        Builder configurationBuilder = new SoftApConfiguration.Builder();
+        configurationBuilder.setSsid(NETWORK_SSID);
+        configurationBuilder.setBands(new int[] {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_5GHZ});
+
+        doNothing().when(mIHostapdMock).addAccessPoint(any(), any());
+        assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME,
+                configurationBuilder.build(), true,
+                () -> mSoftApHalCallback.onFailure()));
+        verify(mIHostapdMock).addAccessPoint(any(), any());
+
+        // Register SoftApManager callback
+        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
+
+        // Trigger on info changed and verify.
+        mockApInfoChangedAndVerify(IFACE_NAME, 1, mIHostapdCallback, mSoftApHalCallback);
+
+        // Trigger on failure from first instance.
+        mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE);
+        verify(mSoftApHalCallback).onInstanceFailure(TEST_AP_INSTANCE);
+
+        // Trigger on failure from first instance again.
+        mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE);
+        verify(mSoftApHalCallback, times(1)).onInstanceFailure(TEST_AP_INSTANCE);
+        verify(mSoftApHalCallback, never()).onFailure();
 
     }
 

@@ -380,14 +380,23 @@ public class HostapdHalAidlImp implements IHostapdHal {
         public void onFailure(String ifaceName, String instanceName) {
             Log.w(TAG, "Failure on iface " + ifaceName + ", instance: " + instanceName);
             Runnable onFailureListener = mSoftApFailureListeners.get(ifaceName);
-            SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
-            if (onFailureListener != null) {
-                mActiveInstances.remove(instanceName);
-                if (mActiveInstances.size() == 0) {
+            if (onFailureListener != null && ifaceName != null) {
+                if (ifaceName.equals(instanceName)) {
+                    // Single AP
                     onFailureListener.run();
-                } else if (callback != null) {
-                    callback.onInstanceFailure(instanceName);
+                } else {
+                    // Bridged AP
+                    if (mActiveInstances.contains(instanceName)) {
+                        SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
+                        if (callback != null) {
+                            callback.onInstanceFailure(instanceName);
+                        }
+                    } else {
+                        Log.w(TAG, "Ignore error for inactive instances");
+
+                    }
                 }
+                mActiveInstances.remove(instanceName);
             }
         }
 
