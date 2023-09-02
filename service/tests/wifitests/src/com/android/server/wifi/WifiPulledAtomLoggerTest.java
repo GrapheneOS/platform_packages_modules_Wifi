@@ -29,7 +29,9 @@ import android.app.StatsManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiNetworkSuggestion;
 import android.os.Handler;
 import android.os.test.TestLooper;
 import android.util.StatsEvent;
@@ -51,6 +53,8 @@ import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 @SmallTest
@@ -66,6 +70,9 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     @Mock private WifiInjector mWifiInjector;
     @Mock private PackageManager mPackageManager;
     @Mock private WifiSettingsStore mWifiSettingsStore;
+    @Mock private WifiConfigManager mWifiConfigManager;
+    @Mock private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
+    @Mock private WifiConfiguration mWifiConfiguration;
     @Captor ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
 
     @Before
@@ -213,5 +220,34 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         when(mWifiSettingsStore.getWifiMultiInternetMode()).thenReturn(9999);
         assertEquals(StatsManager.PULL_SKIP, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO, new ArrayList<>()));
+    }
+
+    @Test
+    public void testWifiConfiguredNetworkInfoPull() {
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO);
+        verify(mStatsManager).setPullAtomCallback(eq(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO),
+                any(), any(), mPullAtomCallbackArgumentCaptor.capture());
+        assertNotNull(mPullAtomCallbackArgumentCaptor.getValue());
+
+        when(mWifiConfiguration.getNetworkKey()).thenReturn("someKey");
+        when(mWifiConfiguration.getNetworkSelectionStatus()).thenReturn(
+                mock(WifiConfiguration.NetworkSelectionStatus.class));
+        when(mWifiConfiguration.isPasspoint()).thenReturn(false);
+
+        WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
+        when(mockSuggestion.getWifiConfiguration()).thenReturn(mWifiConfiguration);
+
+        when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
+        when(mWifiInjector.getWifiNetworkSuggestionsManager())
+                .thenReturn(mWifiNetworkSuggestionsManager);
+        when(mWifiConfigManager.getSavedNetworks(anyInt()))
+                .thenReturn(Arrays.asList(mWifiConfiguration));
+        when(mWifiNetworkSuggestionsManager.getAllApprovedNetworkSuggestions())
+                .thenReturn(new HashSet<>(Arrays.asList(mockSuggestion)));
+
+        List<StatsEvent> data = new ArrayList<>();
+        assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
+                .onPullAtom(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO, data));
+        assertEquals(2, data.size());
     }
 }
