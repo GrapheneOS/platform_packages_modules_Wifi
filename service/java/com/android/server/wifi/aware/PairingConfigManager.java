@@ -118,12 +118,14 @@ public class PairingConfigManager {
 
     private boolean checkMatchAlias(String alias, byte[] nonce, byte[] tag, byte[] mac) {
         byte[] nik = mAliasToNikMap.get(alias);
+        byte[] nir = {'N', 'I', 'R'};
         if (nik == null) return false;
         SecretKeySpec spec = new SecretKeySpec(nik, "HmacSHA256");
 
         try {
             Mac hash = Mac.getInstance("HmacSHA256");
             hash.init(spec);
+            hash.update(nir);
             hash.update(mac);
             hash.update(nonce);
             byte[] message = Arrays.copyOf(hash.doFinal(), TAG_SIZE_IN_BYTE);
