@@ -157,6 +157,7 @@ public class PairingConfigManager {
         Set<String> pairedDevices = mPerAppPairedAliasMap.get(packageName);
         if (pairedDevices == null) {
             pairedDevices = new HashSet<>();
+            mPerAppPairedAliasMap.put(packageName, pairedDevices);
         }
         pairedDevices.add(alias);
         mAliasToNikMap.put(alias, info.mPeerNik);
