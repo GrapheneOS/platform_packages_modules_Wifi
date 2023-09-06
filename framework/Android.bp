@@ -100,6 +100,7 @@ java_defaults {
         "androidx.annotation_annotation",
         "unsupportedappusage", // for android.compat.annotation.UnsupportedAppUsage
         "framework-connectivity.stubs.module_lib",
+        "framework-location.stubs.module_lib",
         "app-compat-annotations",
     ],
     aidl: {
@@ -138,7 +139,10 @@ java_sdk_library {
         "framework-wifi-defaults",
     ],
 
-    stub_only_libs: ["framework-connectivity.stubs.module_lib"],
+    stub_only_libs: [
+        "framework-location.stubs.module_lib",
+        "framework-connectivity.stubs.module_lib",
+    ],
 
     jarjar_rules: ":wifi-jarjar-rules",
 
