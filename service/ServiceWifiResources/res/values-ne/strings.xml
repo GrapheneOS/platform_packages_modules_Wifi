@@ -29,7 +29,7 @@
     <string name="notification_channel_network_available" msgid="8454366142428864948">"नेटवर्क उपलब्ध छ"</string>
     <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"APM सम्बन्धी अलर्टहरू"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"सिफारिस गरिएका Wi‑Fi नेटवर्कहरूलाई अनुमति दिनुहोस्?"</string>
-    <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> ले सिफारिस गरेका नेटवर्कहरू। यन्त्र स्वतः जडान हुन सक्छ।"</string>
+    <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> ले सिफारिस गरेका नेटवर्कहरू। यन्त्र अटो कनेक्ट हुन सक्छ।"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"अनुमति दिनुहोस्"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"पर्दैन, धन्यवाद"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi-Fi मा कनेक्ट गर्ने हो?"</string>
