@@ -349,8 +349,11 @@ public class WifiConnectivityManager {
         /**
          * @param wasCandidateSelected true - if a candidate is selected by WifiNetworkSelector
          *                             false - if no candidate is selected by WifiNetworkSelector
+         * @param candidateIsPasspoint true - if the selected candidate is a Passpoint network
+         *                             false - if no candidate is selected OR the selected
+         *                                     candidate is not a Passpoint network
          */
-        void onHandled(boolean wasCandidateSelected);
+        void onHandled(boolean wasCandidateSelected, boolean candidateIsPasspoint);
     }
 
     /**
@@ -363,16 +366,17 @@ public class WifiConnectivityManager {
                     mNetworkSelector.getFilteredScanDetailsForOpenUnsavedNetworks());
         }
         mWifiMetrics.noteFirstNetworkSelectionAfterBoot(false);
-        handleScanResultsListener.onHandled(false);
+        handleScanResultsListener.onHandled(false, false);
     }
 
     /**
      * Helper method to consolidate handling of scan results when a candidate is selected.
      */
     private void handleScanResultsWithCandidate(
-            @NonNull HandleScanResultsListener handleScanResultsListener) {
+            @NonNull HandleScanResultsListener handleScanResultsListener,
+            boolean candidateIsPasspoint) {
         mWifiMetrics.noteFirstNetworkSelectionAfterBoot(true);
-        handleScanResultsListener.onHandled(true);
+        handleScanResultsListener.onHandled(true, candidateIsPasspoint);
     }
 
     /**
@@ -521,7 +525,8 @@ public class WifiConnectivityManager {
                     targetNetwork.BSSID = targetBssid2; // specify the BSSID to disable roaming.
                     connectToNetworkUsingCmmWithoutMbb(cm, targetNetwork);
 
-                    handleScanResultsWithCandidate(handleScanResultsListener);
+                    handleScanResultsWithCandidate(handleScanResultsListener,
+                            targetNetwork.isPasspoint());
                 }, secondaryRequestorWs,
                 secondaryCmmCandidate.SSID,
                 bssidToConnect);
@@ -762,7 +767,8 @@ public class WifiConnectivityManager {
                     // flow above)
                     connectToNetworkUsingCmmWithoutMbb(cm, secondaryCmmCandidate);
 
-                    handleScanResultsWithCandidate(handleScanResultsListener);
+                    handleScanResultsWithCandidate(handleScanResultsListener,
+                            secondaryCmmCandidate.isPasspoint());
                 }, secondaryRequestorWs,
                 secondaryCmmCandidate.SSID,
                 mConnectivityHelper.isFirmwareRoamingSupported()
@@ -781,7 +787,7 @@ public class WifiConnectivityManager {
         if (candidate != null) {
             localLog(listenerName + ":  WNS candidate-" + candidate.SSID);
             connectToNetworkForPrimaryCmmUsingMbbIfAvailable(candidate);
-            handleScanResultsWithCandidate(handleScanResultsListener);
+            handleScanResultsWithCandidate(handleScanResultsListener, candidate.isPasspoint());
         } else {
             localLog(listenerName + ":  No candidate");
             handleScanResultsWithNoCandidate(handleScanResultsListener);
@@ -950,7 +956,7 @@ public class WifiConnectivityManager {
             }
             handleScanResults(scanDetailList,
                     ALL_SINGLE_SCAN_LISTENER, isFullBandScanResults,
-                    wasCandidateSelected -> {
+                    (wasCandidateSelected, candidateIsPasspoint) -> {
                         // Update metrics to see if a single scan detected a valid network
                         // while PNO scan didn't.
                         // Note: We don't update the background scan metrics any more as it is
@@ -1104,6 +1110,10 @@ public class WifiConnectivityManager {
         public void onFailure(int reason, String description) {
             localLog("PnoScanListener onFailure:"
                     + " reason: " + reason + " description: " + description);
+            WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                    WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,
+                    0, false, false, false, false, // default values
+                    WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__WIFI_SCANNING_SERVICE_FAILURE);
 
             // reschedule the scan
             if (mScanRestartCount++ < MAX_SCAN_RESTART_ALLOWED) {
@@ -1151,7 +1161,13 @@ public class WifiConnectivityManager {
             mScanRestartCount = 0;
 
             handleScanResults(scanDetailList, PNO_SCAN_LISTENER, false,
-                    wasCandidateSelected -> {
+                    (wasCandidateSelected, candidateIsPasspoint) -> {
+                        WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
+                                WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__FOUND_RESULTS,
+                                scanDetailList.size(), !mPnoScanPasspointSsids.isEmpty(),
+                                pnoPasspointResultFound(scanDetailList), wasCandidateSelected,
+                                candidateIsPasspoint,
+                                WifiStatsLog.PNO_SCAN_STOPPED__FAILURE_CODE__NO_FAILURE);
                         if (!wasCandidateSelected) {
                             // The scan results were rejected by WifiNetworkSelector due to low
                             // RSSI values
@@ -1169,6 +1185,16 @@ public class WifiConnectivityManager {
                         }
                     });
         }
+    }
+
+    private boolean pnoPasspointResultFound(List<ScanDetail> results) {
+        if (mPnoScanPasspointSsids.isEmpty()) return false;
+        for (ScanDetail pnoResult : results) {
+            if (mPnoScanPasspointSsids.contains(pnoResult.getSSID())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private final PnoScanListener mPnoScanListener;
