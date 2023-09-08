@@ -284,6 +284,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<boolean name=\"TrustOnFirstUse\" value=\"false\" />\n"
                     + "<boolean name=\"UserApproveNoCaCert\" value=\"false\" />\n"
                     + "<int name=\"MinimumTlsVersion\" value=\"3\" />\n"
+                    + "<int name=\"TofuDialogState\" value=\"0\" />\n"
                     + "</WifiEnterpriseConfiguration>\n"
                     + "</Network>\n";
 
@@ -483,6 +484,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<boolean name=\"TrustOnFirstUse\" value=\"false\" />\n"
                     + "<boolean name=\"UserApproveNoCaCert\" value=\"false\" />\n"
                     + "<int name=\"MinimumTlsVersion\" value=\"0\" />\n"
+                    + "<int name=\"TofuDialogState\" value=\"0\" />\n"
                     + "</WifiEnterpriseConfiguration>\n"
                     + "</Network>\n";
 

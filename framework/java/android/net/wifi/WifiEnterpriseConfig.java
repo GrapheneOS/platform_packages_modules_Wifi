@@ -414,6 +414,7 @@ public class WifiEnterpriseConfig implements Parcelable {
     private boolean mUserApproveNoCaCert = false;
     // Default is 1.0, i.e. accept any TLS version.
     private int mMinimumTlsVersion = TLS_V1_0;
+    private @TofuDialogState int mTofuDialogState = TOFU_DIALOG_STATE_UNSPECIFIED;
 
     // Not included in parceling, hashing, or equality because it is an internal, temporary value
     // which is valid only during an actual connection to a Passpoint network with an RCOI-based
@@ -535,6 +536,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         mSelectedRcoi = source.mSelectedRcoi;
         mMinimumTlsVersion = source.mMinimumTlsVersion;
         mIsStrictConservativePeerMode = source.mIsStrictConservativePeerMode;
+        mTofuDialogState = source.mTofuDialogState;
     }
 
     /**
@@ -580,6 +582,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         dest.writeBoolean(mIsTrustOnFirstUseEnabled);
         dest.writeBoolean(mUserApproveNoCaCert);
         dest.writeInt(mMinimumTlsVersion);
+        dest.writeInt(mTofuDialogState);
     }
 
     public static final @android.annotation.NonNull Creator<WifiEnterpriseConfig> CREATOR =
@@ -631,6 +634,7 @@ public class WifiEnterpriseConfig implements Parcelable {
                     enterpriseConfig.mIsTrustOnFirstUseEnabled = in.readBoolean();
                     enterpriseConfig.mUserApproveNoCaCert = in.readBoolean();
                     enterpriseConfig.mMinimumTlsVersion = in.readInt();
+                    enterpriseConfig.mTofuDialogState = in.readInt();
                     return enterpriseConfig;
                 }
 
@@ -1711,6 +1715,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         sb.append(" minimum_tls_version: ").append(mMinimumTlsVersion).append("\n");
         sb.append(" enable_conservative_peer_mode: ")
                 .append(mIsStrictConservativePeerMode).append("\n");
+        sb.append(" tofu_dialog_state: ").append(mTofuDialogState).append("\n");
         return sb.toString();
     }
 
@@ -2013,6 +2018,34 @@ public class WifiEnterpriseConfig implements Parcelable {
      */
     public boolean isTrustOnFirstUseEnabled() {
         return mIsTrustOnFirstUseEnabled;
+    }
+
+    /**
+     * Indicate whether the user accepted the TOFU dialog.
+     * @hide
+     */
+    public void setTofuDialogApproved(boolean approved) {
+        mTofuDialogState = approved ? TOFU_DIALOG_STATE_ACCEPTED : TOFU_DIALOG_STATE_REJECTED;
+    }
+
+    /**
+     * Set the TOFU dialog state.
+     * @hide
+     */
+    public void setTofuDialogState(@TofuDialogState int state) {
+        if (state < TOFU_DIALOG_STATE_UNSPECIFIED || state > TOFU_DIALOG_STATE_ACCEPTED) {
+            Log.e(TAG, "Invalid TOFU dialog state received. state=" + state);
+            return;
+        }
+        mTofuDialogState = state;
+    }
+
+    /**
+     * Get the TOFU dialog state.
+     * @hide
+     */
+    public @TofuDialogState int getTofuDialogState() {
+        return mTofuDialogState;
     }
 
     /**
