@@ -1157,7 +1157,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
     /**
      * Returns the MAC address used for this connection. In case of Multi Link Operation (MLO),
-     * returned value is the mac address of the link used for association.
+     * returned value is the Station MLD MAC address.
      *
      * @return MAC address of the connection or {@code "02:00:00:00:00:00"} if the caller has
      * insufficient permission.
