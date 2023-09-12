@@ -1511,6 +1511,7 @@ public class XmlUtil {
         public static final String XML_TAG_TRUST_ON_FIRST_USE = "TrustOnFirstUse";
         public static final String XML_TAG_USER_APPROVE_NO_CA_CERT = "UserApproveNoCaCert";
         public static final String XML_TAG_MINIMUM_TLS_VERSION = "MinimumTlsVersion";
+        public static final String XML_TAG_TOFU_DIALOG_STATE = "TofuDialogState";
 
         /**
          * Write password key to the XML stream.
@@ -1600,6 +1601,8 @@ public class XmlUtil {
                     enterpriseConfig.isUserApproveNoCaCert());
             XmlUtil.writeNextValue(out, XML_TAG_MINIMUM_TLS_VERSION,
                     enterpriseConfig.getMinimumTlsVersion());
+            XmlUtil.writeNextValue(out, XML_TAG_TOFU_DIALOG_STATE,
+                    enterpriseConfig.getTofuDialogState());
         }
 
         /**
@@ -1724,6 +1727,9 @@ public class XmlUtil {
                             break;
                         case XML_TAG_MINIMUM_TLS_VERSION:
                             enterpriseConfig.setMinimumTlsVersion((int) value);
+                            break;
+                        case XML_TAG_TOFU_DIALOG_STATE:
+                            enterpriseConfig.setTofuDialogState((int) value);
                             break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);
