@@ -1080,27 +1080,36 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
             verify(mWifiConfigManager).updateNetworkSelectionStatus(eq(config.networkId),
                     eq(WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE));
             if (isTrustOnFirstUseSupported) {
+                int postConnectionMethod;
                 if (!TextUtils.isEmpty(expectedCaPath)) {
                     // Simulate Root CA from trust store
+                    postConnectionMethod = WifiEnterpriseConfig.TOFU_STATE_CONFIGURE_ROOT_CA;
                     verify(mWifiConfigManager).updateCaCertificate(
                             eq(config.networkId), eq(expectedCaCert), eq(expectedServerCert),
                             eq(null), eq(true));
                 } else if (expectedCaCert == null) {
                     // Simulate server cert pinning case where there is no Root CA
+                    postConnectionMethod = WifiEnterpriseConfig.TOFU_STATE_CERT_PINNING;
                     verify(mWifiConfigManager).updateCaCertificate(
                             eq(config.networkId), eq(expectedServerCert), eq(expectedServerCert),
                             eq("12345678"), eq(false)); // Server certificate hash
                 } else {
+                    postConnectionMethod = WifiEnterpriseConfig.TOFU_STATE_CONFIGURE_ROOT_CA;
                     verify(mWifiConfigManager).updateCaCertificate(
                             eq(config.networkId), eq(expectedCaCert), eq(expectedServerCert),
                             eq(null), eq(false)); // Cert pinning not used
                 }
+                verify(mWifiConfigManager).setTofuPostConnectionState(
+                        eq(config.networkId), eq(postConnectionMethod));
             } else {
                 verify(mWifiConfigManager, never()).updateCaCertificate(
                         anyInt(), any(), any(), any(), anyBoolean());
+                verify(mWifiConfigManager, never()).setTofuPostConnectionState(anyInt(), anyInt());
             }
+            verify(mWifiConfigManager).setTofuDialogApproved(eq(config.networkId), eq(true));
             verify(mCallbacks).onAccept(eq(config.SSID), eq(config.networkId));
         } else if (action == ACTION_REJECT) {
+            verify(mWifiConfigManager).setTofuDialogApproved(eq(config.networkId), eq(false));
             verify(mWifiConfigManager, atLeastOnce())
                     .updateNetworkSelectionStatus(eq(config.networkId),
                             eq(WifiConfiguration.NetworkSelectionStatus

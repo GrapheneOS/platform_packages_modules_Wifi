@@ -4347,6 +4347,41 @@ public class WifiConfigManager {
     }
 
     /**
+     * Indicate whether the user approved the TOFU dialog for this network.
+     *
+     * @param networkId networkId corresponding to the network to be updated.
+     * @param approved true if the user approved the dialog, false otherwise.
+     */
+    public void setTofuDialogApproved(int networkId, boolean approved) {
+        WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
+        if (internalConfig == null) return;
+        if (!internalConfig.isEnterprise()) return;
+        if (!internalConfig.enterpriseConfig.isEapMethodServerCertUsed()) return;
+        internalConfig.enterpriseConfig.setTofuDialogApproved(approved);
+    }
+
+    /**
+     * Indicate the post-connection TOFU state for this network.
+     *
+     * @param networkId networkId corresponding to the network to be updated.
+     * @param state one of the post-connection {@link WifiEnterpriseConfig.TofuConnectionState}
+     *              values
+     */
+    public void setTofuPostConnectionState(int networkId,
+            @WifiEnterpriseConfig.TofuConnectionState int state) {
+        if (state != WifiEnterpriseConfig.TOFU_STATE_CONFIGURE_ROOT_CA
+                && state != WifiEnterpriseConfig.TOFU_STATE_CERT_PINNING) {
+            Log.e(TAG, "Invalid post-connection TOFU state " + state);
+            return;
+        }
+        WifiConfiguration internalConfig = getInternalConfiguredNetwork(networkId);
+        if (internalConfig == null) return;
+        if (!internalConfig.isEnterprise()) return;
+        if (!internalConfig.enterpriseConfig.isEapMethodServerCertUsed()) return;
+        internalConfig.enterpriseConfig.setTofuConnectionState(state);
+    }
+
+    /**
      * Add custom DHCP options.
      *
      * @param ssid the network SSID.
