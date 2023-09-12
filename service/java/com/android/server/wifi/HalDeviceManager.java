@@ -2879,8 +2879,10 @@ public class HalDeviceManager {
      */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of HalDeviceManager:");
-        pw.println("  mManagerStatusListeners: " + mManagerStatusListeners);
-        pw.println("  mInterfaceInfoCache: " + mInterfaceInfoCache);
+        synchronized (mLock) {
+            pw.println("  mManagerStatusListeners: " + mManagerStatusListeners);
+            pw.println("  mInterfaceInfoCache: " + mInterfaceInfoCache);
+        }
         pw.println("  mDebugChipsInfo: " + Arrays.toString(getAllChipInfo(false)));
     }
 }
