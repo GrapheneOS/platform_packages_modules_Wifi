@@ -2098,13 +2098,21 @@ public class WifiConfigManager {
     private boolean updateNetworkSelectionStatus(@NonNull WifiConfiguration config, int reason) {
         int prevNetworkSelectionStatus = config.getNetworkSelectionStatus()
                 .getNetworkSelectionStatus();
+        int prevAuthFailureCounter = config.getNetworkSelectionStatus().getDisableReasonCounter(
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_AUTHENTICATION_FAILURE);
         if (!mWifiBlocklistMonitor.updateNetworkSelectionStatus(config, reason)) {
             return false;
         }
         int newNetworkSelectionStatus = config.getNetworkSelectionStatus()
                 .getNetworkSelectionStatus();
+        int newAuthFailureCounter = config.getNetworkSelectionStatus().getDisableReasonCounter(
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_AUTHENTICATION_FAILURE);
         if (prevNetworkSelectionStatus != newNetworkSelectionStatus) {
             sendNetworkSelectionStatusChangedUpdate(config, newNetworkSelectionStatus, reason);
+            sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
+        } else if (prevAuthFailureCounter != newAuthFailureCounter) {
+            // Send out configured network changed broadcast in this special case since the UI
+            // may need to update the wrong password text.
             sendConfiguredNetworkChangedBroadcast(WifiManager.CHANGE_REASON_CONFIG_CHANGE, config);
         }
         saveToStore(false);
