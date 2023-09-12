@@ -988,6 +988,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
         DeathHandlerData dhd;
         synchronized (mLock) {
+            Log.d(TAG, "close binder:" + binder + " from mDeathDataByBinder:" + mDeathDataByBinder);
             dhd = mDeathDataByBinder.get(binder);
             if (dhd == null) {
                 Log.w(TAG, "close(): no death recipient for binder");
@@ -4100,6 +4101,9 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         replyToMessage(message,
                                 WifiP2pManager.SET_CONNECTION_REQUEST_RESULT_SUCCEEDED);
                         break;
+                    case DISABLE_P2P:
+                        mWifiP2pMetrics.endConnectionEvent(P2pConnectionEvent.CLF_GROUP_REMOVED);
+                        //remaining p2p disabling works will be handled in its parent states
                     default:
                         return NOT_HANDLED;
                 }
