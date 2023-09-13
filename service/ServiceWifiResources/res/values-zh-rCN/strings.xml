@@ -55,7 +55,7 @@
     <string name="ok" msgid="847575529546290102">"确定"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"已发出邀请"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"连接邀请"</string>
-    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒后接受。}other{# 秒后接受。}}"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒内接受。}other{# 秒内接受。}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"发件人："</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"收件人："</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"输入所需的PIN码："</string>
