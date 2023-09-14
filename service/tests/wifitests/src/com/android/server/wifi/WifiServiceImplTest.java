@@ -51,12 +51,12 @@ import static android.net.wifi.WifiManager.WIFI_AP_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_AP_STATE_FAILED;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.os.Process.WIFI_UID;
 import static android.os.Process.myUid;
-
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -68,9 +68,7 @@ import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_NONE;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
-
 import static com.google.common.truth.Truth.assertThat;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -2780,8 +2778,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreHiddenFromAppWithoutPermission() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
-
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
         doThrow(new SecurityException()).when(mWifiPermissionsUtil).enforceCanAccessScanResults(
                 anyString(), nullable(String.class), anyInt(), nullable(String.class));
 
@@ -2810,7 +2808,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreHiddenOnSecurityException() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
 
         doThrow(new SecurityException()).when(mWifiPermissionsUtil).enforceCanAccessScanResults(
                 anyString(), nullable(String.class), anyInt(), nullable(String.class));
@@ -2834,7 +2833,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testConnectedIdsAreVisibleFromPermittedApp() throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
 
         mLooper.startAutoDispatch();
         WifiInfo connectionInfo = parcelingRoundTrip(
@@ -2856,6 +2856,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testConnectedIdsFromSecondaryCmmAreVisibleFromAppRequestingSecondaryCmm()
             throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getSecondaryRequestWs())
+                .thenReturn(Set.of(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE)));
         ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
         when(secondaryCmm.getRequestorWs())
                 .thenReturn(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE));
@@ -2885,10 +2888,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testConnectedIdsAreVisibleFromAppRequestingSecondaryCmmWIthPromotesSettingsWs()
             throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(new WifiInfo());
         ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
         WorkSource ws = new WorkSource(Binder.getCallingUid(), TEST_PACKAGE);
         ws.add(SETTINGS_WORKSOURCE);
         when(secondaryCmm.getRequestorWs()).thenReturn(ws);
+        when(mActiveModeWarden.getSecondaryRequestWs()).thenReturn(Set.of(ws));
         when(secondaryCmm.getConnectionInfo()).thenReturn(wifiInfo);
         when(mActiveModeWarden.getClientModeManagersInRoles(
                 ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
@@ -2917,8 +2923,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.stopAutoDispatchAndIgnoreExceptions();
 
         assertEquals(WifiManager.UNKNOWN_SSID, connectionInfo.getSSID());
-        verify(mActiveModeWarden).getPrimaryClientModeManager();
-        verify(primaryCmm).getConnectionInfo();
+        verify(mActiveModeWarden).getConnectionInfo();
     }
 
     /**
@@ -2929,13 +2934,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testConnectedIdsFromPrimaryCmmAreVisibleFromAppNotRequestingSecondaryCmm()
             throws Exception {
         WifiInfo wifiInfo = setupForGetConnectionInfo();
-        when(mClientModeManager.getConnectionInfo()).thenReturn(wifiInfo);
-        ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
-        when(secondaryCmm.getRequestorWs())
-                .thenReturn(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME_OTHER));
-        when(mActiveModeWarden.getClientModeManagersInRoles(
-                ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
-                .thenReturn(Arrays.asList(secondaryCmm));
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
+        when(mActiveModeWarden.getWifiState()).thenReturn(WIFI_STATE_ENABLED);
+        when(mActiveModeWarden.getSecondaryRequestWs())
+                .thenReturn(
+                        Set.of(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME_OTHER)));
 
         mLooper.startAutoDispatch();
         WifiInfo connectionInfo = parcelingRoundTrip(
