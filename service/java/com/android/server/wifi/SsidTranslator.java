@@ -465,4 +465,11 @@ public class SsidTranslator {
         mMockCharsetsPerLocaleLanguage.clear();
         updateCurrentLocaleCharset();
     }
+
+    /**
+     * Indicates whether SSID translation is currently enabled.
+     */
+    public synchronized boolean isSsidTranslationEnabled() {
+        return mCurrentLocaleAlternateCharset != null;
+    }
 }
