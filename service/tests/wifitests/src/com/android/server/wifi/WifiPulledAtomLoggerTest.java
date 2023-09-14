@@ -72,6 +72,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     @Mock private WifiSettingsStore mWifiSettingsStore;
     @Mock private WifiConfigManager mWifiConfigManager;
     @Mock private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
+    @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiConfiguration mWifiConfiguration;
     @Captor ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
 
@@ -237,6 +238,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         WifiNetworkSuggestion mockSuggestion = mock(WifiNetworkSuggestion.class);
         when(mockSuggestion.getWifiConfiguration()).thenReturn(mWifiConfiguration);
 
+        when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWifiNetworkSuggestionsManager())
                 .thenReturn(mWifiNetworkSuggestionsManager);

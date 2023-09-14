@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
+import android.net.wifi.WifiSsid;
 import android.os.Handler;
 import android.os.Process;
 import android.util.Log;
@@ -201,6 +202,10 @@ public class WifiPulledAtomLogger {
                 + ", version is " + mApexVersionNumber);
     }
 
+    private static boolean configHasUtf8Ssid(WifiConfiguration config) {
+        return WifiSsid.fromString(config.SSID).getUtf8Text() != null;
+    }
+
     private StatsEvent wifiConfigToStatsEvent(
             int atomTag, WifiConfiguration config, boolean isSuggestion) {
         return WifiStatsLog.buildStatsEvent(
@@ -210,7 +215,8 @@ public class WifiPulledAtomLogger {
                 config.hiddenSSID,
                 false, // isPasspoint
                 isSuggestion,
-                false, false, // TODO: handle SSID translation
+                configHasUtf8Ssid(config),
+                mWifiInjector.getSsidTranslator().isSsidTranslationEnabled(),
                 false, // TODO: handle TOFU configuration
                 !config.getNetworkSelectionStatus().hasNeverDetectedCaptivePortal(),
                 config.allowAutojoin,
