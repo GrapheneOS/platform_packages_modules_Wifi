@@ -710,6 +710,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_MODULE_INFO);
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_SETTING_INFO);
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO);
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO);
     }
 
     private void updateLocationMode() {
