@@ -27,6 +27,19 @@ package android.net.wifi {
     field public static final int EASY_CONNECT_EVENT_SUCCESS_CONFIGURATION_SENT = 0; // 0x0
   }
 
+  public final class OuiKeyedData implements android.os.Parcelable {
+    method public int describeContents();
+    method @NonNull public android.os.Parcelable getData();
+    method public int getOui();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.OuiKeyedData> CREATOR;
+  }
+
+  public static final class OuiKeyedData.Builder {
+    ctor public OuiKeyedData.Builder(int, @NonNull android.os.Parcelable);
+    method @NonNull public android.net.wifi.OuiKeyedData build();
+  }
+
   public final class QosPolicyParams implements android.os.Parcelable {
     method @Nullable public java.net.InetAddress getDestinationAddress();
     method @IntRange(from=android.net.wifi.QosPolicyParams.DESTINATION_PORT_ANY, to=65535) public int getDestinationPort();
