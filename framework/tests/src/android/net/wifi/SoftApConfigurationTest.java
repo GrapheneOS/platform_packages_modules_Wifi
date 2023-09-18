@@ -22,12 +22,14 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 import android.net.MacAddress;
 import android.os.Parcel;
@@ -903,5 +905,46 @@ public class SoftApConfigurationTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new SoftApConfiguration.Builder()
                         .setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_80MHZ_PLUS_MHZ));
+    }
+
+    @Test
+    public void testVendorDataValid() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastV());
+
+        // Default value should be an empty list.
+        SoftApConfiguration config = new SoftApConfiguration.Builder().build();
+        List<OuiKeyedData> retrievedVendorData = config.getVendorData();
+        assertNotNull(retrievedVendorData);
+        assertEquals(0, retrievedVendorData.size());
+
+        List<OuiKeyedData> mockVendorData = Arrays.asList(mock(OuiKeyedData.class));
+        config = new SoftApConfiguration.Builder().setVendorData(mockVendorData).build();
+        assertTrue(mockVendorData.equals(config.getVendorData()));
+    }
+
+    @Test
+    public void testVendorDataInvalid() {
+        assumeTrue(SdkLevel.isAtLeastV());
+        SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder();
+        // Vendor data must be non-null, if provided.
+        assertThrows(IllegalArgumentException.class, () -> builder.setVendorData(null));
+    }
+
+    @Test
+    public void testVendorDataParcelUnparcel() {
+        assumeTrue(SdkLevel.isAtLeastV());
+
+        int oui = 0x00112233;
+        WifiSsid data = WifiSsid.fromString("\"test\"");
+        OuiKeyedData ouiKeyedData = new OuiKeyedData.Builder(oui, data).build();
+        List<OuiKeyedData> vendorData = Arrays.asList(ouiKeyedData);
+        SoftApConfiguration config =
+                new SoftApConfiguration.Builder().setVendorData(vendorData).build();
+
+        SoftApConfiguration unparceled = parcelUnparcel(config);
+        assertThat(unparceled).isNotSameInstanceAs(config);
+        assertThat(unparceled).isEqualTo(config);
+        assertThat(unparceled.hashCode()).isEqualTo(config.hashCode());
+        assertTrue(vendorData.equals(unparceled.getVendorData()));
     }
 }
