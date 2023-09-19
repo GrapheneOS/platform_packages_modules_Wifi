@@ -25,6 +25,7 @@ import android.provider.Settings;
 import android.util.ArraySet;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.wifi.flags.FeatureFlags;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -40,6 +41,7 @@ public class DeviceConfigFacade {
     private final WifiMetrics mWifiMetrics;
 
     private static final String NAMESPACE = "wifi";
+    private final FeatureFlags mFeatureFlags;
 
     // Default values of fields
     @VisibleForTesting
@@ -225,6 +227,7 @@ public class DeviceConfigFacade {
         mContext = context;
         mWifiMetrics = wifiMetrics;
         mWifiHandler = handler;
+        mFeatureFlags = new com.android.wifi.flags.FeatureFlagsImpl();
         updateDeviceConfigFlags();
         DeviceConfig.addOnPropertiesChangedListener(
                 NAMESPACE,

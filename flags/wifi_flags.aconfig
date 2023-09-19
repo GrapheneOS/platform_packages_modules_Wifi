@@ -1,0 +1,8 @@
+package: "com.android.wifi.flags"
+
+flag {
+    name: "test_flag_function"
+    namespace: "wifi"
+    description: "This flag aim to test the flag release for wifi stack"
+    bug: "301145404"
+}

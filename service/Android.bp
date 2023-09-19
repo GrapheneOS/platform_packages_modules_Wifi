@@ -117,6 +117,7 @@ java_library {
         "service-entitlement",
         "wifi-lite-protos",
         "wifi-nano-protos",
+        "wifi_aconfig_flags_lib",
     ],
 }
 
