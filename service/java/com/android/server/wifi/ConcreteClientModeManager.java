@@ -407,6 +407,13 @@ public class ConcreteClientModeManager implements ClientModeManager {
                 if (!mWifiNative.switchClientInterfaceToScanMode(
                         mClientInterfaceName, mTargetRoleChangeInfo.requestorWs)) {
                     mModeListener.onStartFailure(ConcreteClientModeManager.this);
+                    updateConnectModeState(mRole, WifiManager.WIFI_STATE_UNKNOWN,
+                            WifiManager.WIFI_STATE_DISABLING);
+                    updateConnectModeState(mRole, WifiManager.WIFI_STATE_DISABLED,
+                            WifiManager.WIFI_STATE_UNKNOWN);
+                    takeBugReportInterfaceFailureIfNeeded(
+                            "Wi-Fi BugReport (STA interface failure):",
+                            "Fail to switch to scan-only mode in started state");
                 } else {
                     mStateMachine.sendMessage(
                             ClientModeStateMachine.CMD_SWITCH_TO_SCAN_ONLY_MODE_CONTINUE,
