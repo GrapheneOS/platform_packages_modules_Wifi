@@ -160,7 +160,7 @@ public class WifiDialogActivity extends Activity  {
             }
             // Cancel all dialogs for ACTION_CLOSE_SYSTEM_DIALOGS (e.g. Home button pressed).
             for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                mActiveDialogsPerId.get(i).cancel();
+                mActiveDialogsPerId.valueAt(i).cancel();
             }
         }
     };
@@ -254,7 +254,7 @@ public class WifiDialogActivity extends Activity  {
                 // Before U, we don't have INTERNAL_SYSTEM_WINDOW permission to always show at the
                 // top, so close all dialogs when we're not visible anymore.
                 for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                    mActiveDialogsPerId.get(i).cancel();
+                    mActiveDialogsPerId.valueAt(i).cancel();
                 }
             }
             return;
@@ -283,7 +283,7 @@ public class WifiDialogActivity extends Activity  {
         // We don't expect to be destroyed while dialogs are still up, but make sure to cancel them
         // just in case.
         for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-            mActiveDialogsPerId.get(i).cancel();
+            mActiveDialogsPerId.valueAt(i).cancel();
         }
     }
 
