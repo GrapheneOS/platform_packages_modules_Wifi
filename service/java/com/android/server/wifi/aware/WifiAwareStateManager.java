@@ -5441,6 +5441,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         pw.println("  mCapabilities: [" + mCapabilities + "]");
         pw.println("  mCurrentAwareConfiguration: " + mCurrentAwareConfiguration);
         pw.println("  mCurrentIdentityNotification: " + mCurrentIdentityNotification);
+        pw.println("  mOpportunisticSet: " + mOpportunisticSet);
         for (int i = 0; i < mClients.size(); ++i) {
             mClients.valueAt(i).dump(fd, pw, args);
         }
