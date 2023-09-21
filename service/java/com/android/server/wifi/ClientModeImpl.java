@@ -274,6 +274,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final ConcreteClientModeManager mClientModeManager;
 
     private final WifiNotificationManager mNotificationManager;
+    private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final QosPolicyRequestHandler mQosPolicyRequestHandler;
 
     private boolean mFailedToResetMacAddress = false;
@@ -732,7 +733,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             @NonNull WifiInjector wifiInjector,
             @NonNull WifiSettingsConfigStore settingsConfigStore,
             boolean verboseLoggingEnabled,
-            @NonNull WifiNotificationManager wifiNotificationManager) {
+            @NonNull WifiNotificationManager wifiNotificationManager,
+            @NonNull WifiConnectivityHelper wifiConnectivityHelper) {
         super(TAG, looper);
         mWifiMetrics = wifiMetrics;
         mClock = clock;
@@ -839,6 +841,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         enableVerboseLogging(verboseLoggingEnabled);
 
         mNotificationManager = wifiNotificationManager;
+        mWifiConnectivityHelper = wifiConnectivityHelper;
         mInsecureEapNetworkHandlerCallbacksImpl =
                 new InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks() {
                 @Override
@@ -8176,6 +8179,54 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         ? WifiNative.ENABLE_FIRMWARE_ROAMING
                         : WifiNative.DISABLE_FIRMWARE_ROAMING);
         return status == WifiNative.SET_FIRMWARE_ROAMING_SUCCESS;
+    }
+
+    private void considerChangingFirmwareRoaming(boolean isIdle) {
+        if (mClientModeManager.getRole() != ROLE_CLIENT_PRIMARY) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Idle mode changed: iface " + mInterfaceName + " is not primary.");
+            }
+            return;
+        }
+        if (!mWifiGlobals.isDisableFirmwareRoamingInIdleMode()
+                || !mWifiConnectivityHelper.isFirmwareRoamingSupported()) {
+            // feature not enabled, or firmware roaming not supported - no need to continue.
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Idle mode changed: iface " + mInterfaceName
+                        + " firmware roaming not supported");
+            }
+            return;
+        }
+        if (isIdle) {
+            // disable firmware roaming if in idle mode
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Idle mode changed: iface " + mInterfaceName
+                        + " disabling roaming");
+            }
+            enableRoaming(false);
+            return;
+        }
+        // Exiting idle mode so re-enable firmware roaming, but only if the current use-case is
+        // not the local-only use-case. The local-only use-case requires firmware roaming to be
+        // always disabled.
+        WifiConfiguration config = getConnectedWifiConfigurationInternal();
+        if (config == null) {
+            config = getConnectingWifiConfigurationInternal();
+        }
+        if (config != null && getClientRoleForMetrics(config)
+                == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY) {
+            return;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Idle mode changed: iface " + mInterfaceName
+                    + " enabling roaming");
+        }
+        enableRoaming(true);
+    }
+
+    @Override
+    public void onIdleModeChanged(boolean isIdle) {
+        considerChangingFirmwareRoaming(isIdle);
     }
 
     @Override

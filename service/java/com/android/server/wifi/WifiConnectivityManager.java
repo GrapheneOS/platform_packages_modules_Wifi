@@ -3461,11 +3461,12 @@ public class WifiConnectivityManager {
         pw.println("mIsLocationModeEnabled: " + mIsLocationModeEnabled);
         pw.println("mPnoScanEnabledByFramework: " + mPnoScanEnabledByFramework);
         pw.println("mEnablePnoScanAfterWifiToggle: " + mEnablePnoScanAfterWifiToggle);
+        pw.println("mMultiInternetConnectionState " + mMultiInternetConnectionState);
         mLocalLog.dump(fd, pw, args);
         pw.println("WifiConnectivityManager - Log End ----");
-        pw.println(TAG + ": mMultiInternetConnectionState " + mMultiInternetConnectionState);
         mOpenNetworkNotifier.dump(fd, pw, args);
         mWifiBlocklistMonitor.dump(fd, pw, args);
         mExternalPnoScanRequestManager.dump(fd, pw, args);
+        mConnectivityHelper.dump(fd, pw, args);
     }
 }

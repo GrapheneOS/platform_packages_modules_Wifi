@@ -574,6 +574,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiPseudonymManager mWifiPseudonymManager;
     @Mock WifiNotificationManager mWifiNotificationManager;
+
+    @Mock WifiConnectivityHelper mWifiConnectivityHelper;
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
     @Mock ScanResult mScanResult;
     @Mock HandlerThread mWifiHandlerThread;
@@ -796,7 +798,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mSimRequiredNotifier, mWifiScoreReport, mWifiP2pConnection, mWifiGlobals,
                 WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor,
                 mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
-                mSettingsConfigStore, false, mWifiNotificationManager);
+                mSettingsConfigStore, false, mWifiNotificationManager,
+                mWifiConnectivityHelper);
         mCmi.mInsecureEapNetworkHandler = mInsecureEapNetworkHandler;
 
         mWifiCoreThread = getCmiHandlerThread(mCmi);
@@ -2048,6 +2051,51 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.stop();
         mLooper.dispatchAll();
         verify(mWifiStateTracker).updateState(WIFI_IFACE_NAME, WifiStateTracker.DISCONNECTED);
+    }
+
+    @Test
+    public void testIdleModeChanged_firmwareRoaming() throws Exception {
+        // verify no-op when either the feature flag is disabled or firmware roaming is not
+        // supported
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(false);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(false);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
+
+        // Enable both, then verify firmware roaming is disabled when idle mode is entered
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
+
+        // Verify firmware roaming is enabled when idle mode exited
+        mCmi.onIdleModeChanged(false);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.ENABLE_FIRMWARE_ROAMING));
+    }
+
+    @Test
+    public void testIdleModeChanged_firmwareRoamingLocalOnlyCase() throws Exception {
+        // mock connected network to be local only
+        connect();
+        mConnectedNetwork.fromWifiNetworkSpecifier = true;
+
+        // Enable feature, then verify firmware roaming is disabled when idle mode is entered
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
+
+        // Verify firmware roaming is not enabled when idle mode exited
+        mCmi.onIdleModeChanged(false);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.ENABLE_FIRMWARE_ROAMING));
     }
 
     /**

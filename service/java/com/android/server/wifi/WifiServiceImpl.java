@@ -970,12 +970,13 @@ public class WifiServiceImpl extends BaseWifiService {
             boolean idle = mPowerManager.isDeviceIdleMode();
             if (mInIdleMode != idle) {
                 mInIdleMode = idle;
-                if (!idle) {
+                if (!idle) { // exiting doze mode
                     if (mScanPending) {
                         mScanPending = false;
                         doScan = true;
                     }
                 }
+                mActiveModeWarden.onIdleModeChanged(idle);
             }
         }
         if (doScan) {

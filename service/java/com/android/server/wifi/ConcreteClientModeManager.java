@@ -1701,4 +1701,9 @@ public class ConcreteClientModeManager implements ClientModeManager {
     public boolean isMlo() {
         return getClientMode().isMlo();
     }
+
+    @Override
+    public void onIdleModeChanged(boolean isIdle) {
+        getClientMode().onIdleModeChanged(isIdle);
+    }
 }
