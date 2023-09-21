@@ -611,6 +611,36 @@ public class WifiMetrics {
 
     private final WifiToWifiSwitchStats mWifiToWifiSwitchStats = new WifiToWifiSwitchStats();
 
+    /** Wi-Fi link specific metrics (MLO). */
+    public static class LinkMetrics {
+        private long mTotalBeaconRx = 0;
+        private @android.net.wifi.WifiUsabilityStatsEntry.LinkState int mLinkUsageState =
+                android.net.wifi.WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+
+        /** Get Total beacon received on this link */
+        public long getTotalBeaconRx() {
+            return mTotalBeaconRx;
+        }
+
+        /** Set Total beacon received on this link */
+        public void setTotalBeaconRx(long totalBeaconRx) {
+            this.mTotalBeaconRx = totalBeaconRx;
+        }
+
+        /** Get link usage state */
+        public @android.net.wifi.WifiUsabilityStatsEntry.LinkState int getLinkUsageState() {
+            return mLinkUsageState;
+        }
+
+        /** Set link usage state */
+        public void setLinkUsageState(
+                @android.net.wifi.WifiUsabilityStatsEntry.LinkState int linkUsageState) {
+            this.mLinkUsageState = linkUsageState;
+        }
+    }
+
+    public SparseArray<LinkMetrics> mLastLinkMetrics = new SparseArray<>();
+
     @VisibleForTesting
     static class NetworkSelectionExperimentResults {
         public static final int MAX_CHOICES = 10;
@@ -757,7 +787,8 @@ public class WifiMetrics {
                 return WifiMetricsProto.RouterFingerPrint.TYPE_EAP_UNKNOWN;
         }
     }
-    private int getAuthPhase2MethodProto(int phase2Method) {
+
+    private static int getAuthPhase2MethodProto(int phase2Method) {
         switch (phase2Method) {
             case WifiEnterpriseConfig.Phase2.PAP:
                 return WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_PAP;
@@ -1988,6 +2019,8 @@ public class WifiMetrics {
                 currentConnectionEvent.mConnectionEvent.isOsuProvisioned = false;
                 SecurityParams params = config.getNetworkSelectionStatus()
                         .getCandidateSecurityParams();
+                currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
+                        getSecurityMode(config, true);
                 if (config.isPasspoint()) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_PASSPOINT;
@@ -2017,41 +2050,6 @@ public class WifiMetrics {
                 } else if (WifiConfigurationUtil.isConfigForOpenNetwork(config)) {
                     currentConnectionEvent.mConnectionEvent.networkType =
                             WifiMetricsProto.ConnectionEvent.TYPE_OPEN;
-                }
-
-                if (null != params) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            params.getSecurityType();
-                } else if (WifiConfigurationUtil.isConfigForWpa3Enterprise192BitNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT;
-                } else if (WifiConfigurationUtil.isConfigForWpa3EnterpriseNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
-                } else if (WifiConfigurationUtil.isConfigForDppNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                        WifiConfiguration.SECURITY_TYPE_DPP;
-                } else if (WifiConfigurationUtil.isConfigForSaeNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_SAE;
-                } else if (WifiConfigurationUtil.isConfigForWapiPskNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_WAPI_PSK;
-                } else if (WifiConfigurationUtil.isConfigForWapiCertNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_WAPI_CERT;
-                } else if (WifiConfigurationUtil.isConfigForPskNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_PSK;
-                } else if (WifiConfigurationUtil.isConfigForOweNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_OWE;
-                } else if (WifiConfigurationUtil.isConfigForWepNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_WEP;
-                } else if (WifiConfigurationUtil.isConfigForOpenNetwork(config)) {
-                    currentConnectionEvent.mRouterFingerPrint.mSecurityMode =
-                            WifiConfiguration.SECURITY_TYPE_OPEN;
                 }
 
                 if (!config.fromWifiNetworkSuggestion) {
@@ -2265,7 +2263,85 @@ public class WifiMetrics {
         }
     }
 
-    int convertSecurityModeToProto(@WifiConfiguration.SecurityType int securityMode) {
+    protected static int convertMacRandomizationToProto(
+            @WifiConfiguration.MacRandomizationSetting int macRandomizationSetting) {
+        switch (macRandomizationSetting) {
+            case WifiConfiguration.RANDOMIZATION_NONE:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__MAC_RANDOMIZATION__MAC_RANDOMIZATION_NONE;
+            case WifiConfiguration.RANDOMIZATION_PERSISTENT:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__MAC_RANDOMIZATION__MAC_RANDOMIZATION_PERSISTENT;
+            case WifiConfiguration.RANDOMIZATION_NON_PERSISTENT:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__MAC_RANDOMIZATION__MAC_RANDOMIZATION_NON_PERSISTENT;
+            case WifiConfiguration.RANDOMIZATION_AUTO:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__MAC_RANDOMIZATION__MAC_RANDOMIZATION_AUTO;
+            default:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__MAC_RANDOMIZATION__MAC_RANDOMIZATION_UNSPECIFIED;
+        }
+    }
+
+    protected static int convertMeteredOverrideToProto(
+            @WifiConfiguration.MeteredOverride int meteredOverride) {
+        switch (meteredOverride) {
+            case WifiConfiguration.METERED_OVERRIDE_NONE:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__METERED_OVERRIDE__METERED_OVERRIDE_NONE;
+            case WifiConfiguration.METERED_OVERRIDE_METERED:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__METERED_OVERRIDE__METERED_OVERRIDE_METERED;
+            case WifiConfiguration.METERED_OVERRIDE_NOT_METERED:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__METERED_OVERRIDE__METERED_OVERRIDE_NOT_METERED;
+            default:
+                return WifiStatsLog
+                        .WIFI_CONFIGURED_NETWORK_INFO__METERED_OVERRIDE__METERED_OVERRIDE_UNSPECIFIED;
+        }
+    }
+
+    protected static int getSecurityMode(WifiConfiguration config, boolean useCandidateParams) {
+        SecurityParams params =
+                useCandidateParams
+                        ? config.getNetworkSelectionStatus().getCandidateSecurityParams()
+                        : config.getNetworkSelectionStatus().getLastUsedSecurityParams();
+        if (params != null) {
+            return params.getSecurityType();
+        } else if (WifiConfigurationUtil.isConfigForWpa3Enterprise192BitNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT;
+        } else if (WifiConfigurationUtil.isConfigForWpa3EnterpriseNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
+        } else if (WifiConfigurationUtil.isConfigForDppNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_DPP;
+        } else if (WifiConfigurationUtil.isConfigForSaeNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_SAE;
+        } else if (WifiConfigurationUtil.isConfigForWapiPskNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_WAPI_PSK;
+        } else if (WifiConfigurationUtil.isConfigForWapiCertNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_WAPI_CERT;
+        } else if (WifiConfigurationUtil.isConfigForPskNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_PSK;
+        } else if (WifiConfigurationUtil.isConfigForOweNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_OWE;
+        } else if (WifiConfigurationUtil.isConfigForWepNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_WEP;
+        } else if (WifiConfigurationUtil.isConfigForOpenNetwork(config)) {
+            return WifiConfiguration.SECURITY_TYPE_OPEN;
+        } else {
+            Log.e(TAG, "Unknown security mode for config " + config);
+            return -1;
+        }
+    }
+
+    protected static int convertSecurityModeToProto(
+            WifiConfiguration config, boolean useCandidateParams) {
+        int securityMode = getSecurityMode(config, useCandidateParams);
+        return convertSecurityModeToProto(securityMode);
+    }
+
+    static int convertSecurityModeToProto(@WifiConfiguration.SecurityType int securityMode) {
         switch (securityMode) {
             case WifiConfiguration.SECURITY_TYPE_OPEN:
                 return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_NONE;
@@ -2341,7 +2417,14 @@ public class WifiMetrics {
 
     }
 
-    private int convertEapMethodToProto(int eapMethod) {
+    protected static int convertEapMethodToProto(WifiConfiguration config) {
+        if (config.enterpriseConfig == null) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_UNKNOWN;
+        }
+        return convertEapMethodToProto(config.enterpriseConfig.getEapMethod());
+    }
+
+    private static int convertEapMethodToProto(int eapMethod) {
         switch (eapMethod) {
             case WifiMetricsProto.RouterFingerPrint.TYPE_EAP_WAPI_CERT:
                 return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_TYPE__TYPE_EAP_WAPI_CERT;
@@ -2366,7 +2449,15 @@ public class WifiMetrics {
         }
     }
 
-    private int convertEapInnerMethodToProto(int phase2Method) {
+    protected static int convertEapInnerMethodToProto(WifiConfiguration config) {
+        if (config.enterpriseConfig == null) {
+            return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_UNKNOWN;
+        }
+        int phase2Method = config.enterpriseConfig.getPhase2Method();
+        return convertEapInnerMethodToProto(getAuthPhase2MethodProto(phase2Method));
+    }
+
+    private static int convertEapInnerMethodToProto(int phase2Method) {
         switch (phase2Method) {
             case WifiMetricsProto.RouterFingerPrint.TYPE_PHASE2_PAP:
                 return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__EAP_INNER_METHOD__METHOD_PAP;
@@ -7058,9 +7149,14 @@ public class WifiMetrics {
         for (MloLink link: info.getAffiliatedMloLinks()) {
             mloLinks.put(link.getLinkId(), link);
         }
+        mLastLinkMetrics.clear();
         // Fill per link stats.
         for (WifiLinkLayerStats.LinkSpecificStats inStat : stats.links) {
             if (inStat == null) break;
+            LinkMetrics linkMetrics = new LinkMetrics();
+            linkMetrics.setTotalBeaconRx(inStat.beacon_rx);
+            linkMetrics.setLinkUsageState(inStat.state);
+            mLastLinkMetrics.put(inStat.link_id, linkMetrics);
             WifiLinkLayerStats.ChannelStats channelStatsMap = stats.channelStatsMap.get(
                     inStat.frequencyMhz);
             // Note: RSSI, Tx & Rx link speed are derived from signal poll stats which is updated in
@@ -8477,6 +8573,20 @@ public class WifiMetrics {
      */
     public long getTotalBeaconRxCount() {
         return mLastTotalBeaconRx;
+    }
+
+    /** Get total beacon receive count for the link */
+    public long getTotalBeaconRxCount(int linkId) {
+        if (!mLastLinkMetrics.contains(linkId)) return 0;
+        return mLastLinkMetrics.get(linkId).getTotalBeaconRx();
+    }
+
+    /** Get link usage state */
+    public @android.net.wifi.WifiUsabilityStatsEntry.LinkState int getLinkUsageState(int linkId) {
+        if (!mLastLinkMetrics.contains(linkId)) {
+            return android.net.wifi.WifiUsabilityStatsEntry.LINK_STATE_UNKNOWN;
+        }
+        return mLastLinkMetrics.get(linkId).getLinkUsageState();
     }
 
     /** Note whether Wifi was enabled at boot time. */

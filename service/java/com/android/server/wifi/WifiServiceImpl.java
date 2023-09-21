@@ -41,7 +41,6 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.os.Process.WIFI_UID;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
@@ -711,6 +710,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_MODULE_INFO);
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_SETTING_INFO);
         mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_COMPLEX_SETTING_INFO);
+        mWifiPulledAtomLogger.setPullAtomCallback(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO);
     }
 
     private void updateLocationMode() {
@@ -4272,12 +4272,24 @@ public class WifiServiceImpl extends BaseWifiService {
             mLog.info("getConnectionInfo uid=%").c(uid).flush();
         }
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
+        if (mActiveModeWarden.getWifiState() != WIFI_STATE_ENABLED) {
+            return new WifiInfo();
+        }
+        WifiInfo wifiInfo;
+        if (isCurrentRequestWsContainsCaller(uid, callingPackage)) {
+            wifiInfo =
+                    mWifiThreadRunner.call(
+                            () ->
+                                    getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
+                                                    uid, callingPackage)
+                                            .getConnectionInfo(),
+                            new WifiInfo());
+        } else {
+            // If no caller
+            wifiInfo = mActiveModeWarden.getConnectionInfo();
+        }
         long ident = Binder.clearCallingIdentity();
         try {
-            WifiInfo wifiInfo = mWifiThreadRunner.call(
-                    () -> getClientModeManagerIfSecondaryCmmRequestedByCallerPresent(
-                            uid, callingPackage)
-                            .getConnectionInfo(), new WifiInfo());
             long redactions = wifiInfo.getApplicableRedactions();
             if (mWifiPermissionsUtil.checkLocalMacAddressPermission(uid)) {
                 if (mVerboseLoggingEnabled) {
@@ -4311,6 +4323,23 @@ public class WifiServiceImpl extends BaseWifiService {
         } finally {
             Binder.restoreCallingIdentity(ident);
         }
+    }
+
+    private boolean isCurrentRequestWsContainsCaller(int uid, String callingPackage) {
+        Set<WorkSource> requestWs = mActiveModeWarden.getSecondaryRequestWs();
+        for (WorkSource ws : requestWs) {
+            WorkSource reqWs = new WorkSource(ws);
+            if (reqWs.size() > 1) {
+                // Remove promoted settings WorkSource if present
+                reqWs.remove(mFrameworkFacade.getSettingsWorkSource(mContext));
+            }
+            WorkSource withCaller = new WorkSource(reqWs);
+            withCaller.add(new WorkSource(uid, callingPackage));
+            if (reqWs.equals(withCaller)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -5530,19 +5559,21 @@ public class WifiServiceImpl extends BaseWifiService {
         for (PasspointConfiguration config : configs) {
             removePasspointConfigurationInternal(null, config.getUniqueId());
         }
-        mWifiThreadRunner.post(() -> {
-            // Reset SoftApConfiguration to default configuration
-            mWifiApConfigStore.setApConfiguration(null);
-            mPasspointManager.clearAnqpRequestsAndFlushCache();
-            mWifiConfigManager.clearUserTemporarilyDisabledList();
-            mWifiConfigManager.removeAllEphemeralOrPasspointConfiguredNetworks();
-            mWifiInjector.getWifiNetworkFactory().clear();
-            mWifiNetworkSuggestionsManager.clear();
-            mWifiInjector.getWifiScoreCard().clear();
-            mWifiHealthMonitor.clear();
-            mWifiCarrierInfoManager.clear();
-            notifyFactoryReset();
-        });
+        mWifiThreadRunner.post(
+                () -> {
+                    // Reset SoftApConfiguration to default configuration
+                    mWifiApConfigStore.setApConfiguration(null);
+                    mPasspointManager.clearAnqpRequestsAndFlushCache();
+                    mWifiConfigManager.clearUserTemporarilyDisabledList();
+                    mWifiConfigManager.removeAllEphemeralOrPasspointConfiguredNetworks();
+                    mWifiInjector.getWifiNetworkFactory().clear();
+                    mWifiNetworkSuggestionsManager.clear();
+                    mWifiInjector.getWifiScoreCard().clear();
+                    mWifiHealthMonitor.clear();
+                    mWifiCarrierInfoManager.clear();
+                    notifyFactoryReset();
+                    mContext.resetResourceCache();
+                });
     }
 
     /**

@@ -765,16 +765,24 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
             String password, int akm, int cipherSuite) {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "respondToDataPathRequest: transactionId=" + transactionId + ", accept="
-                    + accept + ", int pairingId=" + pairingId
-                    + ", enablePairingCache=" + enablePairingCache
-                    + ", requestType" + requestType);
+            Log.v(
+                    TAG,
+                    "respondToPairingRequest: transactionId="
+                            + transactionId
+                            + ", accept="
+                            + accept
+                            + ", int pairingId="
+                            + pairingId
+                            + ", enablePairingCache="
+                            + enablePairingCache
+                            + ", requestType"
+                            + requestType);
         }
         recordTransactionId(transactionId);
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
-            Log.e(TAG, "respondToDataPathRequest: null interface");
+            Log.e(TAG, "respondToPairingRequest: null interface");
             return false;
         }
         return iface.respondToPairingRequest(transactionId, pairingId, accept, pairingIdentityKey,

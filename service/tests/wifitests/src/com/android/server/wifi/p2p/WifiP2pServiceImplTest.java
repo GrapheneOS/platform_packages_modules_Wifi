@@ -3190,6 +3190,39 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 configCaptor.getValue().toString());
     }
 
+    @Test
+    public void testStartFastConnectionEventWhenSendConnectWithConfigAndP2pClose()
+            throws Exception {
+        setTargetSdkGreaterThanT();
+        forceP2pEnabled(mClient1);
+        when(mWifiNative.p2pGroupAdd(any(), eq(true))).thenReturn(true);
+
+        sendConnectMsg(mClientMessenger, mTestWifiP2pFastConnectionConfig);
+        if (SdkLevel.isAtLeastT()) {
+            verify(mWifiPermissionsUtil, atLeastOnce()).checkNearbyDevicesPermission(
+                    any(), eq(true), any());
+            verify(mWifiPermissionsUtil, never()).checkCanAccessWifiDirect(
+                    any(), any(), anyInt(), anyBoolean());
+        } else {
+            verify(mWifiPermissionsUtil).checkCanAccessWifiDirect(eq(TEST_PACKAGE_NAME),
+                    eq("testFeature"), anyInt(), eq(false));
+        }
+
+        ArgumentCaptor<WifiP2pConfig> configCaptor =
+                ArgumentCaptor.forClass(WifiP2pConfig.class);
+        verify(mWifiP2pMetrics).startConnectionEvent(
+                eq(P2pConnectionEvent.CONNECTION_FAST),
+                configCaptor.capture(),
+                eq(WifiMetricsProto.GroupEvent.GROUP_CLIENT),
+                eq(mClient1.getCallingUid()));
+        assertEquals(mTestWifiP2pFastConnectionConfig.toString(),
+                configCaptor.getValue().toString());
+
+        mWifiP2pServiceImpl.close(mClient1);
+        mLooper.dispatchAll();
+        verify(mWifiP2pMetrics).endConnectionEvent(eq(P2pConnectionEvent.CLF_GROUP_REMOVED));
+    }
+
     /**
      * Verify the connection event for a fast connection via
      * createGroup API with config.
@@ -3324,6 +3357,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         reset(mAsyncChannel);
         sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
         verify(mAsyncChannel).sendMessage(WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST, 0);
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_P2P_CANCEL_CONNECT), anyInt(),
                 anyInt(), anyInt(), anyString(), eq(true));
@@ -4030,6 +4065,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendSimpleMsg(mClientMessenger, WifiP2pManager.CANCEL_CONNECT);
         verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
         Message message = mMessageCaptor.getValue();
+        assertNotEquals(WifiP2pManager.CANCEL_CONNECT_SUCCEEDED, message.what);
+
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
+        verify(mClientHandler, atLeastOnce()).sendMessage(mMessageCaptor.capture());
+        message = mMessageCaptor.getValue();
         assertEquals(WifiP2pManager.CANCEL_CONNECT_SUCCEEDED, message.what);
     }
 
@@ -7419,6 +7460,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         /* Trigger a group failure */
         sendSimpleMsg(null, WifiP2pManager.CANCEL_CONNECT);
+        mLooper.moveTimeForward(100);
+        mLooper.dispatchAll();
 
         /* Verify that p2p discover is triggered */
         verify(mWifiNative).p2pFind(anyInt());

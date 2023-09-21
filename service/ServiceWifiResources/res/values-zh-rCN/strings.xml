@@ -55,7 +55,7 @@
     <string name="ok" msgid="847575529546290102">"确定"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"已发出邀请"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"连接邀请"</string>
-    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒后接受。}other{# 秒后接受。}}"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒内接受。}other{# 秒内接受。}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"发件人："</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"收件人："</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"输入所需的PIN码："</string>
@@ -84,7 +84,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">
-    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帐号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32762）"</item>
+    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 账号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32762）"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32763" msgid="4467733260757049969">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32763"</string>
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
@@ -96,7 +96,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
-    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帐号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32765）"</item>
+    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 账号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32765）"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">

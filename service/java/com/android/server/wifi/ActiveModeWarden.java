@@ -23,7 +23,6 @@ import static android.net.wifi.WifiManager.WIFI_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_UNKNOWN;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
@@ -174,6 +173,9 @@ public class ActiveModeWarden {
     @GuardedBy("mServiceApiLock")
     private WifiInfo mCurrentConnectionInfo = new WifiInfo();
 
+    @GuardedBy("mServiceApiLock")
+    private final ArraySet<WorkSource> mRequestWs = new ArraySet<>();
+
     /**
      * One of  {@link WifiManager#WIFI_STATE_DISABLED},
      * {@link WifiManager#WIFI_STATE_DISABLING},
@@ -206,6 +208,17 @@ public class ActiveModeWarden {
             default:
                 Log.d(TAG, "attempted to set an invalid state: " + newState);
                 break;
+        }
+    }
+
+    /**
+     * Get the request WorkSource for secondary CMM
+     *
+     * @return the WorkSources of the current secondary CMMs
+     */
+    public Set<WorkSource> getSecondaryRequestWs() {
+        synchronized (mServiceApiLock) {
+            return new ArraySet<>(mRequestWs);
         }
     }
 
@@ -1386,6 +1399,11 @@ public class ActiveModeWarden {
         ConcreteClientModeManager manager = mWifiInjector.makeClientModeManager(
                 listener, requestorWs, role, mVerboseLoggingEnabled);
         mClientModeManagers.add(manager);
+        if (ROLE_CLIENT_SECONDARY_LONG_LIVED.equals(role) || ROLE_CLIENT_LOCAL_ONLY.equals(role)) {
+            synchronized (mServiceApiLock) {
+                mRequestWs.add(new WorkSource(requestorWs));
+            }
+        }
         return true;
     }
 
@@ -1399,6 +1417,14 @@ public class ActiveModeWarden {
             @NonNull WorkSource requestorWs) {
         Log.d(TAG, "Switching role for additional ClientModeManager to role: " + role);
         ClientListener listener = new ClientListener(externalRequestListener);
+        synchronized (mServiceApiLock) {
+            mRequestWs.remove(manager.getRequestorWs());
+        }
+        if (ROLE_CLIENT_SECONDARY_LONG_LIVED.equals(role) || ROLE_CLIENT_LOCAL_ONLY.equals(role)) {
+            synchronized (mServiceApiLock) {
+                mRequestWs.add(new WorkSource(requestorWs));
+            }
+        }
         manager.setRole(role, requestorWs, listener);
         return true;
     }
@@ -1649,6 +1675,12 @@ public class ActiveModeWarden {
 
         private void onStoppedOrStartFailure(ConcreteClientModeManager clientModeManager) {
             mClientModeManagers.remove(clientModeManager);
+            if (ROLE_CLIENT_SECONDARY_LONG_LIVED.equals(clientModeManager.getPreviousRole())
+                    || ROLE_CLIENT_LOCAL_ONLY.equals(clientModeManager.getPreviousRole())) {
+                synchronized (mServiceApiLock) {
+                    mRequestWs.remove(clientModeManager.getRequestorWs());
+                }
+            }
             mGraveyard.inter(clientModeManager);
             updateClientScanMode();
             updateBatteryStats();
@@ -2756,7 +2788,7 @@ public class ActiveModeWarden {
      */
     public @NonNull WifiInfo getConnectionInfo() {
         synchronized (mServiceApiLock) {
-            return mCurrentConnectionInfo;
+            return new WifiInfo(mCurrentConnectionInfo);
         }
     }
 

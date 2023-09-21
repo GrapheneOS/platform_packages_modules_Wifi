@@ -833,6 +833,10 @@ public class WifiInfoTest {
         link1.setRxLinkSpeedMbps(TEST_LINK_SPEED);
         link1.setTxLinkSpeedMbps(TEST_LINK_SPEED);
         link1.setState(MloLink.MLO_LINK_STATE_UNASSOCIATED);
+        link1.setLostTxPacketsPerSecond(10);
+        link1.setRetriedTxPacketsRate(20);
+        link1.setSuccessfulTxPacketsPerSecond(30);
+        link1.setSuccessfulRxPacketsPerSecond(40);
 
         // Make sure all parameters are set.
         assertNotNull(link1.getApMacAddress());
@@ -846,6 +850,15 @@ public class WifiInfoTest {
         assertEquals(TEST_MLO_LINK_ID, link1.getLinkId());
         assertEquals(WifiScanner.WIFI_BAND_5_GHZ, link1.getBand());
         assertEquals(MloLink.MLO_LINK_STATE_UNASSOCIATED, link1.getState());
+        assertEquals(10, link1.getLostTxPacketsPerSecond(), 0);
+        assertEquals(20, link1.getRetriedTxPacketsPerSecond(), 0);
+        assertEquals(30, link1.getSuccessfulTxPacketsPerSecond(), 0);
+        assertEquals(40, link1.getSuccessfulRxPacketsPerSecond(), 0);
+        // Check default values
+        assertEquals(0, link1.txBad);
+        assertEquals(0, link1.txRetries);
+        assertEquals(0, link1.txSuccess);
+        assertEquals(0, link1.rxSuccess);
 
         // Test RSSI range.
         link1.setRssi(WifiInfo.INVALID_RSSI - 1);

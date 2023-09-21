@@ -715,6 +715,7 @@ public class WifiConfigurationTestUtil {
         assertEquals(expected.requirePmf, actual.requirePmf);
         assertEquals(expected.allowedKeyManagement, actual.allowedKeyManagement);
         assertEquals(expected.allowedAuthAlgorithms, actual.allowedAuthAlgorithms);
+        assertEquals(expected.priority, actual.priority);
         // Supplicant backup does not include the following fields.
         if (!isSupplicantBackup) {
             assertEquals(expected.allowedProtocols, actual.allowedProtocols);

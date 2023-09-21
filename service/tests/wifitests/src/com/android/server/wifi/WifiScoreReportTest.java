@@ -41,14 +41,18 @@ import static org.mockito.Mockito.when;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkScore;
 import android.net.wifi.IScoreUpdateObserver;
 import android.net.wifi.IWifiConnectedNetworkScorer;
+import android.net.wifi.MloLink;
 import android.net.wifi.WifiConnectedSessionInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiUsabilityStatsEntry;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -73,6 +77,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.verification.VerificationMode;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -837,6 +842,61 @@ public class WifiScoreReportTest extends WifiBaseTest {
             mWifiInfo.setRetriedTxPacketsRate(0.2 + i);
             mWifiInfo.setLostTxPacketsPerSecond(0.01 * i);
             mWifiInfo.setSuccessfulRxPacketsPerSecond(0.3 + i);
+            mWifiScoreReport.calculateAndReportScore();
+        }
+        setupToGenerateAReportWhenPrintlnIsCalled();
+        mWifiScoreReport.dump(null, mPrintWriter, null);
+        verify(mPrintWriter, times(13)).println(anyString());
+    }
+
+    /** Test data logging with MLO */
+    @Test
+    public void testDataLoggingMlo() throws Exception {
+        List<MloLink> mloLinks = new ArrayList<>();
+        MloLink link1 = new MloLink();
+        link1.setBand(WifiScanner.WIFI_BAND_24_GHZ);
+        link1.setChannel(6);
+        link1.setApMacAddress(MacAddress.fromString("01:02:03:04:05:06"));
+        link1.setTxLinkSpeedMbps(300);
+        link1.setState(MloLink.MLO_LINK_STATE_ACTIVE);
+        link1.setLinkId(1);
+
+        MloLink link2 = new MloLink();
+        link2.setBand(WifiScanner.WIFI_BAND_5_GHZ);
+        link2.setChannel(44);
+        link2.setApMacAddress(MacAddress.fromString("01:02:03:04:05:07"));
+        link2.setTxLinkSpeedMbps(600);
+        link2.setLinkId(2);
+        link2.setState(MloLink.MLO_LINK_STATE_ACTIVE);
+
+        mloLinks.add(link1);
+        mloLinks.add(link2);
+
+        when(mWifiMetrics.getTotalBeaconRxCount(1)).thenReturn(500L);
+        when(mWifiMetrics.getLinkUsageState(1))
+                .thenReturn(WifiUsabilityStatsEntry.LINK_STATE_IN_USE);
+        when(mWifiMetrics.getTotalBeaconRxCount(2)).thenReturn(0L);
+        when(mWifiMetrics.getLinkUsageState(2))
+                .thenReturn(WifiUsabilityStatsEntry.LINK_STATE_NOT_IN_USE);
+
+        mWifiInfo.setAffiliatedMloLinks(mloLinks);
+
+        for (int i = 0; i < 10; i++) {
+            mWifiInfo.setRssi(-65 + i);
+            mWifiInfo.setLinkSpeed(300);
+            mWifiInfo.setFrequency(5220);
+            mWifiInfo.setSuccessfulTxPacketsPerSecond(0.1 + i);
+            mWifiInfo.setRetriedTxPacketsRate(0.2 + i);
+            mWifiInfo.setLostTxPacketsPerSecond(0.01 * i);
+            mWifiInfo.setSuccessfulRxPacketsPerSecond(0.3 + i);
+            link1.setRssi(-65 + i);
+            link1.setRetriedTxPacketsRate(0.2 + i);
+            link1.setLostTxPacketsPerSecond(0.01 * i);
+            link1.setSuccessfulRxPacketsPerSecond(0.3 + i);
+            link2.setRssi(-65 + i);
+            link2.setRetriedTxPacketsRate(0.2 + i);
+            link2.setLostTxPacketsPerSecond(0.01 * i);
+            link2.setSuccessfulRxPacketsPerSecond(0.3 + i);
             mWifiScoreReport.calculateAndReportScore();
         }
         setupToGenerateAReportWhenPrintlnIsCalled();

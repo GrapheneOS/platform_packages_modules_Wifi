@@ -457,6 +457,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     public void startPnoScan(IWifiScannerListener listener, WifiScanner.ScanSettings scanSettings,
             WifiScanner.PnoSettings pnoSettings, String packageName, String featureId) {
         final int uid = Binder.getCallingUid();
+        if (listener == null) {
+            Log.e(TAG, "listener is null");
+            return;
+        }
         try {
             enforcePermission(uid, packageName, featureId,
                     isPrivilegedMessage(WifiScanner.CMD_START_PNO_SCAN),
@@ -468,15 +472,12 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             return;
         }
         mWifiThreadRunner.post(() -> {
-            ExternalClientInfo client = (ExternalClientInfo) mClients.get(listener);
-            if (client == null) {
-                client = new ExternalClientInfo(uid, packageName, listener);
-                client.register();
-            }
-            localLog("start pno scan: " + client + " AttributionTag " + featureId);
+            String clientInfoLog = "ClientInfo[uid=" + uid + ", package=" + packageName + ", "
+                    + listener + "]";
+            localLog("start pno scan: " + clientInfoLog + " AttributionTag " + featureId);
             Message msg = Message.obtain();
             msg.what = WifiScanner.CMD_START_PNO_SCAN;
-            msg.obj = new ScanParams(listener, scanSettings, pnoSettings, null, null, null);
+            msg.obj = new ScanParams(listener, scanSettings, pnoSettings, null, packageName, null);
             msg.sendingUid = uid;
             mPnoScanStateMachine.sendMessage(msg);
         });
@@ -485,6 +486,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
     @Override
     public void stopPnoScan(IWifiScannerListener listener, String packageName, String featureId) {
         final int uid = Binder.getCallingUid();
+        if (listener == null) {
+            Log.e(TAG, "listener is null");
+            return;
+        }
         try {
             enforcePermission(uid, packageName, featureId,
                     isPrivilegedMessage(WifiScanner.CMD_STOP_PNO_SCAN),
@@ -2342,8 +2347,17 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     case WifiScanner.CMD_DISABLE:
                         transitionTo(mDefaultState);
                         break;
-                    case WifiScanner.CMD_START_PNO_SCAN:
-                    case WifiScanner.CMD_STOP_PNO_SCAN:
+                    case WifiScanner.CMD_START_PNO_SCAN: {
+                        ScanParams scanParams = (ScanParams) msg.obj;
+                        try {
+                            scanParams.listener.onFailure(WifiScanner.REASON_UNSPECIFIED,
+                                    "not available");
+                        } catch (RemoteException e) {
+                            // not much we can do if message can't be sent.
+                        }
+                        break;
+                    }
+                    case WifiScanner.CMD_STOP_PNO_SCAN: {
                         ScanParams scanParams = (ScanParams) msg.obj;
                         ClientInfo ci = mClients.get(scanParams.listener);
                         if (ci == null) {
@@ -2352,6 +2366,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         }
                         ci.replyFailed(WifiScanner.REASON_UNSPECIFIED, "not available");
                         break;
+                    }
                     case CMD_PNO_NETWORK_FOUND:
                     case CMD_PNO_SCAN_FAILED:
                     case WifiScanner.CMD_SCAN_RESULT:
@@ -2391,8 +2406,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         }
                         ClientInfo ci = mClients.get(scanParams.listener);
                         if (ci == null) {
-                            localLog("CMD_START_PNO_SCAN ClientInfo is null in StartedState");
-                            break;
+                            ci = new ExternalClientInfo(msg.sendingUid, scanParams.packageName,
+                                    scanParams.listener);
+                            ci.register();
                         }
                         if (scanParams.pnoSettings == null || scanParams.settings == null) {
                             Log.e(TAG, "Failed to get parcelable params");
@@ -2451,8 +2467,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         }
                         ClientInfo ci = mClients.get(scanParams.listener);
                         if (ci == null) {
-                            localLog("CMD_START_PNO_SCAN ClientInfo is null in HwPnoScanState");
-                            break;
+                            ci = new ExternalClientInfo(msg.sendingUid, scanParams.packageName,
+                                    scanParams.listener);
+                            ci.register();
                         }
                         if (scanParams.pnoSettings == null || scanParams.settings == null) {
                             Log.e(TAG, "Failed to get parcelable params");
@@ -2764,9 +2781,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
                         ClientInfo clientInfo = mClients.get(scanParams.listener);
                         if (clientInfo == null) {
-                            Log.wtf(TAG, "Received Start PNO request without ClientInfo");
-                            transitionTo(mStartedState);
-                            return HANDLED;
+                            clientInfo = new ExternalClientInfo(msg.sendingUid,
+                                    scanParams.packageName, scanParams.listener);
+                            clientInfo.register();
                         }
 
                         if (!mActivePnoScans.isEmpty()) {

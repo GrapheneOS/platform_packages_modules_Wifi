@@ -17,7 +17,6 @@
 package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
@@ -27,10 +26,8 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_SOFTAP_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_SOFTAP_TETHERED;
 import static com.android.server.wifi.ActiveModeWarden.INTERNAL_REQUESTOR_WS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_STA_BANDS;
-
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -119,6 +116,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -2594,6 +2592,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertInDisabledState();
 
         verify(mClientModeManager, atLeastOnce()).getInterfaceName();
+        verify(mClientModeManager, atLeastOnce()).getPreviousRole();
         verifyNoMoreInteractions(mClientModeManager, mSoftApManager);
     }
 
@@ -2943,6 +2942,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             String ssid, String bssid)
             throws Exception {
         enterClientModeActiveState();
+        when(additionalClientModeManager.getRequestorWs()).thenReturn(TEST_WORKSOURCE);
 
         Mutable<Listener<ConcreteClientModeManager>> additionalClientListener =
                 new Mutable<>();
@@ -3004,7 +3004,10 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertEquals(additionalClientModeManager, requestedClientModeManager.getValue());
         // the additional CMM never became primary
         verify(mPrimaryChangedCallback, never()).onChange(any(), eq(additionalClientModeManager));
-
+        if (additionaClientModeManagerRole == ROLE_CLIENT_LOCAL_ONLY
+                || additionaClientModeManagerRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
+            assertEquals(Set.of(TEST_WORKSOURCE), mActiveModeWarden.getSecondaryRequestWs());
+        }
         return additionalClientListener.value;
     }
 

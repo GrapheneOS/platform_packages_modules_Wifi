@@ -298,6 +298,7 @@ public class NetworkSuggestionStoreDataTest extends WifiBaseTest {
         WifiConfiguration configuration = WifiConfigurationTestUtil.createEapNetwork();
         configuration.enterpriseConfig =
                 WifiConfigurationTestUtil.createPEAPWifiEnterpriseConfigWithGTCPhase2();
+        configuration.priority = 5;
         WifiNetworkSuggestion networkSuggestion =
                 new WifiNetworkSuggestion(configuration, null, false, false, true, true,
                         TEST_PRIORITY_GROUP);

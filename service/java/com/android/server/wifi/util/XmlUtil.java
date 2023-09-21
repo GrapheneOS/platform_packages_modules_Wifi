@@ -366,6 +366,7 @@ public class XmlUtil {
         public static final String XML_TAG_CARRIER_ID = "CarrierId";
         public static final String XML_TAG_SUBSCRIPTION_ID = "SubscriptionId";
         public static final String XML_TAG_IS_AUTO_JOIN = "AutoJoinEnabled";
+        public static final String XML_TAG_PRIORITY = "Priority";
         public static final String XML_TAG_DELETION_PRIORITY = "DeletionPriority";
         public static final String XML_TAG_NUM_REBOOTS_SINCE_LAST_USE = "NumRebootsSinceLastUse";
 
@@ -591,6 +592,7 @@ public class XmlUtil {
                     configuration.allowedSuiteBCiphers.toByteArray());
             XmlUtil.writeNextValue(out, XML_TAG_SHARED, configuration.shared);
             XmlUtil.writeNextValue(out, XML_TAG_IS_AUTO_JOIN, configuration.allowAutojoin);
+            XmlUtil.writeNextValue(out, XML_TAG_PRIORITY, configuration.priority);
             XmlUtil.writeNextValue(
                     out, XML_TAG_DELETION_PRIORITY,
                     configuration.getDeletionPriority());
@@ -995,6 +997,9 @@ public class XmlUtil {
                             break;
                         case XML_TAG_IS_AUTO_JOIN:
                             configuration.allowAutojoin = (boolean) value;
+                            break;
+                        case XML_TAG_PRIORITY:
+                            configuration.priority = (int) value;
                             break;
                         case XML_TAG_DELETION_PRIORITY:
                             configuration.setDeletionPriority((int) value);
@@ -1506,6 +1511,7 @@ public class XmlUtil {
         public static final String XML_TAG_TRUST_ON_FIRST_USE = "TrustOnFirstUse";
         public static final String XML_TAG_USER_APPROVE_NO_CA_CERT = "UserApproveNoCaCert";
         public static final String XML_TAG_MINIMUM_TLS_VERSION = "MinimumTlsVersion";
+        public static final String XML_TAG_TOFU_DIALOG_STATE = "TofuDialogState";
 
         /**
          * Write password key to the XML stream.
@@ -1595,6 +1601,8 @@ public class XmlUtil {
                     enterpriseConfig.isUserApproveNoCaCert());
             XmlUtil.writeNextValue(out, XML_TAG_MINIMUM_TLS_VERSION,
                     enterpriseConfig.getMinimumTlsVersion());
+            XmlUtil.writeNextValue(out, XML_TAG_TOFU_DIALOG_STATE,
+                    enterpriseConfig.getTofuDialogState());
         }
 
         /**
@@ -1719,6 +1727,9 @@ public class XmlUtil {
                             break;
                         case XML_TAG_MINIMUM_TLS_VERSION:
                             enterpriseConfig.setMinimumTlsVersion((int) value);
+                            break;
+                        case XML_TAG_TOFU_DIALOG_STATE:
+                            enterpriseConfig.setTofuDialogState((int) value);
                             break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);

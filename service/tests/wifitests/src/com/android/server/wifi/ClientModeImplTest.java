@@ -94,6 +94,7 @@ import android.hardware.wifi.supplicant.V1_4.ISupplicantStaIfaceCallback.MboAsso
 import android.net.CaptivePortalData;
 import android.net.DhcpResultsParcelable;
 import android.net.InetAddresses;
+import android.net.IpConfiguration;
 import android.net.IpPrefix;
 import android.net.Layer2InformationParcelable;
 import android.net.Layer2PacketParcelable;
@@ -7179,6 +7180,55 @@ public class ClientModeImplTest extends WifiBaseTest {
         mIpClientCallback.onReachabilityFailure(lossInfo);
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
+    public void testIpReachabilityFailureStaticIpOrganicTriggersDisconnection() throws Exception {
+        when(mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()).thenReturn(true);
+        assumeTrue(SdkLevel.isAtLeastT());
+
+        final List<InetAddress> dnsServers = new ArrayList<>();
+        dnsServers.add(InetAddresses.parseNumericAddress("8.8.8.8"));
+        dnsServers.add(InetAddresses.parseNumericAddress("4.4.4.4"));
+        final StaticIpConfiguration staticIpConfig =
+                new StaticIpConfiguration.Builder()
+                        .setIpAddress(new LinkAddress("192.0.2.2/25"))
+                        .setGateway(InetAddresses.parseNumericAddress("192.0.2.1"))
+                        .setDnsServers(dnsServers)
+                        .build();
+        final IpConfiguration ipConfig = new IpConfiguration();
+        ipConfig.setStaticIpConfiguration(staticIpConfig);
+        ipConfig.setIpAssignment(IpConfiguration.IpAssignment.STATIC);
+        mConnectedNetwork.setIpConfiguration(ipConfig);
+
+        triggerConnect();
+        validateConnectionInfo();
+
+        // Simulate L2 connection.
+        final WifiSsid wifiSsid =
+                WifiSsid.fromBytes(
+                        NativeUtil.byteArrayFromArrayList(
+                                NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
+        mCmi.sendMessage(
+                WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, wifiSsid, TEST_BSSID_STR, false, null));
+        mLooper.dispatchAll();
+
+        // Simulate L3 connection.
+        final DhcpResultsParcelable dhcpResults = new DhcpResultsParcelable();
+        dhcpResults.baseConfiguration = staticIpConfig;
+        injectDhcpSuccess(dhcpResults);
+        mLooper.dispatchAll();
+        expectRegisterNetworkAgent((agentConfig) -> {}, (cap) -> {});
+        reset(mWifiNetworkAgent);
+
+        // Trigger IP reachability failure and ensure we trigger a disconnection due to static IP.
+        ReachabilityLossInfoParcelable lossInfo =
+                new ReachabilityLossInfoParcelable("", ReachabilityLossReason.ORGANIC);
+        mIpClientCallback.onReachabilityFailure(lossInfo);
+        mLooper.dispatchAll();
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+        verify(mWifiNetworkAgent, never()).unregisterAfterReplacement(anyInt());
     }
 
     private void doIpReachabilityFailureTest(int lossReason, boolean shouldWifiDisconnect)

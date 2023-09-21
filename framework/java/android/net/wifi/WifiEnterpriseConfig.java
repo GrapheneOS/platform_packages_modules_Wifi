@@ -331,6 +331,68 @@ public class WifiEnterpriseConfig implements Parcelable {
     @Retention(RetentionPolicy.SOURCE)
     public @interface TlsVersion {}
 
+    /**
+     * TOFU is not enabled for this configuration.
+     * @hide
+     */
+    public static final int TOFU_STATE_NOT_ENABLED = 0;
+
+    /**
+     * TOFU is enabled pre-connection.
+     * @hide
+     */
+    public static final int TOFU_STATE_ENABLED_PRE_CONNECTION = 1;
+
+    /**
+     * Root CA was configured post-TOFU connection.
+     * @hide
+     */
+
+    public static final int TOFU_STATE_CONFIGURE_ROOT_CA = 2;
+
+    /**
+     * Certificate pinning was used post-TOFU connection.
+     * @hide
+     */
+    public static final int TOFU_STATE_CERT_PINNING = 3;
+
+    /** @hide */
+    @IntDef(prefix = {"TOFU_STATE_"}, value = {
+            TOFU_STATE_NOT_ENABLED,
+            TOFU_STATE_ENABLED_PRE_CONNECTION,
+            TOFU_STATE_CONFIGURE_ROOT_CA,
+            TOFU_STATE_CERT_PINNING
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface TofuState {}
+
+    /**
+     * TOFU dialog has not been displayed to the user, or state is unknown.
+     * @hide
+     */
+    public static final int TOFU_DIALOG_STATE_UNSPECIFIED = 0;
+
+    /**
+     * TOFU dialog was rejected by the user.
+     * @hide
+     */
+    public static final int TOFU_DIALOG_STATE_REJECTED = 1;
+
+    /**
+     * TOFU dialog was accepted by the user.
+     * @hide
+     */
+    public static final int TOFU_DIALOG_STATE_ACCEPTED = 2;
+
+    /** @hide */
+    @IntDef(prefix = {"TOFU_DIALOG_STATE_"}, value = {
+            TOFU_DIALOG_STATE_UNSPECIFIED,
+            TOFU_DIALOG_STATE_REJECTED,
+            TOFU_DIALOG_STATE_ACCEPTED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface TofuDialogState {}
+
     @UnsupportedAppUsage
     private HashMap<String, String> mFields = new HashMap<String, String>();
     private X509Certificate[] mCaCerts;
@@ -345,6 +407,7 @@ public class WifiEnterpriseConfig implements Parcelable {
     private boolean mUserApproveNoCaCert = false;
     // Default is 1.0, i.e. accept any TLS version.
     private int mMinimumTlsVersion = TLS_V1_0;
+    private @TofuDialogState int mTofuDialogState = TOFU_DIALOG_STATE_UNSPECIFIED;
 
     // Not included in parceling, hashing, or equality because it is an internal, temporary value
     // which is valid only during an actual connection to a Passpoint network with an RCOI-based
@@ -466,6 +529,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         mSelectedRcoi = source.mSelectedRcoi;
         mMinimumTlsVersion = source.mMinimumTlsVersion;
         mIsStrictConservativePeerMode = source.mIsStrictConservativePeerMode;
+        mTofuDialogState = source.mTofuDialogState;
     }
 
     /**
@@ -511,6 +575,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         dest.writeBoolean(mIsTrustOnFirstUseEnabled);
         dest.writeBoolean(mUserApproveNoCaCert);
         dest.writeInt(mMinimumTlsVersion);
+        dest.writeInt(mTofuDialogState);
     }
 
     public static final @android.annotation.NonNull Creator<WifiEnterpriseConfig> CREATOR =
@@ -562,6 +627,7 @@ public class WifiEnterpriseConfig implements Parcelable {
                     enterpriseConfig.mIsTrustOnFirstUseEnabled = in.readBoolean();
                     enterpriseConfig.mUserApproveNoCaCert = in.readBoolean();
                     enterpriseConfig.mMinimumTlsVersion = in.readInt();
+                    enterpriseConfig.mTofuDialogState = in.readInt();
                     return enterpriseConfig;
                 }
 
@@ -1642,6 +1708,7 @@ public class WifiEnterpriseConfig implements Parcelable {
         sb.append(" minimum_tls_version: ").append(mMinimumTlsVersion).append("\n");
         sb.append(" enable_conservative_peer_mode: ")
                 .append(mIsStrictConservativePeerMode).append("\n");
+        sb.append(" tofu_dialog_state: ").append(mTofuDialogState).append("\n");
         return sb.toString();
     }
 
@@ -1944,6 +2011,34 @@ public class WifiEnterpriseConfig implements Parcelable {
      */
     public boolean isTrustOnFirstUseEnabled() {
         return mIsTrustOnFirstUseEnabled;
+    }
+
+    /**
+     * Indicate whether the user accepted the TOFU dialog.
+     * @hide
+     */
+    public void setTofuDialogApproved(boolean approved) {
+        mTofuDialogState = approved ? TOFU_DIALOG_STATE_ACCEPTED : TOFU_DIALOG_STATE_REJECTED;
+    }
+
+    /**
+     * Set the TOFU dialog state.
+     * @hide
+     */
+    public void setTofuDialogState(@TofuDialogState int state) {
+        if (state < TOFU_DIALOG_STATE_UNSPECIFIED || state > TOFU_DIALOG_STATE_ACCEPTED) {
+            Log.e(TAG, "Invalid TOFU dialog state received. state=" + state);
+            return;
+        }
+        mTofuDialogState = state;
+    }
+
+    /**
+     * Get the TOFU dialog state.
+     * @hide
+     */
+    public @TofuDialogState int getTofuDialogState() {
+        return mTofuDialogState;
     }
 
     /**

@@ -102,6 +102,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
                     + "<boolean name=\"Shared\" value=\"%s\" />\n"
                     + "<boolean name=\"AutoJoinEnabled\" value=\"true\" />\n"
+                    + "<int name=\"Priority\" value=\"0\" />\n"
                     + "<int name=\"DeletionPriority\" value=\"0\" />\n"
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"

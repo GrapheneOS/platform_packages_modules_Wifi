@@ -106,6 +106,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ActiveModeWarden.ExternalClientModeManagerRequestListener;
 import com.android.server.wifi.hotspot2.PasspointManager;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.scanner.WifiScannerInternal;
 import com.android.server.wifi.util.LruConnectionTracker;
@@ -213,6 +214,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class, withSettings().lenient())
+                .mockStatic(WifiStatsLog.class)
                 .startMocking();
         WifiInjector wifiInjector = mock(WifiInjector.class);
         when(wifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
@@ -5359,7 +5361,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 mPrimaryClientModeManager,
                 WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
         mWifiConnectivityManager.setTrustedConnectionAllowed(true);
-        inOrder.verify(mWifiMetrics).logPnoScanStart();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.PNO_SCAN_STARTED), anyBoolean()));
 
         // change to High Movement, which has the same scan interval as Low Movement
         mWifiConnectivityManager.setDeviceMobilityState(
@@ -5375,7 +5378,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         inOrder.verify(mWifiMetrics).logPnoScanStop();
         inOrder.verify(mWifiMetrics).enterDeviceMobilityState(
                 WifiManager.DEVICE_MOBILITY_STATE_STATIONARY);
-        inOrder.verify(mWifiMetrics).logPnoScanStart();
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.PNO_SCAN_STARTED), anyBoolean()), times(2));
 
         // stops PNO scan
         mWifiConnectivityManager.setTrustedConnectionAllowed(false);
