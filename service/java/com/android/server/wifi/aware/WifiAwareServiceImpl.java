@@ -247,6 +247,9 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         int uid = getMockableCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "resetPairedDevices: callingPackage=" + callingPackage);
+        }
         mStateManager.resetPairedDevices(callingPackage);
     }
 
@@ -255,6 +258,9 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         int uid = getMockableCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "removePairedDevice: callingPackage=" + callingPackage + ", alias=" + alias);
+        }
         mStateManager.removePairedDevice(callingPackage, alias);
     }
 
@@ -274,6 +280,14 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         int uid = getMockableCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
         enforceChangePermission();
+        if (mVerboseLoggingEnabled) {
+            Log.v(
+                    TAG,
+                    "setOpportunisticModeEnabled: callingPackage="
+                            + callingPackage
+                            + ", enabled="
+                            + enabled);
+        }
         mStateManager.setOpportunisticPackage(callingPackage, enabled);
     }
 
