@@ -19,6 +19,7 @@ package android.net.wifi;
 import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 
 import android.Manifest;
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -78,6 +79,18 @@ import java.util.Objects;
  */
 public class WifiInfo implements TransportInfo, Parcelable {
     private static final String TAG = "WifiInfo";
+
+    /**
+     * Stopgap for trunk stable flags, as they are not yet supported by Mainline for lack
+     * of support in udc-mainline-prod.
+     * TODO : remove this class when udc-mainline-prod is abandoned and android.net.flags.Flags is
+     * available here, and replace it with a generated Flags class created with flags.aconfig.
+     * @hide
+     */
+    private static class Flags {
+        public static final String ADD_SUBSCRIPTION_ID = "com.android.net.wifi.add_subscription_id";
+    }
+
     /**
      * This is the map described in the Javadoc comment above. The positions
      * of the elements of the array must correspond to the ordinal values
@@ -720,6 +733,17 @@ public class WifiInfo implements TransportInfo, Parcelable {
         @NonNull
         public Builder setNetworkId(int networkId) {
             mWifiInfo.setNetworkId(networkId);
+            return this;
+        }
+
+        /**
+         * Set the subscription ID.
+         * @see WifiInfo#getSubscriptionId()
+         */
+        @FlaggedApi(Flags.ADD_SUBSCRIPTION_ID)
+        @NonNull
+        public Builder setSubscriptionId(int subId) {
+            mWifiInfo.setSubscriptionId(subId);
             return this;
         }
 
