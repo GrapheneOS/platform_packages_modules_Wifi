@@ -13,3 +13,59 @@ MutableBareField: android.net.wifi.WifiConfiguration#lastConnectUid:
     Bare field lastConnectUid must be marked final, or moved behind accessors if mutable
 MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
     Bare field subscriptionId must be marked final, or moved behind accessors if mutable
+
+
+UnflaggedApi: android.net.wifi.OuiKeyedData:
+    New API must be flagged with @FlaggedApi: class android.net.wifi.OuiKeyedData
+UnflaggedApi: android.net.wifi.OuiKeyedData#CREATOR:
+    New API must be flagged with @FlaggedApi: field android.net.wifi.OuiKeyedData.CREATOR
+UnflaggedApi: android.net.wifi.OuiKeyedData#describeContents():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.describeContents()
+UnflaggedApi: android.net.wifi.OuiKeyedData#getData():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.getData()
+UnflaggedApi: android.net.wifi.OuiKeyedData#getOui():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.getOui()
+UnflaggedApi: android.net.wifi.OuiKeyedData#writeToParcel(android.os.Parcel, int):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.writeToParcel(android.os.Parcel,int)
+UnflaggedApi: android.net.wifi.OuiKeyedData.Builder:
+    New API must be flagged with @FlaggedApi: class android.net.wifi.OuiKeyedData.Builder
+UnflaggedApi: android.net.wifi.OuiKeyedData.Builder#Builder(int, android.os.Parcelable):
+    New API must be flagged with @FlaggedApi: constructor android.net.wifi.OuiKeyedData.Builder(int,android.os.Parcelable)
+UnflaggedApi: android.net.wifi.OuiKeyedData.Builder#build():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.Builder.build()
+UnflaggedApi: android.net.wifi.SoftApConfiguration#getVendorData():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.SoftApConfiguration.getVendorData()
+UnflaggedApi: android.net.wifi.SoftApConfiguration.Builder#setVendorData(java.util.List<android.net.wifi.OuiKeyedData>):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.SoftApConfiguration.Builder.setVendorData(java.util.List<android.net.wifi.OuiKeyedData>)
+UnflaggedApi: android.net.wifi.WifiConfiguration.NetworkSelectionStatus#DISABLED_UNWANTED_LOW_RSSI:
+    New API must be flagged with @FlaggedApi: field android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI
+UnflaggedApi: android.net.wifi.WifiManager#API_SET_PNO_SCAN_ENABLED:
+    New API must be flagged with @FlaggedApi: field android.net.wifi.WifiManager.API_SET_PNO_SCAN_ENABLED
+UnflaggedApi: android.net.wifi.WifiManager#VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY:
+    New API must be flagged with @FlaggedApi: field android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY
+UnflaggedApi: android.net.wifi.WifiManager#addWifiLowLatencyLockListener(java.util.concurrent.Executor, android.net.wifi.WifiManager.WifiLowLatencyLockListener):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.addWifiLowLatencyLockListener(java.util.concurrent.Executor,android.net.wifi.WifiManager.WifiLowLatencyLockListener)
+UnflaggedApi: android.net.wifi.WifiManager#getMaxMloAssociationLinkCount(java.util.concurrent.Executor, java.util.function.Consumer<java.lang.Integer>):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getMaxMloAssociationLinkCount(java.util.concurrent.Executor,java.util.function.Consumer<java.lang.Integer>)
+UnflaggedApi: android.net.wifi.WifiManager#getMaxMloStrLinkCount(java.util.concurrent.Executor, java.util.function.Consumer<java.lang.Integer>):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getMaxMloStrLinkCount(java.util.concurrent.Executor,java.util.function.Consumer<java.lang.Integer>)
+UnflaggedApi: android.net.wifi.WifiManager#getSupportedSimultaneousBandCombinations(java.util.concurrent.Executor, java.util.function.Consumer<java.util.List<int[]>>):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getSupportedSimultaneousBandCombinations(java.util.concurrent.Executor,java.util.function.Consumer<java.util.List<int[]>>)
+UnflaggedApi: android.net.wifi.WifiManager#isLowLatencyModeSupported():
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.isLowLatencyModeSupported()
+UnflaggedApi: android.net.wifi.WifiManager#removeWifiLowLatencyLockListener(android.net.wifi.WifiManager.WifiLowLatencyLockListener):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.removeWifiLowLatencyLockListener(android.net.wifi.WifiManager.WifiLowLatencyLockListener)
+UnflaggedApi: android.net.wifi.WifiManager#setPnoScanEnabled(boolean, boolean):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.setPnoScanEnabled(boolean,boolean)
+UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener:
+    New API must be flagged with @FlaggedApi: class android.net.wifi.WifiManager.WifiLowLatencyLockListener
+UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onActivatedStateChanged(boolean):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.WifiLowLatencyLockListener.onActivatedStateChanged(boolean)
+UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onActiveUsersChanged(int[]):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.WifiLowLatencyLockListener.onActiveUsersChanged(int[])
+UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onOwnershipChanged(int[]):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.WifiLowLatencyLockListener.onOwnershipChanged(int[])
+UnflaggedApi: android.net.wifi.WifiUsabilityStatsEntry#getTotalCcaBusyFreqTimeMillis(int):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiUsabilityStatsEntry.getTotalCcaBusyFreqTimeMillis(int)
+UnflaggedApi: android.net.wifi.WifiUsabilityStatsEntry#getTotalRadioOnFreqTimeMillis(int):
+    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiUsabilityStatsEntry.getTotalRadioOnFreqTimeMillis(int)

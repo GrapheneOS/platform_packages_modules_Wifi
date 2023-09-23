@@ -27,6 +27,19 @@ package android.net.wifi {
     field public static final int EASY_CONNECT_EVENT_SUCCESS_CONFIGURATION_SENT = 0; // 0x0
   }
 
+  public final class OuiKeyedData implements android.os.Parcelable {
+    method public int describeContents();
+    method @NonNull public android.os.Parcelable getData();
+    method public int getOui();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.OuiKeyedData> CREATOR;
+  }
+
+  public static final class OuiKeyedData.Builder {
+    ctor public OuiKeyedData.Builder(int, @NonNull android.os.Parcelable);
+    method @NonNull public android.net.wifi.OuiKeyedData build();
+  }
+
   public final class QosPolicyParams implements android.os.Parcelable {
     method @Nullable public java.net.InetAddress getDestinationAddress();
     method @IntRange(from=android.net.wifi.QosPolicyParams.DESTINATION_PORT_ANY, to=65535) public int getDestinationPort();
@@ -339,6 +352,7 @@ package android.net.wifi {
     method public int getMaxNumberOfClients();
     method @NonNull public android.net.MacAddress getPersistentRandomizedMacAddress();
     method public long getShutdownTimeoutMillis();
+    method @NonNull public java.util.List<android.net.wifi.OuiKeyedData> getVendorData();
     method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorElements();
     method public boolean isAutoShutdownEnabled();
     method public boolean isBridgedModeOpportunisticShutdownEnabled();
@@ -383,6 +397,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setPassphrase(@Nullable String, int);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setShutdownTimeoutMillis(@IntRange(from=0xffffffff) long);
     method @Deprecated @NonNull public android.net.wifi.SoftApConfiguration.Builder setSsid(@Nullable String);
+    method @NonNull public android.net.wifi.SoftApConfiguration.Builder setVendorData(@NonNull java.util.List<android.net.wifi.OuiKeyedData>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setVendorElements(@NonNull java.util.List<android.net.wifi.ScanResult.InformationElement>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setWifiSsid(@Nullable android.net.wifi.WifiSsid);
   }

@@ -476,6 +476,38 @@ public class InsecureEapNetworkHandler {
     }
 
     /**
+     * Check whether certificate pinning should be used.
+     *
+     * @param verbose whether to print logs during the check.
+     * @return true if certificate pinning should be used, false otherwise.
+     */
+    private boolean useCertificatePinning(boolean verbose) {
+        if (mServerCertChain.size() == 1) {
+            if (verbose) {
+                Log.i(TAG, "Only one certificate provided, use server certificate pinning");
+            }
+            return true;
+        }
+        if (mPendingRootCaCert.getSubjectX500Principal().getName()
+                .equals(mPendingRootCaCert.getIssuerX500Principal().getName())) {
+            if (mPendingRootCaCert.getVersion() >= 2
+                    && mPendingRootCaCert.getBasicConstraints() < 0) {
+                if (verbose) {
+                    Log.i(TAG, "Root CA with no CA bit set in basic constraints, "
+                            + "use server certificate pinning");
+                }
+                return true;
+            }
+        } else {
+            if (verbose) {
+                Log.i(TAG, "Root CA is not self-signed, use server certificate pinning");
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Configure the server validation method based on the incoming server certificate chain.
      * If a valid method is found, the method returns true, and the caller can continue the TOFU
      * process.
@@ -493,20 +525,7 @@ public class InsecureEapNetworkHandler {
             Log.e(TAG, "No certificate chain provided by the server.");
             return false;
         }
-        if (mServerCertChain.size() == 1) {
-            Log.i(TAG, "Only one certificate provided, use server certificate pinning");
-            return true;
-        }
-        if (mPendingRootCaCert.getSubjectX500Principal().getName()
-                .equals(mPendingRootCaCert.getIssuerX500Principal().getName())) {
-            if (mPendingRootCaCert.getVersion() >= 2
-                    && mPendingRootCaCert.getBasicConstraints() < 0) {
-                Log.i(TAG, "Root CA with no CA bit set in basic constraints, "
-                        + "use server certificate pinning");
-                return true;
-            }
-        } else {
-            Log.i(TAG, "Root CA is not self-signed, use server certificate pinning");
+        if (useCertificatePinning(true)) {
             return true;
         }
 
@@ -601,8 +620,14 @@ public class InsecureEapNetworkHandler {
                 Log.e(TAG, "Cannot update CA cert to network " + mCurrentTofuConfig.getProfileKey()
                         + ", CA cert = " + mPendingRootCaCert);
             }
+            int postConnectionMethod = useCertificatePinning(false)
+                    ? WifiEnterpriseConfig.TOFU_STATE_CERT_PINNING
+                    : WifiEnterpriseConfig.TOFU_STATE_CONFIGURE_ROOT_CA;
+            mWifiConfigManager.setTofuPostConnectionState(
+                    mCurrentTofuConfig.networkId, postConnectionMethod);
         }
         int networkId = mCurrentTofuConfig.networkId;
+        mWifiConfigManager.setTofuDialogApproved(networkId, true);
         mWifiConfigManager.updateNetworkSelectionStatus(networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
         dismissDialogAndNotification();
@@ -616,6 +641,7 @@ public class InsecureEapNetworkHandler {
         if (!isConnectionValid(ssid)) return;
         boolean disconnectRequired = !useTrustOnFirstUse();
 
+        mWifiConfigManager.setTofuDialogApproved(mCurrentTofuConfig.networkId, false);
         mWifiConfigManager.updateNetworkSelectionStatus(mCurrentTofuConfig.networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WIFI_MANAGER);
         dismissDialogAndNotification();
