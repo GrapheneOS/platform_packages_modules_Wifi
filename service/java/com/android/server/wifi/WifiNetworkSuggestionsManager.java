@@ -1611,9 +1611,16 @@ public class WifiNetworkSuggestionsManager {
     }
 
     /**
-     * Get all user-approved Passpoint networks that include an SSID.
+     * Get all user-approved Passpoint networks from suggestion.
+     *
+     * @param requireSsid If true, this method will only return Passpoint suggestions that include
+     *     an SSID. If false, this method will return all Passpoint suggestions, including those
+     *     which do not include an SSID.
+     *     <p>Note: Passpoint SSIDs are recorded upon successful connection to a network. Having an
+     *     SSID indicates that a Passpoint network has connected since the last reboot.
      */
-    public List<WifiConfiguration> getAllPasspointScanOptimizationSuggestionNetworks() {
+    public List<WifiConfiguration> getAllPasspointScanOptimizationSuggestionNetworks(
+            boolean requireSsid) {
         List<WifiConfiguration> networks = new ArrayList<>();
         for (PerAppInfo info : mActiveNetworkSuggestionsPerApp.values()) {
             if (!info.isApproved()) {
@@ -1631,7 +1638,7 @@ public class WifiNetworkSuggestionsManager {
                 }
                 network.SSID = mWifiInjector.getPasspointManager()
                         .getMostRecentSsidForProfile(network.getPasspointUniqueId());
-                if (network.SSID == null) {
+                if (requireSsid && network.SSID == null) {
                     continue;
                 }
                 networks.add(network);
