@@ -685,68 +685,85 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         intentFilter.addAction(Intent.ACTION_SCREEN_ON);
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         intentFilter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);
-        mContext.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-                if (mVerboseLoggingEnabled) Log.v(TAG, "BroadcastReceiver: action=" + action);
-                if (action.equals(Intent.ACTION_SCREEN_ON)
-                        || action.equals(Intent.ACTION_SCREEN_OFF)) {
-                    reconfigure();
-                }
-
-                if (action.equals(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)) {
-                    if (mSettableParameters.get(PARAM_ON_IDLE_DISABLE_AWARE) != 0) {
-                        if (mPowerManager.isDeviceIdleMode()
-                                && !isAnyCallerIgnoringBatteryOptimizations()) {
-                            disableUsage(false);
-                        } else {
-                            enableUsage();
+        mContext.registerReceiver(
+                new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        String action = intent.getAction();
+                        if (mVerboseLoggingEnabled) {
+                            Log.v(TAG, "BroadcastReceiver: action=" + action);
                         }
-                    } else {
-                        reconfigure();
+                        if (action.equals(Intent.ACTION_SCREEN_ON)
+                                || action.equals(Intent.ACTION_SCREEN_OFF)) {
+                            reconfigure();
+                        }
+
+                        if (action.equals(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)) {
+                            if (mSettableParameters.get(PARAM_ON_IDLE_DISABLE_AWARE) != 0) {
+                                if (mPowerManager.isDeviceIdleMode()
+                                        && !isAnyCallerIgnoringBatteryOptimizations()) {
+                                    disableUsage(false);
+                                } else {
+                                    enableUsage();
+                                }
+                            } else {
+                                reconfigure();
+                            }
+                        }
                     }
-                }
-            }
-        }, intentFilter);
+                },
+                intentFilter,
+                null,
+                mHandler);
 
         intentFilter = new IntentFilter();
         intentFilter.addAction(LocationManager.MODE_CHANGED_ACTION);
-        mContext.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (mVerboseLoggingEnabled) {
-                    Log.v(TAG, "onReceive: MODE_CHANGED_ACTION: intent=" + intent);
-                }
-                if (wifiPermissionsUtil.isLocationModeEnabled()) {
-                    enableUsage();
-                } else {
-                    if (SdkLevel.isAtLeastT()) {
-                        handleLocationModeDisabled();
-                    } else {
-                        disableUsage(false);
+        mContext.registerReceiver(
+                new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if (mVerboseLoggingEnabled) {
+                            Log.v(TAG, "onReceive: MODE_CHANGED_ACTION: intent=" + intent);
+                        }
+                        if (wifiPermissionsUtil.isLocationModeEnabled()) {
+                            enableUsage();
+                        } else {
+                            if (SdkLevel.isAtLeastT()) {
+                                handleLocationModeDisabled();
+                            } else {
+                                disableUsage(false);
+                            }
+                        }
                     }
-                }
-            }
-        }, intentFilter);
+                },
+                intentFilter,
+                null,
+                mHandler);
 
         intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-        mContext.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (mVerboseLoggingEnabled) {
-                    Log.v(TAG, "onReceive: WIFI_STATE_CHANGED_ACTION: intent=" + intent);
-                }
-                boolean isEnabled = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,
-                        WifiManager.WIFI_STATE_UNKNOWN) == WifiManager.WIFI_STATE_ENABLED;
-                if (isEnabled) {
-                    enableUsage();
-                } else {
-                    disableUsage(false);
-                }
-            }
-        }, intentFilter);
+        mContext.registerReceiver(
+                new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if (mVerboseLoggingEnabled) {
+                            Log.v(TAG, "onReceive: WIFI_STATE_CHANGED_ACTION: intent=" + intent);
+                        }
+                        boolean isEnabled =
+                                intent.getIntExtra(
+                                                WifiManager.EXTRA_WIFI_STATE,
+                                                WifiManager.WIFI_STATE_UNKNOWN)
+                                        == WifiManager.WIFI_STATE_ENABLED;
+                        if (isEnabled) {
+                            enableUsage();
+                        } else {
+                            disableUsage(false);
+                        }
+                    }
+                },
+                intentFilter,
+                null,
+                mHandler);
     }
 
     private class CountryCodeChangeCallback implements

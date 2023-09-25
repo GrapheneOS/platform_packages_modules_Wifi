@@ -263,8 +263,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                     callbackArgumentCaptor.capture());
             mActiveCountryCodeChangedCallback = callbackArgumentCaptor.getValue();
         }
-        verify(mMockContext, times(3)).registerReceiver(bcastRxCaptor.capture(),
-                any(IntentFilter.class));
+        verify(mMockContext, times(3))
+                .registerReceiver(
+                        bcastRxCaptor.capture(),
+                        any(IntentFilter.class),
+                        isNull(),
+                        any(Handler.class));
         mPowerBcastReceiver = bcastRxCaptor.getAllValues().get(0);
         mLocationModeReceiver = bcastRxCaptor.getAllValues().get(1);
         mWifiStateChangedReceiver = bcastRxCaptor.getAllValues().get(2);
