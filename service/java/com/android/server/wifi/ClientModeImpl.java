@@ -202,6 +202,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static final int NETWORK_AGENT_TEARDOWN_DELAY_MS = 5_000; // Max teardown delay.
     private static final int DISASSOC_AP_BUSY_DISABLE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
     @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 30_000; // 30 secs.
+    public static final int PROVISIONING_TIMEOUT_FILS_CONNECTION_MS = 36_000; // 36 secs.
     @VisibleForTesting
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
 
@@ -7984,10 +7985,11 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             setConfigurationsPriorToIpClientProvisioning(config);
             final ProvisioningConfiguration.Builder prov =
                     new ProvisioningConfiguration.Builder()
-                    .withPreDhcpAction()
-                    .withPreconnection()
-                    .withDisplayName(config.SSID)
-                    .withLayer2Information(layer2Info);
+                            .withPreDhcpAction()
+                            .withPreconnection()
+                            .withDisplayName(config.SSID)
+                            .withLayer2Information(layer2Info)
+                            .withProvisioningTimeoutMs(PROVISIONING_TIMEOUT_FILS_CONNECTION_MS);
             if (mContext.getResources().getBoolean(R.bool.config_wifiEnableApfOnNonPrimarySta)
                     || isPrimary()) {
                 // unclear if the native layer will return the correct non-capabilities if APF is
