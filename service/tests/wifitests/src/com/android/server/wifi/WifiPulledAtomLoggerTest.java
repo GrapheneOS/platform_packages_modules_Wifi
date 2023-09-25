@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -39,6 +40,7 @@ import android.util.StatsEvent;
 import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 
@@ -72,6 +74,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
     @Mock private WifiSettingsStore mWifiSettingsStore;
     @Mock private WifiConfigManager mWifiConfigManager;
     @Mock private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
+    @Mock private PasspointManager mPasspointManager;
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiConfiguration mWifiConfiguration;
     @Captor ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
@@ -242,14 +245,21 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWifiNetworkSuggestionsManager())
                 .thenReturn(mWifiNetworkSuggestionsManager);
+        when(mWifiInjector.getPasspointManager()).thenReturn(mPasspointManager);
+
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(mWifiConfiguration));
         when(mWifiNetworkSuggestionsManager.getAllApprovedNetworkSuggestions())
                 .thenReturn(new HashSet<>(Arrays.asList(mockSuggestion)));
+        when(mWifiNetworkSuggestionsManager
+                .getAllPasspointScanOptimizationSuggestionNetworks(anyBoolean()))
+                .thenReturn(Arrays.asList(mWifiConfiguration));
+        when(mPasspointManager.getWifiConfigsForPasspointProfiles(anyBoolean()))
+                .thenReturn(Arrays.asList(mWifiConfiguration));
 
         List<StatsEvent> data = new ArrayList<>();
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO, data));
-        assertEquals(2, data.size());
+        assertEquals(4, data.size());
     }
 }
