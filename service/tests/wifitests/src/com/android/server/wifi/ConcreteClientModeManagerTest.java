@@ -488,6 +488,37 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
                 WIFI_STATE_ENABLING);
     }
 
+    @Test
+    public void testSwitchFromConnectModeToScanOnlyModeFail() throws Exception {
+        startClientInConnectModeAndVerifyEnabled();
+
+        // mock wifi native role switch failure
+        when(mWifiNative.switchClientInterfaceToScanMode(any(), any()))
+                .thenReturn(false);
+        InOrder inOrder = inOrder(mContext);
+        mClientModeManager.setRole(ROLE_CLIENT_SCAN_ONLY, TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        // Verify callback received for failed transition
+        verify(mListener).onStartFailure(mClientModeManager);
+
+        // First check WIFI_STATE_DISABLING is broadcast as the CMM tries to switch to scan only
+        // mode
+        inOrder.verify(mContext, atLeastOnce()).sendStickyBroadcastAsUser(
+                argThat(intent ->
+                        intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, -1)
+                                == WifiManager.WIFI_STATE_DISABLING),
+                any());
+
+        // Then verify WIFI_STATE_DISABLED is broadcast due to WifiNative failing
+        // to switch CMM role.
+        inOrder.verify(mContext).sendStickyBroadcastAsUser(
+                argThat(intent ->
+                        intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, -1)
+                                == WIFI_STATE_DISABLED),
+                any());
+    }
+
     /**
      * Switch ClientModeManager from Connect mode to ScanOnly mode.
      */
