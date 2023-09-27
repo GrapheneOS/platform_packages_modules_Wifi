@@ -41,6 +41,7 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.os.Process.WIFI_UID;
+
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
@@ -5708,10 +5709,18 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         int callingUid = Binder.getCallingUid();
         if (configurations.isEmpty()) return;
-        final int batchNum = mContext.getResources().getInteger(
-                    R.integer.config_wifiConfigurationRestoreNetworksBatchNum);
-        mWifiThreadRunner.run(new NetworkUpdater(callingUid, configurations, 0,
-                batchNum > 0 ? batchNum : configurations.size()));
+        final int batchNum =
+                mDeviceConfigFacade.getFeatureFlags().delaySaveToStore()
+                        ? 0
+                        : mContext.getResources()
+                                .getInteger(
+                                        R.integer.config_wifiConfigurationRestoreNetworksBatchNum);
+        mWifiThreadRunner.post(
+                new NetworkUpdater(
+                        callingUid,
+                        configurations,
+                        0,
+                        batchNum > 0 ? batchNum : configurations.size()));
     }
 
     /**
@@ -5765,14 +5774,14 @@ public class WifiServiceImpl extends BaseWifiService {
         return softApConfig;
     }
 
-
     /**
-     * Restore state from the older supplicant back up data.
-     * The old backup data was essentially a backup of wpa_supplicant.conf & ipconfig.txt file.
+     * Restore state from the older supplicant back up data. The old backup data was essentially a
+     * backup of wpa_supplicant.conf & ipconfig.txt file.
      *
      * @param supplicantData Raw byte stream of wpa_supplicant.conf
      * @param ipConfigData Raw byte stream of ipconfig.txt
      */
+    @Override
     public void restoreSupplicantBackupData(byte[] supplicantData, byte[] ipConfigData) {
         enforceNetworkSettingsPermission();
         mLog.trace("restoreSupplicantBackupData uid=%").c(Binder.getCallingUid()).flush();
