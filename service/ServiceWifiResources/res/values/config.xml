@@ -263,6 +263,10 @@
     <!-- Integer for maximum number of channels to use in initial partial scan. If equals to 0, means add all available channels for networks -->
     <integer translatable="false" name="config_wifiInitialPartialScanChannelMaxCount">10</integer>
 
+    <!-- Configure the max number of new channels to add into the initial partial scan list per network.
+         If equals to 0, it means there's no limit on the max number of channels to include per network.-->
+    <integer translatable="false" name="config_wifiInitialPartialScanMaxNewChannelsPerNetwork">0</integer>
+
     <!-- Integer for maximum age for scan results used to identify channels for partial initial
          scan in minutes -->
     <integer translatable="false" name="config_wifiInitialPartialScanChannelCacheAgeMins">14400</integer>
