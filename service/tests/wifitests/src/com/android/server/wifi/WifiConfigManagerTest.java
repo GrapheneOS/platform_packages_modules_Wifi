@@ -1924,6 +1924,35 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that the protected WifiEnterpriseConfig fields are set correctly.
+     */
+    @Test
+    public void testWifiEnterpriseConfigProtectedFields() {
+        // Add an external config. Expect the internal config to have the default values.
+        WifiConfiguration externalConfig = WifiConfigurationTestUtil.createEapNetwork();
+        externalConfig.enterpriseConfig.setUserApproveNoCaCert(true);
+        NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(externalConfig);
+        WifiConfiguration internalConfig = mWifiConfigManager.getConfiguredNetwork(
+                result.getNetworkId());
+        assertFalse(internalConfig.enterpriseConfig.isUserApproveNoCaCert());
+
+        // Update using an external config. Expect internal config to retain the default values.
+        result = verifyUpdateNetworkToWifiConfigManager(externalConfig);
+        internalConfig = mWifiConfigManager.getConfiguredNetwork(
+                result.getNetworkId());
+        assertFalse(internalConfig.enterpriseConfig.isUserApproveNoCaCert());
+
+        // If the internal config's values are updated by the framework, merging
+        // with an external config should not overwrite the internal values.
+        mWifiConfigManager.setUserApproveNoCaCert(externalConfig.networkId, true);
+        externalConfig.enterpriseConfig.setUserApproveNoCaCert(false);
+        result = verifyUpdateNetworkToWifiConfigManager(externalConfig);
+        internalConfig = mWifiConfigManager.getConfiguredNetwork(
+                result.getNetworkId());
+        assertTrue(internalConfig.enterpriseConfig.isUserApproveNoCaCert());
+    }
+
+    /**
      * Verifies the modification of a single network using
      * {@link WifiConfigManager#addOrUpdateNetwork(WifiConfiguration, int)} by passing in nulls
      * in all the publicly exposed fields.
@@ -7176,6 +7205,27 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Verify that we can add a new network.
         verifyAddNetworkToWifiConfigManager(WifiConfigurationTestUtil.createOpenNetwork());
         assertEquals(2, mWifiConfigManager.getConfiguredNetworks().size());
+    }
+
+    /**
+     * Verify that the protected WifiEnterpriseConfig fields are loaded correctly
+     * from the XML store.
+     */
+    @Test
+    public void testLoadEnterpriseConfigProtectedFields() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil.createEapNetwork();
+        config.enterpriseConfig.setUserApproveNoCaCert(true);
+        List<WifiConfiguration> storedConfigs = Arrays.asList(config);
+
+        // Setup xml storage
+        setupStoreDataForRead(storedConfigs, Arrays.asList());
+        assertTrue(mWifiConfigManager.loadFromStore());
+        verify(mWifiConfigStore).read();
+
+        List<WifiConfiguration> retrievedNetworks =
+                mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        assertEquals(1, retrievedNetworks.size());
+        assertTrue(retrievedNetworks.get(0).enterpriseConfig.isUserApproveNoCaCert());
     }
 
     /**
