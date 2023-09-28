@@ -324,6 +324,7 @@
           <item type="bool" name="config_wifiP2pGoIpAddressAllocationInEapolFrames" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeStart" />
           <item type="string"  name="config_wifiP2pGoEapolIpAddressRangeEnd" />
+          <item type="bool" name="config_wifiDisableFirmwareRoamingInIdleMode" />
           <item type="bool" name="config_wifiUpdateCountryCodeFromScanResultGeneric" />
           <item type="bool" name="config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand" />
           <item type="bool" name ="config_aware_vdbg_enable_on_verbose_logging" />

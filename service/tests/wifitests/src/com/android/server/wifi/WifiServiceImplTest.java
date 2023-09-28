@@ -5763,12 +5763,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         // No scans must be made yet as the device is idle.
         verify(mScanRequestProxy, never()).startScan(Process.myUid(), SCAN_PACKAGE_NAME);
+        // Verify ActiveModeWarden is notified of the idle mode change
+        verify(mActiveModeWarden).onIdleModeChanged(true);
 
         // Tell the wifi service that idle mode ended.
         when(mPowerManager.isDeviceIdleMode()).thenReturn(false);
         mLooper.startAutoDispatch();
         TestUtil.sendIdleModeChanged(mBroadcastReceiverCaptor.getValue(), mContext);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
+        // Verify ActiveModeWarden is notified of the idle mode change
+        verify(mActiveModeWarden).onIdleModeChanged(false);
 
         // Must scan now.
         verify(mScanRequestProxy).startScan(Process.myUid(), TEST_PACKAGE_NAME);
