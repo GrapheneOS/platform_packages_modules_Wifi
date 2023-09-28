@@ -22,3 +22,10 @@ flag {
     bug: "302172794"
 }
 
+
+flag {
+    name: "single_wifi_thread"
+    namespace: "wifi"
+    description: "Control the feature that move all Wifi service to a single thread"
+    bug: "302593617"
+}

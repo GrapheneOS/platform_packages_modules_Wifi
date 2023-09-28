@@ -83,6 +83,7 @@ import com.android.server.wifi.hal.WifiP2pIface;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.hal.WifiStaIface;
 import com.android.server.wifi.util.WorkSourceHelper;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import com.google.common.collect.ImmutableList;
@@ -135,6 +136,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     @Mock private WorkSourceHelper mWorkSourceHelper0;
     @Mock private WorkSourceHelper mWorkSourceHelper1;
     @Mock private WorkSourceHelper mWorkSourceHelper2;
+    @Mock private DeviceConfigFacade mDeviceConfigFacade;
+    @Mock private FeatureFlags mFeatureFlags;
     private TestLooper mTestLooper;
     private Handler mHandler;
     private ArgumentCaptor<WifiHal.Callback> mWifiEventCallbackCaptor = ArgumentCaptor.forClass(
@@ -186,6 +189,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWorkSourceHelper1.getWorkSource()).thenReturn(TEST_WORKSOURCE_1);
         when(mWorkSourceHelper2.getWorkSource()).thenReturn(TEST_WORKSOURCE_2);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
+        when(mFeatureFlags.singleWifiThread()).thenReturn(true);
 
         when(mWifiMock.registerEventCallback(any(WifiHal.Callback.class))).thenReturn(true);
         when(mWifiMock.start()).thenReturn(WifiHal.WIFI_STATUS_SUCCESS);
@@ -1198,6 +1204,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      */
     @Test
     public void testOnDestroyedWithHandlerTriggeredOnDifferentThread() throws Exception {
+        when(mFeatureFlags.singleWifiThread()).thenReturn(false);
         long currentThreadId = 983757; // arbitrary current thread ID
         when(mWifiInjector.getCurrentThreadId()).thenReturn(currentThreadId);
         // RETURNS_DEEP_STUBS allows mocking nested method calls
@@ -1229,6 +1236,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      */
     @Test
     public void testOnDestroyedWaitingWithHandlerTriggeredOnDifferentThread() throws Exception {
+        when(mFeatureFlags.singleWifiThread()).thenReturn(false);
         // Enable waiting for destroy listeners
         mWaitForDestroyedListeners = true;
         // Setup a separate thread for destroy

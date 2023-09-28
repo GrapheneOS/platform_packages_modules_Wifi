@@ -71,6 +71,7 @@ import com.android.server.wifi.util.SettingsMigrationDataHolder;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WifiPermissionsWrapper;
 import com.android.server.wifi.util.WorkSourceHelper;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import java.io.BufferedReader;
@@ -146,6 +147,7 @@ public class WifiInjector {
     private final BatteryStatsManager mBatteryStats;
     private final FrameworkFacade mFrameworkFacade = new FrameworkFacade();
     private final DeviceConfigFacade mDeviceConfigFacade;
+    private final FeatureFlags mFeatureFlags;
     private final UserManager mUserManager;
     private final HandlerThread mWifiHandlerThread;
     private final HandlerThread mWifiP2pServiceHandlerThread;
@@ -319,6 +321,7 @@ public class WifiInjector {
                 new HandlerThread("PasspointProvisionerHandlerThread");
         mPasspointProvisionerHandlerThread.start();
         mDeviceConfigFacade = new DeviceConfigFacade(mContext, wifiHandler, mWifiMetrics);
+        mFeatureFlags = mDeviceConfigFacade.getFeatureFlags();
         mAdaptiveConnectivityEnabledSettingObserver =
                 new AdaptiveConnectivityEnabledSettingObserver(wifiHandler, mWifiMetrics,
                         mFrameworkFacade, mContext);
@@ -392,10 +395,20 @@ public class WifiInjector {
         mWifiLastResortWatchdog = new WifiLastResortWatchdog(this, mContext, mClock,
                 mWifiMetrics, mWifiDiagnostics, wifiLooper,
                 mDeviceConfigFacade, mWifiThreadRunner, mWifiMonitor);
-        mWifiBlocklistMonitor = new WifiBlocklistMonitor(mContext, mWifiConnectivityHelper,
-                mWifiLastResortWatchdog, mClock, new LocalLog(
-                mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? 128 : 256),
-                mWifiScoreCard, mScoringParams, mWifiMetrics, mWifiPermissionsUtil);
+        mWifiBlocklistMonitor =
+                new WifiBlocklistMonitor(
+                        mContext,
+                        mWifiConnectivityHelper,
+                        mWifiLastResortWatchdog,
+                        mClock,
+                        new LocalLog(
+                                mContext.getSystemService(ActivityManager.class).isLowRamDevice()
+                                        ? 128
+                                        : 256),
+                        mWifiScoreCard,
+                        mScoringParams,
+                        mWifiMetrics,
+                        mWifiPermissionsUtil);
         mWifiMetrics.setWifiBlocklistMonitor(mWifiBlocklistMonitor);
         // Config Manager
         mWifiConfigManager =
@@ -671,6 +684,9 @@ public class WifiInjector {
     }
 
     public HandlerThread getWifiP2pServiceHandlerThread() {
+        if (mFeatureFlags.singleWifiThread()) {
+            return mWifiHandlerThread;
+        }
         return mWifiP2pServiceHandlerThread;
     }
 
@@ -965,6 +981,9 @@ public class WifiInjector {
      * TODO: share worker thread with other Wi-Fi handlers (b/27924886)
      */
     public HandlerThread getWifiAwareHandlerThread() {
+        if (mFeatureFlags.singleWifiThread()) {
+            return mWifiHandlerThread;
+        }
         if (mWifiAwareHandlerThread == null) { // lazy initialization
             mWifiAwareHandlerThread = new HandlerThread("wifiAwareService");
             mWifiAwareHandlerThread.start();
@@ -978,6 +997,9 @@ public class WifiInjector {
      * TODO: share worker thread with other Wi-Fi handlers (b/27924886)
      */
     public HandlerThread getRttHandlerThread() {
+        if (mFeatureFlags.singleWifiThread()) {
+            return mWifiHandlerThread;
+        }
         if (mRttHandlerThread == null) { // lazy initialization
             mRttHandlerThread = new HandlerThread("wifiRttService");
             mRttHandlerThread.start();
