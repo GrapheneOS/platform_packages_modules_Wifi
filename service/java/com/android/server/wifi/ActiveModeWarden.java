@@ -249,6 +249,17 @@ public class ActiveModeWarden {
     }
 
     /**
+     * Notify changes in PowerManager#isDeviceIdleMode
+     */
+    public void onIdleModeChanged(boolean isIdle) {
+        // only client mode managers need to get notified for now to consider enabling/disabling
+        // firmware roaming
+        for (ClientModeManager cmm : mClientModeManagers) {
+            cmm.onIdleModeChanged(isIdle);
+        }
+    }
+
+    /**
      * Called from WifiServiceImpl to register a callback for notifications from SoftApManager
      */
     public void registerSoftApCallback(@NonNull WifiServiceImpl.SoftApCallbackInternal callback) {

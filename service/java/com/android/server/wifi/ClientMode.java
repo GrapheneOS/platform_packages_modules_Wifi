@@ -360,4 +360,9 @@ public interface ClientMode {
      * @return true if connection is MLO, otherwise false.
      */
     boolean isMlo();
+
+    /**
+     * Notify changes in PowerManager#isDeviceIdleMode
+     */
+    void onIdleModeChanged(boolean isIdle);
 }
