@@ -3172,6 +3172,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // identify WPA3 Enterprise and WEP, so the original configuration
             // is still necessary.
             WifiConfiguration tmp = new WifiConfiguration(config);
+            SecurityParams securityParams =
+                    config.getNetworkSelectionStatus().getLastUsedSecurityParams();
+            tmp.requirePmf = securityParams.isRequirePmf();
+            tmp.allowedProtocols = securityParams.getAllowedProtocols();
+            tmp.allowedPairwiseCiphers = securityParams.getAllowedPairwiseCiphers();
+            tmp.allowedGroupCiphers = securityParams.getAllowedGroupCiphers();
             tmp.setSecurityParams(connectionInfo.keyMgmtMask);
             mWifiInfo.setCurrentSecurityType(tmp.getDefaultSecurityParams().getSecurityType());
             // Update the last used security params.

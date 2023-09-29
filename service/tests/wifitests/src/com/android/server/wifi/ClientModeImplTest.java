@@ -31,6 +31,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED;
+import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
 import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_SUCCESS;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -10333,6 +10334,40 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         // WifiInfo is updated to the actual used type.
         assertEquals(WifiInfo.SECURITY_TYPE_SAE, mWifiInfo.getCurrentSecurityType());
+    }
+
+    @Test
+    public void testUpdateWpa3EnterpriseSecurityTypeByConnectionInfo() throws Exception {
+        // Create a WifiConfiguration with WPA2 enterprise and WPA3 enterprise security params
+        WifiConfiguration config = spy(WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork());
+        config.networkId = FRAMEWORK_NETWORK_ID;
+
+        SecurityParams wpa3EnterpriseParams =
+                config.getSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE);
+        assertNotNull(wpa3EnterpriseParams);
+        // Trigger connection with security params as WPA3 enterprise where PMF is mandatory
+        config.getNetworkSelectionStatus().setLastUsedSecurityParams(wpa3EnterpriseParams);
+        setupAndStartConnectSequence(config);
+        validateSuccessfulConnectSequence(config);
+
+        // WifiInfo is not updated yet.
+        assertEquals(WifiInfo.SECURITY_TYPE_UNKNOWN, mWifiInfo.getCurrentSecurityType());
+
+        WifiSsid wifiSsid =
+                WifiSsid.fromBytes(
+                        NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(config.SSID)));
+
+        BitSet akm = new BitSet();
+        akm.set(WifiConfiguration.KeyMgmt.WPA_EAP_SHA256);
+        // Send network connection event with WPA_EAP_SHA256 AKM
+        mCmi.sendMessage(
+                WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, wifiSsid, TEST_BSSID_STR, false, akm));
+        mLooper.dispatchAll();
+        // WifiInfo is updated with WPA3-Enterprise security type derived from the AKM sent in
+        // network connection event and the PMF settings used in connection.
+        assertEquals(
+                WifiInfo.SECURITY_TYPE_EAP_WPA3_ENTERPRISE, mWifiInfo.getCurrentSecurityType());
     }
 
     @Test
