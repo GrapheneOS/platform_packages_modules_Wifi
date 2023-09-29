@@ -1191,10 +1191,14 @@ public class WifiConfigManager {
         }
 
         internalConfig.allowAutojoin = externalConfig.allowAutojoin;
-        // Copy over the |WifiEnterpriseConfig| parameters if set.
+        // Copy over the |WifiEnterpriseConfig| parameters if set. For fields which should
+        // only be set by the framework, cache the internal config's value and restore.
         if (externalConfig.enterpriseConfig != null) {
+            boolean userApproveNoCaCertInternal =
+                    internalConfig.enterpriseConfig.isUserApproveNoCaCert();
             internalConfig.enterpriseConfig.copyFromExternal(
                     externalConfig.enterpriseConfig, PASSWORD_MASK);
+            internalConfig.enterpriseConfig.setUserApproveNoCaCert(userApproveNoCaCertInternal);
         }
 
         // Copy over any metered information.
