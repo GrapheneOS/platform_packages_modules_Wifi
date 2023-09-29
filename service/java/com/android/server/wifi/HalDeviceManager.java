@@ -1681,6 +1681,30 @@ public class HalDeviceManager {
                     }
                 }
             }
+            if (bestIfaceCreationProposal == null) {
+                List<String> createIfaceInfoString = new ArrayList<String>();
+                for (WifiChipInfo chipInfo : chipInfos) {
+                    for (int existingCreateType : CREATE_TYPES_BY_PRIORITY) {
+                        WifiIfaceInfo[] createTypeIfaces = chipInfo.ifaces[existingCreateType];
+                        for (WifiIfaceInfo intfInfo : createTypeIfaces) {
+                            if (intfInfo != null) {
+                                createIfaceInfoString.add(
+                                        "name="
+                                                + intfInfo.name
+                                                + " type="
+                                                + getIfaceTypeToString(intfInfo.createType));
+                            }
+                        }
+                    }
+                }
+                Log.i(
+                        TAG,
+                        "bestIfaceCreationProposal is null,"
+                                + " requestIface="
+                                + getIfaceTypeToString(createIfaceType)
+                                + ", existingIface="
+                                + createIfaceInfoString);
+            }
             return bestIfaceCreationProposal;
         }
     }
@@ -1747,23 +1771,6 @@ public class HalDeviceManager {
                             Pair.create(cacheEntry.name, cacheEntry.type), cacheEntry);
                     return iface;
                 }
-            } else {
-                List<String> createIfaceInfoString = new ArrayList<String>();
-                for (WifiChipInfo chipInfo : chipInfos) {
-                    for (int existingCreateType : CREATE_TYPES_BY_PRIORITY) {
-                        WifiIfaceInfo[] createTypeIfaces = chipInfo.ifaces[existingCreateType];
-                        for (WifiIfaceInfo intfInfo : createTypeIfaces) {
-                            if (intfInfo != null) {
-                                createIfaceInfoString.add(
-                                        "name=" + intfInfo.name + " type=" + getIfaceTypeToString(
-                                                intfInfo.createType));
-                            }
-                        }
-                    }
-                }
-                Log.i(TAG, "bestIfaceCreationProposal is null," + " requestIface="
-                        + getIfaceTypeToString(createIfaceType) + ", existingIface="
-                        + createIfaceInfoString);
             }
         }
 
@@ -2094,17 +2101,19 @@ public class HalDeviceManager {
             @WorkSourceHelper.RequestorWsPriority int newRequestorWsPriority,
             @HdmIfaceTypeForCreation int existingCreateType,
             @WorkSourceHelper.RequestorWsPriority int existingRequestorWsPriority) {
-        return !canDeviceSupportCreateTypeCombo(
-                new SparseArray<Integer>() {{
-                    put(HDM_CREATE_IFACE_STA, 1);
-                    put(HDM_CREATE_IFACE_AP, 1);
-                }})
-                && (requestedCreateType == HDM_CREATE_IFACE_AP
-                || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE)
+        return (requestedCreateType == HDM_CREATE_IFACE_AP
+                        || requestedCreateType == HDM_CREATE_IFACE_AP_BRIDGE)
                 && newRequestorWsPriority != WorkSourceHelper.PRIORITY_INTERNAL
                 && newRequestorWsPriority != WorkSourceHelper.PRIORITY_PRIVILEGED
                 && existingCreateType == HDM_CREATE_IFACE_STA
-                && existingRequestorWsPriority == WorkSourceHelper.PRIORITY_PRIVILEGED;
+                && existingRequestorWsPriority == WorkSourceHelper.PRIORITY_PRIVILEGED
+                && !canDeviceSupportCreateTypeCombo(
+                        new SparseArray<Integer>() {
+                            {
+                                put(HDM_CREATE_IFACE_STA, 1);
+                                put(HDM_CREATE_IFACE_AP, 1);
+                            }
+                        });
     }
 
     /**
