@@ -1336,11 +1336,25 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
         EnterpriseConfig eapConfig1 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TLS);
         eapConfig1.enterpriseConfig.setDomainSuffixMatch("wlan.android.com");
 
-        EnterpriseConfig eapConfig2 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TTLS);
+        EnterpriseConfig eapConfig2 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TLS);
         eapConfig1.enterpriseConfig.setDomainSuffixMatch("wifi.android.com");
 
         assertTrue(WifiConfigurationUtil.hasEnterpriseConfigChanged(eapConfig1.enterpriseConfig,
                 eapConfig2.enterpriseConfig));
+    }
+
+    /** Verify WifiEnterpriseConfig Minimum TLS Version changes are detected. */
+    @Test
+    public void testMinimumTlsVersionChangesDetected() {
+        EnterpriseConfig eapConfig1 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TLS);
+        eapConfig1.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
+
+        EnterpriseConfig eapConfig2 = new EnterpriseConfig(WifiEnterpriseConfig.Eap.TLS);
+        eapConfig2.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_0);
+
+        assertTrue(
+                WifiConfigurationUtil.hasEnterpriseConfigChanged(
+                        eapConfig1.enterpriseConfig, eapConfig2.enterpriseConfig));
     }
 
     /**
