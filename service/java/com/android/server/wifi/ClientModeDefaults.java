@@ -276,4 +276,7 @@ public interface ClientModeDefaults extends ClientMode {
     default boolean isMlo() {
         return false;
     }
+
+    @Override
+    default void onIdleModeChanged(boolean isIdle) { }
 }

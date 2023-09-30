@@ -22,6 +22,8 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 /**
@@ -163,5 +165,17 @@ public class WifiConnectivityHelper {
 
         return mWifiInjector.getActiveModeWarden()
                 .getPrimaryClientModeManager().configureRoaming(roamConfig);
+    }
+
+    /**
+     * Dump debug information
+     */
+    public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
+        pw.println("Dump of WifiConnectivityHelper");
+        pw.println("WifiConnectivityHelper - Log Begin ----");
+        pw.println("mFirmwareRoamingSupported: " + mFirmwareRoamingSupported);
+        pw.println("mMaxNumBlocklistBssid: " + mMaxNumBlocklistBssid);
+        pw.println("mMaxNumAllowlistSsid: " + mMaxNumAllowlistSsid);
+        pw.println("WifiConnectivityHelper - Log End ----");
     }
 }

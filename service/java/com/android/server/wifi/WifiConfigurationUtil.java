@@ -343,6 +343,10 @@ public class WifiConfigurationUtil {
                     existingEnterpriseConfig.getDomainSuffixMatch())) {
                 return true;
             }
+            if (newEnterpriseConfig.getMinimumTlsVersion()
+                    != existingEnterpriseConfig.getMinimumTlsVersion()) {
+                return true;
+            }
         } else {
             // One of the configs may have an enterpriseConfig
             if (existingEnterpriseConfig != null || newEnterpriseConfig != null) {

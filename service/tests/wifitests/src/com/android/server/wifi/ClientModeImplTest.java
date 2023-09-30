@@ -31,6 +31,7 @@ import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_TEMPORARY;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI;
 import static android.net.wifi.WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED;
+import static android.net.wifi.WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE;
 import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_SUCCESS;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -574,6 +575,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiPseudonymManager mWifiPseudonymManager;
     @Mock WifiNotificationManager mWifiNotificationManager;
+
+    @Mock WifiConnectivityHelper mWifiConnectivityHelper;
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
     @Mock ScanResult mScanResult;
     @Mock HandlerThread mWifiHandlerThread;
@@ -796,7 +799,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mSimRequiredNotifier, mWifiScoreReport, mWifiP2pConnection, mWifiGlobals,
                 WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor,
                 mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
-                mSettingsConfigStore, false, mWifiNotificationManager);
+                mSettingsConfigStore, false, mWifiNotificationManager,
+                mWifiConnectivityHelper);
         mCmi.mInsecureEapNetworkHandler = mInsecureEapNetworkHandler;
 
         mWifiCoreThread = getCmiHandlerThread(mCmi);
@@ -2048,6 +2052,51 @@ public class ClientModeImplTest extends WifiBaseTest {
         mCmi.stop();
         mLooper.dispatchAll();
         verify(mWifiStateTracker).updateState(WIFI_IFACE_NAME, WifiStateTracker.DISCONNECTED);
+    }
+
+    @Test
+    public void testIdleModeChanged_firmwareRoaming() throws Exception {
+        // verify no-op when either the feature flag is disabled or firmware roaming is not
+        // supported
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(false);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(false);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
+
+        // Enable both, then verify firmware roaming is disabled when idle mode is entered
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
+
+        // Verify firmware roaming is enabled when idle mode exited
+        mCmi.onIdleModeChanged(false);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.ENABLE_FIRMWARE_ROAMING));
+    }
+
+    @Test
+    public void testIdleModeChanged_firmwareRoamingLocalOnlyCase() throws Exception {
+        // mock connected network to be local only
+        connect();
+        mConnectedNetwork.fromWifiNetworkSpecifier = true;
+
+        // Enable feature, then verify firmware roaming is disabled when idle mode is entered
+        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
+        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
+        mCmi.onIdleModeChanged(true);
+        verify(mWifiNative).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
+
+        // Verify firmware roaming is not enabled when idle mode exited
+        mCmi.onIdleModeChanged(false);
+        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(),
+                eq(WifiNative.ENABLE_FIRMWARE_ROAMING));
     }
 
     /**
@@ -10285,6 +10334,40 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         // WifiInfo is updated to the actual used type.
         assertEquals(WifiInfo.SECURITY_TYPE_SAE, mWifiInfo.getCurrentSecurityType());
+    }
+
+    @Test
+    public void testUpdateWpa3EnterpriseSecurityTypeByConnectionInfo() throws Exception {
+        // Create a WifiConfiguration with WPA2 enterprise and WPA3 enterprise security params
+        WifiConfiguration config = spy(WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork());
+        config.networkId = FRAMEWORK_NETWORK_ID;
+
+        SecurityParams wpa3EnterpriseParams =
+                config.getSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE);
+        assertNotNull(wpa3EnterpriseParams);
+        // Trigger connection with security params as WPA3 enterprise where PMF is mandatory
+        config.getNetworkSelectionStatus().setLastUsedSecurityParams(wpa3EnterpriseParams);
+        setupAndStartConnectSequence(config);
+        validateSuccessfulConnectSequence(config);
+
+        // WifiInfo is not updated yet.
+        assertEquals(WifiInfo.SECURITY_TYPE_UNKNOWN, mWifiInfo.getCurrentSecurityType());
+
+        WifiSsid wifiSsid =
+                WifiSsid.fromBytes(
+                        NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(config.SSID)));
+
+        BitSet akm = new BitSet();
+        akm.set(WifiConfiguration.KeyMgmt.WPA_EAP_SHA256);
+        // Send network connection event with WPA_EAP_SHA256 AKM
+        mCmi.sendMessage(
+                WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, wifiSsid, TEST_BSSID_STR, false, akm));
+        mLooper.dispatchAll();
+        // WifiInfo is updated with WPA3-Enterprise security type derived from the AKM sent in
+        // network connection event and the PMF settings used in connection.
+        assertEquals(
+                WifiInfo.SECURITY_TYPE_EAP_WPA3_ENTERPRISE, mWifiInfo.getCurrentSecurityType());
     }
 
     @Test
