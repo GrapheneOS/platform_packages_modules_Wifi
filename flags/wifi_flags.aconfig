@@ -6,3 +6,11 @@ flag {
     description: "This flag aim to test the flag release for wifi stack"
     bug: "301145404"
 }
+
+flag {
+    name: "runtime_disable_pno_scan"
+    namespace: "wifi"
+    description: "Control the API to disable the PNO runtime"
+    bug: "282821585"
+}
+
