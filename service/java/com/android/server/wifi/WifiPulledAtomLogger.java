@@ -217,7 +217,7 @@ public class WifiPulledAtomLogger {
                 isSuggestion,
                 configHasUtf8Ssid(config),
                 mWifiInjector.getSsidTranslator().isSsidTranslationEnabled(),
-                false, // TODO: handle TOFU configuration
+                false, // legacy TOFU field
                 !config.getNetworkSelectionStatus().hasNeverDetectedCaptivePortal(),
                 config.allowAutojoin,
                 WifiMetrics.convertSecurityModeToProto(config, false),
@@ -225,7 +225,9 @@ public class WifiPulledAtomLogger {
                 WifiMetrics.convertMeteredOverrideToProto(config.meteredOverride),
                 WifiMetrics.convertEapMethodToProto(config),
                 WifiMetrics.convertEapInnerMethodToProto(config),
-                false, false);  // OpenRoaming is specific to Passpoint
+                false, false,  // OpenRoaming is specific to Passpoint
+                WifiMetrics.convertTofuConnectionStateToProto(config),
+                WifiMetrics.convertTofuDialogStateToProto(config));
     }
 
     private int handleWifiConfiguredNetworkInfoPull(int atomTag, List<StatsEvent> data) {
