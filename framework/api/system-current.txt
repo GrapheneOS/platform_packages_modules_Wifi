@@ -679,7 +679,7 @@ package android.net.wifi {
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setOneShotScreenOnConnectivityScanDelayMillis(@IntRange(from=0) int);
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE) public void setOverrideCountryCode(@NonNull String);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setPasspointMeteredOverride(@NonNull String, int);
-    method @RequiresPermission(anyOf={android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION, android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void setPnoScanEnabled(boolean, boolean);
+    method @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") @RequiresPermission(anyOf={android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION, android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void setPnoScanEnabled(boolean, boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setScanAlwaysAvailable(boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setScanThrottleEnabled(boolean);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setScreenOnScanSchedule(@Nullable java.util.List<android.net.wifi.WifiManager.ScreenOnScanSchedule>);
