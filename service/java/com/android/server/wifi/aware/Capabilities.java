@@ -48,6 +48,8 @@ public class Capabilities {
     public boolean isNanPairingSupported;
     public boolean isSetClusterIdSupported;
     public boolean isSuspensionSupported;
+    public boolean is6gSupported;
+    public boolean isHeSupported;
 
     /**
      * Converts the internal capabilities to a parcelable & potentially app-facing
@@ -99,21 +101,46 @@ public class Capabilities {
 
     @Override
     public String toString() {
-        return "Capabilities [maxConcurrentAwareClusters=" + maxConcurrentAwareClusters
-                + ", maxPublishes=" + maxPublishes + ", maxSubscribes=" + maxSubscribes
-                + ", maxServiceNameLen=" + maxServiceNameLen + ", maxMatchFilterLen="
-                + maxMatchFilterLen + ", maxTotalMatchFilterLen=" + maxTotalMatchFilterLen
-                + ", maxServiceSpecificInfoLen=" + maxServiceSpecificInfoLen
-                + ", maxExtendedServiceSpecificInfoLen=" + maxExtendedServiceSpecificInfoLen
-                + ", maxNdiInterfaces=" + maxNdiInterfaces + ", maxNdpSessions="
-                + maxNdpSessions + ", maxAppInfoLen=" + maxAppInfoLen
-                + ", maxQueuedTransmitMessages=" + maxQueuedTransmitMessages
-                + ", maxSubscribeInterfaceAddresses=" + maxSubscribeInterfaceAddresses
-                + ", supportedCipherSuites=" + supportedDataPathCipherSuites
-                + ", isInstantCommunicationModeSupport=" + isInstantCommunicationModeSupported
-                + ", isNanPairingSupported=" + isNanPairingSupported
-                + ", isSetClusterIdSupported=" + isSetClusterIdSupported
-                + ", isSuspensionSupported=" + isSuspensionSupported
+        return "Capabilities [maxConcurrentAwareClusters="
+                + maxConcurrentAwareClusters
+                + ", maxPublishes="
+                + maxPublishes
+                + ", maxSubscribes="
+                + maxSubscribes
+                + ", maxServiceNameLen="
+                + maxServiceNameLen
+                + ", maxMatchFilterLen="
+                + maxMatchFilterLen
+                + ", maxTotalMatchFilterLen="
+                + maxTotalMatchFilterLen
+                + ", maxServiceSpecificInfoLen="
+                + maxServiceSpecificInfoLen
+                + ", maxExtendedServiceSpecificInfoLen="
+                + maxExtendedServiceSpecificInfoLen
+                + ", maxNdiInterfaces="
+                + maxNdiInterfaces
+                + ", maxNdpSessions="
+                + maxNdpSessions
+                + ", maxAppInfoLen="
+                + maxAppInfoLen
+                + ", maxQueuedTransmitMessages="
+                + maxQueuedTransmitMessages
+                + ", maxSubscribeInterfaceAddresses="
+                + maxSubscribeInterfaceAddresses
+                + ", supportedCipherSuites="
+                + supportedDataPathCipherSuites
+                + ", isInstantCommunicationModeSupport="
+                + isInstantCommunicationModeSupported
+                + ", isNanPairingSupported="
+                + isNanPairingSupported
+                + ", isSetClusterIdSupported="
+                + isSetClusterIdSupported
+                + ", isSuspensionSupported="
+                + isSuspensionSupported
+                + ", is6gSupported="
+                + is6gSupported
+                + ", isHeSupported="
+                + isHeSupported
                 + "]";
     }
 }
