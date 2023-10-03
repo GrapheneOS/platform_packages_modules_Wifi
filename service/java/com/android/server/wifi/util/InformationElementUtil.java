@@ -33,6 +33,8 @@ import com.android.server.wifi.MboOceConstants;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.anqp.Constants;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -1011,6 +1013,8 @@ public class InformationElementUtil {
 
         // Per-STA sub-element constants
         private static final int PER_STA_SUB_ELEMENT_ID = 0;
+        private static final int PER_STA_SUB_ELEMENT_FID = 254;
+
         private static final int PER_STA_SUB_ELEMENT_MIN_LEN = 5;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_OFFSET = 2;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_MASK = 0x0F;
@@ -1087,6 +1091,111 @@ public class InformationElementUtil {
         }
 
         /**
+         * Defragment Element class
+         *
+         * IEEE Std 802.11™‐2020, Section: 10.28.11 Element fragmentation describes a fragmented sub
+         * element as,
+         *    | SubEID | Len | Data | FragId | Len | Data | FragId | Len| Data ...
+         * Octets: 1     1     255     1        1     255     1       1     m
+         * Values: eid   255         fid       255           fid      m
+         *
+         * IEEE P802.11be™/D3.1, Section: 35.3.3.7 describes Subelement fragmentation in the Link
+         * Info field of a Multi-Link element. Value for 'sub element ID' and 'Fragment ID' are
+         * eid = 0, fid = 254 respectively.
+         */
+        private static class DefragmentElement {
+            /** Defagmented element bytes */
+            public byte[] bytes;
+            /** Bytes read to defragment the fragmented element */
+            public int bytesRead = 0;
+            public static final int ELEMENT_FRAG_MAX_LEN = 255;
+
+            DefragmentElement(byte[] bytes, int start, int eid, int fid) {
+                if (bytes == null) return;
+                ByteArrayOutputStream defrag = new ByteArrayOutputStream();
+                ByteBuffer element = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+                element.position(start);
+                try {
+                    if ((element.get() & Constants.BYTE_MASK) != eid) return;
+                    // Add EID, 255 as the parser expects the element header.
+                    defrag.write(eid);
+                    defrag.write(ELEMENT_FRAG_MAX_LEN);
+                    int fragLen, fragId;
+                    do {
+                        fragLen = element.get() & Constants.BYTE_MASK;
+                        byte[] b = new byte[fragLen];
+                        element.get(b);
+                        defrag.write(b);
+                        // Mark the position to undo the extra read.
+                        element.mark();
+                        fragId = element.get() & Constants.BYTE_MASK;
+                    } while (fragLen == ELEMENT_FRAG_MAX_LEN && fragId == fid);
+                    // Reset the extra get.
+                    element.reset();
+                } catch (IOException e) {
+                    if (DBG) {
+                        Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
+                    }
+                    return;
+                } catch (IndexOutOfBoundsException e) {
+                    if (DBG) {
+                        Log.e(TAG, "Failed to defragment sub element: " + e.getMessage());
+                    }
+                    return;
+                } catch (BufferUnderflowException e) {
+                    if (DBG) {
+                        Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
+                    }
+                    return;
+                }
+
+                this.bytes = defrag.toByteArray();
+                bytesRead = element.position() - start;
+            }
+        }
+
+        /** Parse per STA sub element (not fragmented) of Multi link element. */
+        private Boolean parsePerStaSubElement(byte[] bytes, int start, int len) {
+            MloLink link = new MloLink();
+            link.setLinkId(
+                    bytes[start + PER_STA_SUB_ELEMENT_LINK_ID_OFFSET]
+                            & PER_STA_SUB_ELEMENT_LINK_ID_MASK);
+
+            int staInfoLength =
+                    bytes[start + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET] & Constants.BYTE_MASK;
+            if (len < PER_STA_SUB_ELEMENT_STA_INFO_OFFSET + staInfoLength) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid sta info length: " + staInfoLength);
+                }
+                // Skipping parsing of the IE
+                return false;
+            }
+
+            // Check if MAC Address is present
+            if ((bytes[start + PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_OFFSET]
+                            & PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_MASK)
+                    != 0) {
+                if (staInfoLength < 1 /*length*/ + 6 /*mac address*/) {
+                    if (DBG) {
+                        Log.w(TAG, "Invalid sta info length: " + staInfoLength);
+                    }
+                    // Skipping parsing of the IE
+                    return false;
+                }
+
+                int macAddressOffset =
+                        start
+                                + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET
+                                + PER_STA_SUB_ELEMENT_STA_INFO_MAC_ADDRESS_OFFSET;
+                link.setApMacAddress(
+                        MacAddress.fromBytes(
+                                Arrays.copyOfRange(bytes, macAddressOffset, macAddressOffset + 6)));
+            }
+            mAffiliatedLinks.add(link);
+            return true;
+        }
+
+        /**
          * Parse Link Info field in Multi-Link Operation IE
          *
          * Link Info filed as described in IEEE 802.11 specs, Section 9.4.2.312,
@@ -1120,41 +1229,30 @@ public class InformationElementUtil {
                     continue;
                 }
 
-                MloLink link = new MloLink();
-                link.setLinkId(ie.bytes[startOffset + PER_STA_SUB_ELEMENT_LINK_ID_OFFSET]
-                        & PER_STA_SUB_ELEMENT_LINK_ID_MASK);
-
-                int staInfoLength = ie.bytes[startOffset + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET]
-                        & Constants.BYTE_MASK;
-                if (subElementLen < PER_STA_SUB_ELEMENT_STA_INFO_OFFSET + staInfoLength) {
-                    if (DBG) {
-                        Log.w(TAG, "Invalid sta info length: " + staInfoLength);
-                    }
-                    // Skipping parsing of the IE
-                    return false;
-                }
-
-                // Check if MAC Address is present
-                if ((ie.bytes[startOffset + PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_OFFSET]
-                        & PER_STA_SUB_ELEMENT_MAC_ADDRESS_PRESENT_MASK) != 0) {
-                    if (staInfoLength < 1 /*length*/ + 6 /*mac address*/) {
-                        if (DBG) {
-                            Log.w(TAG, "Invalid sta info length: " + staInfoLength);
-                        }
-                        // Skipping parsing of the IE
+                int bytesRead;
+                // Check for fragmentation before parsing per sta profile sub element
+                if (subElementLen == DefragmentElement.ELEMENT_FRAG_MAX_LEN) {
+                    DefragmentElement defragment =
+                            new DefragmentElement(
+                                    ie.bytes,
+                                    startOffset,
+                                    PER_STA_SUB_ELEMENT_ID,
+                                    PER_STA_SUB_ELEMENT_FID);
+                    bytesRead = defragment.bytesRead;
+                    if (defragment.bytesRead == 0 || defragment.bytes == null) {
                         return false;
                     }
-
-                    int macAddressOffset = startOffset + PER_STA_SUB_ELEMENT_STA_INFO_OFFSET
-                            + PER_STA_SUB_ELEMENT_STA_INFO_MAC_ADDRESS_OFFSET;
-                    link.setApMacAddress(MacAddress.fromBytes(Arrays.copyOfRange(ie.bytes,
-                            macAddressOffset, macAddressOffset + 6)));
+                    if (!parsePerStaSubElement(defragment.bytes, 0, defragment.bytes.length)) {
+                        return false;
+                    }
+                } else {
+                    bytesRead = subElementLen;
+                    if (!parsePerStaSubElement(ie.bytes, startOffset, subElementLen)) {
+                        return false;
+                    }
                 }
-
-                mAffiliatedLinks.add(link);
-
                 // Done with this sub-element
-                startOffset += subElementLen;
+                startOffset += bytesRead;
             }
 
             return true;
