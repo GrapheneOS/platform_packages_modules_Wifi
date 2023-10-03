@@ -1365,8 +1365,8 @@ public class PasspointManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that {@link PasspointManager#getWifiConfigsForPasspointProfilesWithSsids()}
-     * only returns configs for providers that have been assigned a recent SSID.
+     * Verify that {@link PasspointManager#getWifiConfigsForPasspointProfiles(boolean)} returns
+     * configs for the expected providers.
      */
     @Test
     public void testGetWifiConfigsForPasspointProfilesWithSsids() {
@@ -1376,8 +1376,12 @@ public class PasspointManagerTest extends WifiBaseTest {
                 TEST_PACKAGE, false, null, false);
         when(provider2.getMostRecentSsid()).thenReturn(TEST_SSID); // assign a recent SSID
 
-        // Only entry should be for the provider that was assigned a recent SSID.
-        List<WifiConfiguration> configs = mManager.getWifiConfigsForPasspointProfilesWithSsids();
+        // If SSIDs are not required, both providers should appear in the results list.
+        List<WifiConfiguration> configs = mManager.getWifiConfigsForPasspointProfiles(false);
+        assertEquals(2, configs.size());
+
+        // If SSIDs are required, only the provider with an SSID should appear in the results.
+        configs = mManager.getWifiConfigsForPasspointProfiles(true);
         assertEquals(1, configs.size());
         assertEquals(provider2.getConfig().getUniqueId(), configs.get(0).getPasspointUniqueId());
         assertEquals(TEST_SSID, configs.get(0).SSID);
