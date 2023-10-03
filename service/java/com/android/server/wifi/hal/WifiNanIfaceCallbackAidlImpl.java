@@ -681,7 +681,8 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
         frameworkCapabilities.isNanPairingSupported = capabilities.supportsPairing;
         frameworkCapabilities.isSetClusterIdSupported = capabilities.supportsSetClusterId;
         frameworkCapabilities.isSuspensionSupported = capabilities.supportsSuspension;
-
+        frameworkCapabilities.is6gSupported = capabilities.supports6g;
+        frameworkCapabilities.isHeSupported = capabilities.supportsHe;
         return frameworkCapabilities;
     }
 
