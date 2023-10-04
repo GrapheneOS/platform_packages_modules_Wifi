@@ -54,19 +54,16 @@ import java.util.stream.IntStream;
 /**
  * Configuration for a soft access point (a.k.a. Soft AP, SAP, Hotspot).
  *
- * This is input for the framework provided by a client app, i.e. it exposes knobs to instruct the
- * framework how it should configure a hotspot.
+ * <p>This is input for the framework provided by a client app, i.e. it exposes knobs to instruct
+ * the framework how it should configure a hotspot.
  *
- * System apps can use this to configure a tethered hotspot using
- * {@code WifiManager#startTetheredHotspot(SoftApConfiguration)} and
- * {@code WifiManager#setSoftApConfiguration(SoftApConfiguration)}
- * or local-only hotspot using
- * {@code WifiManager#startLocalOnlyHotspot(SoftApConfiguration, Executor,
+ * <p>System apps can use this to configure a tethered hotspot using {@code
+ * WifiManager#startTetheredHotspot(SoftApConfiguration)} and {@code
+ * WifiManager#setSoftApConfiguration(SoftApConfiguration)} or local-only hotspot using {@code
+ * WifiManager#startLocalOnlyHotspot(SoftApConfiguration, Executor,
  * WifiManager.LocalOnlyHotspotCallback)}.
  *
- * Instances of this class are immutable; use {@link SoftApConfiguration.Builder} and its methods to
- * create a new instance.
- *
+ * <p>Instances of this class are immutable.
  */
 public final class SoftApConfiguration implements Parcelable {
 
@@ -766,8 +763,7 @@ public final class SoftApConfiguration implements Parcelable {
 
     /**
      * Return the UTF-8 String set to be the SSID for the AP. If the SSID cannot be decoded as
-     * UTF-8, then this will return {@link WifiManager#UNKNOWN_SSID}
-     * See also {@link Builder#setSsid(String)}.
+     * UTF-8, then this will return {@link WifiManager#UNKNOWN_SSID}.
      *
      * @deprecated Use {@link #getWifiSsid()} instead.
      */
@@ -783,7 +779,6 @@ public final class SoftApConfiguration implements Parcelable {
 
     /**
      * Return WifiSsid set to be the SSID for the AP.
-     * See also {@link Builder#setWifiSsid(WifiSsid)}.
      */
     @Nullable
     public WifiSsid getWifiSsid() {
@@ -814,7 +809,6 @@ public final class SoftApConfiguration implements Parcelable {
 
     /**
      * Returns MAC address set to be BSSID for the AP.
-     * See also {@link Builder#setBssid(MacAddress)}.
      */
     @Nullable
     public MacAddress getBssid() {
@@ -823,7 +817,6 @@ public final class SoftApConfiguration implements Parcelable {
 
     /**
      * Returns String set to be passphrase for current AP.
-     * See also {@link Builder#setPassphrase(String, int)}.
      */
     @Nullable
     public String getPassphrase() {
@@ -833,7 +826,6 @@ public final class SoftApConfiguration implements Parcelable {
     /**
      * Returns Boolean set to be indicate hidden (true: doesn't broadcast its SSID) or
      * not (false: broadcasts its SSID) for the AP.
-     * See also {@link Builder#setHiddenSsid(boolean)}.
      */
     public boolean isHiddenSsid() {
         return mHiddenSsid;
