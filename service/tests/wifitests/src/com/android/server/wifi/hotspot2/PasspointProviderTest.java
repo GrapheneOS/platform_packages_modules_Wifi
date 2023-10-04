@@ -74,8 +74,10 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -2027,5 +2029,41 @@ public class PasspointProviderTest extends WifiBaseTest {
         // Confirm the selected roaming match map entry for the first SSID is cleared after it was
         // aged out
         assertEquals(0, mProvider.getAndRemoveMatchedRcoi(TEST_SSID_QUOTED));
+    }
+
+    /**
+     * Verify that the {@link PasspointProvider.ConnectionTimeComparator} can be used to sort
+     * providers in descending order of connection time.
+     */
+    @Test
+    public void testConnectionTimeComparator() throws Exception {
+        PasspointConfiguration config1 =
+                generateTestPasspointConfiguration(CredentialType.SIM, false);
+        PasspointConfiguration config2 =
+                generateTestPasspointConfiguration(CredentialType.SIM, false);
+        PasspointConfiguration config3 =
+                generateTestPasspointConfiguration(CredentialType.SIM, false);
+        PasspointProvider leastRecentProvider = createProvider(config1);
+        PasspointProvider recentProvider = createProvider(config2);
+        PasspointProvider mostRecentProvider = createProvider(config3);
+
+        when(mClock.getWallClockMillis())
+                .thenReturn((long) 10)
+                .thenReturn((long) 20)
+                .thenReturn((long) 30);
+        leastRecentProvider.updateMostRecentConnectionTime();
+        recentProvider.updateMostRecentConnectionTime();
+        mostRecentProvider.updateMostRecentConnectionTime();
+
+        // Initialize the list with providers in ascending order by connection time.
+        List<PasspointProvider> providerList =
+                Arrays.asList(leastRecentProvider, recentProvider, mostRecentProvider);
+
+        // Sort using the comparator. Expect the providers to be in descending order,
+        // with the most recent provider at the beginning of the list.
+        Collections.sort(providerList, new PasspointProvider.ConnectionTimeComparator());
+        assertTrue(mostRecentProvider.equals(providerList.get(0)));
+        assertTrue(recentProvider.equals(providerList.get(1)));
+        assertTrue(leastRecentProvider.equals(providerList.get(2)));
     }
 }

@@ -64,6 +64,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,10 +126,22 @@ public class PasspointProvider {
     private String mConnectChoice = null;
     private int mConnectChoiceRssi = 0;
     private String mMostRecentSsid = null;
+    private long mMostRecentConnectionTime;
 
     // A map that maps SSIDs (String) to a pair of RCOI and a timestamp (both are Long) to be
     // used later when connecting to an RCOI-based Passpoint network.
     private final Map<String, Pair<Long, Long>> mRcoiMatchForNetwork = new HashMap<>();
+
+    /**
+     * Comparator to sort PasspointProviders in descending order by their most recent connection
+     * time.
+     */
+    public static class ConnectionTimeComparator implements Comparator<PasspointProvider> {
+        public int compare(PasspointProvider a, PasspointProvider b) {
+            long diff = a.getMostRecentConnectionTime() - b.getMostRecentConnectionTime();
+            return (diff < 0) ? -1 : 1;
+        }
+    }
 
     public PasspointProvider(PasspointConfiguration config, WifiKeyStore keyStore,
             WifiCarrierInfoManager wifiCarrierInfoManager, long providerId, int creatorUid,
@@ -1234,6 +1247,15 @@ public class PasspointProvider {
 
     public @Nullable String getMostRecentSsid() {
         return mMostRecentSsid;
+    }
+
+    /** Indicate that the most recent connection timestamp should be updated. */
+    public void updateMostRecentConnectionTime() {
+        mMostRecentConnectionTime = mClock.getWallClockMillis();
+    }
+
+    public long getMostRecentConnectionTime() {
+        return mMostRecentConnectionTime;
     }
 
     /**
