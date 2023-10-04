@@ -132,6 +132,7 @@ public class WifiConnectivityManager {
     // Do not restart PNO scan if network changes happen more than once within this duration.
     private static final long NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS = 3000; // 3 seconds
     private static final int POWER_SAVE_SCAN_INTERVAL_MULTIPLIER = 2;
+    private static final int MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN = 2;
     // ClientModeManager has a bunch of states. From the
     // WifiConnectivityManager's perspective it only cares
     // if it is in Connected state, Disconnected state or in
@@ -2511,12 +2512,6 @@ public class WifiConnectivityManager {
     private @NonNull List<WifiConfiguration> getAllScanOptimizationNetworks() {
         List<WifiConfiguration> networks = mConfigManager.getSavedNetworks(-1);
         networks.addAll(mWifiNetworkSuggestionsManager.getAllScanOptimizationSuggestionNetworks());
-        if (mDeviceConfigFacade.includePasspointSsidsInPnoScans()) {
-            networks.addAll(mPasspointManager.getWifiConfigsForPasspointProfiles(true));
-            networks.addAll(
-                    mWifiNetworkSuggestionsManager
-                            .getAllPasspointScanOptimizationSuggestionNetworks(true));
-        }
         // remove all saved but never connected, auto-join disabled, or network selection disabled
         // networks.
         networks.removeIf(config -> !config.allowAutojoin
@@ -2530,6 +2525,32 @@ public class WifiConnectivityManager {
                 && !mWifiCarrierInfoManager.isSimReady(
                         mWifiCarrierInfoManager.getBestMatchSubscriptionId(config)));
         return networks;
+    }
+
+    /**
+     * Merge Passpoint PNO scan candidates into an existing network list.
+     */
+    private @NonNull List<WifiConfiguration> mergePasspointPnoScanCandidates(
+            List<WifiConfiguration> networks) {
+        List<WifiConfiguration> passpointNetworks =
+                mPasspointManager.getWifiConfigsForPasspointProfiles(true);
+        passpointNetworks.addAll(
+                mWifiNetworkSuggestionsManager.getAllPasspointScanOptimizationSuggestionNetworks(
+                        true));
+        if (passpointNetworks.isEmpty()) return networks;
+
+        // Add up to MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN Passpoint networks to
+        // the head of the merged network list.
+        int numPasspointAtHead =
+                Math.min(passpointNetworks.size(), MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN);
+        List<WifiConfiguration> mergedNetworks = new ArrayList<>();
+        mergedNetworks.addAll(passpointNetworks.subList(0, numPasspointAtHead));
+        mergedNetworks.addAll(networks);
+
+        // Add any remaining Passpoint networks to the end of the merged network list.
+        mergedNetworks.addAll(
+                passpointNetworks.subList(numPasspointAtHead, passpointNetworks.size()));
+        return mergedNetworks;
     }
 
     /**
@@ -2584,6 +2605,9 @@ public class WifiConnectivityManager {
             return Collections.EMPTY_LIST;
         }
         Collections.sort(networks, mConfigManager.getScanListComparator());
+        if (mDeviceConfigFacade.includePasspointSsidsInPnoScans()) {
+            networks = mergePasspointPnoScanCandidates(networks);
+        }
         boolean pnoFrequencyCullingEnabled = mContext.getResources()
                 .getBoolean(R.bool.config_wifiPnoFrequencyCullingEnabled);
 
