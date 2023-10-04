@@ -1106,6 +1106,20 @@ public class WifiConfigManager {
         }
     }
 
+    private static @WifiEnterpriseConfig.TofuConnectionState int mergeTofuConnectionState(
+            WifiConfiguration internalConfig, WifiConfiguration externalConfig) {
+        // Prioritize the internal config if it has reached a post-connection state.
+        int internalTofuState = internalConfig.enterpriseConfig.getTofuConnectionState();
+        if (internalTofuState == WifiEnterpriseConfig.TOFU_STATE_CONFIGURE_ROOT_CA
+                || internalTofuState == WifiEnterpriseConfig.TOFU_STATE_CERT_PINNING) {
+            return internalTofuState;
+        }
+        // Else assign a pre-connection state based on the latest external config.
+        return externalConfig.enterpriseConfig.isTrustOnFirstUseEnabled()
+                ? WifiEnterpriseConfig.TOFU_STATE_ENABLED_PRE_CONNECTION
+                : WifiEnterpriseConfig.TOFU_STATE_NOT_ENABLED;
+    }
+
     /**
      * Copy over public elements from an external WifiConfiguration object to the internal
      * configuration object if element has been set in the provided external WifiConfiguration.
@@ -1196,9 +1210,13 @@ public class WifiConfigManager {
         if (externalConfig.enterpriseConfig != null) {
             boolean userApproveNoCaCertInternal =
                     internalConfig.enterpriseConfig.isUserApproveNoCaCert();
+            int tofuDialogStateInternal = internalConfig.enterpriseConfig.getTofuDialogState();
+            int tofuConnectionState = mergeTofuConnectionState(internalConfig, externalConfig);
             internalConfig.enterpriseConfig.copyFromExternal(
                     externalConfig.enterpriseConfig, PASSWORD_MASK);
             internalConfig.enterpriseConfig.setUserApproveNoCaCert(userApproveNoCaCertInternal);
+            internalConfig.enterpriseConfig.setTofuDialogState(tofuDialogStateInternal);
+            internalConfig.enterpriseConfig.setTofuConnectionState(tofuConnectionState);
         }
 
         // Copy over any metered information.

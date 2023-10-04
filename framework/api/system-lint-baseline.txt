@@ -55,8 +55,6 @@ UnflaggedApi: android.net.wifi.WifiManager#isLowLatencyModeSupported():
     New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.isLowLatencyModeSupported()
 UnflaggedApi: android.net.wifi.WifiManager#removeWifiLowLatencyLockListener(android.net.wifi.WifiManager.WifiLowLatencyLockListener):
     New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.removeWifiLowLatencyLockListener(android.net.wifi.WifiManager.WifiLowLatencyLockListener)
-UnflaggedApi: android.net.wifi.WifiManager#setPnoScanEnabled(boolean, boolean):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.setPnoScanEnabled(boolean,boolean)
 UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener:
     New API must be flagged with @FlaggedApi: class android.net.wifi.WifiManager.WifiLowLatencyLockListener
 UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onActivatedStateChanged(boolean):

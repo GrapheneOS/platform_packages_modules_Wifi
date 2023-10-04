@@ -5653,6 +5653,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         cap.isSuspensionSupported = true;
         cap.isNanPairingSupported = true;
         cap.isSetClusterIdSupported = true;
+        cap.isHeSupported = true;
+        cap.is6gSupported = true;
         return cap;
     }
 

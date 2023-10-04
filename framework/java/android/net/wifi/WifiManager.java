@@ -28,6 +28,7 @@ import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_P
 
 import android.Manifest;
 import android.annotation.CallbackExecutor;
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -73,7 +74,6 @@ import android.os.RemoteException;
 import android.os.WorkSource;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.telephony.SubscriptionInfo;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.CloseGuard;
@@ -10339,9 +10339,10 @@ public class WifiManager {
      * @throws SecurityException if the caller does not have permission.
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
     @SystemApi
-    @RequiresPermission(anyOf = {MANAGE_WIFI_NETWORK_SELECTION, NETWORK_SETTINGS,
-            NETWORK_SETUP_WIZARD})
+    @RequiresPermission(
+            anyOf = {MANAGE_WIFI_NETWORK_SELECTION, NETWORK_SETTINGS, NETWORK_SETUP_WIZARD})
     public void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle) {
         try {
             mService.setPnoScanEnabled(enabled, enablePnoScanAfterWifiToggle,
