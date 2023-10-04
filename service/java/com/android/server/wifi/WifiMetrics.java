@@ -2537,6 +2537,16 @@ public class WifiMetrics {
         }
     }
 
+    protected static boolean isFreeOpenRoaming(WifiConfiguration config) {
+        return Utils.getRoamingType(config)
+                == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_FREE;
+    }
+
+    protected static boolean isSettledOpenRoaming(WifiConfiguration config) {
+        return Utils.getRoamingType(config)
+                == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__PASSPOINT_ROAMING_TYPE__ROAMING_RCOI_OPENROAMING_SETTLED;
+    }
+
     private void reportRouterCapabilities(RouterFingerPrint r) {
         WifiStatsLog.write(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED,
                 r.mIsFrameworkInitiatedRoaming, r.mRouterFingerPrintProto.channelInfo,
