@@ -213,7 +213,7 @@ public class WifiPulledAtomLogger {
                 config.getNetworkKey().hashCode(),
                 config.isEnterprise(),
                 config.hiddenSSID,
-                false, // isPasspoint
+                config.isPasspoint(),
                 isSuggestion,
                 configHasUtf8Ssid(config),
                 mWifiInjector.getSsidTranslator().isSsidTranslationEnabled(),
@@ -225,7 +225,8 @@ public class WifiPulledAtomLogger {
                 WifiMetrics.convertMeteredOverrideToProto(config.meteredOverride),
                 WifiMetrics.convertEapMethodToProto(config),
                 WifiMetrics.convertEapInnerMethodToProto(config),
-                false, false,  // OpenRoaming is specific to Passpoint
+                WifiMetrics.isFreeOpenRoaming(config),
+                WifiMetrics.isSettledOpenRoaming(config),
                 WifiMetrics.convertTofuConnectionStateToProto(config),
                 WifiMetrics.convertTofuDialogStateToProto(config));
     }
@@ -246,6 +247,19 @@ public class WifiPulledAtomLogger {
             if (!config.isPasspoint()) {
                 data.add(wifiConfigToStatsEvent(atomTag, config, true));
             }
+        }
+
+        List<WifiConfiguration> passpointConfigs =
+                mWifiInjector.getPasspointManager().getWifiConfigsForPasspointProfiles(false);
+        for (WifiConfiguration config : passpointConfigs) {
+            data.add(wifiConfigToStatsEvent(atomTag, config, false));
+        }
+
+        List<WifiConfiguration> passpointSuggestions =
+                mWifiInjector.getWifiNetworkSuggestionsManager()
+                        .getAllPasspointScanOptimizationSuggestionNetworks(false);
+        for (WifiConfiguration config : passpointSuggestions) {
+            data.add(wifiConfigToStatsEvent(atomTag, config, true));
         }
 
         return StatsManager.PULL_SUCCESS;
