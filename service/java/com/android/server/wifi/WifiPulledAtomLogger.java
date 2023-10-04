@@ -210,7 +210,7 @@ public class WifiPulledAtomLogger {
             int atomTag, WifiConfiguration config, boolean isSuggestion) {
         return WifiStatsLog.buildStatsEvent(
                 atomTag,
-                config.getNetworkKey().hashCode(),
+                0,  // deprecated network ID field
                 config.isEnterprise(),
                 config.hiddenSSID,
                 false, // isPasspoint
