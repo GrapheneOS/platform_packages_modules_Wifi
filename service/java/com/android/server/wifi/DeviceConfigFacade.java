@@ -917,4 +917,8 @@ public class DeviceConfigFacade {
             Consumer<Boolean> listener) {
         mOobPseudonymFeatureFlagChangedListener = listener;
     }
+
+    public FeatureFlags getFeatureFlags() {
+        return mFeatureFlags;
+    }
 }

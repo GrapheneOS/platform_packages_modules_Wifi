@@ -18,6 +18,8 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.AddNetworkResult.STATUS_INVALID_CONFIGURATION_ENTERPRISE;
 
+import static com.android.server.wifi.WifiConfigManager.BUFFERED_WRITE_ALARM_TAG;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -51,7 +53,9 @@ import static org.mockito.Mockito.withSettings;
 import android.Manifest;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
+import android.app.test.TestAlarmManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -89,6 +93,7 @@ import com.android.server.wifi.WifiScoreCard.PerNetwork;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.UserActionEvent;
 import com.android.server.wifi.util.LruConnectionTracker;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -189,6 +194,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     @Mock private WifiConfigManager.OnNetworkUpdateListener mWcmListener;
     @Mock private FrameworkFacade mFrameworkFacade;
     @Mock private DeviceConfigFacade mDeviceConfigFacade;
+    @Mock private FeatureFlags mFeatureFlags;
     @Mock private MacAddressUtil mMacAddressUtil;
     @Mock private WifiBlocklistMonitor mWifiBlocklistMonitor;
     @Mock private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
@@ -211,7 +217,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     private TestLooper mLooper = new TestLooper();
     private MockitoSession mSession;
     private WifiCarrierInfoManager mWifiCarrierInfoManager;
-
+    private TestAlarmManager mAlarmManager;
 
     /**
      * Setup the mocks and an instance of WifiConfigManager before each test.
@@ -228,6 +234,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         // Set up the package name stuff & permission override.
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
+        mAlarmManager = new TestAlarmManager();
+        mLooper = new TestLooper();
+        when(mContext.getSystemService(AlarmManager.class))
+                .thenReturn(mAlarmManager.getAlarmManager());
         mResources = new MockResources();
         mResources.setBoolean(
                 R.bool.config_wifi_only_link_same_credential_configurations, false);
@@ -321,6 +331,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         when(mPackageManager.getPackagesHoldingPermissions(any(String[].class), anyInt()))
                 .thenReturn(Collections.emptyList());
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
+        when(mFeatureFlags.delaySaveToStore()).thenReturn(true);
         mWifiCarrierInfoManager = spy(new WifiCarrierInfoManager(mTelephonyManager,
                 mSubscriptionManager, mWifiInjector, mock(FrameworkFacade.class),
                 wifiContext, mock(WifiConfigStore.class), mock(Handler.class),
@@ -442,7 +454,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).read();
 
         assertTrue(mWifiConfigManager.saveToStore(true));
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
@@ -569,6 +584,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyNetworkRemoveBroadcast();
         verifyNetworkAddBroadcast();
 
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         // Verify that the config store write was triggered with this new configuration.
         verifyNetworkInConfigStoreData(openNetwork);
 
@@ -1176,7 +1194,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         assertTrue(addNetworkToWifiConfigManager(ephemeralNetwork).isSuccess());
         assertTrue(addNetworkToWifiConfigManager(openNetwork).isSuccess());
-
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         // The open network addition should trigger a store write.
         Pair<List<WifiConfiguration>, List<WifiConfiguration>> networkListStoreData =
                 captureWriteNetworksListStoreData();
@@ -1675,7 +1695,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         NetworkSelectionStatus retrievedStatus = retrievedNetwork.getNetworkSelectionStatus();
         assertTrue(retrievedStatus.isNetworkEnabled());
         verifyUpdateNetworkStatus(retrievedNetwork, WifiConfiguration.Status.ENABLED);
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiBlocklistMonitor, times(2)).clearBssidBlocklistForSsid(openNetwork.SSID);
 
         // Now set it disabled.
@@ -1685,7 +1708,10 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         retrievedStatus = retrievedNetwork.getNetworkSelectionStatus();
         assertTrue(retrievedStatus.isNetworkPermanentlyDisabled());
         verifyUpdateNetworkStatus(retrievedNetwork, WifiConfiguration.Status.DISABLED);
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
 
@@ -1764,14 +1790,20 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration retrievedNetwork =
                 mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
         assertTrue(retrievedNetwork.allowAutojoin);
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
 
         // Now set it disallow auto-join.
         assertTrue(mWifiConfigManager.allowAutojoin(
                 result.getNetworkId(), false));
         retrievedNetwork = mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
         assertFalse(retrievedNetwork.allowAutojoin);
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(eq(true));
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
 
@@ -2045,6 +2077,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         // Verify no changes to the original network configuration.
         verifyNetworkUpdateBroadcast();
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         verifyNetworkInConfigStoreData(originalNetwork);
         assertFalse(result.hasIpChanged());
         assertFalse(result.hasProxyChanged());
@@ -3760,6 +3795,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 .thenReturn(true);
         mWifiConfigManager.handleUserUnlock(user1);
         verify(mWifiConfigStore).switchUserStoresAndRead(any(List.class));
+        assertFalse(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
         // Capture the written data for the user 1 and ensure that it corresponds to what was
         // setup.
         Pair<List<WifiConfiguration>, List<WifiConfiguration>> writtenNetworkList =
@@ -3840,6 +3876,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 .thenReturn(true);
         mWifiConfigManager.handleUserUnlock(user1);
         verify(mWifiConfigStore).switchUserStoresAndRead(any(List.class));
+        assertFalse(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
         Pair<List<WifiConfiguration>, List<WifiConfiguration>> writtenNetworkList =
                 captureWriteNetworksListStoreData();
         assertTrue(writtenNetworkList.first.isEmpty());
@@ -3929,7 +3966,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.handleUserStop(user1);
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
@@ -4015,7 +4052,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).read();
         mContextConfigStoreMockOrder.verify(mWifiConfigStore)
                 .switchUserStoresAndRead(any(List.class));
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics).wifiConfigStored(anyInt());
     }
 
@@ -4386,6 +4423,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.addOnNetworkUpdateListener(mListener);
         // Set connect choice of network 2 over network 1.
         verifySetUserConnectChoice(network2.networkId, network1.networkId);
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
 
         WifiConfiguration retrievedNetwork =
                 mWifiConfigManager.getConfiguredNetwork(network1.networkId);
@@ -4408,10 +4448,13 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertNotEquals(
                 network2.getProfileKey(),
                 retrievedNetwork.getNetworkSelectionStatus().getConnectChoice());
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
 
         // This should have triggered 2 buffered writes. 1 for setting the connect choice, 1 for
         // clearing it after network removal.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, times(2)).write(eq(false));
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, times(2)).write(true);
         verify(mListener, times(2)).onConnectChoiceRemoved(anyString());
         verify(mWifiMetrics, atLeast(2)).wifiConfigStored(anyInt());
     }
@@ -5718,9 +5761,15 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     private void createWifiConfigManager() {
         mWifiConfigManager =
                 new WifiConfigManager(
-                        mContext, mWifiKeyStore, mWifiConfigStore,
-                        mNetworkListSharedStoreData, mNetworkListUserStoreData,
-                        mRandomizedMacStoreData, mLruConnectionTracker, mWifiInjector);
+                        mContext,
+                        mWifiKeyStore,
+                        mWifiConfigStore,
+                        mNetworkListSharedStoreData,
+                        mNetworkListUserStoreData,
+                        mRandomizedMacStoreData,
+                        mLruConnectionTracker,
+                        mWifiInjector,
+                        new Handler(mLooper.getLooper()));
         mWifiConfigManager.enableVerboseLogging(true);
     }
 
@@ -5824,7 +5873,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                     .setConfigurations(sharedConfigsCaptor.capture());
             mNetworkListStoreDataMockOrder.verify(mNetworkListUserStoreData)
                     .setConfigurations(userConfigsCaptor.capture());
-            mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(anyBoolean());
+            mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
             return Pair.create(sharedConfigsCaptor.getValue(), userConfigsCaptor.getValue());
         } catch (Exception e) {
             fail("Exception encountered during write " + e);
@@ -6059,6 +6108,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(result.hasProxyChanged());
 
         verifyNetworkAddBroadcast();
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         // Verify that the config store write was triggered with this new configuration.
         verifyNetworkInConfigStoreData(configuration);
         return result;
@@ -6077,7 +6129,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         verifyNetworkAddBroadcast();
         // Ensure that the write was not invoked for ephemeral network addition.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(true);
         return result;
     }
 
@@ -6095,7 +6147,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         verifyNetworkAddBroadcast();
         // Ensure that the write was not invoked for ephemeral network addition.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(true);
         return result;
     }
 
@@ -6115,7 +6167,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 any(WifiConfiguration.class));
         verifyNetworkAddBroadcast();
         // Ensure that the write was not invoked for Passpoint network addition.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(true);
         return result;
     }
 
@@ -6145,6 +6197,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertFalse(result.isNewNetwork());
 
         verifyNetworkUpdateBroadcast();
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         // Verify that the config store write was triggered with this new configuration.
         verifyNetworkInConfigStoreData(configuration);
         return result;
@@ -6183,6 +6238,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 configuration.networkId, TEST_CREATOR_UID, TEST_CREATOR_NAME));
 
         verifyNetworkRemoveBroadcast();
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         // Verify if the config store write was triggered without this new configuration.
         verifyNetworkNotInConfigStoreData(configuration);
         verify(mWifiBlocklistMonitor, atLeastOnce()).handleNetworkRemoved(configuration.SSID);
@@ -6198,7 +6256,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
         verifyNetworkRemoveBroadcast();
         // Ensure that the write was not invoked for ephemeral network remove.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(true);
     }
 
     /**
@@ -6213,7 +6271,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verify(mWifiKeyStore, never()).removeKeys(any(WifiEnterpriseConfig.class), eq(false));
         verifyNetworkRemoveBroadcast();
         // Ensure that the write was not invoked for Passpoint network remove.
-        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(anyBoolean());
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write(true);
     }
 
     /**
@@ -6423,7 +6481,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyAddNetworkToWifiConfigManager(testNetwork2);
         mWifiConfigManager.updateNetworkAfterConnect(
                 testNetwork2.networkId, false, false, TEST_RSSI);
-        mWifiConfigManager.saveToStore(true);
+        assertTrue(mAlarmManager.isPending(BUFFERED_WRITE_ALARM_TAG));
+        mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
+        mLooper.dispatchAll();
         Pair<List<WifiConfiguration>, List<WifiConfiguration>> networkStoreData =
                 captureWriteNetworksListStoreData();
         List<WifiConfiguration> sharedNetwork = networkStoreData.first;
@@ -7894,7 +7954,6 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui1, option1);
         mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui2, option2);
         mWifiConfigManager.addCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui3, option3);
-        mLooper.dispatchAll();
         assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
                 WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui1)).size());
         assertEquals(1, mWifiConfigManager.getCustomDhcpOptions(
@@ -7903,7 +7962,6 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 WifiSsid.fromString(TEST_SSID), Arrays.asList(oui2, oui3)).size());
 
         mWifiConfigManager.removeCustomDhcpOptions(WifiSsid.fromString(TEST_SSID), oui1);
-        mLooper.dispatchAll();
         assertEquals(0, mWifiConfigManager.getCustomDhcpOptions(
                 WifiSsid.fromString(TEST_SSID), Collections.singletonList(oui1)).size());
         List<DhcpOption> actual2 = mWifiConfigManager.getCustomDhcpOptions(
