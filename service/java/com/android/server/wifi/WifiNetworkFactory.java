@@ -750,6 +750,11 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.e(TAG, "Invalid wifi network specifier: " + wns + ". Rejecting ");
             return false;
         }
+        if (wns.wifiConfiguration.enterpriseConfig != null
+                && wns.wifiConfiguration.enterpriseConfig.isTrustOnFirstUseEnabled()) {
+            Log.e(TAG, "Invalid wifi network specifier with TOFU enabled: " + wns + ". Rejecting ");
+            return false;
+        }
         return true;
     }
 
