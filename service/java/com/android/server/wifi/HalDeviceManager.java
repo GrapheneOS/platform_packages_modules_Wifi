@@ -53,6 +53,7 @@ import com.android.server.wifi.hal.WifiP2pIface;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.hal.WifiStaIface;
 import com.android.server.wifi.util.WorkSourceHelper;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import org.json.JSONArray;
@@ -77,6 +78,7 @@ import java.util.stream.Collectors;
 public class HalDeviceManager {
     private static final String TAG = "HalDevMgr";
     private static final boolean VDBG = false;
+    private final FeatureFlags mFeatureFlags;
     private boolean mDbg = false;
 
     public static final long CHIP_CAPABILITY_ANY = 0L;
@@ -151,6 +153,7 @@ public class HalDeviceManager {
         mContext = context;
         mClock = clock;
         mWifiInjector = wifiInjector;
+        mFeatureFlags = mWifiInjector.getDeviceConfigFacade().getFeatureFlags();
         mEventHandler = handler;
         mIWifiDeathRecipient = new WifiDeathRecipient();
         mWifiHal = getWifiHalMockable(context, wifiInjector);
@@ -2620,6 +2623,10 @@ public class HalDeviceManager {
             //  When all wifi services (ie. WifiAware, WifiP2p) get moved to the wifi handler
             //  thread, remove this thread check and the Handler#post() and simply always
             //  invoke the callback directly.
+            if (mFeatureFlags.singleWifiThread()) {
+                action();
+                return;
+            }
             if (requestedToRunInCurrentThread()) {
                 // Already running on the same handler thread. Trigger listener synchronously.
                 action();
