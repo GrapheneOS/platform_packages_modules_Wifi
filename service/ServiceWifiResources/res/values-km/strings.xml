@@ -27,6 +27,7 @@
     <string name="notification_channel_network_status" msgid="1631786866932924838">"ស្ថានភាព​បណ្តាញ"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"ការ​ជូនដំណឹង​អំពី​បណ្តាញ"</string>
     <string name="notification_channel_network_available" msgid="8454366142428864948">"មានបណ្តាញ"</string>
+    <string name="notification_channel_apm_alerts" msgid="6775293475896473489">"ការជូន​ដំណឹង APM"</string>
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"អនុញ្ញាតឱ្យ​ភ្ជាប់​បណ្ដាញ Wi‑Fi ដែលបាន​ណែនាំ?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"បណ្ដាញ​ដែលបាន​ណែនាំ​របស់ <xliff:g id="NAME">%s</xliff:g> ។ ឧបករណ៍​អាច​ភ្ជាប់​ដោយស្វ័យប្រវត្តិ។"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"អនុញ្ញាត"</string>
@@ -54,6 +55,7 @@
     <string name="ok" msgid="847575529546290102">"យល់​ព្រម​"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"បា​ន​ផ្ញើ​លិខិត​អញ្ជើញ"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"អញ្ជើញ​ឲ្យ​ភ្ជាប់"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{ទទួលយក្នុងរយៈពេល # វិនាទី។}other{ទទួលយក្នុងរយៈពេល # វិនាទី។}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"ពី៖"</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"ទៅ៖"</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"បញ្ចូល​កូដ PIN ដែល​ទាមទារ៖"</string>
@@ -102,19 +104,19 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>៖ បញ្ហាក្នុង​ការផ្ទៀងផ្ទាត់ EAP 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="873264900678243330">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅការចូលប្រើ Wi-Fi របស់ Verizon។ សូមព្យាយាម​ម្ដងទៀត​នៅពេលក្រោយ ឬសាកល្បងពី​ទីតាំងផ្សេង។"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅការចូលប្រើប្រាស់ Wi-Fi របស់ Verizon។ សូមព្យាយាម​ម្ដងទៀត​នៅពេលក្រោយ ឬសាកល្បងពី​ទីតាំងផ្សេង។ (បញ្ហា = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>៖ បញ្ហាក្នុង​ការផ្ទៀងផ្ទាត់ EAP 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
-    <item msgid="5042774904407799226">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅការចូលប្រើ Wi-Fi របស់ Verizon ដោយសារបញ្ហា 16384។"</item>
+    <item msgid="270219697600808218">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅ Wi-Fi របស់ Verizon។ (បញ្ហា = 16384)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16385" msgid="8392878664662215609">"<xliff:g id="SSID">%1$s</xliff:g>៖ បញ្ហាក្នុង​ការផ្ទៀងផ្ទាត់ EAP 16385"</string>
   <string-array name="wifi_eap_error_message_code_16385_carrier_overrides">
-    <item msgid="1251122579833932025">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅការចូលប្រើ Wi-Fi របស់ Verizon ដោយសារបញ្ហា 16385។"</item>
+    <item msgid="50575315771146940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅ Wi-Fi របស់ Verizon។ (បញ្ហា = 16385)"</item>
   </string-array>
     <string name="wifi_eap_error_message_unknown_error_code" msgid="4480884285384231323">"<xliff:g id="SSID">%1$s</xliff:g>៖ បញ្ហាក្នុង​ការផ្ទៀងផ្ទាត់ EAP មិនស្គាល់លេខ​កូដ​បញ្ហា"</string>
   <string-array name="wifi_eap_error_message_unknown_error_code_carrier_overrides">
-    <item msgid="6141795443609380009">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅការចូលប្រើ Wi-Fi របស់ Verizon។"</item>
+    <item msgid="2705387186478280792">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>៖ មានបញ្ហា​ក្នុងការ​ភ្ជាប់អ្នក​ទៅ Wi-Fi របស់ Verizon។ (បញ្ហា = មិនស្គាល់)"</item>
   </string-array>
     <string name="wifi_softap_auto_shutdown_timeout_expired_title" msgid="4896534374569504484">"បានបិទ​ហតស្ប៉ត"</string>
     <string name="wifi_softap_auto_shutdown_timeout_expired_summary" msgid="7975476698140267728">"មិនមាន​ឧបករណ៍​ដែល​បានភ្ជាប់ទេ។ សូមចុច ដើម្បី​កែ។"</string>
@@ -125,6 +127,11 @@
     <string name="wifi_interface_priority_message_plural" msgid="8178086373318831859">"វាអាចបណ្ដាលឱ្យមានបញ្ហាសម្រាប់កម្មវិធីទាំងនេះ៖ <xliff:g id="APPS">%3$s</xliff:g>។"</string>
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"អនុញ្ញាត"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"មិនអនុញ្ញាត"</string>
+    <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"ហតស្ប៉ត Wi-Fi"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"ហតស្ប៉ត Wi-Fi"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"តាម Wi-Fi ផ្ទាល់"</string>
+    <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"តើជឿទុកចិត្ត​បណ្តាញនេះ​បានទេ?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"បាទ/ចាស ភ្ជាប់"</string>
     <string name="wifi_ca_cert_dialog_abort_text" msgid="1303170595421648059">"ទេ កុំភ្ជាប់"</string>
@@ -154,4 +161,15 @@
     <string name="wifi_enable_request_dialog_message" msgid="6395169178524938278">"អ្នកអាច​បិទ Wi‑Fi នៅក្នុង​ការកំណត់រហ័ស"</string>
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"អនុញ្ញាត"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"មិនអនុញ្ញាត"</string>
+    <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"បើក ​​Wi-Fi នៅក្នុងមុខងារពេល​ជិះ​យន្តហោះ"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"ប្រសិនបើអ្នក​បន្តបើក Wi-Fi នោះឧបករណ៍​របស់អ្នកនឹង​ចាំថាត្រូវបន្តបើកវា នៅលើកក្រោយ​ដែលអ្នកស្ថិតក្នុង​មុខងារពេលជិះយន្តហោះ"</string>
+    <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi នៅ​តែ​បើក"</string>
+    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"ឧបករណ៍របស់អ្នកចាំថាត្រូវបន្តបើក Wi-Fi នៅក្នុងមុខងារពេល​ជិះ​យន្តហោះ។ បិទ Wi‑Fi ប្រសិនបើអ្នក​មិនចង់ឱ្យបន្តបើកទេ។"</string>
+    <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"បណ្ដាញ​មិន​អាច​ប្រើ​បាន"</string>
+    <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> ត្រូវបានបិទ​ដោយអ្នកគ្រប់គ្រង​របស់អ្នក។"</string>
+    <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"បិទ"</string>
+    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ហាក់ដូចជាមិនបានភ្ជាប់អ៊ីនធឺណិតទេ។ ប្ដូរទៅ <xliff:g id="SSID_1">%2$s</xliff:g> ឬ?"</string>
+    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> មានគុណភាពទាប។ ប្ដូរទៅ <xliff:g id="SSID_1">%2$s</xliff:g> ឬ?"</string>
+    <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"ប្ដូរ"</string>
+    <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"កុំ​ប្ដូរ"</string>
 </resources>

@@ -92,12 +92,26 @@ rule org.bouncycastle.** com.android.wifi.x.@0
 rule com.google.protobuf.** com.android.wifi.x.@0
 # use statically linked SystemMessageProto
 rule com.android.internal.messages.SystemMessageProto* com.android.wifi.x.@0
+# use statically linked entitlement library
+rule com.android.libraries.entitlement.** com.android.wifi.x.@0
+# use statically linked com.google.common
+rule com.google.common.** com.android.wifi.x.@0
+# use statically linked com.google.thirdparty.publicsuffix
+rule com.google.thirdparty.publicsuffix.** com.android.wifi.x.@0
+# use statically linked javax.annotation
+rule javax.annotation.** com.android.wifi.x.@0
 # Use our statically linked PlatformProperties library
 rule android.sysprop.** com.android.wifi.x.@0
 # Use our statically linked HIDL stubs
 # Note: android.hardware.wifi.** is used by various wifi feature flags. This unfortunately is also the namespace
-# used by vendor HAL stubs. So, this rule is intentionally weird to try and filter the vendor HAL stubs only.
-rule android.hardware.wifi.V** com.android.wifi.x.@0
+# used by vendor HAL stubs. So, use rule to filter the hardware feature flag
+rule android.hardware.wifi.aware android.hardware.wifi.aware
+rule android.hardware.wifi.rtt android.hardware.wifi.rtt
+rule android.hardware.wifi.direct android.hardware.wifi.direct
+rule android.hardware.wifi.passpoint android.hardware.wifi.passpoint
+rule android.hardware.wifi android.hardware.wifi
+# Use our statically linked HAL stubs
+rule android.hardware.wifi.** com.android.wifi.x.@0
 rule android.hardware.wifi.supplicant.** com.android.wifi.x.@0
 rule android.hardware.wifi.hostapd.** com.android.wifi.x.@0
 rule android.hidl.** com.android.wifi.x.@0

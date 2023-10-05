@@ -103,6 +103,7 @@ java_defaults {
         "app-compat-annotations",
     ],
     aidl: {
+        generate_get_transaction_name: true,
         include_dirs: [
             "packages/modules/Connectivity/framework/aidl-export",
         ],

@@ -32,6 +32,7 @@ import android.net.wifi.WifiSsid;
 import android.text.TextUtils;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.util.NativeUtil;
 
 import java.net.InetAddress;
 import java.security.cert.X509Certificate;
@@ -705,7 +706,7 @@ public class WifiConfigurationTestUtil {
             WifiConfiguration expected, WifiConfiguration actual, boolean isSupplicantBackup) {
         assertNotNull(expected);
         assertNotNull(actual);
-        assertEquals(expected.SSID, actual.SSID);
+        assertEquals(WifiSsid.fromString(expected.SSID), WifiSsid.fromString(actual.SSID));
         assertEquals(expected.BSSID, actual.BSSID);
         assertEquals(expected.preSharedKey, actual.preSharedKey);
         assertEquals(expected.wepKeys, actual.wepKeys);
@@ -826,8 +827,10 @@ public class WifiConfigurationTestUtil {
         assertNotNull(expected);
         assertNotNull(actual);
         assertEquals(expected.SSID, actual.SSID);
-        assertEquals(expected.getNetworkSelectionStatus().getNetworkSelectionBSSID(),
-                actual.getNetworkSelectionStatus().getNetworkSelectionBSSID());
+        assertArrayEquals(NativeUtil.macAddressToByteArray(expected.getNetworkSelectionStatus()
+                        .getNetworkSelectionBSSID()),
+                NativeUtil.macAddressToByteArray(actual.getNetworkSelectionStatus()
+                        .getNetworkSelectionBSSID()));
         assertEquals(expected.preSharedKey, actual.preSharedKey);
         assertEquals(expected.wepKeys, actual.wepKeys);
         assertEquals(expected.wepTxKeyIndex, actual.wepTxKeyIndex);

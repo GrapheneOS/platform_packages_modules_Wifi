@@ -42,6 +42,7 @@ import com.android.server.wifi.util.CertificateSubjectInfo;
 import com.android.wifi.resources.R;
 
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertPath;
@@ -54,6 +55,7 @@ import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -88,6 +90,7 @@ public class InsecureEapNetworkHandler {
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
     private final String mInterfaceName;
     private final Handler mHandler;
+    private final OnNetworkUpdateListener mOnNetworkUpdateListener;
 
     // The latest connecting configuration from the caller, it is updated on calling
     // prepareConnection() always. This is used to ensure that current TOFU config is aligned
@@ -119,6 +122,7 @@ public class InsecureEapNetworkHandler {
     private WifiDialogManager.DialogHandle mTofuAlertDialog = null;
     private boolean mIsCertNotificationReceiverRegistered = false;
     private String mServerCertHash = null;
+    private boolean mUseTrustStore;
 
     BroadcastReceiver mCertNotificationReceiver = new BroadcastReceiver() {
         @Override
@@ -161,6 +165,9 @@ public class InsecureEapNetworkHandler {
         mInterfaceName = interfaceName;
         mHandler = handler;
 
+        mOnNetworkUpdateListener = new OnNetworkUpdateListener();
+        mWifiConfigManager.addOnNetworkUpdateListener(mOnNetworkUpdateListener);
+
         mCaCertHelpLink = mContext.getString(R.string.config_wifiCertInstallationHelpLink);
     }
 
@@ -173,8 +180,6 @@ public class InsecureEapNetworkHandler {
      * initial connection to the server.
      *
      * @param config the running wifi configuration.
-     * @return true if user needs to be notified about an insecure network but TOFU is not supported
-     * by the device, or false otherwise.
      */
     public void prepareConnection(@NonNull WifiConfiguration config) {
         if (null == config) return;
@@ -223,6 +228,10 @@ public class InsecureEapNetworkHandler {
                 }
                 config.enterpriseConfig.setPassword(null);
             }
+            if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(2)) {
+                // For AIDL v2+, we can start with the default trust store
+                config.enterpriseConfig.setCaPath(WifiConfigurationUtil.getSystemTrustStorePath());
+            }
         }
         mCurrentTofuConfig = config;
         mServerCertChain.clear();
@@ -244,6 +253,7 @@ public class InsecureEapNetworkHandler {
         dismissDialogAndNotification();
         unregisterCertificateNotificationReceiver();
         clearInternalData();
+        mWifiConfigManager.removeOnNetworkUpdateListener(mOnNetworkUpdateListener);
     }
 
     /**
@@ -400,7 +410,7 @@ public class InsecureEapNetworkHandler {
         if (TextUtils.isEmpty(title) || TextUtils.isEmpty(message)) return;
 
         if (isUserSelected) {
-            mTofuAlertDialog = mWifiDialogManager.createSimpleDialog(
+            mTofuAlertDialog = mWifiDialogManager.createLegacySimpleDialog(
                     title,
                     message,
                     null /* positiveButtonText */,
@@ -491,10 +501,6 @@ public class InsecureEapNetworkHandler {
                 return true;
             }
         } else {
-            // TODO: b/271921032 some deployments that use globally trusted Root CAs do not include
-            // the Root during the handshake, only an intermediate. We can start the handshake with
-            // the Android trust store and validate the connection with a Root CA rather than
-            // certificate pinning.
             Log.i(TAG, "Root CA is not self-signed, use server certificate pinning");
             return true;
         }
@@ -528,8 +534,20 @@ public class InsecureEapNetworkHandler {
             Log.e(TAG, "Server certificate chain validation failed: " + e);
             return false;
         }
-        Log.i(TAG, "Server certificate chain validation succeeded, use Root CA");
+
+        // Validation succeeded, no need for the server cert hash
         mServerCertHash = null;
+
+        // Check if the Root CA certificate is in the trust store so that we could configure the
+        // connection to use the system store instead of an explicit Root CA.
+        mUseTrustStore = false;
+        if (mWifiNative.isSupplicantAidlServiceVersionAtLeast(2)) {
+            if (isCertInTrustStore(mPendingRootCaCert)) {
+                mUseTrustStore = true;
+            }
+        }
+        Log.i(TAG, "Server certificate chain validation succeeded, use "
+                + (mUseTrustStore ? "trust store" : "Root CA"));
         return true;
     }
 
@@ -572,7 +590,7 @@ public class InsecureEapNetworkHandler {
             }
             if (!mWifiConfigManager.updateCaCertificate(
                     mCurrentTofuConfig.networkId, mPendingRootCaCert, mPendingServerCert,
-                    mServerCertHash)) {
+                    mServerCertHash, mUseTrustStore)) {
                 // The user approved this network,
                 // keep the connection regardless of the result.
                 Log.e(TAG, "Cannot update CA cert to network " + mCurrentTofuConfig.getProfileKey()
@@ -675,7 +693,7 @@ public class InsecureEapNetworkHandler {
             messageUrlStart = hint.length() + 1;
             messageUrlEnd = message.length();
         }
-        mTofuAlertDialog = mWifiDialogManager.createSimpleDialogWithUrl(
+        mTofuAlertDialog = mWifiDialogManager.createLegacySimpleDialogWithUrl(
                 title,
                 message,
                 messageUrl,
@@ -807,6 +825,7 @@ public class InsecureEapNetworkHandler {
         mPendingServerCertIssuerInfo = null;
         mCurrentTofuConfig = null;
         mServerCertHash = null;
+        mUseTrustStore = false;
     }
 
     private void clearNativeData() {
@@ -895,5 +914,51 @@ public class InsecureEapNetworkHandler {
          * @param ssid SSID of the network, it might be null.
          */
         public void onError(@Nullable String ssid) {}
+    }
+
+    /**
+     * Listener for config manager network config related events.
+     */
+    private class OnNetworkUpdateListener implements
+            WifiConfigManager.OnNetworkUpdateListener {
+        @Override
+        public void onNetworkRemoved(WifiConfiguration config) {
+            // Dismiss TOFU dialog if the network of the current Tofu config is removed.
+            if (config == null || mCurrentTofuConfig == null
+                    || mTofuAlertDialog == null
+                    || config.networkId != mCurrentTofuConfig.networkId) return;
+
+            dismissDialogAndNotification();
+        }
+    }
+
+    /**
+     * Check if a given Root CA certificate exists in the Android trust store
+     *
+     * @param rootCaCert the Root CA certificate to check
+     * @return true if the Root CA certificate is found in the trust store, false otherwise
+     */
+    private boolean isCertInTrustStore(X509Certificate rootCaCert) {
+        try {
+            // Get the Android trust store.
+            KeyStore keystore = KeyStore.getInstance("AndroidCAStore");
+            keystore.load(null);
+
+            Enumeration<String> aliases = keystore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                X509Certificate trusted = (X509Certificate) keystore.getCertificate(alias);
+                if (trusted.getSubjectDN().equals(rootCaCert.getSubjectDN())) {
+                    // Check that the supplied cert was actually signed by the key we trust.
+                    rootCaCert.verify(trusted.getPublicKey());
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Fall through
+            Log.e(TAG, e.getMessage());
+        }
+        // The certificate is not in the trust store.
+        return false;
     }
 }

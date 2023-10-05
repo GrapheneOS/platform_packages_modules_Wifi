@@ -40,6 +40,8 @@ import com.android.server.wifi.hotspot2.WnmData;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +120,15 @@ public class WifiMonitor {
     public static final int QOS_POLICY_RESET_EVENT               = BASE + 75;
     public static final int QOS_POLICY_REQUEST_EVENT             = BASE + 76;
 
+    /* MLO links change event */
+    public static final int MLO_LINKS_INFO_CHANGED              = BASE + 77;
+
+    /* the AT_PERMANENT_ID_REQ denied indication for EAP-SIM/AKA/AKA' */
+    public static final int PERMANENT_ID_REQ_DENIED_INDICATION = BASE + 78;
+
+    /* BSS frequency changed event (when STA switches the channel due to CSA) */
+    public static final int BSS_FREQUENCY_CHANGED_EVENT = BASE + 79;
+
     /* WPS config errrors */
     private static final int CONFIG_MULTIPLE_PBC_DETECTED = 12;
     private static final int CONFIG_AUTH_FAILURE = 18;
@@ -140,6 +151,13 @@ public class WifiMonitor {
     })
     @Retention(RetentionPolicy.SOURCE)
     @interface TransitionDisableIndication{}
+
+    /* MLO links change event reason codes */
+    public enum MloLinkInfoChangeReason {
+        UNKNOWN,
+        TID_TO_LINK_MAP,
+        MULTI_LINK_RECONFIG_AP_REMOVAL,
+    }
 
     /**
      * Use this key to get the interface name of the message sent by WifiMonitor,
@@ -234,6 +252,18 @@ public class WifiMonitor {
         setMonitoring(iface, false);
     }
 
+    /**
+     * Returns the names of any interfaces that are being monitored.
+     */
+    public List<String> getMonitoredIfaceNames() {
+        List<String> monitoringIfaceList = new ArrayList<>();
+        for (String iface : mMonitoringMap.keySet()) {
+            if (mMonitoringMap.get(iface)) {
+                monitoringIfaceList.add(iface);
+            }
+        }
+        return monitoringIfaceList;
+    }
 
     /**
      * Similar functions to Handler#sendMessage that send the message to the registered handler
@@ -493,8 +523,8 @@ public class WifiMonitor {
      * Broadcast scan failed event to all the handlers registered for this event.
      * @param iface Name of iface on which this occurred.
      */
-    public void broadcastScanFailedEvent(String iface) {
-        sendMessage(iface, SCAN_FAILED_EVENT);
+    public void broadcastScanFailedEvent(String iface, int errorCode) {
+        sendMessage(iface, SCAN_FAILED_EVENT, errorCode);
     }
 
     /**
@@ -557,8 +587,22 @@ public class WifiMonitor {
      */
     public void broadcastNetworkConnectionEvent(String iface, int networkId, boolean filsHlpSent,
             WifiSsid ssid, String bssid) {
+        broadcastNetworkConnectionEvent(iface, networkId, filsHlpSent, ssid, bssid, null);
+    }
+
+    /**
+     * Broadcast the network connection event to all the handlers registered for this event.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param networkId ID of the network in wpa_supplicant.
+     * @param filsHlpSent Whether the connection used FILS.
+     * @param bssid BSSID of the access point.
+     * @param keyMgmtMask Current used key management mask.
+     */
+    public void broadcastNetworkConnectionEvent(String iface, int networkId, boolean filsHlpSent,
+            WifiSsid ssid, String bssid, BitSet keyMgmtMask) {
         sendMessage(iface, NETWORK_CONNECTION_EVENT,
-                new NetworkConnectionEventInfo(networkId, ssid, bssid, filsHlpSent));
+                new NetworkConnectionEventInfo(networkId, ssid, bssid, filsHlpSent, keyMgmtMask));
     }
 
     /**
@@ -582,13 +626,15 @@ public class WifiMonitor {
      * @param iface Name of iface on which this occurred.
      * @param networkId ID of the network in wpa_supplicant.
      * @param bssid BSSID of the access point.
+     * @param frequencyMhz Frequency of the connected channel in MHz
      * @param newSupplicantState New supplicant state.
      */
     public void broadcastSupplicantStateChangeEvent(String iface, int networkId, WifiSsid wifiSsid,
-                                                    String bssid,
+                                                    String bssid, int frequencyMhz,
                                                     SupplicantState newSupplicantState) {
         sendMessage(iface, SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
-                new StateChangeResult(networkId, wifiSsid, bssid, newSupplicantState));
+                new StateChangeResult(networkId, wifiSsid, bssid, frequencyMhz,
+                        newSupplicantState));
     }
 
     /**
@@ -623,6 +669,19 @@ public class WifiMonitor {
     public void broadcastCertificationEvent(String iface, int networkId, String ssid,
             int depth, CertificateEventInfo certificateEventInfo) {
         sendMessage(iface, TOFU_CERTIFICATE_EVENT, networkId, depth, certificateEventInfo);
+    }
+
+    /**
+     * Broadcast the indication of AT_PERMANENT_ID_REQ denied for EAP-SIM/AKA/AKA'
+     * when the strict conservative peer mode is enabled.
+     *
+     * @param iface Name of iface on which this occurred.
+     * @param networkId ID of the network in wpa_supplicant.
+     * @param ssid SSID of the network.
+     */
+    public void broadcastPermanentIdReqDenied(String iface, int networkId,
+            String ssid) {
+        sendMessage(iface, PERMANENT_ID_REQ_DENIED_INDICATION, 0, networkId, ssid);
     }
 
     /**
@@ -661,5 +720,28 @@ public class WifiMonitor {
     public void broadcastQosPolicyRequestEvent(String iface, int qosPolicyRequestId,
             List<QosPolicyRequest> qosPolicyData) {
         sendMessage(iface, QOS_POLICY_REQUEST_EVENT, qosPolicyRequestId, 0, qosPolicyData);
+    }
+
+    /**
+     * Broadcast the MLO link changes with reason code to all handlers registered for this event.
+     *
+     * @param iface Name of the iface on which this occurred.
+     * @param reason Reason code for the MLO link info change.
+     */
+    public void broadcastMloLinksInfoChanged(String iface,
+            WifiMonitor.MloLinkInfoChangeReason reason) {
+        sendMessage(iface, MLO_LINKS_INFO_CHANGED, reason);
+    }
+
+    /**
+     * Broadcast the BSS frequency changed event.
+     * This message is sent when STA switches the channel due to channel
+     * switch announcement from the connected access point.
+     *
+     * @param iface Name of the iface on which this occurred.
+     * @param frequencyMhz New frequency in MHz.
+     */
+    public void broadcastBssFrequencyChanged(String iface, int frequencyMhz) {
+        sendMessage(iface, BSS_FREQUENCY_CHANGED_EVENT, frequencyMhz);
     }
 }
