@@ -18,7 +18,6 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -133,6 +132,7 @@ public class WifiConnectivityManager {
     // Do not restart PNO scan if network changes happen more than once within this duration.
     private static final long NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS = 3000; // 3 seconds
     private static final int POWER_SAVE_SCAN_INTERVAL_MULTIPLIER = 2;
+    private static final int MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN = 2;
     // ClientModeManager has a bunch of states. From the
     // WifiConnectivityManager's perspective it only cares
     // if it is in Connected state, Disconnected state or in
@@ -1929,7 +1929,12 @@ public class WifiConnectivityManager {
                     R.integer.config_wifiInitialPartialScanChannelCacheAgeMins);
             int maxCount = mContext.getResources().getInteger(
                     R.integer.config_wifiInitialPartialScanChannelMaxCount);
-            freqs = fetchChannelSetForPartialScan(maxCount, ageInMillis);
+            int maxCountPerNetwork =
+                    mContext.getResources()
+                            .getInteger(
+                                    R.integer
+                                            .config_wifiInitialPartialScanMaxNewChannelsPerNetwork);
+            freqs = fetchChannelSetForPartialScan(maxCount, maxCountPerNetwork, ageInMillis);
         } else {
             freqs = fetchChannelSetForNetworkForPartialScan(config.networkId);
         }
@@ -1948,24 +1953,44 @@ public class WifiConnectivityManager {
     }
 
     /**
-     * Add the channels into the channel set with a size limit.
-     * If maxCount equals to 0, will add all available channels into the set.
+     * Add the channels into the channel set with a size limits.
+     *
      * @param channelSet Target set for adding channel to.
      * @param ssid Identifies the network to obtain from WifiScoreCard.
-     * @param maxCount Size limit of the set. If equals to 0, means no limit.
+     * @param maxCount Size limit of the channelSet. If equals to 0, means no limit.
+     * @param maxNewChannelsPerNetwork Max number of new channels to include from the ssid. 0 to
+     *     indicate no such limitation.
      * @param ageInMillis Only consider channel info whose timestamps are younger than this value.
-     * @return True if all available channels for this network are added, otherwise false.
+     * @return True channelSet did not reach max limit after adding channels from the network.
      */
-    private boolean addChannelFromWifiScoreCard(@NonNull Set<Integer> channelSet,
-            @NonNull String ssid, int maxCount, long ageInMillis) {
+    private boolean addChannelFromWifiScoreCardWithLimitPerNetwork(
+            @NonNull Set<Integer> channelSet,
+            @NonNull String ssid,
+            int maxCount,
+            int maxNewChannelsPerNetwork,
+            long ageInMillis) {
+        int allowedChannelsPerNetwork =
+                maxNewChannelsPerNetwork <= 0 ? Integer.MAX_VALUE : maxNewChannelsPerNetwork;
         WifiScoreCard.PerNetwork network = mWifiScoreCard.lookupNetwork(ssid);
         for (Integer channel : network.getFrequencies(ageInMillis)) {
             if (maxCount > 0 && channelSet.size() >= maxCount) {
-                localLog("addChannelFromWifiScoreCard: size limit reached for network:"
-                        + ssid);
+                localLog(
+                        "addChannelFromWifiScoreCardWithLimitPerNetwork: "
+                                + "size limit reached for network:"
+                                + ssid);
                 return false;
             }
-            channelSet.add(channel);
+            if (allowedChannelsPerNetwork <= 0) {
+                // max new channels per network reached, but absolute max count not reached
+                localLog(
+                        "addChannelFromWifiScoreCardWithLimitPerNetwork: "
+                                + "per-network size limit reached for network:"
+                                + ssid);
+                return true;
+            }
+            if (channelSet.add(channel)) {
+                allowedChannelsPerNetwork--;
+            }
         }
         return true;
     }
@@ -1988,16 +2013,19 @@ public class WifiConnectivityManager {
             channelSet.add(wifiInfo.getFrequency());
         }
         // Then get channels for the network.
-        addChannelFromWifiScoreCard(channelSet, config.SSID, maxNumActiveChannelsForPartialScans,
+        addChannelFromWifiScoreCardWithLimitPerNetwork(
+                channelSet,
+                config.SSID,
+                maxNumActiveChannelsForPartialScans,
+                0,
                 CHANNEL_LIST_AGE_MS);
         return channelSet;
     }
 
-    /**
-     * Fetch channel set for all saved and suggestion non-passpoint network for partial scan.
-     */
+    /** Fetch channel set for all saved and suggestion non-passpoint network for partial scan. */
     @VisibleForTesting
-    public Set<Integer> fetchChannelSetForPartialScan(int maxCount, long ageInMillis) {
+    public Set<Integer> fetchChannelSetForPartialScan(
+            int maxCountTotal, int maxCountPerNetwork, long ageInMillis) {
         List<WifiConfiguration> networks = getAllScanOptimizationNetworks();
         if (networks.isEmpty()) {
             return null;
@@ -2009,7 +2037,8 @@ public class WifiConnectivityManager {
         Set<Integer> channelSet = new HashSet<>();
 
         for (WifiConfiguration config : networks) {
-            if (!addChannelFromWifiScoreCard(channelSet, config.SSID, maxCount, ageInMillis)) {
+            if (!addChannelFromWifiScoreCardWithLimitPerNetwork(
+                    channelSet, config.SSID, maxCountTotal, maxCountPerNetwork, ageInMillis)) {
                 return channelSet;
             }
         }
@@ -2483,12 +2512,6 @@ public class WifiConnectivityManager {
     private @NonNull List<WifiConfiguration> getAllScanOptimizationNetworks() {
         List<WifiConfiguration> networks = mConfigManager.getSavedNetworks(-1);
         networks.addAll(mWifiNetworkSuggestionsManager.getAllScanOptimizationSuggestionNetworks());
-        if (mDeviceConfigFacade.includePasspointSsidsInPnoScans()) {
-            networks.addAll(mPasspointManager.getWifiConfigsForPasspointProfiles(true));
-            networks.addAll(
-                    mWifiNetworkSuggestionsManager
-                            .getAllPasspointScanOptimizationSuggestionNetworks(true));
-        }
         // remove all saved but never connected, auto-join disabled, or network selection disabled
         // networks.
         networks.removeIf(config -> !config.allowAutojoin
@@ -2502,6 +2525,32 @@ public class WifiConnectivityManager {
                 && !mWifiCarrierInfoManager.isSimReady(
                         mWifiCarrierInfoManager.getBestMatchSubscriptionId(config)));
         return networks;
+    }
+
+    /**
+     * Merge Passpoint PNO scan candidates into an existing network list.
+     */
+    private @NonNull List<WifiConfiguration> mergePasspointPnoScanCandidates(
+            List<WifiConfiguration> networks) {
+        List<WifiConfiguration> passpointNetworks =
+                mPasspointManager.getWifiConfigsForPasspointProfiles(true);
+        passpointNetworks.addAll(
+                mWifiNetworkSuggestionsManager.getAllPasspointScanOptimizationSuggestionNetworks(
+                        true));
+        if (passpointNetworks.isEmpty()) return networks;
+
+        // Add up to MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN Passpoint networks to
+        // the head of the merged network list.
+        int numPasspointAtHead =
+                Math.min(passpointNetworks.size(), MAX_PRIORITIZED_PASSPOINT_SSIDS_PER_PNO_SCAN);
+        List<WifiConfiguration> mergedNetworks = new ArrayList<>();
+        mergedNetworks.addAll(passpointNetworks.subList(0, numPasspointAtHead));
+        mergedNetworks.addAll(networks);
+
+        // Add any remaining Passpoint networks to the end of the merged network list.
+        mergedNetworks.addAll(
+                passpointNetworks.subList(numPasspointAtHead, passpointNetworks.size()));
+        return mergedNetworks;
     }
 
     /**
@@ -2556,6 +2605,9 @@ public class WifiConnectivityManager {
             return Collections.EMPTY_LIST;
         }
         Collections.sort(networks, mConfigManager.getScanListComparator());
+        if (mDeviceConfigFacade.includePasspointSsidsInPnoScans()) {
+            networks = mergePasspointPnoScanCandidates(networks);
+        }
         boolean pnoFrequencyCullingEnabled = mContext.getResources()
                 .getBoolean(R.bool.config_wifiPnoFrequencyCullingEnabled);
 
@@ -2575,8 +2627,8 @@ public class WifiConnectivityManager {
                 continue;
             }
             Set<Integer> channelList = new HashSet<>();
-            addChannelFromWifiScoreCard(channelList, ssid, 0,
-                    MAX_PNO_SCAN_FREQUENCY_AGE_MS);
+            addChannelFromWifiScoreCardWithLimitPerNetwork(
+                    channelList, ssid, 0, 0, MAX_PNO_SCAN_FREQUENCY_AGE_MS);
             channelList.addAll(externalRequestedPnoFrequencies);
             pnoNetwork.frequencies = channelList.stream().mapToInt(Integer::intValue).toArray();
         }
@@ -2598,8 +2650,8 @@ public class WifiConnectivityManager {
                     continue;
                 }
                 Set<Integer> channelList = new HashSet<>();
-                addChannelFromWifiScoreCard(channelList, config.SSID, 0,
-                        MAX_PNO_SCAN_FREQUENCY_AGE_MS);
+                addChannelFromWifiScoreCardWithLimitPerNetwork(
+                        channelList, config.SSID, 0, 0, MAX_PNO_SCAN_FREQUENCY_AGE_MS);
                 pnoNetwork.frequencies = channelList.stream().mapToInt(Integer::intValue).toArray();
             }
         }

@@ -1250,8 +1250,12 @@ public class PasspointManager {
      * @return List of {@link WifiConfiguration} converted from {@link PasspointProvider}.
      */
     public List<WifiConfiguration> getWifiConfigsForPasspointProfiles(boolean requireSsid) {
+        if (mProviders.isEmpty()) return Collections.emptyList();
+        List<PasspointProvider> sortedProviders = new ArrayList<>(mProviders.values());
+        Collections.sort(sortedProviders, new PasspointProvider.ConnectionTimeComparator());
+
         List<WifiConfiguration> configs = new ArrayList<>();
-        for (PasspointProvider provider : mProviders.values()) {
+        for (PasspointProvider provider : sortedProviders) {
             if (provider == null
                     || provider.isFromSuggestion()
                     || (requireSsid && provider.getMostRecentSsid() == null)) {
@@ -1297,6 +1301,7 @@ public class PasspointManager {
             provider.setHasEverConnected(true);
         }
         provider.setMostRecentSsid(ssid);
+        provider.updateMostRecentConnectionTime();
     }
 
     /**

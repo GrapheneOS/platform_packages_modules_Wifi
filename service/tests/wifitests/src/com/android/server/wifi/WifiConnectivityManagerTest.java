@@ -18,14 +18,12 @@ package com.android.server.wifi;
 
 import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
 import static com.android.server.wifi.WifiConfigurationTestUtil.generateWifiConfig;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -5722,13 +5720,16 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
      */
     @Test
     public void testRetrievePnoListOrder() {
-        //Create 4 networks.
+        // Create 4 non-Passpoint and 3 Passpoint networks.
         WifiConfiguration network1 = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration network2 = WifiConfigurationTestUtil.createPskNetwork();
         WifiConfiguration network3 = WifiConfigurationTestUtil.createOpenHiddenNetwork();
         WifiConfiguration network4 = WifiConfigurationTestUtil.createPskNetwork();
+        WifiConfiguration passpointNetwork1 = WifiConfigurationTestUtil.createPasspointNetwork();
+        WifiConfiguration passpointNetwork2 = WifiConfigurationTestUtil.createPasspointNetwork();
+        WifiConfiguration passpointNetwork3 = WifiConfigurationTestUtil.createPasspointNetwork();
 
-        // mark all networks except network4 as connected before
+        // Mark all non-Passpoint networks except network4 as connected before.
         network1.getNetworkSelectionStatus().setHasEverConnected(true);
         network2.getNetworkSelectionStatus().setHasEverConnected(true);
         network3.getNetworkSelectionStatus().setHasEverConnected(true);
@@ -5742,16 +5743,27 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         networkList.add(network2);
         networkList.add(network3);
         when(mWifiConfigManager.getSavedNetworks(anyInt())).thenReturn(networkList);
+
+        List<WifiConfiguration> passpointNetworkList = new ArrayList<>();
+        passpointNetworkList.add(passpointNetwork1);
+        passpointNetworkList.add(passpointNetwork2);
+        passpointNetworkList.add(passpointNetwork3);
+        when(mDeviceConfigFacade.includePasspointSsidsInPnoScans()).thenReturn(true);
+        when(mPasspointManager.getWifiConfigsForPasspointProfiles(anyBoolean()))
+                .thenReturn(passpointNetworkList);
         List<WifiScanner.PnoSettings.PnoNetwork> pnoNetworks =
                 mWifiConnectivityManager.retrievePnoNetworkList();
 
         // Verify correct order of networks. Note that network4 should not appear for PNO scan
         // since it had not been connected before.
-        assertEquals(4, pnoNetworks.size());
-        assertEquals(network3.SSID, pnoNetworks.get(0).ssid);
+        assertEquals(7, pnoNetworks.size());
+        assertEquals(passpointNetwork1.SSID, pnoNetworks.get(0).ssid);
         assertEquals(UNTRANSLATED_HEX_SSID, pnoNetworks.get(1).ssid); // Possible untranslated SSID
-        assertEquals(network2.SSID, pnoNetworks.get(2).ssid);
-        assertEquals(network1.SSID, pnoNetworks.get(3).ssid);
+        assertEquals(passpointNetwork2.SSID, pnoNetworks.get(2).ssid);
+        assertEquals(network3.SSID, pnoNetworks.get(3).ssid);
+        assertEquals(network2.SSID, pnoNetworks.get(4).ssid);
+        assertEquals(network1.SSID, pnoNetworks.get(5).ssid);
+        assertEquals(passpointNetwork3.SSID, pnoNetworks.get(6).ssid);
     }
 
     private List<List<Integer>> linkScoreCardFreqsToNetwork(WifiConfiguration... configs) {
@@ -5781,13 +5793,36 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mWifiConfigManager.getSavedNetworks(anyInt()))
                 .thenReturn(Arrays.asList(configuration1, configuration2));
 
+        // linkScoreCardFreqsToNetwork creates 2 Lists of size 3 each.
         List<List<Integer>> freqs = linkScoreCardFreqsToNetwork(configuration1, configuration2);
 
         mLruConnectionTracker.addNetwork(configuration2);
         mLruConnectionTracker.addNetwork(configuration1);
 
-        assertEquals(new HashSet<>(freqs.get(0)), mWifiConnectivityManager
-                .fetchChannelSetForPartialScan(3, CHANNEL_CACHE_AGE_MINS));
+        // Max count is 3 with no per-network max count - should match the first freq List.
+        assertEquals(
+                new HashSet<>(freqs.get(0)),
+                mWifiConnectivityManager.fetchChannelSetForPartialScan(
+                        3, 0, CHANNEL_CACHE_AGE_MINS));
+
+        // Max count is 3 with per-network max count as 1 - should get the first freq from each
+        // network.
+        Set<Integer> channelSet =
+                mWifiConnectivityManager.fetchChannelSetForPartialScan(
+                        3, 1, CHANNEL_CACHE_AGE_MINS);
+        assertEquals(2, channelSet.size());
+        assertTrue(channelSet.contains(freqs.get(0).get(0)));
+        assertTrue(channelSet.contains(freqs.get(1).get(0)));
+
+        // Max count is 3 with per-network max count as 2 - should get the 2 freqs from
+        // network 1, and 1 freq from network 2.
+        channelSet =
+                mWifiConnectivityManager.fetchChannelSetForPartialScan(
+                        3, 2, CHANNEL_CACHE_AGE_MINS);
+        assertEquals(3, channelSet.size());
+        assertTrue(channelSet.contains(freqs.get(0).get(0)));
+        assertTrue(channelSet.contains(freqs.get(0).get(1)));
+        assertTrue(channelSet.contains(freqs.get(1).get(0)));
     }
 
     /**
