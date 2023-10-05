@@ -139,6 +139,7 @@ import com.android.server.wifi.WifiDiagnostics;
 import com.android.server.wifi.WifiDialogManager;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiP2pConnection;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -274,6 +275,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock TetheringManager mTetheringManager;
     @Mock WifiDiagnostics mWifiDiagnostics;
+    @Mock WifiP2pConnection mWifiP2pConnection;
 
     private void generatorTestData() {
         mTestWifiP2pGroup = new WifiP2pGroup();
@@ -1345,6 +1347,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.makeBroadcastOptions()).thenReturn(mBroadcastOptions);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
         when(mWifiInjector.getLastCallerInfoManager()).thenReturn(mLastCallerInfoManager);
+        when(mWifiInjector.getWifiP2pConnection()).thenReturn(mWifiP2pConnection);
+
         when(mWifiDialogManager.createP2pInvitationReceivedDialog(any(), anyBoolean(), any(),
                 anyInt(), any(), any())).thenReturn(mDialogHandle);
         when(mWifiDialogManager.createP2pInvitationSentDialog(any(), any(), anyInt()))

@@ -2550,12 +2550,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             Log.i(TAG, "No valid package name, ignore ENABLE_P2P");
                             break;
                         }
+                        mWifiInjector.getWifiP2pConnection().setP2pInWaitingState(true);
                         int proceedWithOperation =
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
                                         createRequestorWs(message.sendingUid, packageName),
                                         false /* bypassDialog */);
+                        mWifiInjector.getWifiP2pConnection().setP2pInWaitingState(false);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                             updateThisDevice(WifiP2pDevice.UNAVAILABLE);
@@ -2624,12 +2626,14 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             Log.i(TAG, "No valid package name, do not set up the P2P interface");
                             return NOT_HANDLED;
                         }
+                        mWifiInjector.getWifiP2pConnection().setP2pInWaitingState(true);
                         int proceedWithOperation =
                                 mInterfaceConflictManager.manageInterfaceConflictForStateMachine(
                                         TAG, message, mP2pStateMachine, mWaitingState,
                                         mP2pDisabledState, HalDeviceManager.HDM_CREATE_IFACE_P2P,
                                         createRequestorWs(message.sendingUid, packageName),
                                         false /* bypassDialog */);
+                        mWifiInjector.getWifiP2pConnection().setP2pInWaitingState(false);
                         if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                             Log.e(TAG, "User refused to set up P2P");
                             updateThisDevice(WifiP2pDevice.UNAVAILABLE);

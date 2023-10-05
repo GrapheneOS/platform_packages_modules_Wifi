@@ -40,6 +40,7 @@ import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LO
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.ARP_TABLE_PATH;
 import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION;
+import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION_COMPLETE;
 import static com.android.server.wifi.ClientModeImpl.CMD_UNWANTED_NETWORK;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
 import static com.android.server.wifi.WifiSettingsConfigStore.SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS;
@@ -176,6 +177,7 @@ import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointProvisioningTestUtil;
 import com.android.server.wifi.hotspot2.WnmData;
+import com.android.server.wifi.p2p.WifiP2pServiceImpl;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.StaEvent;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.WifiIsUnusableEvent;
@@ -10495,5 +10497,68 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(links.get(1).getBand(), WifiScanner.WIFI_BAND_5_GHZ);
         assertEquals(links.get(1).getChannel(), TEST_CHANNEL_1);
         assertEquals(links.get(1).getLinkId(), TEST_MLO_LINK_ID_1);
+    }
+
+    /**
+     * Verify that during DHCP process, 1. If P2P is in waiting state, clientModeImpl doesn't send a
+     * message to block P2P discovery. 2. If P2P is not in waiting state, clientModeImpl sends a
+     * message to block P2P discovery. 3. On DHCP completion, clientModeImpl sends a message to
+     * unblock P2P discovery.
+     */
+    @Test
+    public void testP2pBlockDiscoveryDuringDhcp() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+
+        startConnectSuccess();
+
+        mCmi.sendMessage(
+                WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT,
+                0,
+                0,
+                new StateChangeResult(
+                        0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq, SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+
+        mCmi.sendMessage(
+                WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, TEST_WIFI_SSID, TEST_BSSID_STR, false, null));
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).handleBssidConnectionSuccess(TEST_BSSID_STR, TEST_SSID);
+
+        mCmi.sendMessage(
+                WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT,
+                0,
+                0,
+                new StateChangeResult(
+                        0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq, SupplicantState.COMPLETED));
+        mLooper.dispatchAll();
+
+        assertEquals("L3ProvisioningState", getCurrentState().getName());
+
+        when(mWifiP2pConnection.isConnected()).thenReturn(true);
+        when(mWifiP2pConnection.isP2pInWaitingState()).thenReturn(true);
+
+        mIpClientCallback.onPreDhcpAction();
+        mLooper.dispatchAll();
+        verify(mWifiP2pConnection, never()).sendMessage(anyInt(), anyInt(), anyInt());
+        verify(mIpClient).completedPreDhcpAction();
+
+        when(mWifiP2pConnection.isConnected()).thenReturn(true);
+        when(mWifiP2pConnection.isP2pInWaitingState()).thenReturn(false);
+
+        mIpClientCallback.onPreDhcpAction();
+        mLooper.dispatchAll();
+        verify(mWifiP2pConnection)
+                .sendMessage(
+                        eq(WifiP2pServiceImpl.BLOCK_DISCOVERY),
+                        eq(WifiP2pServiceImpl.ENABLED),
+                        eq(CMD_PRE_DHCP_ACTION_COMPLETE));
+        verify(mIpClient).completedPreDhcpAction();
+
+        mIpClientCallback.onPostDhcpAction();
+        mLooper.dispatchAll();
+        verify(mWifiP2pConnection)
+                .sendMessage(
+                        eq(WifiP2pServiceImpl.BLOCK_DISCOVERY), eq(WifiP2pServiceImpl.DISABLED));
     }
 }
