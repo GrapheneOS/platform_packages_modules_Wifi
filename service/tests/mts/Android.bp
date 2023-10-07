@@ -32,7 +32,7 @@ android_test {
         "android.test.base.stubs",
     ],
 
-    srcs: [ "src/**/*.java" ],
+    srcs: ["src/**/*.java"],
 
     static_libs: [
         // for ShellIdentityUtils, builds against test_current
@@ -41,7 +41,7 @@ android_test {
         "ctstestserver",
         "junit",
         "junit-params",
-        "truth-prebuilt",
+        "truth",
         // for Wifi protos, builds against system_current
         "wifi-nano-protos",
         // for AndroidJUnit4

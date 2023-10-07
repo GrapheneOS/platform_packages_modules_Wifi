@@ -21,7 +21,7 @@ package {
 android_test {
     name: "FrameworksWifiTests",
 
-    srcs: [ "**/*.java" ],
+    srcs: ["**/*.java"],
 
     dxflags: ["--multi-dex"],
 
@@ -33,7 +33,7 @@ android_test {
         "hamcrest-library",
         "mockito-target-extended-minus-junit4",
         "frameworks-base-testutils",
-        "truth-prebuilt",
+        "truth",
 
         // Statically link wifi-service-pre-jarjar since we want to test the working copy of
         // service-wifi, not the on-device copy.
