@@ -22,10 +22,16 @@ flag {
     bug: "302172794"
 }
 
-
 flag {
     name: "single_wifi_thread"
     namespace: "wifi"
     description: "Control the feature that move all Wifi service to a single thread"
     bug: "302593617"
+}
+
+flag {
+    name: "vendor_parcelable_parameters"
+    namespace: "wifi"
+    description: "Control the APIs that allow additional vendor-specific parcelables"
+    bug: "296069900"
 }
