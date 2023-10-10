@@ -41,7 +41,6 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.os.Process.WIFI_UID;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
@@ -6361,109 +6360,130 @@ public class WifiServiceImpl extends BaseWifiService {
         mLastCallerInfoManager.put(config != null
                         ? WifiManager.API_CONNECT_CONFIG : WifiManager.API_CONNECT_NETWORK_ID,
                 Process.myTid(), uid, Binder.getCallingPid(), packageName, true);
-        mWifiThreadRunner.post(() -> {
-            ActionListenerWrapper wrapper = new ActionListenerWrapper(callback);
-            final NetworkUpdateResult result;
-            // if connecting using WifiConfiguration, save the network first
-            if (config != null) {
-                if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
-                    mWifiMetrics.logUserActionEvent(
-                            UserActionEvent.EVENT_ADD_OR_UPDATE_NETWORK, config.networkId);
-                }
-                result = mWifiConfigManager.addOrUpdateNetwork(config, uid);
-                if (!result.isSuccess()) {
-                    Log.e(TAG, "connect adding/updating config=" + config + " failed");
-                    wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                    return;
-                }
-                broadcastWifiCredentialChanged(WifiManager.WIFI_CREDENTIAL_SAVED, config);
-            } else {
-                if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
-                    mWifiMetrics.logUserActionEvent(UserActionEvent.EVENT_MANUAL_CONNECT, netId);
-                }
-                result = new NetworkUpdateResult(netId);
-            }
-            WifiConfiguration configuration = mWifiConfigManager
-                    .getConfiguredNetwork(result.getNetworkId());
-            if (configuration == null) {
-                Log.e(TAG, "connect to Invalid network Id=" + netId);
-                wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                return;
-            }
-            if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
-                Log.e(TAG, "connect to network Id=" + netId + "restricted by admin");
-                wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                return;
-            }
-            if (mWifiGlobals.isDeprecatedSecurityTypeNetwork(configuration)) {
-                Log.e(TAG, "connect to network Id=" + netId + " security type deprecated.");
-                wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                return;
-            }
-            if (configuration.enterpriseConfig != null
-                    && configuration.enterpriseConfig.isAuthenticationSimBased()) {
-                int subId = mWifiCarrierInfoManager.getBestMatchSubscriptionId(configuration);
-                if (!mWifiCarrierInfoManager.isSimReady(subId)) {
-                    Log.e(TAG, "connect to SIM-based config=" + configuration
-                            + "while SIM is absent");
-                    wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                    return;
-                }
-                if (mWifiCarrierInfoManager.requiresImsiEncryption(subId)
-                        && !mWifiCarrierInfoManager.isImsiEncryptionInfoAvailable(subId)) {
-                    Log.e(TAG, "Imsi protection required but not available for Network="
-                            + configuration);
-                    wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
-                    return;
-                }
-                if (mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(configuration.carrierId)) {
-                    Optional<PseudonymInfo> pseudonymInfo =
-                            mWifiPseudonymManager.getValidPseudonymInfo(configuration.carrierId);
-                    if (pseudonymInfo.isEmpty()) {
-                        Log.e(TAG, "There isn't any valid pseudonym to update the Network="
-                                + configuration);
-                        mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(
-                                configuration);
-                        // TODO(b/274148786): new error code and UX for this failure.
+        mWifiThreadRunner.post(
+                () -> {
+                    ActionListenerWrapper wrapper = new ActionListenerWrapper(callback);
+                    final NetworkUpdateResult result;
+                    // if connecting using WifiConfiguration, save the network first
+                    if (config != null) {
+                        if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+                            mWifiMetrics.logUserActionEvent(
+                                    UserActionEvent.EVENT_ADD_OR_UPDATE_NETWORK, config.networkId);
+                        }
+                        result = mWifiConfigManager.addOrUpdateNetwork(config, uid);
+                        if (!result.isSuccess()) {
+                            Log.e(TAG, "connect adding/updating config=" + config + " failed");
+                            wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                            return;
+                        }
+                        broadcastWifiCredentialChanged(WifiManager.WIFI_CREDENTIAL_SAVED, config);
+                    } else {
+                        if (mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+                            mWifiMetrics.logUserActionEvent(
+                                    UserActionEvent.EVENT_MANUAL_CONNECT, netId);
+                        }
+                        result = new NetworkUpdateResult(netId);
+                    }
+                    WifiConfiguration configuration =
+                            mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
+                    if (configuration == null) {
+                        Log.e(TAG, "connect to Invalid network Id=" + netId);
                         wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
                         return;
-                    } else {
-                        mWifiPseudonymManager.updateWifiConfiguration(
-                                configuration);
                     }
-                }
-            }
+                    if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
+                        Log.e(TAG, "connect to network Id=" + netId + "restricted by admin");
+                        wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                        return;
+                    }
+                    if (mWifiGlobals.isDeprecatedSecurityTypeNetwork(configuration)) {
+                        Log.e(TAG, "connect to network Id=" + netId + " security type deprecated.");
+                        wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                        return;
+                    }
+                    if (configuration.enterpriseConfig != null
+                            && configuration.enterpriseConfig.isAuthenticationSimBased()) {
+                        int subId =
+                                mWifiCarrierInfoManager.getBestMatchSubscriptionId(configuration);
+                        if (!mWifiCarrierInfoManager.isSimReady(subId)) {
+                            Log.e(
+                                    TAG,
+                                    "connect to SIM-based config="
+                                            + configuration
+                                            + "while SIM is absent");
+                            wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                            return;
+                        }
+                        if (mWifiCarrierInfoManager.requiresImsiEncryption(subId)
+                                && !mWifiCarrierInfoManager.isImsiEncryptionInfoAvailable(subId)) {
+                            Log.e(
+                                    TAG,
+                                    "Imsi protection required but not available for Network="
+                                            + configuration);
+                            wrapper.sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                            return;
+                        }
+                        if (mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                configuration.carrierId)) {
+                            Optional<PseudonymInfo> pseudonymInfo =
+                                    mWifiPseudonymManager.getValidPseudonymInfo(
+                                            configuration.carrierId);
+                            if (pseudonymInfo.isEmpty()) {
+                                Log.e(
+                                        TAG,
+                                        "There isn't any valid pseudonym to update the Network="
+                                                + configuration);
+                                mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(
+                                        configuration);
+                                // TODO(b/274148786): new error code and UX for this failure.
+                                wrapper.sendFailure(
+                                        WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
+                                return;
+                            } else {
+                                mWifiPseudonymManager.updateWifiConfiguration(configuration);
+                            }
+                        }
+                    }
 
-            // Tear down secondary CMMs that are already connected to the same network to make
-            // sure the user's manual connection succeeds.
-            ScanResultMatchInfo targetMatchInfo =
-                    ScanResultMatchInfo.fromWifiConfiguration(configuration);
-            for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
-                if (!cmm.isConnected()) {
-                    continue;
-                }
-                ActiveModeManager.ClientRole role = cmm.getRole();
-                if (role == ROLE_CLIENT_LOCAL_ONLY || role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
-                    WifiConfiguration connectedConfig = cmm.getConnectedWifiConfiguration();
-                    if (connectedConfig == null) {
-                        continue;
+                    // Tear down already connected secondary internet CMMs to avoid MCC.
+                    // Also tear down secondary CMMs that are already connected to the same network
+                    // to make sure the user's manual connection succeeds.
+                    ScanResultMatchInfo targetMatchInfo =
+                            ScanResultMatchInfo.fromWifiConfiguration(configuration);
+                    for (ClientModeManager cmm : mActiveModeWarden.getClientModeManagers()) {
+                        if (!cmm.isConnected()) {
+                            continue;
+                        }
+                        ActiveModeManager.ClientRole role = cmm.getRole();
+                        if (role == ROLE_CLIENT_LOCAL_ONLY
+                                || role == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
+                            WifiConfiguration connectedConfig = cmm.getConnectedWifiConfiguration();
+                            if (connectedConfig == null) {
+                                continue;
+                            }
+                            ScanResultMatchInfo connectedMatchInfo =
+                                    ScanResultMatchInfo.fromWifiConfiguration(connectedConfig);
+                            ConcreteClientModeManager concreteCmm = (ConcreteClientModeManager) cmm;
+                            if (concreteCmm.isSecondaryInternet()
+                                    || targetMatchInfo.matchForNetworkSelection(connectedMatchInfo)
+                                    != null) {
+                                if (mVerboseLoggingEnabled) {
+                                    Log.v(
+                                            TAG,
+                                            "Shutting down client mode manager to satisfy user "
+                                                    + "connection: "
+                                                    + cmm);
+                                }
+                                cmm.stop();
+                            }
+                        }
                     }
-                    ScanResultMatchInfo connectedMatchInfo =
-                            ScanResultMatchInfo.fromWifiConfiguration(connectedConfig);
-                    if (targetMatchInfo.matchForNetworkSelection(connectedMatchInfo) == null) {
-                        continue;
-                    }
-                    if (mVerboseLoggingEnabled) {
-                        Log.v(TAG, "Shutting down client mode manager to satisfy user "
-                                + "connection: " + cmm);
-                    }
-                    cmm.stop();
-                }
-            }
 
-            mMakeBeforeBreakManager.stopAllSecondaryTransientClientModeManagers(() ->
-                    mConnectHelper.connectToNetwork(result, wrapper, uid, packageName));
-        });
+                    mMakeBeforeBreakManager.stopAllSecondaryTransientClientModeManagers(
+                            () ->
+                                    mConnectHelper.connectToNetwork(
+                                            result, wrapper, uid, packageName));
+                });
     }
 
     /**
