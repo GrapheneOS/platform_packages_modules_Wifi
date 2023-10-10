@@ -18,14 +18,12 @@ package com.android.server.wifi;
 
 import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
 import static com.android.server.wifi.WifiConfigurationTestUtil.generateWifiConfig;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -1506,7 +1504,27 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnlyFailOnStaticIp() {
         setupMocksForMultiInternetTests(true);
+        // mock network selection not needed for primary
+        when(mWifiNS.isNetworkSelectionNeededForCmm(any())).thenReturn(false);
         testMultiInternetSecondaryConnectionRequest(true, false, false, CANDIDATE_BSSID_3);
+
+        // network selection should be skipped on the primary
+        verify(mWifiNS).selectNetwork(any());
+    }
+
+    /**
+     * Verify that when no valid secondary internet candidate is found network selection fallback
+     * onto the primary when needed.
+     */
+    @Test
+    public void multiInternetSecondaryConnectionRequestFallbackOnPrimary() {
+        setupMocksForMultiInternetTests(true);
+        // mock network selection not needed for primary
+        when(mWifiNS.isNetworkSelectionNeededForCmm(any())).thenReturn(true);
+        testMultiInternetSecondaryConnectionRequest(true, false, false, CANDIDATE_BSSID_3);
+
+        // network selection happens on the primary
+        verify(mWifiNS, atLeastOnce()).selectNetwork(any());
     }
 
     @Test

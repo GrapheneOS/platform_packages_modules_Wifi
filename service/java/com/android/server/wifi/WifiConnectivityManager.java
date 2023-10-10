@@ -18,7 +18,6 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -550,6 +549,7 @@ public class WifiConnectivityManager {
         mWifiCountryCode.updateCountryCodeFromScanResults(scanDetails);
 
         List<WifiNetworkSelector.ClientModeManagerState> cmmStates = new ArrayList<>();
+        WifiNetworkSelector.ClientModeManagerState primaryCmmState = null;
         Set<String> connectedSsids = new HashSet<>();
         boolean hasExistingSecondaryCmm = false;
         for (ClientModeManager clientModeManager :
@@ -564,7 +564,12 @@ public class WifiConnectivityManager {
             if (clientModeManager.isConnected()) {
                 connectedSsids.add(wifiInfo.getSSID());
             }
-            cmmStates.add(new WifiNetworkSelector.ClientModeManagerState(clientModeManager));
+            WifiNetworkSelector.ClientModeManagerState cmmState =
+                    new WifiNetworkSelector.ClientModeManagerState(clientModeManager);
+            if (clientModeManager.getRole() == ROLE_CLIENT_PRIMARY) {
+                primaryCmmState = cmmState;
+            }
+            cmmStates.add(cmmState);
         }
         // We don't have any existing secondary CMM, but are we allowed to create a secondary CMM
         // and do we have a request for OEM_PAID/OEM_PRIVATE request? If yes, we need to perform
@@ -672,7 +677,14 @@ public class WifiConnectivityManager {
                     listenerName, handleScanResultsListener)) {
                 return;
             }
-            // intentional fallthrough: No multi internet connections, fallback to legacy flow.
+            // No multi-internet connection. Need to re-evaluate if network selection is still
+            // needed on the primary.
+            if (primaryCmmState == null
+                    || !mNetworkSelector.isNetworkSelectionNeededForCmm(primaryCmmState)) {
+                return;
+            }
+            // intentional fallthrough: No multi internet connections, and network selection is
+            // needed on the primary. Fallback to legacy flow.
         }
 
         handleCandidatesFromScanResultsForPrimaryCmmUsingMbbIfAvailable(
