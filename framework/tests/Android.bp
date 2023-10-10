@@ -43,7 +43,7 @@ android_test {
         "wifi-modules-utils",
         "net-tests-utils",
         "net-utils-framework-common",
-        "truth-prebuilt",
+        "truth",
     ],
 
     libs: [
