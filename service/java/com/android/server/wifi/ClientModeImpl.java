@@ -5932,6 +5932,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                 WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0);
                         handleNetworkDisconnect(false,
                                 WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__UNSPECIFIED);
+                        // TODO(b/302728081): remove the code once the issue is resolved.
+                        if (mDeviceConfigFacade.isAbnormalDisconnectionBugreportEnabled()
+                                && mTargetWifiConfiguration.enterpriseConfig != null
+                                && mTargetWifiConfiguration.enterpriseConfig
+                                        .isAuthenticationSimBased()
+                                && mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(
+                                        mTargetWifiConfiguration.carrierId)) {
+                            String bugTitle = "Wi-Fi BugReport: suspicious NETWORK_NOT_FOUND";
+                            String bugDetail = "Detect abnormal NETWORK_NOT_FOUND error";
+                            mWifiDiagnostics.takeBugReport(bugTitle, bugDetail);
+                        }
                         transitionTo(mDisconnectedState); // End of connection attempt.
                     }
                     break;
