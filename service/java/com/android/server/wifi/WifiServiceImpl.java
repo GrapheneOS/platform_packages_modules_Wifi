@@ -5446,17 +5446,22 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     private void onVerboseLoggingStatusChanged(boolean enabled) {
-        int itemCount = mRegisteredWifiLoggingStatusListeners.beginBroadcast();
-        for (int i = 0; i < itemCount; i++) {
+        synchronized (mRegisteredWifiLoggingStatusListeners) {
+            int itemCount = mRegisteredWifiLoggingStatusListeners.beginBroadcast();
             try {
-                mRegisteredWifiLoggingStatusListeners.getBroadcastItem(i)
-                        .onStatusChanged(enabled);
-            } catch (RemoteException e) {
-                Log.e(TAG, "onVerboseLoggingStatusChanged: RemoteException -- ", e);
+                for (int i = 0; i < itemCount; i++) {
+                    try {
+                        mRegisteredWifiLoggingStatusListeners
+                                .getBroadcastItem(i)
+                                .onStatusChanged(enabled);
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "onVerboseLoggingStatusChanged: RemoteException -- ", e);
+                    }
+                }
+            } finally {
+                mRegisteredWifiLoggingStatusListeners.finishBroadcast();
             }
-
         }
-        mRegisteredWifiLoggingStatusListeners.finishBroadcast();
     }
 
     private void updateVerboseLoggingEnabled() {
