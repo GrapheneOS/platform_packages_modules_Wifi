@@ -371,7 +371,11 @@ public class WifiNetworkSelector {
         return mAssociatedNetworkSelectionOverride == ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED;
     }
 
-    private boolean isNetworkSelectionNeededForCmm(@NonNull ClientModeManagerState cmmState) {
+    /**
+     * Check if network selection is needed on a CMM.
+     * @return True if network selection is needed. False if not needed.
+     */
+    public boolean isNetworkSelectionNeededForCmm(@NonNull ClientModeManagerState cmmState) {
         if (cmmState.connected) {
             // Is roaming allowed?
             if (!isAssociatedNetworkSelectionEnabled()) {

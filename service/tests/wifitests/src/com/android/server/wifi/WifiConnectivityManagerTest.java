@@ -1504,7 +1504,27 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Test
     public void multiInternetSecondaryConnectionRequestSucceedsWithDbsApOnlyFailOnStaticIp() {
         setupMocksForMultiInternetTests(true);
+        // mock network selection not needed for primary
+        when(mWifiNS.isNetworkSelectionNeededForCmm(any())).thenReturn(false);
         testMultiInternetSecondaryConnectionRequest(true, false, false, CANDIDATE_BSSID_3);
+
+        // network selection should be skipped on the primary
+        verify(mWifiNS).selectNetwork(any());
+    }
+
+    /**
+     * Verify that when no valid secondary internet candidate is found network selection fallback
+     * onto the primary when needed.
+     */
+    @Test
+    public void multiInternetSecondaryConnectionRequestFallbackOnPrimary() {
+        setupMocksForMultiInternetTests(true);
+        // mock network selection not needed for primary
+        when(mWifiNS.isNetworkSelectionNeededForCmm(any())).thenReturn(true);
+        testMultiInternetSecondaryConnectionRequest(true, false, false, CANDIDATE_BSSID_3);
+
+        // network selection happens on the primary
+        verify(mWifiNS, atLeastOnce()).selectNetwork(any());
     }
 
     @Test
