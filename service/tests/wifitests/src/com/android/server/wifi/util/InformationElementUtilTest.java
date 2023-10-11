@@ -297,6 +297,161 @@ public class InformationElementUtilTest extends WifiBaseTest {
                 testByteArray[3], results[0].bytes[0]);
     }
 
+    /** Verify subelement fragmentation within a fragmented element. */
+    @Test
+    public void parseInformationElementWithTwoLevelFragmentation() throws IOException {
+
+        /**
+         *   Format of the Multi link element
+         *
+         *   Ext Tag: Multi-Link
+         *     Ext Tag length: 578 (Tag len: 579)   [fragmented]
+         *     Ext Tag Number: Multi-Link
+         *      Multi-Link Control: 0x01b0
+         *      Common Info
+         *      Subelement ID: Per-STA Profile
+         *      Subelement Length: 309              [fragmented]
+         *      Per-STA Profile 1
+         *        Per-STA Profile, Link-ID = 0
+         *      Subelement ID: Per-STA Profile
+         *      Subelement Length: 248
+         *      Per-STA Profile 2
+         *        Per-STA Profile, Link-ID = 1
+         *
+         *      Basic STA Profile Count: 2
+         *      STA Profiles LinkIds: 0_1
+         */
+        byte[] testByteArray =
+                new byte[] {
+                    (byte) 0xff, (byte) 0xff, (byte) 0x6b, (byte) 0xb0, (byte) 0x01, (byte) 0x0d,
+                    (byte) 0x40, (byte) 0xed, (byte) 0x00, (byte) 0x14, (byte) 0xf9, (byte) 0xf1,
+                    (byte) 0x02, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x42, (byte) 0x00,
+                    (byte) 0x00, (byte) 0xff, (byte) 0xf0, (byte) 0x01, (byte) 0x13, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x64,
+                    (byte) 0x00, (byte) 0x22, (byte) 0xa8, (byte) 0x31, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x31,
+                    (byte) 0x04, (byte) 0x01, (byte) 0x08, (byte) 0x82, (byte) 0x84, (byte) 0x8b,
+                    (byte) 0x96, (byte) 0x0c, (byte) 0x12, (byte) 0x18, (byte) 0x24, (byte) 0x03,
+                    (byte) 0x01, (byte) 0x06, (byte) 0x07, (byte) 0x06, (byte) 0x55, (byte) 0x53,
+                    (byte) 0x20, (byte) 0x01, (byte) 0x0b, (byte) 0x1e, (byte) 0x2a, (byte) 0x01,
+                    (byte) 0x00, (byte) 0x32, (byte) 0x04, (byte) 0x30, (byte) 0x48, (byte) 0x60,
+                    (byte) 0x6c, (byte) 0x2d, (byte) 0x1a, (byte) 0x8d, (byte) 0x09, (byte) 0x03,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x3d,
+                    (byte) 0x16, (byte) 0x06, (byte) 0x04, (byte) 0x04, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x4a,
+                    (byte) 0x0e, (byte) 0x14, (byte) 0x00, (byte) 0x0a, (byte) 0x00, (byte) 0x2c,
+                    (byte) 0x01, (byte) 0xc8, (byte) 0x00, (byte) 0x14, (byte) 0x00, (byte) 0x05,
+                    (byte) 0x00, (byte) 0x19, (byte) 0x00, (byte) 0x7f, (byte) 0x08, (byte) 0x05,
+                    (byte) 0x00, (byte) 0x0f, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x40, (byte) 0xbf, (byte) 0x0c, (byte) 0x92, (byte) 0x79, (byte) 0x83,
+                    (byte) 0x33, (byte) 0xaa, (byte) 0xff, (byte) 0x00, (byte) 0x00, (byte) 0xaa,
+                    (byte) 0xff, (byte) 0x00, (byte) 0x20, (byte) 0xc0, (byte) 0x05, (byte) 0x00,
+                    (byte) 0x06, (byte) 0x00, (byte) 0xfc, (byte) 0xff, (byte) 0xff, (byte) 0x1d,
+                    (byte) 0x23, (byte) 0x09, (byte) 0x01, (byte) 0x08, (byte) 0x1a, (byte) 0x40,
+                    (byte) 0x10, (byte) 0x00, (byte) 0x60, (byte) 0x40, (byte) 0x88, (byte) 0x0f,
+                    (byte) 0x43, (byte) 0x81, (byte) 0x1c, (byte) 0x11, (byte) 0x08, (byte) 0x00,
+                    (byte) 0xaa, (byte) 0xff, (byte) 0xaa, (byte) 0xff, (byte) 0x1b, (byte) 0x1c,
+                    (byte) 0xc7, (byte) 0x71, (byte) 0x1c, (byte) 0xc7, (byte) 0x71, (byte) 0xff,
+                    (byte) 0x07, (byte) 0x24, (byte) 0xf4, (byte) 0x3f, (byte) 0x00, (byte) 0x2e,
+                    (byte) 0xfc, (byte) 0xff, (byte) 0xff, (byte) 0x0f, (byte) 0x6c, (byte) 0x80,
+                    (byte) 0x00, (byte) 0xe0, (byte) 0x01, (byte) 0x03, (byte) 0x00, (byte) 0x18,
+                    (byte) 0x36, (byte) 0x08, (byte) 0x12, (byte) 0x00, (byte) 0x44, (byte) 0x44,
+                    (byte) 0x44, (byte) 0xff, (byte) 0x06, (byte) 0x6a, (byte) 0x04, (byte) 0x11,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xdd, (byte) 0x17, (byte) 0x8c,
+                    (byte) 0xfd, (byte) 0xf0, (byte) 0x01, (byte) 0x01, (byte) 0x02, (byte) 0x01,
+                    (byte) 0x00, (byte) 0x02, (byte) 0x01, (byte) 0x01, (byte) 0x03, (byte) 0x03,
+                    (byte) 0x01, (byte) 0x01, (byte) 0x00, (byte) 0x04, (byte) 0x01, (byte) 0xf2,
+                    (byte) 0xff, (byte) 0x01, (byte) 0x09, (byte) 0x02, (byte) 0x0f, (byte) 0x00,
+                    (byte) 0xdd, (byte) 0x18, (byte) 0x00, (byte) 0x50, (byte) 0xf2, (byte) 0x02,
+                    (byte) 0x01, (byte) 0x01, (byte) 0x80, (byte) 0x00, (byte) 0x03, (byte) 0xa4,
+                    (byte) 0x00, (byte) 0xfe, (byte) 0x36, (byte) 0x00, (byte) 0x27, (byte) 0xa4,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x42, (byte) 0x43, (byte) 0x5e, (byte) 0x00,
+                    (byte) 0x62, (byte) 0x32, (byte) 0x2f, (byte) 0x00, (byte) 0xdd, (byte) 0x16,
+                    (byte) 0x8c, (byte) 0xfd, (byte) 0xf0, (byte) 0x04, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x49, (byte) 0x4c, (byte) 0x51, (byte) 0x03, (byte) 0x02, (byte) 0x09,
+                    (byte) 0x72, (byte) 0x01, (byte) 0xcb, (byte) 0x17, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x09, (byte) 0x11, (byte) 0x00, (byte) 0x00, (byte) 0xdd, (byte) 0x07,
+                    (byte) 0x8c, (byte) 0xfd, (byte) 0xf0, (byte) 0x04, (byte) 0x01, (byte) 0x01,
+                    (byte) 0x00, (byte) 0xff, (byte) 0x06, (byte) 0x38, (byte) 0x03, (byte) 0x20,
+                    (byte) 0x23, (byte) 0xc3, (byte) 0x00, (byte) 0x00, (byte) 0xf8, (byte) 0xf1,
+                    (byte) 0x01, (byte) 0x13, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x02, (byte) 0x64, (byte) 0x00, (byte) 0x0c, (byte) 0x74,
+                    (byte) 0x19, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x03, (byte) 0x11, (byte) 0x05, (byte) 0x07, (byte) 0x0a,
+                    (byte) 0x55, (byte) 0x53, (byte) 0x04, (byte) 0xc9, (byte) 0x83, (byte) 0x00,
+                    (byte) 0x21, (byte) 0x33, (byte) 0x00, (byte) 0x00, (byte) 0x23, (byte) 0x02,
+                    (byte) 0x13, (byte) 0x00, (byte) 0x7f, (byte) 0x0b, (byte) 0x04, (byte) 0x00,
+                    (byte) 0x4f, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x40,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x09, (byte) 0xc3, (byte) 0x05, (byte) 0x53,
+                    (byte) 0x3c, (byte) 0x3c, (byte) 0x3c, (byte) 0x3c, (byte) 0xc3, (byte) 0x05,
+                    (byte) 0x13, (byte) 0x30, (byte) 0x30, (byte) 0x30, (byte) 0x30, (byte) 0xff,
+                    (byte) 0x27, (byte) 0x23, (byte) 0x09, (byte) 0x01, (byte) 0x08, (byte) 0x1a,
+                    (byte) 0x40, (byte) 0x10, (byte) 0x0c, (byte) 0x63, (byte) 0x40, (byte) 0x88,
+                    (byte) 0xfd, (byte) 0x5b, (byte) 0x81, (byte) 0x1c, (byte) 0x11, (byte) 0x08,
+                    (byte) 0x00, (byte) 0xaa, (byte) 0xff, (byte) 0xaa, (byte) 0xff, (byte) 0xaa,
+                    (byte) 0xff, (byte) 0xaa, (byte) 0xff, (byte) 0x7b, (byte) 0x1c, (byte) 0xc7,
+                    (byte) 0x71, (byte) 0x1c, (byte) 0xc7, (byte) 0x71, (byte) 0x1c, (byte) 0xc7,
+                    (byte) 0x71, (byte) 0x1c, (byte) 0xc7, (byte) 0x71, (byte) 0xff, (byte) 0x0c,
+                    (byte) 0x24, (byte) 0xf4, (byte) 0x3f, (byte) 0x02, (byte) 0x13, (byte) 0xfc,
+                    (byte) 0xff, (byte) 0x45, (byte) 0x03, (byte) 0x47, (byte) 0x4f, (byte) 0x01,
+                    (byte) 0xff, (byte) 0x03, (byte) 0x3b, (byte) 0xb8, (byte) 0x36, (byte) 0xff,
+                    (byte) 0x12, (byte) 0x6c, (byte) 0x00, (byte) 0x00, (byte) 0xe0, (byte) 0x1f,
+                    (byte) 0x1b, (byte) 0x00, (byte) 0x18, (byte) 0x36, (byte) 0xd8, (byte) 0x36,
+                    (byte) 0x00, (byte) 0x44, (byte) 0x44, (byte) 0x44, (byte) 0x44, (byte) 0x44,
+                    (byte) 0x44, (byte) 0xff, (byte) 0x06, (byte) 0x6a, (byte) 0x04, (byte) 0x11,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xdd, (byte) 0x17, (byte) 0x8c,
+                    (byte) 0xfd, (byte) 0xf0, (byte) 0x01, (byte) 0x01, (byte) 0x02, (byte) 0x01,
+                    (byte) 0x00, (byte) 0x02, (byte) 0x01, (byte) 0x01, (byte) 0x03, (byte) 0x03,
+                    (byte) 0x01, (byte) 0x01, (byte) 0x00, (byte) 0x04, (byte) 0x01, (byte) 0x01,
+                    (byte) 0x09, (byte) 0x02, (byte) 0x0f, (byte) 0x0f, (byte) 0xf2, (byte) 0x45,
+                    (byte) 0xdd, (byte) 0x18, (byte) 0x00, (byte) 0x50, (byte) 0xf2, (byte) 0x02,
+                    (byte) 0x01, (byte) 0x01, (byte) 0x80, (byte) 0x00, (byte) 0x03, (byte) 0xa4,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x27, (byte) 0xa4, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x42, (byte) 0x43, (byte) 0x5e, (byte) 0x00, (byte) 0x62, (byte) 0x32,
+                    (byte) 0x2f, (byte) 0x00, (byte) 0xdd, (byte) 0x16, (byte) 0x8c, (byte) 0xfd,
+                    (byte) 0xf0, (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x49, (byte) 0x4c,
+                    (byte) 0x51, (byte) 0x03, (byte) 0x02, (byte) 0x09, (byte) 0x72, (byte) 0x01,
+                    (byte) 0xcb, (byte) 0x17, (byte) 0x00, (byte) 0x00, (byte) 0x09, (byte) 0x11,
+                    (byte) 0x00, (byte) 0x00, (byte) 0xdd, (byte) 0x07, (byte) 0x8c, (byte) 0xfd,
+                    (byte) 0xf0, (byte) 0x04, (byte) 0x01, (byte) 0x01, (byte) 0x00, (byte) 0xff,
+                    (byte) 0x08, (byte) 0x38, (byte) 0x05, (byte) 0x2d, (byte) 0x3d, (byte) 0xbf,
+                    (byte) 0xc0, (byte) 0xc9, (byte) 0x00
+                };
+        /* Multi link element fragmentation verification */
+        InformationElement[] results =
+                InformationElementUtil.parseInformationElements(testByteArray);
+        assertEquals("Parsed results should have 1 element", 1, results.length);
+        assertEquals(
+                "First result should have id = EID_EXTENSION_PRESENT",
+                InformationElement.EID_EXTENSION_PRESENT,
+                results[0].id);
+        assertEquals(
+                "First result should have idExt = " + InformationElement.EID_EXT_MULTI_LINK,
+                InformationElement.EID_EXT_MULTI_LINK,
+                results[0].idExt);
+        assertEquals("First result should have data of 578 bytes", 578, results[0].bytes.length);
+
+        /* Per STA profile sub-element fragmentation verification */
+        InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
+        multiLink.from(results[0]);
+        assertTrue(multiLink.isPresent());
+        assertEquals(2, multiLink.getLinkId());
+        assertEquals(2, multiLink.getAffiliatedLinks().size());
+        assertEquals(0, multiLink.getAffiliatedLinks().get(0).getLinkId());
+        assertEquals(
+                MacAddress.fromString("00:00:00:00:00:01"),
+                multiLink.getAffiliatedLinks().get(0).getApMacAddress());
+        assertEquals(1, multiLink.getAffiliatedLinks().get(1).getLinkId());
+        assertEquals(
+                MacAddress.fromString("00:00:00:00:00:02"),
+                multiLink.getAffiliatedLinks().get(1).getApMacAddress());
+    }
+
     private void verifyCapabilityStringFromIes(
             InformationElement[] ies, int beaconCap, boolean isOweSupported,
             String capsStr) {

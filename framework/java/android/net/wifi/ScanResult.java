@@ -1185,6 +1185,14 @@ public final class ScanResult implements Parcelable {
          */
         public static final int EID_EXT_MULTI_LINK = 107;
         /**
+         * Multi-Link IE Fragment sub element ID: see IEEE 802.11be Specification section 9.4.2.312
+         * Multi-Link element.
+         *
+         * @hide
+         */
+        public static final int EID_FRAGMENT_SUB_ELEMENT_MULTI_LINK = 254;
+
+        /**
          * EHT Capabilities IE extension id: see IEEE 802.11be Specification section 9.4.2.1
          *
          * @hide
