@@ -67,8 +67,11 @@ public class ScanDetail {
             channelWidth = networkDetail.getChannelWidth();
             centerFreq0 = networkDetail.getCenterfreq0();
             centerFreq1 = networkDetail.getCenterfreq1();
-            isPasspoint = caps.contains("EAP")
-                    && networkDetail.isInterworking() && networkDetail.getHSRelease() != null;
+            isPasspoint =
+                    caps.contains("EAP")
+                            && !caps.contains("SUITE_B_192")
+                            && networkDetail.isInterworking()
+                            && networkDetail.getHSRelease() != null;
             is80211McResponder = networkDetail.is80211McResponderSupport();
         }
         mScanResult = new ScanResult(wifiSsid, bssid, hessid, anqpDomainId, osuProviders, caps,
