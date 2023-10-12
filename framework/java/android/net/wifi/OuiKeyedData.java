@@ -16,6 +16,7 @@
 
 package android.net.wifi;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -32,6 +33,7 @@ import java.util.Objects;
  *
  * @hide
  */
+@FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
 @SystemApi
 public final class OuiKeyedData implements Parcelable {
     private static final String TAG = "OuiKeyedData";
@@ -53,6 +55,7 @@ public final class OuiKeyedData implements Parcelable {
      *
      * <p>See {@link Builder#Builder(int, Parcelable)}}
      */
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     public int getOui() {
         return mOui;
     }
@@ -62,6 +65,7 @@ public final class OuiKeyedData implements Parcelable {
      *
      * <p>See {@link Builder#Builder(int, Parcelable)}}
      */
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     public @NonNull Parcelable getData() {
         if (SdkLevel.isAtLeastT()) {
             return mExtras.getParcelable(DATA_TAG, Parcelable.class);
@@ -85,6 +89,7 @@ public final class OuiKeyedData implements Parcelable {
         return validateOui(mOui) && (getData() != null);
     }
 
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @Override
     public boolean equals(@Nullable Object o) {
         if (this == o) return true;
@@ -93,21 +98,25 @@ public final class OuiKeyedData implements Parcelable {
         return mOui == that.mOui && Objects.equals(getData(), that.getData());
     }
 
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @Override
     public int hashCode() {
         return Objects.hash(mOui, getData());
     }
 
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @Override
     public String toString() {
         return "{oui=" + Integer.toHexString(mOui) + ", data=" + getData() + "}";
     }
 
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @Override
     public int describeContents() {
         return 0;
     }
 
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeInt(mOui);
@@ -120,7 +129,9 @@ public final class OuiKeyedData implements Parcelable {
         this.mExtras = in.readBundle(getClass().getClassLoader());
     }
 
-    public static final @NonNull Parcelable.Creator<OuiKeyedData> CREATOR =
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
+    @NonNull
+    public static final Parcelable.Creator<OuiKeyedData> CREATOR =
             new Parcelable.Creator<OuiKeyedData>() {
                 @Override
                 public OuiKeyedData createFromParcel(Parcel in) {
@@ -134,6 +145,7 @@ public final class OuiKeyedData implements Parcelable {
             };
 
     /** Builder for {@link OuiKeyedData}. */
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     public static final class Builder {
         private final int mOui;
         private final @NonNull Parcelable mData;
@@ -147,13 +159,16 @@ public final class OuiKeyedData implements Parcelable {
          *     definition should be provided by the vendor, and should be known to both the caller
          *     and to the vendor's implementation of the Wi-Fi HALs.
          */
+        @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
         public Builder(int oui, @NonNull Parcelable data) {
             mOui = oui;
             mData = data;
         }
 
         /** Construct an OuiKeyedData object with the specified parameters. */
-        public @NonNull OuiKeyedData build() {
+        @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
+        @NonNull
+        public OuiKeyedData build() {
             OuiKeyedData ouiKeyedData = new OuiKeyedData(mOui, mData);
             if (!ouiKeyedData.validate()) {
                 throw new IllegalArgumentException("Provided parameters are invalid");

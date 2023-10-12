@@ -14,25 +14,6 @@ MutableBareField: android.net.wifi.WifiConfiguration#lastConnectUid:
 MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
     Bare field subscriptionId must be marked final, or moved behind accessors if mutable
 
-
-UnflaggedApi: android.net.wifi.OuiKeyedData:
-    New API must be flagged with @FlaggedApi: class android.net.wifi.OuiKeyedData
-UnflaggedApi: android.net.wifi.OuiKeyedData#CREATOR:
-    New API must be flagged with @FlaggedApi: field android.net.wifi.OuiKeyedData.CREATOR
-UnflaggedApi: android.net.wifi.OuiKeyedData#describeContents():
-    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.describeContents()
-UnflaggedApi: android.net.wifi.OuiKeyedData#getData():
-    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.getData()
-UnflaggedApi: android.net.wifi.OuiKeyedData#getOui():
-    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.getOui()
-UnflaggedApi: android.net.wifi.OuiKeyedData#writeToParcel(android.os.Parcel, int):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.writeToParcel(android.os.Parcel,int)
-UnflaggedApi: android.net.wifi.OuiKeyedData.Builder:
-    New API must be flagged with @FlaggedApi: class android.net.wifi.OuiKeyedData.Builder
-UnflaggedApi: android.net.wifi.OuiKeyedData.Builder#Builder(int, android.os.Parcelable):
-    New API must be flagged with @FlaggedApi: constructor android.net.wifi.OuiKeyedData.Builder(int,android.os.Parcelable)
-UnflaggedApi: android.net.wifi.OuiKeyedData.Builder#build():
-    New API must be flagged with @FlaggedApi: method android.net.wifi.OuiKeyedData.Builder.build()
 UnflaggedApi: android.net.wifi.WifiConfiguration.NetworkSelectionStatus#DISABLED_UNWANTED_LOW_RSSI:
     New API must be flagged with @FlaggedApi: field android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI
 UnflaggedApi: android.net.wifi.WifiManager#API_SET_PNO_SCAN_ENABLED:
