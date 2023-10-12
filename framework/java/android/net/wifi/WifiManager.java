@@ -850,12 +850,12 @@ public class WifiManager {
     public static final int API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS = 35;
 
     /**
-     * A constant used in
-     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
-     * Tracks usage of
-     * {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     * A constant used in {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     *
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
     @SystemApi
     public static final int API_SET_PNO_SCAN_ENABLED = 36;
 

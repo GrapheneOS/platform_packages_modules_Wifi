@@ -16,8 +16,6 @@ MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
 
 UnflaggedApi: android.net.wifi.WifiConfiguration.NetworkSelectionStatus#DISABLED_UNWANTED_LOW_RSSI:
     New API must be flagged with @FlaggedApi: field android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI
-UnflaggedApi: android.net.wifi.WifiManager#API_SET_PNO_SCAN_ENABLED:
-    New API must be flagged with @FlaggedApi: field android.net.wifi.WifiManager.API_SET_PNO_SCAN_ENABLED
 UnflaggedApi: android.net.wifi.WifiManager#addWifiLowLatencyLockListener(java.util.concurrent.Executor, android.net.wifi.WifiManager.WifiLowLatencyLockListener):
     New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.addWifiLowLatencyLockListener(java.util.concurrent.Executor,android.net.wifi.WifiManager.WifiLowLatencyLockListener)
 UnflaggedApi: android.net.wifi.WifiManager#getMaxMloAssociationLinkCount(java.util.concurrent.Executor, java.util.function.Consumer<java.lang.Integer>):
