@@ -16,6 +16,7 @@
 
 package android.net.wifi;
 
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -1225,6 +1226,7 @@ public final class SoftApConfiguration implements Parcelable {
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
     @NonNull
     @SystemApi
     public List<OuiKeyedData> getVendorData() {
@@ -2326,10 +2328,11 @@ public final class SoftApConfiguration implements Parcelable {
          * Set additional vendor-provided configuration data.
          *
          * @param vendorData List of {@link OuiKeyedData} containing the vendor-provided
-         *     configuration data.
+         *     configuration data. Note that multiple elements with the same OUI are allowed.
          * @return Builder for chaining.
          */
         @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+        @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters")
         @NonNull
         public Builder setVendorData(@NonNull List<OuiKeyedData> vendorData) {
             if (!SdkLevel.isAtLeastV()) {
