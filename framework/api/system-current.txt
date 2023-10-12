@@ -1,14 +1,14 @@
 // Signature format: 2.0
-// - add-additional-overrides=no
-// - migrating=Migration in progress see b/299366704
 package android.net.wifi {
 
   public final class CoexUnsafeChannel implements android.os.Parcelable {
     ctor public CoexUnsafeChannel(int, int);
     ctor public CoexUnsafeChannel(int, int, int);
+    method public int describeContents();
     method public int getBand();
     method public int getChannel();
     method public int getPowerCapDbm();
+    method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.CoexUnsafeChannel> CREATOR;
     field public static final int POWER_CAP_NONE = 2147483647; // 0x7fffffff
   }
@@ -30,6 +30,7 @@ package android.net.wifi {
   }
 
   public final class QosPolicyParams implements android.os.Parcelable {
+    method public int describeContents();
     method @Nullable public java.net.InetAddress getDestinationAddress();
     method @IntRange(from=android.net.wifi.QosPolicyParams.DESTINATION_PORT_ANY, to=65535) public int getDestinationPort();
     method @Nullable public int[] getDestinationPortRange();
@@ -42,6 +43,7 @@ package android.net.wifi {
     method @Nullable public java.net.InetAddress getSourceAddress();
     method @IntRange(from=android.net.DscpPolicy.SOURCE_PORT_ANY, to=65535) public int getSourcePort();
     method public int getUserPriority();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.QosPolicyParams> CREATOR;
     field public static final int DESTINATION_PORT_ANY = -1; // 0xffffffff
     field public static final int DIRECTION_DOWNLINK = 1; // 0x1
@@ -157,11 +159,15 @@ package android.net.wifi {
   }
 
   @Deprecated public static class RttManager.ParcelableRttParams implements android.os.Parcelable {
+    method @Deprecated public int describeContents();
+    method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated @NonNull public android.net.wifi.RttManager.RttParams[] mParams;
   }
 
   @Deprecated public static class RttManager.ParcelableRttResults implements android.os.Parcelable {
     ctor @Deprecated public RttManager.ParcelableRttResults(android.net.wifi.RttManager.RttResult[]);
+    method @Deprecated public int describeContents();
+    method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public android.net.wifi.RttManager.RttResult[] mResults;
   }
 
@@ -186,6 +192,8 @@ package android.net.wifi {
 
   @Deprecated public static class RttManager.RttCapabilities implements android.os.Parcelable {
     ctor @Deprecated public RttManager.RttCapabilities();
+    method @Deprecated public int describeContents();
+    method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public int bwSupported;
     field @Deprecated public boolean lciSupported;
     field @Deprecated public boolean lcrSupported;
@@ -1050,29 +1058,37 @@ package android.net.wifi {
 
   @Deprecated public static class WifiScanner.HotlistSettings implements android.os.Parcelable {
     ctor @Deprecated public WifiScanner.HotlistSettings();
+    method @Deprecated public int describeContents();
+    method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public int apLostThreshold;
     field @Deprecated public android.net.wifi.WifiScanner.BssidInfo[] bssidInfos;
   }
 
   public static class WifiScanner.ParcelableScanData implements android.os.Parcelable {
     ctor public WifiScanner.ParcelableScanData(android.net.wifi.WifiScanner.ScanData[]);
+    method public int describeContents();
     method public android.net.wifi.WifiScanner.ScanData[] getResults();
+    method public void writeToParcel(android.os.Parcel, int);
     field public android.net.wifi.WifiScanner.ScanData[] mResults;
   }
 
   public static class WifiScanner.ParcelableScanResults implements android.os.Parcelable {
     ctor public WifiScanner.ParcelableScanResults(android.net.wifi.ScanResult[]);
+    method public int describeContents();
     method public android.net.wifi.ScanResult[] getResults();
+    method public void writeToParcel(android.os.Parcel, int);
     field public android.net.wifi.ScanResult[] mResults;
   }
 
   public static class WifiScanner.ScanData implements android.os.Parcelable {
     ctor public WifiScanner.ScanData(int, int, android.net.wifi.ScanResult[]);
     ctor public WifiScanner.ScanData(android.net.wifi.WifiScanner.ScanData);
+    method public int describeContents();
     method public int getFlags();
     method public int getId();
     method public android.net.wifi.ScanResult[] getResults();
     method public int getScannedBands();
+    method public void writeToParcel(android.os.Parcel, int);
   }
 
   public static interface WifiScanner.ScanListener extends android.net.wifi.WifiScanner.ActionListener {
@@ -1083,12 +1099,14 @@ package android.net.wifi {
 
   public static class WifiScanner.ScanSettings implements android.os.Parcelable {
     ctor public WifiScanner.ScanSettings();
+    method public int describeContents();
     method public int getRnrSetting();
     method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorIes();
     method public boolean is6GhzPscOnlyEnabled();
     method public void set6GhzPscOnlyEnabled(boolean);
     method public void setRnrSetting(int);
     method public void setVendorIes(@NonNull java.util.List<android.net.wifi.ScanResult.InformationElement>);
+    method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiScanner.ScanSettings> CREATOR;
     field public int band;
     field public android.net.wifi.WifiScanner.ChannelSpec[] channels;
@@ -1116,6 +1134,8 @@ package android.net.wifi {
 
   @Deprecated public static class WifiScanner.WifiChangeSettings implements android.os.Parcelable {
     ctor @Deprecated public WifiScanner.WifiChangeSettings();
+    method @Deprecated public int describeContents();
+    method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated public android.net.wifi.WifiScanner.BssidInfo[] bssidInfos;
     field @Deprecated public int lostApSampleSize;
     field @Deprecated public int minApsBreachingThreshold;
