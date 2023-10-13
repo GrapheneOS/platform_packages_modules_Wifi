@@ -57,7 +57,6 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.os.Process.WIFI_UID;
 import static android.os.Process.myUid;
-
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -69,9 +68,7 @@ import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_NONE;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI;
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
-
 import static com.google.common.truth.Truth.assertThat;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -5184,6 +5181,46 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify the secondary internet CMM is stopped when explicit connection is initiated on the
+     * primary.
+     */
+    @Test
+    public void testConnectNetworkStopConnectedSecondaryInternetCmm() throws Exception {
+        // grant permissions to access WifiServiceImpl#connect
+        when(mContext.checkPermission(
+                        eq(android.Manifest.permission.NETWORK_SETTINGS), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        WifiConfiguration config = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork();
+        config.SSID = TEST_SSID;
+        WifiConfiguration otherConfig = WifiConfigurationTestUtil.createOpenNetwork(TEST_SSID);
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
+
+        // Mock ActiveModeWarden to return a primary CMM and a secondary CMM to be already
+        // connected to the target network.
+        List<ClientModeManager> clientModeManagers = new ArrayList<>();
+        ClientModeManager primaryCmm = mock(ClientModeManager.class);
+        when(primaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        ConcreteClientModeManager secondaryInternetCmm = mock(ConcreteClientModeManager.class);
+        when(secondaryInternetCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        when(secondaryInternetCmm.isSecondaryInternet()).thenReturn(true);
+        when(secondaryInternetCmm.isConnected()).thenReturn(true);
+        when(secondaryInternetCmm.getConnectedWifiConfiguration()).thenReturn(otherConfig);
+        clientModeManagers.add(primaryCmm);
+        clientModeManagers.add(secondaryInternetCmm);
+        when(mActiveModeWarden.getClientModeManagers()).thenReturn(clientModeManagers);
+
+        // Verify that the secondary internet CMM is stopped when manual connection is started
+        mWifiServiceImpl.connect(
+                config, TEST_NETWORK_ID, mock(IActionListener.class), TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(primaryCmm, never()).stop();
+        verify(secondaryInternetCmm).stop();
+    }
+
+    /**
      * Verify that the CONNECT_NETWORK message received from an app with
      * one of the privileged permission will stop secondary CMMs that are alraedy connected to
      * the same network before initiating the connection.
@@ -5206,7 +5243,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         List<ClientModeManager> clientModeManagers = new ArrayList<>();
         ClientModeManager primaryCmm = mock(ClientModeManager.class);
         when(primaryCmm.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
-        ClientModeManager localOnlyCmm = mock(ClientModeManager.class);
+        ConcreteClientModeManager localOnlyCmm = mock(ConcreteClientModeManager.class);
         when(localOnlyCmm.getRole()).thenReturn(ROLE_CLIENT_LOCAL_ONLY);
         when(localOnlyCmm.isConnected()).thenReturn(true);
         when(localOnlyCmm.getConnectedWifiConfiguration()).thenReturn(localOnlyConfig);

@@ -2783,7 +2783,7 @@ public class WifiMetrics {
                         WifiMetricsProto.RouterFingerPrint.AUTH_PERSONAL;
             } else if (ScanResultUtil.isScanResultForWpa3EnterpriseTransitionNetwork(scanResult)
                     || ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(scanResult)
-                    || ScanResultUtil.isScanResultForEapNetwork(scanResult)
+                    || ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(scanResult)
                     || ScanResultUtil.isScanResultForEapSuiteBNetwork(scanResult)) {
                 currentConnectionEvent.mRouterFingerPrint.mRouterFingerPrintProto.authentication =
                         WifiMetricsProto.RouterFingerPrint.AUTH_ENTERPRISE;
@@ -3469,7 +3469,7 @@ public class WifiMetrics {
                     wapiPersonalNetworks++;
                 } else if (ScanResultUtil.isScanResultForWapiCertNetwork(scanResult)) {
                     wapiEnterpriseNetworks++;
-                } else if (ScanResultUtil.isScanResultForEapNetwork(scanResult)) {
+                } else if (ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(scanResult)) {
                     enterpriseNetworks++;
                 } else if (ScanResultUtil.isScanResultForSaeNetwork(scanResult)) {
                     wpa3PersonalNetworks++;

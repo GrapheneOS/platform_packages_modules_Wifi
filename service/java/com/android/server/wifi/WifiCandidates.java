@@ -25,6 +25,7 @@ import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
 import android.util.ArrayMap;
+import android.util.Log;
 
 import com.android.internal.util.Preconditions;
 import com.android.server.wifi.proto.WifiScoreCardProto;
@@ -632,12 +633,28 @@ public class WifiCandidates {
      */
     public @Nullable Key keyFromScanDetailAndConfig(ScanDetail scanDetail,
             WifiConfiguration config) {
-        if (!validConfigAndScanDetail(config, scanDetail)) return null;
+        if (!validConfigAndScanDetail(config, scanDetail)) {
+            Log.e(
+                    TAG,
+                    "validConfigAndScanDetail failed! ScanDetail: "
+                            + scanDetail
+                            + " WifiConfig: "
+                            + config);
+            return null;
+        }
 
         ScanResult scanResult = scanDetail.getScanResult();
         SecurityParams params = ScanResultMatchInfo.fromScanResult(scanResult)
                 .matchForNetworkSelection(ScanResultMatchInfo.fromWifiConfiguration(config));
-        if (null == params) return null;
+        if (null == params) {
+            Log.e(
+                    TAG,
+                    "matchForNetworkSelection failed! ScanResult: "
+                            + ScanResultMatchInfo.fromScanResult(scanResult)
+                            + " WifiConfig: "
+                            + ScanResultMatchInfo.fromWifiConfiguration(config));
+            return null;
+        }
         MacAddress bssid = MacAddress.fromString(scanResult.BSSID);
         return new Key(ScanResultMatchInfo.fromScanResult(scanResult), bssid, config.networkId,
                 params.getSecurityType());
