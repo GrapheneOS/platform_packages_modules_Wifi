@@ -21,6 +21,8 @@ import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.Manifest.permission.CHANGE_WIFI_STATE;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.OVERRIDE_WIFI_CONFIG;
+import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
+import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
 
 import android.annotation.CallbackExecutor;
 import android.annotation.IntDef;
@@ -286,6 +288,13 @@ public class WifiAwareManager {
      */
     @SystemApi
     public static final int WIFI_AWARE_RESUME_INTERNAL_ERROR = 2;
+
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(
+            prefix = {"WIFI_BAND_"},
+            value = {WIFI_BAND_24_GHZ, WIFI_BAND_5_GHZ})
+    public @interface InstantModeBand {};
 
     private final Context mContext;
     private final IWifiAwareManager mService;

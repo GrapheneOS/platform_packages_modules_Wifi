@@ -23,6 +23,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
@@ -306,12 +307,12 @@ public final class PublishConfig implements Parcelable {
 
     /**
      * Get the Wi-Fi band for instant communication mode for this publish session
+     *
      * @see Builder#setInstantCommunicationModeEnabled(boolean, int)
-     * @return The Wi-Fi band, one of the {@link WifiScanner#WIFI_BAND_24_GHZ}
-     * or {@link WifiScanner#WIFI_BAND_5_GHZ}. If instant communication mode is not enabled will
-     * return {@link WifiScanner#WIFI_BAND_24_GHZ} as default.
+     * @return The Wi-Fi band. If instant communication mode is not enabled will return {@link
+     *     ScanResult#WIFI_BAND_24_GHZ} as default.
      */
-    @WifiScanner.WifiBand
+    @WifiAwareManager.InstantModeBand
     public int getInstantCommunicationBand() {
         return mBand;
     }
@@ -524,25 +525,23 @@ public final class PublishConfig implements Parcelable {
          * this session. Use {@link Characteristics#isInstantCommunicationModeSupported()} to check
          * if the device supports this feature.
          *
-         * Note: due to increased power requirements of this mode - it will only remain enabled for
-         * 30 seconds from the time the discovery session is started.
+         * <p>Note: due to increased power requirements of this mode - it will only remain enabled
+         * for 30 seconds from the time the discovery session is started.
          *
          * @param enabled true for enable instant communication mode, default is false.
-         * @param band Either {@link WifiScanner#WIFI_BAND_24_GHZ}
-         *             or {@link WifiScanner#WIFI_BAND_5_GHZ}. When setting to
-         *             {@link WifiScanner#WIFI_BAND_5_GHZ}, device will try to enable instant
-         *             communication mode on 5Ghz, but may fall back to 2.4Ghz due to regulatory
-         *             requirements.
+         * @param band When setting to {@link ScanResult#WIFI_BAND_5_GHZ}, device will try to enable
+         *     instant communication mode on 5Ghz, but may fall back to 2.4Ghz due to regulatory
+         *     requirements.
          * @return the current {@link Builder} builder, enabling chaining of builder methods.
          */
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         @NonNull
-        public Builder setInstantCommunicationModeEnabled(boolean enabled,
-                @WifiScanner.WifiBand int band) {
+        public Builder setInstantCommunicationModeEnabled(
+                boolean enabled, @WifiAwareManager.InstantModeBand int band) {
             if (!SdkLevel.isAtLeastT()) {
                 throw new UnsupportedOperationException();
             }
-            if (band != WifiScanner.WIFI_BAND_24_GHZ && band != WifiScanner.WIFI_BAND_5_GHZ) {
+            if (band != ScanResult.WIFI_BAND_24_GHZ && band != ScanResult.WIFI_BAND_5_GHZ) {
                 throw new IllegalArgumentException();
             }
             mBand = band;
