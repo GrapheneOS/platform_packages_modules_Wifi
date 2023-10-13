@@ -36,7 +36,3 @@ UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onActiveUs
     New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.WifiLowLatencyLockListener.onActiveUsersChanged(int[])
 UnflaggedApi: android.net.wifi.WifiManager.WifiLowLatencyLockListener#onOwnershipChanged(int[]):
     New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.WifiLowLatencyLockListener.onOwnershipChanged(int[])
-UnflaggedApi: android.net.wifi.WifiUsabilityStatsEntry#getTotalCcaBusyFreqTimeMillis(int):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiUsabilityStatsEntry.getTotalCcaBusyFreqTimeMillis(int)
-UnflaggedApi: android.net.wifi.WifiUsabilityStatsEntry#getTotalRadioOnFreqTimeMillis(int):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiUsabilityStatsEntry.getTotalRadioOnFreqTimeMillis(int)
