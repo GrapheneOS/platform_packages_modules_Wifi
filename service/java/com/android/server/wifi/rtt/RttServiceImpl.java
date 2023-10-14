@@ -1175,6 +1175,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     newRequestBuilder.addResponder(rttPeer);
                 }
             }
+            newRequestBuilder.setRttBurstSize(request.request.getRttBurstSize());
             request.request = newRequestBuilder.build();
 
             // run request again

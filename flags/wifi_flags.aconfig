@@ -35,3 +35,10 @@ flag {
     description: "Control the APIs that allow additional vendor-specific parcelables"
     bug: "296069900"
 }
+
+flag {
+    name: "verbose_logging_for_aware_only"
+    namespace: "wifi"
+    description: "Control the API that allow only enable verbose logging for Wifi Aware"
+    bug: "289273616"
+}

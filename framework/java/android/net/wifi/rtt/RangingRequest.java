@@ -154,6 +154,7 @@ public final class RangingRequest implements Parcelable {
         for (ResponderConfig rc : mRttPeers) {
             sj.add(rc.toString());
         }
+        sj.add("mRttBurstSize=" + mRttBurstSize);
         return sj.toString();
     }
 

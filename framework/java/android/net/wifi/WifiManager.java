@@ -8984,8 +8984,10 @@ public class WifiManager {
 
     /**
      * Verbose logging mode: only enable for Wi-Fi Aware feature.
+     *
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.verbose_logging_for_aware_only")
     @SystemApi
     public static final int VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY = 3;
 

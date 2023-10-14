@@ -29,17 +29,17 @@ package android.net.wifi {
     field public static final int EASY_CONNECT_EVENT_SUCCESS_CONFIGURATION_SENT = 0; // 0x0
   }
 
-  public final class OuiKeyedData implements android.os.Parcelable {
-    method public int describeContents();
-    method @NonNull public android.os.Parcelable getData();
-    method public int getOui();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.OuiKeyedData> CREATOR;
+  @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public final class OuiKeyedData implements android.os.Parcelable {
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public int describeContents();
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public android.os.Parcelable getData();
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public int getOui();
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.OuiKeyedData> CREATOR;
   }
 
-  public static final class OuiKeyedData.Builder {
-    ctor public OuiKeyedData.Builder(int, @NonNull android.os.Parcelable);
-    method @NonNull public android.net.wifi.OuiKeyedData build();
+  @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public static final class OuiKeyedData.Builder {
+    ctor @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public OuiKeyedData.Builder(int, @NonNull android.os.Parcelable);
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public android.net.wifi.OuiKeyedData build();
   }
 
   public final class QosPolicyParams implements android.os.Parcelable {
@@ -820,7 +820,7 @@ package android.net.wifi {
     field public static final int VERBOSE_LOGGING_LEVEL_DISABLED = 0; // 0x0
     field public static final int VERBOSE_LOGGING_LEVEL_ENABLED = 1; // 0x1
     field public static final int VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY = 2; // 0x2
-    field public static final int VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY = 3; // 0x3
+    field @FlaggedApi("com.android.wifi.flags.verbose_logging_for_aware_only") public static final int VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY = 3; // 0x3
     field @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public static final String WIFI_AP_STATE_CHANGED_ACTION = "android.net.wifi.WIFI_AP_STATE_CHANGED";
     field public static final int WIFI_AP_STATE_DISABLED = 11; // 0xb
     field public static final int WIFI_AP_STATE_DISABLING = 10; // 0xa

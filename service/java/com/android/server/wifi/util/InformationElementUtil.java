@@ -59,6 +59,70 @@ public class InformationElementUtil {
         AP_TYPE_6GHZ_STANDARD_POWER,
     }
 
+    /**
+     * Defragment Element class
+     *
+     * IEEE Std 802.11™‐2020, Section: 10.28.11 Element fragmentation describes a fragmented sub
+     * element as,
+     *    | SubEID | Len | Data | FragId | Len | Data | FragId | Len| Data ...
+     * Octets: 1     1     255     1        1     255     1       1     m
+     * Values: eid   255         fid       255           fid      m
+     *
+     */
+    private static class DefragmentElement {
+        /** Defagmented element bytes */
+        public byte[] bytes;
+        /** Bytes read to defragment the fragmented element */
+        public int bytesRead = 0;
+
+        public static final int FRAG_MAX_LEN = 255;
+        public static final int FRAGMENT_ELEMENT_EID = 242;
+
+        DefragmentElement(byte[] bytes, int start, int eid, int fid) {
+            if (bytes == null) return;
+            ByteArrayOutputStream defrag = new ByteArrayOutputStream();
+            ByteBuffer element = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+            element.position(start);
+            try {
+                if ((element.get() & Constants.BYTE_MASK) != eid) return;
+                // Add EID, 255 as the parser expects the element header.
+                defrag.write(eid);
+                defrag.write(255);
+                int fragLen, fragId;
+                do {
+                    fragLen = element.get() & Constants.BYTE_MASK;
+                    byte[] b = new byte[fragLen];
+                    element.get(b);
+                    defrag.write(b);
+                    // Mark the position to undo the extra read.
+                    element.mark();
+                    if (element.remaining() <= 0) break;
+                    fragId = element.get() & Constants.BYTE_MASK;
+                } while (fragLen == FRAG_MAX_LEN && fragId == fid);
+                // Reset the extra get.
+                element.reset();
+            } catch (IOException e) {
+                if (DBG) {
+                    Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
+                }
+                return;
+            } catch (IndexOutOfBoundsException e) {
+                if (DBG) {
+                    Log.e(TAG, "Failed to defragment sub element: " + e.getMessage());
+                }
+                return;
+            } catch (BufferUnderflowException e) {
+                if (DBG) {
+                    Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
+                }
+                return;
+            }
+
+            this.bytes = defrag.toByteArray();
+            bytesRead = element.position() - start;
+        }
+    }
+
     /** Converts InformationElement to hex string */
     public static String toHexString(InformationElement e) {
         StringBuilder sb = new StringBuilder();
@@ -88,9 +152,12 @@ public class InformationElementUtil {
         ArrayList<InformationElement> infoElements = new ArrayList<>();
         boolean found_ssid = false;
         while (data.remaining() > 1) {
+            // Mark the start of the data
+            data.mark();
             int eid = data.get() & Constants.BYTE_MASK;
             int eidExt = 0;
             int elementLength = data.get() & Constants.BYTE_MASK;
+            DefragmentElement defrag = null;
 
             if (elementLength > data.remaining() || (eid == InformationElement.EID_SSID
                     && found_ssid)) {
@@ -107,14 +174,30 @@ public class InformationElementUtil {
                     break;
                 }
                 eidExt = data.get() & Constants.BYTE_MASK;
+                if (elementLength == DefragmentElement.FRAG_MAX_LEN) {
+                    // Fragmented IE. Reset the position to head to defragment.
+                    data.reset();
+                    defrag =
+                            new DefragmentElement(
+                                    bytes,
+                                    data.position(),
+                                    eid,
+                                    DefragmentElement.FRAGMENT_ELEMENT_EID);
+                }
                 elementLength--;
             }
 
             InformationElement ie = new InformationElement();
             ie.id = eid;
             ie.idExt = eidExt;
-            ie.bytes = new byte[elementLength];
-            data.get(ie.bytes);
+            if (defrag != null) {
+                // Skip first three bytes: eid, len, eidExt as it is already processed.
+                ie.bytes = Arrays.copyOfRange(defrag.bytes, 3, defrag.bytes.length);
+                data.position(defrag.bytesRead);
+            } else {
+                ie.bytes = new byte[elementLength];
+                data.get(ie.bytes);
+            }
             infoElements.add(ie);
         }
         return infoElements.toArray(new InformationElement[infoElements.size()]);
@@ -1013,8 +1096,6 @@ public class InformationElementUtil {
 
         // Per-STA sub-element constants
         private static final int PER_STA_SUB_ELEMENT_ID = 0;
-        private static final int PER_STA_SUB_ELEMENT_FID = 254;
-
         private static final int PER_STA_SUB_ELEMENT_MIN_LEN = 5;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_OFFSET = 2;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_MASK = 0x0F;
@@ -1088,70 +1169,6 @@ public class InformationElementUtil {
                     Arrays.copyOfRange(ie.bytes, macAddressStart, macAddressStart + 6));
 
             return commonInfoLength;
-        }
-
-        /**
-         * Defragment Element class
-         *
-         * IEEE Std 802.11™‐2020, Section: 10.28.11 Element fragmentation describes a fragmented sub
-         * element as,
-         *    | SubEID | Len | Data | FragId | Len | Data | FragId | Len| Data ...
-         * Octets: 1     1     255     1        1     255     1       1     m
-         * Values: eid   255         fid       255           fid      m
-         *
-         * IEEE P802.11be™/D3.1, Section: 35.3.3.7 describes Subelement fragmentation in the Link
-         * Info field of a Multi-Link element. Value for 'sub element ID' and 'Fragment ID' are
-         * eid = 0, fid = 254 respectively.
-         */
-        private static class DefragmentElement {
-            /** Defagmented element bytes */
-            public byte[] bytes;
-            /** Bytes read to defragment the fragmented element */
-            public int bytesRead = 0;
-            public static final int ELEMENT_FRAG_MAX_LEN = 255;
-
-            DefragmentElement(byte[] bytes, int start, int eid, int fid) {
-                if (bytes == null) return;
-                ByteArrayOutputStream defrag = new ByteArrayOutputStream();
-                ByteBuffer element = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-                element.position(start);
-                try {
-                    if ((element.get() & Constants.BYTE_MASK) != eid) return;
-                    // Add EID, 255 as the parser expects the element header.
-                    defrag.write(eid);
-                    defrag.write(ELEMENT_FRAG_MAX_LEN);
-                    int fragLen, fragId;
-                    do {
-                        fragLen = element.get() & Constants.BYTE_MASK;
-                        byte[] b = new byte[fragLen];
-                        element.get(b);
-                        defrag.write(b);
-                        // Mark the position to undo the extra read.
-                        element.mark();
-                        fragId = element.get() & Constants.BYTE_MASK;
-                    } while (fragLen == ELEMENT_FRAG_MAX_LEN && fragId == fid);
-                    // Reset the extra get.
-                    element.reset();
-                } catch (IOException e) {
-                    if (DBG) {
-                        Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
-                    }
-                    return;
-                } catch (IndexOutOfBoundsException e) {
-                    if (DBG) {
-                        Log.e(TAG, "Failed to defragment sub element: " + e.getMessage());
-                    }
-                    return;
-                } catch (BufferUnderflowException e) {
-                    if (DBG) {
-                        Log.w(TAG, "Failed to defragment sub element: " + e.getMessage());
-                    }
-                    return;
-                }
-
-                this.bytes = defrag.toByteArray();
-                bytesRead = element.position() - start;
-            }
         }
 
         /** Parse per STA sub element (not fragmented) of Multi link element. */
@@ -1231,13 +1248,13 @@ public class InformationElementUtil {
 
                 int bytesRead;
                 // Check for fragmentation before parsing per sta profile sub element
-                if (subElementLen == DefragmentElement.ELEMENT_FRAG_MAX_LEN) {
+                if (subElementLen == DefragmentElement.FRAG_MAX_LEN) {
                     DefragmentElement defragment =
                             new DefragmentElement(
                                     ie.bytes,
                                     startOffset,
                                     PER_STA_SUB_ELEMENT_ID,
-                                    PER_STA_SUB_ELEMENT_FID);
+                                    InformationElement.EID_FRAGMENT_SUB_ELEMENT_MULTI_LINK);
                     bytesRead = defragment.bytesRead;
                     if (defragment.bytesRead == 0 || defragment.bytes == null) {
                         return false;

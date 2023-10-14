@@ -159,13 +159,9 @@ public final class MloLink implements Parcelable {
                 ? null : MacAddress.fromString(source.mApMacAddress.toString());
     }
 
-    /** Returns the Wi-Fi band of this link as one of:
-     *      {@link WifiScanner#WIFI_BAND_UNSPECIFIED},
-     *      {@link WifiScanner#WIFI_BAND_24_GHZ},
-     *      {@link WifiScanner#WIFI_BAND_5_GHZ},
-     *      {@link WifiScanner#WIFI_BAND_6_GHZ}
-     */
-    public @WifiAnnotations.WifiBandBasic int getBand() {
+    /** Returns the Wi-Fi band of this link. */
+    @ScanResult.WifiBand
+    public int getBand() {
         return mBand;
     }
 
