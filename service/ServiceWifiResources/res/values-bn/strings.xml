@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"অনুমতি দিন"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"অনুমতি দেবেন না"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"\'বিমান মোড\'-এ ওয়াই-ফাই চালু থাকে"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"আপনি ওয়াই-ফাই চালু রাখলে, আপনি এরপর \'বিমান মোড\'-এ থাকলেও আপনার ডিভাইস এটি চালু রাখবে"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"আপনি ওয়াই-ফাই চালু রাখলে, আপনি \'বিমান\' মোডে থাকলে পরবর্তী সময় আপনার ফোন এটি চালু রাখার জন্য মনে রাখবে"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"ওয়াই-ফাই চালু থাকে"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"\'বিমান মোড\'-এ থাকাকালীন আপনার ডিভাইস ওয়াই-ফাই চালু রাখে। আপনি ওয়াই-ফাই চালু না রাখতে চাইলে এটি বন্ধ করুন।"</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"\'বিমান মোড\'-এ থাকাকালীন আপনার ফোন ওয়াই-ফাই চালু রাখে। আপনি এটি চালু না রাখতে চাইলে ওয়াই-ফাই বন্ধ করুন।"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"নেটওয়ার্ক উপলভ্য নয়"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"আপনার অ্যাডমিনিস্ট্রেটর <xliff:g id="SSID">%1$s</xliff:g> বন্ধ করে দিয়েছেন।"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"বন্ধ করুন"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ইন্টারনেটের সাথে কানেক্ট করা নেই। <xliff:g id="SSID_1">%2$s</xliff:g>-এ বদল করবেন?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g>-এর কোয়ালিটি খারাপ। <xliff:g id="SSID_1">%2$s</xliff:g>-এ বদল করবেন?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"ওয়াই-ফাই নেটওয়ার্ক পাল্টাবেন?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ইন্টারনেটের সাথে কানেক্ট করা নেই। <xliff:g id="SSID_1">%2$s</xliff:g>-এ পাল্টাবেন?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"পাল্টান"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"পাল্টাতে চাই না"</string>
 </resources>

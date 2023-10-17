@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ਆਗਿਆ ਦਿਓ"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ਆਗਿਆ ਨਾ ਦਿਓ"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"ਹਵਾਈ-ਜਹਾਜ਼ ਮੋਡ ਵਿੱਚ ਵਾਈ-ਫਾਈ ਚਾਲੂ ਹੈ"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"ਜੇ ਤੁਸੀਂ ਵਾਈ-ਫਾਈ ਨੂੰ ਚਾਲੂ ਰੱਖਦੇ ਹੋ, ਤਾਂ ਅਗਲੀ ਵਾਰ ਤੁਹਾਡਾ ਡੀਵਾਈਸ ਹਵਾਈ-ਜਹਾਜ਼ ਮੋਡ ਵਿੱਚ ਹੋਣ \'ਤੇ ਤੁਹਾਡਾ ਫ਼ੋਨ ਇਸਨੂੰ ਚਾਲੂ ਰੱਖਣਾ ਯਾਦ ਰੱਖੇਗਾ"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"ਜੇ ਤੁਸੀਂ ਵਾਈ-ਫਾਈ ਨੂੰ ਚਾਲੂ ਰੱਖਦੇ ਹੋ, ਤਾਂ ਅਗਲੀ ਵਾਰ ਤੁਹਾਡਾ ਫ਼ੋਨ ਹਵਾਈ-ਜਹਾਜ਼ ਮੋਡ ਵਿੱਚ ਹੋਣ \'ਤੇ ਤੁਹਾਡਾ ਫ਼ੋਨ ਇਸਨੂੰ ਚਾਲੂ ਰੱਖਣਾ ਯਾਦ ਰੱਖੇਗਾ"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"ਵਾਈ-ਫਾਈ ਚਾਲੂ ਰਹੇਗਾ"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"ਤੁਹਾਡਾ ਡੀਵਾਈਸ ਹਵਾਈ-ਜਹਾਜ਼ ਮੋਡ ਵਿੱਚ ਵਾਈ-ਫਾਈ ਨੂੰ ਚਾਲੂ ਰੱਖਣਾ ਯਾਦ ਰੱਖਦਾ ਹੈ। ਜੇ ਤੁਸੀਂ ਇਸਨੂੰ ਚਾਲੂ ਨਹੀਂ ਰੱਖਣਾ ਚਾਹੁੰਦੇ ਹੋ, ਤਾਂ ਵਾਈ-ਫਾਈ ਨੂੰ ਬੰਦ ਕਰੋ।"</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"ਤੁਹਾਡਾ ਫ਼ੋਨ ਹਵਾਈ-ਜਹਾਜ਼ ਮੋਡ ਵਿੱਚ ਵਾਈ-ਫਾਈ ਨੂੰ ਚਾਲੂ ਰੱਖਣਾ ਯਾਦ ਰੱਖਦਾ ਹੈ। ਜੇ ਤੁਸੀਂ ਇਸਨੂੰ ਚਾਲੂ ਨਹੀਂ ਰੱਖਣਾ ਚਾਹੁੰਦੇ ਹੋ, ਤਾਂ ਵਾਈ-ਫਾਈ ਨੂੰ ਬੰਦ ਕਰੋ।"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"ਨੈੱਟਵਰਕ ਉਪਲਬਧ ਨਹੀਂ ਹੈ"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"ਤੁਹਾਡੇ ਪ੍ਰਸ਼ਾਸਕ ਵੱਲੋਂ <xliff:g id="SSID">%1$s</xliff:g> ਨੂੰ ਬੰਦ ਕੀਤਾ ਗਿਆ ਹੈ।"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"ਬੰਦ ਕਰੋ"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"ਇੰਝ ਜਾਪਦਾ ਹੈ ਕਿ <xliff:g id="SSID_0">%1$s</xliff:g> ਇੰਟਰਨੈੱਟ ਨਾਲ ਕਨੈਕਟ ਨਹੀਂ ਹੈ। ਕੀ <xliff:g id="SSID_1">%2$s</xliff:g> \'ਤੇ ਸਵਿੱਚ ਕਰਨਾ ਹੈ?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> ਦੀ ਕੁਆਲਿਟੀ ਠੀਕ-ਠਾਕ ਹੈ। ਕੀ <xliff:g id="SSID_1">%2$s</xliff:g> \'ਤੇ ਸਵਿੱਚ ਕਰਨਾ ਹੈ?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"ਕੀ ਵਾਈ-ਫਾਈ ਨੈੱਟਵਰਕਾਂ ਵਿਚਕਾਰ ਸਵਿੱਚ ਕਰਨਾ ਹੈ?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"ਲੱਗਦਾ ਹੈ <xliff:g id="SSID_0">%1$s</xliff:g> ਇੰਟਰਨੈੱਟ ਨਾਲ ਕਨੈਕਟ ਨਹੀਂ ਹੈ। ਕੀ <xliff:g id="SSID_1">%2$s</xliff:g> \'ਤੇ ਸਵਿੱਚ ਕਰਨਾ ਹੈ?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"ਸਵਿੱਚ ਕਰੋ"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"ਸਵਿੱਚ ਨਾ ਕਰੋ"</string>
 </resources>

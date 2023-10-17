@@ -40,10 +40,10 @@
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"നിങ്ങൾ കണക്റ്റ് ചെയ്യുകയാണെങ്കിൽ, സിമ്മുമായി ബന്ധപ്പെട്ട തനത് ഐഡി <xliff:g id="CARRIERNAME">%s</xliff:g> വൈഫൈ നെറ്റ്‌വർക്കുകൾ ആക്സസ് ചെയ്യുകയോ പങ്കിടുകയോ ചെയ്തേക്കാം. നിങ്ങളുടെ ഉപകരണ ലൊക്കേഷൻ ട്രാക്ക് ചെയ്യാൻ ഇത് അനുവദിച്ചേക്കാം."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"കണക്റ്റ് ചെയ്യുക"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"കണക്റ്റ് ചെയ്യരുത്"</string>
-    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"വൈഫൈ സ്വയമേവ ഓണാകും"</string>
+    <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"വൈഫൈ സ്വമേധയാ ഓണാകും"</string>
     <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"നിങ്ങൾ ഉയർന്ന നിലവാരമുള്ള സംരക്ഷിക്കപ്പെട്ട നെറ്റ്‌വർക്കിനരികിലെത്തുമ്പോൾ"</string>
     <string name="wifi_wakeup_onboarding_action_disable" msgid="6209706680391785825">"തിരികെ ഓണാക്കരുത്"</string>
-    <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"വൈഫൈ സ്വയമേവ ഓണായി"</string>
+    <string name="wifi_wakeup_enabled_title" msgid="5043486751612595850">"വൈഫൈ സ്വമേധയാ ഓണായി"</string>
     <string name="wifi_wakeup_enabled_content" msgid="3911262526267025882">"നിങ്ങൾ സംരക്ഷിച്ചിട്ടുള്ള ഒരു നെറ്റ്‌വർക്കിന് സമീപമാണ്: <xliff:g id="NETWORK_SSID">%1$s</xliff:g>"</string>
     <string name="wifi_watchdog_network_disabled" msgid="5769226742956006362">"Wi-Fi-ലേക്ക് കണക്‌റ്റുചെയ്യാൻ കഴിഞ്ഞില്ല"</string>
     <string name="wifi_watchdog_network_disabled_detailed" msgid="1725243835135539125">" എന്നതിന്റെ ഇന്റർനെറ്റ് കണക്ഷൻ മോശമാണ്."</string>
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"അനുവദിക്കുക"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"അനുവദിക്കരുത്"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"ഫ്ലൈറ്റ് മോഡിൽ വൈഫൈ ഓണാണ്"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"വൈഫൈ ഓണാക്കി വച്ചാൽ, അടുത്ത തവണ നിങ്ങൾ ഫ്ലൈറ്റ് മോഡിൽ ആയിരിക്കുമ്പോൾ നിങ്ങളുടെ ഉപകരണം അത് ഓണാക്കി വയ്ക്കാൻ ഓർക്കും"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"വൈഫൈ ഓണാക്കി വച്ചാൽ, അടുത്ത തവണ നിങ്ങൾ ഫ്ലൈറ്റ് മോഡിൽ ആയിരിക്കുമ്പോൾ നിങ്ങളുടെ ഫോൺ അത് ഓണാക്കി വയ്ക്കാൻ ഓർക്കും"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"വൈഫൈ ഓണായിരിക്കും"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"ഫ്ലൈറ്റ് മോഡിലായിരിക്കുമ്പോൾ വൈഫൈ ഓണാക്കി വയ്ക്കാൻ നിങ്ങളുടെ ഉപകരണം ഓർമ്മിക്കും. വൈഫൈ ഓണാക്കി വയ്ക്കാൻ താൽപ്പര്യമില്ലെങ്കിൽ അത് ഓഫാക്കുക."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"ഫ്ലൈറ്റ് മോഡിലായിരിക്കുമ്പോൾ വൈഫൈ ഓണാക്കി വയ്ക്കാൻ നിങ്ങളുടെ ഫോൺ ഓർമ്മിക്കും. വൈഫൈ ഓണാക്കി വയ്ക്കാൻ താൽപ്പര്യമില്ലെങ്കിൽ അത് ഓഫാക്കുക."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"ലഭ്യമല്ലാത്ത നെറ്റ്‌വർക്ക്"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> നിങ്ങളുടെ അഡ്മിൻ പ്രവർത്തനരഹിതമാക്കിയിരിക്കുന്നു."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"അടയ്ക്കുക"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ഇന്റർനെറ്റിൽ കണക്‌റ്റ് ചെയ്‌തതായി തോന്നുന്നില്ല. <xliff:g id="SSID_1">%2$s</xliff:g> എന്നതിലേക്ക് മാറണോ?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> കുറഞ്ഞ നിലവാരമാണ്. <xliff:g id="SSID_1">%2$s</xliff:g> എന്നതിലേക്ക് മാറണോ?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"വൈഫൈ നെറ്റ്‌വർക്കുകൾ മാറണോ?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ഇന്റർനെറ്റിൽ കണക്‌റ്റ് ചെയ്‌തതായി തോന്നുന്നില്ല. <xliff:g id="SSID_1">%2$s</xliff:g> എന്നതിലേക്ക് മാറണോ?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"മാറുക"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"മാറരുത്"</string>
 </resources>

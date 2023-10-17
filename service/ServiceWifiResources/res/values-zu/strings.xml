@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Vumela"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Ungavumeli"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"I-Wi‑Fi ivuliwe kumodi yendiza"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Uma ugcina i-Wi‑Fi ivuliwe, idivayisi yakho izokhumbula ukuyigcina ivuliwe ngesikhathi esilandelayo uma ukumodi yendiza."</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Uma ugcina i-Wi‑Fi ivuliwe, ifoni yakho izokhumbula ukuyigcina ivuliwe ngesikhathi esilandelayo uma ukumodi yendiza."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"I-Wi‑Fi ihlala ivuliwe"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Ifoni yakho ikhumbula ukugcina i-Wi‑Fi ivuliwe kumodi yendiza. Vala i-Wi-Fi uma ungafuni ukuthi ihlale ivuliwe."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Ifoni yakho ikhumbula ukugcina i-Wi‑Fi ivuliwe kumodi yendiza. Vala i-Wi-Fi uma ungafuni ukuthi ihlale ivuliwe."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Inethiwekhi Engatholakali"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"I-<xliff:g id="SSID">%1$s</xliff:g> ikhutshazwe umlawuli wakho."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Vala"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"I-<xliff:g id="SSID_0">%1$s</xliff:g> ayibonakali ixhumeke ku-inthanethi. Shintshela ku-<xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"I-<xliff:g id="SSID_0">%1$s</xliff:g> yikhwalithi ephansi. Shintshela ku-<xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Shintsha Amanethiwekhi we-Wi-Fi?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"I-<xliff:g id="SSID_0">%1$s</xliff:g> ayibonakali ixhumeke ku-inthanethi. Shintshela ku-<xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Shintsha"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Ungashintshi"</string>
 </resources>

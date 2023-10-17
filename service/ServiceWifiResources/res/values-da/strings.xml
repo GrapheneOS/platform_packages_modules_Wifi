@@ -100,11 +100,11 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
-    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Verizon Wi-Fi Access er ikke tilgængeligt i dit område. Prøv igen senere eller fra en anden lokation (fejl = 32766)."</item>
+    <item msgid="5876210184761573755">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Verizon Wi-Fi Access er ikke tilgængeligt i dit område. Prøv igen senere eller fra en anden placering (fejl = 32766)."</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32767" msgid="7094289719914089006">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 32767"</string>
   <string-array name="wifi_eap_error_message_code_32767_carrier_overrides">
-    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Du kan ikke oprette forbindelse til Verizon Wi-Fi Access. Prøv igen senere eller fra en anden lokation. (Fejl = 32767)"</item>
+    <item msgid="3756793972687282940">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>: Du kan ikke oprette forbindelse til Verizon Wi-Fi Access. Prøv igen senere eller fra et andet sted. (Fejl = 32767)"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_16384" msgid="575394783233092922">"<xliff:g id="SSID">%1$s</xliff:g>: EAP-godkendelsesfejl 16384"</string>
   <string-array name="wifi_eap_error_message_code_16384_carrier_overrides">
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Tillad"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Tillad ikke"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi-Fi aktiveret i flytilstand"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Hvis du holder Wi-Fi aktiveret, sørger din enhed for, at Wi-Fi forbliver aktiveret, næste gang du slår flytilstand til"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Hvis du holder Wi-Fi aktiveret, sørger din telefon for, at Wi-Fi forbliver aktiveret, næste gang du sætter den til flytilstand"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi forbliver aktiv"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Din enhed beholder Wi-Fi aktiveret i flytilstand. Deaktiver Wi-Fi, hvis du ikke vil have, at det forbliver aktiveret."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Din telefon holder Wi-Fi aktiveret i flytilstand. Deaktiver Wi-Fi, hvis du ikke vil have, at det forbliver aktiveret."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Utilgængeligt netværk"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> er blevet deaktiveret af din administrator."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Luk"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> lader ikke til at have forbindelse til internettet. Vil du skifte til <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> er af dårlig kvalitet. Vil du skifte til <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Vil du skifte Wi-Fi-netværk?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> lader ikke til at have forbindelse til internettet. Vil du skifte til <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Skift"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Skift ikke"</string>
 </resources>

@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"अनुमति दें"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"अनुमति न दें"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"हवाई जहाज़ मोड में वाई-फ़ाई चालू रहेगा"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"वाई-फ़ाई चालू रखने पर, अगली बार फ़्लाइट मोड में भी आपके डिवाइस का वाई-फ़ाई चालू रहेगा"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"वाई-फ़ाई चालू रखने पर आपका फ़ोन, अगली बार हवाई जहाज़ मोड चालू होने पर भी वाई-फ़ाई चालू रखेगा"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"वाई-फ़ाई चालू रहेगा"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"फ़्लाइट मोड में भी आपके डिवाइस का वाई-फ़ाई चालू रहता है. अगर वाई-फ़ाई चालू नहीं रखना है, तो उसे बंद कर दें."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"हवाई जहाज़ मोड में भी आपका फ़ोन वाई-फ़ाई चालू रखता है. अगर वाई-फ़ाई चालू नहीं रखना है, तो उसे बंद कर दें."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"नेटवर्क उपलब्ध नहीं है"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"आपके एडमिन ने <xliff:g id="SSID">%1$s</xliff:g> को बंद किया हुआ है."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"बंद करें"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"ऐसा लगता है कि <xliff:g id="SSID_0">%1$s</xliff:g>, इंटरनेट से कनेक्ट नहीं है. क्या आपको <xliff:g id="SSID_1">%2$s</xliff:g> पर स्विच करना है?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> की क्वालिटी हल्की है. क्या आपको <xliff:g id="SSID_1">%2$s</xliff:g> पर स्विच करना है?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"क्या आपको वाई-फ़ाई नेटवर्क पर स्विच करना है?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"ऐसा लगता है कि <xliff:g id="SSID_0">%1$s</xliff:g>, इंटरनेट से कनेक्ट नहीं है. क्या आपको <xliff:g id="SSID_1">%2$s</xliff:g> पर स्विच करना है?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"स्विच करें"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"स्विच न करें"</string>
 </resources>

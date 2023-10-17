@@ -32,11 +32,11 @@
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"Redes sugeridas por <xliff:g id="NAME">%s</xliff:g>. O dispositivo pode estabelecer ligação automaticamente."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Permitir"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Não, obrigado"</string>
-    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"Quer estabelecer ligação à rede Wi-Fi do operador <xliff:g id="CARRIERNAME">%s</xliff:g>?"</string>
+    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"Pretende estabelecer ligação à rede Wi-Fi do operador <xliff:g id="CARRIERNAME">%s</xliff:g>?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Estas redes recebem um ID do SIM que pode ser utilizado para monitorizar a localização dos dispositivos."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Ligar"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Não ligar"</string>
-    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Quer confirmar a ligação?"</string>
+    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Pretende confirmar a ligação?"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"Caso proceda à ligação, as redes Wi-Fi do operador <xliff:g id="CARRIERNAME">%s</xliff:g> podem partilhar ou aceder a um ID exclusivo associado ao seu SIM. Esta ação pode permitir que a localização do seu dispositivo seja monitorizada."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"Ligar"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"Não ligar"</string>
@@ -48,7 +48,7 @@
     <string name="wifi_watchdog_network_disabled" msgid="5769226742956006362">"Não foi possível ligar a Wi-Fi"</string>
     <string name="wifi_watchdog_network_disabled_detailed" msgid="1725243835135539125">" tem uma ligação à internet fraca."</string>
     <string name="wifi_connect_alert_title" msgid="2368200646665663612">"Permitir ligação?"</string>
-    <string name="wifi_connect_alert_message" msgid="7226456300982080746">"A app %1$s quer estabelecer ligação à rede Wi-Fi %2$s"</string>
+    <string name="wifi_connect_alert_message" msgid="7226456300982080746">"A app %1$s pretende estabelecer ligação à rede Wi-Fi %2$s"</string>
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"Uma app"</string>
     <string name="accept" msgid="8346431649376483879">"Aceitar"</string>
     <string name="decline" msgid="4172251727603762084">"Recusar"</string>
@@ -66,7 +66,7 @@
     <string name="dlg_ok" msgid="254496739491689405">"OK"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"Não é possível ligar a <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"Toque para alterar as definições de privacidade e tente novamente."</string>
-    <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"Quer alterar a definição de privacidade?"</string>
+    <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"Pretende alterar a definição de privacidade?"</string>
     <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"Para associar, o <xliff:g id="SSID">%1$s</xliff:g> tem de utilizar o endereço MAC do seu dispositivo, um identificador único. Atualmente, a sua definição de privacidade para esta rede utiliza um identificador aleatorizado. \n\nEsta alteração pode permitir que a localização do seu dispositivo seja monitorizada por dispositivos próximos."</string>
     <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"Alterar definição"</string>
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Definição atualizada. Experimente estabelecer ligação novamente."</string>
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Permitir"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Não permitir"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi‑Fi ativado no modo de avião"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Se mantiver o Wi‑Fi ativado, o dispositivo vai lembrar-se de o manter ativado da próxima vez que estiver no modo de avião"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Se mantiver o Wi‑Fi ativado, o telemóvel vai lembrar-se de o manter ativado da próxima vez que estiver no modo de avião"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"O Wi‑Fi mantém-se ativado"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"O seu dispositivo lembra-se de manter o Wi-Fi ativado no modo de avião. Desative o Wi-Fi se não quiser que fique ativado."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"O seu telemóvel mantém o Wi-Fi ativado no modo de avião. Desative o Wi-Fi se não quiser que fique ativado."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Rede indisponível"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"O administrador desativou a funcionalidade <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Fechar"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> não parece ter uma ligação à Internet. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> tem baixa qualidade. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Mudar de rede Wi-Fi?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> não parece ter uma ligação à Internet. Mudar para <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Mudar"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Não mudar"</string>
 </resources>

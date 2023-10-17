@@ -68,7 +68,7 @@
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"Puudutage privaatsusseadete muutmiseks ja uuesti proovimiseks"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"Kas muuta privaatsusseadet?"</string>
     <string name="wifi_disable_mac_randomization_dialog_message" msgid="8874064864332248988">"Ühendamiseks peab <xliff:g id="SSID">%1$s</xliff:g> kasutama teie seadme MAC-aadressi, mis on teie kordumatu ID. Praegu kasutab teie privaatsusseade selle võrgu puhul juhuslikku ID-d. \n\nSee muudatus võib võimaldada läheduses asuvatel seadmetel jälgida teie seadme asukohta."</string>
-    <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"Muuda sätet"</string>
+    <string name="wifi_disable_mac_randomization_dialog_confirm_text" msgid="6954419863076751626">"Muuda seadet"</string>
     <string name="wifi_disable_mac_randomization_dialog_success" msgid="5849155828154391387">"Seadet värskendati. Proovige uuesti ühendada."</string>
     <string name="wifi_disable_mac_randomization_dialog_failure" msgid="2894643619143813096">"Privaatsusseadet ei saa muuta"</string>
     <string name="wifi_disable_mac_randomization_dialog_network_not_found" msgid="7359256966900782004">"Võrku ei leitud"</string>
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Luba"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Ära luba"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"WiFi on lennukirežiimis sisse lülitatud"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Kui hoiate WiFi sisselülitatuna, jätab seade teie valiku meelde ja kasutab seda järgmisel korral lennukirežiimi aktiveerimisel."</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Kui hoiate WiFi sisselülitatuna, jätab telefon teie valiku meelde ja kasutab seda järgmisel korral lennukirežiimi aktiveerimisel."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"WiFi jääb sisselülitatuks"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Teie seade hoiab WiFi lennukirežiimis sisselülitatuna. Lülitage WiFi välja, kui te ei soovi, et see oleks sisse lülitatud."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Teie telefon hoiab WiFi lennukirežiimis sisselülitatuna. Lülitage WiFi välja, kui te ei soovi, et see oleks sisse lülitatud."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Võrk ei ole saadaval"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administraator on funktsiooni <xliff:g id="SSID">%1$s</xliff:g> keelanud."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Sule"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ei näi olevat internetiga ühendatud. Kas lülituda võrgule <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> on halva kvaliteediga. Kas lülituda võrgule <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Kas soovite vahetada WiFi-võrku?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ei näi olevat Internetiga ühendatud. Kas soovite aktiveerida operaatori <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Vaheta"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Ära vaheta"</string>
 </resources>

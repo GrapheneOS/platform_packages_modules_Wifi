@@ -55,7 +55,7 @@
     <string name="ok" msgid="847575529546290102">"确定"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"已发出邀请"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"连接邀请"</string>
-    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒内接受。}other{# 秒内接受。}}"</string>
+    <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{# 秒后接受。}other{# 秒后接受。}}"</string>
     <string name="wifi_p2p_from_message" msgid="5921308150192756898">"发件人："</string>
     <string name="wifi_p2p_to_message" msgid="3809923305696994787">"收件人："</string>
     <string name="wifi_p2p_enter_pin_message" msgid="5200220251738047620">"输入所需的PIN码："</string>
@@ -84,7 +84,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32762" msgid="2381670648753465737">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32762"</string>
   <string-array name="wifi_eap_error_message_code_32762_carrier_overrides">
-    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 账号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32762）"</item>
+    <item msgid="2911560823350042826">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帐号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32762）"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32763" msgid="4467733260757049969">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32763"</string>
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
@@ -96,7 +96,7 @@
   </string-array>
     <string name="wifi_eap_error_message_code_32765" msgid="2167528358066037980">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32765"</string>
   <string-array name="wifi_eap_error_message_code_32765_carrier_overrides">
-    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 账号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32765）"</item>
+    <item msgid="7454136618636618962">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g><xliff:g id="SSID">%1$s</xliff:g>：您的 Verizon Wi-Fi Access 帐号出现了问题。请拨打 800-922-0204 与我们联系。（错误 32765）"</item>
   </string-array>
     <string name="wifi_eap_error_message_code_32766" msgid="2335996367705677670">"<xliff:g id="SSID">%1$s</xliff:g>：EAP 身份验证错误 32766"</string>
   <string-array name="wifi_eap_error_message_code_32766_carrier_overrides">
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"允许"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"不允许"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"飞行模式时开启 WLAN"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"如果您不关闭 WLAN，那么您下次进入飞行模式时设备将记住保持 WLAN 开启"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"如果您不关闭 WLAN，那么您下次进入飞行模式时手机将记住保持 WLAN 开启"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"WLAN 保持开启状态"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"在飞行模式下设备将记住保持 WLAN 开启。如果您不想让 WLAN 保持开启，请关闭 WLAN。"</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"在飞行模式下手机将记住保持 WLAN 开启。如果您不想让 WLAN 保持开启，请将其关闭。"</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"网络无法使用"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> 已被您的管理员停用。"</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"关闭"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g>似乎并未连接到互联网。要切换到<xliff:g id="SSID_1">%2$s</xliff:g>吗？"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g>质量不佳。要切换到<xliff:g id="SSID_1">%2$s</xliff:g>吗？"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"要切换到 WLAN 网络吗？"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g>似乎并未连接到互联网。要切换到<xliff:g id="SSID_1">%2$s</xliff:g>吗？"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切换"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不切换"</string>
 </resources>
