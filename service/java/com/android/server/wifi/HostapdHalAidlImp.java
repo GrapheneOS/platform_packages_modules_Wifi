@@ -912,9 +912,9 @@ public class HostapdHalAidlImp implements IHostapdHal {
                 R.bool.config_wifiSoftapHeMuBeamformerSupported);
         hwModeParams.enableHeTargetWakeTime = mContext.getResources().getBoolean(
                 R.bool.config_wifiSoftapHeTwtSupported);
-        hwModeParams.enable80211BE = config.isIeee80211beEnabledInternal();
 
         if (SdkLevel.isAtLeastT()) {
+            hwModeParams.enable80211BE = config.isIeee80211beEnabled();
             hwModeParams.maximumChannelBandwidth =
                     mapSoftApInfoBandwidthToHal(config.getMaxChannelBandwidth());
         } else {
