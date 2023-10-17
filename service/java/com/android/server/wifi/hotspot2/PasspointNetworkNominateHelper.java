@@ -173,7 +173,7 @@ public class PasspointNetworkNominateHelper {
             // WAN Metrics ANQP element is not initialized in this network. Ignore it.
             return false;
         }
-        return wm.getStatus() != HSWanMetricsElement.LINK_STATUS_UP || wm.isAtCapacity();
+        return wm.getStatus() != HSWanMetricsElement.LINK_STATUS_UP;
     }
 
     /**
