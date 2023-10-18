@@ -16,11 +16,3 @@ MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
 
 UnflaggedApi: android.net.wifi.WifiConfiguration.NetworkSelectionStatus#DISABLED_UNWANTED_LOW_RSSI:
     New API must be flagged with @FlaggedApi: field android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI
-UnflaggedApi: android.net.wifi.WifiManager#getMaxMloAssociationLinkCount(java.util.concurrent.Executor, java.util.function.Consumer<java.lang.Integer>):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getMaxMloAssociationLinkCount(java.util.concurrent.Executor,java.util.function.Consumer<java.lang.Integer>)
-UnflaggedApi: android.net.wifi.WifiManager#getMaxMloStrLinkCount(java.util.concurrent.Executor, java.util.function.Consumer<java.lang.Integer>):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getMaxMloStrLinkCount(java.util.concurrent.Executor,java.util.function.Consumer<java.lang.Integer>)
-UnflaggedApi: android.net.wifi.WifiManager#getSupportedSimultaneousBandCombinations(java.util.concurrent.Executor, java.util.function.Consumer<java.util.List<int[]>>):
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.getSupportedSimultaneousBandCombinations(java.util.concurrent.Executor,java.util.function.Consumer<java.util.List<int[]>>)
-UnflaggedApi: android.net.wifi.WifiManager#isLowLatencyModeSupported():
-    New API must be flagged with @FlaggedApi: method android.net.wifi.WifiManager.isLowLatencyModeSupported()

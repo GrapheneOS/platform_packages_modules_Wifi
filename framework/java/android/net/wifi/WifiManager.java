@@ -4109,6 +4109,7 @@ public class WifiManager {
      * @return true if this device supports Low latency mode.
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
     @SystemApi
     public boolean isLowLatencyModeSupported() {
         return isFeatureSupported(WIFI_FEATURE_LOW_LATENCY);
@@ -11772,6 +11773,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getMaxMloAssociationLinkCount(@NonNull @CallbackExecutor Executor executor,
@@ -11818,6 +11820,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getMaxMloStrLinkCount(@NonNull @CallbackExecutor Executor executor,
@@ -11860,6 +11863,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getSupportedSimultaneousBandCombinations(
