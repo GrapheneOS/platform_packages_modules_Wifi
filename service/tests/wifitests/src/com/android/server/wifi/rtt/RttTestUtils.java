@@ -138,9 +138,21 @@ public class RttTestUtils {
                             8, 5, null, null, null, rangeTimestampBase++, true, 5180,
                             ScanResult.CHANNEL_WIDTH_40MHZ);
                 } else {
-                    rangingResult = new RangingResult(RangingResult.STATUS_SUCCESS,
-                            peer.peerHandle, rangeCmBase++, rangeStdDevCmBase++, rssiBase++,
-                            8, 5, null, null, null, rangeTimestampBase++);
+                    rangingResult =
+                            new RangingResult(
+                                    RangingResult.STATUS_SUCCESS,
+                                    peer.peerHandle,
+                                    rangeCmBase++,
+                                    rangeStdDevCmBase++,
+                                    rssiBase++,
+                                    8,
+                                    5,
+                                    null,
+                                    null,
+                                    null,
+                                    rangeTimestampBase++,
+                                    5180,
+                                    ScanResult.CHANNEL_WIDTH_40MHZ);
                 }
                 results.add(rangingResult);
 

@@ -170,10 +170,20 @@ public final class RangingResult implements Parcelable {
     }
 
     /** @hide */
-    public RangingResult(@RangeResultStatus int status, PeerHandle peerHandle, int distanceMm,
-            int distanceStdDevMm, int rssi, int numAttemptedMeasurements,
-            int numSuccessfulMeasurements, byte[] lci, byte[] lcr,
-            ResponderLocation responderLocation, long timestamp) {
+    public RangingResult(
+            @RangeResultStatus int status,
+            PeerHandle peerHandle,
+            int distanceMm,
+            int distanceStdDevMm,
+            int rssi,
+            int numAttemptedMeasurements,
+            int numSuccessfulMeasurements,
+            byte[] lci,
+            byte[] lcr,
+            ResponderLocation responderLocation,
+            long timestamp,
+            int frequencyMHz,
+            int packetBw) {
         mStatus = status;
         mMac = null;
         mPeerHandle = peerHandle;
@@ -187,8 +197,8 @@ public final class RangingResult implements Parcelable {
         mResponderLocation = responderLocation;
         mTimestamp = timestamp;
         mIs80211mcMeasurement = true;
-        mFrequencyMHz = UNSPECIFIED;
-        mPacketBw = UNSPECIFIED;
+        mFrequencyMHz = frequencyMHz;
+        mPacketBw = packetBw;
     }
 
     /**
@@ -480,49 +490,73 @@ public final class RangingResult implements Parcelable {
         dest.writeInt(mPacketBw);
     }
 
-    public static final @android.annotation.NonNull Creator<RangingResult> CREATOR = new Creator<RangingResult>() {
-        @Override
-        public RangingResult[] newArray(int size) {
-            return new RangingResult[size];
-        }
+    public static final @android.annotation.NonNull Creator<RangingResult> CREATOR =
+            new Creator<RangingResult>() {
+                @Override
+                public RangingResult[] newArray(int size) {
+                    return new RangingResult[size];
+                }
 
-        @Override
-        public RangingResult createFromParcel(Parcel in) {
-            int status = in.readInt();
-            boolean macAddressPresent = in.readBoolean();
-            MacAddress mac = null;
-            if (macAddressPresent) {
-                mac = MacAddress.CREATOR.createFromParcel(in);
-            }
-            boolean peerHandlePresent = in.readBoolean();
-            PeerHandle peerHandle = null;
-            if (peerHandlePresent) {
-                peerHandle = new PeerHandle(in.readInt());
-            }
-            int distanceMm = in.readInt();
-            int distanceStdDevMm = in.readInt();
-            int rssi = in.readInt();
-            int numAttemptedMeasurements = in.readInt();
-            int numSuccessfulMeasurements = in.readInt();
-            byte[] lci = in.createByteArray();
-            byte[] lcr = in.createByteArray();
-            ResponderLocation responderLocation =
-                    in.readParcelable(this.getClass().getClassLoader());
-            long timestamp = in.readLong();
-            boolean isllmcMeasurement = in.readBoolean();
-            int frequencyMHz = in.readInt();
-            int packetBw = in.readInt();
-            if (peerHandlePresent) {
-                return new RangingResult(status, peerHandle, distanceMm, distanceStdDevMm, rssi,
-                        numAttemptedMeasurements, numSuccessfulMeasurements, lci, lcr,
-                        responderLocation, timestamp);
-            } else {
-                return new RangingResult(status, mac, distanceMm, distanceStdDevMm, rssi,
-                        numAttemptedMeasurements, numSuccessfulMeasurements, lci, lcr,
-                        responderLocation, timestamp, isllmcMeasurement, frequencyMHz, packetBw);
-            }
-        }
-    };
+                @Override
+                public RangingResult createFromParcel(Parcel in) {
+                    int status = in.readInt();
+                    boolean macAddressPresent = in.readBoolean();
+                    MacAddress mac = null;
+                    if (macAddressPresent) {
+                        mac = MacAddress.CREATOR.createFromParcel(in);
+                    }
+                    boolean peerHandlePresent = in.readBoolean();
+                    PeerHandle peerHandle = null;
+                    if (peerHandlePresent) {
+                        peerHandle = new PeerHandle(in.readInt());
+                    }
+                    int distanceMm = in.readInt();
+                    int distanceStdDevMm = in.readInt();
+                    int rssi = in.readInt();
+                    int numAttemptedMeasurements = in.readInt();
+                    int numSuccessfulMeasurements = in.readInt();
+                    byte[] lci = in.createByteArray();
+                    byte[] lcr = in.createByteArray();
+                    ResponderLocation responderLocation =
+                            in.readParcelable(this.getClass().getClassLoader());
+                    long timestamp = in.readLong();
+                    boolean isllmcMeasurement = in.readBoolean();
+                    int frequencyMHz = in.readInt();
+                    int packetBw = in.readInt();
+                    if (peerHandlePresent) {
+                        return new RangingResult(
+                                status,
+                                peerHandle,
+                                distanceMm,
+                                distanceStdDevMm,
+                                rssi,
+                                numAttemptedMeasurements,
+                                numSuccessfulMeasurements,
+                                lci,
+                                lcr,
+                                responderLocation,
+                                timestamp,
+                                frequencyMHz,
+                                packetBw);
+                    } else {
+                        return new RangingResult(
+                                status,
+                                mac,
+                                distanceMm,
+                                distanceStdDevMm,
+                                rssi,
+                                numAttemptedMeasurements,
+                                numSuccessfulMeasurements,
+                                lci,
+                                lcr,
+                                responderLocation,
+                                timestamp,
+                                isllmcMeasurement,
+                                frequencyMHz,
+                                packetBw);
+                    }
+                }
+            };
 
     /** @hide */
     @Override
