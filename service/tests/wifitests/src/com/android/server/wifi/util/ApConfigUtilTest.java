@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.util;
 
+import static android.net.wifi.SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -49,6 +51,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SoftApManager;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
+import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.wifi.resources.R;
 
@@ -155,6 +158,7 @@ public class ApConfigUtilTest extends WifiBaseTest {
     @Mock Resources mResources;
     @Mock WifiNative mWifiNative;
     @Mock CoexManager mCoexManager;
+    @Mock WifiSettingsConfigStore mConfigStore;
     private SoftApCapability mCapability;
     /**
      * Setup test.
@@ -174,6 +178,8 @@ public class ApConfigUtilTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiSoftap24ghzSupported)).thenReturn(true);
         when(mResources.getBoolean(R.bool.config_wifiSoftap5ghzSupported)).thenReturn(true);
         when(mWifiNative.getUsableChannels(anyInt(), anyInt(), anyInt())).thenReturn(null);
+        when(mConfigStore.get(
+                WifiSettingsConfigStore.WIFI_WIPHY_11BE_SUPPORTED)).thenReturn(false);
     }
 
     /**
@@ -810,6 +816,23 @@ public class ApConfigUtilTest extends WifiBaseTest {
         when(mResources.getBoolean(R.bool.config_wifiSoftapIeee80211beSupported)).thenReturn(false);
         assertEquals(ApConfigUtil.updateCapabilityFromResource(mContext),
                 capability);
+    }
+
+
+    /**
+     * Verify updating capability from config store.
+     * Force 11BE capa to be true and then try to set it to false
+     * using updateCapabilityFromConfigStore
+     * assert if capability still has 11BE enabled.
+     */
+    @Test
+    public void testSoftApCapabilityInitWithWifiConfiguration() throws Exception {
+        long features = 0;
+        // Forcefully make 11BE as true in capability
+        features |= SOFTAP_FEATURE_IEEE80211_BE;
+        SoftApCapability capability = new SoftApCapability(features);
+        ApConfigUtil.updateCapabilityFromConfigStore(capability, mConfigStore);
+        assertFalse(capability.areFeaturesSupported(SOFTAP_FEATURE_IEEE80211_BE));
     }
 
     @Test
