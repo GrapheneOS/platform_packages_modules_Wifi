@@ -603,7 +603,7 @@ package android.net.wifi {
   public class WifiManager {
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicies(@NonNull java.util.List<android.net.wifi.QosPolicyParams>, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<java.lang.Integer>>);
-    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addWifiLowLatencyLockListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addWifiLowLatencyLockListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void addWifiNetworkStateChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addWifiVerboseLoggingStatusChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void allowAutojoin(int, boolean);
@@ -627,8 +627,8 @@ package android.net.wifi {
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public java.util.Map<android.net.wifi.hotspot2.OsuProvider,java.util.List<android.net.wifi.ScanResult>> getMatchingOsuProviders(@Nullable java.util.List<android.net.wifi.ScanResult>);
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public java.util.Map<android.net.wifi.hotspot2.OsuProvider,android.net.wifi.hotspot2.PasspointConfiguration> getMatchingPasspointConfigsForOsuProviders(@NonNull java.util.Set<android.net.wifi.hotspot2.OsuProvider>);
     method @NonNull @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_WIFI_STATE}) public java.util.Map<android.net.wifi.WifiNetworkSuggestion,java.util.List<android.net.wifi.ScanResult>> getMatchingScanResults(@NonNull java.util.List<android.net.wifi.WifiNetworkSuggestion>, @Nullable java.util.List<android.net.wifi.ScanResult>);
-    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMaxMloAssociationLinkCount(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
-    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMaxMloStrLinkCount(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
+    method @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info") @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMaxMloAssociationLinkCount(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
+    method @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info") @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMaxMloStrLinkCount(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
     method public static int getMaxNumberOfPoliciesPerQosRequest();
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getMloMode(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Integer>);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void getNetworkSelectionConfig(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<android.net.wifi.WifiNetworkSelectionConfig>);
@@ -637,7 +637,7 @@ package android.net.wifi {
     method @Nullable @RequiresPermission(allOf={android.Manifest.permission.NEARBY_WIFI_DEVICES, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.READ_WIFI_CREDENTIAL}, conditional=true) public android.net.wifi.WifiConfiguration getPrivilegedConnectedNetwork();
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.OVERRIDE_WIFI_CONFIG}) public android.net.wifi.SoftApConfiguration getSoftApConfiguration();
     method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}, conditional=true) public java.util.Set<android.net.wifi.WifiSsid> getSsidsAllowlist();
-    method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getSupportedSimultaneousBandCombinations(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<int[]>>);
+    method @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info") @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION) public void getSupportedSimultaneousBandCombinations(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<int[]>>);
     method public int getVerboseLoggingLevel();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void getWifiActivityEnergyInfoAsync(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiActivityEnergyInfoListener);
     method @Deprecated @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.WifiConfiguration getWifiApConfiguration();
@@ -646,7 +646,7 @@ package android.net.wifi {
     method public boolean isApMacRandomizationSupported();
     method public boolean isConnectedMacRandomizationSupported();
     method @Deprecated public boolean isDeviceToDeviceRttSupported();
-    method public boolean isLowLatencyModeSupported();
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public boolean isLowLatencyModeSupported();
     method public boolean isPortableHotspotSupported();
     method public boolean isStaConcurrencyForRestrictedConnectionsSupported();
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public boolean isThirdPartyAppEnablingWifiConfirmationDialogEnabled();
@@ -666,7 +666,7 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void removeAppState(int, @NonNull String);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void removeOnWifiUsabilityStatsListener(@NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void removeQosPolicies(@NonNull int[]);
-    method public void removeWifiLowLatencyLockListener(@NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public void removeWifiLowLatencyLockListener(@NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
     method public void removeWifiNetworkStateChangedListener(@NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeWifiVerboseLoggingStatusChangedListener(@NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
     method @RequiresPermission(android.Manifest.permission.RESTART_WIFI_SUBSYSTEM) public void restartWifiSubsystem();
@@ -752,7 +752,7 @@ package android.net.wifi {
     field public static final int API_SCANNING_ENABLED = 1; // 0x1
     field public static final int API_SET_NETWORK_SELECTION_CONFIG = 8; // 0x8
     field public static final int API_SET_ONE_SHOT_SCREEN_ON_CONNECTIVITY_SCAN_DELAY = 7; // 0x7
-    field public static final int API_SET_PNO_SCAN_ENABLED = 36; // 0x24
+    field @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") public static final int API_SET_PNO_SCAN_ENABLED = 36; // 0x24
     field public static final int API_SET_SCAN_SCHEDULE = 6; // 0x6
     field public static final int API_SET_TDLS_ENABLED = 34; // 0x22
     field public static final int API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS = 35; // 0x23
@@ -928,10 +928,10 @@ package android.net.wifi {
     method public void onStop(int);
   }
 
-  public static interface WifiManager.WifiLowLatencyLockListener {
-    method public void onActivatedStateChanged(boolean);
-    method public default void onActiveUsersChanged(@NonNull int[]);
-    method public default void onOwnershipChanged(@NonNull int[]);
+  @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public static interface WifiManager.WifiLowLatencyLockListener {
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public void onActivatedStateChanged(boolean);
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public default void onActiveUsersChanged(@NonNull int[]);
+    method @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener") public default void onOwnershipChanged(@NonNull int[]);
   }
 
   public static interface WifiManager.WifiNetworkStateChangedListener {
@@ -1203,12 +1203,12 @@ package android.net.wifi {
     method public long getTotalBeaconRx();
     method public long getTotalBeaconRx(int);
     method public long getTotalCcaBusyFreqTimeMillis();
-    method public long getTotalCcaBusyFreqTimeMillis(int);
+    method @FlaggedApi("com.android.wifi.flags.add_channel_stats_per_link") public long getTotalCcaBusyFreqTimeMillis(int);
     method public long getTotalHotspot2ScanTimeMillis();
     method public long getTotalNanScanTimeMillis();
     method public long getTotalPnoScanTimeMillis();
     method public long getTotalRadioOnFreqTimeMillis();
-    method public long getTotalRadioOnFreqTimeMillis(int);
+    method @FlaggedApi("com.android.wifi.flags.add_channel_stats_per_link") public long getTotalRadioOnFreqTimeMillis(int);
     method public long getTotalRadioOnTimeMillis();
     method public long getTotalRadioRxTimeMillis();
     method public long getTotalRadioTxTimeMillis();

@@ -42,3 +42,25 @@ flag {
     description: "Control the API that allow only enable verbose logging for Wifi Aware"
     bug: "289273616"
 }
+
+flag {
+    name: "add_channel_stats_per_link"
+    namespace: "wifi"
+    description: "Control the API that get the channel stats per link from WifiUsabilityStatsEntry"
+    bug: "276385220"
+}
+
+flag {
+    name: "mlo_link_capabilities_info"
+    namespace: "wifi"
+    description: "Control the API that get the MLO link capabilities"
+    bug: "262643386"
+}
+
+
+flag {
+    name: "low_latency_lock_listener"
+    namespace: "wifi"
+    description: "Control the API that add/remove the low latency lock listener"
+    bug: "277556184"
+}

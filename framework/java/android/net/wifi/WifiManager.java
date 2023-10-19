@@ -850,12 +850,12 @@ public class WifiManager {
     public static final int API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS = 35;
 
     /**
-     * A constant used in
-     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
-     * Tracks usage of
-     * {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     * A constant used in {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     *
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
     @SystemApi
     public static final int API_SET_PNO_SCAN_ENABLED = 36;
 
@@ -4109,6 +4109,7 @@ public class WifiManager {
      * @return true if this device supports Low latency mode.
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
     @SystemApi
     public boolean isLowLatencyModeSupported() {
         return isFeatureSupported(WIFI_FEATURE_LOW_LATENCY);
@@ -7829,47 +7830,50 @@ public class WifiManager {
     }
 
     /**
-     * Interface for low latency lock listener. Should be extended by application and
-     * set when calling {@link WifiManager#addWifiLowLatencyLockListener(Executor,
+     * Interface for low latency lock listener. Should be extended by application and set when
+     * calling {@link WifiManager#addWifiLowLatencyLockListener(Executor,
      * WifiLowLatencyLockListener)}.
      *
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
     @SystemApi
     public interface WifiLowLatencyLockListener {
         /**
          * Provides low latency mode is activated or not. Triggered when Wi-Fi chip enters into low
          * latency mode.
          *
-         * Note: Always called with current state when a new listener gets registered.
+         * <p>Note: Always called with current state when a new listener gets registered.
          */
+        @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
         void onActivatedStateChanged(boolean activated);
 
         /**
          * Provides UIDs (lock owners) of the applications which currently acquired low latency
          * lock. Triggered when an application acquires or releases a lock.
          *
-         * Note: Always called with UIDs of the current acquired locks when a new listener gets
+         * <p>Note: Always called with UIDs of the current acquired locks when a new listener gets
          * registered.
          *
          * @param ownerUids An array of UIDs.
          */
+        @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
         default void onOwnershipChanged(@NonNull int[] ownerUids) {}
 
         /**
          * Provides UIDs of the applications which acquired the low latency lock and is currently
-         * active. See {@link WifiManager#WIFI_MODE_FULL_LOW_LATENCY} for the conditions to be
-         * met for low latency lock to be active. Triggered when application acquiring the lock
+         * active. See {@link WifiManager#WIFI_MODE_FULL_LOW_LATENCY} for the conditions to be met
+         * for low latency lock to be active. Triggered when application acquiring the lock
          * satisfies or does not satisfy low latency conditions when the low latency mode is
-         * activated. Also gets triggered when the lock becomes active, immediately after the
-         * {@link WifiLowLatencyLockListener#onActivatedStateChanged(boolean)} callback is
-         * triggered.
+         * activated. Also gets triggered when the lock becomes active, immediately after the {@link
+         * WifiLowLatencyLockListener#onActivatedStateChanged(boolean)} callback is triggered.
          *
-         * Note: Always called with UIDs of the current active locks when a new listener gets
+         * <p>Note: Always called with UIDs of the current active locks when a new listener gets
          * registered if the Wi-Fi chip is in low latency mode.
          *
          * @param activeUids An array of UIDs.
          */
+        @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
         default void onActiveUsersChanged(@NonNull int[] activeUids) {}
     }
 
@@ -7916,9 +7920,9 @@ public class WifiManager {
      * registered listener using {@link WifiManager#removeWifiLowLatencyLockListener(
      * WifiLowLatencyLockListener)}.
      *
-     * Applications should have the {@link android.Manifest.permission#NETWORK_SETTINGS} and
-     * {@link android.Manifest.permission#MANAGE_WIFI_NETWORK_SELECTION} permission. Callers
-     * without the permission will trigger a {@link java.lang.SecurityException}.
+     * <p>Applications should have the {@link android.Manifest.permission#NETWORK_SETTINGS} and
+     * {@link android.Manifest.permission#MANAGE_WIFI_NETWORK_SELECTION} permission. Callers without
+     * the permission will trigger a {@link java.lang.SecurityException}.
      *
      * @param executor The Executor on which to execute the callbacks.
      * @param listener The listener for the latency mode change.
@@ -7926,11 +7930,13 @@ public class WifiManager {
      * @throws SecurityException if the caller is not allowed to call this API
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
     @SystemApi
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @RequiresPermission(anyOf = {android.Manifest.permission.NETWORK_SETTINGS,
-            MANAGE_WIFI_NETWORK_SELECTION})
-    public void addWifiLowLatencyLockListener(@NonNull @CallbackExecutor Executor executor,
+    @RequiresPermission(
+            anyOf = {android.Manifest.permission.NETWORK_SETTINGS, MANAGE_WIFI_NETWORK_SELECTION})
+    public void addWifiLowLatencyLockListener(
+            @NonNull @CallbackExecutor Executor executor,
             @NonNull WifiLowLatencyLockListener listener) {
         if (executor == null) throw new IllegalArgumentException("executor cannot be null");
         if (listener == null) throw new IllegalArgumentException("listener cannot be null");
@@ -7955,13 +7961,14 @@ public class WifiManager {
 
     /**
      * Removes a listener added using {@link WifiManager#addWifiLowLatencyLockListener(Executor,
-     * WifiLowLatencyLockListener)}. After calling this method, applications will no longer
-     * receive low latency mode notifications.
+     * WifiLowLatencyLockListener)}. After calling this method, applications will no longer receive
+     * low latency mode notifications.
      *
      * @param listener the listener to be removed.
      * @throws IllegalArgumentException if incorrect input arguments are provided.
      * @hide
      */
+    @FlaggedApi("com.android.wifi.flags.low_latency_lock_listener")
     @SystemApi
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public void removeWifiLowLatencyLockListener(@NonNull WifiLowLatencyLockListener listener) {
@@ -8970,17 +8977,15 @@ public class WifiManager {
     public static final int VERBOSE_LOGGING_LEVEL_ENABLED = 1;
 
     /**
-     * Verbose logging mode: ENABLED_SHOW_KEY.
-     * This mode causes the Wi-Fi password and encryption keys to be output to the logcat.
-     * This is security sensitive information useful for debugging.
-     * This configuration is enabled for 30 seconds and then falls back to
-     * the regular verbose mode (i.e. to {@link VERBOSE_LOGGING_LEVEL_ENABLED}).
-     * Show key mode is not persistent, i.e. rebooting the device would fallback to
-     * the regular verbose mode.
+     * Verbose logging mode: ENABLED_SHOW_KEY. This mode causes the Wi-Fi password and encryption
+     * keys to be output to the logcat. This is security sensitive information useful for debugging.
+     * This configuration is enabled for 30 seconds and then falls back to the regular verbose mode
+     * (i.e. to {@link VERBOSE_LOGGING_LEVEL_ENABLED}). Show key mode is not persistent, i.e.
+     * rebooting the device would fallback to the regular verbose mode.
+     *
      * @hide
      */
-    @SystemApi
-    public static final int VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY = 2;
+    @SystemApi public static final int VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY = 2;
 
     /**
      * Verbose logging mode: only enable for Wi-Fi Aware feature.
@@ -11768,6 +11773,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getMaxMloAssociationLinkCount(@NonNull @CallbackExecutor Executor executor,
@@ -11814,6 +11820,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getMaxMloStrLinkCount(@NonNull @CallbackExecutor Executor executor,
@@ -11856,6 +11863,7 @@ public class WifiManager {
      * @hide
      */
     @SystemApi
+    @FlaggedApi("com.android.wifi.flags.mlo_link_capabilities_info")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @RequiresPermission(MANAGE_WIFI_NETWORK_SELECTION)
     public void getSupportedSimultaneousBandCombinations(
