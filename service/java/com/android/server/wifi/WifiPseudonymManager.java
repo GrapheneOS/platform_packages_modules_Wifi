@@ -24,6 +24,7 @@ import static com.android.server.wifi.entitlement.CarrierSpecificServiceEntitlem
 import static com.android.server.wifi.entitlement.CarrierSpecificServiceEntitlement.REASON_TRANSIENT_FAILURE;
 
 import android.annotation.NonNull;
+import android.app.AlarmManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -32,7 +33,6 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiStringResourceWrapper;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.os.Process;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
@@ -61,8 +61,11 @@ public final class WifiPseudonymManager {
             "config_wifiOobPseudonymEntitlementServerUrl";
     @VisibleForTesting
     static final long TEN_SECONDS_IN_MILLIS = Duration.ofSeconds(10).toMillis();
+    @VisibleForTesting static final long TEN_MINUTES_IN_MILLIS = Duration.ofMinutes(10).toMillis();
+
     @VisibleForTesting
     private static final long SEVEN_DAYS_IN_MILLIS = Duration.ofDays(7).toMillis();
+
     @VisibleForTesting
     static final long[] RETRY_INTERVALS_FOR_SERVER_ERROR = {
             Duration.ofMinutes(5).toMillis(),
@@ -81,6 +84,7 @@ public final class WifiPseudonymManager {
     private final WifiInjector mWifiInjector;
     private final Clock mClock;
     private final Handler mWifiHandler;
+    private final AlarmManager mAlarmManager;
 
     private boolean mVerboseLogEnabled = false;
 
@@ -88,6 +92,9 @@ public final class WifiPseudonymManager {
      * Cached Map of <carrier ID, PseudonymInfo>.
      */
     private final SparseArray<PseudonymInfo> mPseudonymInfoArray = new SparseArray<>();
+
+    /** Cached Map of carrier IDs to RetrieveListeners. */
+    private final SparseArray<RetrieveListener> mRetrieveListenerSparseArray = new SparseArray<>();
 
     /*
      * Two cached map of <carrier ID, retry times>.
@@ -130,11 +137,16 @@ public final class WifiPseudonymManager {
     private final Set<PseudonymUpdatingListener> mPseudonymUpdatingListeners =
             new ArraySet<>();
 
-    WifiPseudonymManager(@NonNull WifiContext wifiContext, @NonNull WifiInjector wifiInjector,
-            @NonNull Clock clock, @NonNull Looper wifiLooper) {
+    WifiPseudonymManager(
+            @NonNull WifiContext wifiContext,
+            @NonNull WifiInjector wifiInjector,
+            @NonNull Clock clock,
+            @NonNull AlarmManager alarmManager,
+            @NonNull Looper wifiLooper) {
         mWifiContext = wifiContext;
         mWifiInjector = wifiInjector;
         mClock = clock;
+        mAlarmManager = alarmManager;
         // Create a new handler to have a dedicated message queue.
         mWifiHandler = new Handler(wifiLooper);
     }
@@ -236,7 +248,6 @@ public final class WifiPseudonymManager {
      * Update the input WifiConfiguration's anonymous identity.
      *
      * @param wifiConfiguration WifiConfiguration which will be updated.
-     * @return true if there is a valid pseudonym to update the WifiConfiguration, otherwise false.
      */
     public void updateWifiConfiguration(@NonNull WifiConfiguration wifiConfiguration) {
         if (wifiConfiguration.enterpriseConfig == null
@@ -320,25 +331,23 @@ public final class WifiPseudonymManager {
     @VisibleForTesting
     void setPseudonymAndScheduleRefresh(int carrierId, @NonNull PseudonymInfo pseudonymInfo) {
         mPseudonymInfoArray.put(carrierId, pseudonymInfo);
-        // Cancel all the queued messages and queue another message to refresh the pseudonym
-        mWifiHandler.removeMessages(carrierId);
-        scheduleToRetrieveDelayed(carrierId, pseudonymInfo.getAtrInMillis());
+        scheduleToRetrieveDelayed(carrierId, pseudonymInfo.getLttrInMillis());
     }
 
     /**
      * Retrieves the OOB pseudonym if there is no pseudonym or the existing pseudonym has expired.
-     * This method is called when the CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED is
-     * received or the TTL has elapsed to refresh the OOB pseudonym.
+     * This method is called when the CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED is received
+     * or the TTL has elapsed to refresh the OOB pseudonym.
      *
      * @param carrierId carrier id for target carrier
      */
     public void retrieveOobPseudonymIfNeeded(int carrierId) {
         vlogd("retrieveOobPseudonymIfNeeded(" + carrierId + ")");
         Optional<PseudonymInfo> optionalPseudonymInfo = getValidPseudonymInfo(carrierId);
-        if (optionalPseudonymInfo.isEmpty() || optionalPseudonymInfo.get().shouldBeRefreshed()) {
+        if (optionalPseudonymInfo.isEmpty()) {
             scheduleToRetrieveDelayed(carrierId, 0);
         } else {
-            vlogd("Current pseudonym is still fresh. Exit.");
+            scheduleToRetrieveDelayed(carrierId, optionalPseudonymInfo.get().getLttrInMillis());
         }
     }
 
@@ -379,9 +388,18 @@ public final class WifiPseudonymManager {
     }
 
     private void scheduleToRetrieveDelayed(int carrierId, long delayMillis) {
-        Message msg = Message.obtain(mWifiHandler, new RetrieveRunnable(carrierId));
-        msg.what = carrierId;
-        mWifiHandler.sendMessageDelayed(msg, delayMillis);
+        RetrieveListener listener = mRetrieveListenerSparseArray.get(carrierId);
+        if (listener == null) {
+            listener = new RetrieveListener(carrierId);
+            mRetrieveListenerSparseArray.set(carrierId, listener);
+        }
+        mAlarmManager.setWindow(
+                AlarmManager.RTC_WAKEUP,
+                mClock.getWallClockMillis() + delayMillis,
+                TEN_MINUTES_IN_MILLIS,
+                TAG,
+                listener,
+                mWifiHandler);
         /*
          * Always suppose it fails before the retrieval really starts to prevent multiple messages
          * been queued when there is no data network available to retrieve. After retrieving, this
@@ -414,28 +432,15 @@ public final class WifiPseudonymManager {
     }
 
     @VisibleForTesting
-    class RetrieveRunnable implements Runnable {
-        @VisibleForTesting
-        int mCarrierId;
+    class RetrieveListener implements AlarmManager.OnAlarmListener {
+        @VisibleForTesting int mCarrierId;
 
-        RetrieveRunnable(int carrierId) {
+        RetrieveListener(int carrierId) {
             mCarrierId = carrierId;
         }
 
         @Override
-        public void run() {
-            /*
-             * There may be multiple messages for this mCarrierId in the queue. There is no need to
-             * retrieve them multiple times.
-             *
-             * For example, carrierA's SIM is inserted into the device multiple times right before
-             * carrierA's pseudonym expires, there will be multiple messages in the queue. When the
-             * network becomes available, the pseudonym can't be retrieved because the carrierA's
-             * server reports an error. To prevent connecting with the server several times, we
-             * should cancel all the queued messages.
-             */
-            mWifiHandler.removeMessages(mCarrierId);
-
+        public void onAlarm() {
             if (!mWifiInjector.getWifiCarrierInfoManager()
                     .isOobPseudonymFeatureEnabled(mCarrierId)) {
                 vlogd("do nothing, OOB Pseudonym feature is not enabled for carrier: "
@@ -445,7 +450,7 @@ public final class WifiPseudonymManager {
 
             int subId = mWifiInjector.getWifiCarrierInfoManager().getMatchingSubId(mCarrierId);
             if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
-                Log.e(TAG, "RetrieveRunnable: " + mCarrierId + ": subId is invalid. Exit.");
+                Log.e(TAG, "RetrieveListener: " + mCarrierId + ": subId is invalid. Exit.");
                 return;
             }
 

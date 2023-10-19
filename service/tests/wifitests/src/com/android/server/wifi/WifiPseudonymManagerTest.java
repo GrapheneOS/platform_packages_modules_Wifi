@@ -17,23 +17,25 @@
 package com.android.server.wifi;
 
 import static com.android.server.wifi.WifiCarrierInfoManager.ANONYMOUS_IDENTITY;
+import static com.android.server.wifi.WifiPseudonymManager.RETRY_INTERVALS_FOR_CONNECTION_ERROR;
+import static com.android.server.wifi.WifiPseudonymManager.RETRY_INTERVALS_FOR_SERVER_ERROR;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import android.app.AlarmManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiEnterpriseConfig;
-import android.os.Message;
-import android.os.test.TestLooper;
+import android.os.Looper;
 import android.test.suitebuilder.annotation.SmallTest;
 
 import com.android.server.wifi.entitlement.CarrierSpecificServiceEntitlement;
@@ -42,6 +44,7 @@ import com.android.server.wifi.hotspot2.PasspointManager;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -61,6 +64,10 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     private static final String IMSI = "imsi";
     private static final String DECORATED_PSEUDONYM = PSEUDONYM + "@";
     private static final String MCCMNC = "mccmnc";
+
+    // Same as PseudonymInfo.DEFAULT_PSEUDONYM_TTL_IN_MILLIS
+    private static final long DEFAULT_PSEUDONYM_TTL_IN_MILLIS = Duration.ofDays(2).toMillis();
+
     @Mock
     private WifiContext mWifiContext;
     @Mock
@@ -81,13 +88,18 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     @Mock
     Clock mClock;
+    @Mock AlarmManager mAlarmManager;
+    final ArgumentCaptor<WifiPseudonymManager.RetrieveListener> mRetrieveListenerArgumentCaptor =
+            ArgumentCaptor.forClass(WifiPseudonymManager.RetrieveListener.class);
+    final ArgumentCaptor<Integer> mAlarmTypeCaptor = ArgumentCaptor.forClass(Integer.class);
+    final ArgumentCaptor<Long> mWindowStartCaptor = ArgumentCaptor.forClass(Long.class);
+    final ArgumentCaptor<Long> mWindowLengthCaptor = ArgumentCaptor.forClass(Long.class);
 
     private WifiPseudonymManager mWifiPseudonymManager;
-    private TestLooper mTestLooper;
+    @Mock private Looper mLooper;
 
     @Before
     public void setUp() throws Exception {
-        mTestLooper = new TestLooper();
         MockitoAnnotations.initMocks(this);
         when(mClock.getWallClockMillis()).thenReturn(Instant.now().toEpochMilli());
         when(mWifiInjector.getWifiCarrierInfoManager()).thenReturn(mWifiCarrierInfoManager);
@@ -97,70 +109,73 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
                 .thenReturn(mWifiNetworkSuggestionsManager);
         when(mWifiCarrierInfoManager.getSimInfo(anyInt())).thenReturn(
                 new WifiCarrierInfoManager.SimInfo(IMSI, MCCMNC, CARRIER_ID, CARRIER_ID));
+        mWifiPseudonymManager =
+                new WifiPseudonymManager(
+                        mWifiContext, mWifiInjector, mClock, mAlarmManager, mLooper);
     }
 
     @Test
-    public void getValidPseudonymInfoEmpty() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void getValidPseudonymInfo_byDefault_empty() {
         assertTrue(mWifiPseudonymManager.getValidPseudonymInfo(CARRIER_ID).isEmpty());
     }
 
     @Test
-    public void getValidPseudonymInfoEmptyExpired() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void getValidPseudonymInfo_expiredPseudonym_empty() {
         setAnExpiredPseudonym(mWifiPseudonymManager);
         assertTrue(mWifiPseudonymManager.getValidPseudonymInfo(WRONG_CARRIER_ID).isEmpty());
     }
 
     @Test
-    public void getValidPseudonymInfoEmptyWrongCarrierId() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        setAValidPseudonym(mWifiPseudonymManager);
+    public void getValidPseudonymInfo_wrongCarrierId_empty() {
+        setAFreshPseudonym(mWifiPseudonymManager);
         assertTrue(mWifiPseudonymManager.getValidPseudonymInfo(WRONG_CARRIER_ID).isEmpty());
     }
 
     @Test
-    public void getValidPseudonymInfoPresent() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        setAValidPseudonym(mWifiPseudonymManager);
+    public void getValidPseudonymInfo_freshPseudonym_present() {
+        setAFreshPseudonym(mWifiPseudonymManager);
         assertTrue(mWifiPseudonymManager.getValidPseudonymInfo(CARRIER_ID).isPresent());
     }
 
     @Test
-    public void retrievePseudonymOnFailureTimeoutExpiredSchedule() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void retrievePseudonymOnFailureTimeout_expiredPseudonym_scheduleRefresh() {
         long nowTime = Instant.now().toEpochMilli();
         when(mClock.getWallClockMillis()).thenReturn(nowTime);
         when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
         mWifiPseudonymManager.mLastFailureTimestampArray.put(CARRIER_ID,
                 nowTime - Duration.ofDays(7).toMillis());
+
         mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(CARRIER_ID);
-        assertTrue(mTestLooper.isIdle());
-        Message message = mTestLooper.nextMessage();
-        assertEquals(CARRIER_ID, message.what);
-        assertEquals(CARRIER_ID,
-                ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
+
+        verify(mAlarmManager, times(1))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        assertEquals(AlarmManager.RTC_WAKEUP, mAlarmTypeCaptor.getValue().intValue());
+        long maxStartTime =
+                nowTime
+                        + WifiPseudonymManager.TEN_SECONDS_IN_MILLIS
+                        + Duration.ofSeconds(1).toMillis();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
+        assertEquals(
+                WifiPseudonymManager.TEN_MINUTES_IN_MILLIS,
+                mWindowLengthCaptor.getValue().longValue());
+        assertEquals(CARRIER_ID, mRetrieveListenerArgumentCaptor.getValue().mCarrierId);
     }
 
     @Test
-    public void retrievePseudonymOnFailureTimeoutExpiredNotSchedule() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void retrievePseudonymOnFailureTimeout_noPseudonym_notScheduleRefresh() {
         when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
         mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(CARRIER_ID);
-        assertFalse(mTestLooper.isIdle());
+        verifyNoMoreInteractions(mAlarmManager);
     }
 
     @Test
-    public void setInBandPseudonymInfoAbsent() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
+    public void setInBandPseudonymInfo_noPseudonym_empty() {
         mWifiPseudonymManager.setInBandPseudonym(CARRIER_ID, PSEUDONYM);
         Optional<PseudonymInfo> pseudonymInfoOptional =
                 mWifiPseudonymManager.getValidPseudonymInfo(CARRIER_ID);
@@ -168,9 +183,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void setInBandPseudonymInfoPresent() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void setInBandPseudonymInfo_expiredPseudonym_present() {
         setAnExpiredPseudonym(mWifiPseudonymManager);
 
         mWifiPseudonymManager.setInBandPseudonym(CARRIER_ID, PSEUDONYM);
@@ -181,9 +194,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void updateWifiConfigurationWithExpiredPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void updateWifiConfiguration_expiredPseudonym_noUpdate() {
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
         when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
@@ -196,9 +207,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void updateWifiConfigurationPasspointWithValidPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void updateWifiConfiguration_freshPseudonymAndPasspoint_update() {
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
         when(mWifiCarrierInfoManager.isOobPseudonymFeatureEnabled(CARRIER_ID)).thenReturn(true);
@@ -223,9 +232,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void updateWifiConfigurationNonPasspointNetworkSuggesetionWithValidPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void updateWifiConfiguration_freshPseudonymAndNonPasspointNetworkSuggestion_update() {
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
         mWifiConfiguration.fromWifiNetworkSuggestion = true;
@@ -250,10 +257,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void updateWifiConfigurationNonPasspointNotNetworkSuggestion() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
+    public void updateWifiConfiguration_freshPseudonym_update() {
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
         mWifiConfiguration.fromWifiNetworkSuggestion = false;
@@ -280,10 +284,7 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void updateWifiConfigurationNoNeedToUpdate() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
+    public void updateWifiConfiguration_freshPseudonymWithDecoratedIdentity_noUpdate() {
         mWifiConfiguration.enterpriseConfig = mEnterpriseConfig;
         mWifiConfiguration.carrierId = CARRIER_ID;
 
@@ -305,182 +306,224 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
     }
 
     @Test
-    public void setPseudonymAndScheduleRefreshSchedule() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
-                new PseudonymInfo(PSEUDONYM, IMSI));
-        assertFalse(mTestLooper.isIdle());
-        mTestLooper.moveTimeForward(Duration.ofHours(48).toMillis());
-        assertTrue(mTestLooper.isIdle());
-        Message message = mTestLooper.nextMessage();
-        assertEquals(CARRIER_ID, message.what);
-        assertEquals(CARRIER_ID,
-                ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
+    public void setPseudonymAndScheduleRefresh_freshPseudonym_schedule() {
+        PseudonymInfo pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI);
+        mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID, pseudonymInfo);
+        verify(mAlarmManager, times(1))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        assertEquals(AlarmManager.RTC_WAKEUP, mAlarmTypeCaptor.getValue().intValue());
+        long maxStartTime = Instant.now().toEpochMilli() + pseudonymInfo.getLttrInMillis();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
+        assertEquals(CARRIER_ID, mRetrieveListenerArgumentCaptor.getValue().mCarrierId);
         assertTrue(mWifiPseudonymManager.getValidPseudonymInfo(CARRIER_ID).isPresent());
     }
 
     @Test
-    public void retrieveOobPseudonymIfNeededEmptySchedule() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
+    public void retrieveOobPseudonymIfNeeded_noPseudonym_scheduleRefresh() {
         mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(CARRIER_ID);
-        assertTrue(mTestLooper.isIdle());
-        Message message = mTestLooper.nextMessage();
-        assertEquals(CARRIER_ID, message.what);
-        assertEquals(CARRIER_ID,
-                ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
+
+        verify(mAlarmManager, times(1))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        assertEquals(AlarmManager.RTC_WAKEUP, mAlarmTypeCaptor.getValue().intValue());
+        long maxStartTime = Instant.now().toEpochMilli();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
+        assertEquals(CARRIER_ID, mRetrieveListenerArgumentCaptor.getValue().mCarrierId);
     }
 
     @Test
-    public void retrieveOobPseudonymIfNeededPresentNoScheduleWithFreshPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
-        when(mWifiCarrierInfoManager.getMatchingSubId(CARRIER_ID)).thenReturn(SUB_ID);
-        mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
-                new PseudonymInfo(PSEUDONYM, IMSI));
-        assertFalse(mTestLooper.isIdle());
-
-        when(mWifiCarrierInfoManager.getMatchingSubId(CARRIER_ID)).thenReturn(SUB_ID);
+    public void retrieveOobPseudonymIfNeeded_freshPseudonym_scheduleRefresh() {
+        setAFreshPseudonym(mWifiPseudonymManager);
         mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(CARRIER_ID);
-        assertFalse(mTestLooper.isIdle());
+
+        verify(mAlarmManager, times(2))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        assertEquals(AlarmManager.RTC_WAKEUP, mAlarmTypeCaptor.getValue().intValue());
+        long maxStartTime =
+                Instant.now().toEpochMilli()
+                        + mWifiPseudonymManager
+                                .getValidPseudonymInfo(CARRIER_ID)
+                                .get()
+                                .getLttrInMillis();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
+        assertEquals(CARRIER_ID, mRetrieveListenerArgumentCaptor.getValue().mCarrierId);
     }
 
     @Test
-    public void retrieveOobPseudonymIfNeededScheduleWithExpiredPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-
+    public void retrieveOobPseudonymIfNeeded_expiredPseudonym_scheduleRefresh() {
         when(mWifiCarrierInfoManager.getMatchingSubId(CARRIER_ID)).thenReturn(SUB_ID);
         setAnExpiredPseudonym(mWifiPseudonymManager);
         when(mWifiCarrierInfoManager.getMatchingSubId(CARRIER_ID)).thenReturn(SUB_ID);
         mWifiPseudonymManager.retrieveOobPseudonymIfNeeded(CARRIER_ID);
-        assertTrue(mTestLooper.isIdle());
+
+        verify(mAlarmManager, times(2))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        assertEquals(AlarmManager.RTC_WAKEUP, mAlarmTypeCaptor.getValue().intValue());
+        long maxStartTime = Instant.now().toEpochMilli();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
+        assertEquals(CARRIER_ID, mRetrieveListenerArgumentCaptor.getValue().mCarrierId);
     }
 
     @Test
-    public void retrieveOobPseudonymWithRateLimitScheduleWithExpiredPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void retrieveOobPseudonymWithRateLimit_expiredPseudonym_scheduleRefresh() {
         setAnExpiredPseudonym(mWifiPseudonymManager);
         mWifiPseudonymManager.retrieveOobPseudonymWithRateLimit(CARRIER_ID);
-        assertFalse(mTestLooper.isIdle());
-        mTestLooper.moveTimeForward(Duration.ofSeconds(10).toMillis());
-        assertTrue(mTestLooper.isIdle());
-        Message message = mTestLooper.nextMessage();
-        assertEquals(CARRIER_ID, message.what);
-        assertEquals(CARRIER_ID,
-                ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
+        verify(mAlarmManager, times(2))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
     }
 
     @Test
-    public void retrieveOobPseudonymWithRateLimitNoScheduleWithEmptyPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void retrieveOobPseudonymWithRateLimit_emptyPseudonym_noScheduleRefresh() {
         mWifiPseudonymManager.retrieveOobPseudonymWithRateLimit(CARRIER_ID);
-        mTestLooper.moveTimeForward(Duration.ofSeconds(10).toMillis());
-        assertFalse(mTestLooper.isIdle());
+        verify(mAlarmManager, never())
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
     }
+
     @Test
-    public void retrieveOobPseudonymWithRateLimitNoScheduleWithFreshPseudonym() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
+    public void retrieveOobPseudonymWithRateLimit_freshPseudonym_noScheduleRefresh() {
         mWifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID,
                 new PseudonymInfo(PSEUDONYM, IMSI));
+        verify(mAlarmManager, times(1))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
         mWifiPseudonymManager.retrieveOobPseudonymWithRateLimit(CARRIER_ID);
-        mTestLooper.moveTimeForward(Duration.ofSeconds(10).toMillis());
-        assertFalse(mTestLooper.isIdle());
+        verifyNoMoreInteractions(mAlarmManager);
     }
 
     @Test
-    public void testRetrieveCallbackFailureByConnectionError() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        Message message;
-        String errorDescription = "HTTPS connection error";
+    public void mRetrieveCallback_transientFailureConnectionError_scheduleRetry() {
+        // Return failure more than the MAX_RETRY_TIMES(RETRY_INTERVALS_FOR_CONNECTION_ERROR.length)
         for (int retryCount = 0;
-                retryCount < WifiPseudonymManager.RETRY_INTERVALS_FOR_CONNECTION_ERROR.length;
+                retryCount < (RETRY_INTERVALS_FOR_CONNECTION_ERROR.length * 2);
                 retryCount++) {
-            mWifiPseudonymManager.mRetrieveCallback.onFailure(CARRIER_ID,
-                    CarrierSpecificServiceEntitlement.REASON_HTTPS_CONNECTION_FAILURE,
-                    errorDescription);
-            mTestLooper.moveTimeForward(
-                    WifiPseudonymManager.RETRY_INTERVALS_FOR_CONNECTION_ERROR[retryCount]);
-            assertTrue(mTestLooper.isIdle());
-
-            message = mTestLooper.nextMessage();
-            assertEquals(CARRIER_ID, message.what);
-            assertEquals(CARRIER_ID,
-                    ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
-            assertNull(mTestLooper.nextMessage());
+            mWifiPseudonymManager.mRetrieveCallback.onFailure(
+                    CARRIER_ID,
+                    CarrierSpecificServiceEntitlement.REASON_TRANSIENT_FAILURE,
+                    "Server error");
         }
 
-        mWifiPseudonymManager.mRetrieveCallback.onFailure(CARRIER_ID,
-                CarrierSpecificServiceEntitlement.REASON_HTTPS_CONNECTION_FAILURE,
-                errorDescription);
-        mTestLooper.moveTimeForward(Duration.ofDays(100).toMillis()); // Move forward long enough
-        assertFalse(mTestLooper.isIdle());
-        assertNull(mTestLooper.nextMessage());
+        /*
+         * Verify that the device only retries
+         * MAX_RETRY_TIMES(RETRY_INTERVALS_FOR_CONNECTION_ERROR.length)
+         */
+        verify(mAlarmManager, times(RETRY_INTERVALS_FOR_CONNECTION_ERROR.length))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        long maxStartTime =
+                Instant.now().toEpochMilli()
+                        + RETRY_INTERVALS_FOR_SERVER_ERROR[
+                                RETRY_INTERVALS_FOR_CONNECTION_ERROR.length - 1];
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
     }
 
     @Test
-    public void testRetrieveCallbackFailureTransient() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        Message message;
-        String errorDescription = "Server error";
+    public void mRetrieveCallback_transientFailureServerError_scheduleRetry() {
+        // Return failure more than the MAX_RETRY_TIMES(RETRY_INTERVALS_FOR_SERVER_ERROR.length).
         for (int retryCount = 0;
-                retryCount < WifiPseudonymManager.RETRY_INTERVALS_FOR_SERVER_ERROR.length;
+                retryCount < (RETRY_INTERVALS_FOR_SERVER_ERROR.length * 2);
                 retryCount++) {
-            mWifiPseudonymManager.mRetrieveCallback.onFailure(CARRIER_ID,
-                    CarrierSpecificServiceEntitlement.REASON_TRANSIENT_FAILURE, errorDescription);
-            mTestLooper.moveTimeForward(
-                    WifiPseudonymManager.RETRY_INTERVALS_FOR_SERVER_ERROR[retryCount]);
-            assertTrue(mTestLooper.isIdle());
-
-            message = mTestLooper.nextMessage();
-            assertEquals(CARRIER_ID, message.what);
-            assertEquals(CARRIER_ID,
-                    ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
-            assertNull(mTestLooper.nextMessage());
+            mWifiPseudonymManager.mRetrieveCallback.onFailure(
+                    CARRIER_ID,
+                    CarrierSpecificServiceEntitlement.REASON_TRANSIENT_FAILURE,
+                    "Server error");
         }
 
-        mWifiPseudonymManager.mRetrieveCallback.onFailure(CARRIER_ID,
-                CarrierSpecificServiceEntitlement.REASON_TRANSIENT_FAILURE, errorDescription);
-        mTestLooper.moveTimeForward(Duration.ofDays(100).toMillis()); // Move forward long enough
-        assertFalse(mTestLooper.isIdle());
-        assertNull(mTestLooper.nextMessage());
+        /*
+         * Verify that the device only retries
+         * MAX_RETRY_TIMES(RETRY_INTERVALS_FOR_SERVER_ERROR.length)
+         */
+        verify(mAlarmManager, times(RETRY_INTERVALS_FOR_SERVER_ERROR.length))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        long maxStartTime =
+                Instant.now().toEpochMilli()
+                        + RETRY_INTERVALS_FOR_SERVER_ERROR[
+                                RETRY_INTERVALS_FOR_SERVER_ERROR.length - 1];
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
     }
 
     @Test
-    public void testRetrieveCallbackFailureNonTransient() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        String errorDescription = "Authentication failed";
-        mWifiPseudonymManager.mRetrieveCallback.onFailure(CARRIER_ID,
-                CarrierSpecificServiceEntitlement.REASON_NON_TRANSIENT_FAILURE, errorDescription);
-        mTestLooper.moveTimeForward(Duration.ofDays(100).toMillis()); // Move forward long enough
-        assertFalse(mTestLooper.isIdle());
+    public void mRetrieveCallback_nonTransientFailure_noScheduleRetry() {
+        mWifiPseudonymManager.mRetrieveCallback.onFailure(
+                CARRIER_ID,
+                CarrierSpecificServiceEntitlement.REASON_NON_TRANSIENT_FAILURE,
+                "Authentication failed");
+        verify(mAlarmManager, never())
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
     }
 
     @Test
-    public void testRetrieveCallbackSuccess() {
-        mWifiPseudonymManager = new WifiPseudonymManager(mWifiContext, mWifiInjector, mClock,
-                mTestLooper.getLooper());
-        Message message;
+    public void mRetrieveCallback_success_scheduleRefresh() {
         PseudonymInfo pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI,
                 Duration.ofDays(2).toMillis(), Instant.now().toEpochMilli());
         mWifiPseudonymManager.mRetrieveCallback.onSuccess(CARRIER_ID, pseudonymInfo);
-        assertFalse(mTestLooper.isIdle());
-        mTestLooper.moveTimeForward(Duration.ofDays(2).toMillis());
-        assertTrue(mTestLooper.isIdle());
-        message = mTestLooper.nextMessage();
-        assertEquals(CARRIER_ID, message.what);
-        assertEquals(CARRIER_ID,
-                ((WifiPseudonymManager.RetrieveRunnable) message.getCallback()).mCarrierId);
-        assertNull(mTestLooper.nextMessage());
+
+        verify(mAlarmManager, times(1))
+                .setWindow(
+                        mAlarmTypeCaptor.capture(),
+                        mWindowStartCaptor.capture(),
+                        mWindowLengthCaptor.capture(),
+                        any(),
+                        mRetrieveListenerArgumentCaptor.capture(),
+                        any());
+        long maxStartTime = Instant.now().toEpochMilli() + pseudonymInfo.getLttrInMillis();
+        assertTrue(mWindowStartCaptor.getValue().longValue() <= maxStartTime);
     }
     private void setAnExpiredPseudonym(WifiPseudonymManager wifiPseudonymManager) {
         long ttl = Duration.ofDays(2).toMillis();
@@ -489,10 +532,13 @@ public class WifiPseudonymManagerTest extends WifiBaseTest {
         wifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID, pseudonymInfo);
     }
 
-    private void setAValidPseudonym(WifiPseudonymManager wifiPseudonymManager) {
-        long ttl = Duration.ofDays(2).toMillis();
-        PseudonymInfo pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI, ttl,
-                Instant.now().toEpochMilli());
+    private void setAFreshPseudonym(WifiPseudonymManager wifiPseudonymManager) {
+        PseudonymInfo pseudonymInfo =
+                new PseudonymInfo(
+                        PSEUDONYM,
+                        IMSI,
+                        DEFAULT_PSEUDONYM_TTL_IN_MILLIS,
+                        Instant.now().toEpochMilli());
         wifiPseudonymManager.setPseudonymAndScheduleRefresh(CARRIER_ID, pseudonymInfo);
     }
 }
