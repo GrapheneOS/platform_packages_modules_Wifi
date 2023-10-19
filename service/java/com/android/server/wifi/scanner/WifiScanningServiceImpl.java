@@ -157,6 +157,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             mChannelHelper.updateChannels();
             return mChannelHelper.getAvailableScanChannels(band);
         }, new ChannelSpec[0][0]);
+        if (channelSpecs == null) {
+            channelSpecs = new ChannelSpec[0][0];
+        }
 
         ArrayList<Integer> list = new ArrayList<>();
         for (int i = 0; i < channelSpecs.length; i++) {
@@ -3382,6 +3385,11 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             mPnoScanStateMachine.dump(fd, pw, args);
         }
         pw.println();
+
+        if (mChannelHelper != null) {
+            mChannelHelper.dump(fd, pw, args);
+            pw.println();
+        }
 
         if (mSingleScanStateMachine != null) {
             mSingleScanStateMachine.dump(fd, pw, args);
