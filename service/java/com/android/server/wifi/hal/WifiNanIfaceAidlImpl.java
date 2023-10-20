@@ -795,8 +795,15 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.baseConfigs.discoveryCount = 0;
         req.baseConfigs.serviceName = copyArray(publishConfig.mServiceName);
         req.baseConfigs.discoveryMatchIndicator = NanMatchAlg.MATCH_NEVER;
-        req.baseConfigs.serviceSpecificInfo = copyArray(publishConfig.mServiceSpecificInfo);
-        req.baseConfigs.extendedServiceSpecificInfo = new byte[0];
+        if (publishConfig.mServiceSpecificInfo != null
+                && publishConfig.mServiceSpecificInfo.length > 255) {
+            req.baseConfigs.extendedServiceSpecificInfo =
+                    copyArray(publishConfig.mServiceSpecificInfo);
+            req.baseConfigs.serviceSpecificInfo = new byte[0];
+        } else {
+            req.baseConfigs.serviceSpecificInfo = copyArray(publishConfig.mServiceSpecificInfo);
+            req.baseConfigs.extendedServiceSpecificInfo = new byte[0];
+        }
         if (publishConfig.mPublishType == PublishConfig.PUBLISH_TYPE_UNSOLICITED) {
             req.baseConfigs.txMatchFilter = copyArray(publishConfig.mMatchFilter);
             req.baseConfigs.rxMatchFilter = new byte[0];
@@ -858,8 +865,15 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.baseConfigs.discoveryCount = 0;
         req.baseConfigs.serviceName = copyArray(subscribeConfig.mServiceName);
         req.baseConfigs.discoveryMatchIndicator = NanMatchAlg.MATCH_ONCE;
-        req.baseConfigs.serviceSpecificInfo = copyArray(subscribeConfig.mServiceSpecificInfo);
-        req.baseConfigs.extendedServiceSpecificInfo = new byte[0];
+        if (subscribeConfig.mServiceSpecificInfo != null
+                && subscribeConfig.mServiceSpecificInfo.length > 255) {
+            req.baseConfigs.extendedServiceSpecificInfo =
+                    copyArray(subscribeConfig.mServiceSpecificInfo);
+            req.baseConfigs.serviceSpecificInfo = new byte[0];
+        } else {
+            req.baseConfigs.serviceSpecificInfo = copyArray(subscribeConfig.mServiceSpecificInfo);
+            req.baseConfigs.extendedServiceSpecificInfo = new byte[0];
+        }
         if (subscribeConfig.mSubscribeType == SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE) {
             req.baseConfigs.txMatchFilter = copyArray(subscribeConfig.mMatchFilter);
             req.baseConfigs.rxMatchFilter = new byte[0];
@@ -925,8 +939,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.addr = dest.toByteArray();
         req.isHighPriority = false;
         req.shouldUseDiscoveryWindow = true;
-        req.serviceSpecificInfo = copyArray(message);
-        req.extendedServiceSpecificInfo = new byte[0];
+        if (message != null && message.length > 255) {
+            req.extendedServiceSpecificInfo = copyArray(message);
+            req.serviceSpecificInfo = new byte[0];
+        } else {
+            req.serviceSpecificInfo = copyArray(message);
+            req.extendedServiceSpecificInfo = new byte[0];
+        }
         req.disableFollowupResultIndication = false;
         return req;
     }

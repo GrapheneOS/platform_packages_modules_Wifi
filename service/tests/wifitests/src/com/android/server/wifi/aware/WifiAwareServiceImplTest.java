@@ -768,7 +768,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
         Characteristics characteristics = cap.toPublicCharacteristics(mDeviceConfigFacade);
         assertEquals(characteristics.getMaxServiceNameLength(), maxServiceName);
-        assertEquals(characteristics.getMaxServiceSpecificInfoLength(), maxServiceSpecificInfo);
+        assertEquals(characteristics.getMaxServiceSpecificInfoLength(), MAX_LENGTH);
         assertEquals(characteristics.getMaxMatchFilterLength(), maxMatchFilter);
         assertEquals(characteristics.getSupportedCipherSuites(),
                 Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256);
