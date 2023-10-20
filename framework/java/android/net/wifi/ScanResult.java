@@ -29,6 +29,7 @@ import android.net.wifi.util.ScanResultUtil;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import com.android.modules.utils.build.SdkLevel;
 
@@ -48,6 +49,8 @@ import java.util.Objects;
  * but does not currently report them to external clients.
  */
 public final class ScanResult implements Parcelable {
+
+    private static final String TAG = "ScanResult";
     /**
      * The network name.
      *
@@ -1543,6 +1546,7 @@ public final class ScanResult implements Parcelable {
 
     /** Implement the Parcelable interface {@hide} */
     public void writeToParcel(Parcel dest, int flags) {
+        long start = dest.dataSize();
         if (wifiSsid != null) {
             dest.writeInt(1);
             wifiSsid.writeToParcel(dest, flags);
@@ -1580,6 +1584,7 @@ public final class ScanResult implements Parcelable {
         else {
             dest.writeInt(0);
         }
+        int anqpElementsPayloadSize = 0;
         if (anqpElements != null) {
             dest.writeInt(anqpElements.length);
             for (AnqpInformationElement element : anqpElements) {
@@ -1587,6 +1592,7 @@ public final class ScanResult implements Parcelable {
                 dest.writeInt(element.getElementId());
                 dest.writeInt(element.getPayload().length);
                 dest.writeByteArray(element.getPayload());
+                anqpElementsPayloadSize += element.getPayload().length;
             }
         } else {
             dest.writeInt(0);
@@ -1608,6 +1614,18 @@ public final class ScanResult implements Parcelable {
         dest.writeParcelable(mApMldMacAddress, flags);
         dest.writeInt(mApMloLinkId);
         dest.writeTypedList(mAffiliatedMloLinks);
+        if (dest.dataSize() - start > 10000) {
+            Log.e(
+                    TAG,
+                    " Abnormal ScanResult: "
+                            + this
+                            + ". The size is "
+                            + (dest.dataSize() - start)
+                            + ". The informationElements size is "
+                            + informationElements.length
+                            + ". The anqpPayload size is "
+                            + anqpElementsPayloadSize);
+        }
     }
 
     /** Implement the Parcelable interface */
