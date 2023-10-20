@@ -16,6 +16,7 @@
 
 package android.net.wifi;
 
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -84,9 +85,8 @@ public class WifiConfiguration implements Parcelable {
     /** {@hide} */
     public static final String pskVarName = "psk";
     /** {@hide} */
-    @Deprecated
-    @UnsupportedAppUsage
-    public static final String[] wepKeyVarNames = { "wep_key0", "wep_key1", "wep_key2", "wep_key3" };
+    @Deprecated @UnsupportedAppUsage
+    public static final String[] wepKeyVarNames = {"wep_key0", "wep_key1", "wep_key2", "wep_key3"};
     /** {@hide} */
     @Deprecated
     public static final String wepTxKeyIdxVarName = "wep_tx_keyidx";
@@ -2141,6 +2141,7 @@ public class WifiConfiguration implements Parcelable {
         /**
          * This network is temporarily disabled because of unwanted network under sufficient rssi.
          */
+        @FlaggedApi("com.android.wifi.flags.disable_reason_unwanted_low_rssi")
         public static final int DISABLED_UNWANTED_LOW_RSSI = 14;
         /**
          * All other disable reasons should be strictly less than this value.

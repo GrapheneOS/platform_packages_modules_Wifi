@@ -13,6 +13,3 @@ MutableBareField: android.net.wifi.WifiConfiguration#lastConnectUid:
     Bare field lastConnectUid must be marked final, or moved behind accessors if mutable
 MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
     Bare field subscriptionId must be marked final, or moved behind accessors if mutable
-
-UnflaggedApi: android.net.wifi.WifiConfiguration.NetworkSelectionStatus#DISABLED_UNWANTED_LOW_RSSI:
-    New API must be flagged with @FlaggedApi: field android.net.wifi.WifiConfiguration.NetworkSelectionStatus.DISABLED_UNWANTED_LOW_RSSI

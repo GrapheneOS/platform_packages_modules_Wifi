@@ -57,6 +57,12 @@ flag {
     bug: "262643386"
 }
 
+flag {
+    name: "disable_reason_unwanted_low_rssi"
+    namespace: "wifi"
+    description: "Control the API that as disable because of unwanted network under sufficient rssi"
+    bug: "262643386"
+}
 
 flag {
     name: "low_latency_lock_listener"
