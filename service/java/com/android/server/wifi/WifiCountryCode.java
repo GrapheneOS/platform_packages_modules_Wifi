@@ -724,9 +724,8 @@ public class WifiCountryCode {
                     // changed case.
                     continue;
                 }
-                // Restart SAP only when 1. overlay enabled 2. CC is not world mode.
-                if (ApConfigUtil.isSoftApRestartRequiredWhenCountryCodeChanged(mContext)
-                        && !mDriverCountryCode.equalsIgnoreCase(mWorldModeCountryCode)) {
+                // Restart SAP if the overlay is enabled.
+                if (ApConfigUtil.isSoftApRestartRequiredWhenCountryCodeChanged(mContext)) {
                     Log.i(TAG, "restart SoftAp required because country code changed to "
                             + country);
                     SoftApModeConfiguration modeConfig = sm.getSoftApModeConfiguration();
