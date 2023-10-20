@@ -463,8 +463,21 @@ public class WifiRttManagerTest {
         assertEquals(result, rereadResult);
 
         // RangingResults constructed with a PeerHandle
-        result = new RangingResult(status, peerHandle, distanceCm, distanceStdDevCm, rssi,
-                numAttemptedMeasurements, numSuccessfulMeasurements, null, null, null, timestamp);
+        result =
+                new RangingResult(
+                        status,
+                        peerHandle,
+                        distanceCm,
+                        distanceStdDevCm,
+                        rssi,
+                        numAttemptedMeasurements,
+                        numSuccessfulMeasurements,
+                        null,
+                        null,
+                        null,
+                        timestamp,
+                        RangingResult.UNSPECIFIED,
+                        RangingResult.UNSPECIFIED);
 
         parcelW = Parcel.obtain();
         result.writeToParcel(parcelW, 0);

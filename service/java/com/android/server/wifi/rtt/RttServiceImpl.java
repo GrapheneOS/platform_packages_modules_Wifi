@@ -1280,8 +1280,20 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                                         null, null, 0, false));
                     } else {
                         finalResults.add(
-                                new RangingResult(errorCode, peer.peerHandle, 0, 0, 0, 0, 0, null,
-                                        null, null, 0));
+                                new RangingResult(
+                                        errorCode,
+                                        peer.peerHandle,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        null,
+                                        null,
+                                        null,
+                                        0,
+                                        RangingResult.UNSPECIFIED,
+                                        RangingResult.UNSPECIFIED));
                     }
                 } else {
                     int status = RangingResult.STATUS_SUCCESS;
@@ -1315,18 +1327,21 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                                 resultForRequest.mFrequencyMHz,
                                 resultForRequest.mPacketBw));
                     } else {
-                        finalResults.add(new RangingResult(
-                                status,
-                                peer.peerHandle,
-                                resultForRequest.mDistanceMm,
-                                resultForRequest.mDistanceStdDevMm,
-                                resultForRequest.mRssi,
-                                resultForRequest.mNumAttemptedMeasurements,
-                                resultForRequest.mNumSuccessfulMeasurements,
-                                lci,
-                                lcr,
-                                responderLocation,
-                                resultForRequest.mTimestamp));
+                        finalResults.add(
+                                new RangingResult(
+                                        status,
+                                        peer.peerHandle,
+                                        resultForRequest.mDistanceMm,
+                                        resultForRequest.mDistanceStdDevMm,
+                                        resultForRequest.mRssi,
+                                        resultForRequest.mNumAttemptedMeasurements,
+                                        resultForRequest.mNumSuccessfulMeasurements,
+                                        lci,
+                                        lcr,
+                                        responderLocation,
+                                        resultForRequest.mTimestamp,
+                                        resultForRequest.mFrequencyMHz,
+                                        resultForRequest.mPacketBw));
                     }
                 }
             }
