@@ -393,26 +393,54 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public void eventMatch(NanMatchInd event) {
         if (!checkFrameworkCallback()) return;
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventMatch: discoverySessionId=" + event.discoverySessionId
-                    + ", peerId=" + event.peerId
-                    + ", addr=" + String.valueOf(HexEncoding.encode(event.addr))
-                    + ", serviceSpecificInfo=" + Arrays.toString(event.serviceSpecificInfo)
-                    + ", ssi.size()=" + (event.serviceSpecificInfo == null
-                            ? 0 : event.serviceSpecificInfo.length)
-                    + ", matchFilter=" + Arrays.toString(event.matchFilter)
-                    + ", mf.size()=" + (event.matchFilter == null ? 0 : event.matchFilter.length)
-                    + ", rangingIndicationType=" + event.rangingIndicationType
-                    + ", rangingMeasurementInMm=" + event.rangingMeasurementInMm + ", "
-                    + "scid=" + Arrays.toString(event.scid));
+        byte[] serviceSpecificInfo = event.serviceSpecificInfo;
+        boolean isExtendedServiceSpecificInfo = false;
+        if (serviceSpecificInfo == null || serviceSpecificInfo.length == 0) {
+            serviceSpecificInfo = event.extendedServiceSpecificInfo;
+            isExtendedServiceSpecificInfo = true;
         }
-        mWifiNanIface.getFrameworkCallback().eventMatch(event.discoverySessionId, event.peerId,
-                event.addr, event.serviceSpecificInfo, event.matchFilter,
-                NanRangingIndication.fromAidl(event.rangingIndicationType),
-                event.rangingMeasurementInMm, event.scid,
-                toPublicDataPathCipherSuites(event.peerCipherType),
-                event.peerNira.nonce, event.peerNira.tag,
-                createPublicPairingConfig(event.peerPairingConfig));
+        if (mVerboseLoggingEnabled) {
+            Log.v(
+                    TAG,
+                    "eventMatch: discoverySessionId="
+                            + event.discoverySessionId
+                            + ", peerId="
+                            + event.peerId
+                            + ", addr="
+                            + String.valueOf(HexEncoding.encode(event.addr))
+                            + ", isExtendedServiceSpecificInfo="
+                            + isExtendedServiceSpecificInfo
+                            + ", serviceSpecificInfo="
+                            + Arrays.toString(serviceSpecificInfo)
+                            + ", ssi.size()="
+                            + (serviceSpecificInfo == null ? 0 : serviceSpecificInfo.length)
+                            + ", matchFilter="
+                            + Arrays.toString(event.matchFilter)
+                            + ", mf.size()="
+                            + (event.matchFilter == null ? 0 : event.matchFilter.length)
+                            + ", rangingIndicationType="
+                            + event.rangingIndicationType
+                            + ", rangingMeasurementInMm="
+                            + event.rangingMeasurementInMm
+                            + ", "
+                            + "scid="
+                            + Arrays.toString(event.scid));
+        }
+        mWifiNanIface
+                .getFrameworkCallback()
+                .eventMatch(
+                        event.discoverySessionId,
+                        event.peerId,
+                        event.addr,
+                        serviceSpecificInfo,
+                        event.matchFilter,
+                        NanRangingIndication.fromAidl(event.rangingIndicationType),
+                        event.rangingMeasurementInMm,
+                        event.scid,
+                        toPublicDataPathCipherSuites(event.peerCipherType),
+                        event.peerNira.nonce,
+                        event.peerNira.tag,
+                        createPublicPairingConfig(event.peerPairingConfig));
     }
 
     private AwarePairingConfig createPublicPairingConfig(NanPairingConfig nativePairingConfig) {
@@ -469,15 +497,33 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     @Override
     public void eventFollowupReceived(NanFollowupReceivedInd event) {
         if (!checkFrameworkCallback()) return;
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventFollowupReceived: discoverySessionId=" + event.discoverySessionId
-                    + ", peerId=" + event.peerId + ", addr=" + String.valueOf(
-                    HexEncoding.encode(event.addr)) + ", serviceSpecificInfo=" + Arrays.toString(
-                    event.serviceSpecificInfo) + ", ssi.size()="
-                    + (event.serviceSpecificInfo == null ? 0 : event.serviceSpecificInfo.length));
+        byte[] serviceSpecificInfo = event.serviceSpecificInfo;
+        boolean isExtendedServiceSpecificInfo = false;
+        if (serviceSpecificInfo == null || serviceSpecificInfo.length == 0) {
+            serviceSpecificInfo = event.extendedServiceSpecificInfo;
+            isExtendedServiceSpecificInfo = true;
         }
-        mWifiNanIface.getFrameworkCallback().eventFollowupReceived(
-                event.discoverySessionId, event.peerId, event.addr, event.serviceSpecificInfo);
+
+        if (mVerboseLoggingEnabled) {
+            Log.v(
+                    TAG,
+                    "eventFollowupReceived: discoverySessionId="
+                            + event.discoverySessionId
+                            + ", peerId="
+                            + event.peerId
+                            + ", addr="
+                            + String.valueOf(HexEncoding.encode(event.addr))
+                            + ", isExtendedServiceSpecificInfo="
+                            + isExtendedServiceSpecificInfo
+                            + ", serviceSpecificInfo="
+                            + Arrays.toString(event.serviceSpecificInfo)
+                            + ", ssi.size()="
+                            + (serviceSpecificInfo == null ? 0 : serviceSpecificInfo.length));
+        }
+        mWifiNanIface
+                .getFrameworkCallback()
+                .eventFollowupReceived(
+                        event.discoverySessionId, event.peerId, event.addr, serviceSpecificInfo);
     }
 
     @Override

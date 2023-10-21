@@ -424,8 +424,20 @@ public class RttServiceImplTest extends WifiBaseTest {
         results.first.remove(results.first.size() - 1);
         RangingResult removed = results.second.remove(results.second.size() - 1);
         results.second.add(
-                new RangingResult(RangingResult.STATUS_FAIL, removed.getPeerHandle(), 0, 0, 0, 0, 0,
-                        null, null, null, 0));
+                new RangingResult(
+                        RangingResult.STATUS_FAIL,
+                        removed.getPeerHandle(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        null,
+                        null,
+                        null,
+                        0,
+                        RangingResult.UNSPECIFIED,
+                        RangingResult.UNSPECIFIED));
         clock.time += MEASUREMENT_DURATION;
         mRangingResultsCbCaptor.getValue()
                 .onRangingResults(mIntCaptor.getValue(), results.first);

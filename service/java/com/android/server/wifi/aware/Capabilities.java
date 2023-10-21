@@ -58,8 +58,9 @@ public class Capabilities {
     public Characteristics toPublicCharacteristics(DeviceConfigFacade deviceConfigFacade) {
         Bundle bundle = new Bundle();
         bundle.putInt(Characteristics.KEY_MAX_SERVICE_NAME_LENGTH, maxServiceNameLen);
-        bundle.putInt(Characteristics.KEY_MAX_SERVICE_SPECIFIC_INFO_LENGTH,
-                maxServiceSpecificInfoLen);
+        bundle.putInt(
+                Characteristics.KEY_MAX_SERVICE_SPECIFIC_INFO_LENGTH,
+                Math.max(maxExtendedServiceSpecificInfoLen, maxServiceSpecificInfoLen));
         bundle.putInt(Characteristics.KEY_MAX_MATCH_FILTER_LENGTH, maxMatchFilterLen);
         bundle.putInt(Characteristics.KEY_SUPPORTED_DATA_PATH_CIPHER_SUITES,
                 supportedDataPathCipherSuites);
