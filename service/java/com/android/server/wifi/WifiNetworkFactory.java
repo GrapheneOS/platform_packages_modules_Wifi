@@ -35,10 +35,7 @@ import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.AppOpsManager;
 import android.companion.CompanionDeviceManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
@@ -63,7 +60,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PatternMatcher;
-import android.os.PowerManager;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -600,28 +596,15 @@ public class WifiNetworkFactory extends NetworkFactory {
         activeModeWarden.registerModeChangeCallback(new ModeChangeCallback());
 
         setScoreFilter(SCORE_FILTER);
-    }
-
-    /**
-     * Finished the setup after boot completed
-     */
-    public void start() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        mContext.registerReceiver(
-                new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        String action = intent.getAction();
-                        if (action.equals(Intent.ACTION_SCREEN_ON)) {
-                            handleScreenStateChanged(true);
-                        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-                            handleScreenStateChanged(false);
-                        }
-                    }
-                }, filter, null, mHandler);
-        handleScreenStateChanged(mContext.getSystemService(PowerManager.class).isInteractive());
+        mWifiInjector
+                .getWifiDeviceStateChangeManager()
+                .registerStateChangeCallback(
+                        new WifiDeviceStateChangeManager.StateChangeCallback() {
+                            @Override
+                            public void onScreenStateChanged(boolean screenOn) {
+                                handleScreenStateChanged(screenOn);
+                            }
+                        });
     }
 
     private void saveToStore() {

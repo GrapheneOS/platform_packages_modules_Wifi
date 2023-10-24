@@ -16,6 +16,8 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_THREAD_TASK_EXECUTED;
+
 import android.annotation.NonNull;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,6 +29,7 @@ import android.os.Trace;
 import android.util.LocalLog;
 
 import com.android.modules.utils.HandlerExecutor;
+import com.android.server.wifi.proto.WifiStatsLog;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -44,7 +47,6 @@ public class RunnerHandler extends Handler {
     private static final int METRICS_THRESHOLD_MILLIS = 100;
 
     private final int mRunningTimeThresholdInMilliseconds;
-    private final WifiMetrics mWifiMetrics;
     private Set<String> mIgnoredClasses = new HashSet<>();
     private Set<String> mIgnoredMethods = new HashSet<>();
 
@@ -54,15 +56,13 @@ public class RunnerHandler extends Handler {
     /**
      * The Runner handler Constructor
      *
-     * @param looper    looper for the handler
+     * @param looper looper for the handler
      * @param threshold the running time threshold in milliseconds
      */
-    public RunnerHandler(Looper looper, int threshold, @NonNull LocalLog localLog,
-            WifiMetrics wifiMetrics) {
+    public RunnerHandler(Looper looper, int threshold, @NonNull LocalLog localLog) {
         super(looper);
         mRunningTimeThresholdInMilliseconds = threshold;
         mLocalLog = localLog;
-        mWifiMetrics = wifiMetrics;
         mIgnoredClasses.add(WifiThreadRunner.class.getName());
         mIgnoredClasses.add(WifiThreadRunner.class.getName() + "$BlockingRunnable");
         mIgnoredClasses.add(RunnerHandler.class.getName());
@@ -132,8 +132,11 @@ public class RunnerHandler extends Handler {
             mLocalLog.log(signatureToLog + " schedule latency " + scheduleLatency + " ms");
         }
         if (runTime > METRICS_THRESHOLD_MILLIS || scheduleLatency > METRICS_THRESHOLD_MILLIS) {
-            mWifiMetrics.wifiThreadTaskExecuted(signatureToLog, (int) scheduleLatency,
-                    (int) runTime);
+            WifiStatsLog.write(
+                    WIFI_THREAD_TASK_EXECUTED,
+                    (int) runTime,
+                    (int) scheduleLatency,
+                    signatureToLog);
         }
     }
 

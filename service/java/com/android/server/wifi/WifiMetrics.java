@@ -21,7 +21,6 @@ import static android.net.wifi.WifiConfiguration.MeteredOverride;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONFIG_SAVED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED;
-import static com.android.server.wifi.proto.WifiStatsLog.WIFI_THREAD_TASK_EXECUTED;
 
 import static java.lang.StrictMath.toIntExact;
 
@@ -29,10 +28,8 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.NetworkCapabilities;
@@ -62,7 +59,6 @@ import android.net.wifi.util.ScanResultUtil;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.PowerManager;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -1600,10 +1596,18 @@ public class WifiMetrics {
         }
     }
 
-    public WifiMetrics(Context context, FrameworkFacade facade, Clock clock, Looper looper,
-            WifiAwareMetrics awareMetrics, RttMetrics rttMetrics,
-            WifiPowerMetrics wifiPowerMetrics, WifiP2pMetrics wifiP2pMetrics,
-            DppMetrics dppMetrics, WifiMonitor wifiMonitor) {
+    public WifiMetrics(
+            Context context,
+            FrameworkFacade facade,
+            Clock clock,
+            Looper looper,
+            WifiAwareMetrics awareMetrics,
+            RttMetrics rttMetrics,
+            WifiPowerMetrics wifiPowerMetrics,
+            WifiP2pMetrics wifiP2pMetrics,
+            DppMetrics dppMetrics,
+            WifiMonitor wifiMonitor,
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
         mContext = context;
         mFacade = facade;
         mClock = clock;
@@ -1631,26 +1635,13 @@ public class WifiMetrics {
         mCurrentDeviceMobilityStatePnoScanStartMs = -1;
         mOnWifiUsabilityListeners = new RemoteCallbackList<>();
         mScanMetrics = new ScanMetrics(context, clock);
-    }
-
-    /** Begin listening to broadcasts */
-    public void start() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        mContext.registerReceiver(
-                new BroadcastReceiver() {
+        wifiDeviceStateChangeManager.registerStateChangeCallback(
+                new WifiDeviceStateChangeManager.StateChangeCallback() {
                     @Override
-                    public void onReceive(Context context, Intent intent) {
-                        String action = intent.getAction();
-                        if (action.equals(Intent.ACTION_SCREEN_ON)) {
-                            setScreenState(true);
-                        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-                            setScreenState(false);
-                        }
+                    public void onScreenStateChanged(boolean screenOn) {
+                        setScreenState(screenOn);
                     }
-                }, filter, null, mHandler);
-        setScreenState(mContext.getSystemService(PowerManager.class).isInteractive());
+                });
     }
 
     /** Sets internal ScoringParams member */
@@ -9181,16 +9172,6 @@ public class WifiMetrics {
      */
     public void wifiConfigStored(int time) {
         WifiStatsLog.write(WIFI_CONFIG_SAVED, time);
-    }
-
-    /**
-     * Logged when the task on the Wifi Thread has been excuted
-     * @param taskName The name of the task
-     * @param delay The dalay time after post the task on the thread
-     * @param runningTime The time usesd for executing the task
-     */
-    public void wifiThreadTaskExecuted(String taskName, int delay, int runningTime) {
-        WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, runningTime, delay, taskName);
     }
 
     /**

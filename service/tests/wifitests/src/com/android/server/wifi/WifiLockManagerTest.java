@@ -103,6 +103,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     @Mock PowerManager mPowerManager;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     TestLooper mLooper;
     Handler mHandler;
 
@@ -111,7 +112,6 @@ public class WifiLockManagerTest extends WifiBaseTest {
             mStateChangeCallbackArgumentCaptor;
 
     @Mock Resources mResources;
-    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
 
     /**
      * Method to setup a WifiLockManager for the tests.
