@@ -1159,7 +1159,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mResources.getString(R.string.wifi_enable_request_dialog_negative_button))
                 .thenReturn(negativeButtonText);
 
-        // Verify the negative reply does not enable wifi
+        // Launch dialog
         WifiDialogManager.DialogHandle dialogHandle = mock(WifiDialogManager.DialogHandle.class);
         when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(dialogHandle);
@@ -1178,6 +1178,22 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 callbackCaptor.capture(),
                 any());
         verify(dialogHandle).launchDialog();
+
+        // Verify extra call to setWifiEnabled won't launch a new dialog
+        assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+        verify(mActiveModeWarden, times(0)).wifiToggled(
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        mLooper.dispatchAll();
+        verify(mWifiDialogManager, times(1)).createSimpleDialog(
+                eq(title),
+                eq(message),
+                eq(positiveButtonText),
+                eq(negativeButtonText),
+                eq(null),
+                callbackCaptor.capture(),
+                any());
+
+        // Verify the negative reply does not enable wifi
         callbackCaptor.getValue().onNegativeButtonClicked();
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
