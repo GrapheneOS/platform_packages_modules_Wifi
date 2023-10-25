@@ -469,6 +469,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock ScoringParams mScoringParams;
     @Mock ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
     @Mock Location mLocation;
+    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
     @Captor ArgumentCaptor<List> mListCaptor;
 
@@ -523,6 +524,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         // needed to mock this to call "handleBootCompleted"
         when(mWifiInjector.getPasspointProvisionerHandlerThread())
                 .thenReturn(mock(HandlerThread.class));
+        when(mWifiInjector.getWifiDeviceStateChangeManager())
+                .thenReturn(mWifiDeviceStateChangeManager);
         when(mHandlerThread.getThreadHandler()).thenReturn(new Handler(mLooper.getLooper()));
         when(mHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
         when(mContext.getResources()).thenReturn(mResources);
@@ -1895,6 +1898,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).loadFromStore();
         verify(mActiveModeWarden).start();
         verify(mActiveModeWarden, never()).wifiToggled(any());
+        verify(mWifiDeviceStateChangeManager).handleBootCompleted();
     }
 
     @Test
@@ -1929,6 +1933,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).loadFromStore();
         verify(mActiveModeWarden).start();
         verify(mWifiNetworkFactory).start();
+        verify(mWifiDeviceStateChangeManager).handleBootCompleted();
     }
 
     @Test
