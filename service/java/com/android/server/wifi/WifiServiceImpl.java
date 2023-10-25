@@ -1371,6 +1371,11 @@ public class WifiServiceImpl extends BaseWifiService {
                     }
                 };
         Resources res = mContext.getResources();
+        if (mWifiEnableRequestDialogHandles.get(uid) != null) {
+            mLog.info("setWifiEnabled dialog already launched for package=% uid=%").c(packageName)
+                    .c(uid).flush();
+            return;
+        }
         WifiDialogManager.DialogHandle dialogHandle = mWifiDialogManager.createSimpleDialog(
                 res.getString(R.string.wifi_enable_request_dialog_title, appName),
                 res.getString(R.string.wifi_enable_request_dialog_message),
