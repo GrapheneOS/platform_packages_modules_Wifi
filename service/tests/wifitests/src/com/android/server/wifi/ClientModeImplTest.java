@@ -9871,6 +9871,15 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
                 mWifiInfo.getAffiliatedMloLinks().size());
 
+        // verify that affiliated link state the scan results are still in unassociated state.
+        for (MloLink link : mScanResult.getAffiliatedMloLinks()) {
+            assertEquals(MloLink.MLO_LINK_STATE_UNASSOCIATED, link.getState());
+        }
+        // verify that affiliated link state are active
+        for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
+            assertEquals(MloLink.MLO_LINK_STATE_ACTIVE, link.getState());
+        }
+
         setScanResultWithMloInfo();
         // Send FOUR_WAY_HANDSHAKE, GROUP_HANDSHAKE and COMPLETED and verify all links are still
         // asscoaited.

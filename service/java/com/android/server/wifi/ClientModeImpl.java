@@ -3070,7 +3070,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (matchingScanResult != null && matchingScanResult.getApMldMacAddress() != null) {
             mWifiInfo.setApMldMacAddress(matchingScanResult.getApMldMacAddress());
             mWifiInfo.setApMloLinkId(matchingScanResult.getApMloLinkId());
-            mWifiInfo.setAffiliatedMloLinks(matchingScanResult.getAffiliatedMloLinks());
+            // Deep copy the affiliated links to avoid any overwrite in future from WifiInfo.
+            List<MloLink> deepCopyAffiliatedMloLinks = new ArrayList<>();
+            for (MloLink link : matchingScanResult.getAffiliatedMloLinks()) {
+                deepCopyAffiliatedMloLinks.add(new MloLink(link, NetworkCapabilities.REDACT_NONE));
+            }
+            mWifiInfo.setAffiliatedMloLinks(deepCopyAffiliatedMloLinks);
         } else {
             mWifiInfo.setApMldMacAddress(null);
             mWifiInfo.setApMloLinkId(MloLink.INVALID_MLO_LINK_ID);
