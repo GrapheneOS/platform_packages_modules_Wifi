@@ -3113,6 +3113,36 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 && currentState != SupplicantState.COMPLETED;
     }
 
+    // Return true if link frequency is changed.
+    private boolean updateAssociatedMloLinksFromLinksInfoWhenBssFreqChanged(int bssFreq) {
+        boolean isLinkFrequencyChanged = false;
+        // retrieve mlo links info with updated frequencies from HAL
+        WifiNative.ConnectionMloLinksInfo mloLinksInfo = mWifiNative.getConnectionMloLinksInfo(
+                mInterfaceName);
+        if (mloLinksInfo == null) {
+            return false;
+        }
+        for (int i = 0; i < mloLinksInfo.links.length; i++) {
+            MloLink link = mWifiInfo.getAffiliatedMloLink(mloLinksInfo.links[i].getLinkId());
+            if (link != null && mloLinksInfo.links[i].getFrequencyMHz() == bssFreq) {
+                int linkCurFreq = ScanResult.convertChannelToFrequencyMhzIfSupported(
+                        link.getChannel(), link.getBand());
+                if (linkCurFreq != ScanResult.UNSPECIFIED && bssFreq != linkCurFreq) {
+                    if (link.getRssi() == mWifiInfo.getRssi()
+                            && ScanResult.convertChannelToFrequencyMhzIfSupported(link.getChannel(),
+                            link.getBand()) == mWifiInfo.getFrequency()) {
+                        mWifiInfo.setFrequency(bssFreq);
+                    }
+                    isLinkFrequencyChanged = true;
+                    link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(bssFreq));
+                    link.setBand(ScanResult.toBand(bssFreq));
+                    break;
+                }
+            }
+        }
+        return isLinkFrequencyChanged;
+    }
+
     private SupplicantState handleSupplicantStateChange(StateChangeResult stateChangeResult) {
         SupplicantState state = stateChangeResult.state;
         mWifiScoreCard.noteSupplicantStateChanging(mWifiInfo, state);
@@ -6488,8 +6518,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT: {
                     int newFrequency = message.arg1;
                     if (newFrequency > 0) {
-                        if (mWifiInfo.getFrequency() != newFrequency) {
+                        boolean isNeedUpdate = false;
+                        if (isMlo()) {
+                            if (updateAssociatedMloLinksFromLinksInfoWhenBssFreqChanged(
+                                    newFrequency)) {
+                                isNeedUpdate = true;
+                            }
+                        } else if (mWifiInfo.getFrequency() != newFrequency) {
                             mWifiInfo.setFrequency(newFrequency);
+                            isNeedUpdate = true;
+                        }
+                        if (isNeedUpdate) {
                             updateCurrentConnectionInfo();
                             updateCapabilities();
                         }
