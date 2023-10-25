@@ -18,22 +18,17 @@ package com.android.server.wifi;
 
 import android.annotation.NonNull;
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
-import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -109,10 +104,17 @@ public class WifiLockManager {
         SCREEN_STATE_CHANGED,
     };
 
-    WifiLockManager(Context context, BatteryStatsManager batteryStats,
-            ActiveModeWarden activeModeWarden, FrameworkFacade frameworkFacade,
-            Handler handler, Clock clock, WifiMetrics wifiMetrics,
-            DeviceConfigFacade deviceConfigFacade, WifiPermissionsUtil wifiPermissionsUtil) {
+    WifiLockManager(
+            Context context,
+            BatteryStatsManager batteryStats,
+            ActiveModeWarden activeModeWarden,
+            FrameworkFacade frameworkFacade,
+            Handler handler,
+            Clock clock,
+            WifiMetrics wifiMetrics,
+            DeviceConfigFacade deviceConfigFacade,
+            WifiPermissionsUtil wifiPermissionsUtil,
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
         mContext = context;
         mBatteryStats = batteryStats;
         mActiveModeWarden = activeModeWarden;
@@ -124,22 +126,13 @@ public class WifiLockManager {
         mDeviceConfigFacade = deviceConfigFacade;
         mWifiPermissionsUtil = wifiPermissionsUtil;
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        context.registerReceiver(
-                new BroadcastReceiver() {
+        wifiDeviceStateChangeManager.registerStateChangeCallback(
+                new WifiDeviceStateChangeManager.StateChangeCallback() {
                     @Override
-                    public void onReceive(Context context, Intent intent) {
-                        String action = intent.getAction();
-                        if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)) {
-                            handleScreenStateChanged(true);
-                        } else if (TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
-                            handleScreenStateChanged(false);
-                        }
+                    public void onScreenStateChanged(boolean screenOn) {
+                        handleScreenStateChanged(screenOn);
                     }
-                }, filter, null, mHandler);
-        handleScreenStateChanged(context.getSystemService(PowerManager.class).isInteractive());
+                });
 
         // Register for UID fg/bg transitions
         registerUidImportanceTransitions();
