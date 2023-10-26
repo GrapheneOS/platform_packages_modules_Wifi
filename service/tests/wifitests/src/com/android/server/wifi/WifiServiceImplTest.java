@@ -278,6 +278,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     private static final String TEST_PACKAGE_NAME_OTHER = "TestPackageOther";
     private static final String TEST_FEATURE_ID = "TestFeature";
     private static final String SYSUI_PACKAGE_NAME = "com.android.systemui";
+    private static final String CERT_INSTALLER_PACKAGE_NAME = "com.android.certinstaller";
     private static final int TEST_PID = 6789;
     private static final int TEST_PID2 = 9876;
     private static final int TEST_UID = 1200000;
@@ -7701,7 +7702,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mPasspointManager, never())
                 .addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(), anyBoolean(),
                         eq(false));
-
     }
 
     /**
@@ -7807,6 +7807,42 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mPasspointManager).addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(),
                 anyBoolean(), eq(false));
+    }
+
+    /**
+     * Verify that addOrUpdatePasspointConfiguration disconnects from current captive portal network
+     * when provisioned via WifiInstaller.
+     */
+    @Test
+    public void addOrUpdatePasspointConfigDisconnectsCaptivePortal() throws Exception {
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE,
+                        Process.myUid(), CERT_INSTALLER_PACKAGE_NAME);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
+                eq(Build.VERSION_CODES.R), anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
+        PasspointConfiguration config = new PasspointConfiguration();
+        HomeSp homeSp = new HomeSp();
+        homeSp.setFqdn("test.com");
+        config.setHomeSp(homeSp);
+        WifiConfiguration captivePortalConfig =
+                WifiConfigurationTestUtil.createCaptivePortalNetwork();
+        WifiInfo wifiInfo = new WifiInfo();
+        wifiInfo.setNetworkId(captivePortalConfig.networkId);
+        when(mActiveModeWarden.getConnectionInfo()).thenReturn(wifiInfo);
+        when(mWifiConfigManager.getConfiguredNetworkWithPassword(captivePortalConfig.networkId))
+                .thenReturn(captivePortalConfig);
+
+        when(mPasspointManager.addOrUpdateProvider(
+                config, Binder.getCallingUid(), CERT_INSTALLER_PACKAGE_NAME, false, true, false))
+                .thenReturn(true);
+        mLooper.startAutoDispatch();
+        assertTrue(mWifiServiceImpl.addOrUpdatePasspointConfiguration(config,
+                CERT_INSTALLER_PACKAGE_NAME));
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        verify(mPasspointManager).addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(),
+                anyBoolean(), eq(false));
+        verify(mClientModeManager).disconnect();
     }
 
     /**
