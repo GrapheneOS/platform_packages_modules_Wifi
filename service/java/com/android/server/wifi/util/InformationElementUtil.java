@@ -198,9 +198,14 @@ public class InformationElementUtil {
             ie.id = eid;
             ie.idExt = eidExt;
             if (defrag != null) {
+                if (defrag.bytesRead == 0) {
+                    // Malformed IE skipping
+                    break;
+                }
                 // Skip first three bytes: eid, len, eidExt as it is already processed.
                 ie.bytes = Arrays.copyOfRange(defrag.bytes, 3, defrag.bytes.length);
-                data.position(defrag.bytesRead);
+                int newPosition = data.position() + defrag.bytesRead;
+                data.position(newPosition);
             } else {
                 ie.bytes = new byte[elementLength];
                 data.get(ie.bytes);
