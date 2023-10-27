@@ -143,6 +143,12 @@ public class InformationElementUtil {
         return parseInformationElements(HexEncoding.decode(data));
     }
 
+    private static boolean isFragmentable(int eid, int eidExt) {
+        // Refer IEE802.11BE D2.3, Section 9.4.2 Elements
+        return ((eid == InformationElement.EID_EXTENSION_PRESENT)
+                && (eidExt == InformationElement.EID_EXT_MULTI_LINK));
+    }
+
     public static InformationElement[] parseInformationElements(byte[] bytes) {
         if (bytes == null) {
             return new InformationElement[0];
@@ -174,7 +180,8 @@ public class InformationElementUtil {
                     break;
                 }
                 eidExt = data.get() & Constants.BYTE_MASK;
-                if (elementLength == DefragmentElement.FRAG_MAX_LEN) {
+                if (isFragmentable(eid, eidExt)
+                        && elementLength == DefragmentElement.FRAG_MAX_LEN) {
                     // Fragmented IE. Reset the position to head to defragment.
                     data.reset();
                     defrag =
