@@ -9304,9 +9304,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiScoringEnabledGoesToSettingsStore() {
-        mLooper.startAutoDispatch();
-        mWifiServiceImpl.setWifiScoringEnabled(true);
-        mLooper.stopAutoDispatch();
+        when(mSettingsStore.handleWifiScoringEnabled(anyBoolean())).thenReturn(true);
+        assertTrue(mWifiServiceImpl.setWifiScoringEnabled(true));
         verify(mSettingsStore).handleWifiScoringEnabled(true);
     }
 
