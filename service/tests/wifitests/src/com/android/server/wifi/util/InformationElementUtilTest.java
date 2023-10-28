@@ -422,10 +422,18 @@ public class InformationElementUtilTest extends WifiBaseTest {
                     (byte) 0x08, (byte) 0x38, (byte) 0x05, (byte) 0x2d, (byte) 0x3d, (byte) 0xbf,
                     (byte) 0xc0, (byte) 0xc9, (byte) 0x00
                 };
+
+        final int MAX_NUM_IES = 3;
+        // Generate multiple IE's concatenated
+        ByteArrayOutputStream multiLinkIes = new ByteArrayOutputStream();
+        for (int i = 0; i < MAX_NUM_IES; ++i) {
+            multiLinkIes.write(testByteArray);
+        }
+
         /* Multi link element fragmentation verification */
         InformationElement[] results =
-                InformationElementUtil.parseInformationElements(testByteArray);
-        assertEquals("Parsed results should have 1 element", 1, results.length);
+                InformationElementUtil.parseInformationElements(multiLinkIes.toByteArray());
+        assertEquals("Parsed results should have 1 element", MAX_NUM_IES, results.length);
         assertEquals(
                 "First result should have id = EID_EXTENSION_PRESENT",
                 InformationElement.EID_EXTENSION_PRESENT,
