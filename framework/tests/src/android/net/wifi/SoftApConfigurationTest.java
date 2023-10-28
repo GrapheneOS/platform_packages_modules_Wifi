@@ -33,6 +33,7 @@ import static org.mockito.Mockito.mock;
 
 import android.net.MacAddress;
 import android.os.Parcel;
+import android.os.PersistableBundle;
 import android.util.SparseIntArray;
 
 import androidx.test.filters.SmallTest;
@@ -935,8 +936,11 @@ public class SoftApConfigurationTest {
         assumeTrue(SdkLevel.isAtLeastV());
 
         int oui = 0x00112233;
-        WifiSsid data = WifiSsid.fromString("\"test\"");
-        OuiKeyedData ouiKeyedData = new OuiKeyedData.Builder(oui, data).build();
+        String fieldKey = "fieldKey";
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putInt(fieldKey, 12345);
+
+        OuiKeyedData ouiKeyedData = new OuiKeyedData.Builder(oui, bundle).build();
         List<OuiKeyedData> vendorData = Arrays.asList(ouiKeyedData);
         SoftApConfiguration config =
                 new SoftApConfiguration.Builder().setVendorData(vendorData).build();
@@ -945,6 +949,7 @@ public class SoftApConfigurationTest {
         assertThat(unparceled).isNotSameInstanceAs(config);
         assertThat(unparceled).isEqualTo(config);
         assertThat(unparceled.hashCode()).isEqualTo(config.hashCode());
-        assertTrue(vendorData.equals(unparceled.getVendorData()));
+        OuiKeyedData unparceledOuiKeyedData = unparceled.getVendorData().get(0);
+        assertEquals(bundle.getInt(fieldKey), unparceledOuiKeyedData.getData().getInt(fieldKey));
     }
 }

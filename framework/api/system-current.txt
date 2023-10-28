@@ -31,14 +31,14 @@ package android.net.wifi {
 
   @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public final class OuiKeyedData implements android.os.Parcelable {
     method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public int describeContents();
-    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public android.os.Parcelable getData();
+    method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public android.os.PersistableBundle getData();
     method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public int getOui();
     method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public void writeToParcel(@NonNull android.os.Parcel, int);
     field @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.OuiKeyedData> CREATOR;
   }
 
   @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public static final class OuiKeyedData.Builder {
-    ctor @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public OuiKeyedData.Builder(int, @NonNull android.os.Parcelable);
+    ctor @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") public OuiKeyedData.Builder(int, @NonNull android.os.PersistableBundle);
     method @FlaggedApi("com.android.wifi.flags.vendor_parcelable_parameters") @NonNull public android.net.wifi.OuiKeyedData build();
   }
 
