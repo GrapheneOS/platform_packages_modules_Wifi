@@ -338,6 +338,10 @@ public class WifiNetworkFactory extends NetworkFactory {
 
         @Override
         public void select(WifiConfiguration wifiConfiguration) {
+            if (wifiConfiguration == null) {
+                Log.wtf(TAG, "User select null config, seems a settings UI issue");
+                return;
+            }
             mHandler.post(() -> {
                 Log.i(TAG, "select configuration " + wifiConfiguration);
                 if (mActiveSpecificNetworkRequest != mNetworkRequest) {
