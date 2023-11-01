@@ -35,7 +35,6 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.text.Editable;
@@ -144,26 +143,24 @@ public class WifiDialogActivity extends Activity  {
         return mWifiManager;
     }
 
-    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction() != Intent.ACTION_CLOSE_SYSTEM_DIALOGS) {
-                return;
-            }
-            PowerManager powerManager = context.getSystemService(PowerManager.class);
-            if (powerManager == null) {
-                return;
-            }
-            if (!powerManager.isInteractive()) {
-                // Ignore screen off case.
-                return;
-            }
-            // Cancel all dialogs for ACTION_CLOSE_SYSTEM_DIALOGS (e.g. Home button pressed).
-            for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
-                mActiveDialogsPerId.valueAt(i).cancel();
-            }
-        }
-    };
+    private final BroadcastReceiver mBroadcastReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (!Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(intent.getAction())) {
+                        return;
+                    }
+                    if (intent.getBooleanExtra(
+                            WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
+                        return;
+                    }
+                    // Cancel all dialogs for ACTION_CLOSE_SYSTEM_DIALOGS (e.g. Home button
+                    // pressed).
+                    for (int i = 0; i < mActiveDialogsPerId.size(); i++) {
+                        mActiveDialogsPerId.valueAt(i).cancel();
+                    }
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
