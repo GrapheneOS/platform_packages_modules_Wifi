@@ -16,21 +16,31 @@
 
 package com.android.server.wifi;
 
-import static android.content.Intent.ACTION_SCREEN_OFF;
-import static android.content.Intent.ACTION_SCREEN_ON;
-
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
 
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.WifiManager;
@@ -93,9 +103,14 @@ public class WifiLockManagerTest extends WifiBaseTest {
     @Mock PowerManager mPowerManager;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
+    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     TestLooper mLooper;
     Handler mHandler;
-    @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
+
+    @Captor
+    ArgumentCaptor<WifiDeviceStateChangeManager.StateChangeCallback>
+            mStateChangeCallbackArgumentCaptor;
+
     @Mock Resources mResources;
 
     /**
@@ -128,11 +143,20 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mResources.getBoolean(
                 R.bool.config_wifiLowLatencyLockDisableChipPowerSave)).thenReturn(true);
 
-        mWifiLockManager = new WifiLockManager(mContext, mBatteryStats,
-                mActiveModeWarden, mFrameworkFacade, mHandler, mClock, mWifiMetrics,
-                mDeviceConfigFacade, mWifiPermissionsUtil);
-        verify(mContext, atLeastOnce()).registerReceiver(
-                mBroadcastReceiverCaptor.capture(), any(), any(), any());
+        mWifiLockManager =
+                new WifiLockManager(
+                        mContext,
+                        mBatteryStats,
+                        mActiveModeWarden,
+                        mFrameworkFacade,
+                        mHandler,
+                        mClock,
+                        mWifiMetrics,
+                        mDeviceConfigFacade,
+                        mWifiPermissionsUtil,
+                        mWifiDeviceStateChangeManager);
+        verify(mWifiDeviceStateChangeManager)
+                .registerStateChangeCallback(mStateChangeCallbackArgumentCaptor.capture());
     }
 
     private void acquireWifiLockSuccessful(int lockMode, String tag, IBinder binder, WorkSource ws)
@@ -1852,10 +1876,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
     }
 
     private void setScreenState(boolean screenOn) {
-        BroadcastReceiver broadcastReceiver = mBroadcastReceiverCaptor.getValue();
-        assertNotNull(broadcastReceiver);
-        Intent intent = new Intent(screenOn  ? ACTION_SCREEN_ON : ACTION_SCREEN_OFF);
-        broadcastReceiver.onReceive(mContext, intent);
+        WifiDeviceStateChangeManager.StateChangeCallback callback =
+                mStateChangeCallbackArgumentCaptor.getValue();
+        assertNotNull(callback);
+        callback.onScreenStateChanged(screenOn);
     }
 
     /**

@@ -43,10 +43,8 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.BroadcastOptions;
 import android.app.admin.SecurityLog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.CaptivePortalData;
 import android.net.ConnectivityManager;
 import android.net.DhcpResultsParcelable;
@@ -205,6 +203,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     public static final int PROVISIONING_TIMEOUT_FILS_CONNECTION_MS = 36_000; // 36 secs.
     @VisibleForTesting
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
+    private final WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
 
     private boolean mVerboseLoggingEnabled = false;
 
@@ -812,6 +811,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mTelephonyManager = telephonyManager;
         mSettingsConfigStore = settingsConfigStore;
         updateInterfaceCapabilities();
+        mWifiDeviceStateChangeManager = wifiInjector.getWifiDeviceStateChangeManager();
 
         PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
 
@@ -4458,17 +4458,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     class ConnectableState extends RunnerState {
         private boolean mIsScreenStateChangeReceiverRegistered = false;
-        BroadcastReceiver mScreenStateChangeReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-                if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)) {
-                    sendMessage(CMD_SCREEN_STATE_CHANGED, 1);
-                } else if (TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
-                    sendMessage(CMD_SCREEN_STATE_CHANGED, 0);
-                }
-            }
-        };
+        WifiDeviceStateChangeManager.StateChangeCallback mScreenStateChangeReceiver =
+                new WifiDeviceStateChangeManager.StateChangeCallback() {
+                    @Override
+                    public void onScreenStateChanged(boolean screenOn) {
+                        if (screenOn) {
+                            sendMessage(CMD_SCREEN_STATE_CHANGED, 1);
+                        } else {
+                            sendMessage(CMD_SCREEN_STATE_CHANGED, 0);
+                        }
+                    }
+                };
 
         ConnectableState(int threshold) {
             super(threshold, mWifiInjector.getWifiHandlerLocalLog());
@@ -4495,11 +4495,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mIpClient = ipClientManager;
             setupClientMode();
 
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(Intent.ACTION_SCREEN_ON);
-            filter.addAction(Intent.ACTION_SCREEN_OFF);
             if (!mIsScreenStateChangeReceiverRegistered) {
-                mContext.registerReceiver(mScreenStateChangeReceiver, filter);
+                mWifiDeviceStateChangeManager.registerStateChangeCallback(
+                        mScreenStateChangeReceiver);
                 mIsScreenStateChangeReceiverRegistered = true;
             }
             // Learn the initial state of whether the screen is on.
@@ -4531,7 +4529,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 loge("Failed to remove networks on exiting connect mode");
             }
             if (mIsScreenStateChangeReceiverRegistered) {
-                mContext.unregisterReceiver(mScreenStateChangeReceiver);
+                mWifiDeviceStateChangeManager.unregisterStateChangeCallback(
+                        mScreenStateChangeReceiver);
                 mIsScreenStateChangeReceiverRegistered = false;
             }
 

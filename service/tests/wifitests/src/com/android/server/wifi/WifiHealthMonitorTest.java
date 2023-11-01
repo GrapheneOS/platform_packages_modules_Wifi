@@ -239,10 +239,18 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getIntArray(R.array.config_wifiRssiLevelThresholds))
                 .thenReturn(new int[]{-88, -77, -66, -55});
-        mWifiHealthMonitor = new WifiHealthMonitor(mContext, mWifiInjector, mClock,
-                mWifiConfigManager, mWifiScoreCard,
-                new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128), mWifiMetrics),
-                mWifiNative, "some seed", mDeviceConfigFacade, mActiveModeWarden);
+        mWifiHealthMonitor =
+                new WifiHealthMonitor(
+                        mContext,
+                        mWifiInjector,
+                        mClock,
+                        mWifiConfigManager,
+                        mWifiScoreCard,
+                        new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128)),
+                        mWifiNative,
+                        "some seed",
+                        mDeviceConfigFacade,
+                        mActiveModeWarden);
         mWifiHealthMonitor.enableVerboseLogging(true);
         mLooper.dispatchAll();
         ArgumentCaptor<ModeChangeCallback> modeChangeCallbackArgumentCaptor =

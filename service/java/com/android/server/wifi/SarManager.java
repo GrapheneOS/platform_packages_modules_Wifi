@@ -31,10 +31,8 @@ import android.media.AudioManager;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.PowerManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.modules.utils.HandlerExecutor;
@@ -95,19 +93,26 @@ public class SarManager {
     private final WifiNative mWifiNative;
     private final Handler mHandler;
 
-    /**
-     * Create new instance of SarManager.
-     */
-    SarManager(Context context,
-               TelephonyManager telephonyManager,
-               Looper looper,
-               WifiNative wifiNative) {
+    /** Create new instance of SarManager. */
+    SarManager(
+            Context context,
+            TelephonyManager telephonyManager,
+            Looper looper,
+            WifiNative wifiNative,
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
         mContext = context;
         mTelephonyManager = telephonyManager;
         mWifiNative = wifiNative;
         mAudioManager = mContext.getSystemService(AudioManager.class);
         mHandler = new Handler(looper);
         mPhoneStateListener = new WifiPhoneStateListener(looper);
+        wifiDeviceStateChangeManager.registerStateChangeCallback(
+                new WifiDeviceStateChangeManager.StateChangeCallback() {
+                    @Override
+                    public void onScreenStateChanged(boolean screenOn) {
+                        handleScreenStateChanged(screenOn);
+                    }
+                });
     }
 
     /**
@@ -232,30 +237,7 @@ public class SarManager {
             /* Listen for Phone State changes */
             registerPhoneStateListener();
             registerVoiceStreamListener();
-            registerScreenListener();
         }
-    }
-
-    private void registerScreenListener() {
-        // Listen to screen changes
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-
-        mContext.registerReceiver(
-                new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        String action = intent.getAction();
-                        if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)) {
-                            handleScreenStateChanged(true);
-                        } else if (TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
-                            handleScreenStateChanged(false);
-                        }
-                    }
-                }, filter, null, mHandler);
-        PowerManager powerManager = mContext.getSystemService(PowerManager.class);
-        handleScreenStateChanged(powerManager.isInteractive());
     }
 
     private void registerVoiceStreamListener() {
