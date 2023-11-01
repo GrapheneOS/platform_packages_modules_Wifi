@@ -5922,6 +5922,36 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testPackageRemovedWithReplacingBroadcastHandling() throws Exception {
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
+        verify(mContext)
+                .registerReceiver(
+                        mBroadcastReceiverCaptor.capture(),
+                        argThat(
+                                (IntentFilter filter) ->
+                                        filter.hasAction(Intent.ACTION_PACKAGE_FULLY_REMOVED)
+                                                && filter.hasAction(Intent.ACTION_PACKAGE_REMOVED)
+                                                && filter.hasAction(Intent.ACTION_PACKAGE_CHANGED)),
+                        isNull(),
+                        any(Handler.class));
+        int uid = TEST_UID;
+        String packageName = TEST_PACKAGE_NAME;
+        // Send the broadcast
+        Intent intent = new Intent(Intent.ACTION_PACKAGE_REMOVED);
+        intent.putExtra(Intent.EXTRA_UID, uid);
+        intent.setData(Uri.fromParts("package", packageName, ""));
+        intent.putExtra(Intent.EXTRA_REPLACING, true);
+        mBroadcastReceiverCaptor.getValue().onReceive(mContext, intent);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager, never()).removeNetworksForApp(any());
+        verify(mScanRequestProxy, never()).clearScanRequestTimestampsForApp(anyString(), anyInt());
+        verify(mWifiNetworkSuggestionsManager, never()).removeApp(anyString());
+        verify(mWifiNetworkFactory, never()).removeApp(anyString());
+        verify(mPasspointManager, never()).removePasspointProviderWithPackage(anyString());
+    }
+
+    @Test
     public void testPackageDisableBroadcastHandling() throws Exception {
         mWifiServiceImpl.checkAndStartWifi();
         mLooper.dispatchAll();

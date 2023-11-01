@@ -5172,6 +5172,11 @@ public class WifiServiceImpl extends BaseWifiService {
                         } catch (PackageManager.NameNotFoundException e) {
                             Log.w(TAG, "Couldn't get PackageInfo for package:" + pkgName);
                         }
+                        // If app is updating or replacing, just ignore
+                        if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED)
+                                && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                            return;
+                        }
                         // If package is not removed or disabled, just ignore.
                         if (packageInfo != null
                                 && packageInfo.applicationInfo != null
