@@ -57,11 +57,7 @@ import java.util.stream.IntStream;
  * <p>This is input for the framework provided by a client app, i.e. it exposes knobs to instruct
  * the framework how it should configure a hotspot.
  *
- * <p>System apps can use this to configure a tethered hotspot using {@code
- * WifiManager#startTetheredHotspot(SoftApConfiguration)} and {@code
- * WifiManager#setSoftApConfiguration(SoftApConfiguration)} or local-only hotspot using {@code
- * WifiManager#startLocalOnlyHotspot(SoftApConfiguration, Executor,
- * WifiManager.LocalOnlyHotspotCallback)}.
+ * <p>System apps can use this to configure a tethered hotspot or local-only hotspot.
  *
  * <p>Instances of this class are immutable.
  */
