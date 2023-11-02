@@ -2228,6 +2228,21 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     configBuilder.setChannel(channels.valueAt(0), channels.keyAt(0));
                 }
+            } else if (option.equals("-w")) {
+                String bandwidth = getNextArgRequired();
+                if (bandwidth.equals("20")) {
+                    configBuilder.setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_20MHZ);
+                } else if (bandwidth.equals("40")) {
+                    configBuilder.setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_40MHZ);
+                } else if (bandwidth.equals("80")) {
+                    configBuilder.setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_80MHZ);
+                } else if (bandwidth.equals("160")) {
+                    configBuilder.setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_160MHZ);
+                } else if (bandwidth.equals("320")) {
+                    configBuilder.setMaxChannelBandwidth(SoftApInfo.CHANNEL_WIDTH_320MHZ);
+                } else {
+                    throw new IllegalArgumentException("Invalid bandwidth option " + bandwidth);
+                }
             } else {
                 pw.println("Ignoring unknown option " + option);
             }
@@ -2718,9 +2733,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  reset-connected-score");
         pw.println("    Turns on the default connected scorer.");
         pw.println("    Note: Will clear any external scorer set.");
-        pw.println("  start-softap <ssid> (open|wpa2|wpa3|wpa3_transition|owe|owe_transition) "
-                + "<passphrase> [-b 2|5|6|any|bridged|bridged_2_5|bridged_2_6|bridged_5_6] [-x]"
-                + " [-f <int> [<int>]]");
+        pw.println(
+                "  start-softap <ssid> (open|wpa2|wpa3|wpa3_transition|owe|owe_transition)"
+                        + " <passphrase> [-b 2|5|6|any|bridged|bridged_2_5|bridged_2_6|bridged_5_6]"
+                        + " [-x] [-w 20|40|80|160|320] [-f <int> [<int>]]");
         pw.println("    Start softap with provided params");
         pw.println("    Note that the shell command doesn't activate internet tethering. In some "
                 + "devices, internet sharing is possible when Wi-Fi STA is also enabled and is"
@@ -2753,6 +2769,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("          Use '-f 2412' to enable single Soft Ap on 2412");
         pw.println("          Use '-f 2412 5745' to enable bridged dual Soft Ap on 2412 and 5745");
         pw.println("    -x - Specifies the SSID as hex digits instead of plain text (T and above)");
+        pw.println("    -w 20|40|80|160|320 - select the maximum channel bandwidth (MHz)");
         pw.println("  stop-softap");
         pw.println("    Stop softap (hotspot)");
         pw.println("  pmksa-flush <networkId>");
@@ -2999,9 +3016,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -h - Enable scanning for hidden networks.");
         pw.println("  set-passpoint-enabled enabled|disabled");
         pw.println("    Sets whether Passpoint should be enabled or disabled");
-        pw.println("  start-lohs <ssid> (open|wpa2|wpa3|wpa3_transition|owe|owe_transition) "
-                + "<passphrase> [-b 2|5|6|any|bridged|bridged_2_5|bridged_2_6|bridged_5_6] [-x]"
-                + " [-f <int> [<int>]])");
+        pw.println(
+                "  start-lohs <ssid> (open|wpa2|wpa3|wpa3_transition|owe|owe_transition)"
+                        + " <passphrase> [-b 2|5|6|any|bridged|bridged_2_5|bridged_2_6|bridged_5_6]"
+                        + " [-x] [-w 20|40|80|160|320] [-f <int> [<int>]])");
         pw.println("    Start local only softap (hotspot) with provided params");
         pw.println("    <ssid> - SSID of the network");
         pw.println("    open|wpa2|wpa3|wpa3_transition|owe|owe_transition - Security type of the "
@@ -3031,6 +3049,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("          Use '-f 2412' to enable single Soft Ap on 2412");
         pw.println("          Use '-f 2412 5745' to enable bridged dual lohs on 2412 and 5745");
         pw.println("    -x - Specifies the SSID as hex digits instead of plain text (T and above)");
+        pw.println("    -w 20|40|80|160|320 - select the maximum bandwidth (MHz)");
         pw.println("  stop-softap");
         pw.println("    Stop softap (hotspot)");
         pw.println("    Note: If the band option is not provided, 2.4GHz is the preferred band.");
