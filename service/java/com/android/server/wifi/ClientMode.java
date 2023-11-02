@@ -208,6 +208,9 @@ public interface ClientMode {
 
     void onCellularConnectivityChanged(@WifiDataStall.CellularDataStatusCode int status);
 
+    /** returns whether the current network is labeled as local-only due to ip provision timeout */
+    boolean isIpProvisioningTimedOut();
+
     /** Result callback for {@link #probeLink(LinkProbeCallback, int)} */
     interface LinkProbeCallback extends WifiNl80211Manager.SendMgmtFrameCallback {
 

@@ -61,6 +61,7 @@ import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -1273,6 +1274,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                     }
                 }
             });
+
+        assertFalse(mCmi.isIpProvisioningTimedOut());
         // Ensure the connection stats for the network is updated.
         verify(mWifiConfigManager).updateNetworkAfterConnect(eq(FRAMEWORK_NETWORK_ID),
                 anyBoolean(), anyBoolean(), anyInt());
@@ -1292,6 +1295,172 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(90, wifiInfo.getMaxSupportedTxLinkSpeedMbps());
         verify(mWifiMetrics).noteFirstL3ConnectionAfterBoot(true);
         validateConnectionInfo();
+    }
+
+    private void connectWithIpProvisionTimeout(boolean lateDhcpResponse) throws Exception {
+        mResources.setBoolean(R.bool.config_wifiRemainConnectedAfterIpProvisionTimeout, true);
+        assertNull(mCmi.getConnectingWifiConfiguration());
+        assertNull(mCmi.getConnectedWifiConfiguration());
+
+        triggerConnect();
+        validateConnectionInfo();
+
+        assertNotNull(mCmi.getConnectingWifiConfiguration());
+        assertNull(mCmi.getConnectedWifiConfiguration());
+
+        WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID);
+        config.carrierId = CARRIER_ID_1;
+        when(mWifiConfigManager.getScanDetailCacheForNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(mScanDetailCache);
+
+        when(mScanDetailCache.getScanDetail(TEST_BSSID_STR)).thenReturn(
+                getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq));
+        when(mScanDetailCache.getScanResult(TEST_BSSID_STR)).thenReturn(
+                getGoogleGuestScanDetail(TEST_RSSI, TEST_BSSID_STR, sFreq).getScanResult());
+        ScanResult scanResult = new ScanResult(WifiSsid.fromUtf8Text(sFilsSsid),
+                sFilsSsid, TEST_BSSID_STR, 1245, 0, "", -78, 2412, 1025, 22, 33, 20, 0, 0, true);
+        ScanResult.InformationElement ie = createIE(ScanResult.InformationElement.EID_SSID,
+                sFilsSsid.getBytes(StandardCharsets.UTF_8));
+        scanResult.informationElements = new ScanResult.InformationElement[]{ie};
+        when(mScanRequestProxy.getScanResult(eq(TEST_BSSID_STR))).thenReturn(scanResult);
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        validateConnectionInfo();
+
+        WifiSsid wifiSsid = WifiSsid.fromBytes(
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(mConnectedNetwork.SSID)));
+        mCmi.sendMessage(WifiMonitor.NETWORK_CONNECTION_EVENT,
+                new NetworkConnectionEventInfo(0, wifiSsid, TEST_BSSID_STR, false, null));
+        mLooper.dispatchAll();
+        // WifiInfo should be updated if it is primary
+        validateConnectionInfo();
+
+        verify(mWifiMetrics).noteFirstL2ConnectionAfterBoot(true);
+
+        // L2 connected, but not L3 connected yet. So, still "Connecting"...
+        assertNotNull(mCmi.getConnectingWifiConfiguration());
+        assertNull(mCmi.getConnectedWifiConfiguration());
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.COMPLETED));
+        mLooper.dispatchAll();
+        validateConnectionInfo();
+
+        assertEquals("L3ProvisioningState", getCurrentState().getName());
+        verifyNetworkStateChangedBroadcast(times(1),
+                new NetworkStateChangedIntentMatcher(CONNECTING));
+        verifyNetworkStateChangedBroadcast(times(1),
+                new NetworkStateChangedIntentMatcher(OBTAINING_IPADDR));
+        mLooper.dispatchAll();
+
+        mLooper.moveTimeForward(mCmi.WAIT_FOR_L3_PROVISIONING_TIMEOUT_MS);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).handleConnectionStateChanged(mClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_CONNECTED);
+        assertTrue(mCmi.isIpProvisioningTimedOut());
+        verify(mWifiConfigManager).setIpProvisioningTimedOut(eq(FRAMEWORK_NETWORK_ID), eq(true));
+
+        if (!lateDhcpResponse) {
+            return;
+        }
+
+        // Simulate the scenario of a late response of the dhcp after the network is labeled a local
+        // only due to ip provisioning timeout.
+
+        DhcpResultsParcelable dhcpResults = new DhcpResultsParcelable();
+        dhcpResults.baseConfiguration = new StaticIpConfiguration();
+        dhcpResults.baseConfiguration.gateway = InetAddresses.parseNumericAddress("1.2.3.4");
+        dhcpResults.baseConfiguration.ipAddress =
+                new LinkAddress(InetAddresses.parseNumericAddress("192.168.1.100"), 0);
+        dhcpResults.baseConfiguration.dnsServers.add(InetAddresses.parseNumericAddress("8.8.8.8"));
+        dhcpResults.leaseDuration = 3600;
+
+        injectDhcpSuccess(dhcpResults);
+        mLooper.dispatchAll();
+        assertNull(mCmi.getConnectingWifiConfiguration());
+        assertNotNull(mCmi.getConnectedWifiConfiguration());
+
+        // Verify WifiMetrics logging for metered metrics based on DHCP results
+        verify(mWifiMetrics).addMeteredStat(any(), anyBoolean());
+        WifiInfo wifiInfo = mWifiInfo;
+        assertNotNull(wifiInfo);
+        assertEquals(TEST_BSSID_STR, wifiInfo.getBSSID());
+        assertEquals(sFreq, wifiInfo.getFrequency());
+        assertEquals(TEST_WIFI_SSID, wifiInfo.getWifiSsid());
+        assertNotEquals(WifiInfo.DEFAULT_MAC_ADDRESS, wifiInfo.getMacAddress());
+        assertEquals(mConnectedNetwork.getDefaultSecurityParams().getSecurityType(),
+                mWifiInfo.getCurrentSecurityType());
+
+        if (wifiInfo.isPasspointAp()) {
+            assertEquals(wifiInfo.getPasspointProviderFriendlyName(),
+                    WifiConfigurationTestUtil.TEST_PROVIDER_FRIENDLY_NAME);
+        } else {
+            assertNull(wifiInfo.getPasspointProviderFriendlyName());
+        }
+        assertEquals(Arrays.asList(scanResult.informationElements),
+                wifiInfo.getInformationElements());
+        assertNotNull(wifiInfo.getNetworkKey());
+        expectRegisterNetworkAgent((na) -> {
+            if (!mConnectedNetwork.carrierMerged) {
+                assertNull(na.subscriberId);
+            }
+        }, (nc) -> {
+                if (SdkLevel.isAtLeastS()) {
+                    WifiInfo wifiInfoFromTi = (WifiInfo) nc.getTransportInfo();
+                    assertEquals(TEST_BSSID_STR, wifiInfoFromTi.getBSSID());
+                    assertEquals(sFreq, wifiInfoFromTi.getFrequency());
+                    assertEquals(TEST_WIFI_SSID, wifiInfoFromTi.getWifiSsid());
+                    if (wifiInfo.isPasspointAp()) {
+                        assertEquals(wifiInfoFromTi.getPasspointProviderFriendlyName(),
+                                WifiConfigurationTestUtil.TEST_PROVIDER_FRIENDLY_NAME);
+                    } else {
+                        assertNull(wifiInfoFromTi.getPasspointProviderFriendlyName());
+                    }
+                }
+            });
+
+        assertFalse(mCmi.isIpProvisioningTimedOut());
+        verify(mWifiConfigManager).setIpProvisioningTimedOut(eq(FRAMEWORK_NETWORK_ID), eq(false));
+
+        // Ensure the connection stats for the network is updated.
+        verify(mWifiConfigManager).updateRandomizedMacExpireTime(any(), anyLong());
+        verifyNetworkStateChangedBroadcast(atLeast(1),
+                new NetworkStateChangedIntentMatcher(CONNECTED));
+
+        //Ensure that the network is registered
+        verify(mWifiConfigManager).updateNetworkAfterConnect(
+                eq(FRAMEWORK_NETWORK_ID), anyBoolean(), anyBoolean(), anyInt());
+        verify(mWifiConnectivityManager, times(2)).handleConnectionStateChanged(mClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_CONNECTED);
+
+
+        // Anonymous Identity is not set.
+        assertEquals("", mConnectedNetwork.enterpriseConfig.getAnonymousIdentity());
+        verify(mWifiStateTracker).updateState(WIFI_IFACE_NAME, WifiStateTracker.CONNECTED);
+        assertEquals("L3ConnectedState", getCurrentState().getName());
+        verify(mWifiMetrics).incrementNumOfCarrierWifiConnectionSuccess();
+        verify(mWifiLockManager).updateWifiClientConnected(mClientModeManager, true);
+        verify(mWifiNative).getConnectionCapabilities(any());
+        verify(mThroughputPredictor).predictMaxTxThroughput(any());
+        verify(mWifiMetrics).setConnectionMaxSupportedLinkSpeedMbps(WIFI_IFACE_NAME, 90, 80);
+        assertEquals(90, wifiInfo.getMaxSupportedTxLinkSpeedMbps());
+        verify(mWifiMetrics).noteFirstL3ConnectionAfterBoot(true);
+        validateConnectionInfo();
+
+    }
+
+    @Test
+    public void testConnectWithIpProvisioningTimeout() throws Exception {
+        connectWithIpProvisionTimeout(false);
+    }
+
+    @Test
+    public void testConnectWithIpProvisioningTimeoutLateDhcpResponse() throws Exception {
+        connectWithIpProvisionTimeout(true);
     }
 
     private void verifyNetworkStateChangedBroadcast(VerificationMode mode,

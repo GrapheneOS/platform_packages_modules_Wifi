@@ -1239,4 +1239,9 @@
          implementation to convert WPA3 transition mode to WPA3 only. otherwise driver/firmware may
          fail to set up the AP.-->
     <bool translatable="false" name="config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand">false</bool>
+    <!-- Boolean indicating whether the device should remain connected to a network without DHCP.
+        If true, the IpClient provisioning timeout will be set to infinite, which means that the
+        connection will not be torn down if the DHCP server does not respond. As a result the device
+        will be discoverable and reachable via the local-only IPv6 address. -->
+    <bool translatable="false" name ="config_wifiRemainConnectedAfterIpProvisionTimeout">false</bool>
 </resources>
