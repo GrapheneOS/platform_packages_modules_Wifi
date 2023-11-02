@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
+
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -29,10 +30,6 @@ import static com.android.server.wifi.proto.nano.WifiMetricsProto.ConnectionEven
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AlarmManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.IPnoScanResultsCallback;
@@ -1306,9 +1303,7 @@ public class WifiConnectivityManager {
         }
     }
 
-    /**
-     * WifiConnectivityManager constructor
-     */
+    /** WifiConnectivityManager constructor */
     WifiConnectivityManager(
             WifiContext context,
             ScoringParams scoringParams,
@@ -1336,7 +1331,8 @@ public class WifiConnectivityManager {
             WifiPermissionsUtil wifiPermissionsUtil,
             WifiCarrierInfoManager wifiCarrierInfoManager,
             WifiCountryCode wifiCountryCode,
-            @NonNull WifiDialogManager wifiDialogManager) {
+            @NonNull WifiDialogManager wifiDialogManager,
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1384,32 +1380,13 @@ public class WifiConnectivityManager {
         mInternalPnoScanListener = new WifiScannerInternal.ScanListener(mPnoScanListener,
                 mEventHandler);
         mPnoScanPasspointSsids = new ArraySet<>();
-    }
-
-    /**
-     * Register broadcast receiver
-     */
-    public void initialization() {
-        // Listen for screen state change events.
-        // TODO: We should probably add a shared broadcast receiver in the wifi stack which
-        // can used by various modules to listen to common system events. Creating multiple
-        // broadcast receivers in each class within the wifi stack is *somewhat* expensive.
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        mContext.registerReceiver(
-                new BroadcastReceiver() {
+        wifiDeviceStateChangeManager.registerStateChangeCallback(
+                new WifiDeviceStateChangeManager.StateChangeCallback() {
                     @Override
-                    public void onReceive(Context context, Intent intent) {
-                        String action = intent.getAction();
-                        if (action.equals(Intent.ACTION_SCREEN_ON)) {
-                            handleScreenStateChanged(true);
-                        } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-                            handleScreenStateChanged(false);
-                        }
+                    public void onScreenStateChanged(boolean screenOn) {
+                        handleScreenStateChanged(screenOn);
                     }
-                }, filter, null, mEventHandler);
-        handleScreenStateChanged(mPowerManager.isInteractive());
+                });
     }
 
     @NonNull

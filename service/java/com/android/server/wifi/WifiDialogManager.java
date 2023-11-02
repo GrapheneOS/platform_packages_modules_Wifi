@@ -26,7 +26,6 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
-import android.os.PowerManager;
 import android.os.UserHandle;
 import android.provider.Browser;
 import android.text.SpannableString;
@@ -81,48 +80,54 @@ public class WifiDialogManager {
     private final @NonNull WifiThreadRunner mWifiThreadRunner;
     private final @NonNull FrameworkFacade mFrameworkFacade;
 
-    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            mWifiThreadRunner.post(() -> {
-                String action = intent.getAction();
-                if (mVerboseLoggingEnabled) {
-                    Log.v(TAG, "Received action: " + action);
+    private final BroadcastReceiver mBroadcastReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    mWifiThreadRunner.post(
+                            () -> {
+                                String action = intent.getAction();
+                                if (mVerboseLoggingEnabled) {
+                                    Log.v(TAG, "Received action: " + action);
+                                }
+                                if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                                    // Change all window types to TYPE_APPLICATION_OVERLAY to
+                                    // prevent the dialogs from appearing over the lock screen when
+                                    // the screen turns on again.
+                                    for (LegacySimpleDialogHandle dialogHandle :
+                                            mActiveLegacySimpleDialogs) {
+                                        dialogHandle.changeWindowType(
+                                                WindowManager.LayoutParams
+                                                        .TYPE_APPLICATION_OVERLAY);
+                                    }
+                                } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                                    // Change all window types to TYPE_KEYGUARD_DIALOG to show the
+                                    // dialogs over the QuickSettings after the screen is unlocked.
+                                    for (LegacySimpleDialogHandle dialogHandle :
+                                            mActiveLegacySimpleDialogs) {
+                                        dialogHandle.changeWindowType(
+                                                WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+                                    }
+                                } else if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
+                                    if (intent.getBooleanExtra(
+                                            WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI,
+                                            false)) {
+                                        return;
+                                    }
+                                    if (mVerboseLoggingEnabled) {
+                                        Log.v(
+                                                TAG,
+                                                "ACTION_CLOSE_SYSTEM_DIALOGS received, cancelling"
+                                                        + " all legacy dialogs.");
+                                    }
+                                    for (LegacySimpleDialogHandle dialogHandle :
+                                            mActiveLegacySimpleDialogs) {
+                                        dialogHandle.cancelDialog();
+                                    }
+                                }
+                            });
                 }
-                if (Intent.ACTION_SCREEN_OFF.equals(action)) {
-                    // Change all window types to TYPE_APPLICATION_OVERLAY to prevent the dialogs
-                    // from appearing over the lock screen when the screen turns on again.
-                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
-                        dialogHandle.changeWindowType(
-                                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
-                    }
-                } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
-                    // Change all window types to TYPE_KEYGUARD_DIALOG to show the dialogs over the
-                    // QuickSettings after the screen is unlocked.
-                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
-                        dialogHandle.changeWindowType(
-                                WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
-                    }
-                } else if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
-                    if (intent.getBooleanExtra(
-                            WifiManager.EXTRA_CLOSE_SYSTEM_DIALOGS_EXCEPT_WIFI, false)) {
-                        return;
-                    }
-                    if (!context.getSystemService(PowerManager.class).isInteractive()) {
-                        // Do not cancel dialogs for ACTION_CLOSE_SYSTEM_DIALOGS due to screen off.
-                        return;
-                    }
-                    if (mVerboseLoggingEnabled) {
-                        Log.v(TAG, "ACTION_CLOSE_SYSTEM_DIALOGS received while screen on,"
-                                + " cancelling all legacy dialogs.");
-                    }
-                    for (LegacySimpleDialogHandle dialogHandle : mActiveLegacySimpleDialogs) {
-                        dialogHandle.cancelDialog();
-                    }
-                }
-            });
-        }
-    };
+            };
 
     /**
      * Constructs a WifiDialogManager

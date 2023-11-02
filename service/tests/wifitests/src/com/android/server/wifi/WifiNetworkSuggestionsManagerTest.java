@@ -300,11 +300,18 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         when(mWifiKeyStore.updateNetworkKeys(any(), any())).thenReturn(true);
 
         mWifiNetworkSuggestionsManager =
-                new WifiNetworkSuggestionsManager(mContext, new RunnerHandler(mLooper.getLooper(),
-                        100, new LocalLog(128), mWifiMetrics),
-                        mWifiInjector, mWifiPermissionsUtil, mWifiConfigManager, mWifiConfigStore,
-                        mWifiMetrics, mWifiCarrierInfoManager, mWifiKeyStore,
-                        mLruConnectionTracker, mClock);
+                new WifiNetworkSuggestionsManager(
+                        mContext,
+                        new RunnerHandler(mLooper.getLooper(), 100, new LocalLog(128)),
+                        mWifiInjector,
+                        mWifiPermissionsUtil,
+                        mWifiConfigManager,
+                        mWifiConfigStore,
+                        mWifiMetrics,
+                        mWifiCarrierInfoManager,
+                        mWifiKeyStore,
+                        mLruConnectionTracker,
+                        mClock);
         mWifiNetworkSuggestionsManager.enableVerboseLogging(true);
         mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(), any(), any(), any());

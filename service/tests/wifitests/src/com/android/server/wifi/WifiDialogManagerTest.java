@@ -42,7 +42,6 @@ import android.content.res.Resources;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.os.UserHandle;
 import android.view.Display;
 import android.view.Window;
@@ -82,7 +81,6 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     @Mock WifiThreadRunner mWifiThreadRunner;
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock Resources mResources;
-    @Mock PowerManager mPowerManager;
     @Mock ActivityManager mActivityManager;
     private WifiDialogManager mDialogManager;
 
@@ -90,10 +88,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiContext.getWifiDialogApkPkgName()).thenReturn(WIFI_DIALOG_APK_PKG_NAME);
-        when(mWifiContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
         when(mWifiContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mWifiContext.getResources()).thenReturn(mResources);
-        when(mPowerManager.isInteractive()).thenReturn(true);
         doThrow(SecurityException.class).when(mWifiContext).startActivityAsUser(any(), any(),
                 any());
         mDialogManager =
@@ -765,18 +761,10 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         verify(dialog, never()).cancel();
 
-        // ACTION_CLOSE_SYSTEM_DIALOGS due to screen off should be ignored.
-        when(mPowerManager.isInteractive()).thenReturn(false);
-        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
-                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
-        dispatchMockWifiThreadRunner(mWifiThreadRunner);
-
-        verify(dialog, never()).cancel();
-
-        // ACTION_CLOSE_SYSTEM_DIALOGS while screen on should cancel the dialog.
-        when(mPowerManager.isInteractive()).thenReturn(true);
-        broadcastReceiverCaptor.getValue().onReceive(mWifiContext,
-                new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
+        // ACTION_CLOSE_SYSTEM_DIALOGS without the extra should cancel the dialog.
+        broadcastReceiverCaptor
+                .getValue()
+                .onReceive(mWifiContext, new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));
         dispatchMockWifiThreadRunner(mWifiThreadRunner);
 
         verify(dialog).cancel();

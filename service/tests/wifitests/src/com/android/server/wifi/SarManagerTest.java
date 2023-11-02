@@ -73,6 +73,7 @@ public class SarManagerTest extends WifiBaseTest {
     @Mock private ApplicationInfo mMockApplInfo;
     @Mock WifiNative mWifiNative;
     @Mock PowerManager mPowerManager;
+    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
 
     @Before
     public void setUp() throws Exception {
@@ -123,8 +124,13 @@ public class SarManagerTest extends WifiBaseTest {
                 R.bool.config_wifi_framework_enable_soft_ap_sar_tx_power_limit,
                 isSarSapEnabled);
 
-        mSarMgr = new SarManager(mContext, mTelephonyManager, mLooper.getLooper(),
-                mWifiNative);
+        mSarMgr =
+                new SarManager(
+                        mContext,
+                        mTelephonyManager,
+                        mLooper.getLooper(),
+                        mWifiNative,
+                        mWifiDeviceStateChangeManager);
 
         mSarMgr.handleBootCompleted();
 

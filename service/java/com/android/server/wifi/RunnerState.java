@@ -16,12 +16,15 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_THREAD_TASK_EXECUTED;
+
 import android.annotation.NonNull;
 import android.os.Message;
 import android.os.Trace;
 import android.util.LocalLog;
 
 import com.android.internal.util.State;
+import com.android.server.wifi.proto.WifiStatsLog;
 
 /**
  * RunnerState class is a wrapper based on State class to monitor and track the State enter/exit
@@ -34,6 +37,7 @@ import com.android.internal.util.State;
  */
 public abstract class RunnerState extends State {
     private static final String TAG = "RunnerState";
+    private static final int METRICS_THRESHOLD_MILLIS = 100;
 
     /** Message.what value when entering */
     public static final int STATE_ENTER_CMD = -3;
@@ -56,40 +60,51 @@ public abstract class RunnerState extends State {
 
     @Override
     public boolean processMessage(Message message) {
-        Long startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
 
-        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, getMessageLogRec(message.what));
+        String signatureToLog = getMessageLogRec(message.what);
+        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, signatureToLog);
         boolean ret = processMessageImpl(message);
         Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
-        Long runTime = System.currentTimeMillis() - startTime;
+        long runTime = System.currentTimeMillis() - startTime;
         if (runTime > mRunningTimeThresholdInMilliseconds) {
-            mLocalLog.log(getMessageLogRec(message.what) + " was running for " + runTime + " ms");
+            mLocalLog.log(signatureToLog + " was running for " + runTime + " ms");
+        }
+        if (runTime > METRICS_THRESHOLD_MILLIS) {
+            WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, (int) runTime, 0, signatureToLog);
         }
         return ret;
     }
 
     @Override
     public void enter() {
-        Long startTime = System.currentTimeMillis();
-        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, getMessageLogRec(STATE_ENTER_CMD));
+        long startTime = System.currentTimeMillis();
+        String signatureToLog = getMessageLogRec(STATE_ENTER_CMD);
+        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, signatureToLog);
         enterImpl();
         Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
-        Long runTime = System.currentTimeMillis() - startTime;
+        long runTime = System.currentTimeMillis() - startTime;
         if (runTime > mRunningTimeThresholdInMilliseconds) {
-            mLocalLog.log(
-                    getMessageLogRec(STATE_ENTER_CMD) + " was running for " + runTime + " ms");
+            mLocalLog.log(signatureToLog + " was running for " + runTime + " ms");
+        }
+        if (runTime > METRICS_THRESHOLD_MILLIS) {
+            WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, (int) runTime, 0, signatureToLog);
         }
     }
 
     @Override
     public void exit() {
-        Long startTime = System.currentTimeMillis();
-        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, getMessageLogRec(STATE_EXIT_CMD));
+        long startTime = System.currentTimeMillis();
+        String signatureToLog = getMessageLogRec(STATE_EXIT_CMD);
+        Trace.traceBegin(Trace.TRACE_TAG_NETWORK, signatureToLog);
         exitImpl();
         Trace.traceEnd(Trace.TRACE_TAG_NETWORK);
-        Long runTime = System.currentTimeMillis() - startTime;
+        long runTime = System.currentTimeMillis() - startTime;
         if (runTime > mRunningTimeThresholdInMilliseconds) {
-            mLocalLog.log(getMessageLogRec(STATE_EXIT_CMD) + " was running for " + runTime + " ms");
+            mLocalLog.log(signatureToLog + " was running for " + runTime + " ms");
+        }
+        if (runTime > METRICS_THRESHOLD_MILLIS) {
+            WifiStatsLog.write(WIFI_THREAD_TASK_EXECUTED, (int) runTime, 0, signatureToLog);
         }
     }
 

@@ -586,9 +586,7 @@ public class WifiServiceImpl extends BaseWifiService {
 
             mWifiInjector.getWifiScanAlwaysAvailableSettingsCompatibility().initialize();
             mWifiInjector.getWifiNotificationManager().createNotificationChannels();
-            mWifiMetrics.start();
-            mWifiConnectivityManager.initialization();
-            mWifiNetworkFactory.start();
+
             mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
@@ -707,6 +705,7 @@ public class WifiServiceImpl extends BaseWifiService {
             mActiveModeWarden.start();
             registerForCarrierConfigChange();
             mWifiInjector.getAdaptiveConnectivityEnabledSettingObserver().initialize();
+            mWifiInjector.getWifiDeviceStateChangeManager().handleBootCompleted();
             mIsWifiServiceStarted = true;
         });
     }
@@ -5173,6 +5172,11 @@ public class WifiServiceImpl extends BaseWifiService {
                         } catch (PackageManager.NameNotFoundException e) {
                             Log.w(TAG, "Couldn't get PackageInfo for package:" + pkgName);
                         }
+                        // If app is updating or replacing, just ignore
+                        if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED)
+                                && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                            return;
+                        }
                         // If package is not removed or disabled, just ignore.
                         if (packageInfo != null
                                 && packageInfo.applicationInfo != null
@@ -7114,8 +7118,7 @@ public class WifiServiceImpl extends BaseWifiService {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.NETWORK_SETTINGS, "WifiService");
         // Post operation to handler thread
-        return mWifiThreadRunner.call(
-                () -> mSettingsStore.handleWifiScoringEnabled(enabled), false);
+        return mSettingsStore.handleWifiScoringEnabled(enabled);
     }
 
     @VisibleForTesting
