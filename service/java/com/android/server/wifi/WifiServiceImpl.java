@@ -6749,7 +6749,7 @@ public class WifiServiceImpl extends BaseWifiService {
     }
 
     /**
-     * See {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     * See {@link WifiManager#setPnoScanState(int)}
      */
     @Override
     public void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle,
