@@ -351,6 +351,11 @@ public class WifiNetworkSelector {
             return false;
         }
 
+        if (network.isIpProvisioningTimedOut()) {
+            localLog("Current network has no IPv4 provisioning and therefore insufficient");
+            return false;
+        }
+
         if (!hasSufficientLinkQuality(wifiInfo) && !hasActiveStream(wifiInfo)) {
             localLog("Current network link quality is not sufficient and has low ongoing traffic");
             return false;
@@ -406,7 +411,7 @@ public class WifiNetworkSelector {
                 localLog(cmmState.ifaceName + ": Current connected network is not sufficient.");
                 return true;
             }
-        } else if (cmmState.disconnected) {
+        } else if (cmmState.disconnected || cmmState.ipProvisioningTimedOut) {
             return true;
         } else {
             // No network selection if ClientModeImpl is in a state other than
@@ -918,6 +923,8 @@ public class WifiNetworkSelector {
         public final boolean connected;
         /** True if the device is disconnected */
         public final boolean disconnected;
+        /** True if the device is connected in local-only mode due to ip provisioning timeout**/
+        public final boolean ipProvisioningTimedOut;
          /** Currently connected network */
         public final WifiInfo wifiInfo;
 
@@ -925,6 +932,7 @@ public class WifiNetworkSelector {
             ifaceName = clientModeManager.getInterfaceName();
             connected = clientModeManager.isConnected();
             disconnected = clientModeManager.isDisconnected();
+            ipProvisioningTimedOut = clientModeManager.isIpProvisioningTimedOut();
             wifiInfo = clientModeManager.getConnectionInfo();
         }
 
@@ -933,15 +941,17 @@ public class WifiNetworkSelector {
             connected = false;
             disconnected = true;
             wifiInfo = new WifiInfo();
+            ipProvisioningTimedOut = false;
         }
 
         @VisibleForTesting
         ClientModeManagerState(@NonNull String ifaceName, boolean connected, boolean disconnected,
-                @NonNull WifiInfo wifiInfo) {
+                @NonNull WifiInfo wifiInfo, boolean ipProvisioningTimedOut) {
             this.ifaceName = ifaceName;
             this.connected = connected;
             this.disconnected = disconnected;
             this.wifiInfo = wifiInfo;
+            this.ipProvisioningTimedOut = ipProvisioningTimedOut;
         }
 
         @Override

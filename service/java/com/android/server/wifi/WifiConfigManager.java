@@ -2632,6 +2632,23 @@ public class WifiConfigManager {
     }
 
     /**
+     * Sets whether the provided network is local only due to ip provisioning timeout
+     *
+     * @param networkId             network ID corresponding to the network.
+     * @param isIpProvisionTimedOut Whether the network is local-only or not.
+     * @return true if the network was found, false otherwise.
+     */
+    public boolean setIpProvisioningTimedOut(int networkId, boolean isIpProvisionTimedOut) {
+        WifiConfiguration config = getInternalConfiguredNetwork(networkId);
+        if (config == null) {
+            return false;
+        }
+        config.setIpProvisioningTimedOut(isIpProvisionTimedOut);
+        return true;
+    }
+
+
+    /**
      * Helper method to clear out the {@link #mNextNetworkId} user/app network selection. This
      * is done when either the corresponding network is either removed or disabled.
      */

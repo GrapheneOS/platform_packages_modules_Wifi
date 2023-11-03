@@ -157,6 +157,12 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
             notOemPrivateAward = 0;
         }
 
+        if (candidate.isIpProvisioningTimedOut()) {
+            savedNetworkAward = 0;
+            unmeteredAward = 0;
+            trustedAward = 0;
+        }
+
         // These scores determine which scoring bucket the candidate falls into. The scoring buckets
         // should not overlap so candidate in a higher bucket should always win against candidate in
         // a lower bucket.

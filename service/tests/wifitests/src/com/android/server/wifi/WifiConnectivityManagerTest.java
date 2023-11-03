@@ -6004,9 +6004,9 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
         List<WifiNetworkSelector.ClientModeManagerState> expectedCmmStates =
                 Arrays.asList(new WifiNetworkSelector.ClientModeManagerState(
-                                "wlan0", false, true, wifiInfo1),
+                                "wlan0", false, true, wifiInfo1, false),
                         new WifiNetworkSelector.ClientModeManagerState(
-                                "wlan1", false, true, wifiInfo2));
+                                "wlan1", false, true, wifiInfo2, false));
         verify(mWifiNS).getCandidatesFromScan(any(), any(),
                 eq(expectedCmmStates), anyBoolean(), anyBoolean(), anyBoolean(), any(),
                 anyBoolean());
@@ -6041,9 +6041,9 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
         List<WifiNetworkSelector.ClientModeManagerState> expectedCmmStates =
                 Arrays.asList(new WifiNetworkSelector.ClientModeManagerState(
-                        "wlan0", false, true, wifiInfo1),
+                        "wlan0", false, true, wifiInfo1, false),
                 new WifiNetworkSelector.ClientModeManagerState(
-                        "unknown", false, true, new WifiInfo()));
+                        "unknown", false, true, new WifiInfo(), false));
         verify(mWifiNS).getCandidatesFromScan(any(), any(),
                 eq(expectedCmmStates), anyBoolean(), anyBoolean(), anyBoolean(), any(),
                 anyBoolean());

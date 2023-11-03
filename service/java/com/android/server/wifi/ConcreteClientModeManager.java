@@ -1601,6 +1601,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
+    public boolean isIpProvisioningTimedOut() {
+        return getClientMode().isIpProvisioningTimedOut();
+    }
+
+    @Override
     public boolean isSupplicantTransientState() {
         return getClientMode().isSupplicantTransientState();
     }
