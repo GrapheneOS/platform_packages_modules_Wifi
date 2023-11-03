@@ -10400,6 +10400,38 @@ public class WifiManager {
     }
 
     /**
+     * Wi-Fi Preferred Network Offload (PNO) scanning offloads scanning to the chip to save power
+     * when Wi-Fi is disconnected and the screen is off. See
+     * {@link https://source.android.com/docs/core/connect/wifi-scan} for more details.
+     * <p>
+     * This API can be used to enable or disable PNO scanning. After boot, PNO scanning is enabled
+     * by default. When PNO scanning is disabled, the Wi-Fi framework will not trigger scans at all
+     * when the screen is off. This can be used to save power on devices with small batteries.
+     *
+     * @param enabled True - enable PNO scanning
+     *                False - disable PNO scanning
+     * @param enablePnoScanAfterWifiToggle True - Wifi being enabled by
+     *                                     {@link #setWifiEnabled(boolean)} will re-enable PNO
+     *                                     scanning.
+     *                                     False - Wifi being enabled by
+     *                                     {@link #setWifiEnabled(boolean)} will not re-enable PNO
+     *                                     scanning.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @RequiresPermission(
+            anyOf = {MANAGE_WIFI_NETWORK_SELECTION, NETWORK_SETTINGS, NETWORK_SETUP_WIZARD})
+    public void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle) {
+        try {
+            mService.setPnoScanEnabled(enabled, enablePnoScanAfterWifiToggle,
+                    mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
      * Clear the current PNO scan request that's been set by the calling UID. Note, the call will
      * be no-op if the current PNO scan request is set by a different UID.
      *
