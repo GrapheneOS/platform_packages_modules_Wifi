@@ -374,6 +374,10 @@ public class WifiAwareSnippet implements Snippet {
                     String.format("respondToPairingSetup: pairing request missing %s",
                             callbackData.callbackCode));
         }
+        mPeerHandle = callbackData.peerHandle;
+        if (mPeerHandle == null) {
+            throw new WifiAwareSnippetException("respondToPairingSetup: peerHandle null");
+        }
         if (accept) {
             mDiscoverySession.acceptPairingRequest(callbackData.pairingRequestId, mPeerHandle,
                     ALIAS_SUBSCRIBE, Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128,
