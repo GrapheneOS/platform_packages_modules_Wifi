@@ -1775,32 +1775,67 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     return 0;
                 }
                 case "get-allowed-channel": {
-                    WifiManager wifiManager = mContext.getSystemService(WifiManager.class);
-                    WifiScanner wifiScanner = mContext.getSystemService(WifiScanner.class);
-                    List<WifiAvailableChannel> allowedChannels;
-                    List<Integer> availableChannels;
+                    StringBuilder allowedChannel = new StringBuilder();
+                    int band = WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ;
 
-                    for (int opMode : OP_MODE_LIST) {
-                        String allowedChannel = "";
-                        try {
-                            allowedChannels = wifiManager.getAllowedChannels(
-                                    WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ, opMode);
-                            for (WifiAvailableChannel channel : allowedChannels) {
-                                allowedChannel += channel.getFrequencyMhz() + " ";
-                            }
-                            pw.println("Allowed ch in " + getOpModeName(opMode) + " mode:\n"
-                                    + allowedChannel);
-                        } catch (UnsupportedOperationException e) {
-                            availableChannels = wifiScanner.getAvailableChannels(
-                                    WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ);
-                            for (Integer channel : availableChannels) {
-                                allowedChannel += channel + " ";
-                            }
-                            /* In this case, all mode has same allowed channel list. So
-                            immediately return */
-                            pw.println("Allowed ch in all mode:\n" + allowedChannel);
-                            return 0;
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-b")) {
+                            band = Integer.parseInt(getNextArgRequired());
+                        } else {
+                            pw.println("Ignoring unknown option: " + option);
+                            return -1;
                         }
+                        option = getNextOption();
+                    }
+
+                    try {
+                        Bundle extras = new Bundle();
+                        if (SdkLevel.isAtLeastS()) {
+                            extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                                    mContext.getAttributionSource());
+                        } else {
+                            throw new UnsupportedOperationException();
+                        }
+                        // The option "-b 2" (getting band 5ghz active channels) is valid for old
+                        // devices, but invalid for new devices. So we first check if device
+                        // supports getUsableChannels() API.
+                        mWifiService.getUsableChannels(WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_GHZ,
+                                WifiAvailableChannel.OP_MODE_STA,
+                                WifiAvailableChannel.FILTER_REGULATORY, SHELL_PACKAGE_NAME, extras);
+                        try {
+                            for (int opMode : OP_MODE_LIST) {
+                                List<WifiAvailableChannel> usableChannels =
+                                        mWifiService.getUsableChannels(band, opMode,
+                                                WifiAvailableChannel.FILTER_REGULATORY,
+                                                SHELL_PACKAGE_NAME, extras);
+                                allowedChannel = new StringBuilder();
+                                for (WifiAvailableChannel channel : usableChannels) {
+                                    allowedChannel.append(channel.getFrequencyMhz()).append(" ");
+                                }
+                                pw.println("Allowed ch in " + getOpModeName(opMode) + " mode:\n"
+                                        + allowedChannel);
+                            }
+                        } catch (IllegalArgumentException e) {
+                            pw.println("Invalid band: " + band);
+                            return -1;
+                        }
+                    } catch (UnsupportedOperationException e) {
+                        WifiScanner wifiScanner = mContext.getSystemService(WifiScanner.class);
+                        try {
+                            List<Integer> availableChannels = wifiScanner.getAvailableChannels(
+                                    band);
+                            for (Integer channel : availableChannels) {
+                                allowedChannel.append(channel).append(" ");
+                            }
+                            pw.println("Allowed ch in all modes:\n" + allowedChannel);
+                        } catch (SecurityException securityException) {
+                            pw.println("Permission is required.");
+                            return -1;
+                        }
+                    } catch (SecurityException e) {
+                        pw.println("Permission is required.");
+                        return -1;
                     }
                     return 0;
                 }
@@ -2626,12 +2661,21 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-ipreach-disconnect");
         pw.println("    Gets setting of CMD_IP_REACHABILITY_LOST events triggering disconnects.");
         pw.println("  take-bugreport");
-        pw.println("    take bugreport through betterBug. "
-                + "If it failed, take bugreport through bugreport manager.");
-        pw.println("  get-allowed-channel");
+        pw.println(
+                "    take bugreport through betterBug. "
+                        + "If it failed, take bugreport through bugreport manager.");
+        pw.println("  get-allowed-channel [-b 1|6|7|8|15|16|31]");
         pw.println(
                 "    get allowed channels in each operation mode from wifiManager if available. "
                         + "Otherwise, it returns from wifiScanner.");
+        pw.println("    -b - set the band in which channels are allowed");
+        pw.println("       '1'  - band 2.4 GHz");
+        pw.println("       '6'  - band 5 GHz with DFS channels");
+        pw.println("       '7'  - band 2.4 and 5 GHz with DFS channels");
+        pw.println("       '8'  - band 6 GHz");
+        pw.println("       '15' - band 2.4, 5, and 6 GHz with DFS channels");
+        pw.println("       '16' - band 60 GHz");
+        pw.println("       '31' - band 2.4, 5, 6 and 60 GHz with DFS channels");
     }
 
     private void onHelpPrivileged(PrintWriter pw) {
