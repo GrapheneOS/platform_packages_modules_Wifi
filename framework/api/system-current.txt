@@ -689,7 +689,7 @@ package android.net.wifi {
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setOneShotScreenOnConnectivityScanDelayMillis(@IntRange(from=0) int);
     method @RequiresPermission(android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE) public void setOverrideCountryCode(@NonNull String);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setPasspointMeteredOverride(@NonNull String, int);
-    method @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") @RequiresPermission(anyOf={android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION, android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void setPnoScanEnabled(boolean, boolean);
+    method @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") @RequiresPermission(anyOf={android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION, android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void setPnoScanState(int);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setScanAlwaysAvailable(boolean);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void setScanThrottleEnabled(boolean);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void setScreenOnScanSchedule(@Nullable java.util.List<android.net.wifi.WifiManager.ScreenOnScanSchedule>);
@@ -806,6 +806,9 @@ package android.net.wifi {
     field public static final int MLO_MODE_LOW_POWER = 3; // 0x3
     field public static final int PASSPOINT_HOME_NETWORK = 0; // 0x0
     field public static final int PASSPOINT_ROAMING_NETWORK = 1; // 0x1
+    field @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") public static final int PNO_SCAN_STATE_DISABLED_UNTIL_REBOOT = 0; // 0x0
+    field @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") public static final int PNO_SCAN_STATE_DISABLED_UNTIL_WIFI_TOGGLE = 1; // 0x1
+    field @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan") public static final int PNO_SCAN_STATE_ENABLED = 2; // 0x2
     field public static final int QOS_REQUEST_STATUS_ALREADY_ACTIVE = 1; // 0x1
     field public static final int QOS_REQUEST_STATUS_FAILURE_UNKNOWN = 4; // 0x4
     field public static final int QOS_REQUEST_STATUS_INSUFFICIENT_RESOURCES = 2; // 0x2

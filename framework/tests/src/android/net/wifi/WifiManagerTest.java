@@ -3582,6 +3582,22 @@ public class WifiManagerTest {
         verify(mWifiService).flushPasspointAnqpCache(anyString());
     }
 
+    @Test
+    public void testSetPnoScanState() throws Exception {
+        mWifiManager.setPnoScanState(WifiManager.PNO_SCAN_STATE_DISABLED_UNTIL_WIFI_TOGGLE);
+        verify(mWifiService).setPnoScanEnabled(false, true, TEST_PACKAGE_NAME);
+
+        mWifiManager.setPnoScanState(WifiManager.PNO_SCAN_STATE_DISABLED_UNTIL_REBOOT);
+        verify(mWifiService).setPnoScanEnabled(false, false, TEST_PACKAGE_NAME);
+
+        mWifiManager.setPnoScanState(WifiManager.PNO_SCAN_STATE_ENABLED);
+        verify(mWifiService).setPnoScanEnabled(eq(true), anyBoolean(), any());
+
+        assertThrows(IllegalArgumentException.class, () -> mWifiManager.setPnoScanState(999));
+    }
+
+
+
     /**
      * Test behavior of isDecoratedIdentitySupported
      */

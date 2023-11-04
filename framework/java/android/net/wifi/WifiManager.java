@@ -387,6 +387,39 @@ public class WifiManager {
     public @interface SuggestionUserApprovalStatus {}
 
     /**
+     * Disable PNO scan until device reboot.
+     * @hide
+     */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
+    @SystemApi
+    public static final int PNO_SCAN_STATE_DISABLED_UNTIL_REBOOT = 0;
+
+    /**
+     * Disable PNO scan until device reboot or Wi-Fi is toggled.
+     * @hide
+     */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
+    @SystemApi
+    public static final int PNO_SCAN_STATE_DISABLED_UNTIL_WIFI_TOGGLE = 1;
+
+    /**
+     * Enable PNO scan.
+     * @hide
+     */
+    @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
+    @SystemApi
+    public static final int PNO_SCAN_STATE_ENABLED = 2;
+
+    /** @hide */
+    @IntDef(prefix = {"PNO_SCAN_STATE_"},
+            value = {PNO_SCAN_STATE_DISABLED_UNTIL_REBOOT,
+                    PNO_SCAN_STATE_DISABLED_UNTIL_WIFI_TOGGLE,
+                    PNO_SCAN_STATE_ENABLED
+            })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PnoScanState {}
+
+    /**
      * If one of the removed suggestions is currently connected, that network will be disconnected
      * after a short delay as opposed to immediately (which will be done by
      * {@link #ACTION_REMOVE_SUGGESTION_DISCONNECT}). The {@link ConnectivityManager} may call the
@@ -851,7 +884,7 @@ public class WifiManager {
 
     /**
      * A constant used in {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
-     * Tracks usage of {@link WifiManager#setPnoScanEnabled(boolean, boolean)}
+     * Tracks usage of {@link WifiManager#setPnoScanState(int)}
      *
      * @hide
      */
@@ -10341,6 +10374,52 @@ public class WifiManager {
      */
     @FlaggedApi("com.android.wifi.flags.runtime_disable_pno_scan")
     @SystemApi
+    @RequiresPermission(
+            anyOf = {MANAGE_WIFI_NETWORK_SELECTION, NETWORK_SETTINGS, NETWORK_SETUP_WIZARD})
+    public void setPnoScanState(@PnoScanState int pnoScanState) {
+        try {
+            boolean enabled = false;
+            boolean enablePnoScanAfterWifiToggle = false;
+            switch (pnoScanState) {
+                case PNO_SCAN_STATE_DISABLED_UNTIL_REBOOT:
+                    break;
+                case PNO_SCAN_STATE_DISABLED_UNTIL_WIFI_TOGGLE:
+                    enablePnoScanAfterWifiToggle = true;
+                    break;
+                case PNO_SCAN_STATE_ENABLED:
+                    enabled = true;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid PnoScanState");
+            }
+            mService.setPnoScanEnabled(enabled, enablePnoScanAfterWifiToggle,
+                    mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Wi-Fi Preferred Network Offload (PNO) scanning offloads scanning to the chip to save power
+     * when Wi-Fi is disconnected and the screen is off. See
+     * {@link https://source.android.com/docs/core/connect/wifi-scan} for more details.
+     * <p>
+     * This API can be used to enable or disable PNO scanning. After boot, PNO scanning is enabled
+     * by default. When PNO scanning is disabled, the Wi-Fi framework will not trigger scans at all
+     * when the screen is off. This can be used to save power on devices with small batteries.
+     *
+     * @param enabled True - enable PNO scanning
+     *                False - disable PNO scanning
+     * @param enablePnoScanAfterWifiToggle True - Wifi being enabled by
+     *                                     {@link #setWifiEnabled(boolean)} will re-enable PNO
+     *                                     scanning.
+     *                                     False - Wifi being enabled by
+     *                                     {@link #setWifiEnabled(boolean)} will not re-enable PNO
+     *                                     scanning.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
     @RequiresPermission(
             anyOf = {MANAGE_WIFI_NETWORK_SELECTION, NETWORK_SETTINGS, NETWORK_SETUP_WIZARD})
     public void setPnoScanEnabled(boolean enabled, boolean enablePnoScanAfterWifiToggle) {

@@ -39,6 +39,8 @@ import android.util.ArraySet;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.proto.WifiStatsLog;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -275,6 +277,35 @@ public class KnownBandsChannelHelper extends ChannelHelper {
         }
 
         return band;
+    }
+
+    private String getWifiBandIndexName(@WifiBandIndex int wifiBandIndex) {
+        switch (wifiBandIndex) {
+            case WIFI_BAND_INDEX_24_GHZ:
+                return "band 2.4 GHz";
+            case WIFI_BAND_INDEX_5_GHZ:
+                return "band   5 GHz";
+            case WIFI_BAND_INDEX_5_GHZ_DFS_ONLY:
+                return "band   5 GHz (DFS only)";
+            case WIFI_BAND_INDEX_6_GHZ:
+                return "band   6 GHz";
+            case WIFI_BAND_INDEX_60_GHZ:
+                return "band  60 GHz";
+            default:
+                return "unknown band";
+        }
+    }
+
+    @Override
+    protected void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
+        pw.println("Available channels:");
+        for (int i = 0; i < WIFI_BAND_COUNT; i++) {
+            StringBuilder availableChannel = new StringBuilder();
+            for (WifiScanner.ChannelSpec channelSpec : mBandsToChannels[i]) {
+                availableChannel.append(channelSpec.frequency).append(" ");
+            }
+            pw.println("  " + getWifiBandIndexName(i) + ": " + availableChannel);
+        }
     }
 
     /**

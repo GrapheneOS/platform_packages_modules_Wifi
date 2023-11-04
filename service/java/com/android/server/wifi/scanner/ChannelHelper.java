@@ -22,6 +22,8 @@ import android.util.ArraySet;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiNative;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -77,6 +79,8 @@ public abstract class ChannelHelper {
      * Estimates the duration that the chip will spend scanning with the given settings
      */
     public abstract int estimateScanDuration(WifiScanner.ScanSettings settings);
+
+    protected abstract void dump(FileDescriptor fd, PrintWriter pw, String[] args);
 
     /**
      * Update the channel information that this object has. The source of the update is
