@@ -313,6 +313,7 @@ public class WifiServiceImpl extends BaseWifiService {
     private final DeviceConfigFacade mDeviceConfigFacade;
     private boolean mIsWifiServiceStarted = false;
     private static final String PACKAGE_NAME_NOT_AVAILABLE = "Not Available";
+    private static final String CERT_INSTALLER_PKG = "com.android.certinstaller";
 
     private final WifiSettingsConfigStore mSettingsConfigStore;
 
@@ -4493,8 +4494,21 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mLog.info("addorUpdatePasspointConfiguration uid=%").c(callingUid).flush();
         return mWifiThreadRunner.call(
-                () -> mPasspointManager.addOrUpdateProvider(config, callingUid, packageName,
-                        false, true, false), false);
+                () -> {
+                    boolean success = mPasspointManager.addOrUpdateProvider(config, callingUid,
+                            packageName, false, true, false);
+                    if (success && TextUtils.equals(CERT_INSTALLER_PKG, packageName)) {
+                        int networkId = mActiveModeWarden.getConnectionInfo().getNetworkId();
+                        WifiConfiguration currentConfig =
+                                mWifiConfigManager.getConfiguredNetworkWithPassword(networkId);
+                        if (currentConfig != null
+                                && !currentConfig.getNetworkSelectionStatus()
+                                    .hasNeverDetectedCaptivePortal()) {
+                            mActiveModeWarden.getPrimaryClientModeManager().disconnect();
+                        }
+                    }
+                    return success;
+                }, false);
     }
 
     /**
