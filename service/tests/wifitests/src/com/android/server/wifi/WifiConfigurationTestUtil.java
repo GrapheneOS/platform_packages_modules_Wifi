@@ -381,6 +381,15 @@ public class WifiConfigurationTestUtil {
         return configuration;
     }
 
+    public static WifiConfiguration createCaptivePortalNetwork() {
+        WifiConfiguration configuration = createPskNetwork();
+        NetworkSelectionStatus.Builder builder = new NetworkSelectionStatus.Builder();
+        NetworkSelectionStatus networkSelectionStatus = builder.build();
+        networkSelectionStatus.setHasNeverDetectedCaptivePortal(false);
+        configuration.setNetworkSelectionStatus(networkSelectionStatus);
+        return configuration;
+    }
+
     public static WifiConfiguration createWepNetwork() {
         WifiConfiguration configuration =
                 generateWifiConfig(TEST_NETWORK_ID, TEST_UID, createNewSSID(), true, true, null,
