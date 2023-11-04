@@ -649,6 +649,19 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Send WifiP2pMonitor.P2P_INVITATION_RECEIVED_EVENT.
+     *
+     * @param group Peer group information
+     */
+    private void sendInvitationReceivedMsg(WifiP2pGroup group) throws Exception {
+        Message msg = Message.obtain();
+        msg.what = WifiP2pMonitor.P2P_INVITATION_RECEIVED_EVENT;
+        msg.obj = group;
+        mP2pStateMachineMessenger.send(Message.obtain(msg));
+        mLooper.dispatchAll();
+    }
+
+    /**
      * Mock send WifiP2pManager.SET_CHANNEL
      *
      * @param replyMessenger for checking replied message.
@@ -1545,6 +1558,12 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         sendNegotiationRequestEvent(config);
     }
 
+    /** Mock enter the user authorizing invite request state. */
+    private void mockEnterUserAuthorizingInviteRequestState() throws Exception {
+        mockPeersList();
+        // Enter UserAuthorizingNegotiationRequestState
+        sendInvitationReceivedMsg(mTestWifiP2pGroup);
+    }
 
     /**
      * Mock WifiP2pServiceImpl.mPeers.
@@ -7485,6 +7504,29 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pConnect(eq(mTestWifiP2pPeerConfig), anyBoolean());
         verify(mWifiP2pMetrics).setFallbackToNegotiationOnInviteStatusInfoUnavailable();
+    }
+
+    @Test
+    public void testFallbackToP2pConnectWithWpsProvisioningOnInviteRequestFromAnUnknownNetwork()
+            throws Exception {
+        forceP2pEnabled(mClient1);
+        mockEnterUserAuthorizingInviteRequestState();
+        // Return an unknown network name
+        when(mWifiNative.p2pGetSsid(eq(mTestWifiP2pDevice.deviceAddress)))
+                .thenReturn(mTestWifiP2pGroup.getNetworkName() + "unknown");
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
+        verify(mWifiNative, never()).p2pGroupAdd(anyInt());
+        verify(mWifiNative).p2pConnect(any(), anyBoolean());
+    }
+
+    @Test
+    public void testP2pSetupPersistentGroupOnInviteRequestFromAKnownNetwork() throws Exception {
+        forceP2pEnabled(mClient1);
+        mockEnterUserAuthorizingInviteRequestState();
+        when(mWifiNative.p2pGetSsid(eq(mTestWifiP2pDevice.deviceAddress)))
+                .thenReturn(mTestWifiP2pGroup.getNetworkName());
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
+        verify(mWifiNative).p2pGroupAdd(anyInt());
     }
 
     @Test
