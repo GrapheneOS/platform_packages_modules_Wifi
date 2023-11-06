@@ -300,7 +300,9 @@ public class WifiScoreReport {
                         : ConnectedScore.WIFI_TRANSITION_SCORE - 1);
             }
             mWifiInfo.setUsable(mIsUsable);
-            mWifiMetrics.setScorerPredictedWifiUsability(mIsUsable);
+            mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
+                    mIsUsable ? WifiMetrics.WifiUsabilityState.USABLE
+                            : WifiMetrics.WifiUsabilityState.UNUSABLE);
         }
 
         @Override
@@ -409,6 +411,11 @@ public class WifiScoreReport {
                 return;
             }
         }
+        // Set the usability prediction for the AOSP scorer.
+        mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
+                (mLegacyIntScore < ConnectedScore.WIFI_TRANSITION_SCORE)
+                        ? WifiMetrics.WifiUsabilityState.UNUSABLE
+                        : WifiMetrics.WifiUsabilityState.USABLE);
         // Stay a notch above the transition score if adaptive connectivity is disabled.
         if (!mAdaptiveConnectivityEnabledSettingObserver.get()
                 || !mWifiSettingsStore.isWifiScoringEnabled()) {
@@ -582,6 +589,9 @@ public class WifiScoreReport {
         mActiveModeWarden = activeModeWarden;
         mWifiConnectivityManager = wifiConnectivityManager;
         mWifiConfigManager = wifiConfigManager;
+        mWifiMetrics.setIsExternalWifiScorerOn(false, Process.WIFI_UID);
+        mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
+                WifiMetrics.WifiUsabilityState.UNKNOWN);
     }
 
     /** Returns whether this scores primary network based on the role */
@@ -597,6 +607,8 @@ public class WifiScoreReport {
         mLegacyIntScore = isPrimary() ? ConnectedScore.WIFI_INITIAL_SCORE
                 : ConnectedScore.WIFI_SECONDARY_INITIAL_SCORE;
         mIsUsable = true;
+        mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
+                WifiMetrics.WifiUsabilityState.UNKNOWN);
         mLastKnownNudCheckScore = isPrimary() ? ConnectedScore.WIFI_TRANSITION_SCORE
                 : ConnectedScore.WIFI_SECONDARY_TRANSITION_SCORE;
         mAggressiveConnectedScore.reset();
