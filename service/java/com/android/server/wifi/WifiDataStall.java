@@ -432,7 +432,7 @@ public class WifiDataStall {
         int maxTimeDeltaMs = mWifiGlobals.getPollRssiIntervalMillis()
                 + MAX_TIME_MARGIN_LAST_TWO_POLLS_MS;
         if (timeDeltaLastTwoPollsMs > 0 && timeDeltaLastTwoPollsMs <= maxTimeDeltaMs) {
-            mWifiMetrics.incrementConnectionDuration(timeDeltaLastTwoPollsMs,
+            mWifiMetrics.incrementConnectionDuration(ifaceName, timeDeltaLastTwoPollsMs,
                     mIsThroughputSufficient, mIsCellularDataAvailable, wifiInfo.getRssi(),
                     mTxTputKbps, mRxTputKbps);
         }

@@ -305,7 +305,12 @@ public class WifiMetrics {
     private boolean mFirstConnectionAfterBoot = true;
     private long mLastTotalBeaconRx = 0;
     private int mScorerUid = Process.WIFI_UID;
-    private boolean mIsScorerPredictedWifiUsable = false;
+
+    /**
+     * Wi-Fi usability state per interface as predicted by the network scorer.
+     */
+    public enum WifiUsabilityState {UNKNOWN, USABLE, UNUSABLE};
+    private final Map<String, WifiUsabilityState> mWifiUsabilityStatePerIface = new ArrayMap<>();
 
     /**
      * Metrics are stored within an instance of the WifiLog proto during runtime,
@@ -6929,9 +6934,23 @@ public class WifiMetrics {
         if (mWifiIsUnusableList.size() > MAX_UNUSABLE_EVENTS) {
             mWifiIsUnusableList.removeFirst();
         }
+        WifiUsabilityState wifiUsabilityState = mWifiUsabilityStatePerIface.getOrDefault(
+                ifaceName, WifiUsabilityState.UNKNOWN);
 
-        WifiStatsLog.write(WIFI_IS_UNUSABLE_REPORTED, convertWifiUnUsableTypeToProto(triggerType),
-                mScorerUid, mIsScorerPredictedWifiUsable);
+        WifiStatsLog.write(WIFI_IS_UNUSABLE_REPORTED,
+                convertWifiUnUsableTypeToProto(triggerType),
+                mScorerUid, wifiUsabilityState == WifiUsabilityState.USABLE,
+                convertWifiUsabilityState(wifiUsabilityState));
+    }
+
+    private int convertWifiUsabilityState(WifiUsabilityState usabilityState) {
+        if (usabilityState == WifiUsabilityState.USABLE) {
+            return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__WIFI_PREDICTED_USABILITY_STATE__WIFI_USABILITY_PREDICTED_USABLE;
+        } else if (usabilityState == WifiUsabilityState.UNUSABLE) {
+            return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__WIFI_PREDICTED_USABILITY_STATE__WIFI_USABILITY_PREDICTED_UNUSABLE;
+        } else {
+            return WifiStatsLog.WIFI_IS_UNUSABLE_REPORTED__WIFI_PREDICTED_USABILITY_STATE__WIFI_USABILITY_PREDICTED_UNKNOWN;
+        }
     }
 
     private int convertWifiUnUsableTypeToProto(int triggerType) {
@@ -8542,17 +8561,22 @@ public class WifiMetrics {
     /**
      * Increment connection duration while link layer stats report are on
      */
-    public void incrementConnectionDuration(int timeDeltaLastTwoPollsMs,
+    public void incrementConnectionDuration(String ifaceName, int timeDeltaLastTwoPollsMs,
             boolean isThroughputSufficient, boolean isCellularDataAvailable, int rssi, int txKbps,
             int rxKbps) {
         synchronized (mLock) {
+            if (!isPrimary(ifaceName)) {
+                return;
+            }
             mConnectionDurationStats.incrementDurationCount(timeDeltaLastTwoPollsMs,
                     isThroughputSufficient, isCellularDataAvailable, mWifiWins);
-
+            WifiUsabilityState wifiUsabilityState = mWifiUsabilityStatePerIface.getOrDefault(
+                    ifaceName, WifiUsabilityState.UNKNOWN);
             int band = KnownBandsChannelHelper.getBand(mLastPollFreq);
             WifiStatsLog.write(WifiStatsLog.WIFI_HEALTH_STAT_REPORTED, timeDeltaLastTwoPollsMs,
-                    isThroughputSufficient || !mWifiWins,  isCellularDataAvailable, band, rssi,
-                    txKbps, rxKbps, mScorerUid, mIsScorerPredictedWifiUsable);
+                    isThroughputSufficient || !mWifiWins, isCellularDataAvailable, band, rssi,
+                    txKbps, rxKbps, mScorerUid, (wifiUsabilityState == WifiUsabilityState.USABLE),
+                    convertWifiUsabilityState(wifiUsabilityState));
         }
     }
 
@@ -9293,10 +9317,11 @@ public class WifiMetrics {
     }
 
     /**
-     * Set Wi-Fi is usable (by network scorer) or not.
+     * Set Wi-Fi usability state per interface as predicted by the scorer
      */
-    public void setScorerPredictedWifiUsability(boolean isUsable) {
-        mIsScorerPredictedWifiUsable = isUsable;
+    public void setScorerPredictedWifiUsabilityState(String ifaceName,
+            WifiUsabilityState usabilityState) {
+        mWifiUsabilityStatePerIface.put(ifaceName, usabilityState);
     }
 
     private static int getSoftApStartedStartResult(@SoftApManager.StartResult int startResult) {
