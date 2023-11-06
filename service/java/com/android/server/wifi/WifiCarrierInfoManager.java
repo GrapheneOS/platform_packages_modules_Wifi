@@ -2302,7 +2302,7 @@ public class WifiCarrierInfoManager {
             return false;
         }
         boolean ret = isOobPseudonymFeatureEnabledInResource(carrierId);
-        vlogd("isOobPseudonymFeatureEnabled() = " + ret);
+        vlogd("isOobPseudonymFeatureEnabled(" + carrierId + ") = " + ret);
         return ret;
     }
 
