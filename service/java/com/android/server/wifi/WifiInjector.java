@@ -362,8 +362,13 @@ public class WifiInjector {
         // New config store
         mWifiConfigStore = new WifiConfigStore(mContext, wifiHandler, mClock, mWifiMetrics,
                 WifiConfigStore.createSharedFiles(mFrameworkFacade.isNiapModeOn(mContext)));
-        mWifiPseudonymManager = new WifiPseudonymManager(
-                mContext, this, mClock, wifiLooper);
+        mWifiPseudonymManager =
+                new WifiPseudonymManager(
+                        mContext,
+                        this,
+                        mClock,
+                        mContext.getSystemService(AlarmManager.class),
+                        wifiLooper);
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(makeTelephonyManager(),
                 subscriptionManager, this, mFrameworkFacade, mContext,
                 mWifiConfigStore, wifiHandler, mWifiMetrics, mClock, mWifiPseudonymManager);

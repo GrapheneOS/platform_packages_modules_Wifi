@@ -47,18 +47,16 @@ public class PseudonymInfo {
     private final long mTtlInMillis;
 
     /*
-     * Age To Refresh in milliseconds from the pseudonym is received. When a pseudonym is expiring,
-     * we should refresh it ahead of time. For example, we refresh a pseudonym half an hour before
-     * it expires. The TTL is 24 hours. So we should refresh this pseudonym when it is 23.5 hours
-     * old.
+     * Refresh Ahead Time in milliseconds. When a pseudonym is expiring, we should refresh it ahead
+     * of time. For example, we refresh a pseudonym half an hour before it expires. If the TTL is 24
+     * hours, we should refresh this pseudonym when it is 23.5 hours old.
      */
-    private final long mAtrInMillis;
+    private final long mRatInMillis;
 
     /*
      * Minimum Age To Refresh in milliseconds from the pseudonym is received. We should not
      * refresh the pseudonym too frequently.
      */
-
     private final long mMinAtrInMillis;
 
     public PseudonymInfo(@NonNull String pseudonym, @NonNull String imsi) {
@@ -76,8 +74,8 @@ public class PseudonymInfo {
         mImsi = imsi;
         mTimeStamp = timeStamp;
         mTtlInMillis = ttlInMillis;
-        mAtrInMillis = ttlInMillis - Math.min(ttlInMillis / 2, REFRESH_AHEAD_TIME_IN_MILLIS);
-        mMinAtrInMillis = Math.min(mAtrInMillis, MINIMUM_REFRESH_INTERVAL_IN_MILLIS);
+        mRatInMillis = Math.min(ttlInMillis / 2, REFRESH_AHEAD_TIME_IN_MILLIS);
+        mMinAtrInMillis = Math.min(ttlInMillis - mRatInMillis, MINIMUM_REFRESH_INTERVAL_IN_MILLIS);
     }
 
     public String getPseudonym() {
@@ -95,11 +93,12 @@ public class PseudonymInfo {
         return mTtlInMillis;
     }
 
-    /*
-     * Returns the Age To Refresh in milliseconds.
-     */
-    public long getAtrInMillis() {
-        return mAtrInMillis;
+    /** Returns the Left Time To Refresh in milliseconds. */
+    public long getLttrInMillis() {
+        long age = Instant.now().toEpochMilli() - mTimeStamp;
+        long leftTimeToLive = mTtlInMillis - age;
+        long leftTimeToRefresh = leftTimeToLive - mRatInMillis;
+        return leftTimeToRefresh > 0 ? leftTimeToRefresh : 0;
     }
 
     /**
@@ -107,14 +106,6 @@ public class PseudonymInfo {
      */
     public boolean hasExpired() {
         return Instant.now().toEpochMilli() - mTimeStamp >= mTtlInMillis;
-    }
-
-    /**
-     * Returns whether the pseudonym should be refreshed. A pseudonym should be refreshed before
-     * it expires.
-     */
-    public boolean shouldBeRefreshed() {
-        return (Instant.now().toEpochMilli() - mTimeStamp) >= mAtrInMillis;
     }
 
     /**
@@ -132,9 +123,13 @@ public class PseudonymInfo {
                 + (mPseudonym.length() >= 7 ? (mPseudonym.substring(0, 7) + "***") : mPseudonym)
                 + " mImsi=***"
                 + (mImsi.length() >= 3 ? mImsi.substring(mImsi.length() - 3) : mImsi)
-                + " mTimeStamp=" + mTimeStamp
-                + " mTtlInMillis=" + mTtlInMillis
-                + " mTtrInMillis=" + mAtrInMillis
-                + " mMinTtrInMillis=" + mMinAtrInMillis;
+                + " mTimeStamp="
+                + mTimeStamp
+                + " mTtlInMillis="
+                + mTtlInMillis
+                + " mRatInMillis="
+                + mRatInMillis
+                + " mMinAtrInMillis="
+                + mMinAtrInMillis;
     }
 }
