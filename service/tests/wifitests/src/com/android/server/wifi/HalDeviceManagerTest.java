@@ -2423,6 +2423,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      * - request P2P (privileged app): failure
      * - tear down AP
      * - create STA (system app)
+     * - create P2P (system app): will get refused
      * - create STA (system app): will get refused
      * - create NAN (privileged app): should tear down last created STA
      * - create STA (foreground app): will get refused
@@ -2565,6 +2566,12 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 TEST_WORKSOURCE_0 // requestorWs
         );
         collector.checkThat("STA 2 interface wasn't created", staIface2, IsNull.notNullValue());
+
+        // request P2P (system app): should fail even though both are privileged
+        p2pDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_P2P, true, TEST_WORKSOURCE_0);
+        assertNull("should not create this p2p", p2pDetails);
+        p2pIfaceName = mDut.createP2pIface(null, null, TEST_WORKSOURCE_0);
+        collector.checkThat("P2P should not be created", p2pIfaceName, IsNull.nullValue());
 
         // request STA3 (system app): should fail
         staDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_STA, false, TEST_WORKSOURCE_0);
