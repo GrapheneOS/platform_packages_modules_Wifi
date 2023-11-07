@@ -110,6 +110,7 @@ java_library {
         "libprotobuf-java-lite",
         "libnanohttpd",
         "modules-utils-backgroundthread",
+        "modules-utils-fastxmlserializer",
         "modules-utils-locallog",
         "netd-client",
         "networkstack-client",
