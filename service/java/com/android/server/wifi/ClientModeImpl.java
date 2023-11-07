@@ -566,7 +566,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @VisibleForTesting
     static final int CMD_PRE_DHCP_ACTION                                = BASE + 255;
-    private static final int CMD_PRE_DHCP_ACTION_COMPLETE               = BASE + 256;
+    @VisibleForTesting
+    static final int CMD_PRE_DHCP_ACTION_COMPLETE                       = BASE + 256;
     private static final int CMD_POST_DHCP_ACTION                       = BASE + 257;
 
     private static final int CMD_CONNECT_NETWORK                        = BASE + 258;
@@ -3514,7 +3515,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // Update link layer stats
         getWifiLinkLayerStats();
 
-        if (mWifiP2pConnection.isConnected()) {
+        if (mWifiP2pConnection.isConnected() && !mWifiP2pConnection.isP2pInWaitingState()) {
             // P2P discovery breaks DHCP, so shut it down in order to get through this.
             // Once P2P service receives this message and processes it accordingly, it is supposed
             // to send arg2 (i.e. CMD_PRE_DHCP_ACTION_COMPLETE) in a new Message.what back to

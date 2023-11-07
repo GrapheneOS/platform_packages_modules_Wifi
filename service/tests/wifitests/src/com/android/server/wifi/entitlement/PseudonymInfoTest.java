@@ -53,10 +53,8 @@ public class PseudonymInfoTest {
         PseudonymInfo pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI, TTL_IN_MILLIS);
         assertEquals(PSEUDONYM, pseudonymInfo.getPseudonym());
         assertEquals(TTL_IN_MILLIS, pseudonymInfo.getTtlInMillis());
-        assertEquals(TTL_IN_MILLIS - REFRESH_AHEAD_TIME_IN_MILLIS,
-                pseudonymInfo.getAtrInMillis());
+        assertEquals(TTL_IN_MILLIS - REFRESH_AHEAD_TIME_IN_MILLIS, pseudonymInfo.getLttrInMillis());
         assertFalse(pseudonymInfo.hasExpired());
-        assertFalse(pseudonymInfo.shouldBeRefreshed());
         assertFalse(pseudonymInfo.isOldEnoughToRefresh());
     }
 
@@ -65,19 +63,17 @@ public class PseudonymInfoTest {
         PseudonymInfo pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI, TTL_IN_MILLIS,
                 Instant.now().toEpochMilli() - MINIMUM_REFRESH_INTERVAL_IN_MILLIS);
         assertFalse(pseudonymInfo.hasExpired());
-        assertFalse(pseudonymInfo.shouldBeRefreshed());
         assertTrue(pseudonymInfo.isOldEnoughToRefresh());
 
         pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI, TTL_IN_MILLIS,
                 Instant.now().toEpochMilli() - TTL_IN_MILLIS + REFRESH_AHEAD_TIME_IN_MILLIS);
         assertFalse(pseudonymInfo.hasExpired());
-        assertTrue(pseudonymInfo.shouldBeRefreshed());
         assertTrue(pseudonymInfo.isOldEnoughToRefresh());
 
         pseudonymInfo = new PseudonymInfo(PSEUDONYM, IMSI, TTL_IN_MILLIS,
                 Instant.now().toEpochMilli() - TTL_IN_MILLIS);
         assertTrue(pseudonymInfo.hasExpired());
-        assertTrue(pseudonymInfo.shouldBeRefreshed());
+        assertEquals(0, pseudonymInfo.getLttrInMillis());
         assertTrue(pseudonymInfo.isOldEnoughToRefresh());
     }
 
@@ -85,6 +81,6 @@ public class PseudonymInfoTest {
     public void pseudonymInfoWithSmallTtl() {
         PseudonymInfo pseudonymInfo =
                 new PseudonymInfo(PSEUDONYM, IMSI, TWENTY_MINUTES_IN_MILLIS);
-        assertTrue(pseudonymInfo.getAtrInMillis() >= TWENTY_MINUTES_IN_MILLIS / 2);
+        assertTrue(pseudonymInfo.getLttrInMillis() == TWENTY_MINUTES_IN_MILLIS / 2);
     }
 }
