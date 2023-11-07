@@ -91,6 +91,7 @@ public class HostapdHalAidlImp implements IHostapdHal {
     private Set<String> mActiveInstances = new HashSet<>();
     private HostapdDeathEventHandler mDeathEventHandler;
     private boolean mServiceDeclared = false;
+    private int mServiceVersion;
     private CountDownLatch mWaitForDeathLatch;
 
     /**
@@ -462,6 +463,14 @@ public class HostapdHalAidlImp implements IHostapdHal {
     }
 
     /**
+     * Check that the service is running at least the expected version. Use to avoid the case where
+     * the framework is using a newer interface version than the service.
+     */
+    private boolean isServiceVersionAtLeast(int expectedVersion) {
+        return expectedVersion <= mServiceVersion;
+    }
+
+    /**
      * Wrapper functions created to be mockable in unit tests
      */
     @VisibleForTesting
@@ -501,7 +510,8 @@ public class HostapdHalAidlImp implements IHostapdHal {
             Log.i(TAG, "Local Version: " + IHostapd.VERSION);
 
             try {
-                Log.i(TAG, "Remote Version: " + mIHostapd.getInterfaceVersion());
+                mServiceVersion = mIHostapd.getInterfaceVersion();
+                Log.i(TAG, "Remote Version: " + mServiceVersion);
                 IBinder serviceBinder = getServiceBinderMockable();
                 if (serviceBinder == null) return false;
                 mWaitForDeathLatch = null;
