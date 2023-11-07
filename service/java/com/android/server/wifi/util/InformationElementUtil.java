@@ -1464,6 +1464,17 @@ public class InformationElementUtil {
                         ByteBufferReader.readInteger(data, ByteOrder.BIG_ENDIAN, oi3Length);
             }
         }
+
+        @Override
+        public String toString() {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("RoamingConsortium [");
+            stringBuilder.append("anqpOICount: " + anqpOICount);
+            stringBuilder.append(", roamingConsortiums: " + (roamingConsortiums == null ? "null"
+                    : Arrays.toString(roamingConsortiums)));
+            stringBuilder.append("]");
+            return stringBuilder.toString();
+        }
     }
 
     public static class Vsa {

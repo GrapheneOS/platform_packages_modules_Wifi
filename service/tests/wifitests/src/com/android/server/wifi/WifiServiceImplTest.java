@@ -232,6 +232,7 @@ import com.android.server.wifi.WifiServiceImpl.SoftApCallbackInternal;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.entitlement.PseudonymInfo;
 import com.android.server.wifi.hotspot2.PasspointManager;
+import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.hotspot2.PasspointProvisioningTestUtil;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.UserActionEvent;
@@ -471,6 +472,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
     @Mock Location mLocation;
     @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
+    @Mock PasspointNetworkNominateHelper mPasspointNetworkNominateHelper;
     @Captor ArgumentCaptor<Intent> mIntentCaptor;
     @Captor ArgumentCaptor<List> mListCaptor;
 
@@ -522,6 +524,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getLinkProbeManager()).thenReturn(mLinkProbeManager);
         when(mWifiInjector.makeWifiShellCommand(any())).thenReturn(mWifiShellCommand);
         when(mWifiInjector.getAfcManager()).thenReturn(mAfcManager);
+        when(mWifiInjector.getPasspointNetworkNominateHelper())
+                .thenReturn(mPasspointNetworkNominateHelper);
         // needed to mock this to call "handleBootCompleted"
         when(mWifiInjector.getPasspointProvisionerHandlerThread())
                 .thenReturn(mock(HandlerThread.class));
@@ -816,6 +820,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiDiagnostics).captureBugReportData(
                 WifiDiagnostics.REPORT_REASON_USER_ACTION);
         verify(mWifiDiagnostics).dump(any(), any(), any());
+        verify(mPasspointNetworkNominateHelper).dump(any());
     }
 
     @Test
@@ -9156,6 +9161,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.dump(new FileDescriptor(), new PrintWriter(new StringWriter()), null);
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         verify(mWakeupController).dump(any(), any(), any());
+        verify(mPasspointNetworkNominateHelper).dump(any());
     }
 
     /**

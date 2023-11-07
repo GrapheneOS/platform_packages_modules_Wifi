@@ -36,8 +36,10 @@ import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
 import com.android.server.wifi.hotspot2.anqp.Constants;
 import com.android.server.wifi.hotspot2.anqp.HSWanMetricsElement;
+import com.android.server.wifi.util.InformationElementUtil;
 import com.android.wifi.resources.R;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -367,5 +369,18 @@ public class PasspointNetworkNominateHelper {
             return networkList;
         }
         return homeProviderCandidates;
+    }
+
+    /**
+     * Dump the current state of PasspointNetworkNominateHelper to the provided output stream.
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of PasspointNetworkNominateHelper");
+        for (Map.Entry<String, ScanDetail> entry : mCachedScanDetails.entrySet()) {
+            pw.println(entry.getKey());
+            pw.println(InformationElementUtil.getRoamingConsortiumIE(
+                    entry.getValue().getScanResult().informationElements));
+        }
+        pw.println("PasspointNetworkNominateHelper --- end ---");
     }
 }
