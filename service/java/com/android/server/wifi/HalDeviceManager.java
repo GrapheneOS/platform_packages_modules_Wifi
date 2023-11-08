@@ -2072,13 +2072,14 @@ public class HalDeviceManager {
             if (requestedCreateType == existingCreateType) {
                 return false;
             }
-            // If both the requests are privileged, the new requestor wins. The exception is for
-            // backwards compatibility with P2P Settings, prefer SoftAP over P2P for when the user
-            // enables SoftAP with P2P Settings open.
+            // If both the requests are privileged, the new requestor wins unless it's P2P against
+            // AP (for when the user enables SoftAP with P2P Settings open) or STA (since P2P isn't
+            // supported without STA).
             if (newRequestorWsPriority == WorkSourceHelper.PRIORITY_PRIVILEGED) {
                 if (requestedCreateType == HDM_CREATE_IFACE_P2P
                         && (existingCreateType == HDM_CREATE_IFACE_AP
-                        || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE)) {
+                                || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE
+                                || existingCreateType == HDM_CREATE_IFACE_STA)) {
                     return false;
                 }
                 return true;

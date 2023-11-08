@@ -47,22 +47,6 @@ DeprecationMismatch: android.net.wifi.WifiScanner.WifiChangeSettings:
     Class android.net.wifi.WifiScanner.WifiChangeSettings: @Deprecated annotation (present) and @deprecated doc tag (not present) do not match
 
 
-MissingGetterMatchingBuilder: android.net.wifi.rtt.RangingRequest.Builder#addResponder(android.net.wifi.rtt.ResponderConfig):
-    
-
-
-MissingNullability: android.net.wifi.rtt.RangingRequest.Builder#addResponder(android.net.wifi.rtt.ResponderConfig):
-    
-
-
-MutableBareField: android.net.wifi.WifiConfiguration#carrierMerged:
-    
-MutableBareField: android.net.wifi.WifiConfiguration#lastConnectUid:
-    Bare field lastConnectUid must be marked final, or moved behind accessors if mutable
-MutableBareField: android.net.wifi.WifiConfiguration#subscriptionId:
-    Bare field subscriptionId must be marked final, or moved behind accessors if mutable
-
-
 RequiresPermission: android.net.wifi.WifiConfiguration#setMacRandomizationSetting(int):
     Method 'setMacRandomizationSetting' documentation mentions permissions without declaring @RequiresPermission
 RequiresPermission: android.net.wifi.WifiConfiguration#setRepeaterEnabled(boolean):
