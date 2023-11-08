@@ -7837,4 +7837,28 @@ public class WifiServiceImpl extends BaseWifiService {
             }
         });
     }
+
+    /**
+     * Set the mock wifi service for testing
+     */
+    public void setMockWifiService(String serviceName) {
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException(TAG + " Uid " + uid
+                    + " Missing NETWORK_SETTINGS permission");
+        }
+        mWifiNative.setMockWifiService(serviceName);
+    }
+
+    /**
+     * Set the mock wifi methods for testing
+     */
+    public boolean setMockWifiMethods(String methods) {
+        int uid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)) {
+            throw new SecurityException(TAG + " Uid " + uid
+                    + " Missing NETWORK_SETTINGS permission");
+        }
+        return mWifiNative.setMockWifiMethods(methods);
+    }
 }
