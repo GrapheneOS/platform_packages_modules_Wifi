@@ -78,6 +78,7 @@ public class WifiGlobals {
     private int mVerboseLoggingLevel = WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
     private boolean mIsUsingExternalScorer = false;
     private boolean mDisableUnwantedNetworkOnLowRssi = false;
+    private boolean mDisableNudDisconnectsForWapiInSpecificCc = false;
     private Set<String> mMacRandomizationUnsupportedSsidPrefixes = new ArraySet<>();
 
     private SparseArray<SparseArray<CarrierSpecificEapFailureConfig>>
@@ -131,6 +132,8 @@ public class WifiGlobals {
                 R.bool.config_wifiInterfaceAddedSelfRecoveryEnabled);
         mDisableUnwantedNetworkOnLowRssi = mContext.getResources().getBoolean(
                 R.bool.config_wifiDisableUnwantedNetworkOnLowRssi);
+        mDisableNudDisconnectsForWapiInSpecificCc = mContext.getResources().getBoolean(
+                R.bool.config_wifiDisableNudDisconnectsForWapiInSpecificCc);
         mNetworkNotFoundEventThreshold = mContext.getResources().getInteger(
                 R.integer.config_wifiNetworkNotFoundEventThreshold);
         mIsWepDeprecated = mContext.getResources()
@@ -473,6 +476,13 @@ public class WifiGlobals {
      */
     public boolean disableUnwantedNetworkOnLowRssi() {
         return mDisableUnwantedNetworkOnLowRssi;
+    }
+
+    /**
+     * Get whether to disable NUD disconnects for WAPI configurations in a specific CC.
+     */
+    public boolean disableNudDisconnectsForWapiInSpecificCc() {
+        return mDisableNudDisconnectsForWapiInSpecificCc;
     }
 
     /**

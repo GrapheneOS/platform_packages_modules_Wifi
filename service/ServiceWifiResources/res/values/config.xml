@@ -1235,4 +1235,10 @@
     <!-- Boolean indication whether enable VDBG for more detailed log when Wi-Fi aware verbose
     logging is enabled -->
     <bool translatable="false" name ="config_aware_vdbg_enable_on_verbose_logging">false</bool>
+    <!-- Boolean indicating whether to disable disconnects on NUD failures. Such a configuration
+         is limited to WAPI and to a specific country code.
+     true: do not disconnect IF the connection type is WAPI and in the specific country code
+           regulatory domain.
+     false: disconnect on NUD failures (normal/default action). -->
+    <bool translatable="false" name ="config_wifiDisableNudDisconnectsForWapiInSpecificCc">false</bool>
 </resources>
