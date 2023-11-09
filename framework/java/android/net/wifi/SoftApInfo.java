@@ -378,7 +378,7 @@ public final class SoftApInfo implements Parcelable {
     }
 
     @Override
-    public boolean equals(@NonNull Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) return true;
         if (!(o instanceof SoftApInfo)) return false;
         SoftApInfo softApInfo = (SoftApInfo) o;

@@ -380,7 +380,7 @@ public final class SoftApCapability implements Parcelable {
     }
 
     @Override
-    public boolean equals(@NonNull Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) return true;
         if (!(o instanceof SoftApCapability)) return false;
         SoftApCapability capability = (SoftApCapability) o;
