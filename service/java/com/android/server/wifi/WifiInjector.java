@@ -100,6 +100,7 @@ public class WifiInjector {
 
     private final WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     private final PasspointNetworkNominateHelper mNominateHelper;
+    private final AlarmManager mAlarmManager;
 
     private static NetworkCapabilities.Builder makeBaseNetworkCapatibilitiesFilterBuilder() {
         NetworkCapabilities.Builder builder = new NetworkCapabilities.Builder()
@@ -278,6 +279,7 @@ public class WifiInjector {
         sWifiInjector = this;
         mLastCallerInfoManager = new LastCallerInfoManager();
         mContext = context;
+        mAlarmManager = mContext.getSystemService(AlarmManager.class);
 
         // Now create and start handler threads
         mWifiHandlerThread = new HandlerThread("WifiHandlerThread");
@@ -380,7 +382,7 @@ public class WifiInjector {
                         mContext,
                         this,
                         mClock,
-                        mContext.getSystemService(AlarmManager.class),
+                        mAlarmManager,
                         wifiLooper);
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(makeTelephonyManager(),
                 subscriptionManager, this, mFrameworkFacade, mContext,
@@ -564,7 +566,7 @@ public class WifiInjector {
                 mWifiConnectivityManager);
         mMultiInternetWifiNetworkFactory = new MultiInternetWifiNetworkFactory(
                 wifiLooper, mContext, REGULAR_NETWORK_CAPABILITIES_FILTER,
-                mFrameworkFacade, mContext.getSystemService(AlarmManager.class),
+                mFrameworkFacade, mAlarmManager,
                 mWifiPermissionsUtil, mMultiInternetManager, mWifiConnectivityManager,
                 mConnectivityLocalLog);
         mWifiScanAlwaysAvailableSettingsCompatibility =
@@ -1288,5 +1290,10 @@ public class WifiInjector {
     @NonNull
     public PasspointNetworkNominateHelper getPasspointNetworkNominateHelper() {
         return mNominateHelper;
+    }
+
+    @NonNull
+    public AlarmManager getAlarmManager() {
+        return mAlarmManager;
     }
 }

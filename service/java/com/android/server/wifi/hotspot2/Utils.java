@@ -40,10 +40,6 @@ public abstract class Utils {
     private static final long RCOI_OPEN_ROAMING_SETTLED_PREFIX = 0xBAA2D0;
     private static final long RCOI_OPEN_ROAMING_FREE_PREFIX = 0x5A03BA;
 
-    public static String hs2LogTag(Class c) {
-        return "HS20";
-    }
-
     public static List<String> splitDomain(String domain) {
 
         if (domain.endsWith("."))
