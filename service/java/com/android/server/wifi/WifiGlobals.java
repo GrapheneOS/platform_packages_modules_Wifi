@@ -21,8 +21,12 @@ import android.content.Context;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.util.ArraySet;
+import android.util.Log;
+import android.util.SparseArray;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.WifiBlocklistMonitor.CarrierSpecificEapFailureConfig;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -42,6 +46,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class WifiGlobals {
 
+    private static final String TAG = "WifiGlobals";
     private final Context mContext;
 
     private final AtomicInteger mPollRssiIntervalMillis = new AtomicInteger(-1);
@@ -79,6 +84,10 @@ public class WifiGlobals {
     private boolean mDisableUnwantedNetworkOnLowRssi = false;
     private final boolean mIsAfcSupportedOnDevice;
     private Set<String> mMacRandomizationUnsupportedSsidPrefixes = new ArraySet<>();
+
+    private SparseArray<SparseArray<CarrierSpecificEapFailureConfig>>
+            mCarrierSpecificEapFailureConfigMapPerCarrierId = new SparseArray<>();
+
 
     public WifiGlobals(Context context) {
         mContext = context;
@@ -145,6 +154,67 @@ public class WifiGlobals {
                         && (ssid.charAt(ssid.length() - 1) == '"')
                         ? ssid.substring(0, ssid.length() - 1) : ssid;
                 mMacRandomizationUnsupportedSsidPrefixes.add(cleanedSsid);
+            }
+        }
+        loadCarrierSpecificEapFailureConfigMap();
+    }
+
+    /**
+     * Gets the CarrierSpecificEapFailureConfig applicable for the carrierId and eapFailureReason.
+     * @param carrierId the carrier ID
+     * @param eapFailureReason EAP failure reason
+     * @return The applicable CarrierSpecificEapFailureConfig, or null if there's no data for this
+     * particular combination of carrierId and eapFailureReason.
+     */
+    public @Nullable CarrierSpecificEapFailureConfig getCarrierSpecificEapFailureConfig(
+            int carrierId, int eapFailureReason) {
+        if (!mCarrierSpecificEapFailureConfigMapPerCarrierId.contains(carrierId)) {
+            return null;
+        }
+        return mCarrierSpecificEapFailureConfigMapPerCarrierId.get(carrierId).get(eapFailureReason);
+    }
+
+    /**
+     * Utility method for unit testing.
+     */
+    public @VisibleForTesting int getCarrierSpecificEapFailureConfigMapSize() {
+        return mCarrierSpecificEapFailureConfigMapPerCarrierId.size();
+    }
+
+    private void loadCarrierSpecificEapFailureConfigMap() {
+        String[] eapFailureOverrides = mContext.getResources().getStringArray(
+                R.array.config_wifiEapFailureConfig);
+        if (eapFailureOverrides == null) {
+            return;
+        }
+        for (String line : eapFailureOverrides) {
+            if (line == null) {
+                continue;
+            }
+            String[] items = line.split(",");
+            if (items.length != 5) {
+                // error case. Should have exactly 5 items.
+                Log.e(TAG, "Failed to parse eapFailureOverrides line=" + line);
+                continue;
+            }
+            try {
+                int carrierId = Integer.parseInt(items[0].trim());
+                int eapFailureCode = Integer.parseInt(items[1].trim());
+                int displayDialogue = Integer.parseInt(items[2].trim());
+                int disableThreshold = Integer.parseInt(items[3].trim());
+                int disableDurationMinutes = Integer.parseInt(items[4].trim());
+                if (!mCarrierSpecificEapFailureConfigMapPerCarrierId.contains(carrierId)) {
+                    mCarrierSpecificEapFailureConfigMapPerCarrierId.put(carrierId,
+                            new SparseArray<>());
+                }
+                SparseArray<CarrierSpecificEapFailureConfig> perEapFailureMap =
+                        mCarrierSpecificEapFailureConfigMapPerCarrierId.get(carrierId);
+                perEapFailureMap.put(eapFailureCode, new CarrierSpecificEapFailureConfig(
+                        disableThreshold, disableDurationMinutes * 60 * 1000, displayDialogue > 0));
+            } catch (Exception e) {
+                // failure to parse. Something is wrong with the config.
+                Log.e(TAG, "Parsing eapFailureOverrides line=" + line
+                        + ". Exception occurred:" + e);
             }
         }
     }
@@ -490,5 +560,19 @@ public class WifiGlobals {
         pw.println("mIsWepDeprecated=" + mIsWepDeprecated);
         pw.println("mIsWpaPersonalDeprecated=" + mIsWpaPersonalDeprecated);
         pw.println("mDisableFirmwareRoamingInIdleMode=" + mDisableFirmwareRoamingInIdleMode);
+        pw.println("mCarrierSpecificEapFailureConfigMapPerCarrierId mapping below:");
+        for (int i = 0; i < mCarrierSpecificEapFailureConfigMapPerCarrierId.size(); i++) {
+            int carrierId = mCarrierSpecificEapFailureConfigMapPerCarrierId.keyAt(i);
+            SparseArray<CarrierSpecificEapFailureConfig> perFailureMap =
+                    mCarrierSpecificEapFailureConfigMapPerCarrierId.valueAt(i);
+            for (int j = 0; j < perFailureMap.size(); j++) {
+                int eapFailureCode = perFailureMap.keyAt(j);
+                pw.println("carrierId=" + carrierId
+                        + ", eapFailureCode=" + eapFailureCode
+                        + ", displayNotification=" + perFailureMap.valueAt(j).displayNotification
+                        + ", threshold=" + perFailureMap.valueAt(j).threshold
+                        + ", durationMs=" + perFailureMap.valueAt(j).durationMs);
+            }
+        }
     }
 }

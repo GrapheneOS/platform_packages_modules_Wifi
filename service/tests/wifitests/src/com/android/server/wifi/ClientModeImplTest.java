@@ -7908,7 +7908,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     public void testCarrierEapFailure() throws Exception {
         initializeAndAddNetworkAndVerifySuccess();
         WifiBlocklistMonitor.CarrierSpecificEapFailureConfig eapFailureConfig =
-                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(1, -1);
+                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(1, -1, true);
 
         startConnectSuccess();
 

@@ -58,6 +58,7 @@ public class EapFailureNotifier {
     private final WifiNotificationManager mNotificationManager;
     private final FrameworkFacade mFrameworkFacade;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
+    private final WifiGlobals mWifiGlobals;
 
     // Unique ID associated with the notification.
     public static final int NOTIFICATION_ID = SystemMessage.NOTE_WIFI_EAP_FAILURE;
@@ -65,11 +66,13 @@ public class EapFailureNotifier {
 
     public EapFailureNotifier(WifiContext context, FrameworkFacade frameworkFacade,
             WifiCarrierInfoManager wifiCarrierInfoManager,
-            WifiNotificationManager wifiNotificationManager) {
+            WifiNotificationManager wifiNotificationManager,
+            WifiGlobals wifiGlobals) {
         mContext = context;
         mFrameworkFacade = frameworkFacade;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mNotificationManager = wifiNotificationManager;
+        mWifiGlobals = wifiGlobals;
     }
 
     /**
@@ -87,10 +90,12 @@ public class EapFailureNotifier {
             // only consider non-negative error codes for carrier-specific error messages.
             return null;
         }
+        int carrierId = config.carrierId == TelephonyManager.UNKNOWN_CARRIER_ID
+                ? mWifiCarrierInfoManager.getDefaultDataSimCarrierId()
+                : config.carrierId;
         WifiStringResourceWrapper sr = mContext.getStringResourceWrapper(
                 mWifiCarrierInfoManager.getBestMatchSubscriptionId(config),
-                config.carrierId == TelephonyManager.UNKNOWN_CARRIER_ID
-                        ? mWifiCarrierInfoManager.getDefaultDataSimCarrierId() : config.carrierId);
+                carrierId);
         String errorMessage = sr.getString(ERROR_MESSAGE_OVERLAY_PREFIX + errorCode, config.SSID);
         if (SdkLevel.isAtLeastT()) {
             if (errorMessage == null) {
@@ -105,7 +110,16 @@ public class EapFailureNotifier {
         WifiBlocklistMonitor.CarrierSpecificEapFailureConfig eapFailureConfig =
                 new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(
                         sr.getInt(CONFIG_EAP_FAILURE_DISABLE_THRESHOLD, 1),
-                        sr.getInt(CONFIG_EAP_FAILURE_DISABLE_DURATION, -1));
+                        sr.getInt(CONFIG_EAP_FAILURE_DISABLE_DURATION, -1),
+                        true);
+        if (SdkLevel.isAtLeastU()) {
+            WifiBlocklistMonitor.CarrierSpecificEapFailureConfig carrierSpecificOverride =
+                    mWifiGlobals.getCarrierSpecificEapFailureConfig(carrierId, errorCode);
+            if (carrierSpecificOverride != null) {
+                eapFailureConfig = carrierSpecificOverride;
+            }
+        }
+
         StatusBarNotification[] activeNotifications = mNotificationManager.getActiveNotifications();
         for (StatusBarNotification activeNotification : activeNotifications) {
             if ((activeNotification.getId() == NOTIFICATION_ID)
@@ -114,7 +128,7 @@ public class EapFailureNotifier {
             }
         }
 
-        if (showNotification) {
+        if (showNotification && eapFailureConfig.displayNotification) {
             showNotification(errorMessage, config.SSID);
         }
         return eapFailureConfig;
