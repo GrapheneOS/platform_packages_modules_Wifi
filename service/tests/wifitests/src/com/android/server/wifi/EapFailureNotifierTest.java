@@ -73,6 +73,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
     @Mock
     WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiConfiguration mWifiConfiguration;
+    @Mock WifiGlobals mWifiGlobals;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Notification.Builder mNotificationBuilder;
     private static final int KNOWN_ERROR_CODE = 32764;
@@ -85,7 +86,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
             "Error Message Unknown Error Code";
     private final WifiBlocklistMonitor.CarrierSpecificEapFailureConfig
             mExpectedEapFailureConfig = new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(
-                    1, -1);
+                    1, -1, true);
 
     EapFailureNotifier mEapFailureNotifier;
 
@@ -118,12 +119,58 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         when(mFrameworkFacade.getSettingsPackageName(any())).thenReturn(TEST_SETTINGS_PACKAGE);
         mEapFailureNotifier =
                 new EapFailureNotifier(mContext, mFrameworkFacade, mWifiCarrierInfoManager,
-                        mWifiNotificationManager);
+                        mWifiNotificationManager, mWifiGlobals);
     }
 
     @After
     public void cleanUp() throws Exception {
         validateMockitoUsage();
+    }
+
+    /**
+     * Verify Android 14 and later EapFailureConfig override behavior based on config file.
+     */
+    @Test
+    public void onEapFailureEapFailureConfigWithOverride() {
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig carrierOverride =
+                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(
+                        mExpectedEapFailureConfig.threshold + 1,
+                        mExpectedEapFailureConfig.durationMs + 1000,
+                        false);
+        when(mWifiGlobals.getCarrierSpecificEapFailureConfig(anyInt(), anyInt())).thenReturn(
+                carrierOverride);
+
+        when(mFrameworkFacade.makeNotificationBuilder(any(),
+                eq(WifiService.NOTIFICATION_NETWORK_ALERTS))).thenReturn(mNotificationBuilder);
+        StatusBarNotification[] activeNotifications = new StatusBarNotification[1];
+        activeNotifications[0] = new StatusBarNotification("android", "", 56, "", 0, 0, 0,
+                mNotification, android.os.Process.myUserHandle(), 0);
+        when(mWifiNotificationManager.getActiveNotifications()).thenReturn(activeNotifications);
+        mWifiConfiguration.SSID = SSID_2;
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig failureConfig =
+                mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+        if (SdkLevel.isAtLeastU()) {
+            // New Android U behavior will override CarrierSpecificEapFailureConfig
+            assertEquals(carrierOverride, failureConfig);
+            // Should not try to send notification since it is disabled in the overlay
+            verify(mFrameworkFacade, never()).makeNotificationBuilder(any(), any());
+
+            // Now enable displayNotification and then verify send notification is attempted
+            carrierOverride =
+                    new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(
+                            carrierOverride.threshold,
+                            carrierOverride.durationMs,
+                            true);
+            when(mWifiGlobals.getCarrierSpecificEapFailureConfig(anyInt(), anyInt())).thenReturn(
+                    carrierOverride);
+            mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, true);
+            verify(mFrameworkFacade).makeNotificationBuilder(any(), any());
+        } else {
+            // Before Android U, will try to send notification send default showNotification is
+            // true, and will not apply the eapFailureConfig override.
+            verify(mFrameworkFacade).makeNotificationBuilder(any(), any());
+            assertEquals(mExpectedEapFailureConfig, failureConfig);
+        }
     }
 
     /**
@@ -309,7 +356,7 @@ public class EapFailureNotifierTest extends WifiBaseTest {
                 mEapFailureNotifier.onEapFailure(KNOWN_ERROR_CODE, mWifiConfiguration, false);
         verify(mWifiNotificationManager, never()).notify(anyInt(), any());
         WifiBlocklistMonitor.CarrierSpecificEapFailureConfig expected =
-                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(2, 14400000);
+                new WifiBlocklistMonitor.CarrierSpecificEapFailureConfig(2, 14400000, true);
         assertEquals(expected, failureConfig);
     }
 
