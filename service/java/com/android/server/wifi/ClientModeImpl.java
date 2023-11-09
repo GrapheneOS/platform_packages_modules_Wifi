@@ -4028,6 +4028,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
+    private boolean shouldIgnoreNudDisconnectForWapiInCn() {
+        // temporary work-around for <=U devices
+        if (SdkLevel.isAtLeastV()) return false;
+
+        if (!mWifiGlobals.disableNudDisconnectsForWapiInSpecificCc() || !"CN".equalsIgnoreCase(
+                mWifiInjector.getWifiCountryCode().getCountryCode())) {
+            return false;
+        }
+        WifiConfiguration config = getConnectedWifiConfigurationInternal();
+        return config != null && (config.allowedProtocols.get(WifiConfiguration.Protocol.WAPI)
+                || config.getAuthType() == WifiConfiguration.KeyMgmt.NONE);
+    }
+
     private void handleIpReachabilityFailure(@NonNull ReachabilityLossInfoParcelable lossInfo) {
         if (lossInfo == null) {
             Log.e(getTag(), "lossInfo should never be null");
@@ -4040,13 +4053,19 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 processIpReachabilityFailure(lossInfo.reason);
                 break;
             case ReachabilityLossReason.CONFIRM:
-            case ReachabilityLossReason.ORGANIC:
+            case ReachabilityLossReason.ORGANIC: {
+                if (shouldIgnoreNudDisconnectForWapiInCn()) {
+                    logd("CMD_IP_REACHABILITY_FAILURE but disconnect disabled for WAPI -- ignore");
+                    return;
+                }
+
                 if (mDeviceConfigFacade.isHandleRssiOrganicKernelFailuresEnabled()) {
                     processIpReachabilityFailure(lossInfo.reason);
                 } else {
                     processLegacyIpReachabilityLost(lossInfo.reason);
                 }
                 break;
+            }
             default:
                 logd("Invalid failure reason " + lossInfo.reason + "from onIpReachabilityFailure");
         }
