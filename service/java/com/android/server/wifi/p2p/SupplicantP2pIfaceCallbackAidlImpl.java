@@ -22,6 +22,8 @@ import android.annotation.NonNull;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
 import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
 import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
+import android.hardware.wifi.supplicant.P2pPeerClientDisconnectedEventParams;
+import android.hardware.wifi.supplicant.P2pPeerClientJoinedEventParams;
 import android.hardware.wifi.supplicant.P2pProvDiscStatusCode;
 import android.hardware.wifi.supplicant.P2pStatusCode;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
@@ -41,6 +43,7 @@ import com.android.internal.util.HexDump;
 import com.android.server.wifi.util.NativeUtil;
 
 import java.io.ByteArrayInputStream;
+import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -546,7 +549,30 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
      */
     @Override
     public void onStaAuthorized(byte[] srcAddress, byte[] p2pDeviceAddress) {
-        logd("STA authorized on " + mInterface);
+        onP2pApStaConnected(null, srcAddress, p2pDeviceAddress, 0);
+    }
+
+    /**
+     * Used to indicate that a P2P client has joined this device group owner.
+     *
+     * @param clientJoinedEventParams Parameters associated with peer client joined event.
+     */
+    @Override
+    public void onPeerClientJoined(P2pPeerClientJoinedEventParams clientJoinedEventParams) {
+        onP2pApStaConnected(
+                clientJoinedEventParams.groupInterfaceName,
+                clientJoinedEventParams.clientInterfaceAddress,
+                clientJoinedEventParams.clientDeviceAddress,
+                clientJoinedEventParams.clientIpAddress);
+    }
+
+    private void onP2pApStaConnected(
+            String groupIfName, byte[] srcAddress, byte[] p2pDeviceAddress, int ipAddress) {
+        logd("STA authorized on " + (TextUtils.isEmpty(groupIfName) ? mInterface : groupIfName));
+        if (ipAddress != 0) {
+            Inet4Address ipAddressClient = intToInet4AddressHTL(ipAddress);
+            logd("IP Address of Client: " + ipAddressClient.getHostAddress());
+        }
         WifiP2pDevice device = createStaEventDevice(srcAddress, p2pDeviceAddress);
         if (device == null) {
             return;
@@ -562,7 +588,27 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
      */
     @Override
     public void onStaDeauthorized(byte[] srcAddress, byte[] p2pDeviceAddress) {
-        logd("STA deauthorized on " + mInterface);
+        onP2pApStaDisconnected(null, srcAddress, p2pDeviceAddress);
+    }
+
+    /**
+     * Used to indicate that a P2P client has disconnected from this device group owner.
+     *
+     * @param clientDisconnectedEventParams Parameters associated with peer client disconnected
+     *     event.
+     */
+    @Override
+    public void onPeerClientDisconnected(
+            P2pPeerClientDisconnectedEventParams clientDisconnectedEventParams) {
+        onP2pApStaDisconnected(
+                clientDisconnectedEventParams.groupInterfaceName,
+                clientDisconnectedEventParams.clientInterfaceAddress,
+                clientDisconnectedEventParams.clientDeviceAddress);
+    }
+
+    private void onP2pApStaDisconnected(
+            String groupIfName, byte[] srcAddress, byte[] p2pDeviceAddress) {
+        logd("STA deauthorized on " + (TextUtils.isEmpty(groupIfName) ? mInterface : groupIfName));
         WifiP2pDevice device = createStaEventDevice(srcAddress, p2pDeviceAddress);
         if (device == null) {
             return;
