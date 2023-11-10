@@ -724,8 +724,8 @@ public class NetworkDetail {
     @Override
     public String toString() {
         return "NetworkInfo{SSID='" + mSSID
-                + "', HESSID=" + Utils.macToSimpleString(mHESSID)
-                + ", BSSID=" + Utils.macToSimpleString(mBSSID)
+                + "', HESSID=" + Utils.macToString(mHESSID)
+                + ", BSSID=" + Utils.macToString(mBSSID)
                 + ", StationCount=" + mStationCount
                 + ", ChannelUtilization=" + mChannelUtilization
                 + ", Capacity=" + mCapacity
@@ -737,9 +737,9 @@ public class NetworkDetail {
 
     public String toKeyString() {
         return mHESSID != 0 ?
-                "'" + mSSID + "':" + Utils.macToSimpleString(mBSSID) + " ("
-                        + Utils.macToSimpleString(mHESSID) + ")"
-                : "'" + mSSID + "':" + Utils.macToSimpleString(mBSSID);
+                "'" + mSSID + "':" + Utils.macToString(mBSSID) + " ("
+                        + Utils.macToString(mHESSID) + ")"
+                : "'" + mSSID + "':" + Utils.macToString(mBSSID);
     }
 
     public String getBSSIDString() {

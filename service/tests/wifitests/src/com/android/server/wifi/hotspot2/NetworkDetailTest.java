@@ -54,7 +54,7 @@ public class NetworkDetailTest extends WifiBaseTest {
                 Collections.emptyList(), 5745);
 
         assertTrue(networkDetail.toKeyString() + " not expected!",
-                TextUtils.equals("'null':020304050607", networkDetail.toKeyString()));
+                TextUtils.equals("'null':02:03:04:05:06:07", networkDetail.toKeyString()));
         assertNull(networkDetail.getMldMacAddress());
         assertEquals(MloLink.INVALID_MLO_LINK_ID, networkDetail.getMloLinkId());
         assertTrue(networkDetail.getAffiliatedMloLinks().isEmpty());
@@ -182,17 +182,13 @@ public class NetworkDetailTest extends WifiBaseTest {
     }
 
     @Test
-    public void  verifySameTextFormat() throws Exception {
+    public void  verifySameTextFormat() {
         long[] testBssids = {0x11ab0d0f7890L, 0x1, 0x3300, 0x0, 0xffffffffffffL};
         String[] testBssidMacStrs = {"11:ab:0d:0f:78:90", "00:00:00:00:00:01", "00:00:00:00:33:00",
                 "00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"};
         for (int i = 0; i < testBssids.length; i++) {
-            String bssidStr1 = String.format("%012x", testBssids[i]);
-            String bssidStr2 = Utils.macToSimpleString(testBssids[i]);
-            assertTrue(bssidStr1 + " not equals " + bssidStr2,
-                    TextUtils.equals(bssidStr1, bssidStr2));
-            bssidStr1 = testBssidMacStrs[i];
-            bssidStr2 = Utils.macToString(testBssids[i]);
+            String bssidStr1 = testBssidMacStrs[i];
+            String bssidStr2 = Utils.macToString(testBssids[i]);
             assertTrue(bssidStr1 + " not equals " + bssidStr2,
                     TextUtils.equals(bssidStr1, bssidStr2));
         }

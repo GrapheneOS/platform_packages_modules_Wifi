@@ -25,7 +25,6 @@ import androidx.annotation.Nullable;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.hotspot2.NetworkDetail;
-import com.android.server.wifi.hotspot2.Utils;
 import com.android.server.wifi.hotspot2.anqp.ANQPElement;
 import com.android.server.wifi.hotspot2.anqp.Constants;
 import com.android.server.wifi.hotspot2.anqp.HSFriendlyNameElement;
@@ -185,8 +184,7 @@ public class ScanDetail {
         if (networkDetail != null) {
             return networkDetail.toKeyString();
         } else {
-            return "'" + mScanResult.BSSID + "':" + Utils.macToSimpleString(
-                    Utils.parseMac(mScanResult.BSSID));
+            return "'" + mScanResult.SSID + "':" + mScanResult.BSSID;
         }
     }
 
@@ -215,11 +213,6 @@ public class ScanDetail {
 
     @Override
     public String toString() {
-        try {
-            return "'" + mScanResult.BSSID + "'/" + Utils.macToSimpleString(
-                    Utils.parseMac(mScanResult.BSSID));
-        } catch (IllegalArgumentException iae) {
-            return "'" + mScanResult.BSSID + "'/----";
-        }
+        return "'" + mScanResult.SSID + "'/" + mScanResult.BSSID;
     }
 }
