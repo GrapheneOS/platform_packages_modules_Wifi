@@ -4494,7 +4494,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      * Validate the connection operation when user approval is required and the user accepts or
      * rejects the request.
      */
-    private void runTestConnectUserApproval(boolean userAcceptsRequest) throws Exception {
+    private void runTestConnectUserApproval(
+            boolean userAcceptsRequest,
+            boolean changedToOpportunistic) throws Exception {
         final int clientId = 1005;
         final int uid = 1000;
         final int pid = 2000;
@@ -4531,6 +4533,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 any(), any(), mWaitingStateCaptor.capture(), mTargetStateCaptor.capture(),
                 eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(), anyBoolean());
 
+        if (changedToOpportunistic) {
+            // calling package changed to opportunistic before the response was received.
+            mDut.setOpportunisticPackage(callingPackage, true);
+        }
+
         // simulate user approval triggered and granted/rejected (userAcceptsRequest)
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
                 any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(), anyBoolean()))
@@ -4540,7 +4547,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mInterfaceConflictManager).manageInterfaceConflictForStateMachine(any(),
                 any(), any(), any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(),
-                anyBoolean());
+                eq(changedToOpportunistic));
 
         if (userAcceptsRequest) {
             verify(mMockNative).enableAndConfigure(anyShort(), eq(configRequest), eq(false),
@@ -5405,7 +5412,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      */
     @Test
     public void testConnectUserApprovalAccept() throws Exception {
-        runTestConnectUserApproval(true);
+        runTestConnectUserApproval(true, false);
     }
 
     /**
@@ -5414,7 +5421,25 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
      */
     @Test
     public void testConnectUserApprovalReject() throws Exception {
-        runTestConnectUserApproval(false);
+        runTestConnectUserApproval(false, false);
+    }
+
+    /**
+     * Validate the connection operation when user approval is required and the user accepts the
+     * request after the request changes to opportunistic.
+     */
+    @Test
+    public void testConnectUserApprovalAcceptAfterChangingToOpportunistic() throws Exception {
+        runTestConnectUserApproval(true, true);
+    }
+
+    /**
+     * Validate the connection operation when user approval is required and the user rejects the
+     * request after the request changes to opportunistic.
+     */
+    @Test
+    public void testConnectUserApprovalRejectAfterChangingToOpportunistic() throws Exception {
+        runTestConnectUserApproval(false, true);
     }
 
     /*

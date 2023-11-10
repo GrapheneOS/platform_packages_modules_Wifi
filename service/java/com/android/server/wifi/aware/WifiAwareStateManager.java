@@ -2665,19 +2665,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     boolean reEnableAware = msg.getData()
                             .getBoolean(MESSAGE_BUNDLE_KEY_RE_ENABLE_AWARE_FROM_OFFLOAD);
                     int callerType = msg.getData().getInt(MESSAGE_BUNDLE_KEY_CALLER_TYPE);
-                    int proceedWithOperation;
-
-                    if (awareOffload || mOpportunisticSet.contains(callingPackage)) {
-                        // As this is lowest priorty, should always execute, no dialog to ask user
-                        proceedWithOperation = InterfaceConflictManager.ICM_EXECUTE_COMMAND;
-                    } else {
-                        proceedWithOperation =
-                                mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG,
-                                        msg, this, mWaitingState, mWaitState,
-                                        HalDeviceManager.HDM_CREATE_IFACE_NAN,
-                                        new WorkSource(uid, callingPackage),
-                                        false /* bypassDialog */);
-                    }
+                    int proceedWithOperation =
+                            mInterfaceConflictMgr.manageInterfaceConflictForStateMachine(TAG,
+                                    msg, this, mWaitingState, mWaitState,
+                                    HalDeviceManager.HDM_CREATE_IFACE_NAN,
+                                    new WorkSource(uid, callingPackage),
+                                    awareOffload || mOpportunisticSet.contains(callingPackage)
+                                    /* bypassDialog */);
 
                     if (proceedWithOperation == InterfaceConflictManager.ICM_ABORT_COMMAND) {
                         // handling user rejection or possible conflict (pending command)
