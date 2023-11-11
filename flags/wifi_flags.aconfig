@@ -98,3 +98,10 @@ flag {
     description: "Control the API for wep usage"
     bug: "275367422"
 }
+
+flag {
+    name: "wpa_personal_usage"
+    namespace: "wifi"
+    description: "Control the API for wpa personal usage"
+    bug: "275367422"
+}

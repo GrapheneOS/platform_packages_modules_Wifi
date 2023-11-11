@@ -2748,6 +2748,11 @@ public class ActiveModeWarden {
             // The WEP didn't be deprecated, set it.
             additionalFeatureSet |= WifiManager.WIFI_FEATURE_WEP;
         }
+
+        if (!mWifiGlobals.isWpaPersonalDeprecated()) {
+            // The WPA didn't be deprecated, set it.
+            additionalFeatureSet |= WifiManager.WIFI_FEATURE_WPA_PERSONAL;
+        }
         mSupportedFeatureSet.set(
                 (supportedFeatureSet | concurrencyFeatureSet | additionalFeatureSet)
                         & ~excludedFeatureSet);

@@ -3961,6 +3961,12 @@ public class WifiManager {
      */
     public static final long WIFI_FEATURE_WEP = 1L << 59;
 
+    /**
+     * Support for WPA PERSONAL Wi-Fi Network
+     * @hide
+     */
+    public static final long WIFI_FEATURE_WPA_PERSONAL = 1L << 60;
+
     private long getSupportedFeatures() {
         try {
             return mService.getSupportedFeatures();
@@ -8831,6 +8837,17 @@ public class WifiManager {
     @FlaggedApi("com.android.wifi.flags.wep_usage")
     public boolean isWifiWepSupported() {
         return isFeatureSupported(WIFI_FEATURE_WEP);
+    }
+
+    /**
+    * @return true if this device supports connections to Wi-Fi WPA-Personal networks.
+    *
+    * Note that this is the older and less secure WPA-Personal protocol, not WPA2-Personal
+    * or later protocols.
+    */
+    @FlaggedApi("com.android.wifi.flags.wpa_personal_usage")
+    public boolean isWpaPersonalSupported() {
+        return isFeatureSupported(WIFI_FEATURE_WPA_PERSONAL);
     }
 
     /**
