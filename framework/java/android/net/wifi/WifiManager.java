@@ -3948,11 +3948,18 @@ public class WifiManager {
      * @hide
      */
     public static final long WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS = 1L << 57;
+
     /**
      * Support for TID-To-Link Mapping negotiation.
      * @hide
      */
     public static final long WIFI_FEATURE_T2LM_NEGOTIATION = 1L << 58;
+
+    /**
+     * Support for WEP Wi-Fi Network
+     * @hide
+     */
+    public static final long WIFI_FEATURE_WEP = 1L << 59;
 
     private long getSupportedFeatures() {
         try {
@@ -8815,6 +8822,15 @@ public class WifiManager {
      */
     public boolean isTidToLinkMappingNegotiationSupported() {
         return isFeatureSupported(WIFI_FEATURE_T2LM_NEGOTIATION);
+    }
+
+
+    /**
+    * @return true if this device supports connections to Wi-Fi WEP networks.
+    */
+    @FlaggedApi("com.android.wifi.flags.wep_usage")
+    public boolean isWifiWepSupported() {
+        return isFeatureSupported(WIFI_FEATURE_WEP);
     }
 
     /**

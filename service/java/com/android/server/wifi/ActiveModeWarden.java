@@ -23,6 +23,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_UNKNOWN;
+
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
@@ -138,6 +139,7 @@ public class ActiveModeWarden {
     private final DppManager mDppManager;
     private final UserManager mUserManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
+    private final WifiGlobals mWifiGlobals;
 
     private WifiServiceImpl.SoftApCallbackInternal mSoftApCallback;
     private WifiServiceImpl.SoftApCallbackInternal mLohsCallback;
@@ -381,7 +383,8 @@ public class ActiveModeWarden {
             WifiPermissionsUtil wifiPermissionsUtil,
             WifiMetrics wifiMetrics,
             ExternalScoreUpdateObserverProxy externalScoreUpdateObserverProxy,
-            DppManager dppManager) {
+            DppManager dppManager,
+            WifiGlobals wifiGlobals) {
         mWifiInjector = wifiInjector;
         mLooper = looper;
         mHandler = new Handler(looper);
@@ -401,6 +404,7 @@ public class ActiveModeWarden {
         mGraveyard = new Graveyard();
         mUserManager = mWifiInjector.getUserManager();
         mLastCallerInfoManager = mWifiInjector.getLastCallerInfoManager();
+        mWifiGlobals = wifiGlobals;
 
         wifiNative.registerStatusListener(isReady -> {
             if (!isReady && !mIsShuttingdown) {
@@ -2739,6 +2743,10 @@ public class ActiveModeWarden {
             // The bridged mode requires the kernel network modules support.
             // It doesn't relate the vendor HAL, set if overlay enables it.
             additionalFeatureSet |= WifiManager.WIFI_FEATURE_STA_BRIDGED_AP;
+        }
+        if (!mWifiGlobals.isWepDeprecated()) {
+            // The WEP didn't be deprecated, set it.
+            additionalFeatureSet |= WifiManager.WIFI_FEATURE_WEP;
         }
         mSupportedFeatureSet.set(
                 (supportedFeatureSet | concurrencyFeatureSet | additionalFeatureSet)
