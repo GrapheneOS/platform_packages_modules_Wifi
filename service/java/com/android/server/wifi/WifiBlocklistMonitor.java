@@ -1206,14 +1206,17 @@ public class WifiBlocklistMonitor {
         public final int threshold;
         // disable duration in ms. -1 means permanent disable.
         public final int durationMs;
-        public CarrierSpecificEapFailureConfig(int threshold, int durationMs) {
+        public final boolean displayNotification;
+        public CarrierSpecificEapFailureConfig(int threshold, int durationMs,
+                boolean displayNotification) {
             this.threshold = threshold;
             this.durationMs = durationMs;
+            this.displayNotification = displayNotification;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(threshold, durationMs);
+            return Objects.hash(threshold, durationMs, displayNotification);
         }
 
         @Override
@@ -1225,7 +1228,8 @@ public class WifiBlocklistMonitor {
                 return false;
             }
             CarrierSpecificEapFailureConfig lhs = (CarrierSpecificEapFailureConfig) obj;
-            return threshold == lhs.threshold && durationMs == lhs.durationMs;
+            return threshold == lhs.threshold && durationMs == lhs.durationMs
+                    && displayNotification == lhs.displayNotification;
         }
 
         @Override
@@ -1233,6 +1237,7 @@ public class WifiBlocklistMonitor {
             return new StringBuilder()
                     .append("threshold=").append(threshold)
                     .append(" durationMs=").append(durationMs)
+                    .append(" displayNotification=").append(displayNotification)
                     .toString();
         }
     }

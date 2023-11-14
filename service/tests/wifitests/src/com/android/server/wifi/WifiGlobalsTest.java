@@ -144,6 +144,38 @@ public class WifiGlobalsTest extends WifiBaseTest {
                 .contains(TEST_SSID.substring(0, TEST_SSID.length() - 1)));
     }
 
+    @Test
+    public void testLoadCarrierSpecificEapFailureConfigMap() throws Exception {
+        // Test by default there's no override data
+        assertEquals(0, mWifiGlobals.getCarrierSpecificEapFailureConfigMapSize());
+
+        // Test config with too few items don't get added.
+        mResources.setStringArray(R.array.config_wifiEapFailureConfig,
+                new String[] {"1, 2, 3"});
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertEquals(0, mWifiGlobals.getCarrierSpecificEapFailureConfigMapSize());
+
+        // Test config that fail to parse to int don't get added.
+        mResources.setStringArray(R.array.config_wifiEapFailureConfig,
+                new String[] {"1839, bad_config,  1, 1, 1440"});
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertEquals(0, mWifiGlobals.getCarrierSpecificEapFailureConfigMapSize());
+
+        // Test correct config
+        mResources.setStringArray(R.array.config_wifiEapFailureConfig,
+                new String[] {"1839, 1031,  1, 1, 1440"});
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertEquals(1, mWifiGlobals.getCarrierSpecificEapFailureConfigMapSize());
+        WifiBlocklistMonitor.CarrierSpecificEapFailureConfig config =
+                mWifiGlobals.getCarrierSpecificEapFailureConfig(1839, 1031);
+        assertTrue(config.displayNotification);
+        assertEquals(1, config.threshold);
+        assertEquals(1440 * 60 * 1000, config.durationMs);
+
+        // Getting CarrierSpecificEapFailureConfig for an not added reason should return null.
+        assertNull(mWifiGlobals.getCarrierSpecificEapFailureConfig(1839, 999));
+    }
+
 
     /**
      * Test that isDeprecatedSecurityTypeNetwork returns true due to WEP network
