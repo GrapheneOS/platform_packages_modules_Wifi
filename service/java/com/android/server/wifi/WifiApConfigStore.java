@@ -41,7 +41,6 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.MacAddressUtils;
 import com.android.server.wifi.util.ApConfigUtil;
-import com.android.server.wifi.util.ArrayUtils;
 import com.android.wifi.resources.R;
 
 import java.nio.charset.CharsetEncoder;
@@ -482,18 +481,16 @@ public class WifiApConfigStore {
 
         // Automotive mode can force the LOHS to specific bands
         if (hasAutomotiveFeature(context)) {
+            int desiredBand = SoftApConfiguration.BAND_2GHZ;
             if (context.getResources().getBoolean(R.bool.config_wifiLocalOnlyHotspot6ghz)
-                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_6GHZ, mContext)
-                    && !ArrayUtils.isEmpty(capability
-                          .getSupportedChannelList(SoftApConfiguration.BAND_6GHZ))) {
-                configBuilder.setBand(SoftApConfiguration.BAND_6GHZ);
-            } else if (context.getResources().getBoolean(
-                        R.bool.config_wifi_local_only_hotspot_5ghz)
-                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_5GHZ, mContext)
-                    && !ArrayUtils.isEmpty(capability
-                          .getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))) {
-                configBuilder.setBand(SoftApConfiguration.BAND_5GHZ);
+                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_6GHZ, mContext)) {
+                desiredBand |= SoftApConfiguration.BAND_6GHZ;
             }
+            if (context.getResources().getBoolean(R.bool.config_wifi_local_only_hotspot_5ghz)
+                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_5GHZ, mContext)) {
+                desiredBand |= SoftApConfiguration.BAND_5GHZ;
+            }
+            configBuilder.setBand(desiredBand);
         }
         if (customConfig == null || customConfig.getSsid() == null) {
             configBuilder.setSsid(generateLohsSsid(context));
