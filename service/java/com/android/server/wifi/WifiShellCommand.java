@@ -1021,7 +1021,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     return 0;
                 case "set-verbose-logging": {
                     boolean enabled = getNextArgRequiredTrueOrFalse("enabled", "disabled");
-                    mWifiService.enableVerboseLogging(enabled ? 1 : 0);
+                    String levelOption = getNextOption();
+                    int level = enabled ? 1 : 0;
+                    if (enabled && levelOption != null && levelOption.equals("-l")) {
+                        String levelStr = getNextArgRequired();
+                        try {
+                            level = Integer.parseInt(levelStr);
+                            if (level < 0 || level > 3) {
+                                pw.println("Not a valid log level: " + level);
+                                return -1;
+                            }
+                        } catch (NumberFormatException e) {
+                            pw.println("Invalid verbose-logging level : " + levelStr);
+                            return -1;
+                        }
+                    }
+                    mWifiService.enableVerboseLogging(level);
                     return 0;
                 }
                 case "is-verbose-logging": {
@@ -2694,8 +2709,13 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("        - Use list-networks to retrieve <networkId> for the network");
         pw.println("  status");
         pw.println("    Current wifi status");
-        pw.println("  set-verbose-logging enabled|disabled ");
-        pw.println("    Set the verbose logging enabled or disabled");
+        pw.println("  set-verbose-logging enabled|disabled [-l <verbose log level>]");
+        pw.println("    Set the verbose logging enabled or disabled with log level");
+        pw.println("      -l - verbose logging level");
+        pw.println("           0 - verbose logging disabled");
+        pw.println("           1 - verbose logging enabled");
+        pw.println("           2 - verbose logging Show key mode");
+        pw.println("           3 - verbose logging only for Wi-Fi Aware feature");
         pw.println("  is-verbose-logging");
         pw.println("    Check whether verbose logging enabled or disabled");
         pw.println("  start-restricting-auto-join-to-subscription-id subId");
