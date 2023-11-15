@@ -2378,22 +2378,27 @@ public class HalDeviceManager {
                     }
                 }
 
-                boolean success = ifaceCreationData.chipInfo.chip.configureChip(
-                        ifaceCreationData.chipModeId);
-                if (!success) {
-                    Log.e(TAG, "executeChipReconfiguration: configureChip error");
-                    return null;
-                }
+                // Configure mode using the cached chip info, then reload chip info if needed
+                boolean configureChipSuccess =
+                        ifaceCreationData.chipInfo.chip.configureChip(ifaceCreationData.chipModeId);
                 if (!mIsConcurrencyComboLoadedFromDriver) {
                     WifiChipInfo[] wifiChipInfos = getAllChipInfo(true);
                     if (wifiChipInfos != null) {
                         mCachedStaticChipInfos =
                                 convertWifiChipInfoToStaticChipInfos(wifiChipInfos);
                         saveStaticChipInfoToStore(mCachedStaticChipInfos);
-                        mIsConcurrencyComboLoadedFromDriver = true;
+                        if (configureChipSuccess) {
+                            // Successful chip configuration suggests that the modes are valid
+                            Log.i(TAG, "Chip info loaded successfully from the HAL");
+                            mIsConcurrencyComboLoadedFromDriver = true;
+                        }
                     } else {
-                        Log.e(TAG, "Configured chip but could not get current chip info.");
+                        Log.e(TAG, "Could not get current chip info.");
                     }
+                }
+                if (!configureChipSuccess) {
+                    Log.e(TAG, "executeChipReconfiguration: configureChip error");
+                    return null;
                 }
             } else {
                 // remove all interfaces on the delete list
