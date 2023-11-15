@@ -871,7 +871,7 @@ public class WifiInjector {
                 mBatteryStats, supplicantStateTracker, mMboOceController, mWifiCarrierInfoManager,
                 mWifiPseudonymManager,
                 new EapFailureNotifier(mContext, mFrameworkFacade, mWifiCarrierInfoManager,
-                        mWifiNotificationManager),
+                        mWifiNotificationManager, mWifiGlobals),
                 mSimRequiredNotifier,
                 new WifiScoreReport(mScoringParams, mClock, mWifiMetrics, wifiInfo,
                         mWifiNative, mWifiBlocklistMonitor, mWifiThreadRunner, mWifiScoreCard,

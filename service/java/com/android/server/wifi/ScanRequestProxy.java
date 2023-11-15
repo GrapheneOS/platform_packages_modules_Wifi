@@ -39,6 +39,7 @@ import android.os.WorkSource;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.LruCache;
 import android.util.Pair;
 
 import com.android.internal.annotations.GuardedBy;
@@ -89,6 +90,8 @@ public class ScanRequestProxy {
     @VisibleForTesting
     public static final int SCAN_REQUEST_THROTTLE_INTERVAL_BG_APPS_MS = 30 * 60 * 1000;
 
+    public static final int PARTIAL_SCAN_CACHE_SIZE = 200;
+
     private final Context mContext;
     private final Handler mHandler;
     private final AppOpsManager mAppOps;
@@ -117,10 +120,13 @@ public class ScanRequestProxy {
     // Values in the map = List of the last few scan request timestamps from the app.
     private final ArrayMap<Pair<Integer, String>, LinkedList<Long>> mLastScanTimestampsForFgApps =
             new ArrayMap();
-    // Scan results cached from the last full single scan request.
+    // Full scan results cached from the last full single scan request.
     // Stored as a map of bssid -> ScanResult to allow other clients to perform ScanResult lookup
     // for bssid more efficiently.
-    private final Map<String, ScanResult> mLastScanResultsMap = new HashMap<>();
+    private final Map<String, ScanResult> mFullScanCache = new HashMap<>();
+    // Partial scan results cached since the last full single scan request.
+    private final LruCache<String, ScanResult> mPartialScanCache =
+            new LruCache<>(PARTIAL_SCAN_CACHE_SIZE);
     // external ScanResultCallback tracker
     private final RemoteCallbackList<IScanResultsCallback> mRegisteredScanResultsCallbacks;
     private class GlobalScanListener implements WifiScanner.ScanListener {
@@ -154,17 +160,29 @@ public class ScanRequestProxy {
             boolean isFullBandScan = WifiScanner.isFullBandScan(
                     scanData.getScannedBandsInternal(), false);
             if (isFullBandScan) {
-                // If is full scan, clear the map and cache so only the latest data is available
-                mLastScanResultsMap.clear();
+                // If is full scan, clear the cache so only the latest data is available
+                mFullScanCache.clear();
+                mPartialScanCache.evictAll();
             }
             for (ScanResult s : scanResults) {
-                ScanResult scanResult = mLastScanResultsMap.get(s.BSSID);
+                ScanResult scanResult = mFullScanCache.get(s.BSSID);
+                if (isFullBandScan && scanResult == null) {
+                    mFullScanCache.put(s.BSSID, s);
+                    continue;
+                }
                 // If a hidden network is configured, wificond may report two scan results for
                 // the same BSS, ie. One with the SSID and another one without SSID. So avoid
                 // overwriting the scan result of the same BSS with Hidden SSID scan result
+                if (scanResult != null) {
+                    if (TextUtils.isEmpty(scanResult.SSID) || !TextUtils.isEmpty(s.SSID)) {
+                        mFullScanCache.put(s.BSSID, s);
+                    }
+                    continue;
+                }
+                scanResult = mPartialScanCache.get(s.BSSID);
                 if (scanResult == null
                         || TextUtils.isEmpty(scanResult.SSID) || !TextUtils.isEmpty(s.SSID)) {
-                    mLastScanResultsMap.put(s.BSSID, s);
+                    mPartialScanCache.put(s.BSSID, s);
                 }
             }
             if (isFullBandScan) {
@@ -552,7 +570,7 @@ public class ScanRequestProxy {
      */
     public List<ScanResult> getScanResults() {
         // return a copy to prevent external modification
-        return new ArrayList<>(mLastScanResultsMap.values());
+        return new ArrayList<>(combineScanResultsCache().values());
     }
 
     /**
@@ -562,8 +580,11 @@ public class ScanRequestProxy {
      * @return ScanResult for the corresponding bssid if found, null otherwise.
      */
     public @Nullable ScanResult getScanResult(@NonNull String bssid) {
-        ScanResult scanResult = mLastScanResultsMap.get(bssid);
-        if (scanResult == null) return null;
+        ScanResult scanResult = mFullScanCache.get(bssid);
+        if (scanResult == null) {
+            scanResult = mPartialScanCache.get(bssid);
+            if (scanResult == null) return null;
+        }
         // return a copy to prevent external modification
         return new ScanResult(scanResult);
     }
@@ -574,7 +595,8 @@ public class ScanRequestProxy {
      */
     private void clearScanResults() {
         synchronized (mThrottleEnabledLock) {
-            mLastScanResultsMap.clear();
+            mFullScanCache.clear();
+            mPartialScanCache.evictAll();
             mLastScanTimestampForBgApps = 0;
             mLastScanTimestampsForFgApps.clear();
         }
@@ -606,6 +628,14 @@ public class ScanRequestProxy {
             }
         }
         mRegisteredScanResultsCallbacks.finishBroadcast();
+    }
+
+    /** Combine the full and partial scan results */
+    private Map<String, ScanResult> combineScanResultsCache() {
+        Map<String, ScanResult> combinedCache = new HashMap<>();
+        combinedCache.putAll(mFullScanCache);
+        combinedCache.putAll(mPartialScanCache.snapshot());
+        return combinedCache;
     }
 
     /**
@@ -653,49 +683,49 @@ public class ScanRequestProxy {
 
     /** Indicate whether there are WPA2 personal only networks. */
     public boolean isWpa2PersonalOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForPskOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 only networks. */
     public boolean isWpa3PersonalOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForSaeOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2/WPA3 transition mode networks. */
     public boolean isWpa2Wpa3PersonalTransitionNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, ScanResultUtil.createQuotedSsid(r.SSID))
                         && ScanResultUtil.isScanResultForPskSaeTransitionNetwork(r));
     }
 
     /** Indicate whether there are OPEN only networks. */
     public boolean isOpenOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForOpenOnlyNetwork(r));
     }
 
     /** Indicate whether there are OWE only networks. */
     public boolean isOweOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForOweOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA2 Enterprise only networks. */
     public boolean isWpa2EnterpriseOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForWpa2EnterpriseOnlyNetwork(r));
     }
 
     /** Indicate whether there are WPA3 Enterprise only networks. */
     public boolean isWpa3EnterpriseOnlyNetworkInRange(String ssid) {
-        return mLastScanResultsMap.values().stream().anyMatch(r ->
+        return combineScanResultsCache().values().stream().anyMatch(r ->
                 TextUtils.equals(ssid, r.getWifiSsid().toString())
                         && ScanResultUtil.isScanResultForWpa3EnterpriseOnlyNetwork(r));
     }
