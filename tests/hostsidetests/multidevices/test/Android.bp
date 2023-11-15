@@ -47,3 +47,30 @@ python_test_host {
     },
     defaults: ["CtsWifiMultiDevicePythonDefaults"],
 }
+
+python_library_host {
+    name: "wifi_direct_constants",
+    srcs: ["direct/constants.py"],
+}
+
+python_test_host {
+    name: "WifiDirectMoblyTests",
+    main: "direct/wifi_direct_test.py",
+    srcs: ["direct/wifi_direct_test.py"],
+    libs: [
+        "mobly",
+        "wifi_direct_constants",
+    ],
+    data: [":wifi_direct_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        tags: ["mobly"],
+    },
+    test_suites: ["general-tests"],
+    version: {
+        py3: {
+            embedded_launcher: true,
+        },
+    },
+}
+
