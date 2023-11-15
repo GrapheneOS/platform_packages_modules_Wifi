@@ -75,6 +75,8 @@ java_library {
     ],
 
     static_libs: [
+        // Types-only package shared across the HALs
+        "android.hardware.wifi.common-V1-java",
         // AIDL vendor hal implementation
         "android.hardware.wifi-V1-java",
         // HIDL vendor hal implementation
