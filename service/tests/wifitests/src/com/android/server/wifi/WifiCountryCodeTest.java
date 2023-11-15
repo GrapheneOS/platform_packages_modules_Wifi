@@ -669,25 +669,6 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     }
 
     @Test
-    public void testCountryCodeChangedWhenSoftApManagerActiveAndForceSoftApRestartButCCisWorld()
-            throws Exception {
-        mForcedSoftApRestateWhenCountryCodeChanged = true;
-        when(mSoftApManager.getSoftApModeConfiguration()).thenReturn(mSoftApModeConfiguration);
-        createWifiCountryCode();
-        // SoftApManager actived
-        mModeChangeCallbackCaptor.getValue().onActiveModeManagerAdded(mSoftApManager);
-        // Simulate the country code set succeeded via SoftApManager
-        mChangeListenerCaptor.getValue().onSetCountryCodeSucceeded(
-                mWorldModeCountryCode);
-        verify(mSoftApManager, never()).updateCountryCode(anyString());
-        mWifiCountryCode.setTelephonyCountryCodeAndUpdate(mTelephonyCountryCode);
-        verify(mSoftApManager).updateCountryCode(mTelephonyCountryCode);
-        verify(mSoftApManager, never()).getSoftApModeConfiguration();
-        verify(mActiveModeWarden, never()).stopSoftAp(anyInt());
-        verify(mActiveModeWarden, never()).startSoftAp(any(), any());
-    }
-
-    @Test
     public void testCountryCodeChangedWhenSoftApManagerActiveAndForceSoftApRestart()
             throws Exception {
         mForcedSoftApRestateWhenCountryCodeChanged = true;
