@@ -875,6 +875,21 @@
     <string-array translatable="false" name="config_wifiDisableReasonAuthenticationFailureCarrierSpecificDurationMs_carrier_overrides">
         <item><xliff:g id="carrier_id_prefix">:::1839:::</xliff:g>14400000</item>
     </string-array>
+
+    <!-- Configure the Carrier specific override for EAP failure disable behavior starting from Android 14.
+         Should be a comma separated list of the following information:
+           - Carrier ID
+           - EAP failure code
+           - display notification or not (0=false, 1=true)
+           - EAP profile failure threshold
+           - EAP profile disable duration in minutes -->
+    <string-array translatable="false" name="config_wifiEapFailureConfig">
+        <item>1839, 0,     0, 1, 240 </item>
+        <item>1839, 16384, 0, 1, 5 </item>
+        <item>1839, 1026,  0, 1, 240 </item>
+        <item>1839, 1031,  1, 1, 1440 </item>
+        <item>1839, 16385, 0, 3, 120 </item>
+    </string-array>
     <!-- Flush ANQP cache on Wi-Fi toggle off event -->
     <bool translatable="false" name="config_wifiFlushAnqpCacheOnWifiToggleOffEvent">true</bool>
 
