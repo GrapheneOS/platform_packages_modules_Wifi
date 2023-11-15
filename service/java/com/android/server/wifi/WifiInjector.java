@@ -477,10 +477,10 @@ public class WifiInjector {
                         mClock);
         mPasspointManager.setPasspointNetworkNominateHelper(mNominateHelper);
         mSavedNetworkNominator = new SavedNetworkNominator(
-                mWifiConfigManager, mNominateHelper, mConnectivityLocalLog, mWifiCarrierInfoManager,
+                mWifiConfigManager, mConnectivityLocalLog, mWifiCarrierInfoManager,
                 mWifiPseudonymManager, mWifiPermissionsUtil, mWifiNetworkSuggestionsManager);
         mNetworkSuggestionNominator = new NetworkSuggestionNominator(mWifiNetworkSuggestionsManager,
-                mWifiConfigManager, mNominateHelper, mConnectivityLocalLog, mWifiCarrierInfoManager,
+                mWifiConfigManager, mConnectivityLocalLog, mWifiCarrierInfoManager,
                 mWifiPseudonymManager, mWifiMetrics);
 
         mWifiMetrics.setPasspointManager(mPasspointManager);
