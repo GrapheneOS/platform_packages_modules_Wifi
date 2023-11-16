@@ -303,7 +303,7 @@ public class NetworkDetail {
             }
         }
         catch (IllegalArgumentException | BufferUnderflowException | ArrayIndexOutOfBoundsException e) {
-            Log.d(Utils.hs2LogTag(getClass()), "Caught " + e);
+            Log.d(TAG, "Caught " + e);
             if (ssidOctets == null) {
                 throw new IllegalArgumentException("Malformed IE string (no SSID)", e);
             }

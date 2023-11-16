@@ -18,6 +18,7 @@ package com.android.server.wifi.hotspot2;
 
 import android.content.Context;
 import android.net.wifi.hotspot2.PasspointConfiguration;
+import android.os.Handler;
 
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.WifiCarrierInfoManager;
@@ -109,12 +110,13 @@ public class PasspointObjectFactory{
     /**
      * Create an instance of {@link ANQPRequestManager}.
      *
-     * @param handler Instance of {@link PasspointEventHandler}
-     * @param clock Instance of {@link Clock}
+     * @param passpointEventHandler Instance of {@link PasspointEventHandler}
+     * @param clock                 Instance of {@link Clock}
      * @return {@link ANQPRequestManager}
      */
-    public ANQPRequestManager makeANQPRequestManager(PasspointEventHandler handler, Clock clock) {
-        return new ANQPRequestManager(handler, clock);
+    public ANQPRequestManager makeANQPRequestManager(PasspointEventHandler passpointEventHandler,
+            Clock clock, WifiInjector wifiInjector, Handler handler) {
+        return new ANQPRequestManager(passpointEventHandler, clock, wifiInjector, handler);
     }
 
     /**

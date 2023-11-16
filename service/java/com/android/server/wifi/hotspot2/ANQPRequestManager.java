@@ -16,18 +16,24 @@
 
 package com.android.server.wifi.hotspot2;
 
+import android.app.AlarmManager;
+import android.os.Handler;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.hotspot2.anqp.Constants;
+import com.android.wifi.flags.FeatureFlags;
 
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * Class for managing sending of ANQP requests.  This manager will ignore ANQP requests for a
@@ -35,15 +41,22 @@ import java.util.Map;
  * unanswered or failed.  The hold off time will increase exponentially until the max is reached.
  */
 public class ANQPRequestManager {
+    private static final int ANQP_REQUEST_ALARM_INTERVAL_MS = 2_000;
+    @VisibleForTesting
+    public static final String ANQP_REQUEST_ALARM_TAG = "anqpRequestAlarm";
     private static final String TAG = "ANQPRequestManager";
 
     private final PasspointEventHandler mPasspointHandler;
+    private final AlarmManager mAlarmManager;
     private final Clock mClock;
+    private final FeatureFlags mFeatureFlags;
+    private boolean mAnqpRequestPending;
 
     /**
      * List of pending ANQP request associated with an AP (BSSID).
      */
     private final Map<Long, ANQPNetworkKey> mPendingQueries;
+    private final Queue<AnqpRequest> mPendingRequest = new ArrayDeque<>();
 
     /**
      * List of hold off time information associated with APs specified by their BSSID.
@@ -80,6 +93,7 @@ public class ANQPRequestManager {
 
     private static final List<Constants.ANQPElementType> R2_ANQP_BASE_SET = Arrays.asList(
             Constants.ANQPElementType.HSOSUProviders);
+    private final Handler mHandler;
 
     /**
      * Class to keep track of AP status for ANQP requests.
@@ -95,12 +109,38 @@ public class ANQPRequestManager {
          */
         public long holdOffExpirationTime;
     }
+    private static class AnqpRequest {
 
-    public ANQPRequestManager(PasspointEventHandler handler, Clock clock) {
-        mPasspointHandler = handler;
+        AnqpRequest(long bssid, boolean rcOIs, NetworkDetail.HSRelease hsRelease,
+                ANQPNetworkKey anqpNetworkKey) {
+            mBssid = bssid;
+            mAnqpNetworkKey = anqpNetworkKey;
+            mRcOIs = rcOIs;
+            mHsRelease = hsRelease;
+        }
+        public final long mBssid;
+        public final boolean mRcOIs;
+        public final NetworkDetail.HSRelease mHsRelease;
+        public final ANQPNetworkKey mAnqpNetworkKey;
+    }
+
+    private final AlarmManager.OnAlarmListener mAnqpRequestListener =
+            new AlarmManager.OnAlarmListener() {
+                public void onAlarm() {
+                    mAnqpRequestPending = false;
+                    processNextRequest();
+                }
+            };
+
+    public ANQPRequestManager(PasspointEventHandler passpointEventHandler, Clock clock,
+            WifiInjector wifiInjector, Handler handler) {
+        mPasspointHandler = passpointEventHandler;
         mClock = clock;
-        mPendingQueries = new HashMap<>();
+        mAlarmManager = wifiInjector.getAlarmManager();
+        mFeatureFlags = wifiInjector.getDeviceConfigFacade().getFeatureFlags();
         mHoldOffInfo = new HashMap<>();
+        mPendingQueries = new HashMap<>();
+        mHandler = handler;
     }
 
     /**
@@ -119,6 +159,12 @@ public class ANQPRequestManager {
      */
     public boolean requestANQPElements(long bssid, ANQPNetworkKey anqpNetworkKey, boolean rcOIs,
             NetworkDetail.HSRelease hsReleaseVer) {
+        if (mFeatureFlags.anqpRequestWaitForResponse()) {
+            // Put the new request in the queue, process it if possible(no more pending request)
+            mPendingRequest.offer(new AnqpRequest(bssid, rcOIs, hsReleaseVer, anqpNetworkKey));
+            processNextRequest();
+            return true;
+        }
         // Check if we are allow to send the request now.
         if (!canSendRequestNow(bssid)) {
             return false;
@@ -137,6 +183,39 @@ public class ANQPRequestManager {
         return true;
     }
 
+    private void processNextRequest() {
+        if (mAnqpRequestPending) {
+            return;
+        }
+        AnqpRequest request;
+        while ((request = mPendingRequest.poll()) != null) {
+            // Check if we are allow to send the request now.
+            if (!canSendRequestNow(request.mBssid)) {
+                continue;
+            }
+            // No need to hold off future requests and set next alarm for send failures.
+            if (mPasspointHandler.requestANQP(request.mBssid, getRequestElementIDs(request.mRcOIs,
+                    request.mHsRelease))) {
+                break;
+            }
+        }
+        if (request == null) {
+            return;
+        }
+        // Update hold off info on when we are allowed to send the next ANQP request to
+        // the given AP.
+        updateHoldOffInfo(request.mBssid);
+        mPendingQueries.put(request.mBssid, request.mAnqpNetworkKey);
+        // Schedule next request in case of time out waiting for response.
+        mAlarmManager.set(
+                AlarmManager.ELAPSED_REALTIME,
+                mClock.getElapsedSinceBootMillis() + ANQP_REQUEST_ALARM_INTERVAL_MS,
+                ANQP_REQUEST_ALARM_TAG,
+                mAnqpRequestListener,
+                mHandler);
+        mAnqpRequestPending = true;
+    }
+
     /**
      * Request Venue URL ANQP-element from the specified AP post connection.
      *
@@ -149,7 +228,6 @@ public class ANQPRequestManager {
             return false;
         }
 
-        mPendingQueries.put(bssid, anqpNetworkKey);
         return true;
     }
 
@@ -165,6 +243,10 @@ public class ANQPRequestManager {
             // Query succeeded.  No need to hold off request to the given AP.
             mHoldOffInfo.remove(bssid);
         }
+        // Cancel the schedule, and process next request.
+        mAlarmManager.cancel(mAnqpRequestListener);
+        mAnqpRequestPending = false;
+        processNextRequest();
         return mPendingQueries.remove(bssid);
     }
 
@@ -257,5 +339,8 @@ public class ANQPRequestManager {
     public void clear() {
         mPendingQueries.clear();
         mHoldOffInfo.clear();
+        mAlarmManager.cancel(mAnqpRequestListener);
+        mAnqpRequestPending = false;
+        mPendingRequest.clear();
     }
 }

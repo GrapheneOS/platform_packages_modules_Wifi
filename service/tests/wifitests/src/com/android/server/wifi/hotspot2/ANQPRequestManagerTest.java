@@ -16,22 +16,33 @@
 
 package com.android.server.wifi.hotspot2;
 
+import static com.android.server.wifi.hotspot2.ANQPRequestManager.ANQP_REQUEST_ALARM_TAG;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import android.app.test.TestAlarmManager;
+import android.os.Handler;
+import android.os.test.TestLooper;
+
 import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.hotspot2.anqp.Constants;
+import com.android.wifi.flags.FeatureFlags;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -98,6 +109,15 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
     @Mock
     Clock mClock;
     ANQPRequestManager mManager;
+    private TestAlarmManager mAlarmManager;
+    private TestLooper mLooper = new TestLooper();
+    @Mock
+    WifiInjector mWifiInjector;
+    @Mock
+    FeatureFlags mFeatureFlags;
+    @Mock
+    DeviceConfigFacade mDeviceConfigFacade;
+
 
     /**
      * Test setup.
@@ -105,7 +125,13 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        mManager = new ANQPRequestManager(mHandler, mClock);
+        mAlarmManager = new TestAlarmManager();
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mWifiInjector.getAlarmManager()).thenReturn(mAlarmManager.getAlarmManager());
+        when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
+        when(mFeatureFlags.anqpRequestWaitForResponse()).thenReturn(false);
+        mManager = new ANQPRequestManager(mHandler, mClock, mWifiInjector,
+                new Handler(mLooper.getLooper()));
     }
 
     /**
@@ -132,8 +158,8 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
     @Test
     public void requestR1ANQPElementsWithRC() throws Exception {
         when(mHandler.requestANQP(TEST_BSSID, R1_ANQP_WITH_RC)).thenReturn(true);
-        assertTrue(mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, true,
-                NetworkDetail.HSRelease.R1));
+        mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, true,
+                NetworkDetail.HSRelease.R1);
     }
 
     /**
@@ -371,5 +397,34 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
     public void requestVenueUrlAnqpElement() throws Exception {
         when(mHandler.requestVenueUrlAnqp(TEST_BSSID)).thenReturn(true);
         assertTrue(mManager.requestVenueUrlAnqpElement(TEST_BSSID, TEST_ANQP_KEY));
+    }
+
+    @Test
+    public void testWaitResponseEnabled() {
+        when(mFeatureFlags.anqpRequestWaitForResponse()).thenReturn(true);
+        when(mHandler.requestANQP(anyLong(), any())).thenReturn(true);
+        mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, true,
+                NetworkDetail.HSRelease.R3);
+        mManager.requestANQPElements(TEST_BSSID + 1, TEST_ANQP_KEY, true,
+                NetworkDetail.HSRelease.R3);
+        mManager.requestANQPElements(TEST_BSSID + 2, TEST_ANQP_KEY, true,
+                NetworkDetail.HSRelease.R3);
+        verify(mHandler).requestANQP(TEST_BSSID, R1R2_ANQP_WITH_RC);
+        verify(mHandler).requestANQP(anyLong(), any());
+        // Request completed, should process next one
+        mManager.onRequestCompleted(TEST_BSSID, true);
+        verify(mHandler).requestANQP(TEST_BSSID + 1, R1R2_ANQP_WITH_RC);
+        verify(mHandler, times(2)).requestANQP(anyLong(), any());
+        assertTrue(mAlarmManager.isPending(ANQP_REQUEST_ALARM_TAG));
+        // If alarm has been triggered(request time out), should process next request
+        mAlarmManager.dispatch(ANQP_REQUEST_ALARM_TAG);
+        mLooper.dispatchAll();
+        verify(mHandler).requestANQP(TEST_BSSID + 2, R1R2_ANQP_WITH_RC);
+        verify(mHandler, times(3)).requestANQP(anyLong(), any());
+        mManager.onRequestCompleted(TEST_BSSID + 2, true);
+        // No more request in the queue, should process new request immediately
+        mManager.requestANQPElements(TEST_BSSID + 3, TEST_ANQP_KEY, true,
+                NetworkDetail.HSRelease.R3);
+        verify(mHandler).requestANQP(TEST_BSSID + 3, R1R2_ANQP_WITH_RC);
     }
 }
