@@ -25,6 +25,7 @@ import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
 import android.hardware.wifi.supplicant.P2pPeerClientDisconnectedEventParams;
 import android.hardware.wifi.supplicant.P2pPeerClientJoinedEventParams;
 import android.hardware.wifi.supplicant.P2pProvDiscStatusCode;
+import android.hardware.wifi.supplicant.P2pProvisionDiscoveryCompletedEventParams;
 import android.hardware.wifi.supplicant.P2pStatusCode;
 import android.hardware.wifi.supplicant.WpsConfigMethods;
 import android.hardware.wifi.supplicant.WpsDevPasswordId;
@@ -446,9 +447,44 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
     @Override
     public void onProvisionDiscoveryCompleted(byte[] p2pDeviceAddress, boolean isRequest,
             byte status, int configMethods, String generatedPin) {
-        logd("Provision discovery " + (isRequest ? "request" : "response")
-                + " for WPS Config method: " + configMethods
-                + " status: " + status);
+        handleProvisionDiscoveryCompletedEvent(
+                p2pDeviceAddress, isRequest, status, configMethods, generatedPin, null);
+    }
+
+    /**
+     * Used to indicate the completion of a P2P provision discovery request.
+     *
+     * @param provisionDiscoveryCompletedEventParams Parameters associated with P2P provision
+     *     discovery frame notification.
+     */
+    @Override
+    public void onProvisionDiscoveryCompletedEvent(
+            P2pProvisionDiscoveryCompletedEventParams provisionDiscoveryCompletedEventParams) {
+        handleProvisionDiscoveryCompletedEvent(
+                provisionDiscoveryCompletedEventParams.p2pDeviceAddress,
+                provisionDiscoveryCompletedEventParams.isRequest,
+                provisionDiscoveryCompletedEventParams.status,
+                provisionDiscoveryCompletedEventParams.configMethods,
+                provisionDiscoveryCompletedEventParams.generatedPin,
+                provisionDiscoveryCompletedEventParams.groupInterfaceName);
+    }
+
+    private void handleProvisionDiscoveryCompletedEvent(
+            byte[] p2pDeviceAddress,
+            boolean isRequest,
+            byte status,
+            int configMethods,
+            String generatedPin,
+            String groupIfName) {
+        logd(
+                "Provision discovery "
+                        + (isRequest ? "request" : "response")
+                        + " for WPS Config method: "
+                        + configMethods
+                        + " status: "
+                        + status
+                        + " groupIfName: "
+                        + (TextUtils.isEmpty(groupIfName) ? "null" : groupIfName));
 
         WifiP2pProvDiscEvent event = new WifiP2pProvDiscEvent();
         event.device = new WifiP2pDevice();
