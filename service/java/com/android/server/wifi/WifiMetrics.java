@@ -1174,6 +1174,7 @@ public class WifiMetrics {
         private int mEapType;
         private int mPhase2Method;
         private int mPasspointRoamingType;
+        private int mTofuConnectionState;
 
         private ConnectionEvent() {
             mConnectionEvent = new WifiMetricsProto.ConnectionEvent();
@@ -1478,6 +1479,7 @@ public class WifiMetrics {
                         mRouterFingerPrint.mRouterFingerPrintProto.ocspType =
                                 getOcspTypeProto(ocspType);
                     }
+                    mTofuConnectionState = convertTofuConnectionStateToProto(config);
                 }
             }
         }
@@ -2239,7 +2241,8 @@ public class WifiMetrics {
                         toMetricEapType(currentConnectionEvent.mEapType),
                         toMetricPhase2Method(currentConnectionEvent.mPhase2Method),
                         currentConnectionEvent.mPasspointRoamingType,
-                        currentConnectionEvent.mCarrierId);
+                        currentConnectionEvent.mCarrierId,
+                        currentConnectionEvent.mTofuConnectionState);
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
