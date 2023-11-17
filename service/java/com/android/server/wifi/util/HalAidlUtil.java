@@ -16,15 +16,21 @@
 
 package com.android.server.wifi.util;
 
+import android.hardware.wifi.common.OuiKeyedData;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.net.wifi.WifiConfiguration;
+import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * Provide utility functions for HAL AIDL implementation.
  */
 public class HalAidlUtil {
+    private static final String TAG = "HalAidlUtil";
+
     private static int supplicantMaskValueToWifiConfigurationBitSet(int supplicantMask,
             int supplicantValue, BitSet bitset, int bitSetPosition) {
         bitset.set(bitSetPosition, (supplicantMask & supplicantValue) == supplicantValue);
@@ -91,5 +97,25 @@ public class HalAidlUtil {
                     "invalid key mgmt mask from supplicant: " + mask);
         }
         return bitset;
+    }
+
+    /**
+     * Convert a list of {@link android.net.wifi.OuiKeyedData} to its HAL equivalent.
+     * Note: Invalid instances in the input list will be skipped.
+     */
+    public static OuiKeyedData[] frameworkToHalOuiKeyedDataList(
+            List<android.net.wifi.OuiKeyedData> frameworkList) {
+        List<OuiKeyedData> halList = new ArrayList<>();
+        for (android.net.wifi.OuiKeyedData frameworkData : frameworkList) {
+            if (frameworkData == null || !frameworkData.validate()) {
+                Log.e(TAG, "Invalid framework OuiKeyedData: " + frameworkData);
+                continue;
+            }
+            OuiKeyedData halData = new OuiKeyedData();
+            halData.oui = frameworkData.getOui();
+            halData.vendorData = frameworkData.getData();
+            halList.add(halData);
+        }
+        return halList.toArray(new OuiKeyedData[halList.size()]);
     }
 }
