@@ -3948,11 +3948,24 @@ public class WifiManager {
      * @hide
      */
     public static final long WIFI_FEATURE_DUAL_BAND_SIMULTANEOUS = 1L << 57;
+
     /**
      * Support for TID-To-Link Mapping negotiation.
      * @hide
      */
     public static final long WIFI_FEATURE_T2LM_NEGOTIATION = 1L << 58;
+
+    /**
+     * Support for WEP Wi-Fi Network
+     * @hide
+     */
+    public static final long WIFI_FEATURE_WEP = 1L << 59;
+
+    /**
+     * Support for WPA PERSONAL Wi-Fi Network
+     * @hide
+     */
+    public static final long WIFI_FEATURE_WPA_PERSONAL = 1L << 60;
 
     private long getSupportedFeatures() {
         try {
@@ -8815,6 +8828,26 @@ public class WifiManager {
      */
     public boolean isTidToLinkMappingNegotiationSupported() {
         return isFeatureSupported(WIFI_FEATURE_T2LM_NEGOTIATION);
+    }
+
+
+    /**
+    * @return true if this device supports connections to Wi-Fi WEP networks.
+    */
+    @FlaggedApi("com.android.wifi.flags.wep_usage")
+    public boolean isWifiWepSupported() {
+        return isFeatureSupported(WIFI_FEATURE_WEP);
+    }
+
+    /**
+    * @return true if this device supports connections to Wi-Fi WPA-Personal networks.
+    *
+    * Note that this is the older and less secure WPA-Personal protocol, not WPA2-Personal
+    * or later protocols.
+    */
+    @FlaggedApi("com.android.wifi.flags.wpa_personal_usage")
+    public boolean isWpaPersonalSupported() {
+        return isFeatureSupported(WIFI_FEATURE_WPA_PERSONAL);
     }
 
     /**

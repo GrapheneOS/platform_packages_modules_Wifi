@@ -57,6 +57,8 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_PASSPOINT_TERMS_AND_COND
 import static android.net.wifi.WifiManager.WIFI_FEATURE_SCANNER;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_T2LM_NEGOTIATION;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_WEP;
+import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA_PERSONAL;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SAE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SUITE_B;
 import static android.net.wifi.WifiManager.WpsCallback;
@@ -4106,5 +4108,31 @@ public class WifiManagerTest {
         assertFalse(mWifiManager.isVerboseLoggingEnabled());
         when(mWifiService.getVerboseLoggingLevel()).thenReturn(VERBOSE_LOGGING_LEVEL_DISABLED);
         assertFalse(mWifiManager.isVerboseLoggingEnabled());
+    }
+
+    /**
+     * Test behavior of isWifiWepSupported
+     */
+    @Test
+    public void testIsWifiWepSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_WEP));
+        assertTrue(mWifiManager.isWifiWepSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_WEP));
+        assertFalse(mWifiManager.isWifiWepSupported());
+    }
+
+    /**
+     * Test behavior of isWpaPersonalSupported
+     */
+    @Test
+    public void testIsWpaPersonalSupported() throws Exception {
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(WIFI_FEATURE_WPA_PERSONAL));
+        assertTrue(mWifiManager.isWpaPersonalSupported());
+        when(mWifiService.getSupportedFeatures())
+                .thenReturn(new Long(~WIFI_FEATURE_WPA_PERSONAL));
+        assertFalse(mWifiManager.isWpaPersonalSupported());
     }
 }
