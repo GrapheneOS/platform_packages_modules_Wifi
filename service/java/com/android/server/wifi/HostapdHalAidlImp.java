@@ -51,6 +51,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiNative.HostapdDeathEventHandler;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.server.wifi.util.HalAidlUtil;
 import com.android.server.wifi.util.NativeUtil;
 import com.android.wifi.resources.R;
 
@@ -880,6 +881,11 @@ public class HostapdHalAidlImp implements IHostapdHal {
         if (ifaceParams.name == null || ifaceParams.hwModeParams == null
                 || ifaceParams.channelParams == null) {
             return null;
+        }
+        if (isServiceVersionAtLeast(2) && SdkLevel.isAtLeastV()
+                && !config.getVendorData().isEmpty()) {
+            ifaceParams.vendorData =
+                    HalAidlUtil.frameworkToHalOuiKeyedDataList(config.getVendorData());
         }
         return ifaceParams;
     }
