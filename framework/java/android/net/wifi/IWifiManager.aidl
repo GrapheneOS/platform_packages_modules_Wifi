@@ -468,4 +468,8 @@ interface IWifiManager
     void getMaxMloStrLinkCount(in IIntegerListener listener, in Bundle extras);
 
     void getSupportedSimultaneousBandCombinations(in IWifiBandsListener listener, in Bundle extras);
+
+    void setWepAllowed(boolean isAllowed);
+
+    void queryWepAllowed(in IBooleanListener listener);
 }

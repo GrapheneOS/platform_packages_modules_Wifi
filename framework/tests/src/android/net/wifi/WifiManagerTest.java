@@ -4135,4 +4135,27 @@ public class WifiManagerTest {
                 .thenReturn(new Long(~WIFI_FEATURE_WPA_PERSONAL));
         assertFalse(mWifiManager.isWpaPersonalSupported());
     }
+
+    @Test
+    public void testSetWepAllowed() throws Exception {
+        mWifiManager.setWepAllowed(true);
+        verify(mWifiService).setWepAllowed(true);
+        mWifiManager.setWepAllowed(false);
+        verify(mWifiService).setWepAllowed(false);
+    }
+
+    @Test
+    public void testQueryWepAllowed() throws Exception {
+        Consumer<Boolean> resultsSetCallback = mock(Consumer.class);
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        // Null executor/callback exception.
+        assertThrows("null executor should trigger exception", NullPointerException.class,
+                () -> mWifiManager.queryWepAllowed(null, resultsSetCallback));
+        assertThrows("null listener should trigger exception", NullPointerException.class,
+                () -> mWifiManager.queryWepAllowed(executor, null));
+        // Set and verify.
+        mWifiManager.queryWepAllowed(executor, resultsSetCallback);
+        verify(mWifiService).queryWepAllowed(
+                any(IBooleanListener.Stub.class));
+    }
 }

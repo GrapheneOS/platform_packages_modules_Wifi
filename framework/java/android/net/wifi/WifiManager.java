@@ -12008,4 +12008,72 @@ public class WifiManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    /**
+     * This API allows a privileged application to set whether or not this device allows
+     * connections to Wi-Fi WEP networks.
+     *
+     * Note: The WEP connections may not work even if caller invokes this method with {@code true}
+     * because device may NOT support connections to Wi-Fi WEP networks.
+     * See: {@link #isWepSupported()}.
+     *
+     * @param isAllowed whether or not the user allow connections to Wi-Fi WEP networks.
+     * @throws SecurityException if the caller does not have permission.
+     * @hide
+     */
+    @FlaggedApi("com.android.wifi.flags.wep_usage")
+    @SystemApi
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.NETWORK_SETUP_WIZARD
+    })
+    public void setWepAllowed(boolean isAllowed) {
+        try {
+            mService.setWepAllowed(isAllowed);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Query whether or not this device is configured to allow connections to Wi-Fi WEP networks.
+     * @see #setWepAllowed(boolean)
+     *
+     * Note: The WEP connections may not work even if this method returns {@code true} in the
+     * result callback because device may NOT support connections to Wi-Fi WEP networks.
+     * See: {@link #isWepSupported()}.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return {@code Boolean} indicating
+     *                        whether wep network support is enabled/disabled.
+     *
+     * @throws SecurityException if the caller does not have permission.
+     * @throws NullPointerException if the caller provided invalid inputs.
+     * @hide
+     */
+    @FlaggedApi("com.android.wifi.flags.wep_usage")
+    @SystemApi
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.NETWORK_SETUP_WIZARD
+    })
+    public void queryWepAllowed(@NonNull @CallbackExecutor Executor executor,
+            @NonNull Consumer<Boolean> resultsCallback) {
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        try {
+            mService.queryWepAllowed(
+                    new IBooleanListener.Stub() {
+                        @Override
+                        public void onResult(boolean value) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(() -> {
+                                resultsCallback.accept(value);
+                            });
+                        }
+                    });
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }
