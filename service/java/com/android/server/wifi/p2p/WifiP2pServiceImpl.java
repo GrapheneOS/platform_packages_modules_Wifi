@@ -155,6 +155,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -249,6 +250,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             android.Manifest.permission.NETWORK_SETTINGS,
             android.Manifest.permission.ACCESS_FINE_LOCATION,
             android.Manifest.permission.ACCESS_WIFI_STATE
+    };
+
+    private static final String[] RECEIVER_PERMISSIONS_FOR_TETHERING = {
+            NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK
     };
 
     // Maximum number of bytes allowed for a network name, i.e. SSID.
@@ -4791,8 +4796,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 resetWifiP2pInfo();
                 mDetailedState = NetworkInfo.DetailedState.DISCONNECTED;
                 sendP2pConnectionChangedBroadcast();
-                // Ensure tethering service to stop tethering.
-                sendP2pTetherRequestBroadcast();
+                if (!SdkLevel.isAtLeastU()) {
+                    // Ensure tethering service to stop tethering.
+                    sendP2pTetherRequestBroadcast();
+                }
             }
         }
 
@@ -4955,31 +4962,51 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             intent.putExtra(WifiP2pManager.EXTRA_LISTEN_STATE, started
                     ? WifiP2pManager.WIFI_P2P_LISTEN_STARTED :
                     WifiP2pManager.WIFI_P2P_LISTEN_STOPPED);
-            sendBroadcastMultiplePermissions(intent);
+            sendBroadcastWithExcludedPermissions(intent, null);
         }
 
         // TODO(b/193460475): Remove when tooling supports SystemApi to public API.
+        /**
+         * Use the function to send broadcast to apps that hold included permissions and don't
+         * hold excluded permissions.
+         * @param intent The Intent to broadcast
+         * @param excludedPermissions A list of Strings of permissions the receiver must not have.
+         * SdkLevel < T:  Does not support excludedPermissions and sets the value always null.
+         * SdkLevel >= T: Combines all excludedPermissions
+         */
         @SuppressLint("NewApi")
-        private void sendBroadcastMultiplePermissions(Intent intent) {
+        private void sendBroadcastWithExcludedPermissions(Intent intent,
+                @Nullable String[] excludedPermissions) {
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
-            String[] permissions = RECEIVER_PERMISSIONS_FOR_BROADCAST;
             boolean isLocationModeEnabled = mWifiPermissionsUtil.isLocationModeEnabled();
-            if (!isLocationModeEnabled) {
-                permissions = RECEIVER_PERMISSIONS_FOR_BROADCAST_LOCATION_OFF;
+            String[] permissions = isLocationModeEnabled ? RECEIVER_PERMISSIONS_FOR_BROADCAST
+                    : RECEIVER_PERMISSIONS_FOR_BROADCAST_LOCATION_OFF;
+            if (SdkLevel.isAtLeastU()) {
+                BroadcastOptions broadcastOptions = mWifiInjector.makeBroadcastOptions();
+                broadcastOptions.setRequireAllOfPermissions(permissions);
+                broadcastOptions.setRequireNoneOfPermissions(excludedPermissions);
+                context.sendBroadcast(intent, null, broadcastOptions.toBundle());
+            } else {
+                context.sendBroadcastWithMultiplePermissions(intent, permissions);
             }
-            context.sendBroadcastWithMultiplePermissions(
-                    intent, permissions);
             if (SdkLevel.isAtLeastT()) {
                 // on Android T or later, also send broadcasts to apps that have NEARBY_WIFI_DEVICES
-                String[] requiredPermissions = new String[] {
+                String[] requiredPermissions = new String[]{
                         android.Manifest.permission.NEARBY_WIFI_DEVICES,
                         android.Manifest.permission.ACCESS_WIFI_STATE
                 };
                 BroadcastOptions broadcastOptions = mWifiInjector.makeBroadcastOptions();
                 broadcastOptions.setRequireAllOfPermissions(requiredPermissions);
+                ArrayList<String> excludedPermissionsList = new ArrayList<>();
                 if (isLocationModeEnabled) {
-                    broadcastOptions.setRequireNoneOfPermissions(
-                            new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION});
+                    excludedPermissionsList.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+                }
+                if (excludedPermissions != null) {
+                    Collections.addAll(excludedPermissionsList, excludedPermissions);
+                }
+                if (excludedPermissionsList.size() > 0) {
+                    broadcastOptions.setRequireNoneOfPermissions(excludedPermissionsList.toArray(
+                            new String[0]));
                 }
                 context.sendBroadcast(intent, null, broadcastOptions.toBundle());
             }
@@ -4990,29 +5017,36 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
             intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE,
                     eraseOwnDeviceAddress(mThisDevice));
-            sendBroadcastMultiplePermissions(intent);
+            sendBroadcastWithExcludedPermissions(intent, null);
         }
 
         private void sendPeersChangedBroadcast() {
             final Intent intent = new Intent(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
             intent.putExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST, new WifiP2pDeviceList(mPeers));
             intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-            sendBroadcastMultiplePermissions(intent);
+            sendBroadcastWithExcludedPermissions(intent, null);
+        }
+
+        private Intent getP2pConnectionChangedIntent() {
+            Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+            intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, new WifiP2pInfo(mWifiP2pInfo));
+            intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, makeNetworkInfo());
+            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP, eraseOwnDeviceAddress(mGroup));
+            return intent;
         }
 
         private void sendP2pConnectionChangedBroadcast() {
             if (mVerboseLoggingEnabled) logd("sending p2p connection changed broadcast");
-            Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-            intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-            // P2pConnectionEvent.CONNECTION_FAST connection type is only triggered as a result
-            // of user interaction, so mark the broadcast as foreground.
-            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
-                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            Intent intent = getP2pConnectionChangedIntent();
+            if (SdkLevel.isAtLeastU()) {
+                // First send direct foreground broadcast to Tethering package
+                sendP2pTetherRequestBroadcast();
+                // Then send the same broadcast to remaining apps excluding Tethering package
+                sendBroadcastWithExcludedPermissions(intent, RECEIVER_PERMISSIONS_FOR_TETHERING);
+            } else {
+                sendBroadcastWithExcludedPermissions(intent, null);
             }
-            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, new WifiP2pInfo(mWifiP2pInfo));
-            intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, makeNetworkInfo());
-            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP, eraseOwnDeviceAddress(mGroup));
-            sendBroadcastMultiplePermissions(intent);
             if (mWifiChannel != null) {
                 mWifiChannel.sendMessage(WifiP2pServiceImpl.P2P_CONNECTION_CHANGED,
                         makeNetworkInfo());
@@ -5082,7 +5116,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             for (String pkgName: possiblePackageNames) {
                 if (isPackageExisted(pkgName)) {
-                    Log.d(TAG, "Tethering service package: " + pkgName);
                     return pkgName;
                 }
             }
@@ -5096,20 +5129,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             Log.i(TAG, "sending p2p tether request broadcast to "
                     + tetheringServicePackage);
 
-            final String[] receiverPermissionsForTetheringRequest = {
+            String[] receiverPermissionsForTetheringRequest = {
                     android.Manifest.permission.TETHER_PRIVILEGED
             };
-            Intent intent = new Intent(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-            intent.setPackage(tetheringServicePackage);
-            // P2pConnectionEvent.CONNECTION_FAST connection type is only triggered as a result
-            // of user interaction, so mark the broadcast as foreground.
-            if (mWifiP2pMetrics.isP2pFastConnectionType()) {
-                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            if (SdkLevel.isAtLeastU()) {
+                receiverPermissionsForTetheringRequest = RECEIVER_PERMISSIONS_FOR_TETHERING;
             }
-            intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, new WifiP2pInfo(mWifiP2pInfo));
-            intent.putExtra(WifiP2pManager.EXTRA_NETWORK_INFO, makeNetworkInfo());
-            intent.putExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP, eraseOwnDeviceAddress(mGroup));
+            Intent intent = getP2pConnectionChangedIntent();
+            intent.setPackage(tetheringServicePackage);
+            // Adding the flag to allow recipient to run at foreground priority with a shorter
+            // timeout interval.
+            intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
 
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
             context.sendBroadcastWithMultiplePermissions(
