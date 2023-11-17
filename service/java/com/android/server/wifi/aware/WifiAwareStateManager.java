@@ -4463,7 +4463,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onMessageSendSuccessLocal(Message completedCommand) {
-        String methodString = "onMessageSendFailLocal";
+        String methodString = "onMessageSendSuccessLocal";
         if (mVdbg) {
             Log.v(TAG, methodString + ": completedCommand=" + completedCommand);
         }
