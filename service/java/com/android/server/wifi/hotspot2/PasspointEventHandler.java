@@ -34,6 +34,7 @@ import java.util.Set;
  * event notifications.
  */
 public class PasspointEventHandler {
+    private static final String TAG = "PasspointEventHandler";
     private final WifiInjector mWifiInjector;
     private final Callbacks mCallbacks;
 
@@ -82,10 +83,10 @@ public class PasspointEventHandler {
         if (bssid == 0 || querySets == null) return false;
         if (!mWifiInjector.getActiveModeWarden().getPrimaryClientModeManager().requestAnqp(
                 Utils.macToString(bssid), querySets.first, querySets.second)) {
-            Log.d(Utils.hs2LogTag(getClass()), "ANQP failed on " + Utils.macToString(bssid));
+            Log.d(TAG, "ANQP failed on " + Utils.macToString(bssid));
             return false;
         }
-        Log.d(Utils.hs2LogTag(getClass()), "ANQP initiated on " + Utils.macToString(bssid));
+        Log.d(TAG, "ANQP initiated on " + Utils.macToString(bssid));
         return true;
     }
 
