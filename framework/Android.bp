@@ -52,6 +52,16 @@ filegroup {
     srcs: ["java/android/net/wifi/WifiAnnotations.java"],
 }
 
+filegroup {
+    name: "wifi_javadoc_only_files",
+    srcs: ["java/android/net/wifi/package.html",
+           "java/android/net/wifi/rtt/package.html",
+           "java/android/net/wifi/p2p/package.html",
+           "java/android/net/wifi/aware/package.html",
+    ],
+    path: "java/android/net/wifi",
+}
+
 // list of tests that are allowed to access @hide APIs from framework-wifi
 test_access_hidden_api_whitelist = [
     "//frameworks/base/wifi/tests",
@@ -153,6 +163,9 @@ java_sdk_library {
     module_lib: {
         libs: ["framework-connectivity.stubs.module_lib"]
     },
+    api_srcs: [
+        ":wifi_javadoc_only_files",
+    ],
 
     jarjar_rules: ":wifi-jarjar-rules",
 
