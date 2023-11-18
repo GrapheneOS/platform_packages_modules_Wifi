@@ -503,10 +503,12 @@ package android.net.wifi {
     method public boolean isWifiEnabled();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isWifiPasspointEnabled();
     method public boolean isWifiStandardSupported(int);
+    method @FlaggedApi("com.android.wifi.flags.wep_usage") public boolean isWifiWepSupported();
     method public boolean isWpa3SaeH2eSupported();
     method public boolean isWpa3SaePublicKeySupported();
     method public boolean isWpa3SaeSupported();
     method public boolean isWpa3SuiteBSupported();
+    method @FlaggedApi("com.android.wifi.flags.wpa_personal_usage") public boolean isWpaPersonalSupported();
     method @Deprecated public boolean pingSupplicant();
     method public void queryAutojoinGlobal(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.lang.Boolean>);
     method @Deprecated public boolean reassociate();
