@@ -220,7 +220,7 @@ public class WifiPulledAtomLogger {
                 false, // legacy TOFU field
                 !config.getNetworkSelectionStatus().hasNeverDetectedCaptivePortal(),
                 config.allowAutojoin,
-                WifiMetrics.convertSecurityModeToProto(config, false),
+                WifiMetrics.convertSecurityModeToProto(config),
                 WifiMetrics.convertMacRandomizationToProto(config.getMacRandomizationSetting()),
                 WifiMetrics.convertMeteredOverrideToProto(config.meteredOverride),
                 WifiMetrics.convertEapMethodToProto(config),
