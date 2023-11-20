@@ -17,12 +17,9 @@
 package com.android.server.wifi;
 
 import static android.net.wifi.WifiManager.WIFI_FEATURE_OWE;
-import static android.net.wifi.WifiNetworkSelectionConfig
-        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
-import static android.net.wifi.WifiNetworkSelectionConfig
-        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED;
-import static android.net.wifi.WifiNetworkSelectionConfig
-        .ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
+import static android.net.wifi.WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_DISABLED;
+import static android.net.wifi.WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_ENABLED;
+import static android.net.wifi.WifiNetworkSelectionConfig.ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
@@ -137,6 +134,7 @@ public class WifiNetworkSelector {
             ASSOCIATED_NETWORK_SELECTION_OVERRIDE_NONE;
     private boolean mScreenOn = false;
     private final WifiNative mWifiNative;
+    private final DevicePolicyManager mDevicePolicyManager;
 
     /**
      * Interface for WiFi Network Nominator
@@ -183,17 +181,22 @@ public class WifiNetworkSelector {
 
         /**
          * Evaluate all the networks from the scan results.
-         * @param scanDetails              a list of scan details constructed from the scan results
-         * @param untrustedNetworkAllowed  a flag to indicate if untrusted networks are allowed
-         * @param oemPaidNetworkAllowed    a flag to indicate if oem paid networks are allowed
-         * @param oemPrivateNetworkAllowed a flag to indicate if oem private networks are allowed
+         *
+         * @param scanDetails                  a list of scan details constructed from the scan
+         *                                     results
+         * @param untrustedNetworkAllowed      a flag to indicate if untrusted networks are allowed
+         * @param oemPaidNetworkAllowed        a flag to indicate if oem paid networks are allowed
+         * @param oemPrivateNetworkAllowed     a flag to indicate if oem private networks are
+         *                                     allowed
          * @param restrictedNetworkAllowedUids a set of Uids are allowed for restricted network
-         * @param onConnectableListener    callback to record all of the connectable networks
+         * @param onConnectableListener        callback to record all of the connectable networks
          */
-        void nominateNetworks(List<ScanDetail> scanDetails,
+        void nominateNetworks(@NonNull List<ScanDetail> scanDetails,
+                @NonNull List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates,
                 boolean untrustedNetworkAllowed, boolean oemPaidNetworkAllowed,
-                boolean oemPrivateNetworkAllowed, Set<Integer> restrictedNetworkAllowedUids,
-                OnConnectableListener onConnectableListener);
+                boolean oemPrivateNetworkAllowed,
+                @NonNull Set<Integer> restrictedNetworkAllowedUids,
+                @NonNull OnConnectableListener onConnectableListener);
 
         /**
          * Callback for recording connectable candidates
@@ -487,13 +490,10 @@ public class WifiNetworkSelector {
 
         int numBssidFiltered = 0;
 
-        DevicePolicyManager devicePolicyManager =
-                WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
-
-        if (devicePolicyManager != null && SdkLevel.isAtLeastT()) {
+        if (mDevicePolicyManager != null && SdkLevel.isAtLeastT()) {
             adminMinimumSecurityLevel =
-                    devicePolicyManager.getMinimumRequiredWifiSecurityLevel();
-            WifiSsidPolicy policy = devicePolicyManager.getWifiSsidPolicy();
+                    mDevicePolicyManager.getMinimumRequiredWifiSecurityLevel();
+            WifiSsidPolicy policy = mDevicePolicyManager.getWifiSsidPolicy();
             if (policy != null) {
                 adminSsidRestrictionSet = true;
                 if (policy.getPolicyType() == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST) {
@@ -1071,6 +1071,9 @@ public class WifiNetworkSelector {
         for (NetworkNominator registeredNominator : mNominators) {
             registeredNominator.update(scanDetails);
         }
+        // Update the matching profiles into WifiConfigManager, help displaying Passpoint networks
+        // in Wifi Picker
+        mWifiInjector.getPasspointNetworkNominateHelper().updatePasspointConfig(scanDetails);
 
         // Shall we start network selection at all?
         if (!multiInternetNetworkAllowed && !isNetworkSelectionNeeded(scanDetails, cmmStates)) {
@@ -1126,10 +1129,13 @@ public class WifiNetworkSelector {
         // Update all configured networks before initiating network selection.
         updateConfiguredNetworks();
 
+        List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates = mWifiInjector
+                .getPasspointNetworkNominateHelper()
+                .getPasspointNetworkCandidates(new ArrayList<>(mFilteredNetworks));
         for (NetworkNominator registeredNominator : mNominators) {
             localLog("About to run " + registeredNominator.getName() + " :");
             registeredNominator.nominateNetworks(
-                    new ArrayList<>(mFilteredNetworks),
+                    new ArrayList<>(mFilteredNetworks), passpointCandidates,
                     untrustedNetworkAllowed, oemPaidNetworkAllowed, oemPrivateNetworkAllowed,
                     restrictedNetworkAllowedUids, (scanDetail, config) -> {
                         WifiCandidates.Key key = wifiCandidates.keyFromScanDetailAndConfig(
@@ -1746,5 +1752,6 @@ public class WifiNetworkSelector {
         mWifiGlobals = wifiGlobals;
         mScanRequestProxy = scanRequestProxy;
         mWifiNative = wifiNative;
+        mDevicePolicyManager = WifiPermissionsUtil.retrieveDevicePolicyManagerFromContext(mContext);
     }
 }

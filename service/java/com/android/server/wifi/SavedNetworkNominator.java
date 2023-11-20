@@ -24,7 +24,6 @@ import android.telephony.TelephonyManager;
 import android.util.LocalLog;
 import android.util.Pair;
 
-import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import java.util.List;
@@ -41,18 +40,16 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
     private final LocalLog mLocalLog;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
     private final WifiPseudonymManager mWifiPseudonymManager;
-    private final PasspointNetworkNominateHelper mPasspointNetworkNominateHelper;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
 
     SavedNetworkNominator(WifiConfigManager configManager,
-            PasspointNetworkNominateHelper nominateHelper, LocalLog localLog,
+            LocalLog localLog,
             WifiCarrierInfoManager wifiCarrierInfoManager,
             WifiPseudonymManager wifiPseudonymManager,
             WifiPermissionsUtil wifiPermissionsUtil,
             WifiNetworkSuggestionsManager wifiNetworkSuggestionsManager) {
         mWifiConfigManager = configManager;
-        mPasspointNetworkNominateHelper = nominateHelper;
         mLocalLog = localLog;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiPseudonymManager = wifiPseudonymManager;
@@ -85,9 +82,6 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
      */
     @Override
     public void update(List<ScanDetail> scanDetails) {
-        // Update the matching profiles into WifiConfigManager, help displaying Passpoint networks
-        // in Wifi Picker
-        mPasspointNetworkNominateHelper.updatePasspointConfig(scanDetails);
     }
 
     /**
@@ -95,14 +89,19 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
      *
      */
     @Override
-    public void nominateNetworks(List<ScanDetail> scanDetails,
+    public void nominateNetworks(@NonNull List<ScanDetail> scanDetails,
+            @NonNull List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates,
             boolean untrustedNetworkAllowed /* unused */,
             boolean oemPaidNetworkAllowed /* unused */,
             boolean oemPrivateNetworkAllowed /* unused */,
             Set<Integer> restrictedNetworkAllowedUids /* unused */,
             @NonNull OnConnectableListener onConnectableListener) {
-        findMatchedSavedNetworks(scanDetails, onConnectableListener);
-        findMatchedPasspointNetworks(scanDetails, onConnectableListener);
+        if (scanDetails != null) {
+            findMatchedSavedNetworks(scanDetails, onConnectableListener);
+        }
+        if (passpointCandidates != null) {
+            findMatchedPasspointNetworks(passpointCandidates, onConnectableListener);
+        }
     }
 
     private void findMatchedSavedNetworks(List<ScanDetail> scanDetails,
@@ -205,12 +204,13 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
         }
     }
 
-    private void findMatchedPasspointNetworks(List<ScanDetail> scanDetails,
+    private void findMatchedPasspointNetworks(List<Pair<ScanDetail, WifiConfiguration>> candidates,
             OnConnectableListener onConnectableListener) {
-        List<Pair<ScanDetail, WifiConfiguration>> candidates =
-                mPasspointNetworkNominateHelper.getPasspointNetworkCandidates(scanDetails, false);
         for (Pair<ScanDetail, WifiConfiguration> candidate : candidates) {
             WifiConfiguration config = candidate.second;
+            if (config.fromWifiNetworkSuggestion) {
+                return;
+            }
             if (!config.allowAutojoin) {
                 continue;
             }
