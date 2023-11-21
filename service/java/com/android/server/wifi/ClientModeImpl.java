@@ -7214,10 +7214,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                         mClientModeManager);
                                 mWifiConfigManager.incrementNetworkNoInternetAccessReports(
                                         config.networkId);
-                                // If this was not recently selected by the user, update network
-                                // selection status to temporarily disable the network.
-                                if (!isRecentlySelectedByTheUser(config)
+                                if (!config.getNetworkSelectionStatus()
+                                        .hasEverValidatedInternetAccess()
                                         && !config.noInternetAccessExpected) {
+                                    mWifiConfigManager.updateNetworkSelectionStatus(
+                                            config.networkId,
+                                            DISABLED_NO_INTERNET_PERMANENT);
+                                } else if (!isRecentlySelectedByTheUser(config)
+                                        && !config.noInternetAccessExpected) {
+                                    // If this was not recently selected by the user, update network
+                                    // selection status to temporarily disable the network.
                                     if (config.getNetworkSelectionStatus()
                                             .getNetworkSelectionDisableReason()
                                             != DISABLED_NO_INTERNET_PERMANENT) {
