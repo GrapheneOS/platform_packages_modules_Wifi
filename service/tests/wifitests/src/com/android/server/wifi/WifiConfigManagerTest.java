@@ -4054,6 +4054,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 .switchUserStoresAndRead(any(List.class));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
         verify(mWifiMetrics).wifiConfigStored(anyInt());
+        // Verify shut down handling
+        mWifiConfigManager.handleShutDown();
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write(true);
     }
 
     /**
