@@ -827,7 +827,16 @@ public class InformationElementUtil {
      * EhtOperation: represents the EHT Operation IE
      */
     public static class EhtOperation {
+        private static final int EHT_OPERATION_BASIC_LENGTH = 5;
+        private static final int EHT_OPERATION_INFO_PRESENT_MASK = 0x01;
+        private static final int DISABLED_SUBCHANNEL_BITMAP_PRESENT_MASK = 0x02;
+        private static final int EHT_OPERATION_INFO_START_INDEX = EHT_OPERATION_BASIC_LENGTH;
+        private static final int DISABLED_SUBCHANNEL_BITMAP_START_INDEX =
+                EHT_OPERATION_INFO_START_INDEX + 3;
         private boolean mPresent = false;
+        private boolean mEhtOperationInfoPresent = false;
+        private boolean mDisabledSubchannelBitmapPresent = false;
+        private byte[] mDisabledSubchannelBitmap;
 
         /**
          * Returns whether the EHT Information Element is present.
@@ -836,14 +845,65 @@ public class InformationElementUtil {
             return mPresent;
         }
 
-        /** Parse EHT Operation IE */
+        /**
+         * Returns whether EHT Operation Information field is present.
+         * Reference 9.4.2.311 EHT Operation element (IEEEStd 802.11be™ Draft2.0).
+         */
+        public boolean isEhtOperationInfoPresent() {
+            return mEhtOperationInfoPresent;
+        }
+
+        /**
+         * Returns whether the Disabled Subchannel Bitmap field is present.
+         */
+        public boolean isDisabledSubchannelBitmapPresent() {
+            return mDisabledSubchannelBitmapPresent;
+        }
+
+        /**
+         * Returns the Disabled Subchannel Bitmap field if it exists. Otherwise, returns null.
+         */
+        public byte[] getDisabledSubchannelBitmap() {
+            return mDisabledSubchannelBitmap;
+        }
+
+        /**
+         * Parse EHT Operation IE
+         */
         public void from(InformationElement ie) {
             if (ie.id != InformationElement.EID_EXTENSION_PRESENT
                     || ie.idExt != InformationElement.EID_EXT_EHT_OPERATION) {
                 throw new IllegalArgumentException("Element id is not EHT_OPERATION");
             }
+            // Make sure the byte array length is at least the fixed size
+            if (ie.bytes.length < EHT_OPERATION_BASIC_LENGTH) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid EHT_OPERATION IE len: " + ie.bytes.length);
+                }
+                // Skipping parsing of the IE
+                return;
+            }
 
+            mEhtOperationInfoPresent = (ie.bytes[0] & EHT_OPERATION_INFO_PRESENT_MASK) != 0;
+            mDisabledSubchannelBitmapPresent =
+                    (ie.bytes[0] & DISABLED_SUBCHANNEL_BITMAP_PRESENT_MASK) != 0;
+            int expectedLen = EHT_OPERATION_BASIC_LENGTH + (mEhtOperationInfoPresent ? (
+                    mDisabledSubchannelBitmapPresent ? 5 : 3) : 0);
+            // Make sure the byte array length is at least fitting the known parameters
+            if (ie.bytes.length < expectedLen) {
+                if (DBG) {
+                    Log.w(TAG, "Invalid EHT_OPERATION info len: " + ie.bytes.length);
+                }
+                // Skipping parsing of the IE
+                return;
+            }
             mPresent = true;
+
+            if (mDisabledSubchannelBitmapPresent) {
+                mDisabledSubchannelBitmap = new byte[2];
+                System.arraycopy(ie.bytes, DISABLED_SUBCHANNEL_BITMAP_START_INDEX,
+                        mDisabledSubchannelBitmap, 0, 2);
+            }
 
             //TODO put more functionality for parsing the IE
         }

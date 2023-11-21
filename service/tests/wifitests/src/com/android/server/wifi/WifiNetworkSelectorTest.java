@@ -1328,7 +1328,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
                 + WifiNetworkSelector.MINIMUM_NETWORK_SELECTION_INTERVAL_MS + 2000);
 
         when(mThroughputPredictor.predictThroughput(any(), anyInt(), anyInt(), anyInt(),
-                anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean())).thenReturn(100);
+                anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), any())).thenReturn(100);
         // Force to return 2nd network in the network nominator
         mPlaceholderNominator.setNetworkIndexToReturn(1);
 
@@ -3336,7 +3336,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         // Return predicted throughput's for each of the links identified by the frequency.
         for (int i = 0; i < throughputs.length; ++i) {
             when(mThroughputPredictor.predictThroughput(any(), anyInt(), anyInt(), anyInt(),
-                    eq(freqs[i]), anyInt(), anyInt(), anyInt(), anyBoolean())).thenReturn(
+                    eq(freqs[i]), anyInt(), anyInt(), anyInt(), anyBoolean(), any())).thenReturn(
                     throughputs[i]);
         }
         // Configure scan details and configs.

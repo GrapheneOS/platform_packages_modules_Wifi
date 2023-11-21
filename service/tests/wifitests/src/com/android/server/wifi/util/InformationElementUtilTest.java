@@ -31,6 +31,7 @@ import com.android.server.wifi.MboOceConstants;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.util.InformationElementUtil.ApType6GHz;
+import com.android.server.wifi.util.InformationElementUtil.EhtOperation;
 import com.android.server.wifi.util.InformationElementUtil.HeOperation;
 import com.android.server.wifi.util.InformationElementUtil.HtOperation;
 import com.android.server.wifi.util.InformationElementUtil.VhtOperation;
@@ -2515,5 +2516,41 @@ public class InformationElementUtilTest extends WifiBaseTest {
         ehtCapabilities.from(ie);
         assertTrue(ehtCapabilities.isRestrictedTwtSupported());
         assertTrue(ehtCapabilities.isEpcsPriorityAccessSupported());
+    }
+
+    /**
+     * Verify that the expected EHT Operation information element is parsed and
+     * DisabledSubchannelBitmap is present.
+     */
+    @Test
+    public void testEhtOperationElementWithDisabledSubchannelBitmapPresent() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_EHT_OPERATION;
+        /**
+         * EHT Operation Format:
+         * | EHT Operation Param | Basic EHT-MCS | EHT Operation Info |
+         *          1                   1                0/3/5
+         *
+         * EHT Operation Param:
+         * |  EHT Operation Info Present | Disabled Subchannel Bitmap present |
+         * bits:       1                                  1                        ...
+         *
+         * EHT Operation Info:
+         * | Control | CCFS0 | CCFS 1 | Disabled Subchannel Bitmap |
+         *     1         1       1             0/2
+         */
+        ie.bytes = new byte[]{(byte) 0x03, //EHT Operation Param
+                (byte) 0xfc, (byte) 0xff, (byte) 0xfc, (byte) 0xff, //EHT-MCS
+                (byte) 0x03, (byte) 0x32, (byte) 0x32, //EHT Operation Info: Control, CCFS0, CCFS1
+                (byte) 0x03, (byte) 0x00}; //EHT Operation Info: Disabled Subchannel Bitmap
+
+        EhtOperation ehtOperation = new EhtOperation();
+        ehtOperation.from(ie);
+
+        assertTrue(ehtOperation.isPresent());
+        assertTrue(ehtOperation.isDisabledSubchannelBitmapPresent());
+        assertArrayEquals(new byte[]{(byte) 0x3, (byte) 0x0},
+                ehtOperation.getDisabledSubchannelBitmap());
     }
 }
