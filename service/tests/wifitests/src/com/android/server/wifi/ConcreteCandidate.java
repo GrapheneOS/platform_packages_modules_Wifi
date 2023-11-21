@@ -50,6 +50,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     private int mEstimatedPercentInternetAvailability = 50;
     private int mPredictedMultiLinkThroughputMbps = 0;
     private MacAddress mApMldMacAddress;
+    private int mNumRebootsSinceLastUse;
 
     private final Map<WifiScoreCardProto.Event, WifiScoreCardProto.Signal>
             mEventStatisticsMap = new ArrayMap<>();
@@ -88,6 +89,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
             }
         }
         mPredictedMultiLinkThroughputMbps = candidate.getPredictedMultiLinkThroughputMbps();
+        mNumRebootsSinceLastUse = candidate.getNumRebootsSinceLastUse();
         mApMldMacAddress = candidate.getApMldMacAddress();
     }
 
@@ -319,6 +321,19 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     @Override
     public MacAddress getApMldMacAddress() {
         return mApMldMacAddress;
+    }
+
+    @Override
+    public int getNumRebootsSinceLastUse() {
+        return mNumRebootsSinceLastUse;
+    }
+
+    /**
+     * Setter for mNumRebootsSinceLastUse.
+     */
+    public ConcreteCandidate setNumRebootsSinceLastUse(int numRebootsSinceLastUse) {
+        mNumRebootsSinceLastUse = numRebootsSinceLastUse;
+        return this;
     }
 
     public ConcreteCandidate setEventStatistics(

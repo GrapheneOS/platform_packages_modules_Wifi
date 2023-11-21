@@ -188,6 +188,11 @@ public class WifiCandidates {
         MacAddress getApMldMacAddress();
 
         /**
+         * Gets the number of reboots since the WifiConfiguration is last connected or updated.
+         */
+        int getNumRebootsSinceLastUse();
+
+        /**
          * Gets statistics from the scorecard.
          */
         @Nullable WifiScoreCardProto.Signal getEventStatistics(WifiScoreCardProto.Event event);
@@ -232,6 +237,7 @@ public class WifiCandidates {
         private final boolean mCarrierOrPrivileged;
         private final int mPredictedThroughputMbps;
         private int mPredictedMultiLinkThroughputMbps;
+        private final int mNumRebootsSinceLastUse;
         private final int mEstimatedPercentInternetAvailability;
         private final MacAddress mApMldMacAddress;
 
@@ -270,6 +276,7 @@ public class WifiCandidates {
             this.mOemPrivate = config.oemPrivate;
             this.mCarrierOrPrivileged = isCarrierOrPrivileged;
             this.mPredictedThroughputMbps = predictedThroughputMbps;
+            this.mNumRebootsSinceLastUse = config.numRebootsSinceLastUse;
             this.mEstimatedPercentInternetAvailability = perBssid == null ? 50 :
                     perBssid.estimatePercentInternetAvailability();
             this.mRestricted = config.restricted;
@@ -403,6 +410,11 @@ public class WifiCandidates {
         }
 
         @Override
+        public int getNumRebootsSinceLastUse() {
+            return mNumRebootsSinceLastUse;
+        }
+
+        @Override
         public int getEstimatedPercentInternetAvailability() {
             return mEstimatedPercentInternetAvailability;
         }
@@ -442,6 +454,7 @@ public class WifiCandidates {
                     + "Mbps = " + getPredictedThroughputMbps() + ", "
                     + "nominator = " + getNominatorId() + ", "
                     + "pInternet = " + getEstimatedPercentInternetAvailability() + ", "
+                    + "numRebootsSinceLastUse = " + getNumRebootsSinceLastUse()  + ", "
                     + lastSelectionWeightString
                     + (isCurrentBssid() ? "connected, " : "")
                     + (isCurrentNetwork() ? "current, " : "")
@@ -455,7 +468,8 @@ public class WifiCandidates {
                     + (hasNoInternetAccess() ? "noInternet, " : "")
                     + (isNoInternetAccessExpected() ? "noInternetExpected, " : "")
                     + (isPasspoint() ? "passpoint, " : "")
-                    + (isOpenNetwork() ? "open" : "secure") + " }";
+                    + (isOpenNetwork() ? "open" : "secure")
+                    + " }";
         }
     }
 
