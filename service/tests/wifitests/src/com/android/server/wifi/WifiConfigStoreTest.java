@@ -176,6 +176,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<int name=\"ConnectChoiceRssi\" value=\"0\" />\n"
                     + "<boolean name=\"HasEverConnected\" value=\"false\" />\n"
                     + "<boolean name=\"CaptivePortalNeverDetected\" value=\"true\" />\n"
+                    + "<boolean name=\"HasEverValidatedInternetAccess\" value=\"false\" />\n"
                     + "</NetworkStatus>\n"
                     + "<IpConfiguration>\n"
                     + "<string name=\"IpAssignment\">DHCP</string>\n"

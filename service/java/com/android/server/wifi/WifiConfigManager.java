@@ -2610,6 +2610,7 @@ public class WifiConfigManager {
         config.validatedInternetAccess = validated;
         if (validated) {
             config.numNoInternetAccessReports = 0;
+            config.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(true);
         }
         saveToStore(false);
         return true;

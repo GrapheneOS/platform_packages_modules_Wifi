@@ -7773,6 +7773,29 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verify(mWifiPermissionsUtil, times(2)).isProfileOwner(anyInt(), any());
     }
 
+    @Test
+    public void testNetworkValidation() {
+        ArgumentCaptor<WifiConfiguration> wifiConfigCaptor =
+                ArgumentCaptor.forClass(WifiConfiguration.class);
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+
+        NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(openNetwork);
+
+        // Set internet to be validated and verify internet validation tracking is updated.
+        int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkValidatedInternetAccess(networkId, true);
+        WifiConfiguration updatedConfig = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(updatedConfig.getNetworkSelectionStatus().hasEverValidatedInternetAccess());
+        assertTrue(updatedConfig.validatedInternetAccess);
+
+        // Set internet validation failed now and verify again. hasEverValidatedInternetAccess
+        // should still be true but validatedInternetAccess should be false.
+        mWifiConfigManager.setNetworkValidatedInternetAccess(networkId, false);
+        updatedConfig = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(updatedConfig.getNetworkSelectionStatus().hasEverValidatedInternetAccess());
+        assertFalse(updatedConfig.validatedInternetAccess);
+    }
+
     /**
      * Verifies that adding a network fails if the amount of saved networks is maxed out and the
      * next network to be removed is the same as the added network.

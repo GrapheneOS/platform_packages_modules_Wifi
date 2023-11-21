@@ -5335,6 +5335,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         currentNetwork.SSID = DEFAULT_TEST_SSID;
         currentNetwork.noInternetAccessExpected = false;
         currentNetwork.numNoInternetAccessReports = 1;
+        currentNetwork.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(true);
 
         // not user selected
         when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
@@ -5432,7 +5433,26 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testInternetValidationFailureUserSelectedRecentlyExpectNotDisabled()
+    public void testInternetValidationFailureUserSelectedRecently_ExpectDisabled()
+            throws Exception {
+        testInternetValidationUserSelectedRecently(false);
+        // expect disabled because the network has never had internet validation passed
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_PERMANENT);
+    }
+
+    @Test
+    public void testInternetValidationFailureUserSelectedRecently_ExpectNotDisabled()
+            throws Exception {
+        testInternetValidationUserSelectedRecently(true);
+        // expect not disabled
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_PERMANENT);
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_TEMPORARY);
+    }
+
+    private void testInternetValidationUserSelectedRecently(boolean hasEverValidatedInternetAccess)
             throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
@@ -5442,6 +5462,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         currentNetwork.networkId = FRAMEWORK_NETWORK_ID;
         currentNetwork.noInternetAccessExpected = false;
         currentNetwork.numNoInternetAccessReports = 1;
+        currentNetwork.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(
+                hasEverValidatedInternetAccess);
 
         // user last picked this network
         when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
@@ -5459,9 +5481,6 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mWifiConfigManager)
                 .incrementNetworkNoInternetAccessReports(FRAMEWORK_NETWORK_ID);
-        // expect not disabled
-        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
-                FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_TEMPORARY);
     }
 
     @Test
@@ -5475,6 +5494,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         currentNetwork.networkId = FRAMEWORK_NETWORK_ID;
         currentNetwork.noInternetAccessExpected = false;
         currentNetwork.numNoInternetAccessReports = 1;
+        currentNetwork.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(true);
 
         // user last picked this network
         when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
@@ -5499,7 +5519,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testNetworkInternetValidationFailureNotUserSelectedExpectNotDisabled()
+    public void testNetworkInternetValidationFailureNoInternetExpected_ExpectNotDisabled()
             throws Exception {
         connect();
         verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
@@ -5525,7 +5545,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mWifiConfigManager)
                 .incrementNetworkNoInternetAccessReports(FRAMEWORK_NETWORK_ID);
-        // expect not disabled
+        // expect not disabled since no internet is expected on this network
         verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
                 FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_TEMPORARY);
     }
@@ -6576,7 +6596,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      * over the threshold.
      */
     @Test
-    public void testHighPrababilityInternetTemporarilyDisableNetwork() throws Exception {
+    public void testHighProbabilityInternetTemporarilyDisableNetwork() throws Exception {
         connect();
         when(mPerBssid.estimatePercentInternetAvailability()).thenReturn(
                 ClientModeImpl.PROBABILITY_WITH_INTERNET_TO_PERMANENTLY_DISABLE_NETWORK);
