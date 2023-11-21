@@ -4525,4 +4525,15 @@ public class WifiConfigManager {
         }
         return new ArrayList<>(results);
     }
+
+    /**
+     * Handle the device shutdown, should write all cached data to the storage
+     */
+    public void handleShutDown() {
+        if (mPendingStoreRead) {
+            Log.e(TAG, "Cannot save to store before store is read!");
+            return;
+        }
+        writeBufferedData(true);
+    }
 }
