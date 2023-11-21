@@ -2453,6 +2453,13 @@ public class WifiConfiguration implements Parcelable {
          */
         private boolean mHasNeverDetectedCaptivePortal = true;
 
+
+        /**
+         * Boolean tracking whether internet validation have ever completed successfully on this
+         * WifiConfiguration.
+         */
+        private boolean mHasEverValidatedInternetAccess;
+
         /**
          * set whether this network is visible in latest Qualified Network Selection
          * @param seen value set to candidate
@@ -2606,6 +2613,22 @@ public class WifiConfiguration implements Parcelable {
         /** @hide */
         public boolean hasNeverDetectedCaptivePortal() {
             return mHasNeverDetectedCaptivePortal;
+        }
+
+
+        /**
+         * Get whether internet validation was ever successful on this WifiConfiguration.
+         * @hide
+         */
+        public boolean hasEverValidatedInternetAccess() {
+            return mHasEverValidatedInternetAccess;
+        }
+
+        /**
+         * @hide
+         */
+        public void setHasEverValidatedInternetAccess(boolean everValidated) {
+            mHasEverValidatedInternetAccess = everValidated;
         }
 
         /** @hide */
@@ -2904,6 +2927,7 @@ public class WifiConfiguration implements Parcelable {
             setConnectChoiceRssi(source.getConnectChoiceRssi());
             setHasEverConnected(source.hasEverConnected());
             setHasNeverDetectedCaptivePortal(source.hasNeverDetectedCaptivePortal());
+            setHasEverValidatedInternetAccess(source.hasEverValidatedInternetAccess());
         }
 
         /** @hide */
@@ -2926,6 +2950,7 @@ public class WifiConfiguration implements Parcelable {
             }
             dest.writeInt(hasEverConnected() ? 1 : 0);
             dest.writeInt(hasNeverDetectedCaptivePortal() ? 1 : 0);
+            dest.writeBoolean(hasEverValidatedInternetAccess());
             dest.writeParcelable(getCandidateSecurityParams(), flags);
             dest.writeParcelable(getLastUsedSecurityParams(), flags);
         }
@@ -2949,6 +2974,7 @@ public class WifiConfiguration implements Parcelable {
             }
             setHasEverConnected(in.readInt() != 0);
             setHasNeverDetectedCaptivePortal(in.readInt() != 0);
+            setHasEverValidatedInternetAccess(in.readBoolean());
             setCandidateSecurityParams((SecurityParams) in.readParcelable(null));
             setLastUsedSecurityParams((SecurityParams) in.readParcelable(null));
         }
@@ -3347,6 +3373,8 @@ public class WifiConfiguration implements Parcelable {
                 .append(mNetworkSelectionStatus.hasEverConnected()).append("\n");
         sbuf.append(" hasNeverDetectedCaptivePortal: ")
                 .append(mNetworkSelectionStatus.hasNeverDetectedCaptivePortal()).append("\n");
+        sbuf.append(" hasEverValidatedInternetAccess: ")
+                .append(mNetworkSelectionStatus.hasEverValidatedInternetAccess()).append("\n");
         sbuf.append(" mCandidateSecurityParams: ")
                 .append(mNetworkSelectionStatus.getCandidateSecurityParams());
         sbuf.append(" mLastUsedSecurityParams: ")
