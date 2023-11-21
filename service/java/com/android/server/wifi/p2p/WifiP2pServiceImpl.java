@@ -5137,9 +5137,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
             Intent intent = getP2pConnectionChangedIntent();
             intent.setPackage(tetheringServicePackage);
-            // Adding the flag to allow recipient to run at foreground priority with a shorter
-            // timeout interval.
-            intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            if (SdkLevel.isAtLeastU()) {
+                // Adding the flag to allow recipient to run at foreground priority with a shorter
+                // timeout interval.
+                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            }
 
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
             context.sendBroadcastWithMultiplePermissions(
