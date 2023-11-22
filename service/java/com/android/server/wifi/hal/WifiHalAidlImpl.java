@@ -52,6 +52,7 @@ public class WifiHalAidlImpl implements IWifiHal {
     private DeathRecipient mServiceDeathRecipient;
     private WifiHal.DeathRecipient mFrameworkDeathRecipient;
     private final Object mLock = new Object();
+    private static int sServiceVersion;
 
     public WifiHalAidlImpl(@NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
         Log.i(TAG, "Creating the Wifi HAL using the AIDL implementation");
@@ -252,7 +253,8 @@ public class WifiHalAidlImpl implements IWifiHal {
                     + android.hardware.wifi.IWifi.VERSION);
 
             try {
-                Log.i(TAG, "Remote Version: " + mWifi.getInterfaceVersion());
+                sServiceVersion = mWifi.getInterfaceVersion();
+                Log.i(TAG, "Remote Version: " + sServiceVersion);
                 IBinder serviceBinder = getServiceBinderMockable();
                 if (serviceBinder == null) {
                     Log.e(TAG, "Unable to obtain the service binder");
@@ -382,6 +384,14 @@ public class WifiHalAidlImpl implements IWifiHal {
     protected IBinder getServiceBinderMockable() {
         if (mWifi == null) return null;
         return mWifi.asBinder();
+    }
+
+    /**
+     * Check that the service is running at least the expected version. Method is protected
+     * in order to allow calls from the WifiXxxIface classes.
+     */
+    protected static boolean isServiceVersionAtLeast(int expectedVersion) {
+        return expectedVersion <= sServiceVersion;
     }
 
     private boolean checkWifiAndLogFailure(String methodStr) {
