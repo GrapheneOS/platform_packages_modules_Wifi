@@ -2373,10 +2373,106 @@ public class WifiMetrics {
         }
     }
 
-    protected static int convertSecurityModeToProto(
-            WifiConfiguration config, boolean useCandidateParams) {
-        int securityMode = getSecurityMode(config, useCandidateParams);
-        return convertSecurityModeToProto(securityMode);
+    /**
+     * Check if the provided security type is enabled in the security params list.
+     */
+    private static boolean securityTypeEnabled(List<SecurityParams> securityParamsList,
+            int securityType) {
+        for (SecurityParams params : securityParamsList) {
+            if (params.isSecurityType(securityType) && params.isEnabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if any security parameters with the provided type were added by auto-upgrade.
+     */
+    private static boolean securityTypeAddedByAutoUpgrade(List<SecurityParams> securityParamsList,
+            int securityType) {
+        for (SecurityParams params : securityParamsList) {
+            if (params.isSecurityType(securityType) && params.isAddedByAutoUpgrade()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected static int convertSecurityModeToProto(WifiConfiguration config) {
+        if (config == null || config.getDefaultSecurityParams() == null) {
+            return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_UNKNOWN;
+        }
+        SecurityParams defaultParams = config.getDefaultSecurityParams();
+        List<SecurityParams> securityParamsList = config.getSecurityParamsList();
+        switch (defaultParams.getSecurityType()) {
+            case WifiConfiguration.SECURITY_TYPE_OPEN:
+            case WifiConfiguration.SECURITY_TYPE_OWE: {
+                boolean openEnabled = securityTypeEnabled(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_OPEN);
+                boolean oweEnabled = securityTypeEnabled(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_OWE);
+                if (openEnabled && !oweEnabled) {
+                    // OWE params may be disabled or may not exist.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_NONE;
+                } else if (!openEnabled && oweEnabled) {
+                    // Open params may get disabled via TDI.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_OWE;
+                }
+
+                if (securityTypeAddedByAutoUpgrade(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_OWE)) {
+                    // User configured this network using Open, but OWE params were auto-added.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_NONE;
+                }
+                // User manually configured this network with both Open and OWE params.
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_OWE_TRANSITION;
+            }
+            case WifiConfiguration.SECURITY_TYPE_WEP:
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WEP;
+            case WifiConfiguration.SECURITY_TYPE_PSK: {
+                boolean pskEnabled = securityTypeEnabled(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_PSK);
+                boolean saeEnabled = securityTypeEnabled(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_SAE);
+                if (pskEnabled && !saeEnabled) {
+                    // WPA3 params may be disabled or may not exist.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA2_PERSONAL;
+                } else if (!pskEnabled && saeEnabled) {
+                    // WPA2 params may get disabled via TDI.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_PERSONAL;
+                }
+
+                if (securityTypeAddedByAutoUpgrade(
+                        securityParamsList, WifiConfiguration.SECURITY_TYPE_SAE)) {
+                    // User configured this network using WPA2, but WPA3 params were auto-added.
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA2_PERSONAL;
+                }
+                // User manually configured this network with both WPA2 and WPA3 params.
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_WPA2_PERSONAL_TRANSITION;
+            }
+            case WifiConfiguration.SECURITY_TYPE_SAE:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_PERSONAL;
+            case WifiConfiguration.SECURITY_TYPE_WAPI_PSK:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WAPI_PSK;
+            case WifiConfiguration.SECURITY_TYPE_WAPI_CERT:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WAPI_CERT;
+            case WifiConfiguration.SECURITY_TYPE_DPP:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_DPP;
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_ENTERPRISE_192_BIT;
+            case WifiConfiguration.SECURITY_TYPE_EAP:
+            case WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE:
+            case WifiConfiguration.SECURITY_TYPE_PASSPOINT_R1_R2:
+            case WifiConfiguration.SECURITY_TYPE_PASSPOINT_R3: {
+                if (WifiConfigurationUtil.isConfigForWpa3EnterpriseNetwork(config)) {
+                    return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA3_ENTERPRISE;
+                }
+                return WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CONNECTED_SECURITY_MODE__SECURITY_MODE_WPA_ENTERPRISE_LEGACY;
+            }
+            default:
+                return WifiStatsLog.WIFI_CONFIGURED_NETWORK_INFO__CONNECTED_SECURITY_MODE__SECURITY_MODE_INVALID;
+        }
     }
 
     static int convertSecurityModeToProto(@WifiConfiguration.SecurityType int securityMode) {

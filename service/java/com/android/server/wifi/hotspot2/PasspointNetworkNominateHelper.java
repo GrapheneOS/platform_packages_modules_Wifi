@@ -103,13 +103,13 @@ public class PasspointNetworkNominateHelper {
 
     /**
      * Get best matched available Passpoint network candidates for scanDetails.
+     *
      * @param scanDetails List of ScanDetail.
-     * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
      * @return List of pair of scanDetail and WifiConfig from matched available provider.
      */
     public List<Pair<ScanDetail, WifiConfiguration>> getPasspointNetworkCandidates(
-            List<ScanDetail> scanDetails, boolean isFromSuggestion) {
-        return findBestMatchScanDetailForProviders(isFromSuggestion,
+            List<ScanDetail> scanDetails) {
+        return findBestMatchScanDetailForProviders(
                 filterAndUpdateScanDetails(scanDetails));
     }
 
@@ -211,12 +211,12 @@ public class PasspointNetworkNominateHelper {
     /**
      * Match available providers for each scan detail and add their configs to WifiConfigManager.
      * Then for each available provider, find the best scan detail for it.
-     * @param isFromSuggestion True to indicate profile from suggestion, false for user saved.
+     *
      * @param scanDetailList Scan details to choose from.
      * @return List of pair of scanDetail and WifiConfig from matched available provider.
      */
     private @NonNull List<Pair<ScanDetail, WifiConfiguration>> findBestMatchScanDetailForProviders(
-            boolean isFromSuggestion, List<ScanDetail> scanDetailList) {
+            List<ScanDetail> scanDetailList) {
         if (mResources.getBoolean(
                 R.bool.config_wifiPasspointUseApWanLinkStatusAnqpElement)) {
             scanDetailList = scanDetailList.stream()
@@ -234,9 +234,6 @@ public class PasspointNetworkNominateHelper {
         // candidate pair.
         for (Map.Entry<PasspointProvider, List<PasspointNetworkCandidate>> candidates :
                 candidatesPerProvider.entrySet()) {
-            if (candidates.getKey().isFromSuggestion() != isFromSuggestion) {
-                continue;
-            }
             List<PasspointNetworkCandidate> bestCandidates =
                     findHomeNetworksIfPossible(candidates.getValue());
             for (PasspointNetworkCandidate candidate : bestCandidates) {

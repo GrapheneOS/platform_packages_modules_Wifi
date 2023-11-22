@@ -47,6 +47,7 @@ import android.net.wifi.WifiSsid;
 import android.os.SystemClock;
 import android.util.ArraySet;
 import android.util.LocalLog;
+import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
@@ -54,6 +55,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiNetworkSelector.ClientModeManagerState;
 import com.android.server.wifi.WifiNetworkSelectorTestUtil.ScanDetailsAndWifiConfigs;
+import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.wifi.resources.R;
 
@@ -113,6 +115,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
                 .mockStatic(WifiInfo.class, withSettings().lenient())
                 .startMocking();
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
+        when(mWifiInjector.getPasspointNetworkNominateHelper())
+                .thenReturn(mPasspointNetworkNominateHelper);
         setupContext();
         setupResources();
         setupWifiConfigManager();
@@ -195,6 +199,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
 
         @Override
         public void nominateNetworks(List<ScanDetail> scanDetails,
+                List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates,
                 boolean untrustedNetworkAllowed, boolean oemPaidNetworkAllowed,
                 boolean oemPrivateNetworkAllowed,
                 Set<Integer> restrictedNetworkAllowedUids,
@@ -266,6 +271,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
          */
         @Override
         public void nominateNetworks(List<ScanDetail> scanDetails,
+                List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates,
                 boolean untrustedNetworkAllowed, boolean oemPaidNetworkAllowed,
                 boolean oemPrivateNetworkAllowed,
                 Set<Integer> restrictedNetworkAllowedUids,
@@ -315,6 +321,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     @Mock private WifiGlobals mWifiGlobals;
     @Mock private ScanRequestProxy mScanRequestProxy;
     @Mock private DevicePolicyManager mDevicePolicyManager;
+    @Mock private PasspointNetworkNominateHelper mPasspointNetworkNominateHelper;
     private ScoringParams mScoringParams;
     private LocalLog mLocalLog;
     private int mThresholdMinimumRssi2G;
@@ -584,6 +591,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
         assertEquals("Expect null configuration", null, candidate);
         assertTrue(mWifiNetworkSelector.getConnectableScanDetails().isEmpty());
+        verify(mPasspointNetworkNominateHelper).updatePasspointConfig(any());
+        verify(mPasspointNetworkNominateHelper, never()).getPasspointNetworkCandidates(any());
     }
 
     /**
@@ -634,6 +643,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
 
         verify(mWifiConfigManager, atLeast(2))
                 .updateScanDetailCacheFromScanDetailForSavedNetwork(any());
+        verify(mPasspointNetworkNominateHelper, times(2)).updatePasspointConfig(any());
+        verify(mPasspointNetworkNominateHelper).getPasspointNetworkCandidates(any());
     }
 
     /**
@@ -742,6 +753,9 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         ScanResult chosenScanResult = scanDetails.get(0).getScanResult();
         WifiNetworkSelectorTestUtil.verifySelectedScanResult(mWifiConfigManager,
                 chosenScanResult, candidate);
+        verify(mPasspointNetworkNominateHelper, times(2)).updatePasspointConfig(any());
+        verify(mPasspointNetworkNominateHelper, times(2)).getPasspointNetworkCandidates(any());
+
     }
 
     /**
@@ -807,6 +821,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         ScanResult chosenScanResult = scanDetails.get(0).getScanResult();
         WifiNetworkSelectorTestUtil.verifySelectedScanResult(mWifiConfigManager,
                 chosenScanResult, candidate);
+        verify(mPasspointNetworkNominateHelper, times(2)).updatePasspointConfig(any());
+        verify(mPasspointNetworkNominateHelper, times(2)).getPasspointNetworkCandidates(any());
     }
     /**
      * Ensure that network selector update's network selection status for all configured
@@ -844,6 +860,8 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         verify(mWifiConfigManager, times(savedConfigs.length))
                 .clearNetworkCandidateScanResult(anyInt());
         verify(mWifiMetrics, atLeastOnce()).addMeteredStat(any(), anyBoolean());
+        verify(mPasspointNetworkNominateHelper).updatePasspointConfig(any());
+        verify(mPasspointNetworkNominateHelper).getPasspointNetworkCandidates(any());
     }
 
     /**
