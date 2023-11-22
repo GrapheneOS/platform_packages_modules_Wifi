@@ -36,6 +36,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -52,12 +53,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import android.annotation.NonNull;
 import android.app.test.MockAnswerUtil;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
@@ -1361,7 +1364,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         WifiApIface apIface = mock(WifiApIface.class);
         doAnswer(new GetNameAnswer("wlan0")).when(apIface).getName();
         doAnswer(new CreateApIfaceAnswer(chipMock, true, apIface))
-                .when(chipMock.chip).createApIface();
+                .when(chipMock.chip).createApIface(anyList());
         List<Pair<Integer, WorkSource>> apDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_AP, false, TEST_WORKSOURCE_0);
         assertEquals("Should get STA destroy details", 1, apDetails.size());
@@ -1435,7 +1438,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         WifiApIface apIface = mock(WifiApIface.class);
         doAnswer(new GetNameAnswer("wlan0")).when(apIface).getName();
         doAnswer(new CreateApIfaceAnswer(chipMock, true, apIface))
-                .when(chipMock.chip).createApIface();
+                .when(chipMock.chip).createApIface(anyList());
         List<Pair<Integer, WorkSource>> apDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_AP, false, TEST_WORKSOURCE_0);
         assertEquals("Should get STA destroy details", 1, apDetails.size());
@@ -1490,7 +1493,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         WifiApIface apIface = mock(WifiApIface.class);
         doAnswer(new GetNameAnswer("wlan0")).when(apIface).getName();
         doAnswer(new CreateApIfaceAnswer(chipMock, true, apIface))
-                .when(chipMock.chip).createApIface();
+                .when(chipMock.chip).createApIface(anyList());
         assertNull(mDut.createApIface(
                 CHIP_CAPABILITY_ANY, idl, null, TEST_WORKSOURCE_0, false, mSoftApManager));
 
@@ -4273,9 +4276,9 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                             .when((WifiApIface) iface).getBridgedInstances();
                 }
                 doAnswer(new CreateApIfaceAnswer(chipMock, true, iface))
-                        .when(chipMock.chip).createApIface();
+                        .when(chipMock.chip).createApIface(anyList());
                 doAnswer(new CreateApIfaceAnswer(chipMock, true, iface))
-                        .when(chipMock.chip).createBridgedApIface();
+                        .when(chipMock.chip).createBridgedApIface(anyList());
                 mDut.createApIface(requiredChipCapabilities,
                         destroyedListener, mHandler, requestorWs,
                         createIfaceType == HDM_CREATE_IFACE_AP_BRIDGE, mSoftApManager);
@@ -4330,10 +4333,10 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 mInOrder.verify(chipMock.chip).createStaIface();
                 break;
             case HDM_CREATE_IFACE_AP_BRIDGE:
-                mInOrder.verify(chipMock.chip).createBridgedApIface();
+                mInOrder.verify(chipMock.chip).createBridgedApIface(anyList());
                 break;
             case HDM_CREATE_IFACE_AP:
-                mInOrder.verify(chipMock.chip).createApIface();
+                mInOrder.verify(chipMock.chip).createApIface(anyList());
                 break;
             case HDM_CREATE_IFACE_P2P:
                 mInOrder.verify(chipMock.chip).createP2pIface();
@@ -4598,7 +4601,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
             super(chipMockBase, success, wifiIface, WifiChip.IFACE_TYPE_AP);
         }
 
-        public WifiApIface answer() {
+        public WifiApIface answer(@NonNull List<OuiKeyedData> vendorData) {
             addInterfaceInfo();
             return mSuccess ? (WifiApIface) mWifiIface : null;
         }

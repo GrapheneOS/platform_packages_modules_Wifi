@@ -2428,10 +2428,10 @@ public class HalDeviceManager {
                     iface = ifaceCreationData.chipInfo.chip.createStaIface();
                     break;
                 case HDM_CREATE_IFACE_AP_BRIDGE:
-                    iface = ifaceCreationData.chipInfo.chip.createBridgedApIface();
+                    iface = ifaceCreationData.chipInfo.chip.createBridgedApIface(new ArrayList<>());
                     break;
                 case HDM_CREATE_IFACE_AP:
-                    iface = ifaceCreationData.chipInfo.chip.createApIface();
+                    iface = ifaceCreationData.chipInfo.chip.createApIface(new ArrayList<>());
                     break;
                 case HDM_CREATE_IFACE_P2P:
                     iface = ifaceCreationData.chipInfo.chip.createP2pIface();
