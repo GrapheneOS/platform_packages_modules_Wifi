@@ -333,6 +333,7 @@
           <item type="bool" name ="config_aware_vdbg_enable_on_verbose_logging" />
           <item type="bool" name="config_wifiSofapHalMapWpa3TransitionModeToWpa3OnlyIn6GHzBand" />
           <item type="bool" name ="config_wifiRemainConnectedAfterIpProvisionTimeout" />
+          <item type="bool" name ="config_wifiDisableNudDisconnectsForWapiInSpecificCc" />
 
           <!-- Params from config.xml that can be overlayed -->
 
