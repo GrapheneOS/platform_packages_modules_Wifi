@@ -543,6 +543,9 @@ public class XmlUtilTest extends WifiBaseTest {
 
         // Verify that hasNeverDetectedCaptivePortal returns false.
         assertFalse(retrieved.hasNeverDetectedCaptivePortal());
+
+        // Verify that hasEverValidatedInternetAccess returns true.
+        assertTrue(retrieved.hasEverValidatedInternetAccess());
     }
 
     /**

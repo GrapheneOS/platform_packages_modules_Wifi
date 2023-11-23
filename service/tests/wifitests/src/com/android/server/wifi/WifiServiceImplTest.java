@@ -20,6 +20,7 @@ import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.Manifest.permission.MANAGE_WIFI_COUNTRY_CODE;
 import static android.Manifest.permission.WIFI_ACCESS_COEX_UNSAFE_CHANNELS;
 import static android.Manifest.permission.WIFI_UPDATE_COEX_UNSAFE_CHANNELS;
+import static android.content.Intent.ACTION_SHUTDOWN;
 import static android.net.wifi.ScanResult.WIFI_BAND_60_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_6_GHZ;
 import static android.net.wifi.WifiAvailableChannel.FILTER_REGULATORY;
@@ -11796,5 +11797,22 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         // check that we let the AFC Manager know that the country code has changed
         verify(mAfcManager).onCountryCodeChange(newCountryCode);
+    }
+
+    @Test
+    public void testShutDownHandling() {
+        mWifiServiceImpl.checkAndStartWifi();
+        mWifiServiceImpl.handleBootCompleted();
+        mLooper.dispatchAll();
+        verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
+                argThat((IntentFilter filter) ->
+                        filter.hasAction(ACTION_SHUTDOWN)),
+                isNull(),
+                any(Handler.class));
+        Intent intent = new Intent(ACTION_SHUTDOWN);
+        mBroadcastReceiverCaptor.getValue().onReceive(mContext, intent);
+        verify(mActiveModeWarden).notifyShuttingDown();
+        verify(mWifiScoreCard).resetAllConnectionStates();
+        verify(mWifiConfigManager).handleShutDown();
     }
 }

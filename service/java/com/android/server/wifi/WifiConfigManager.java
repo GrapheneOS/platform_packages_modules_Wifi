@@ -2610,6 +2610,7 @@ public class WifiConfigManager {
         config.validatedInternetAccess = validated;
         if (validated) {
             config.numNoInternetAccessReports = 0;
+            config.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(true);
         }
         saveToStore(false);
         return true;
@@ -4523,5 +4524,16 @@ public class WifiConfigManager {
             }
         }
         return new ArrayList<>(results);
+    }
+
+    /**
+     * Handle the device shutdown, should write all cached data to the storage
+     */
+    public void handleShutDown() {
+        if (mPendingStoreRead) {
+            Log.e(TAG, "Cannot save to store before store is read!");
+            return;
+        }
+        writeBufferedData(true);
     }
 }
