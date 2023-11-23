@@ -26,6 +26,7 @@ import android.content.pm.PackageManager;
 import android.hardware.wifi.WifiStatusCode;
 import android.net.MacAddress;
 import android.net.apf.ApfCapabilities;
+import android.net.wifi.OuiKeyedData;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiAvailableChannel;
@@ -390,18 +391,20 @@ public class WifiVendorHal {
      * @param band The requesting band for this AP interface.
      * @param isBridged Whether or not AP interface is a bridge interface.
      * @param softApManager SoftApManager of the request.
+     * @param vendorData List of {@link OuiKeyedData} containing vendor-provided
+     *                   configuration data. Empty list indicates no vendor data.
      * @return iface name on success, null otherwise.
      */
     public String createApIface(@Nullable InterfaceDestroyedListener destroyedListener,
             @NonNull WorkSource requestorWs,
             @SoftApConfiguration.BandType int band,
             boolean isBridged,
-            @NonNull SoftApManager softApManager) {
+            @NonNull SoftApManager softApManager, @NonNull List<OuiKeyedData> vendorData) {
         synchronized (sLock) {
             WifiApIface iface = mHalDeviceManager.createApIface(
                     getNecessaryCapabilitiesForSoftApMode(band),
                     new ApInterfaceDestroyedListenerInternal(destroyedListener), mHalEventHandler,
-                    requestorWs, isBridged, softApManager);
+                    requestorWs, isBridged, softApManager, vendorData);
             if (iface == null) {
                 mLog.err("Failed to create AP iface").flush();
                 return null;
