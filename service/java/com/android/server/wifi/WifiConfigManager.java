@@ -1172,7 +1172,15 @@ public class WifiConfigManager {
         }
         internalConfig.BSSID = externalConfig.BSSID == null ? null
                 : externalConfig.BSSID.toLowerCase();
-        internalConfig.hiddenSSID = externalConfig.hiddenSSID;
+        if (externalConfig.hiddenSSID) {
+            internalConfig.hiddenSSID = true;
+        } else if (internalConfig.getSecurityParams(
+                externalConfig.getDefaultSecurityParams().getSecurityType()) != null) {
+            // Only set hiddenSSID to false if we're updating an existing config.
+            // This is to prevent users from mistakenly converting an existing hidden config to
+            // unhidden when adding a new config of the same security family.
+            internalConfig.hiddenSSID = false;
+        }
 
         if (externalConfig.preSharedKey != null
                 && !externalConfig.preSharedKey.equals(PASSWORD_MASK)) {
