@@ -81,7 +81,7 @@ public class HostapdHalHidlImp implements IHostapdHal {
     private IServiceManager mIServiceManager;
     private IHostapd mIHostapd;
     private HashMap<String, Runnable> mSoftApFailureListeners = new HashMap<>();
-    private SoftApHalCallback mSoftApEventListener;
+    private HashMap<String, SoftApHalCallback> mSoftApHalCallbacks = new HashMap<>();
     private HostapdDeathEventHandler mDeathEventHandler;
     private ServiceManagerDeathRecipient mServiceManagerDeathRecipient;
     private HostapdDeathRecipient mHostapdDeathRecipient;
@@ -395,10 +395,10 @@ public class HostapdHalHidlImp implements IHostapdHal {
     }
 
     /**
-     * Register the provided callback handler for SoftAp events.
+     * Register the provided callback handler for SoftAp events on the specified iface.
      * <p>
-     * Note that only one callback can be registered at a time - any registration overrides previous
-     * registrations.
+     * Note that only one callback can be registered per iface at a time - any registration on the
+     * same iface overrides previous registrations.
      *
      * @param ifaceName Name of the interface.
      * @param listener Callback listener for AP events.
@@ -417,7 +417,7 @@ public class HostapdHalHidlImp implements IHostapdHal {
                 Log.d(TAG, "The current HAL doesn't support event callback.");
                 return false;
             }
-            mSoftApEventListener = listener;
+            mSoftApHalCallbacks.put(ifaceName, listener);
             Log.i(TAG, "registerApCallback Successful in " + ifaceName);
             return true;
         }
@@ -526,7 +526,7 @@ public class HostapdHalHidlImp implements IHostapdHal {
                     return false;
                 }
                 mSoftApFailureListeners.remove(ifaceName);
-                mSoftApEventListener = null;
+                mSoftApHalCallbacks.remove(ifaceName);
                 return true;
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
@@ -1273,8 +1273,9 @@ public class HostapdHalHidlImp implements IHostapdHal {
                 int frequency, int bandwidth, int generation, byte[] apIfaceInstanceMacAddress) {
             Log.d(TAG, "onApInstanceInfoChanged on " + ifaceName + " / " + apIfaceInstance);
             try {
-                if (mSoftApEventListener != null) {
-                    mSoftApEventListener.onInfoChanged(apIfaceInstance, frequency,
+                SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
+                if (callback != null) {
+                    callback.onInfoChanged(apIfaceInstance, frequency,
                             mapHalBandwidthToSoftApInfo(bandwidth),
                             mapHalGenerationToWifiStandard(generation),
                             MacAddress.fromBytes(apIfaceInstanceMacAddress));
@@ -1291,8 +1292,9 @@ public class HostapdHalHidlImp implements IHostapdHal {
                 Log.d(TAG, "onConnectedClientsChanged on " + ifaceName + " / " + apIfaceInstance
                         + " and Mac is " + MacAddress.fromBytes(clientAddress).toString()
                         + " isConnected: " + isConnected);
-                if (mSoftApEventListener != null) {
-                    mSoftApEventListener.onConnectedClientsChanged(apIfaceInstance,
+                SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
+                if (callback != null) {
+                    callback.onConnectedClientsChanged(apIfaceInstance,
                             MacAddress.fromBytes(clientAddress), isConnected);
                 }
             } catch (IllegalArgumentException iae) {
