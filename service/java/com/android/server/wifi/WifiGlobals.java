@@ -68,6 +68,7 @@ public class WifiGlobals {
     private final int mClientRssiMonitorThresholdDbm;
     private final int mClientRssiMonitorHysteresisDb;
     private boolean mDisableFirmwareRoamingInIdleMode = false;
+    private final boolean mIsSupportMultiInternetDual5G;
     private final boolean mAdjustPollRssiIntervalEnabled;
     private final boolean mWifiInterfaceAddedSelfRecoveryEnabled;
     private final int mNetworkNotFoundEventThreshold;
@@ -127,6 +128,8 @@ public class WifiGlobals {
                 R.bool.config_wifiAdjustPollRssiIntervalEnabled);
         mDisableFirmwareRoamingInIdleMode = mContext.getResources()
                 .getBoolean(R.bool.config_wifiDisableFirmwareRoamingInIdleMode);
+        mIsSupportMultiInternetDual5G = mContext.getResources().getBoolean(
+                R.bool.config_wifiAllowMultiInternetConnectDual5GFrequency);
         mWifiInterfaceAddedSelfRecoveryEnabled = mContext.getResources().getBoolean(
                 R.bool.config_wifiInterfaceAddedSelfRecoveryEnabled);
         mDisableUnwantedNetworkOnLowRssi = mContext.getResources().getBoolean(
@@ -289,6 +292,14 @@ public class WifiGlobals {
      */
     public boolean isDisableFirmwareRoamingInIdleMode() {
         return mDisableFirmwareRoamingInIdleMode;
+    }
+
+    /**
+     * Get the configuration for whether Multi-internet are allowed to
+     * connect simultaneously to both 5GHz high and 5GHz low.
+     */
+    public boolean isSupportMultiInternetDual5G() {
+        return mIsSupportMultiInternetDual5G;
     }
 
     /**
@@ -527,5 +538,6 @@ public class WifiGlobals {
                         + ", durationMs=" + perFailureMap.valueAt(j).durationMs);
             }
         }
+        pw.println("mIsSupportMultiInternetDual5G=" + mIsSupportMultiInternetDual5G);
     }
 }

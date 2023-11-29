@@ -978,6 +978,9 @@
          name. It is STRONGLY RECOMMENDED to be set to false -->
     <bool translatable="false" name="config_wifiAllowInsecureEnterpriseConfigurationsForSettingsAndSUW">false</bool>
 
+    <!-- Configuration that allows Multi-internet to connect simultaneously to both 5GHz high and 5GHz low -->
+    <bool translatable="false" name="config_wifiAllowMultiInternetConnectDual5GFrequency">false</bool>
+
     <!-- Indicate the max lines for connectivity local log based on the device ram size -->
     <integer translatable="false" name="config_wifiConnectivityLocalLogMaxLinesLowRam">256</integer>
     <integer translatable="false" name="config_wifiConnectivityLocalLogMaxLinesHighRam">512</integer>
