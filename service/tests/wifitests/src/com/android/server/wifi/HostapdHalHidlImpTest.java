@@ -66,6 +66,7 @@ import java.util.ArrayList;
 @SmallTest
 public class HostapdHalHidlImpTest extends WifiBaseTest {
     private static final String IFACE_NAME = "mock-wlan0";
+    private static final String IFACE_NAME_1 = "mock-wlan1";
     private static final String NETWORK_SSID = "test-ssid";
     private static final String NETWORK_PSK = "test-psk";
     private static final String TEST_CLIENT_MAC = "11:22:33:44:55:66";
@@ -79,6 +80,7 @@ public class HostapdHalHidlImpTest extends WifiBaseTest {
     private @Mock IHostapd mIHostapdMock;
     private @Mock WifiNative.HostapdDeathEventHandler mHostapdHalDeathHandler;
     private @Mock WifiNative.SoftApHalCallback mSoftApHalCallback;
+    private @Mock WifiNative.SoftApHalCallback mSoftApHalCallback1;
     private android.hardware.wifi.hostapd.V1_1.IHostapd mIHostapdMockV11;
     private android.hardware.wifi.hostapd.V1_2.IHostapd mIHostapdMockV12;
     private android.hardware.wifi.hostapd.V1_3.IHostapd mIHostapdMockV13;
@@ -1295,12 +1297,19 @@ public class HostapdHalHidlImpTest extends WifiBaseTest {
                 configurationBuilder.build(), true,
                 () -> mSoftApHalCallback.onFailure()));
         verify(mIHostapdMockV13).addAccessPoint_1_3(any(), any());
+        // Register SoftApManager callback
+        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
+
+        // Add second AP to test that the callbacks are triggered for the correct iface.
+        assertTrue(mHostapdHal.addAccessPoint(IFACE_NAME_1,
+                configurationBuilder.build(), true,
+                () -> mSoftApHalCallback1.onFailure()));
+        mHostapdHal.registerApCallback(IFACE_NAME_1, mSoftApHalCallback1);
 
         // Trigger on failure.
         mIHostapdCallback13.onFailure(IFACE_NAME);
         verify(mSoftApHalCallback).onFailure();
-        // Register SoftApManager callback
-        mHostapdHal.registerApCallback(IFACE_NAME, mSoftApHalCallback);
+        verify(mSoftApHalCallback1, never()).onFailure();
 
         int testFreq = 2412;
         int testBandwidth = Bandwidth.WIFI_BANDWIDTH_20;
@@ -1313,12 +1322,16 @@ public class HostapdHalHidlImpTest extends WifiBaseTest {
                 eq(mHostapdHal.mapHalBandwidthToSoftApInfo(testBandwidth)),
                 eq(mHostapdHal.mapHalGenerationToWifiStandard(testGeneration)),
                 eq(MacAddress.fromString(TEST_CLIENT_MAC)));
+        verify(mSoftApHalCallback1, never()).onInfoChanged(anyString(), anyInt(), anyInt(),
+                anyInt(), any());
 
         // Trigger on client connected.
         mIHostapdCallback13.onConnectedClientsChanged(IFACE_NAME, TEST_AP_INSTANCE,
                 MacAddress.fromString(TEST_CLIENT_MAC).toByteArray(), true);
         verify(mSoftApHalCallback).onConnectedClientsChanged(eq(TEST_AP_INSTANCE),
                 eq(MacAddress.fromString(TEST_CLIENT_MAC)), eq(true));
+        verify(mSoftApHalCallback1, never()).onConnectedClientsChanged(anyString(), any(),
+                anyBoolean());
     }
 
     /**
