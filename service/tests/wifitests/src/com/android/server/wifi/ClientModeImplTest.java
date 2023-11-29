@@ -284,13 +284,15 @@ public class ClientModeImplTest extends WifiBaseTest {
     private static final MacAddress TEST_MLO_LINK_ADDR =
             MacAddress.fromString(TEST_MLO_LINK_ADDR_STR);
 
-
     private static final String TEST_MLO_LINK_ADDR_1_STR = "02:03:04:05:06:0B";
     private static final MacAddress TEST_MLO_LINK_ADDR_1 =
             MacAddress.fromString(TEST_MLO_LINK_ADDR_1_STR);
 
     private static final int TEST_MLO_LINK_ID = 1;
     private static final int TEST_MLO_LINK_ID_1 = 2;
+
+    private static final int TEST_MLO_LINK_FREQ = 5160;
+    private static final int TEST_MLO_LINK_FREQ_1 = 2437;
 
     private static final String TEST_TDLS_PEER_ADDR_STR = "02:55:11:02:36:4C";
 
@@ -10794,5 +10796,38 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiP2pConnection)
                 .sendMessage(
                         eq(WifiP2pServiceImpl.BLOCK_DISCOVERY), eq(WifiP2pServiceImpl.DISABLED));
+    }
+
+    /**
+     * Verify that MLO link will be updated on receiving BSS_FREQUENCY_CHANGED_EVENT event.
+     */
+    @Test
+    public void testBssFrequencyChangedUpdatesMloLink() throws Exception {
+        connect();
+        mLooper.dispatchAll();
+
+        mConnectionCapabilities.wifiStandard = ScanResult.WIFI_STANDARD_11BE;
+        WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
+        info.links = new WifiNative.ConnectionMloLink[2];
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, TEST_MLO_LINK_FREQ);
+        info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, TEST_MLO_LINK_FREQ_1);
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+        assertEquals(mWifiInfo.getAssociatedMloLinks().size(),
+                mWifiInfo.getAffiliatedMloLinks().size());
+
+        info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 6215);
+        when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
+        mCmi.sendMessage(WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, 6215);
+        mLooper.dispatchAll();
+        List<MloLink> links = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(53, links.get(0).getChannel());
+        assertEquals(WifiScanner.WIFI_BAND_6_GHZ, links.get(0).getBand());
     }
 }
