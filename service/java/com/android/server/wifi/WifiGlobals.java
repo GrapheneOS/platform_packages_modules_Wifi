@@ -52,7 +52,8 @@ public class WifiGlobals {
     private final AtomicInteger mPollRssiIntervalMillis = new AtomicInteger(-1);
     private final AtomicBoolean mIpReachabilityDisconnectEnabled = new AtomicBoolean(true);
     private final AtomicBoolean mIsBluetoothConnected = new AtomicBoolean(false);
-    private final AtomicBoolean mIsWepAllowed = new AtomicBoolean(true);
+    // Set default to false to check if the value will be overridden by WifiSettingConfigStore.
+    private final AtomicBoolean mIsWepAllowed = new AtomicBoolean(false);
 
     // These are read from the overlay, cache them after boot up.
     private final boolean mIsWpa3SaeUpgradeEnabled;
