@@ -51,6 +51,7 @@ import android.hardware.wifi.WifiRadioConfiguration;
 import android.hardware.wifi.WifiStatusCode;
 import android.hardware.wifi.WifiUsableChannel;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
@@ -65,6 +66,7 @@ import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WlanWakeReasonAndCounts;
 import com.android.server.wifi.util.BitMask;
+import com.android.server.wifi.util.HalAidlUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,16 +112,24 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#createApIface()}
+     * See comments for {@link IWifiChip#createApIface(List)}
      */
     @Override
     @Nullable
-    public WifiApIface createApIface() {
+    public WifiApIface createApIface(@NonNull List<OuiKeyedData> vendorData) {
         final String methodStr = "createApIface";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return null;
-                IWifiApIface iface = mWifiChip.createApIface();
+                IWifiApIface iface;
+                if (WifiHalAidlImpl.isServiceVersionAtLeast(2) && !vendorData.isEmpty()) {
+                    android.hardware.wifi.common.OuiKeyedData[] halVendorData =
+                            HalAidlUtil.frameworkToHalOuiKeyedDataList(vendorData);
+                    iface = mWifiChip.createApOrBridgedApIface(
+                            IfaceConcurrencyType.AP, halVendorData);
+                } else {
+                    iface = mWifiChip.createApIface();
+                }
                 return new WifiApIface(iface);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
@@ -131,16 +141,24 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#createBridgedApIface()}
+     * See comments for {@link IWifiChip#createBridgedApIface(List)}
      */
     @Override
     @Nullable
-    public WifiApIface createBridgedApIface() {
+    public WifiApIface createBridgedApIface(@NonNull List<OuiKeyedData> vendorData) {
         final String methodStr = "createBridgedApIface";
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return null;
-                IWifiApIface iface = mWifiChip.createBridgedApIface();
+                IWifiApIface iface;
+                if (WifiHalAidlImpl.isServiceVersionAtLeast(2) && !vendorData.isEmpty()) {
+                    android.hardware.wifi.common.OuiKeyedData[] halVendorData =
+                            HalAidlUtil.frameworkToHalOuiKeyedDataList(vendorData);
+                    iface = mWifiChip.createApOrBridgedApIface(
+                            IfaceConcurrencyType.AP_BRIDGED, halVendorData);
+                } else {
+                    iface = mWifiChip.createBridgedApIface();
+                }
                 return new WifiApIface(iface);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);

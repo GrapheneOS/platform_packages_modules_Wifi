@@ -22,6 +22,7 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.hardware.wifi.WifiStatusCode;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
@@ -529,21 +530,29 @@ public class WifiChip {
     }
 
     /**
-     * See comments for {@link IWifiChip#createApIface()}
+     * See comments for {@link IWifiChip#createApIface(List)}
      */
     @Nullable
-    public WifiApIface createApIface() {
+    public WifiApIface createApIface(@NonNull List<OuiKeyedData> vendorData) {
+        if (vendorData == null) {
+            Log.e(TAG, "createApIface received null vendorData");
+            return null;
+        }
         return validateAndCall("createApIface", null,
-                () -> mWifiChip.createApIface());
+                () -> mWifiChip.createApIface(vendorData));
     }
 
     /**
-     * See comments for {@link IWifiChip#createBridgedApIface()}
+     * See comments for {@link IWifiChip#createBridgedApIface(List)}
      */
     @Nullable
-    public WifiApIface createBridgedApIface() {
+    public WifiApIface createBridgedApIface(@NonNull List<OuiKeyedData> vendorData) {
+        if (vendorData == null) {
+            Log.e(TAG, "createBridgedApIface received null vendorData");
+            return null;
+        }
         return validateAndCall("createBridgedApIface", null,
-                () -> mWifiChip.createBridgedApIface());
+                () -> mWifiChip.createBridgedApIface(vendorData));
     }
 
     /**
