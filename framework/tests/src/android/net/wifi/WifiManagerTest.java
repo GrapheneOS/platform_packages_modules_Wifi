@@ -4111,16 +4111,16 @@ public class WifiManagerTest {
     }
 
     /**
-     * Test behavior of isWifiWepSupported
+     * Test behavior of isWepSupported
      */
     @Test
-    public void testIsWifiWepSupported() throws Exception {
+    public void testIsWepSupported() throws Exception {
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(WIFI_FEATURE_WEP));
-        assertTrue(mWifiManager.isWifiWepSupported());
+        assertTrue(mWifiManager.isWepSupported());
         when(mWifiService.getSupportedFeatures())
                 .thenReturn(new Long(~WIFI_FEATURE_WEP));
-        assertFalse(mWifiManager.isWifiWepSupported());
+        assertFalse(mWifiManager.isWepSupported());
     }
 
     /**

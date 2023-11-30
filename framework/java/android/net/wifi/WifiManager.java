@@ -8835,7 +8835,7 @@ public class WifiManager {
     * @return true if this device supports connections to Wi-Fi WEP networks.
     */
     @FlaggedApi("com.android.wifi.flags.wep_usage")
-    public boolean isWifiWepSupported() {
+    public boolean isWepSupported() {
         return isFeatureSupported(WIFI_FEATURE_WEP);
     }
 
