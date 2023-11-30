@@ -243,8 +243,6 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mSettingsConfigStore.get(
                 eq(WIFI_NATIVE_SUPPORTED_STA_BANDS))).thenReturn(
                 TEST_SUPPORTED_BANDS);
-        // Default force that WEP is deprecated since the feature set is opposite to the API value.
-        when(mWifiGlobals.isWepDeprecated()).thenReturn(true);
         // Default force that WPA Personal is deprecated since the feature set is opposite to the
         // API value.
         when(mWifiGlobals.isWpaPersonalDeprecated()).thenReturn(true);
@@ -5205,7 +5203,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
 
     @Test
     public void testWepNotDeprecated() throws Exception {
-        when(mWifiGlobals.isWepDeprecated()).thenReturn(false);
+        when(mWifiGlobals.isWepSupported()).thenReturn(true);
         enterClientModeActiveState(false, TEST_FEATURE_SET | WifiManager.WIFI_FEATURE_WEP);
     }
 

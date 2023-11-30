@@ -8000,4 +8000,41 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         return mWifiNative.setMockWifiMethods(methods);
     }
+
+    /**
+     * See {@link WifiManager#setWepAllowed(boolean)}.
+     */
+    @Override
+    public void setWepAllowed(boolean isAllowed) {
+        int callingUid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
+            throw new SecurityException("Uid " + callingUid
+                    + " is not allowed to set wifi web allowed by user");
+        }
+        mLog.info("setWepAllowed=% uid=%").c(isAllowed).c(callingUid).flush();
+        // TODO: b/310291498 backup/restore settings of wep global control in Wifi config.
+        mWifiThreadRunner.post(() -> mWifiGlobals.setWepAllowed(isAllowed));
+    }
+
+    /**
+     * See {@link WifiManager#queryWepAllowed(Executor, Consumer)}
+     */
+    @Override
+    public void queryWepAllowed(@NonNull IBooleanListener listener) {
+        if (listener == null) {
+            throw new IllegalArgumentException("listener should not be null");
+        }
+        int callingUid = Binder.getCallingUid();
+        if (!mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
+            throw new SecurityException("Uid " + callingUid
+                    + " is not allowed to get wifi web allowed by user");
+        }
+        mWifiThreadRunner.post(() -> {
+            try {
+                listener.onResult(mWifiGlobals.isWepAllowed());
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        });
+    }
 }
