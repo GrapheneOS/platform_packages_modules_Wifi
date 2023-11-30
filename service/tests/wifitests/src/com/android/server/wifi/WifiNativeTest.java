@@ -30,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.anyBoolean;
@@ -297,7 +298,7 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.startVendorHalSta(eq(mConcreteClientModeManager))).thenReturn(true);
         when(mWifiVendorHal.createStaIface(any(), any(), eq(mConcreteClientModeManager)))
                 .thenReturn(WIFI_IFACE_NAME);
-        when(mWifiVendorHal.createApIface(any(), any(), anyInt(), anyBoolean(), any()))
+        when(mWifiVendorHal.createApIface(any(), any(), anyInt(), anyBoolean(), any(), anyList()))
                 .thenReturn(WIFI_IFACE_NAME);
 
         when(mBuildProperties.isEngBuild()).thenReturn(false);
@@ -802,11 +803,11 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiVendorHal.getBridgedApInstances(WIFI_IFACE_NAME))
                 .thenReturn(Arrays.asList(instance1, instance2));
         mWifiNative.setupInterfaceForSoftApMode(null, TEST_WORKSOURCE, SoftApConfiguration.BAND_2GHZ
-                | SoftApConfiguration.BAND_5GHZ, true, mSoftApManager);
+                | SoftApConfiguration.BAND_5GHZ, true, mSoftApManager, new ArrayList<>());
         ArgumentCaptor<HalDeviceManager.InterfaceDestroyedListener> ifaceDestroyedListenerCaptor =
                 ArgumentCaptor.forClass(HalDeviceManager.InterfaceDestroyedListener.class);
         verify(mWifiVendorHal).createApIface(ifaceDestroyedListenerCaptor.capture(), any(),
-                anyInt(), anyBoolean(), any());
+                anyInt(), anyBoolean(), any(), anyList());
         verify(mWificondControl).setupInterfaceForSoftApMode(instance1);
 
         when(mWifiVendorHal.getBridgedApInstances(WIFI_IFACE_NAME)).thenReturn(null);
@@ -891,7 +892,7 @@ public class WifiNativeTest extends WifiBaseTest {
 
         mWifiNative.teardownAllInterfaces();
         mWifiNative.setupInterfaceForSoftApMode(null, TEST_WORKSOURCE, WIFI_BAND_24_GHZ, false,
-                mSoftApManager);
+                mSoftApManager, new ArrayList<>());
         verify(mWifiVendorHal, times(4)).setCoexUnsafeChannels(unsafeChannels, restrictions);
     }
 

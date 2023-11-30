@@ -38,6 +38,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -311,7 +312,7 @@ public class SoftApManagerTest extends WifiBaseTest {
                 any(WifiNative.SoftApHalCallback.class)))
                 .thenReturn(SoftApManager.START_RESULT_SUCCESS);
         when(mWifiNative.setupInterfaceForSoftApMode(any(), any(), anyInt(), anyBoolean(),
-                any()))
+                any(), anyList()))
                 .thenReturn(TEST_INTERFACE_NAME);
         when(mFrameworkFacade.getIntegerSetting(
                 mContext, Settings.Global.SOFT_AP_TIMEOUT_ENABLED, 1)).thenReturn(1);
@@ -580,7 +581,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     public void testSetupForSoftApModeNullApInterfaceNameFailureIncrementsMetrics()
             throws Exception {
         when(mWifiNative.setupInterfaceForSoftApMode(
-                    any(), any(), anyInt(), anyBoolean(), any())).thenReturn(null);
+                    any(), any(), anyInt(), anyBoolean(), any(), anyList())).thenReturn(null);
         when(mWifiApConfigStore.getApConfiguration()).thenReturn(null);
         SoftApModeConfiguration nullApConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
@@ -657,7 +658,7 @@ public class SoftApManagerTest extends WifiBaseTest {
     public void testSetupForSoftApModeEmptyInterfaceNameFailureIncrementsMetrics()
             throws Exception {
         when(mWifiNative.setupInterfaceForSoftApMode(
-                    any(), any(), anyInt(), anyBoolean(), any())).thenReturn("");
+                    any(), any(), anyInt(), anyBoolean(), any(), anyList())).thenReturn("");
         SoftApModeConfiguration nullApConfig =
                 new SoftApModeConfiguration(WifiManager.IFACE_IP_MODE_TETHERED, null,
                 mTestSoftApCapability, TEST_COUNTRY_CODE);
@@ -2431,7 +2432,7 @@ public class SoftApManagerTest extends WifiBaseTest {
             verify(mWifiNative, never()).setupInterfaceForSoftApMode(
                     mWifiNativeInterfaceCallbackCaptor.capture(), eq(TEST_WORKSOURCE),
                     eq(expectedConfig.getBand()), eq(expectedConfig.getBands().length > 1),
-                    eq(mSoftApManager));
+                    eq(mSoftApManager), anyList());
 
             // Simulate user approval
             ArgumentCaptor<StateMachine> stateMachineCaptor =
@@ -2451,7 +2452,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         order.verify(mWifiNative).setupInterfaceForSoftApMode(
                 mWifiNativeInterfaceCallbackCaptor.capture(), eq(TEST_WORKSOURCE),
                 eq(expectedConfig.getBand()), eq(expectedConfig.getBands().length > 1),
-                eq(mSoftApManager));
+                eq(mSoftApManager), anyList());
         ArgumentCaptor<SoftApConfiguration> configCaptor =
                 ArgumentCaptor.forClass(SoftApConfiguration.class);
         order.verify(mCallback).onStateChanged(WifiManager.WIFI_AP_STATE_ENABLING, 0);
@@ -3033,7 +3034,8 @@ public class SoftApManagerTest extends WifiBaseTest {
                 mTestSoftApCapability, TEST_COUNTRY_CODE);
         mSoftApManager = createSoftApManager(dualBandConfig, ROLE_SOFTAP_TETHERED);
         verify(mWifiNative).setupInterfaceForSoftApMode(
-                any(), any(), eq(SoftApConfiguration.BAND_2GHZ), eq(true), eq(mSoftApManager));
+                any(), any(), eq(SoftApConfiguration.BAND_2GHZ), eq(true), eq(mSoftApManager),
+                anyList());
     }
 
     @Test
