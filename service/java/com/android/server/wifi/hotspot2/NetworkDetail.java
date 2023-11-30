@@ -168,6 +168,7 @@ public class NetworkDetail {
     private MacAddress mMldMacAddress = null;
     private int mMloLinkId = MloLink.INVALID_MLO_LINK_ID;
     private List<MloLink> mAffiliatedMloLinks = Collections.emptyList();
+    private byte[] mDisabledSubchannelBitmap;
 
     public NetworkDetail(String bssid, ScanResult.InformationElement[] infoElements,
             List<String> anqpLines, int freq) {
@@ -379,6 +380,7 @@ public class NetworkDetail {
 
         if (ehtOperation.isPresent()) {
             //TODO: include parsing of EHT_Operation to collect BW and center freq.
+            mDisabledSubchannelBitmap = ehtOperation.getDisabledSubchannelBitmap();
         }
 
         if (ehtOperation.isPresent()) {
@@ -700,6 +702,10 @@ public class NetworkDetail {
 
     public List<MloLink> getAffiliatedMloLinks() {
         return mAffiliatedMloLinks;
+    }
+
+    public byte[] getDisabledSubchannelBitmap() {
+        return mDisabledSubchannelBitmap;
     }
 
     @Override

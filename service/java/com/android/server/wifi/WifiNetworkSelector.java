@@ -1656,7 +1656,8 @@ public class WifiNetworkSelector {
                 scanDetail.getNetworkDetail().getMaxNumberSpatialStreams(),
                 scanDetail.getNetworkDetail().getChannelUtilization(),
                 channelUtilizationLinkLayerStats,
-                mWifiGlobals.isBluetoothConnected());
+                mWifiGlobals.isBluetoothConnected(),
+                scanDetail.getNetworkDetail().getDisabledSubchannelBitmap());
     }
 
     /**

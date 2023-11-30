@@ -104,25 +104,25 @@ public class ThroughputPredictorTest extends WifiBaseTest {
         when(mResource.getBoolean(R.bool.config_wifiEnable6GhzBeaconRssiBoost)).thenReturn(false);
         int predicted_5Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5160, 1,
-                0, 0, false);
+                0, 0, false, null);
         int predicted_6Ghz_20MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_20MHZ, -70, 5975, 1,
-                0, 0, false);
+                0, 0, false, null);
         int predicted_6Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5975, 1,
-                0, 0, false);
+                0, 0, false, null);
 
         // verify that after the boost is enabled, only the 6Ghz 80MHz bandwidth score is increased.
         when(mResource.getBoolean(R.bool.config_wifiEnable6GhzBeaconRssiBoost)).thenReturn(true);
         int newPredicted_5Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5160, 1,
-                0, 0, false);
+                0, 0, false, null);
         int newPredicted_6Ghz_20MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_20MHZ, -70, 5975, 1,
-                0, 0, false);
+                0, 0, false, null);
         int newPredicted_6Ghz_80MHz = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, -70, 5975, 1,
-                0, 0, false);
+                0, 0, false, null);
 
         assertEquals("5Ghz AP should not get RSSI boost",
                 predicted_5Ghz_80MHz, newPredicted_5Ghz_80MHz);
@@ -136,7 +136,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyVeryLowRssi() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, -200, 2412, 1,
-                0, 0, false);
+                0, 0, false, null);
 
         assertEquals(0, predictedThroughputMbps);
     }
@@ -145,7 +145,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyMaxChannelUtilizationBssLoad() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, 0, 2412, 1,
-                MAX_CHANNEL_UTILIZATION, 0, false);
+                MAX_CHANNEL_UTILIZATION, 0, false, null);
 
         assertEquals(0, predictedThroughputMbps);
     }
@@ -154,7 +154,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyMaxChannelUtilizationLinkLayerStats() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, 0, 5210, 1,
-                INVALID, MAX_CHANNEL_UTILIZATION, false);
+                INVALID, MAX_CHANNEL_UTILIZATION, false, null);
 
         assertEquals(0, predictedThroughputMbps);
     }
@@ -163,7 +163,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiMinChannelUtilizationAc5g80Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ, 0, 5180, 2,
-                MIN_CHANNEL_UTILIZATION, 50, false);
+                MIN_CHANNEL_UTILIZATION, 50, false, null);
 
         assertEquals(866, predictedThroughputMbps);
     }
@@ -178,7 +178,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
                 .thenReturn(1);
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ, 0, 5180, 2,
-                MIN_CHANNEL_UTILIZATION, 50, false);
+                MIN_CHANNEL_UTILIZATION, 50, false, null);
 
         assertEquals(433, predictedThroughputMbps);
     }
@@ -194,7 +194,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
 
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11BE, ScanResult.CHANNEL_WIDTH_320MHZ, 0, 6180, 4,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(11529, predictedThroughputMbps);
     }
@@ -213,7 +213,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
 
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_160MHZ, 0, 5180, 4,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(2401, predictedThroughputMbps);
     }
@@ -223,7 +223,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyMidRssiMinChannelUtilizationAc5g80Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ, -50, 5180, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(866, predictedThroughputMbps);
     }
@@ -232,7 +232,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyLowRssiMinChannelUtilizationAc5g80Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ, -80, 5180, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(41, predictedThroughputMbps);
     }
@@ -241,7 +241,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyLowRssiDefaultChannelUtilizationAc5g80Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ, -80, 5180, 2,
-                INVALID, INVALID, false);
+                INVALID, INVALID, false, null);
 
         assertEquals(31, predictedThroughputMbps);
     }
@@ -250,7 +250,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiMinChannelUtilizationAc2g20Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, -20, 2437, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(192, predictedThroughputMbps);
     }
@@ -259,7 +259,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiMinChannelUtilizationAc2g20Mhz2ssBluetoothConnected() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, -20, 2437, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, true);
+                MIN_CHANNEL_UTILIZATION, INVALID, true, null);
 
         assertEquals(144, predictedThroughputMbps);
     }
@@ -268,7 +268,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiMinChannelUtilizationLegacy5g20Mhz() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_LEGACY, ScanResult.CHANNEL_WIDTH_20MHZ, -50, 5180,
-                1, MIN_CHANNEL_UTILIZATION, INVALID, false);
+                1, MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(54, predictedThroughputMbps);
     }
@@ -277,7 +277,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyLowRssiDefaultChannelUtilizationLegacy5g20Mhz() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_LEGACY, ScanResult.CHANNEL_WIDTH_20MHZ, -80, 5180,
-                2, INVALID, INVALID, false);
+                2, INVALID, INVALID, false, null);
 
         assertEquals(11, predictedThroughputMbps);
     }
@@ -286,7 +286,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiMinChannelUtilizationHt2g20Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ, -50, 2437, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
 
         assertEquals(144, predictedThroughputMbps);
     }
@@ -297,7 +297,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
         when(mDeviceCapabilities.getMaxNumberRxSpatialStreams()).thenReturn(0);
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ, -50, 2437, 2,
-                MIN_CHANNEL_UTILIZATION, INVALID, false);
+                MIN_CHANNEL_UTILIZATION, INVALID, false, null);
         // Expect to 1SS peak rate because maxNumberSpatialStream is overridden to 1.
         assertEquals(72, predictedThroughputMbps);
     }
@@ -306,7 +306,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyLowRssiDefaultChannelUtilizationHt2g20Mhz1ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ, -80, 2437, 1,
-                INVALID, INVALID, true);
+                INVALID, INVALID, true, null);
 
         assertEquals(5, predictedThroughputMbps);
     }
@@ -315,7 +315,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyHighRssiHighChannelUtilizationAc2g20Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, -50, 2437, 2,
-                INVALID, 80, true);
+                INVALID, 80, true, null);
 
         assertEquals(84, predictedThroughputMbps);
     }
@@ -324,7 +324,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyRssiBoundaryHighChannelUtilizationAc2g20Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_20MHZ, -69, 2437, 2,
-                INVALID, 80, true);
+                INVALID, 80, true, null);
 
         assertEquals(46, predictedThroughputMbps);
     }
@@ -333,7 +333,7 @@ public class ThroughputPredictorTest extends WifiBaseTest {
     public void verifyRssiBoundaryHighChannelUtilizationAc5g40Mhz2ss() {
         int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
                 ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_40MHZ, -66, 5180, 2,
-                INVALID, 80, false);
+                INVALID, 80, false, null);
 
         assertEquals(103, predictedThroughputMbps);
     }
@@ -439,5 +439,24 @@ public class ThroughputPredictorTest extends WifiBaseTest {
         //mConnectionCap.maxNumberTxSpatialStreams = 4;
         assertEquals(2881, mThroughputPredictor.predictRxThroughput(mConnectionCap,
                 -10, 5180, INVALID));
+    }
+
+    @Test
+    public void verifyThroughputBe5g160Mhz4ssDisabledSubchannelBitmap() {
+        when(mDeviceCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE)).thenReturn(
+                true);
+        when(mDeviceCapabilities.isChannelWidthSupported(
+                ScanResult.CHANNEL_WIDTH_160MHZ)).thenReturn(true);
+        when(mDeviceCapabilities.getMaxNumberTxSpatialStreams()).thenReturn(4);
+        when(mDeviceCapabilities.getMaxNumberRxSpatialStreams()).thenReturn(4);
+        int predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11BE, ScanResult.CHANNEL_WIDTH_160MHZ, 0, 5240, 4,
+                MIN_CHANNEL_UTILIZATION, 50, false, null);
+        assertEquals(5764, predictedThroughputMbps);
+
+        predictedThroughputMbps = mThroughputPredictor.predictThroughput(mDeviceCapabilities,
+                ScanResult.WIFI_STANDARD_11BE, ScanResult.CHANNEL_WIDTH_160MHZ, 0, 5240, 4,
+                MIN_CHANNEL_UTILIZATION, 50, false, new byte[]{(byte) 0x3, (byte) 0x0});
+        assertEquals(4388, predictedThroughputMbps);
     }
 }

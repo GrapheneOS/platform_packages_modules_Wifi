@@ -20,6 +20,7 @@ import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MAX_CH
 import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MIN_CHANNEL_UTILIZATION;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations.WifiStandard;
@@ -128,7 +129,7 @@ public class ThroughputPredictor {
     public int predictMaxTxThroughput(@NonNull WifiNative.ConnectionCapabilities capabilities) {
         return predictThroughputInternal(capabilities.wifiStandard, capabilities.is11bMode,
                 capabilities.channelBandwidth, WifiInfo.MAX_RSSI,
-                capabilities.maxNumberTxSpatialStreams, MIN_CHANNEL_UTILIZATION, 0);
+                capabilities.maxNumberTxSpatialStreams, MIN_CHANNEL_UTILIZATION, 0, null);
     }
 
     /**
@@ -139,7 +140,7 @@ public class ThroughputPredictor {
     public int predictMaxRxThroughput(@NonNull WifiNative.ConnectionCapabilities capabilities) {
         return predictThroughputInternal(capabilities.wifiStandard, capabilities.is11bMode,
                 capabilities.channelBandwidth, WifiInfo.MAX_RSSI,
-                capabilities.maxNumberRxSpatialStreams, MIN_CHANNEL_UTILIZATION, 0);
+                capabilities.maxNumberRxSpatialStreams, MIN_CHANNEL_UTILIZATION, 0, null);
     }
 
     /**
@@ -152,7 +153,7 @@ public class ThroughputPredictor {
                 INVALID, channelUtilization, false);
         return predictThroughputInternal(capabilities.wifiStandard, capabilities.is11bMode,
                 capabilities.channelBandwidth, rssiDbm, capabilities.maxNumberTxSpatialStreams,
-                channelUtilizationFinal, frequency);
+                channelUtilizationFinal, frequency, null);
     }
 
     /**
@@ -165,7 +166,7 @@ public class ThroughputPredictor {
                 INVALID, channelUtilization, false);
         return predictThroughputInternal(capabilities.wifiStandard, capabilities.is11bMode,
                 capabilities.channelBandwidth, rssiDbm, capabilities.maxNumberRxSpatialStreams,
-                channelUtilizationFinal, frequency);
+                channelUtilizationFinal, frequency, null);
     }
 
     /**
@@ -179,13 +180,15 @@ public class ThroughputPredictor {
      * @param channelUtilizationBssLoad the channel utilization ratio indicated from BssLoad IE
      * @param channelUtilizationLinkLayerStats the channel utilization ratio detected from scan
      * @param isBluetoothConnected whether the bluetooth adaptor is in connected mode
+     * @param disabledSubchannelBitmap the disabled Subchannel Bitmap (2 bytes) from EHT
+     *                                 Operation IE
      * @return predicted throughput in Mbps
      */
     public int predictThroughput(DeviceWiphyCapabilities deviceCapabilities,
             @WifiStandard int wifiStandardAp,
             int channelWidthAp, int rssiDbm, int frequency, int maxNumSpatialStreamAp,
             int channelUtilizationBssLoad, int channelUtilizationLinkLayerStats,
-            boolean isBluetoothConnected) {
+            boolean isBluetoothConnected, @Nullable byte[] disabledSubchannelBitmap) {
 
         if (deviceCapabilities == null) {
             Log.e(TAG, "Null device capabilities passed to throughput predictor");
@@ -279,12 +282,13 @@ public class ThroughputPredictor {
                 isBluetoothConnected);
 
         return predictThroughputInternal(wifiStandard, false/* is11bMode */, channelWidth,
-                rssiDbm, maxNumSpatialStream, channelUtilization, frequency);
+                rssiDbm, maxNumSpatialStream, channelUtilization, frequency,
+                disabledSubchannelBitmap);
     }
 
     private int predictThroughputInternal(@WifiStandard int wifiStandard, boolean is11bMode,
             int channelWidth, int rssiDbm, int maxNumSpatialStream,  int channelUtilization,
-            int frequency) {
+            int frequency, @Nullable byte[] disabledSubchannelBitmap) {
 
         // channel bandwidth in MHz = 20MHz * (2 ^ channelWidthFactor);
         int channelWidthFactor;
@@ -363,6 +367,14 @@ public class ThroughputPredictor {
             } else {
                 numTonePerSym = NUM_TONE_PER_SYM_11BE_320MHZ;
                 channelWidthFactor = 4;
+            }
+            int numPunctured20MhzSubChannel = 0;
+            if (disabledSubchannelBitmap != null && disabledSubchannelBitmap.length == 2) {
+                numPunctured20MhzSubChannel = Integer.bitCount(
+                        (disabledSubchannelBitmap[1] << 8) | disabledSubchannelBitmap[0]);
+            }
+            if (numPunctured20MhzSubChannel * NUM_TONE_PER_SYM_11AX_BE_20MHZ < numTonePerSym) {
+                numTonePerSym -= numPunctured20MhzSubChannel * NUM_TONE_PER_SYM_11AX_BE_20MHZ;
             }
             maxNumSpatialStream = Math.min(maxNumSpatialStream, MAX_NUM_SPATIAL_STREAM_11BE);
             maxBitsPerTone = MAX_BITS_PER_TONE_11BE;
