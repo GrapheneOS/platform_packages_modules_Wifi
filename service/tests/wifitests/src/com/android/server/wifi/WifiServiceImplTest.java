@@ -619,6 +619,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mScanRequestProxy.startScan(anyInt(), anyString())).thenReturn(true);
         when(mLohsCallback.asBinder()).thenReturn(mock(IBinder.class));
         when(mWifiSettingsConfigStore.get(eq(WIFI_VERBOSE_LOGGING_ENABLED))).thenReturn(true);
+        when(mWifiSettingsConfigStore.get(
+                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
+                .thenReturn(false);
         when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(false);
         when(mActiveModeWarden.getClientModeManagersInRoles(
                 ROLE_CLIENT_LOCAL_ONLY, ROLE_CLIENT_SECONDARY_LONG_LIVED))
@@ -872,9 +875,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledMetricsNormalAppBelowQSdk() throws Exception {
-        when(mWifiSettingsConfigStore.get(
-                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
-                .thenReturn(false);
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
@@ -984,9 +984,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledSuccessForAppsTargetingBelowQSdk() throws Exception {
-        when(mWifiSettingsConfigStore.get(
-                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
-                .thenReturn(false);
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
@@ -1157,9 +1154,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledDialogForThirdPartyAppsTargetingBelowQSdk() throws Exception {
-        when(mWifiSettingsConfigStore.get(
-                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
-                .thenReturn(false);
         when(mResources.getBoolean(
                 R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
                 .thenReturn(true);
@@ -1326,9 +1320,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledNoDialogForNonThirdPartyAppsTargetingBelowQSdk() {
-        when(mWifiSettingsConfigStore.get(
-                eq(SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API)))
-                .thenReturn(false);
         when(mResources.getBoolean(
                 R.bool.config_showConfirmationDialogForThirdPartyAppsEnablingWifi))
                 .thenReturn(true);
@@ -1387,10 +1378,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that a call from an app cannot enable wifi if we are in softap mode.
+     * Verify that a call from an app cannot enable wifi if we are in softap mode for Pre-S
      */
     @Test
-    public void testSetWifiEnabledFromAppFailsWhenApEnabled() throws Exception {
+    public void testSetWifiEnabledFromAppFailsWhenApEnabledForPreS() throws Exception {
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
@@ -1406,9 +1397,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 eq(android.Manifest.permission.NETWORK_SETTINGS), anyInt(), anyInt()))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
         when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
-        assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
-        verify(mSettingsStore, never()).handleWifiToggled(anyBoolean());
-        verify(mActiveModeWarden, never()).wifiToggled(any());
+        when(mSettingsStore.handleWifiToggled(eq(true))).thenReturn(true);
+        if (!SdkLevel.isAtLeastS()) {
+            assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+            verify(mSettingsStore, never()).handleWifiToggled(anyBoolean());
+            verify(mActiveModeWarden, never()).wifiToggled(any());
+        } else {
+            assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
+            verify(mActiveModeWarden).wifiToggled(
+                    eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+        }
     }
 
 

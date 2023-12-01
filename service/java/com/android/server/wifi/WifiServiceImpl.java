@@ -1258,8 +1258,11 @@ public class WifiServiceImpl extends BaseWifiService {
             return false;
         }
 
-        // If SoftAp is enabled, only privileged apps are allowed to toggle wifi
-        if (!isPrivileged && mTetheredSoftApTracker.getState() == WIFI_AP_STATE_ENABLED) {
+        // Pre-S interface priority is solely based on interface type, which allows STA to delete AP
+        // for any requester. To prevent non-privileged apps from deleting a tethering AP by
+        // enabling Wi-Fi, only allow privileged apps to toggle Wi-Fi if tethering AP is up.
+        if (!SdkLevel.isAtLeastS() && !isPrivileged
+                && mTetheredSoftApTracker.getState() == WIFI_AP_STATE_ENABLED) {
             mLog.err("setWifiEnabled with SoftAp enabled: only Settings can toggle wifi").flush();
             return false;
         }
