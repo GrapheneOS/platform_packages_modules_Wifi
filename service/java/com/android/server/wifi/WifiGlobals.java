@@ -52,6 +52,7 @@ public class WifiGlobals {
     private final AtomicInteger mPollRssiIntervalMillis = new AtomicInteger(-1);
     private final AtomicBoolean mIpReachabilityDisconnectEnabled = new AtomicBoolean(true);
     private final AtomicBoolean mIsBluetoothConnected = new AtomicBoolean(false);
+    private final AtomicBoolean mIsWepAllowed = new AtomicBoolean(true);
 
     // These are read from the overlay, cache them after boot up.
     private final boolean mIsWpa3SaeUpgradeEnabled;
@@ -321,7 +322,16 @@ public class WifiGlobals {
      * @return boolean true if WEP networks are deprecated, false otherwise.
      */
     public boolean isWepDeprecated() {
-        return mIsWepDeprecated;
+        return mIsWepDeprecated || !mIsWepAllowed.get();
+    }
+
+    /**
+     * Helper method to check if WEP networks are supported.
+     *
+     * @return boolean true if WEP networks are supported, false otherwise.
+     */
+    public boolean isWepSupported() {
+        return !mIsWepDeprecated;
     }
 
     /**
@@ -539,6 +549,20 @@ public class WifiGlobals {
         return mNetworkNotFoundEventThreshold;
     }
 
+    /**
+     * Set whether wep network is allowed by user.
+     */
+    public void setWepAllowed(boolean isAllowed) {
+        mIsWepAllowed.set(isAllowed);
+    }
+
+    /**
+     * Get whether or not wep network is allowed by user.
+     */
+    public boolean isWepAllowed() {
+        return mIsWepAllowed.get();
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");
@@ -569,6 +593,7 @@ public class WifiGlobals {
         pw.println("mNetworkNotFoundEventThreshold=" + mNetworkNotFoundEventThreshold);
         pw.println("mIsWepDeprecated=" + mIsWepDeprecated);
         pw.println("mIsWpaPersonalDeprecated=" + mIsWpaPersonalDeprecated);
+        pw.println("mIsWepAllowed=" + mIsWepAllowed.get());
         pw.println("mDisableFirmwareRoamingInIdleMode=" + mDisableFirmwareRoamingInIdleMode);
         pw.println("mCarrierSpecificEapFailureConfigMapPerCarrierId mapping below:");
         for (int i = 0; i < mCarrierSpecificEapFailureConfigMapPerCarrierId.size(); i++) {

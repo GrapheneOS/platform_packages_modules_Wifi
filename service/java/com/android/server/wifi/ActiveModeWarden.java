@@ -2751,8 +2751,7 @@ public class ActiveModeWarden {
             // It doesn't relate the vendor HAL, set if overlay enables it.
             additionalFeatureSet |= WifiManager.WIFI_FEATURE_STA_BRIDGED_AP;
         }
-        if (!mWifiGlobals.isWepDeprecated()) {
-            // The WEP didn't be deprecated, set it.
+        if (mWifiGlobals.isWepSupported()) {
             additionalFeatureSet |= WifiManager.WIFI_FEATURE_WEP;
         }
 

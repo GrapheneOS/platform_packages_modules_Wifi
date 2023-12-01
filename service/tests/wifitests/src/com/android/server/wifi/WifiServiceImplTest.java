@@ -11815,4 +11815,50 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiScoreCard).resetAllConnectionStates();
         verify(mWifiConfigManager).handleShutDown();
     }
+
+    @Test(expected = SecurityException.class)
+    public void testSetWepAllowedWithoutPermission() {
+        // by default no permissions are given so the call should fail.
+        mWifiServiceImpl.setWepAllowed(true);
+    }
+
+    @Test
+    public void testSetWepAllowedWithPermission() {
+        // verify setWepAllowed with MANAGE_WIFI_NETWORK_SELECTION
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        mWifiServiceImpl.setWepAllowed(true);
+        mLooper.dispatchAll();
+        verify(mWifiGlobals).setWepAllowed(true);
+
+        mWifiServiceImpl.setWepAllowed(false);
+        mLooper.dispatchAll();
+        verify(mWifiGlobals).setWepAllowed(false);
+    }
+
+    @Test
+    public void testQueryWepAllowedExceptionCases() {
+        // null listener ==> IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> mWifiServiceImpl.queryWepAllowed(null));
+        // by default no permissions are given so the call should fail.
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.queryWepAllowed(mock(IBooleanListener.class)));
+    }
+
+    @Test
+    public void testQueryWepAllowedNormalCase() throws Exception {
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        IBooleanListener listener = mock(IBooleanListener.class);
+
+        InOrder inOrder = inOrder(listener);
+        when(mWifiGlobals.isWepAllowed()).thenReturn(true);
+        mWifiServiceImpl.queryWepAllowed(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(true);
+
+        when(mWifiGlobals.isWepAllowed()).thenReturn(false);
+        mWifiServiceImpl.queryWepAllowed(listener);
+        mLooper.dispatchAll();
+        inOrder.verify(listener).onResult(false);
+    }
 }

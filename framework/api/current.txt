@@ -499,11 +499,11 @@ package android.net.wifi {
     method public boolean isTlsV13Supported();
     method public boolean isTrustOnFirstUseSupported();
     method public boolean isWapiSupported();
+    method @FlaggedApi("com.android.wifi.flags.wep_usage") public boolean isWepSupported();
     method public boolean isWifiDisplayR2Supported();
     method public boolean isWifiEnabled();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isWifiPasspointEnabled();
     method public boolean isWifiStandardSupported(int);
-    method @FlaggedApi("com.android.wifi.flags.wep_usage") public boolean isWifiWepSupported();
     method public boolean isWpa3SaeH2eSupported();
     method public boolean isWpa3SaePublicKeySupported();
     method public boolean isWpa3SaeSupported();
