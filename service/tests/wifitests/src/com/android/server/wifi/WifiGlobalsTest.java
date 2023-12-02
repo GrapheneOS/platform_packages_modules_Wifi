@@ -264,13 +264,15 @@ public class WifiGlobalsTest extends WifiBaseTest {
     @Test
     public void testSetWepAllowedWhenWepIsNotDeprecated() {
         assertTrue(mWifiGlobals.isWepSupported());
-        assertFalse(mWifiGlobals.isWepDeprecated());
-        mWifiGlobals.setWepAllowed(false);
-        assertTrue(mWifiGlobals.isWepDeprecated());
+        // Default is not allow
         assertFalse(mWifiGlobals.isWepAllowed());
-
+        assertTrue(mWifiGlobals.isWepDeprecated());
         mWifiGlobals.setWepAllowed(true);
         assertFalse(mWifiGlobals.isWepDeprecated());
         assertTrue(mWifiGlobals.isWepAllowed());
+
+        mWifiGlobals.setWepAllowed(false);
+        assertTrue(mWifiGlobals.isWepDeprecated());
+        assertFalse(mWifiGlobals.isWepAllowed());
     }
 }

@@ -182,6 +182,11 @@ public class WifiSettingsConfigStore {
     public static final Key<Integer> SUPPLICANT_HAL_AIDL_SERVICE_VERSION =
             new Key<>("supplicant_hal_aidl_service_version", -1);
 
+    /**
+     * Whether the WEP network is allowed or not.
+     */
+    public static final Key<Boolean> WIFI_WEP_ALLOWED = new Key<>("wep_allowed", true);
+
     /******** Wifi shared pref keys ***************/
 
     private final Context mContext;

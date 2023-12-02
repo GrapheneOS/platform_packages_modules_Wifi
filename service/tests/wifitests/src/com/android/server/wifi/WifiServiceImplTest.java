@@ -71,6 +71,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_T
 import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_THIRD_PARTY_APPS_ENABLE_WIFI_SET_BY_API;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_WEP_ALLOWED;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -663,6 +664,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
             }
         }).when(mMakeBeforeBreakManager).stopAllSecondaryTransientClientModeManagers(any());
 
+        when(mWifiSettingsConfigStore.get(eq(WIFI_WEP_ALLOWED))).thenReturn(true);
         mWifiServiceImpl = makeWifiServiceImpl();
         mDppCallback = new IDppCallback() {
             @Override
@@ -11824,15 +11826,22 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testSetWepAllowedWithPermission() {
+        when(mWifiSettingsConfigStore.get(eq(WIFI_WEP_ALLOWED))).thenReturn(false);
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
+        verify(mWifiSettingsConfigStore).get(eq(WIFI_WEP_ALLOWED));
+        verify(mWifiGlobals).setWepAllowed(eq(false));
         // verify setWepAllowed with MANAGE_WIFI_NETWORK_SELECTION
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         mWifiServiceImpl.setWepAllowed(true);
         mLooper.dispatchAll();
         verify(mWifiGlobals).setWepAllowed(true);
+        verify(mWifiSettingsConfigStore).put(eq(WIFI_WEP_ALLOWED), eq(true));
 
         mWifiServiceImpl.setWepAllowed(false);
         mLooper.dispatchAll();
-        verify(mWifiGlobals).setWepAllowed(false);
+        verify(mWifiGlobals, times(2)).setWepAllowed(false);
+        verify(mWifiSettingsConfigStore).put(eq(WIFI_WEP_ALLOWED), eq(false));
     }
 
     @Test
@@ -11847,18 +11856,25 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testQueryWepAllowedNormalCase() throws Exception {
+        when(mWifiSettingsConfigStore.get(eq(WIFI_WEP_ALLOWED))).thenReturn(false);
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
+        verify(mWifiSettingsConfigStore).get(eq(WIFI_WEP_ALLOWED));
+        verify(mWifiGlobals).setWepAllowed(eq(false));
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         IBooleanListener listener = mock(IBooleanListener.class);
 
         InOrder inOrder = inOrder(listener);
-        when(mWifiGlobals.isWepAllowed()).thenReturn(true);
+        when(mWifiSettingsConfigStore.get(eq(WIFI_WEP_ALLOWED))).thenReturn(true);
         mWifiServiceImpl.queryWepAllowed(listener);
         mLooper.dispatchAll();
+        verify(mWifiSettingsConfigStore, times(2)).get(eq(WIFI_WEP_ALLOWED));
         inOrder.verify(listener).onResult(true);
 
-        when(mWifiGlobals.isWepAllowed()).thenReturn(false);
+        when(mWifiSettingsConfigStore.get(eq(WIFI_WEP_ALLOWED))).thenReturn(false);
         mWifiServiceImpl.queryWepAllowed(listener);
         mLooper.dispatchAll();
+        verify(mWifiSettingsConfigStore, times(3)).get(eq(WIFI_WEP_ALLOWED));
         inOrder.verify(listener).onResult(false);
     }
 }

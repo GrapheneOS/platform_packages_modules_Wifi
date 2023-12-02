@@ -60,6 +60,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.SHOW_DIALOG_WHEN_T
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_AWARE_VERBOSE_LOGGING_ENABLED;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
+import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_WEP_ALLOWED;
 
 import android.Manifest;
 import android.annotation.AnyThread;
@@ -587,7 +588,8 @@ public class WifiServiceImpl extends BaseWifiService {
 
             mWifiInjector.getWifiScanAlwaysAvailableSettingsCompatibility().initialize();
             mWifiInjector.getWifiNotificationManager().createNotificationChannels();
-
+            // Align the value between config stroe (i.e.WifiConfigStore.xml) and WifiGlobals.
+            mWifiGlobals.setWepAllowed(mSettingsConfigStore.get(WIFI_WEP_ALLOWED));
             mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
@@ -8012,8 +8014,10 @@ public class WifiServiceImpl extends BaseWifiService {
                     + " is not allowed to set wifi web allowed by user");
         }
         mLog.info("setWepAllowed=% uid=%").c(isAllowed).c(callingUid).flush();
-        // TODO: b/310291498 backup/restore settings of wep global control in Wifi config.
-        mWifiThreadRunner.post(() -> mWifiGlobals.setWepAllowed(isAllowed));
+        mWifiThreadRunner.post(() -> {
+            mSettingsConfigStore.put(WIFI_WEP_ALLOWED, isAllowed);
+            mWifiGlobals.setWepAllowed(isAllowed);
+        });
     }
 
     /**
@@ -8031,7 +8035,7 @@ public class WifiServiceImpl extends BaseWifiService {
         }
         mWifiThreadRunner.post(() -> {
             try {
-                listener.onResult(mWifiGlobals.isWepAllowed());
+                listener.onResult(mSettingsConfigStore.get(WIFI_WEP_ALLOWED));
             } catch (RemoteException e) {
                 Log.e(TAG, e.getMessage());
             }
