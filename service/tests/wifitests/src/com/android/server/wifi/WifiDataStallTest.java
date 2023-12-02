@@ -640,13 +640,13 @@ public class WifiDataStallTest extends WifiBaseTest {
         // because it hits mLastTxBytes == 0 || mLastRxBytes == 0
         mWifiDataStall.checkDataStallAndThroughputSufficiency(TEST_IFACE_NAME,
                 mCapabilities, mOldLlStats, mNewLlStats, mWifiInfo, mTxBytes, mRxBytes);
-        verify(mWifiMetrics, times(1)).incrementConnectionDuration(
+        verify(mWifiMetrics, times(1)).incrementConnectionDuration(TEST_IFACE_NAME,
                 1000, true, true, TEST_RSSI, 960, 9609);
 
         // Expect 2nd throughput sufficiency check to return false
         mWifiDataStall.checkDataStallAndThroughputSufficiency(TEST_IFACE_NAME,
                 mCapabilities, mOldLlStats, mNewLlStats, mWifiInfo, mTxBytes, mRxBytes);
-        verify(mWifiMetrics, times(1)).incrementConnectionDuration(
+        verify(mWifiMetrics, times(1)).incrementConnectionDuration(TEST_IFACE_NAME,
                 1000, false, true, TEST_RSSI, 960, 9609);
 
         mNewLlStats.timeStampInMs = mOldLlStats.timeStampInMs + 2000;
@@ -655,7 +655,7 @@ public class WifiDataStallTest extends WifiBaseTest {
         assertEquals(false, mWifiDataStall.isCellularDataAvailable());
         mWifiDataStall.checkDataStallAndThroughputSufficiency(TEST_IFACE_NAME,
                 mCapabilities, mOldLlStats, mNewLlStats, mWifiInfo, mTxBytes, mRxBytes);
-        verify(mWifiMetrics, times(1)).incrementConnectionDuration(
+        verify(mWifiMetrics, times(1)).incrementConnectionDuration(TEST_IFACE_NAME,
                 2000, false, false, TEST_RSSI, 960, 9609);
 
         // Expect this update to be ignored by connection duration counters due to its
@@ -663,7 +663,7 @@ public class WifiDataStallTest extends WifiBaseTest {
         mNewLlStats.timeStampInMs = mOldLlStats.timeStampInMs + 10000;
         mWifiDataStall.checkDataStallAndThroughputSufficiency(TEST_IFACE_NAME,
                 mCapabilities, mOldLlStats, mNewLlStats, mWifiInfo, mTxBytes, mRxBytes);
-        verify(mWifiMetrics, never()).incrementConnectionDuration(
+        verify(mWifiMetrics, never()).incrementConnectionDuration(TEST_IFACE_NAME,
                 10000, false, false, TEST_RSSI, 960, 9609);
         setWifiEnabled(false);
     }
