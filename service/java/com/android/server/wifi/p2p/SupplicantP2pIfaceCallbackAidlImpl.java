@@ -19,8 +19,10 @@ package com.android.server.wifi.p2p;
 import static com.android.net.module.util.Inet4AddressUtils.intToInet4AddressHTL;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
 import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
+import android.hardware.wifi.supplicant.P2pDeviceFoundEventParams;
 import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
 import android.hardware.wifi.supplicant.P2pPeerClientDisconnectedEventParams;
 import android.hardware.wifi.supplicant.P2pPeerClientJoinedEventParams;
@@ -100,42 +102,9 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
     public void onDeviceFound(byte[] srcAddress, byte[] p2pDeviceAddress, byte[] primaryDeviceType,
             String deviceName, int configMethods, byte deviceCapabilities, int groupCapabilities,
             byte[] wfdDeviceInfo) {
-        if (deviceName == null) {
-            Log.e(TAG, "Missing device name.");
-            return;
-        }
-        WifiP2pDevice device = new WifiP2pDevice();
-        device.deviceName = deviceName;
-        try {
-            device.deviceAddress = NativeUtil.macAddressFromByteArray(p2pDeviceAddress);
-        } catch (Exception e) {
-            Log.e(TAG, "Could not decode device address.", e);
-            return;
-        }
-
-        try {
-            device.primaryDeviceType = NativeUtil.wpsDevTypeStringFromByteArray(primaryDeviceType);
-        } catch (Exception e) {
-            Log.e(TAG, "Could not encode device primary type.", e);
-            return;
-        }
-
-        device.deviceCapability = deviceCapabilities;
-        device.groupCapability = groupCapabilities;
-        device.wpsConfigMethodsSupported = configMethods;
-        device.status = WifiP2pDevice.AVAILABLE;
-
-        if (wfdDeviceInfo != null && wfdDeviceInfo.length >= 6) {
-            device.wfdInfo = new WifiP2pWfdInfo(
-                    // Use & 0xFF to cast signed byte to unsigned int, otherwise
-                    // sign extension will affect the bitwise operations
-                    ((wfdDeviceInfo[0] & 0xFF) << 8) + (wfdDeviceInfo[1] & 0xFF),
-                    ((wfdDeviceInfo[2] & 0xFF) << 8) + (wfdDeviceInfo[3] & 0xFF),
-                    ((wfdDeviceInfo[4] & 0xFF) << 8) + (wfdDeviceInfo[5] & 0xFF));
-        }
-
-        logd("Device discovered on " + mInterface + ": " + device);
-        mMonitor.broadcastP2pDeviceFound(mInterface, device);
+        handleDeviceFound(srcAddress, p2pDeviceAddress, primaryDeviceType, deviceName,
+                configMethods, deviceCapabilities, groupCapabilities, wfdDeviceInfo,
+                null, null);
     }
 
     /**
@@ -762,6 +731,35 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
             byte[] primaryDeviceType, String deviceName, int configMethods,
             byte deviceCapabilities, int groupCapabilities, byte[] wfdDeviceInfo,
             byte[] wfdR2DeviceInfo, byte[] vendorElemBytes) {
+        handleDeviceFound(srcAddress, p2pDeviceAddress, primaryDeviceType, deviceName,
+                configMethods, deviceCapabilities, groupCapabilities, wfdDeviceInfo,
+                wfdR2DeviceInfo, vendorElemBytes);
+    }
+
+    /**
+     * Used to indicate that a P2P device has been found.
+     *
+     * @param deviceFoundEventParams Parameters associated with the device found event.
+     */
+    @Override
+    public void onDeviceFoundWithParams(P2pDeviceFoundEventParams deviceFoundEventParams) {
+        handleDeviceFound(
+                deviceFoundEventParams.srcAddress,
+                deviceFoundEventParams.p2pDeviceAddress,
+                deviceFoundEventParams.primaryDeviceType,
+                deviceFoundEventParams.deviceName,
+                deviceFoundEventParams.configMethods,
+                deviceFoundEventParams.deviceCapabilities,
+                deviceFoundEventParams.groupCapabilities,
+                deviceFoundEventParams.wfdDeviceInfo,
+                deviceFoundEventParams.wfdR2DeviceInfo,
+                deviceFoundEventParams.vendorElemBytes);
+    }
+
+    private void handleDeviceFound(byte[] srcAddress, byte[] p2pDeviceAddress,
+            byte[] primaryDeviceType, String deviceName, int configMethods,
+            byte deviceCapabilities, int groupCapabilities, byte[] wfdDeviceInfo,
+            @Nullable byte[] wfdR2DeviceInfo, @Nullable byte[] vendorElemBytes) {
         WifiP2pDevice device = new WifiP2pDevice();
         device.deviceName = deviceName;
         if (deviceName == null) {

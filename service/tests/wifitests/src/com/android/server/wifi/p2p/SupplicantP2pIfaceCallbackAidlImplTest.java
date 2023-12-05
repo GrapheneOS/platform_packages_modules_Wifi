@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
+import android.hardware.wifi.supplicant.P2pDeviceFoundEventParams;
 import android.hardware.wifi.supplicant.P2pGroupStartedEventParams;
 import android.hardware.wifi.supplicant.P2pProvDiscStatusCode;
 import android.hardware.wifi.supplicant.P2pProvisionDiscoveryCompletedEventParams;
@@ -951,6 +952,42 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
                 mTestDeviceName, mTestConfigMethods,
                 mTestCapabilities, mTestGroupCapabilities,
                 mDeviceInfoBytes, null, testVsieBytes);
+        ArgumentCaptor<WifiP2pDevice> p2pDeviceCaptor =
+                ArgumentCaptor.forClass(WifiP2pDevice.class);
+        verify(mMonitor).broadcastP2pDeviceFound(eq(mIface), p2pDeviceCaptor.capture());
+
+        assertInformationElementListEquals(
+                expectedVsieList, p2pDeviceCaptor.getValue().getVendorElements());
+    }
+
+    /**
+     * Test a successful call to testOnDeviceFoundWithParams.
+     */
+    @Test
+    public void testOnDeviceFoundWithParams() throws Exception {
+        byte[] testVsieBytes = {
+                (byte) ScanResult.InformationElement.EID_VSA, 4, 0x1, 0x2, 0x3, 0x0,
+                (byte) ScanResult.InformationElement.EID_VSA, 4, 0x1, 0x2, 0x3, 0x1};
+        ArrayList<ScanResult.InformationElement> expectedVsieList = new ArrayList<>();
+        expectedVsieList.add(new ScanResult.InformationElement(
+                ScanResult.InformationElement.EID_VSA, 0, new byte[]{0x1, 0x2, 0x3, 0x0}));
+        expectedVsieList.add(new ScanResult.InformationElement(
+                ScanResult.InformationElement.EID_VSA, 0, new byte[]{0x1, 0x2, 0x3, 0x1}));
+
+        P2pDeviceFoundEventParams params = new P2pDeviceFoundEventParams();
+        params.srcAddress = mDeviceAddress1Bytes;
+        params.p2pDeviceAddress = mDeviceAddress2Bytes;
+        params.primaryDeviceType = mTestPrimaryDeviceTypeBytes;
+        params.deviceName = mTestDeviceName;
+        params.configMethods = mTestConfigMethods;
+        params.deviceCapabilities = mTestCapabilities;
+        params.groupCapabilities = mTestGroupCapabilities;
+        params.wfdDeviceInfo = mDeviceInfoBytes;
+        params.wfdR2DeviceInfo = null;
+        params.vendorElemBytes = testVsieBytes;
+        params.vendorData = null;
+
+        mDut.onDeviceFoundWithParams(params);
         ArgumentCaptor<WifiP2pDevice> p2pDeviceCaptor =
                 ArgumentCaptor.forClass(WifiP2pDevice.class);
         verify(mMonitor).broadcastP2pDeviceFound(eq(mIface), p2pDeviceCaptor.capture());
