@@ -740,6 +740,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         mWifiConnectivityManager.handleConnectionStateChanged(
                 mPrimaryClientModeManager,
                 WifiConnectivityManager.WIFI_STATE_DISCONNECTED);
+        assertEquals(WifiConnectivityManager.WIFI_STATE_DISCONNECTED,
+                mWifiConnectivityManager.getWifiState());
         mLooper.dispatchAll();
         verify(mPrimaryClientModeManager).startConnectToNetwork(
                 CANDIDATE_NETWORK_ID, Process.WIFI_UID, "any");
@@ -747,6 +749,22 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         verify(mActiveModeWarden).stopAllClientModeManagersInRole(ROLE_CLIENT_SECONDARY_TRANSIENT);
         verify(mActiveModeWarden, never()).requestSecondaryTransientClientModeManager(
                 any(), any(), any(), any());
+
+        // Verify a state change from secondaryCmm will get ignored and not change wifi state
+        ConcreteClientModeManager secondaryCmm = mock(ConcreteClientModeManager.class);
+        when(secondaryCmm.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                secondaryCmm,
+                WifiConnectivityManager.WIFI_STATE_TRANSITIONING);
+        assertEquals(WifiConnectivityManager.WIFI_STATE_DISCONNECTED,
+                mWifiConnectivityManager.getWifiState());
+
+        // Verify state change from primary updates the state correctly
+        mWifiConnectivityManager.handleConnectionStateChanged(
+                mPrimaryClientModeManager,
+                WifiConnectivityManager.WIFI_STATE_CONNECTED);
+        assertEquals(WifiConnectivityManager.WIFI_STATE_CONNECTED,
+                mWifiConnectivityManager.getWifiState());
     }
 
     /** Don't crash if allocated a null ClientModeManager. */
