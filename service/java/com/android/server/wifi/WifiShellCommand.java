@@ -25,6 +25,8 @@ import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_LINGER;
 import static android.net.wifi.WifiManager.LocalOnlyHotspotCallback.REQUEST_REGISTERED;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
+import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 
@@ -626,13 +628,16 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         String forcedBand = getNextArgRequired();
                         if (forcedBand.equals("2")) {
                             mWifiApConfigStore.enableForceSoftApBandOrChannel(
-                                    SoftApConfiguration.BAND_2GHZ, 0);
+                                    SoftApConfiguration.BAND_2GHZ, 0,
+                                    SoftApInfo.CHANNEL_WIDTH_AUTO);
                         } else if (forcedBand.equals("5")) {
                             mWifiApConfigStore.enableForceSoftApBandOrChannel(
-                                    SoftApConfiguration.BAND_5GHZ, 0);
+                                    SoftApConfiguration.BAND_5GHZ, 0,
+                                    SoftApInfo.CHANNEL_WIDTH_AUTO);
                         } else if (forcedBand.equals("6")) {
                             mWifiApConfigStore.enableForceSoftApBandOrChannel(
-                                    SoftApConfiguration.BAND_6GHZ, 0);
+                                    SoftApConfiguration.BAND_6GHZ, 0,
+                                    SoftApInfo.CHANNEL_WIDTH_AUTO);
                         } else {
                             pw.println("Invalid argument to 'force-softap-band enabled' "
                                     + "- must be a valid band integer (2|5|6)");
@@ -649,8 +654,25 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     boolean enabled = getNextArgRequiredTrueOrFalse("enabled", "disabled");
                     if (enabled) {
                         int apChannelMHz;
+                        int apMaxBandWidthMHz = 0;
                         try {
                             apChannelMHz = Integer.parseInt(getNextArgRequired());
+                            String option = getNextOption();
+                            if (option != null && option.equals("-w")) {
+                                if (!SdkLevel.isAtLeastT()) {
+                                    pw.println("Maximum channel bandwidth can be set only on"
+                                            + " SdkLevel T or later.");
+                                    return -1;
+                                }
+                                String bandwidthStr = getNextArgRequired();
+                                try {
+                                    apMaxBandWidthMHz = Integer.parseInt(bandwidthStr);
+                                } catch (NumberFormatException e) {
+                                    pw.println("Invalid maximum channel bandwidth arg: "
+                                            + bandwidthStr);
+                                    return -1;
+                                }
+                            }
                         } catch (NumberFormatException e) {
                             pw.println("Invalid argument to 'force-softap-channel enabled' "
                                     + "- must be a positive integer");
@@ -659,7 +681,32 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         int apChannel = ScanResult.convertFrequencyMhzToChannelIfSupported(
                                 apChannelMHz);
                         int band = ApConfigUtil.convertFrequencyToBand(apChannelMHz);
-                        pw.println("channel: " + apChannel + " band: " + band);
+                        int apMaxBandWidth;
+                        switch (apMaxBandWidthMHz) {
+                            case 0:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_AUTO;
+                                break;
+                            case 20:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_20MHZ;
+                                break;
+                            case 40:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_40MHZ;
+                                break;
+                            case 80:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_80MHZ;
+                                break;
+                            case 160:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_160MHZ;
+                                break;
+                            case 320:
+                                apMaxBandWidth = SoftApInfo.CHANNEL_WIDTH_320MHZ;
+                                break;
+                            default:
+                                pw.println("Invalid max channel bandwidth " + apMaxBandWidthMHz);
+                                return -1;
+                        }
+                        pw.println("channel: " + apChannel + " band: " + band
+                                + " maximum channel bandwidth: " + apMaxBandWidthMHz);
                         if (apChannel == -1 || band == -1) {
                             pw.println("Invalid argument to 'force-softap-channel enabled' "
                                     + "- must be a valid WLAN channel");
@@ -687,7 +734,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     + " in a band supported by the device");
                             return -1;
                         }
-                        mWifiApConfigStore.enableForceSoftApBandOrChannel(band, apChannel);
+                        mWifiApConfigStore.enableForceSoftApBandOrChannel(band, apChannel,
+                                apMaxBandWidth);
                         return 0;
                     } else {
                         mWifiApConfigStore.disableForceSoftApBandOrChannel();
@@ -1017,7 +1065,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         String levelStr = getNextArgRequired();
                         try {
                             level = Integer.parseInt(levelStr);
-                            if (level < 0 || level > 3) {
+                            if (level < VERBOSE_LOGGING_LEVEL_DISABLED
+                                    || level > VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY) {
                                 pw.println("Not a valid log level: " + level);
                                 return -1;
                             }
@@ -2767,8 +2816,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Manually triggers a link probe.");
         pw.println("  force-softap-band enabled <int> | disabled");
         pw.println("    Forces soft AP band to 2|5|6");
-        pw.println("  force-softap-channel enabled <int> | disabled");
-        pw.println("    Sets whether soft AP channel is forced to <int> MHz");
+        pw.println("  force-softap-channel enabled <int> | disabled [-w <maxBandwidth>]");
+        pw.println("    Sets whether soft AP channel is forced to <int> MHz [-w <maxBandwidth>]");
+        pw.println("        -w 0|20|40|80|160|320 - select the maximum channel bandwidth (MHz)");
+        pw.println("         Note: If the bandwidth option is not provided or set to 0, framework"
+                + " will set the maximum bandwidth to auto, allowing HAL to select the bandwidth");
         pw.println("    or left for normal   operation.");
         pw.println("  force-country-code enabled <two-letter code> | disabled ");
         pw.println("    Sets country code to <two-letter code> or left for normal value");

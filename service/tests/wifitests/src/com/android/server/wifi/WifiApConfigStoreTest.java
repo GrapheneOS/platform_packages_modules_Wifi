@@ -45,6 +45,7 @@ import android.net.MacAddress;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApConfiguration.Builder;
+import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiInfo;
 import android.os.Build;
 import android.os.Handler;
@@ -1318,7 +1319,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     }
 
     @Test
-    public void testForceApBaneChannel() throws Exception {
+    public void testForceApBandChannel() throws Exception {
         int testBand = SoftApConfiguration.BAND_5GHZ; // Not default
         int testChannal = 149;
         WifiApConfigStore store = createWifiApConfigStore();
@@ -1327,26 +1328,38 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         verify(mWifiConfigManager).saveToStore(true);
 
         // Test to enable forced AP band
-        store.enableForceSoftApBandOrChannel(testBand, 0);
+        store.enableForceSoftApBandOrChannel(testBand, 0, SoftApInfo.CHANNEL_WIDTH_AUTO);
         SoftApConfiguration expectedConfig = store.getApConfiguration();
-        assertEquals(expectedConfig.getBand(), testBand);
-        assertEquals(expectedConfig.getChannel(), 0);
+        assertEquals(testBand, expectedConfig.getBand());
+        assertEquals(0, expectedConfig.getChannel());
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(expectedConfig.getMaxChannelBandwidth(), SoftApInfo.CHANNEL_WIDTH_AUTO);
+        }
         // Disable forced AP band
         store.disableForceSoftApBandOrChannel();
         expectedConfig = store.getApConfiguration();
-        assertEquals(expectedConfig.getBand(), SoftApConfiguration.BAND_2GHZ);
-        assertEquals(expectedConfig.getChannel(), 0);
+        assertEquals(SoftApConfiguration.BAND_2GHZ, expectedConfig.getBand());
+        assertEquals(0, expectedConfig.getChannel());
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(SoftApInfo.CHANNEL_WIDTH_AUTO, expectedConfig.getMaxChannelBandwidth());
+        }
 
         // Test to enable forced AP band
-        store.enableForceSoftApBandOrChannel(testBand, testChannal);
+        store.enableForceSoftApBandOrChannel(testBand, testChannal, SoftApInfo.CHANNEL_WIDTH_40MHZ);
         expectedConfig = store.getApConfiguration();
-        assertEquals(expectedConfig.getBand(), testBand);
-        assertEquals(expectedConfig.getChannel(), testChannal);
+        assertEquals(testBand, expectedConfig.getBand());
+        assertEquals(testChannal, expectedConfig.getChannel());
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(SoftApInfo.CHANNEL_WIDTH_40MHZ, expectedConfig.getMaxChannelBandwidth());
+        }
         // Disable forced AP band
         store.disableForceSoftApBandOrChannel();
         expectedConfig = store.getApConfiguration();
-        assertEquals(expectedConfig.getBand(), SoftApConfiguration.BAND_2GHZ);
-        assertEquals(expectedConfig.getChannel(), 0);
+        assertEquals(SoftApConfiguration.BAND_2GHZ, expectedConfig.getBand());
+        assertEquals(0, expectedConfig.getChannel());
+        if (SdkLevel.isAtLeastT()) {
+            assertEquals(SoftApInfo.CHANNEL_WIDTH_AUTO, expectedConfig.getMaxChannelBandwidth());
+        }
     }
 
     private void verifyUpgradeConfiguration(WifiApConfigStore store, boolean isBridgedSupported,
