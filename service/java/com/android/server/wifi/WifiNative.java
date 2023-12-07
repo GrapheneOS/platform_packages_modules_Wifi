@@ -4850,9 +4850,11 @@ public class WifiNative {
         if (TextUtils.isEmpty(serviceName)) {
             mMockWifiModem.unbindMockModemService();
             mMockWifiModem = null;
+            mWifiInjector.setMockWifiServiceUtil(null);
             return;
         }
         mMockWifiModem = new MockWifiServiceUtil(mContext, serviceName, mWifiMonitor);
+        mWifiInjector.setMockWifiServiceUtil(mMockWifiModem);
         if (mMockWifiModem == null) {
             Log.e(TAG, "MockWifiServiceUtil creation failed.");
             return;
