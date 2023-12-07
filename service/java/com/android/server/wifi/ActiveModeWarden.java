@@ -2567,6 +2567,15 @@ public class ActiveModeWarden {
                                 // airplane mode toggle message to disable airplane mode.
                                 deferMessage(msg);
                             } else {
+                                if (!hasPrimaryOrScanOnlyModeManager()) {
+                                    // SoftAp was enabled during airplane mode and caused
+                                    // WifiController to be in EnabledState without
+                                    // a primary client mode manager.
+                                    // Defer to the default state to handle the airplane mode toggle
+                                    // which may result in enabling wifi if necessary.
+                                    log("airplane mode toggled - and no primary manager");
+                                    return NOT_HANDLED;
+                                }
                                 // when airplane mode is toggled off, but wifi is on, we can keep it
                                 // on
                                 log("airplane mode toggled - and airplane mode is off. return "
