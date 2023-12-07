@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.INVALID_NETWORK_ID;
 import static android.net.wifi.WifiConfiguration.RANDOMIZATION_NONE;
+
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SCAN_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED;
@@ -3081,9 +3082,7 @@ public class WifiConnectivityManager {
      */
     public void handleConnectionStateChanged(
             ConcreteClientModeManager clientModeManager, int state) {
-        List<ClientModeManager> internetConnectivityCmms =
-                mActiveModeWarden.getInternetConnectivityClientModeManagers();
-        if (!(internetConnectivityCmms.contains(clientModeManager))) {
+        if (clientModeManager.getRole() != ROLE_CLIENT_PRIMARY) {
             Log.w(TAG, "Ignoring call from non primary Mode Manager " + clientModeManager,
                     new Throwable());
             return;
@@ -3264,6 +3263,11 @@ public class WifiConnectivityManager {
             mUntrustedConnectionAllowed = allowed;
             checkAllStatesAndEnableAutoJoin();
         }
+    }
+
+    @VisibleForTesting
+    public int getWifiState() {
+        return mWifiState;
     }
 
     /**
