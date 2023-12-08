@@ -33,11 +33,11 @@
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Eman baimena"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Ez, eskerrik asko"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sarera konektatu nahi duzu?"</string>
-    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Sare hauek SIM identifikatzaile bat jasotzen dute, gailuaren kokapenaren jarraipena egin ahal izateko"</string>
+    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Sare hauek SIM ID bat jasotzen dute, gailuaren kokapenaren jarraipena egin ahal izateko"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Konektatu"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Ez konektatu"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Konexioa berretsi nahi duzu?"</string>
-    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"Konektatzen bazara, baliteke <xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sareek zure SIM txartelarekin lotutako identifikatzaile esklusiboa atzitzea edo partekatzea. Horrela, baliteke zure gailuaren kokapenaren jarraipena egiteko aukera izatea."</string>
+    <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"Konektatzen bazara, baliteke <xliff:g id="CARRIERNAME">%s</xliff:g> operadorearen wifi-sareek zure SIM txartelarekin lotutako ID esklusiboa atzitzea edo partekatzea. Horrela, baliteke zure gailuaren kokapenaren jarraipena egiteko aukera izatea."</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"Konektatu"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"Ez konektatu"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"Wi‑Fi konexioa automatikoki aktibatuko da"</string>
@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Eman baimena"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Ez eman baimenik"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wifia aktibatuta hegaldi moduan"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Wifia aktibatuta utziz gero, hura aktibatuta mantentzeaz gogoratuko da gailua hegaldi modua erabiltzen duzun hurrengoan"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Wifia aktibatuta utziz gero, hura aktibatuta mantentzeaz gogoratuko da telefonoa hegaldi modua erabiltzen duzun hurrengoan"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wifia aktibatuta mantentzen da"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Hegaldi moduan, wifia aktibatuta mantentzeaz gogoratzen da gailua. Halakorik nahi ez baduzu, desaktiba ezazu zuk zeuk."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Hegaldi moduan, wifia aktibatuta mantentzeaz gogoratzen da telefonoa. Halakorik nahi ez baduzu, desaktiba ezazu zuk zeuk."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Sarea ez dago erabilgarri"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administratzaileak desgaitu du <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Itxi"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> ez dago konektatuta Internetera. <xliff:g id="SSID_1">%2$s</xliff:g> sarera aldatu nahi duzu?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> kalitate txikikoa da. <xliff:g id="SSID_1">%2$s</xliff:g> sarera aldatu nahi duzu?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Wifi-sarea aldatu nahi duzu?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ez dago konektatuta Internetera. <xliff:g id="SSID_1">%2$s</xliff:g> sarera aldatu nahi duzu?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Bai, aldatu nahi dut"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Ez, ez dut aldatu nahi"</string>
 </resources>

@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Lejo"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Mos lejo"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi‑Fi është në modalitetin e aeroplanit"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Nëse e mban Wi-Fi të aktivizuar, pajisja jote do të kujtohet ta mbajë të aktivizuar herën tjetër që të jesh në modalitetin e aeroplanit"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Nëse e mban Wi-Fi të aktivizuar, telefoni yt do të kujtohet ta mbajë atë të aktivizuar herën tjetër që të jesh në modalitetin e aeroplanit"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi qëndron aktiv"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Pajisja jote kujtohet që ta mbajë Wi-Fi të aktivizuar në modalitetin e aeroplanit. Çaktivizo Wi‑Fi nëse nuk dëshiron që të qëndrojë e aktivizuar."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Telefoni yt kujtohet që ta mbajë Wi-Fi të aktivizuar në modalitetin e aeroplanit. Çaktivizo Wi‑Fi nëse nuk dëshiron që të qëndrojë e aktivizuar."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Rrjeti i padisponueshëm"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> është çaktivizuar nga administratori yt."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Mbyll"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"<xliff:g id="SSID_0">%1$s</xliff:g> nuk duket të jetë lidhur me internetin. Të kalohet në <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> është me cilësi të ulët. Të kalohet në <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Të ndërrohen rrjetet Wi-Fi?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> nuk duket të jetë lidhur me internetin. Të kalohet në <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Kalo"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Mos kalo"</string>
 </resources>

@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"Atļaut"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"Neatļaut"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi‑Fi ieslēgts lidojuma režīmā"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"Ja Wi-Fi savienojums paliks ieslēgts, ierīcē tas paliks ieslēgts arī nākamreiz, kad ieslēgsiet lidojuma režīmu."</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"Ja Wi‑Fi savienojums paliks ieslēgts, tālrunī tas paliks ieslēgts arī nākamreiz, kad ieslēgsiet lidojuma režīmu."</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi joprojām ieslēgts"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"Lidojuma režīmā ierīcē joprojām būs ieslēgts Wi-Fi savienojums. Izslēdziet Wi-Fi savienojumu, ja nevēlaties, lai tas paliktu ieslēgts."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"Tālrunī joprojām būs ieslēgts Wi-Fi savienojums lidojuma režīmā. Izslēdziet Wi‑Fi savienojumu, ja nevēlaties, lai tas paliktu ieslēgts."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"Nepieejams tīkls"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"Administrators atspējoja tīklu <xliff:g id="SSID">%1$s</xliff:g>."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"Aizvērt"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"Šķiet, tīklā <xliff:g id="SSID_0">%1$s</xliff:g> nav savienojuma ar internetu. Vai vēlaties pāriet uz tīklu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"Tīklam <xliff:g id="SSID_0">%1$s</xliff:g> ir zema kvalitāte. Vai vēlaties pāriet uz tīklu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"Vai pāriet uz citu Wi-Fi tīklu?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"Šķiet, tīklā <xliff:g id="SSID_0">%1$s</xliff:g> nav savienojuma ar internetu. Vai vēlaties pāriet uz tīklu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Pāriet"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nepāriet"</string>
 </resources>

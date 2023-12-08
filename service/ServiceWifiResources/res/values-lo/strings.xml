@@ -162,14 +162,14 @@
     <string name="wifi_enable_request_dialog_positive_button" msgid="6050832555821470466">"ອະນຸຍາດ"</string>
     <string name="wifi_enable_request_dialog_negative_button" msgid="4754219902374918882">"ບໍ່ອະນຸຍາດ"</string>
     <string name="wifi_enabled_apm_first_time_title" msgid="4814302384637588804">"Wi‑Fi ເປີດຢູ່ໃນໂໝດຢູ່ໃນຍົນ"</string>
-    <string name="wifi_enabled_apm_first_time_message" msgid="6416193199042203037">"ຫາກທ່ານເປີດ Wi-Fi ປະໄວ້, ອຸປະກອນຂອງທ່ານຈະຈື່ວ່າຕ້ອງເປີດມັນໃນເທື່ອຕໍ່ໄປທີ່ທ່ານຢູ່ໃນໂໝດຢູ່ໃນຍົນ"</string>
+    <string name="wifi_enabled_apm_first_time_message" msgid="5443101896157496353">"ຫາກທ່ານເປີດ Wi‑Fi ໄວ້, ໂທລະສັບຂອງທ່ານຈະຈື່ວ່າຕ້ອງເປີດ Wi‑Fi ໃນເທື່ອຕໍ່ໄປທີ່ທ່ານຢູ່ໃນໂໝດຢູ່ໃນຍົນ"</string>
     <string name="apm_enabled_first_time_title" msgid="2534167413190488009">"Wi‑Fi ເປີດຢູ່"</string>
-    <string name="apm_enabled_first_time_message" msgid="6093911536874954410">"ອຸປະກອນຂອງທ່ານຈື່ວ່າຈະຕ້ອງເປີດ Wi-Fi ປະໄວ້ໃນໂໝດຢູ່ໃນຍົນ. ປິດ Wi‑Fi ຫາກທ່ານບໍ່ຕ້ອງການໃຫ້ເປີດປະໄວ້."</string>
+    <string name="apm_enabled_first_time_message" msgid="4753441005253327841">"ໂທລະສັບຂອງທ່ານຈື່ວ່າຈະຕ້ອງເປີດ Wi-Fi ໄວ້ໃນໂໝດຢູ່ໃນຍົນ. ປິດ Wi‑Fi ຫາກທ່ານບໍ່ຕ້ອງການໃຫ້ເປີດມັນໄວ້."</string>
     <string name="wifi_network_disabled_by_admin_title" msgid="9057697656855227293">"ບໍ່ສາມາດໃຊ້ເຄືອຂ່າຍໄດ້"</string>
     <string name="wifi_network_disabled_by_admin_message" msgid="7830360441333155462">"<xliff:g id="SSID">%1$s</xliff:g> ຖືກປິດການນຳໃຊ້ໂດຍຜູ້ເບິ່ງແຍງລະບົບຂອງທ່ານ."</string>
     <string name="wifi_network_disabled_by_admin_button" msgid="3350310756265122689">"ປິດ"</string>
-    <string name="wifi_network_switch_dialog_title_no_internet" msgid="4116969009784041242">"ປາກົດວ່າ <xliff:g id="SSID_0">%1$s</xliff:g> ຈະບໍ່ໄດ້ເຊື່ອມຕໍ່ກັບອິນເຕີເນັດ. ສະຫຼັບໄປໃຊ້ <xliff:g id="SSID_1">%2$s</xliff:g> ບໍ?"</string>
-    <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> ມີຄຸນນະພາບຕ່ຳ. ສະຫຼັບໄປໃຊ້ <xliff:g id="SSID_1">%2$s</xliff:g> ບໍ?"</string>
+    <string name="wifi_network_switch_dialog_title" msgid="4387595800316985421">"ສະຫຼັບເຄືອຂ່າຍ Wi-Fi ບໍ?"</string>
+    <string name="wifi_network_switch_dialog_message" msgid="1122837977780086429">"<xliff:g id="SSID_0">%1$s</xliff:g> ປາກົດວ່າບໍ່ໄດ້ເຊື່ອມຕໍ່ກັບອິນເຕີເນັດ. ສະຫຼັບໄປຫາ <xliff:g id="SSID_1">%2$s</xliff:g> ບໍ?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"ສະຫຼັບ"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"ຢ່າສະຫຼັບ"</string>
 </resources>
