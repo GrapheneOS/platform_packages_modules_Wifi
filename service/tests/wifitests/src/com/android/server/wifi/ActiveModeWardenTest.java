@@ -1562,6 +1562,54 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 anyInt(), eq("android_apm"), eq(false));
     }
 
+    /** Wi-Fi state is restored properly when SoftAp is enabled during airplane mode. */
+    @Test
+    public void testWifiStateRestoredWhenSoftApEnabledDuringApm() throws Exception {
+        enableWifi();
+        assertInEnabledState();
+
+        // enabling airplane mode shuts down wifi
+        assertWifiShutDown(
+                () -> {
+                    when(mSettingsStore.isAirplaneModeOn()).thenReturn(true);
+                    mActiveModeWarden.airplaneModeToggled();
+                    mLooper.dispatchAll();
+                });
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(false));
+        mClientListener.onStopped(mClientModeManager);
+        mLooper.dispatchAll();
+
+        // start SoftAp
+        mActiveModeWarden.startSoftAp(
+                new SoftApModeConfiguration(
+                        WifiManager.IFACE_IP_MODE_LOCAL_ONLY,
+                        null,
+                        mSoftApCapability,
+                        TEST_COUNTRYCODE),
+                TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        // disabling airplane mode enables wifi
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
+        mActiveModeWarden.airplaneModeToggled();
+        mLooper.dispatchAll();
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(true));
+    }
+
     /**
      * Disabling location mode when in scan mode will disable wifi
      */

@@ -3058,9 +3058,7 @@ public class WifiConnectivityManager {
      */
     public void handleConnectionStateChanged(
             ConcreteClientModeManager clientModeManager, int state) {
-        List<ClientModeManager> internetConnectivityCmms =
-                mActiveModeWarden.getInternetConnectivityClientModeManagers();
-        if (!(internetConnectivityCmms.contains(clientModeManager))) {
+        if (clientModeManager.getRole() != ROLE_CLIENT_PRIMARY) {
             Log.w(TAG, "Ignoring call from non primary Mode Manager " + clientModeManager,
                     new Throwable());
             return;
@@ -3241,6 +3239,11 @@ public class WifiConnectivityManager {
             mUntrustedConnectionAllowed = allowed;
             checkAllStatesAndEnableAutoJoin();
         }
+    }
+
+    @VisibleForTesting
+    public int getWifiState() {
+        return mWifiState;
     }
 
     /**

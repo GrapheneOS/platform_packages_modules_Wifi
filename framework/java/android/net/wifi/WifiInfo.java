@@ -81,17 +81,6 @@ public class WifiInfo implements TransportInfo, Parcelable {
     private static final String TAG = "WifiInfo";
 
     /**
-     * Stopgap for trunk stable flags, as they are not yet supported by Mainline for lack
-     * of support in udc-mainline-prod.
-     * TODO : remove this class when udc-mainline-prod is abandoned and android.net.flags.Flags is
-     * available here, and replace it with a generated Flags class created with flags.aconfig.
-     * @hide
-     */
-    private static class Flags {
-        public static final String ADD_SUBSCRIPTION_ID = "com.android.net.wifi.add_subscription_id";
-    }
-
-    /**
      * This is the map described in the Javadoc comment above. The positions
      * of the elements of the array must correspond to the ordinal values
      * of <code>DetailedState</code>.
@@ -740,7 +729,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
          * Set the subscription ID.
          * @see WifiInfo#getSubscriptionId()
          */
-        @FlaggedApi(Flags.ADD_SUBSCRIPTION_ID)
+        @FlaggedApi("com.android.wifi.flags.add_subscription_id")
         @NonNull
         public Builder setSubscriptionId(int subId) {
             mWifiInfo.setSubscriptionId(subId);

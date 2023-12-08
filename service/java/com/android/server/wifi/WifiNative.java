@@ -1770,6 +1770,13 @@ public class WifiNative {
                 return copyList;
             }
         }
+        if (mMockWifiModem != null
+                && mMockWifiModem.getIsMethodConfigured(
+                MockWifiServiceUtil.MOCK_NL80211_SERVICE, "getScanResults")) {
+            Log.i(TAG, "getScanResults was called from mock wificond");
+            return convertNativeScanResults(ifaceName, mMockWifiModem.getWifiNl80211Manager()
+                   .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN));
+        }
         return convertNativeScanResults(ifaceName, mWifiCondManager.getScanResults(
                 ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN));
     }
@@ -4867,9 +4874,11 @@ public class WifiNative {
         if (TextUtils.isEmpty(serviceName)) {
             mMockWifiModem.unbindMockModemService();
             mMockWifiModem = null;
+            mWifiInjector.setMockWifiServiceUtil(null);
             return;
         }
         mMockWifiModem = new MockWifiServiceUtil(mContext, serviceName, mWifiMonitor);
+        mWifiInjector.setMockWifiServiceUtil(mMockWifiModem);
         if (mMockWifiModem == null) {
             Log.e(TAG, "MockWifiServiceUtil creation failed.");
             return;

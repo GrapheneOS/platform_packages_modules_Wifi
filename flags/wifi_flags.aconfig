@@ -105,3 +105,10 @@ flag {
     description: "Control the API for wpa personal usage"
     bug: "275367422"
 }
+
+flag {
+    name: "add_subscription_id"
+    namespace: "wifi"
+    description: "Add new API to set the subscription id in the Wifi Info"
+    bug: "236669534"
+}

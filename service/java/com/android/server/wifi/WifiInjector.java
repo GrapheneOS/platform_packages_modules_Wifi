@@ -58,6 +58,7 @@ import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.hotspot2.PasspointObjectFactory;
+import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.p2p.SupplicantP2pIfaceHal;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.p2p.WifiP2pMonitor;
@@ -198,6 +199,7 @@ public class WifiInjector {
     private final NetworkSuggestionNominator mNetworkSuggestionNominator;
     private final ClientModeManagerBroadcastQueue mBroadcastQueue;
     private WifiScanner mWifiScanner;
+    private MockWifiServiceUtil mMockWifiModem;
     private final WifiPermissionsWrapper mWifiPermissionsWrapper;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final PasspointManager mPasspointManager;
@@ -709,6 +711,14 @@ public class WifiInjector {
 
     public HandlerThread getWifiHandlerThread() {
         return mWifiHandlerThread;
+    }
+
+    public MockWifiServiceUtil getMockWifiServiceUtil() {
+        return mMockWifiModem;
+    }
+
+    public void setMockWifiServiceUtil(MockWifiServiceUtil mockWifiServiceUtil) {
+        mMockWifiModem = mockWifiServiceUtil;
     }
 
     /**
