@@ -427,7 +427,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.WifiInfo.Builder setNetworkId(int);
     method @NonNull public android.net.wifi.WifiInfo.Builder setRssi(int);
     method @NonNull public android.net.wifi.WifiInfo.Builder setSsid(@NonNull byte[]);
-    method @FlaggedApi(android.net.wifi.WifiInfo.Flags.ADD_SUBSCRIPTION_ID) @NonNull public android.net.wifi.WifiInfo.Builder setSubscriptionId(int);
+    method @FlaggedApi("com.android.net.wifi.add_subscription_id") @NonNull public android.net.wifi.WifiInfo.Builder setSubscriptionId(int);
   }
 
   public class WifiManager {
