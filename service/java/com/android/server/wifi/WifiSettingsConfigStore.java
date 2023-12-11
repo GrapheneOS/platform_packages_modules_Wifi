@@ -187,6 +187,12 @@ public class WifiSettingsConfigStore {
      */
     public static final Key<Boolean> WIFI_WEP_ALLOWED = new Key<>("wep_allowed", true);
 
+    /**
+     * Store wiphy capability for 11be support.
+     */
+    public static final Key<Boolean> WIFI_WIPHY_11BE_SUPPORTED =
+            new Key<>("wifi_wiphy_11be_supported", true);
+
     /******** Wifi shared pref keys ***************/
 
     private final Context mContext;
