@@ -38,6 +38,8 @@ import android.hardware.wifi.StaRoamingState;
 import android.hardware.wifi.StaScanData;
 import android.hardware.wifi.StaScanDataFlagMask;
 import android.hardware.wifi.StaScanResult;
+import android.hardware.wifi.TwtSession;
+import android.hardware.wifi.TwtSessionStats;
 import android.hardware.wifi.WifiBand;
 import android.hardware.wifi.WifiChannelStats;
 import android.hardware.wifi.WifiDebugPacketFateFrameType;
@@ -727,6 +729,42 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         @Override
         public int getInterfaceVersion() {
             return IWifiStaIfaceEventCallback.VERSION;
+        }
+
+        @Override
+        public void onTwtFailure(int cmdId, byte twtErrorCode) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionCreate(int cmdId, TwtSession twtSession) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionUpdate(int cmdId, TwtSession twtSession) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionResume(int cmdId, int sessionId) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionSuspend(int cmdId, int sessionId) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionTeardown(int cmdId, int twtSessionId, byte twtReasonCode) {
+            //TODO: Implementation
+        }
+
+        @Override
+        public void onTwtSessionStats(int cmdId, int twtSessionId,
+                TwtSessionStats twtSessionStats) {
+            //TODO: Implementation
         }
     }
 
