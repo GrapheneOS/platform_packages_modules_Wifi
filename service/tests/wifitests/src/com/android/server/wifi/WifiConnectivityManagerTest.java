@@ -4924,6 +4924,44 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         verify(mPrimaryClientModeManager, times(0)).startRoamToNetwork(anyInt(), anyObject());
     }
 
+    @Test
+    public void testMultiInternetSimultaneous5GHz() {
+        // Enable dual 5GHz multi-internet mode
+        when(mWifiGlobals.isSupportMultiInternetDual5G()).thenReturn(true);
+
+        // 2.4GHz + 5GHz should be allowed
+        assertTrue(mWifiConnectivityManager.filterMultiInternetFrequency(TEST_FREQUENCY,
+                TEST_FREQUENCY_5G));
+
+        // 5GHz low + 5GHz high should be allowed
+        assertTrue(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ));
+
+        // 5GHz low + other 5GHz (that's neither low nor high) should not be allowed
+        assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ - 1));
+
+        // 2 frequencies in 5GHz low band should not be allowed
+        assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ - 1));
+
+        // 2 frequencies in 5GHz high band should not be allowed
+        assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ,
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ + 1));
+
+        // Disable dual 5GHz multi-internet mode
+        when(mWifiGlobals.isSupportMultiInternetDual5G()).thenReturn(false);
+
+        // 5GHz low + 5GHz high should no longer be allowed
+        assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ));
+    }
+
     /**
      *  Dump local log buffer.
      *

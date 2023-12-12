@@ -5074,10 +5074,20 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // Defensive copy to avoid mutating the passed argument
         final WifiConfiguration conf = new WifiConfiguration(currentWifiConfiguration);
         conf.BSSID = currentBssid;
+
+        int band = WifiNetworkSpecifier.getBand(mWifiInfo.getFrequency());
+
+        if (!isPrimary() && mWifiGlobals.isSupportMultiInternetDual5G()
+                && band == ScanResult.WIFI_BAND_5_GHZ) {
+            if (mWifiInfo.getFrequency() <= ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ) {
+                band = ScanResult.WIFI_BAND_5_GHZ_LOW;
+            } else {
+                band = ScanResult.WIFI_BAND_5_GHZ_HIGH;
+            }
+        }
+
         WifiNetworkAgentSpecifier wns =
-                new WifiNetworkAgentSpecifier(conf,
-                        WifiNetworkSpecifier.getBand(mWifiInfo.getFrequency()),
-                        matchLocationSensitiveInformation);
+                new WifiNetworkAgentSpecifier(conf, band, matchLocationSensitiveInformation);
         return wns;
     }
 
