@@ -195,6 +195,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mFeatureFlags.singleWifiThread()).thenReturn(true);
+        when(mConcreteClientModeManager.getRole()).thenReturn(
+                ClientModeManager.ROLE_CLIENT_PRIMARY);
 
         when(mWifiMock.registerEventCallback(any(WifiHal.Callback.class))).thenReturn(true);
         when(mWifiMock.start()).thenReturn(WifiHal.WIFI_STATUS_SUCCESS);
@@ -857,6 +859,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("AP was created", apIface, IsNull.nullValue());
 
         // Switch STA to secondary internet. Foreground AP can be created now.
+        when(mConcreteClientModeManager.getRole()).thenReturn(
+                ClientModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED);
         when(mConcreteClientModeManager.isSecondaryInternet()).thenReturn(true);
         apDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_AP, true, TEST_WORKSOURCE_2);
@@ -2433,7 +2437,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      * - create STA (system app)
      * - create P2P (system app): will get refused
      * - create STA (system app): will get refused
-     * - create NAN (privileged app): should tear down last created STA
+     * - make STA secondary, create P2P (privileged app): should tear down STA
      * - create STA (foreground app): will get refused
      */
     @Test
@@ -2592,20 +2596,22 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 mConcreteClientModeManager);
         collector.checkThat("STA3 should not be created", staIface3, IsNull.nullValue());
 
-        // create NAN (privileged app): should destroy the last created STA (STA2)
-        nanIface = validateInterfaceSequence(chipMock,
+        // Make STA2 secondary and create P2P (privileged app): should destroy the STA
+        when(mConcreteClientModeManager.getRole())
+                .thenReturn(ClientModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        p2pIface = validateInterfaceSequence(chipMock,
                 true, // chipModeValid
                 TestChipV3.CHIP_MODE_ID, // chipModeId
-                HDM_CREATE_IFACE_NAN, // ifaceTypeToCreate
+                HDM_CREATE_IFACE_P2P, // ifaceTypeToCreate
                 "wlan0", // ifaceName
                 TestChipV3.CHIP_MODE_ID, // finalChipMode
                 new WifiInterface[]{staIface2}, // tearDownList
-                nanDestroyedListener, // destroyedListener
+                p2pDestroyedListener, // destroyedListener
                 TEST_WORKSOURCE_2, // requestorWs
                 new InterfaceDestroyedListenerWithIfaceName(
                         getName(staIface2), staDestroyedListener2)
         );
-        collector.checkThat("NAN interface wasn't created", nanIface, IsNull.notNullValue());
+        collector.checkThat("P2P interface wasn't created", p2pIface, IsNull.notNullValue());
 
         verify(chipMock.chip).removeStaIface("wlan1");
         verify(staDestroyedListener2).onDestroyed(getName(staIface2));
