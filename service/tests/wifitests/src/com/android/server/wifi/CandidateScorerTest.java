@@ -293,6 +293,31 @@ public class CandidateScorerTest extends WifiBaseTest {
     }
 
     /**
+     * With everything else the same, the current network and another candidate both without
+     * internet should get the same score.
+     */
+    @Test
+    public void testNoInternetNetworksEvaluateTheSame() throws Exception {
+        if (mExpectedExpId != ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) return;
+        double score1 = evaluate(mCandidate1.setScanRssi(-57)
+                        .setCurrentNetwork(true)
+                        .setPredictedThroughputMbps(560)
+                        .setNoInternetAccess(true)
+                        .setNoInternetAccessExpected(false));
+        double score2 = evaluate(mCandidate2.setScanRssi(-57)
+                        .setPredictedThroughputMbps(560)
+                        .setNoInternetAccess(true)
+                        .setNoInternetAccessExpected(false));
+
+        // Both networks no internet and have no reboot since last use. Expect same same.
+        assertEquals(score1, score2, TOL);
+
+        // score candidate 2 but after a reboot. It should have higher score.
+        double score3 = evaluate(mCandidate2.setNumRebootsSinceLastUse(1));
+        assertThat(score3, greaterThan(score1));
+    }
+
+    /**
      * Prefer to switch with a larger rssi difference.
      */
     @Test
@@ -488,19 +513,19 @@ public class CandidateScorerTest extends WifiBaseTest {
     @Test
     public void testPreferCurrentNetworkWithInternetOverNetworkWithNoInternet() throws Exception {
         if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
-            // First verify that when evaluated separately, mCandidate2 has a higher score due
-            // to it having better RSSI and throughput.
+            // mCandidate2 should have lower score due to not having internet
             mCandidate1.setScanRssi(-77)
                     .setPredictedThroughputMbps(30)
                     .setCurrentNetwork(true)
-                    .setNoInternetAccess(false);
+                    .setNoInternetAccess(false)
+                    .setNoInternetAccessExpected(false);
             mCandidate2.setScanRssi(-40)
                     .setPredictedThroughputMbps(100)
                     .setCurrentNetwork(false)
                     .setNoInternetAccess(true)
                     .setNoInternetAccessExpected(false);
             double score1 = evaluate(mCandidate1);
-            assertThat(evaluate(mCandidate2), greaterThan(score1));
+            assertThat(evaluate(mCandidate2), lessThan(score1));
 
             // Then verify that when evaluated together, mCandidate1 wins because it is the current
             // network and has internet

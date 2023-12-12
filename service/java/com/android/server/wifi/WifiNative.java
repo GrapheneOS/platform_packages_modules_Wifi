@@ -4593,6 +4593,15 @@ public class WifiNative {
             if (iface.phyCapabilities == null) {
                 iface.phyCapabilities = mWifiCondManager.getDeviceWiphyCapabilities(ifaceName);
             }
+            if (iface.phyCapabilities != null
+                    && iface.phyCapabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE)
+                    != mWifiInjector.getSettingsConfigStore()
+                    .get(WifiSettingsConfigStore.WIFI_WIPHY_11BE_SUPPORTED)) {
+                mWifiInjector.getSettingsConfigStore().put(
+                        WifiSettingsConfigStore.WIFI_WIPHY_11BE_SUPPORTED,
+                        iface.phyCapabilities.isWifiStandardSupported(
+                        ScanResult.WIFI_STANDARD_11BE));
+            }
             return iface.phyCapabilities;
         }
     }

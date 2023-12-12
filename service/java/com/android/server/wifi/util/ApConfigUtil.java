@@ -52,6 +52,7 @@ import android.util.SparseIntArray;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.SoftApManager;
 import com.android.server.wifi.WifiNative;
+import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.wifi.resources.R;
 
@@ -1001,6 +1002,27 @@ public class ApConfigUtil {
     }
 
     /**
+     * Helper function to update SoftApCapability instance based on config store.
+     *
+     * @param capability the original softApCapability
+     * @param configStore where we stored the Capability after first time fetch from driver.
+     * @return SoftApCapability which updated from the config store.
+     */
+    @NonNull
+    public static SoftApCapability updateCapabilityFromConfigStore(
+            SoftApCapability capability,
+            WifiSettingsConfigStore configStore) {
+        if (capability == null) {
+            return null;
+        }
+        if (capability.areFeaturesSupported(SOFTAP_FEATURE_IEEE80211_BE)) {
+            capability.setSupportedFeatures(isIeee80211beEnabledInConfig(configStore),
+                    SOFTAP_FEATURE_IEEE80211_BE);
+        }
+        return capability;
+    }
+
+    /**
      * Helper function to get device support 802.11 AX on Soft AP or not
      *
      * @param context the caller context used to get value from resource file.
@@ -1020,6 +1042,18 @@ public class ApConfigUtil {
     public static boolean isIeee80211beSupported(@NonNull Context context) {
         return context.getResources().getBoolean(
                     R.bool.config_wifiSoftapIeee80211beSupported);
+    }
+
+    /**
+     * Helper function to check Config supports 802.11 BE on Soft AP or not
+     *
+     * @param configStore to check the support from WifiSettingsConfigStore
+     * @return true if supported, false otherwise.
+     */
+    public static boolean isIeee80211beEnabledInConfig(
+            WifiSettingsConfigStore configStore) {
+        return configStore.get(
+                    WifiSettingsConfigStore.WIFI_WIPHY_11BE_SUPPORTED);
     }
 
     /**

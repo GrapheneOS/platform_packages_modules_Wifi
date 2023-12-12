@@ -76,6 +76,18 @@ public class WifiScanner {
     /** @hide */
     public static final int WIFI_BAND_COUNT = 5;
 
+    /**
+     * Reserved bit for Multi-internet connection only, not for scanning.
+     * @hide
+     */
+    public static final int WIFI_BAND_INDEX_5_GHZ_LOW = 29;
+
+    /**
+     * Reserved bit for Multi-internet connection only, not for scanning.
+     * @hide
+     */
+    public static final int WIFI_BAND_INDEX_5_GHZ_HIGH = 30;
+
     /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"WIFI_BAND_INDEX_"}, value = {
@@ -98,6 +110,17 @@ public class WifiScanner {
     public static final int WIFI_BAND_6_GHZ = 1 << WIFI_BAND_INDEX_6_GHZ;
     /** 60 GHz band */
     public static final int WIFI_BAND_60_GHZ = 1 << WIFI_BAND_INDEX_60_GHZ;
+
+    /**
+     * Reserved for Multi-internet connection only, not for scanning.
+     * @hide
+     */
+    public static final int WIFI_BAND_5_GHZ_LOW = 1 << WIFI_BAND_INDEX_5_GHZ_LOW;
+    /**
+     * Reserved for Multi-internet connection only, not for scanning.
+     * @hide
+     */
+    public static final int WIFI_BAND_5_GHZ_HIGH = 1 << WIFI_BAND_INDEX_5_GHZ_HIGH;
 
     /**
      * Combination of bands
