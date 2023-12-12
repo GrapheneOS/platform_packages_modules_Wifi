@@ -110,9 +110,9 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
                 ? mScoringParams.getBand6GhzBonus() : 0;
         int currentNetworkBoost = (candidate.isCurrentNetwork() && !unExpectedNoInternet)
                 ? currentNetworkBonus : 0;
-        int rssiBoost = (candidate.isCurrentNetwork() && unExpectedNoInternet)
+        int rssiBoost = unExpectedNoInternet && candidate.getNumRebootsSinceLastUse() == 0
                 ? 0 : rssiBaseScore;
-        int throughputBoost = (candidate.isCurrentNetwork() && unExpectedNoInternet)
+        int throughputBoost = unExpectedNoInternet && candidate.getNumRebootsSinceLastUse() == 0
                 ? 0 : throughputBonusScore;
 
         int securityAward = candidate.isOpenNetwork()
