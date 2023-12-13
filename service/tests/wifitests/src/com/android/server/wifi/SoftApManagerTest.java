@@ -392,7 +392,8 @@ public class SoftApManagerTest extends WifiBaseTest {
                 | SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT
                 | SoftApCapability.SOFTAP_FEATURE_ACS_OFFLOAD
                 | SoftApCapability.SOFTAP_FEATURE_WPA3_SAE
-                | SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION;
+                | SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION
+                | SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE;
         mTestSoftApCapability = new SoftApCapability(testSoftApFeature);
         mTestSoftApCapability.setMaxSupportedClients(10);
         mTestSoftApCapability.setSupportedChannelList(
@@ -2395,10 +2396,17 @@ public class SoftApManagerTest extends WifiBaseTest {
                 randomizedBssidConfig = randomizedBssidConfigBuilder.build();
                 when(mWifiApConfigStore.randomizeBssidIfUnset(any(), any())).thenReturn(
                         randomizedBssidConfig);
-                expectedConfig = new SoftApConfiguration.Builder(randomizedBssidConfig)
-                        .build();
+
+                expectedConfig = randomizedBssidConfig;
             } else {
-                expectedConfig = new SoftApConfiguration.Builder(config)
+                expectedConfig = config;
+            }
+            if (SdkLevel.isAtLeastT()
+                    && expectedConfig.isIeee80211beEnabled()
+                    && !softApConfig.getCapability().areFeaturesSupported(
+                            SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE)) {
+                expectedConfig = new SoftApConfiguration.Builder(expectedConfig)
+                        .setIeee80211beEnabled(false)
                         .build();
             }
         }
@@ -2512,8 +2520,7 @@ public class SoftApManagerTest extends WifiBaseTest {
         verify(mListener).onStarted(mSoftApManager);
         verify(mWifiMetrics).addSoftApUpChangedEvent(true, softApConfig.getTargetMode(),
                 TEST_DEFAULT_SHUTDOWN_TIMEOUT_MILLIS, expectedConfig.getBands().length > 1);
-        verify(mWifiMetrics).updateSoftApConfiguration(config == null
-                ? randomizedBssidConfig : expectedConfig, softApConfig.getTargetMode(),
+        verify(mWifiMetrics).updateSoftApConfiguration(expectedConfig, softApConfig.getTargetMode(),
                 expectedConfig.getBands().length > 1);
         verify(mWifiMetrics)
                 .updateSoftApCapability(
@@ -3868,5 +3875,24 @@ public class SoftApManagerTest extends WifiBaseTest {
         startSoftApAndVerifyEnabled(apConfig, configBuilder.build(), false);
     }
 
+    /**
+     * Tests that 11BE is set to disabled in the SoftApConfiguration if it isn't supported by
+     * SoftApCapability.
+     */
+    @Test
+    public void testStartSoftApRemoves11BEIfNotSupported() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        mTestSoftApCapability.setSupportedFeatures(false,
+                SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE);
+        Builder configBuilder = new SoftApConfiguration.Builder();
+        configBuilder.setBand(SoftApConfiguration.BAND_2GHZ);
+        configBuilder.setSsid(TEST_SSID);
+        configBuilder.setIeee80211beEnabled(true);
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, configBuilder.build(),
+                mTestSoftApCapability, TEST_COUNTRY_CODE);
+        SoftApConfiguration expectedConfig = configBuilder.setIeee80211beEnabled(false).build();
+        startSoftApAndVerifyEnabled(apConfig, expectedConfig, false);
+    }
 }
 
