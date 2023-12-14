@@ -154,6 +154,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -252,7 +253,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             android.Manifest.permission.ACCESS_WIFI_STATE
     };
 
-    private static final String[] RECEIVER_PERMISSIONS_FOR_TETHERING = {
+    private static final String[] RECEIVER_PERMISSIONS_MAINLINE_NETWORK_STACK = {
             NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK
     };
 
@@ -4041,7 +4042,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             // As a result, P2P sends a unicast intent to tether service to trigger
                             // the whole flow before entering GroupCreatedState.
                             setWifiP2pInfoOnGroupFormation(null);
-                            if (!sendP2pTetherRequestBroadcast()) {
+                            boolean isSendSuccessful = SdkLevel.isAtLeastU()
+                                    ? sendP2pTetherRequestBroadcastPostU()
+                                    : sendP2pTetherRequestBroadcastPreU();
+                            if (!isSendSuccessful) {
                                 loge("Cannot start tethering, remove " + mGroup);
                                 mWifiNative.p2pGroupRemove(mGroup.getInterface());
                             }
@@ -4798,7 +4802,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 sendP2pConnectionChangedBroadcast();
                 if (!SdkLevel.isAtLeastU()) {
                     // Ensure tethering service to stop tethering.
-                    sendP2pTetherRequestBroadcast();
+                    sendP2pTetherRequestBroadcastPreU();
                 }
             }
         }
@@ -5040,10 +5044,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (mVerboseLoggingEnabled) logd("sending p2p connection changed broadcast");
             Intent intent = getP2pConnectionChangedIntent();
             if (SdkLevel.isAtLeastU()) {
-                // First send direct foreground broadcast to Tethering package
-                sendP2pTetherRequestBroadcast();
-                // Then send the same broadcast to remaining apps excluding Tethering package
-                sendBroadcastWithExcludedPermissions(intent, RECEIVER_PERMISSIONS_FOR_TETHERING);
+                // First send direct foreground broadcast to Tethering package and system service
+                // with same android.permission.MAINLINE_NETWORK_STACK
+                sendBroadcastWithMainlineNetworkStackPermissionPostU();
+                // Then send the same broadcast to remaining apps without
+                // android.permission.MAINLINE_NETWORK_STACK
+                sendBroadcastWithExcludedPermissions(intent,
+                        RECEIVER_PERMISSIONS_MAINLINE_NETWORK_STACK);
             } else {
                 sendBroadcastWithExcludedPermissions(intent, null);
             }
@@ -5123,30 +5130,45 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             return null;
         }
 
-        private boolean sendP2pTetherRequestBroadcast() {
-            String tetheringServicePackage = findTetheringServicePackage();
-            if (TextUtils.isEmpty(tetheringServicePackage)) return false;
-            Log.i(TAG, "sending p2p tether request broadcast to "
-                    + tetheringServicePackage);
-
+        private boolean sendP2pTetherRequestBroadcastPreU() {
             String[] receiverPermissionsForTetheringRequest = {
                     android.Manifest.permission.TETHER_PRIVILEGED
             };
-            if (SdkLevel.isAtLeastU()) {
-                receiverPermissionsForTetheringRequest = RECEIVER_PERMISSIONS_FOR_TETHERING;
-            }
-            Intent intent = getP2pConnectionChangedIntent();
-            intent.setPackage(tetheringServicePackage);
-            if (SdkLevel.isAtLeastU()) {
-                // Adding the flag to allow recipient to run at foreground priority with a shorter
-                // timeout interval.
-                intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-            }
+            return sendP2pTetherRequestBroadcastCommon(receiverPermissionsForTetheringRequest,
+                    false, 0);
+        }
 
+        private boolean sendP2pTetherRequestBroadcastPostU() {
+            return sendP2pTetherRequestBroadcastCommon(RECEIVER_PERMISSIONS_MAINLINE_NETWORK_STACK,
+                    true, Intent.FLAG_RECEIVER_FOREGROUND);
+        }
+
+        private boolean sendP2pTetherRequestBroadcastCommon(String[] permissions,
+                boolean setAdditionalFlags, int flags) {
+            String tetheringServicePackage = findTetheringServicePackage();
+            if (TextUtils.isEmpty(tetheringServicePackage)) return false;
+            Log.i(TAG, "sending p2p tether request broadcast to " + tetheringServicePackage
+                    + " with permission " + Arrays.toString(permissions));
+            Intent intent = getP2pConnectionChangedIntent();
+            if (setAdditionalFlags) {
+                intent.addFlags(flags);
+            }
+            intent.setPackage(tetheringServicePackage);
             Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
-            context.sendBroadcastWithMultiplePermissions(
-                    intent, receiverPermissionsForTetheringRequest);
+            context.sendBroadcastWithMultiplePermissions(intent, permissions);
             return true;
+        }
+
+        private void sendBroadcastWithMainlineNetworkStackPermissionPostU() {
+            String[] receiverPermissions = RECEIVER_PERMISSIONS_MAINLINE_NETWORK_STACK;
+            Intent intent = getP2pConnectionChangedIntent();
+            // Adding the flag to allow recipient to run at foreground priority with a shorter
+            // timeout interval.
+            intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            Log.i(TAG, "sending p2p connection changed broadcast with permission "
+                    + Arrays.toString(receiverPermissions));
+            Context context = mContext.createContextAsUser(UserHandle.ALL, 0);
+            context.sendBroadcastWithMultiplePermissions(intent, receiverPermissions);
         }
 
         private void sendP2pPersistentGroupsChangedBroadcast() {

@@ -172,6 +172,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 
 /**
@@ -7629,5 +7630,131 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         forceP2pEnabled(mClient1);
         verify(mWifiNative, never()).configureEapolIpAddressAllocationParams(anyInt(),
                 anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    public void testSendP2pConnectionChangedBroadcast() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mWifiPermissionsUtil.isLocationModeEnabled()).thenReturn(true);
+        ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        ArgumentCaptor<String[]> permissionCaptor = ArgumentCaptor.forClass(String[].class);
+        String[] receiverPermissions;
+        int flags = Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT;
+
+        // mock p2p enabled
+        forceP2pEnabled(mClient1);
+        if (!SdkLevel.isAtLeastU()) {
+            receiverPermissions = new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_WIFI_STATE};
+            verify(mContext).sendBroadcastWithMultiplePermissions(argThat((Intent intent) -> {
+                WifiP2pInfo p2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+                WifiP2pGroup p2pGroup = intent.getParcelableExtra(
+                        WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+                assert p2pInfo != null;
+                return intent.getAction().equals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+                        && intent.getFlags() == Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
+                        && Objects.isNull(intent.getPackage())
+                        && !p2pInfo.groupFormed && Objects.isNull(p2pGroup);
+            }), permissionCaptor.capture());
+            assertEquals(receiverPermissions, permissionCaptor.getValue());
+        } else {
+            receiverPermissions = new String[]{NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK};
+            flags |= Intent.FLAG_RECEIVER_FOREGROUND;
+            verify(mContext).sendBroadcastWithMultiplePermissions(intentCaptor.capture(),
+                    permissionCaptor.capture());
+            Intent intent = intentCaptor.getValue();
+            assertEquals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION, intent.getAction());
+            assertEquals(flags, intent.getFlags());
+            WifiP2pInfo p2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+            WifiP2pGroup p2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+            assert p2pInfo != null;
+            assertFalse(p2pInfo.groupFormed);
+            assertFalse(p2pInfo.isGroupOwner);
+            assertNull(p2pGroup);
+            assertEquals(receiverPermissions, permissionCaptor.getValue());
+        }
+
+        // mock group started
+        WifiP2pGroup group = new WifiP2pGroup();
+        group.setNetworkId(WifiP2pGroup.NETWORK_ID_PERSISTENT);
+        group.setNetworkName("DIRECT-xy-NEW");
+        group.setOwner(new WifiP2pDevice("thisDeviceMac"));
+        group.setIsGroupOwner(true);
+        group.setInterface(IFACE_NAME_P2P);
+        sendGroupStartedMsg(group);
+        simulateTetherReady();
+
+        // reassign captor again, otherwise captor.getAllValues() will include previous values
+        intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        permissionCaptor = ArgumentCaptor.forClass(String[].class);
+        if (!SdkLevel.isAtLeastU()) {
+            // there are other broadcasts from sendThisDeviceChangedBroadcast() called by
+            // updateThisDevice()
+            verify(mContext, times(6)).sendBroadcastWithMultiplePermissions(intentCaptor.capture(),
+                    permissionCaptor.capture());
+        } else {
+            verify(mContext, times(3)).sendBroadcastWithMultiplePermissions(intentCaptor.capture(),
+                    permissionCaptor.capture());
+        }
+        ArrayList<Intent> intentArrayList = new ArrayList<>();
+        ArrayList<String[]> permissionArrayList = new ArrayList<>();
+        for (int i = 0; i < intentCaptor.getAllValues().size(); i++) {
+            Intent intent = intentCaptor.getAllValues().get(i);
+            if (intent.getAction().equals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)) {
+                intentArrayList.add(intent);
+                permissionArrayList.add(permissionCaptor.getAllValues().get(i));
+            }
+        }
+        assertEquals(3, intentArrayList.size());
+        /* Total three WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION broadcasts are as follows.
+         * ----------------------------------------------------------------------------------------
+         * State    p2pInfo.groupFormed    p2pGroup    intent.permission intent.flag intent.package
+         * ----------------------------------------------------------------------------------------
+         * PreU:
+         * P2pEnabledState      :false  null         RECEIVER_PERMISSIONS_FOR_BROADCAST(location ON)
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
+         *         null
+         * GroupCreatingState   :false p2pGroup.isGo RECEIVER_PERMISSIONS_FOR_BROADCAST(location ON)
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
+         *         null
+         * GroupNegotiationState:true  p2pGroup.isGo android.Manifest.permission.TETHER_PRIVILEGED
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
+         *         com.android.networkstack.tethering
+         *
+         * PostU:
+         * P2pEnabledState      : false  null           android.permission.MAINLINE_NETWORK_STACK
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT|Intent.FLAG_RECEIVER_FOREGROUND
+         *         null
+         * GroupCreatingState   : false  p2pGroup.isGo  android.permission.MAINLINE_NETWORK_STACK
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT|Intent.FLAG_RECEIVER_FOREGROUND
+         *         null
+         * GroupNegotiationState: true   p2pGroup.isGo  android.permission.MAINLINE_NETWORK_STACK
+         *         Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT|Intent.FLAG_RECEIVER_FOREGROUND
+         *         com.android.networkstack.tethering
+         */
+        Intent intent = intentArrayList.get(1);
+        assertEquals(flags, intent.getFlags());
+        assertNull(intent.getPackage());
+        WifiP2pInfo p2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+        assert p2pInfo != null;
+        assertFalse(p2pInfo.groupFormed);
+        WifiP2pGroup p2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+        assert p2pGroup != null;
+        assertTrue(p2pGroup.isGroupOwner());
+        assertEquals(receiverPermissions, permissionArrayList.get(1));
+
+        intent = intentArrayList.get(2);
+        assertEquals(flags, intent.getFlags());
+        assertNotNull(intent.getPackage());
+        p2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+        assert p2pInfo != null;
+        assertTrue(p2pInfo.groupFormed);
+        p2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+        assert p2pGroup != null;
+        assertTrue(p2pGroup.isGroupOwner());
+        if (!SdkLevel.isAtLeastU()) {
+            receiverPermissions = new String[]{android.Manifest.permission.TETHER_PRIVILEGED};
+        }
+        assertEquals(receiverPermissions, permissionArrayList.get(2));
     }
 }
