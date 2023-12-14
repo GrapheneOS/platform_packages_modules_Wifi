@@ -1297,6 +1297,16 @@ public class SoftApManager implements ActiveModeManager {
                             handleStartSoftApFailure(START_RESULT_FAILURE_INTERFACE_CONFLICT);
                             break;
                         }
+                        if (SdkLevel.isAtLeastT()
+                                && mCurrentSoftApConfiguration.isIeee80211beEnabled()
+                                && !mCurrentSoftApCapability.areFeaturesSupported(
+                                SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE)) {
+                            Log.d(getTag(), "11BE is not supported, removing from configuration");
+                            mCurrentSoftApConfiguration = new SoftApConfiguration
+                                    .Builder(mCurrentSoftApConfiguration)
+                                    .setIeee80211beEnabled(false)
+                                    .build();
+                        }
                         mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
                                 mWifiNativeInterfaceCallback, mRequestorWs,
                                 mCurrentSoftApConfiguration.getBand(), isBridgeRequired(),
