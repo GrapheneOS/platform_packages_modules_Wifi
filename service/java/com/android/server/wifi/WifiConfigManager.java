@@ -1532,12 +1532,13 @@ public class WifiConfigManager {
                 && !mWifiPermissionsUtil.checkConfigOverridePermission(uid)
                 && !(newInternalConfig.isPasspoint() && uid == newInternalConfig.creatorUid)
                 && !config.fromWifiNetworkSuggestion
+                && !mWifiPermissionsUtil.checkWifiPrivilegedAndroidAutoPermission(uid)
                 && !mWifiPermissionsUtil.isDeviceInDemoMode(mContext)
                 && !(mWifiPermissionsUtil.isAdmin(uid, packageName)
                 && uid == newInternalConfig.creatorUid)) {
             Log.e(TAG, "UID " + uid + " does not have permission to modify MAC randomization "
                     + "Settings " + config.getProfileKey() + ". Must have "
-                    + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD or be in Demo Mode "
+                    + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD or WIFI_PRIVILEGED_ANDROID_AUTO or be in Demo Mode "
                     + "or be the creator adding or updating a passpoint network "
                     + "or be an admin updating their own network.");
             return new Pair<>(
@@ -1547,10 +1548,11 @@ public class WifiConfigManager {
 
         if (WifiConfigurationUtil.hasSendDhcpHostnameEnabledChanged(existingInternalConfig,
                 newInternalConfig) && !mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                && !mWifiPermissionsUtil.checkWifiPrivilegedAndroidAutoPermission(uid)
                 && !mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid)) {
             Log.e(TAG, "UID " + uid + " does not have permission to modify send DHCP hostname "
                     + "setting " + config.getProfileKey() + ". Must have "
-                    + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD.");
+                    + "NETWORK_SETTINGS or NETWORK_SETUP_WIZARD or WIFI_PRIVILEGED_ANDROID_AUTO.");
             return new Pair<>(
                     new NetworkUpdateResult(WifiConfiguration.INVALID_NETWORK_ID),
                     existingInternalConfig);
