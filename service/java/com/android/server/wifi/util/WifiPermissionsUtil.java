@@ -833,6 +833,12 @@ public class WifiPermissionsUtil {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    public boolean checkWifiPrivilegedAndroidAutoPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                android.Manifest.permission.WIFI_PRIVILEGED_ANDROID_AUTO, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
     /**
      * Returns true if the |uid| holds RADIO_SCAN_WITHOUT_LOCATION permission.
      */
