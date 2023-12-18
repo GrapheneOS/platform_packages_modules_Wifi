@@ -1317,6 +1317,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean checkAndroidAutoPermission(int pid, int uid) {
+        return mContext.checkPermission(android.Manifest.permission.WIFI_PRIVILEGED_ANDROID_AUTO, pid, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
     private boolean checkNetworkCarrierProvisioningPermission(int pid, int uid) {
         return mContext.checkPermission(android.Manifest.permission.NETWORK_CARRIER_PROVISIONING,
                 pid, uid) == PackageManager.PERMISSION_GRANTED;
@@ -1532,7 +1537,21 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 && !isGuestUser())
                 || isPrivileged(pid, uid)
                 || mWifiPermissionsUtil.isAdmin(uid, packageName)
-                || mWifiPermissionsUtil.isSystem(packageName, uid);
+                || mWifiPermissionsUtil.isSystem(packageName, uid)
+                /**
+                 * @see #disconnect
+                 * @see #reconnect
+                 * @see #reassociate
+                 * @see #getConfiguredNetworks
+                 * @see #addOrUpdateNetwork
+                 * @see #removeNetwork
+                 * @see #enableNetwork
+                 * @see #disableNetwork
+                 *
+                 * All of these operations are allowed for unprivileged callers that have
+                 * targetSdk < 29
+                 */
+                || checkAndroidAutoPermission(pid, uid);
     }
 
     private boolean isGuestUser() {
@@ -1597,7 +1616,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         enforceValidCallingUser();
         int callingUid = Binder.getCallingUid();
         int callingPid = Binder.getCallingPid();
-        boolean isPrivileged = isPrivileged(callingPid, callingUid);
+        boolean isPrivileged = isPrivileged(callingPid, callingUid) || checkAndroidAutoPermission(callingPid, callingUid);
         boolean isThirdParty = !isPrivileged
                 && !isDeviceOrProfileOwner(callingUid, packageName)
                 && !mWifiPermissionsUtil.isSystem(packageName, callingUid);
