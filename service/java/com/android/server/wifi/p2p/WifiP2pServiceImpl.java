@@ -3686,7 +3686,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                         P2P_REJECTION_RESUME_AFTER_DELAY,
                                         ++sP2pRejectionResumeAfterDelayIndex,
                                         WifiP2pManager.CANCEL_CONNECT,
-                                        message),
+                                        Message.obtain(message)),
                                 delay);
                         break;
                     case WifiP2pMonitor.P2P_GO_NEGOTIATION_SUCCESS_EVENT:
