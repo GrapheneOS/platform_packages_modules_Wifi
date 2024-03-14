@@ -1175,6 +1175,8 @@ public class SoftApManager implements ActiveModeManager {
                                     + ", base country in SoftApCapability = "
                                     + mCurrentSoftApCapability.getCountryCode());
                         }
+                        // no-op if the HAL is already started
+                        mWifiNative.startHal();
                         if (isBridgedMode()) {
                             boolean isFallbackToSingleAp = false;
                             final List<ClientModeManager> cmms =

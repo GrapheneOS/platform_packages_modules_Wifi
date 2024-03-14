@@ -518,7 +518,7 @@ public class WifiNative {
     private HashSet<StatusListener> mStatusListeners = new HashSet<>();
 
     /** Helper method invoked to start supplicant if there were no ifaces */
-    private boolean startHal() {
+    public boolean startHal() {
         synchronized (mLock) {
             if (!mIfaceMgr.hasAnyIface()) {
                 if (mWifiVendorHal.isVendorHalSupported()) {
