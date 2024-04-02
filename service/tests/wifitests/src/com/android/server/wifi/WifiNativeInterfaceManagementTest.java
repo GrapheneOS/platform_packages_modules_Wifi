@@ -899,12 +899,13 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
      * Verifies the setup of a client interface and wificond death handling.
      */
     @Test
-    public void testSetupClientInterfaceAndWicondDied() throws Exception {
+    public void testSetupClientInterfaceAndWificondDied() throws Exception {
         executeAndValidateSetupClientInterface(
                 false, false, IFACE_NAME_0, mIfaceCallback0, mIfaceDestroyedListenerCaptor0,
                 mNetworkObserverCaptor0);
         // Trigger wificond death
         mWificondDeathHandlerCaptor.getValue().run();
+        mLooper.dispatchAll();
 
         mInOrder.verify(mWifiMetrics).incrementNumWificondCrashes();
 
