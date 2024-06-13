@@ -314,12 +314,27 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
      * string.
      */
     @Test
-    public void testValidateNegativeCases_MalformedAsciiSsidString() {
+    public void testValidateNegativeCases_MalformedPlaintextSsidString() {
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         assertTrue(WifiConfigurationUtil.validate(config, SUPPORTED_FEATURES_ALL,
                 WifiConfigurationUtil.VALIDATE_FOR_ADD));
 
         config.SSID = "\"ab";
+        assertFalse(WifiConfigurationUtil.validate(config, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    /**
+     * Verify that the validate method fails to validate WifiConfiguration with a too-long ssid
+     * string.
+     */
+    @Test
+    public void testValidateNegativeCases_TooLongPlaintextSsidString() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        assertTrue(WifiConfigurationUtil.validate(config, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+
+        config.SSID = "\"012345678901234567890123456789012\"";
         assertFalse(WifiConfigurationUtil.validate(config, SUPPORTED_FEATURES_ALL,
                 WifiConfigurationUtil.VALIDATE_FOR_ADD));
     }

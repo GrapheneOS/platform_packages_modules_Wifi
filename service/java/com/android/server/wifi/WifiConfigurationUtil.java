@@ -62,9 +62,7 @@ public class WifiConfigurationUtil {
      * Constants used for validating external config objects.
      */
     private static final int ENCLOSING_QUOTES_LEN = 2;
-    private static final int SSID_UTF_8_MIN_LEN = 1 + ENCLOSING_QUOTES_LEN;
-    private static final int SSID_UTF_8_MAX_LEN = 32 + ENCLOSING_QUOTES_LEN;
-    private static final int SSID_HEX_MIN_LEN = 2;
+    private static final int SSID_PLAINTEXT_MAX_LEN = 32 + ENCLOSING_QUOTES_LEN;
     private static final int SSID_HEX_MAX_LEN = 64;
     private static final int PSK_ASCII_MIN_LEN = 8 + ENCLOSING_QUOTES_LEN;
     private static final int SAE_ASCII_MIN_LEN = 1 + ENCLOSING_QUOTES_LEN;
@@ -453,9 +451,16 @@ public class WifiConfigurationUtil {
             Log.e(TAG, "validateSsid failed: empty string");
             return false;
         }
-        if (!ssid.startsWith("\"") && ssid.length() > SSID_HEX_MAX_LEN) {
-            Log.e(TAG, "validateSsid failed: hex ssid " + ssid + " longer than 32 bytes");
-            return false;
+        if (ssid.startsWith("\"")) {
+            if (ssid.length() > SSID_PLAINTEXT_MAX_LEN) {
+                Log.e(TAG, "validateSsid failed: plaintext ssid " + ssid + " longer than 32 chars");
+                return false;
+            }
+        } else {
+            if (ssid.length() > SSID_HEX_MAX_LEN) {
+                Log.e(TAG, "validateSsid failed: hex ssid " + ssid + " longer than 32 bytes");
+                return false;
+            }
         }
         WifiSsid wifiSsid;
         try {
