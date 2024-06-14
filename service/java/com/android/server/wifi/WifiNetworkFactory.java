@@ -589,6 +589,7 @@ public class WifiNetworkFactory extends NetworkFactory {
         // Create the scan settings.
         mScanSettings = new WifiScanner.ScanSettings();
         mScanSettings.type = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
+        mScanSettings.channels = new WifiScanner.ChannelSpec[0];
         mScanSettings.band = WifiScanner.WIFI_BAND_ALL;
         mScanSettings.reportEvents = WifiScanner.REPORT_EVENT_AFTER_EACH_SCAN;
         mScanListener = new NetworkFactoryScanListener();
@@ -1163,9 +1164,10 @@ public class WifiNetworkFactory extends NetworkFactory {
             networkToConnect.BSSID = network.BSSID;
         } else {
             // If not pre-approved, find the best bssid matching the request.
-            networkToConnect.BSSID =
-                    findBestBssidFromActiveMatchedScanResultsForNetwork(
-                            ScanResultMatchInfo.fromWifiConfiguration(networkToConnect));
+            ScanResult bestScanResult = findBestScanResultFromActiveMatchedScanResultsForNetwork(
+                    ScanResultMatchInfo.fromWifiConfiguration(networkToConnect));
+            networkToConnect.BSSID = bestScanResult != null ? bestScanResult.BSSID : null;
+
         }
         networkToConnect.ephemeral = true;
         // Mark it user private to avoid conflicting with any saved networks the user might have.
@@ -1210,7 +1212,8 @@ public class WifiNetworkFactory extends NetworkFactory {
 
     private void handleConnectToNetworkUserSelection(WifiConfiguration network,
             boolean didUserSeeUi) {
-        Log.d(TAG, "User initiated connect to network: " + network.SSID);
+        Log.d(TAG, "User initiated connect to network: " + network.SSID + " (apChannel:"
+                + network.apChannel + ")");
 
         // Cancel the ongoing scans after user selection.
         cancelPeriodicScans();
@@ -1641,8 +1644,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         mUserApprovedScanRetryCount++;
         // Create a worksource using the caller's UID.
         WorkSource workSource = new WorkSource(mActiveSpecificNetworkRequest.getRequestorUid());
-        mWifiScanner.startScan(
-                mScanSettings, new HandlerExecutor(mHandler), mScanListener, workSource);
+        mWifiScanner.startScan(new WifiScanner.ScanSettings(mScanSettings),
+                new HandlerExecutor(mHandler), mScanListener, workSource);
     }
 
     private boolean doesScanResultMatchWifiNetworkSpecifier(
@@ -1780,13 +1783,13 @@ public class WifiNetworkFactory extends NetworkFactory {
         return false;
     }
 
-    // Will return the best bssid to use for the current request's connection.
+    // Will return the best scan result to use for the current request's connection.
     //
     // Note: This will never return null, unless there is some internal error.
     // For ex:
     // i) The latest scan results were empty.
     // ii) The latest scan result did not contain any BSSID for the SSID user chose.
-    private @Nullable String findBestBssidFromActiveMatchedScanResultsForNetwork(
+    private @Nullable ScanResult findBestScanResultFromActiveMatchedScanResultsForNetwork(
             @NonNull ScanResultMatchInfo scanResultMatchInfo) {
         if (mActiveSpecificNetworkRequestSpecifier == null
                 || mActiveMatchedScanResults == null) return null;
@@ -1805,7 +1808,7 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "Best bssid selected for the request " + selectedScanResult);
         }
-        return selectedScanResult.BSSID;
+        return selectedScanResult;
     }
 
     private boolean isAccessPointApprovedInInternalApprovalList(
@@ -2014,10 +2017,13 @@ public class WifiNetworkFactory extends NetworkFactory {
             WifiConfiguration config = mActiveSpecificNetworkRequestSpecifier.wifiConfiguration;
             config.SSID = "\""
                     + mActiveSpecificNetworkRequestSpecifier.ssidPatternMatcher.getPath() + "\"";
-            config.BSSID = findBestBssidFromActiveMatchedScanResultsForNetwork(
+            ScanResult bestScanResult = findBestScanResultFromActiveMatchedScanResultsForNetwork(
                     ScanResultMatchInfo.fromWifiConfiguration(config));
+            config.BSSID = bestScanResult != null ? bestScanResult.BSSID : null;
+            config.apChannel = bestScanResult != null ? bestScanResult.frequency : 0;
             Log.v(TAG, "Bypassing user dialog for connection to SSID="
-                    + config.SSID + ", BSSID=" + config.BSSID);
+                    + config.SSID + ", BSSID=" + config.BSSID + ", apChannel="
+                    + config.apChannel);
             handleConnectToNetworkUserSelection(config, false);
         }
     }

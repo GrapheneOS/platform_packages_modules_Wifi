@@ -829,6 +829,7 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
                 .append(", BSSID Match pattern=").append(bssidPatternMatcher)
                 .append(", SSID=").append(wifiConfiguration.SSID)
                 .append(", BSSID=").append(wifiConfiguration.BSSID)
+                .append(", channels=").append(Arrays.toString(mChannelFreqs))
                 .append(", band=").append(mBand)
                 .append("]")
                 .toString();

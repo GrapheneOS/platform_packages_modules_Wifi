@@ -431,6 +431,16 @@ public class WifiScanner {
             passive = false;
             dwellTimeMS = 0;
         }
+
+        /**
+         * @hide
+         * Todo: add it to the sdk
+         */
+        public ChannelSpec(int frequency, boolean passive, int dwellTimeMS) {
+            this.frequency = frequency;
+            this.passive = passive;
+            this.dwellTimeMS = dwellTimeMS;
+        }
     }
 
     /**
@@ -730,6 +740,44 @@ public class WifiScanner {
                 throw new UnsupportedOperationException();
             }
             return mVendorIes;
+        }
+
+        public ScanSettings() {}
+
+        /**
+         * @hide
+         * Todo: add it to the sdk
+         */
+        public ScanSettings(@NonNull ScanSettings that) {
+            this.band = that.band;
+            this.periodInMs = that.periodInMs;
+            this.reportEvents = that.reportEvents;
+            this.numBssidsPerScan = that.numBssidsPerScan;
+            this.maxScansToCache = that.maxScansToCache;
+            this.maxPeriodInMs = that.maxPeriodInMs;
+            this.stepCount = that.stepCount;
+            this.isPnoScan = that.isPnoScan;
+            this.type = that.type;
+            this.ignoreLocationSettings = that.ignoreLocationSettings;
+            this.hideFromAppOps = that.hideFromAppOps;
+            this.mRnrSetting = that.mRnrSetting;
+            this.mEnable6GhzPsc = that.mEnable6GhzPsc;
+            if (that.channels != null) {
+                this.channels = new ChannelSpec[that.channels.length];
+                for (int i = 0; i < that.channels.length; i++) {
+                    ChannelSpec spec = new ChannelSpec(that.channels[i].frequency,
+                            that.channels[i].passive, that.channels[i].dwellTimeMS);
+                    this.channels[i] = spec;
+                }
+            } else {
+                this.channels = new ChannelSpec[0];
+            }
+            for (HiddenNetwork hiddenNetwork : that.hiddenNetworks) {
+                this.hiddenNetworks.add(new HiddenNetwork(hiddenNetwork.ssid));
+            }
+            for (ScanResult.InformationElement ie : that.mVendorIes) {
+                this.mVendorIes.add(new ScanResult.InformationElement(ie.id, ie.idExt, ie.bytes));
+            }
         }
 
         /** Implement the Parcelable interface {@hide} */
