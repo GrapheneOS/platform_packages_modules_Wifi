@@ -674,13 +674,11 @@ public class WifiCountryCode {
         boolean isCountryCodeChanged = !TextUtils.equals(mDriverCountryCode, country);
         Log.d(TAG, "setCountryCodeNative: " + country + ", isClientModeOnly: " + isClientModeOnly
                 + " mDriverCountryCode: " + mDriverCountryCode);
+        // We intend to change Country code, assume to pending to update for Cmm first.
+        mIsCountryCodePendingToUpdateToCmm = true;
         for (ActiveModeManager am : amms) {
-            if (!isConcreteClientModeManagerUpdated
+            if (isNeedToUpdateCCToSta && !isConcreteClientModeManagerUpdated
                     && am instanceof ConcreteClientModeManager) {
-                mIsCountryCodePendingToUpdateToCmm = !isNeedToUpdateCCToSta;
-                if (!isNeedToUpdateCCToSta) {
-                    continue;
-                }
                 // Set the country code using one of the active mode managers. Since
                 // country code is a chip level global setting, it can be set as long
                 // as there is at least one active interface to communicate to Wifi chip
@@ -696,6 +694,8 @@ public class WifiCountryCode {
                     if (!SdkLevel.isAtLeastS() && !isDriverSupportedRegChangedEvent()) {
                         handleCountryCodeChanged(country);
                     }
+                    // Country code was updated to cmmm succeeded, change pending to false.
+                    mIsCountryCodePendingToUpdateToCmm = false;
                 }
             } else if (!isClientModeOnly && am instanceof SoftApManager) {
                 SoftApManager sm = (SoftApManager) am;
