@@ -893,6 +893,9 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             if (networkHandle == null) {
                 return false;
             }
+            Log.d(TAG, "Remove fallback ssids to avoid endless loop");
+            mCurrentNetworkFallbackSsids.remove(ifaceName);
+            mCurrentNetworkFirstSsid.remove(ifaceName);
             return networkHandle.disable();
         }
     }

@@ -3900,6 +3900,38 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Tests that network not found notification won't trigger connecting to the fallback SSIDs if
+     * the network has been disabled.
+     */
+    @Test
+    public void testNetworkNotFoundCallbackDoesNotConnectToFallbackAfterDisabled()
+            throws Exception {
+        when(mSupplicantStaNetworkMock.disable()).thenReturn(true);
+        setupMocksForHalV1_4();
+        executeAndValidateInitializationSequenceV1_4();
+        assertNotNull(mISupplicantStaIfaceCallbackV14);
+        // Setup mocks to return two possible original SSIDs. We will pick
+        // TRANSLATED_SUPPLICANT_SSID as the first SSID to try.
+        when(mSsidTranslator.getAllPossibleOriginalSsids(TRANSLATED_SUPPLICANT_SSID)).thenAnswer(
+                (Answer<List<WifiSsid>>) invocation -> {
+                    List<WifiSsid> ssids = new ArrayList<>();
+                    ssids.add(TRANSLATED_SUPPLICANT_SSID);
+                    ssids.add(WifiSsid.fromString(SUPPLICANT_SSID));
+                    return ssids;
+                });
+        executeAndValidateConnectSequence(SUPPLICANT_NETWORK_ID, false,
+                TRANSLATED_SUPPLICANT_SSID.toString());
+
+        // Disable the current network and issue a NETWORK_NOT_FOUND
+        assertTrue(mDut.disableCurrentNetwork(WLAN0_IFACE_NAME));
+        verify(mSupplicantStaNetworkMock).disable();
+        mISupplicantStaIfaceCallbackV14.onNetworkNotFound(NativeUtil.decodeSsid(SUPPLICANT_SSID));
+
+        // Validate that we don't initiate another connect sequence.
+        validateConnectSequence(false, 1, TRANSLATED_SUPPLICANT_SSID.toString());
+    }
+
+    /**
      * Tests the behavior of {@link SupplicantStaIfaceHal#getCurrentNetworkSecurityParams(String)}
      * @throws Exception
      */
