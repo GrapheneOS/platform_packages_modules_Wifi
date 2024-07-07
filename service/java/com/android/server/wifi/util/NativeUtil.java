@@ -23,6 +23,8 @@ import android.net.wifi.util.HexEncoding;
 import android.text.TextUtils;
 
 import com.android.server.wifi.ByteBufferReader;
+import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
+import com.android.server.wifi.WifiConfigurationUtil;
 import com.android.server.wifi.WifiGlobals;
 
 import java.nio.BufferUnderflowException;
@@ -431,6 +433,31 @@ public class NativeUtil {
                     .getAllowedPairwiseCiphers().clone());
         }
         return ciphers;
+    }
+
+    /**
+     * Check if the EAPOL 4-WAY H/S failure is due to wrong password
+     *
+     */
+    public static boolean isEapol4WayHandshakeFailureDueToWrongPassword(WifiConfiguration config,
+            boolean locallyGenerated, int reasonCode) {
+        if (!(WifiConfigurationUtil.isConfigForPskNetwork(config)
+                || WifiConfigurationUtil.isConfigForWapiPskNetwork(
+                config))) {
+            return false;
+        }
+        // Filter out the disconnect triggered by the supplicant due to WPA/RSN IE mismatch in the
+        // received EAPOL message 3/4 with the Beacon/ProbeResp WPA/RSN IE.
+        if (locallyGenerated && reasonCode == StaIfaceReasonCode.IE_IN_4WAY_DIFFERS) {
+            return false;
+        }
+        // Some APs send de-authentication/disassociation with reason code 5
+        // (NO_MORE_STAS - Disassociated because AP is unable to handle all currently associated
+        // STAs) in the middle of EAPOL H/S. Filter out this reason code.
+        if (!locallyGenerated && reasonCode == StaIfaceReasonCode.DISASSOC_AP_BUSY) {
+            return false;
+        }
+        return true;
     }
 
     private static boolean isPskSaeParamsMergeable(

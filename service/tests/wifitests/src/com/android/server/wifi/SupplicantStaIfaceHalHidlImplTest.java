@@ -1638,6 +1638,9 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     public void testIeDiffers() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
 
         int reasonCode = ISupplicantStaIfaceCallback.ReasonCode.IE_IN_4WAY_DIFFERS;
 
@@ -1662,6 +1665,9 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
     public void testApBusy() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
 
         int reasonCode = ISupplicantStaIfaceCallback.ReasonCode.DISASSOC_AP_BUSY;
 
@@ -1671,7 +1677,7 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
                 SUPPLICANT_NETWORK_ID,
                 NativeUtil.decodeSsid(SUPPLICANT_SSID));
         mISupplicantStaIfaceCallback.onDisconnected(
-                NativeUtil.macAddressToByteArray(BSSID), true, reasonCode);
+                NativeUtil.macAddressToByteArray(BSSID), false, reasonCode);
         verify(mWifiMonitor, never()).broadcastAuthenticationFailureEvent(any(), anyInt(),
                 anyInt(), any(), any());
     }
@@ -3751,6 +3757,9 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         setupMocksForHalV1_3();
         executeAndValidateInitializationSequenceV1_3();
         assertNotNull(mISupplicantStaIfaceCallbackV13);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
 
         int reasonCode = ISupplicantStaIfaceCallback.ReasonCode.IE_IN_4WAY_DIFFERS;
 

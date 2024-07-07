@@ -276,28 +276,21 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
     }
 
     @Override
-    public void onDisconnected(byte[/* 6 */] bssid, boolean locallyGenerated, int reasonCode) {
+    public void onDisconnected(byte[/* 6 */] bssid, boolean locallyGenerated, int halReasonCode) {
         synchronized (mLock) {
             mStaIfaceHal.logCallback("onDisconnected");
             if (mStaIfaceHal.isVerboseLoggingEnabled()) {
                 Log.e(TAG, "onDisconnected state=" + mStateBeforeDisconnect
                         + " locallyGenerated=" + locallyGenerated
-                        + " reasonCode=" + reasonCode);
+                        + " reasonCode=" + halReasonCode);
             }
+            int reasonCode = halToFrameworkReasonCode(halReasonCode);
             WifiConfiguration curConfiguration =
                     mStaIfaceHal.getCurrentNetworkLocalConfig(mIfaceName);
             if (curConfiguration != null) {
-                // In case of PSK networks the disconnection event in the middle of key exchange
-                // happens due to PSK mismatch. But filter out the de-authentication/disassociation
-                // frame from AP with known reason codes which are not related to PSK mismatch from
-                // reporting wrong password error.
                 if (mStateBeforeDisconnect == State.FOURWAY_HANDSHAKE
-                        && (WifiConfigurationUtil.isConfigForPskNetwork(curConfiguration)
-                                || WifiConfigurationUtil.isConfigForWapiPskNetwork(
-                                        curConfiguration))
-                        && (!locallyGenerated
-                                || (reasonCode != ReasonCode.IE_IN_4WAY_DIFFERS
-                                        && reasonCode != ReasonCode.DISASSOC_AP_BUSY))) {
+                        && NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(
+                                curConfiguration, locallyGenerated, reasonCode)) {
                     mWifiMonitor.broadcastAuthenticationFailureEvent(
                             mIfaceName, WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1,
                             mCurrentSsid, MacAddress.fromBytes(bssid));
@@ -309,7 +302,7 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                 }
             }
             mWifiMonitor.broadcastNetworkDisconnectionEvent(
-                    mIfaceName, locallyGenerated, halToFrameworkReasonCode(reasonCode),
+                    mIfaceName, locallyGenerated, reasonCode,
                     mCurrentSsid, NativeUtil.macAddressFromByteArray(bssid));
         }
     }

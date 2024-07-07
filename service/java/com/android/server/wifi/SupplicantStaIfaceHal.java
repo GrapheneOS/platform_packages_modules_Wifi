@@ -119,7 +119,7 @@ public class SupplicantStaIfaceHal {
         public static final byte INSUFFICIENT_RSSI = 5;
     }
 
-    protected static class StaIfaceReasonCode {
+    public static class StaIfaceReasonCode {
         public static final int UNSPECIFIED = 1;
         public static final int PREV_AUTH_NOT_VALID = 2;
         public static final int DEAUTH_LEAVING = 3;

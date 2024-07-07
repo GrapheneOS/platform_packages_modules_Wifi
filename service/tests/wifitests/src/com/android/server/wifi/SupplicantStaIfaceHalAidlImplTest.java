@@ -1409,6 +1409,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testIeDiffers() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
 
         int reasonCode = StaIfaceReasonCode.IE_IN_4WAY_DIFFERS;
 
@@ -1433,6 +1436,9 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     public void testApBusy() throws Exception {
         executeAndValidateInitializationSequence();
         assertNotNull(mISupplicantStaIfaceCallback);
+        executeAndValidateConnectSequenceWithKeyMgmt(
+                SUPPLICANT_NETWORK_ID, false, TRANSLATED_SUPPLICANT_SSID.toString(),
+                WifiConfiguration.SECURITY_TYPE_PSK, null, false);
 
         int reasonCode = StaIfaceReasonCode.DISASSOC_AP_BUSY;
 
@@ -1442,7 +1448,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 SUPPLICANT_NETWORK_ID,
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
         mISupplicantStaIfaceCallback.onDisconnected(
-                NativeUtil.macAddressToByteArray(BSSID), true, reasonCode);
+                NativeUtil.macAddressToByteArray(BSSID), false, reasonCode);
         verify(mWifiMonitor, never()).broadcastAuthenticationFailureEvent(any(), anyInt(),
                 anyInt(), any(), any());
     }
@@ -2256,30 +2262,6 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 SUPPLICANT_NETWORK_ID,
                 NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
         mISupplicantStaIfaceCallback.onNetworkRemoved(SUPPLICANT_NETWORK_ID);
-        mISupplicantStaIfaceCallback.onDisconnected(
-                NativeUtil.macAddressToByteArray(BSSID), true, reasonCode);
-        verify(mWifiMonitor, times(0)).broadcastAuthenticationFailureEvent(any(), anyInt(),
-                anyInt(), any(), any());
-    }
-
-    /**
-     * Tests the handling of incorrect network passwords when
-     * onStateChanged() is used, edge case.
-     *
-     * If the disconnect reason is "IE in 4way differs", do not call it a password mismatch.
-     */
-    @Test
-    public void testIeDiffersWhenOnStateChangedIsUsed() throws Exception {
-        executeAndValidateInitializationSequence();
-        assertNotNull(mISupplicantStaIfaceCallback);
-
-        int reasonCode = StaIfaceReasonCode.IE_IN_4WAY_DIFFERS;
-
-        mISupplicantStaIfaceCallback.onStateChanged(
-                StaIfaceCallbackState.FOURWAY_HANDSHAKE,
-                NativeUtil.macAddressToByteArray(BSSID),
-                SUPPLICANT_NETWORK_ID,
-                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
         mISupplicantStaIfaceCallback.onDisconnected(
                 NativeUtil.macAddressToByteArray(BSSID), true, reasonCode);
         verify(mWifiMonitor, times(0)).broadcastAuthenticationFailureEvent(any(), anyInt(),
