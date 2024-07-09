@@ -5638,6 +5638,43 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(visibleNetwork));
 
         mWifiConfigManager.onCellularConnectivityChanged(WifiDataStall.CELLULAR_DATA_NOT_AVAILABLE);
+        assertTrue(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
+                visibleNetwork));
+
+        mWifiConfigManager.considerStopRestrictingAutoJoinToSubscriptionId();
+        assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
+                visibleNetwork));
+    }
+
+    @Test
+    public void testFlakyNoCellularNotEnableNonCarrierMergedWifi() {
+        verifyAddNetworkToWifiConfigManager(WifiConfigurationTestUtil.createOpenNetwork());
+        List<WifiConfiguration> retrievedNetworks =
+                mWifiConfigManager.getConfiguredNetworksWithPasswords();
+        WifiConfiguration visibleNetwork = retrievedNetworks.get(0);
+        ScanDetail scanDetail = createScanDetailForNetwork(visibleNetwork, TEST_BSSID,
+                TEST_RSSI, TEST_FREQUENCY_1);
+        mWifiConfigManager.updateScanDetailCacheFromScanDetailForSavedNetwork(scanDetail);
+
+        // verify the network is disabled after startRestrictingAutoJoinToSubscriptionId is called
+        when(mClock.getWallClockMillis()).thenReturn(0L);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(0L);
+        mWifiConfigManager.startRestrictingAutoJoinToSubscriptionId(5);
+        mWifiConfigManager.updateUserDisabledList(new ArrayList<String>());
+        assertTrue(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(visibleNetwork));
+
+        // Simulate flaky cellular connection
+        mWifiConfigManager.onCellularConnectivityChanged(WifiDataStall.CELLULAR_DATA_NOT_AVAILABLE);
+        mWifiConfigManager.onCellularConnectivityChanged(WifiDataStall.CELLULAR_DATA_AVAILABLE);
+        // wifi should still be disabled since cellular recovered
+        mWifiConfigManager.considerStopRestrictingAutoJoinToSubscriptionId();
+        assertTrue(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
+                visibleNetwork));
+
+        // Cellular lost again
+        mWifiConfigManager.onCellularConnectivityChanged(WifiDataStall.CELLULAR_DATA_NOT_AVAILABLE);
+        mWifiConfigManager.considerStopRestrictingAutoJoinToSubscriptionId();
+        // wifi should be enabled now
         assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
                 visibleNetwork));
     }

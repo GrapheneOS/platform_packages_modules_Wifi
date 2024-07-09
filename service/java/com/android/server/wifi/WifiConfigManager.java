@@ -124,6 +124,7 @@ public class WifiConfigManager {
     private final AlarmManager mAlarmManager;
     private final FeatureFlags mFeatureFlags;
     private boolean mBufferedWritePending;
+    private int mCellularConnectivityStatus = WifiDataStall.CELLULAR_DATA_UNKNOWN;
     /** Alarm tag to use for starting alarms for buffering file writes. */
     @VisibleForTesting public static final String BUFFERED_WRITE_ALARM_TAG = "WriteBufferAlarm";
     /** Time interval for buffering file writes for non-forced writes */
@@ -480,8 +481,16 @@ public class WifiConfigManager {
      */
     public void onCellularConnectivityChanged(@WifiDataStall.CellularDataStatusCode int status) {
         localLog("onCellularConnectivityChanged:" + status);
-        if (status == WifiDataStall.CELLULAR_DATA_NOT_AVAILABLE) {
+        mCellularConnectivityStatus = status;
+    }
+
+    /**
+     * Allow wifi connection if cellular data is unavailable.
+     */
+    public void considerStopRestrictingAutoJoinToSubscriptionId() {
+        if (mCellularConnectivityStatus == WifiDataStall.CELLULAR_DATA_NOT_AVAILABLE) {
             stopRestrictingAutoJoinToSubscriptionId();
+            mCellularConnectivityStatus = WifiDataStall.CELLULAR_DATA_UNKNOWN;
         }
     }
 

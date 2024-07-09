@@ -627,6 +627,9 @@ public class WifiConnectivityManager {
         }
         boolean skipSufficiencyCheck = shouldSkipSufficiencyCheck(hasExistingSecondaryCmm);
 
+        // If cellular is unavailable, re-enable Wi-Fi networks disabled by pinning to cell.
+        mConfigManager.considerStopRestrictingAutoJoinToSubscriptionId();
+
         // Check if any blocklisted BSSIDs can be freed.
         List<ScanDetail> enabledDetails =
                 mWifiBlocklistMonitor.tryEnablingBlockedBssids(scanDetails);

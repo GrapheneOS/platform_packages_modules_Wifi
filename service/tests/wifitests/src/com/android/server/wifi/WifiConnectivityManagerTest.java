@@ -752,6 +752,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         assertEquals(WifiConnectivityManager.WIFI_STATE_DISCONNECTED,
                 mWifiConnectivityManager.getWifiState());
         mLooper.dispatchAll();
+        verify(mWifiConfigManager).considerStopRestrictingAutoJoinToSubscriptionId();
         verify(mPrimaryClientModeManager).startConnectToNetwork(
                 CANDIDATE_NETWORK_ID, Process.WIFI_UID, "any");
         verify(mPrimaryClientModeManager).enableRoaming(true);
