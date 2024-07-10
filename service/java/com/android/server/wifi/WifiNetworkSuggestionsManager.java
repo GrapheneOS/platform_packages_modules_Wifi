@@ -380,7 +380,7 @@ public class WifiNetworkSuggestionsManager {
             config.allowAutojoin = isAutojoinEnabled;
             if (config.enterpriseConfig
                     != null && config.enterpriseConfig.isAuthenticationSimBased()
-                    && anonymousIdentity != null) {
+                    && !TextUtils.isEmpty(anonymousIdentity)) {
                 config.enterpriseConfig.setAnonymousIdentity(anonymousIdentity);
             }
             config.getNetworkSelectionStatus().setConnectChoice(connectChoice);
@@ -2747,6 +2747,11 @@ public class WifiNetworkSuggestionsManager {
         }
         for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestionSet) {
             ewns.anonymousIdentity = config.enterpriseConfig.getAnonymousIdentity();
+            if (TextUtils.isEmpty(ewns.anonymousIdentity)) {
+                // Update WifiConfig with App set AnonymousIdentity
+                updateWifiConfigInWcmIfPresent(ewns.createInternalWifiConfiguration(
+                        mWifiCarrierInfoManager), ewns.perAppInfo.uid, ewns.perAppInfo.packageName);
+            }
         }
         saveToStore();
     }

@@ -89,6 +89,7 @@ import android.os.UserHandle;
 import android.os.test.TestLooper;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.LocalLog;
 import android.view.LayoutInflater;
 
@@ -156,7 +157,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     private static final String TEST_IMSI = "123456*";
     private static final int DEFAULT_PRIORITY_GROUP = 0;
     private static final int TEST_PRIORITY_GROUP = 1;
-    private static final String TEST_ANONYMOUS_IDENTITY = "AnonymousIdentity";
+    private static final String TEST_ANONYMOUS_IDENTITY_1 = "AnonymousIdentity1";
+    private static final String TEST_ANONYMOUS_IDENTITY_2 = "AnonymousIdentity2";
     private static final String USER_CONNECT_CHOICE = "SomeNetworkProfileId";
     private static final int TEST_RSSI = -50;
     private static final ParcelUuid GROUP_UUID = ParcelUuid
@@ -779,7 +781,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         config.ephemeral = true;
         config.creatorName = TEST_PACKAGE_1;
         config.creatorUid = TEST_UID_1;
-        config.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY);
+        config.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_1);
         WifiConfigManager.OnNetworkUpdateListener listener = mNetworkListenerCaptor.getValue();
         listener.onConnectChoiceSet(List.of(config), USER_CONNECT_CHOICE, TEST_RSSI);
         mWifiNetworkSuggestionsManager.setAnonymousIdentity(config);
@@ -818,7 +820,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         // As user changes the auto-join, will keep the user choice.
         assertFalse(matchedSuggestion.isAutojoinEnabled);
         // Verify user connect choice and Anonymous Identity are preserved during the modify.
-        assertEquals(TEST_ANONYMOUS_IDENTITY, matchedSuggestion.anonymousIdentity);
+        assertEquals(TEST_ANONYMOUS_IDENTITY_1, matchedSuggestion.anonymousIdentity);
         assertEquals(USER_CONNECT_CHOICE, matchedSuggestion.connectChoice);
         assertEquals(TEST_RSSI, matchedSuggestion.connectChoiceRssi);
 
@@ -4976,7 +4978,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                 .thenReturn(true);
         WifiConfiguration eapSimConfig = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork(
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
-        eapSimConfig.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY);
+        eapSimConfig.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_1);
         WifiNetworkSuggestion networkSuggestion = createWifiNetworkSuggestion(
                 new WifiConfiguration(eapSimConfig), null, false, false, true, true,
                 DEFAULT_PRIORITY_GROUP);
@@ -4994,25 +4996,26 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         configuration.ephemeral = true;
         configuration.creatorName = TEST_PACKAGE_1;
         configuration.creatorUid = TEST_UID_1;
-        configuration.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY);
+        configuration.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_1);
 
         Set<ExtendedWifiNetworkSuggestion> matchedSuggestions = mWifiNetworkSuggestionsManager
                 .getNetworkSuggestionsForWifiConfiguration(configuration,
                         TEST_BSSID);
         for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
             assertNull(ewns.anonymousIdentity);
-            assertEquals(TEST_ANONYMOUS_IDENTITY,
+            assertEquals(TEST_ANONYMOUS_IDENTITY_1,
                     ewns.createInternalWifiConfiguration(mWifiCarrierInfoManager)
                             .enterpriseConfig.getAnonymousIdentity());
         }
 
+        configuration.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_2);
         mWifiNetworkSuggestionsManager.setAnonymousIdentity(configuration);
 
         matchedSuggestions = mWifiNetworkSuggestionsManager
                 .getNetworkSuggestionsForWifiConfiguration(configuration,
                         TEST_BSSID);
         for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
-            assertEquals(TEST_ANONYMOUS_IDENTITY, ewns.anonymousIdentity);
+            assertEquals(TEST_ANONYMOUS_IDENTITY_2, ewns.anonymousIdentity);
         }
 
         // Reset SIM network suggestion, Anonymous Identity should gone.
@@ -5022,10 +5025,72 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
                         TEST_BSSID);
         for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
             assertEquals(null, ewns.anonymousIdentity);
-            assertEquals(TEST_ANONYMOUS_IDENTITY,
+            assertEquals(TEST_ANONYMOUS_IDENTITY_1,
                     ewns.createInternalWifiConfiguration(mWifiCarrierInfoManager)
                             .enterpriseConfig.getAnonymousIdentity());
         }
+        verify(mWifiConfigManager, times(3)).saveToStore();
+    }
+
+    @Test
+    public void testSetAnonymousIdentityNullOnSuggestionNetwork()  {
+        when(mWifiPermissionsUtil.checkNetworkCarrierProvisioningPermission(TEST_UID_1))
+                .thenReturn(true);
+        WifiConfiguration eapSimConfig = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        eapSimConfig.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_1);
+        WifiNetworkSuggestion networkSuggestion = createWifiNetworkSuggestion(
+                new WifiConfiguration(eapSimConfig), null, false, false, true, true,
+                DEFAULT_PRIORITY_GROUP);
+        List<WifiNetworkSuggestion> networkSuggestionList = List.of(networkSuggestion);
+        assertEquals(WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS,
+                mWifiNetworkSuggestionsManager.add(networkSuggestionList, TEST_UID_1,
+                        TEST_PACKAGE_1, TEST_FEATURE));
+        WifiConfiguration configuration =
+                new WifiConfiguration(eapSimConfig);
+        configuration.fromWifiNetworkSuggestion = true;
+        configuration.shared = false;
+        configuration.ephemeral = true;
+        configuration.creatorName = TEST_PACKAGE_1;
+        configuration.creatorUid = TEST_UID_1;
+        configuration.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_1);
+
+        Set<ExtendedWifiNetworkSuggestion> matchedSuggestions = mWifiNetworkSuggestionsManager
+                .getNetworkSuggestionsForWifiConfiguration(configuration,
+                        TEST_BSSID);
+        for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
+            assertNull(ewns.anonymousIdentity);
+            assertEquals(TEST_ANONYMOUS_IDENTITY_1,
+                    ewns.createInternalWifiConfiguration(mWifiCarrierInfoManager)
+                            .enterpriseConfig.getAnonymousIdentity());
+        }
+
+        configuration.enterpriseConfig.setAnonymousIdentity(TEST_ANONYMOUS_IDENTITY_2);
+        mWifiNetworkSuggestionsManager.setAnonymousIdentity(configuration);
+
+        matchedSuggestions = mWifiNetworkSuggestionsManager
+                .getNetworkSuggestionsForWifiConfiguration(configuration,
+                        TEST_BSSID);
+        for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
+            assertEquals(TEST_ANONYMOUS_IDENTITY_2, ewns.anonymousIdentity);
+        }
+
+        when(mWifiConfigManager.getConfiguredNetwork(anyString())).thenReturn(configuration);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), eq(TEST_UID_1), eq(TEST_PACKAGE_1),
+                eq(false))).thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        configuration.enterpriseConfig.setAnonymousIdentity(null);
+        mWifiNetworkSuggestionsManager.setAnonymousIdentity(configuration);
+        matchedSuggestions = mWifiNetworkSuggestionsManager
+                .getNetworkSuggestionsForWifiConfiguration(configuration,
+                        TEST_BSSID);
+        for (ExtendedWifiNetworkSuggestion ewns : matchedSuggestions) {
+            assertTrue(TextUtils.isEmpty(ewns.anonymousIdentity));
+            assertEquals(TEST_ANONYMOUS_IDENTITY_1,
+                    ewns.createInternalWifiConfiguration(mWifiCarrierInfoManager)
+                            .enterpriseConfig.getAnonymousIdentity());
+        }
+        verify(mWifiConfigManager).addOrUpdateNetwork(any(), eq(TEST_UID_1), eq(TEST_PACKAGE_1),
+                eq(false));
         verify(mWifiConfigManager, times(3)).saveToStore();
     }
 
