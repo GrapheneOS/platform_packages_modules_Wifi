@@ -2607,6 +2607,17 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mActiveModeWarden).setCurrentNetwork(null);
     }
 
+    @Test
+    public void testWifiInfoNetworkIdSetInScanningState() throws Exception {
+        triggerConnect();
+        assertEquals(WifiConfiguration.INVALID_NETWORK_ID, mWifiInfo.getNetworkId());
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.SCANNING));
+        mLooper.dispatchAll();
+        assertEquals(0, mWifiInfo.getNetworkId());
+    }
+
     /**
      * If caller tries to connect to a new network while still provisioning the current one,
      * the connection attempt should succeed.

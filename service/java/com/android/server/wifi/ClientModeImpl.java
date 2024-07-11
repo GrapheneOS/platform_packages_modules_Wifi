@@ -3250,6 +3250,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mWifiInfo.clearCurrentSecurityType();
             mWifiInfo.resetMultiLinkInfo();
         }
+        if (state == SupplicantState.SCANNING) {
+            // Set networkId only for matching Wi-Fi entry in UI.
+            mWifiInfo.setNetworkId(stateChangeResult.networkId);
+        }
 
         // SSID might have been updated, so call updateCapabilities
         updateCapabilities();
