@@ -18,6 +18,8 @@ package com.android.server.wifi.hal;
 
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_256;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
 
@@ -455,9 +457,9 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
             String password, int akm, int cipherSuite) {
         String methodStr = "respondToPairingRequest";
-        NanRespondToPairingIndicationRequest request = createNanPairingResponse(pairingId, accept,
-                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                cipherSuite);
+        NanRespondToPairingIndicationRequest request = createRespondToPairingIndicationRequest(
+                pairingId, accept, pairingIdentityKey, enablePairingCache, requestType, pmk,
+                password, akm, cipherSuite);
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
@@ -1032,7 +1034,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                 : NanPairingRequestType.NAN_PAIRING_VERIFICATION;
         request.securityConfig = new NanPairingSecurityConfig();
         request.securityConfig.pmk = new byte[32];
-        request.securityConfig.cipherType = cipherSuite;
+        request.securityConfig.cipherType = getHalCipherSuiteType(cipherSuite);
         request.securityConfig.passphrase = new byte[0];
         if (pmk != null && pmk.length != 0) {
             request.securityConfig.securityType = NanPairingSecurityType.PMK;
@@ -1050,7 +1052,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         return request;
     }
 
-    private static NanRespondToPairingIndicationRequest createNanPairingResponse(
+    private static NanRespondToPairingIndicationRequest createRespondToPairingIndicationRequest(
             int pairingInstanceId, boolean accept, byte[] pairingIdentityKey,
             boolean enablePairingCache, int requestType, byte[] pmk, String password, int akm,
             int cipherSuite) {
@@ -1065,7 +1067,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         request.securityConfig = new NanPairingSecurityConfig();
         request.securityConfig.pmk = new byte[32];
         request.securityConfig.passphrase = new byte[0];
-        request.securityConfig.cipherType = cipherSuite;
+        request.securityConfig.cipherType = getHalCipherSuiteType(cipherSuite);
         if (pmk != null && pmk.length != 0) {
             request.securityConfig.securityType = NanPairingSecurityType.PMK;
             request.securityConfig.pmk = copyArray(pmk);
@@ -1126,9 +1128,13 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             case WIFI_AWARE_CIPHER_SUITE_NCS_SK_256:
                 return NanCipherSuiteType.SHARED_KEY_256_MASK;
             case WIFI_AWARE_CIPHER_SUITE_NCS_PK_128:
-                return NanCipherSuiteType.PUBLIC_KEY_2WDH_256_MASK;
+                return NanCipherSuiteType.PUBLIC_KEY_2WDH_128_MASK;
             case WIFI_AWARE_CIPHER_SUITE_NCS_PK_256:
                 return NanCipherSuiteType.PUBLIC_KEY_2WDH_256_MASK;
+            case WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128:
+                return NanCipherSuiteType.PUBLIC_KEY_PASN_128_MASK;
+            case WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256:
+                return NanCipherSuiteType.PUBLIC_KEY_PASN_256_MASK;
         }
         return NanCipherSuiteType.NONE;
     }

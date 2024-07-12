@@ -18,8 +18,13 @@ package com.android.server.wifi.hal;
 
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_128_MASK;
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_256_MASK;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
+
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_AKM_PASN;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_AKM_SAE;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertArrayEquals;
@@ -33,10 +38,12 @@ import android.hardware.wifi.IWifiNanIface;
 import android.hardware.wifi.NanBandIndex;
 import android.hardware.wifi.NanBootstrappingRequest;
 import android.hardware.wifi.NanBootstrappingResponse;
+import android.hardware.wifi.NanCipherSuiteType;
 import android.hardware.wifi.NanConfigRequest;
 import android.hardware.wifi.NanConfigRequestSupplemental;
 import android.hardware.wifi.NanDataPathSecurityType;
 import android.hardware.wifi.NanEnableRequest;
+import android.hardware.wifi.NanPairingAkm;
 import android.hardware.wifi.NanPairingRequest;
 import android.hardware.wifi.NanPairingRequestType;
 import android.hardware.wifi.NanPairingSecurityType;
@@ -506,7 +513,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         ArgumentCaptor<NanRespondToPairingIndicationRequest> reqCaptor = ArgumentCaptor.forClass(
                 NanRespondToPairingIndicationRequest.class);
         assertTrue(mDut.respondToPairingRequest(tid, 1, true, null, true,
-                NanPairingRequestType.NAN_PAIRING_SETUP, null, null , 0, 0));
+                NanPairingRequestType.NAN_PAIRING_SETUP, null, null , NAN_PAIRING_AKM_PASN,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256));
         verify(mIWifiNanIfaceMock).respondToPairingIndicationRequest(eq((char) tid),
                 reqCaptor.capture());
         NanRespondToPairingIndicationRequest request = reqCaptor.getValue();
@@ -518,6 +526,9 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertArrayEquals(new byte[0], request.securityConfig.passphrase);
         assertTrue(request.enablePairingCache);
         assertArrayEquals(new byte[16], request.pairingIdentityKey);
+        assertEquals(NanCipherSuiteType.PUBLIC_KEY_PASN_256_MASK,
+                request.securityConfig.cipherType);
+        assertEquals(NanPairingAkm.PASN, request.securityConfig.akm);
     }
 
     @Test
@@ -527,17 +538,21 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         ArgumentCaptor<NanPairingRequest> reqCaptor = ArgumentCaptor.forClass(
                 NanPairingRequest.class);
         assertTrue(mDut.initiateNanPairingRequest(tid, 1, peer, null, true,
-                NanPairingRequestType.NAN_PAIRING_SETUP, null, null , 0, 0));
+                NanPairingRequestType.NAN_PAIRING_SETUP, null, "PASSWORD", NAN_PAIRING_AKM_SAE,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
         verify(mIWifiNanIfaceMock).initiatePairingRequest(eq((char) tid),
                 reqCaptor.capture());
         NanPairingRequest request = reqCaptor.getValue();
         assertEquals(NanPairingRequestType.NAN_PAIRING_SETUP, request.requestType);
         assertEquals(1, request.peerId);
-        assertEquals(NanPairingSecurityType.OPPORTUNISTIC, request.securityConfig.securityType);
+        assertEquals(NanPairingSecurityType.PASSPHRASE, request.securityConfig.securityType);
         assertArrayEquals(new byte[32], request.securityConfig.pmk);
-        assertArrayEquals(new byte[0], request.securityConfig.passphrase);
+        assertArrayEquals("PASSWORD".getBytes(), request.securityConfig.passphrase);
         assertTrue(request.enablePairingCache);
         assertArrayEquals(new byte[16], request.pairingIdentityKey);
+        assertEquals(NanCipherSuiteType.PUBLIC_KEY_PASN_128_MASK,
+                request.securityConfig.cipherType);
+        assertEquals(NanPairingAkm.SAE, request.securityConfig.akm);
     }
 
     @Test
