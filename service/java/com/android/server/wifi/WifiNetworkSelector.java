@@ -1129,7 +1129,7 @@ public class WifiNetworkSelector {
                 String currentBssid = cmmState.wifiInfo.getBSSID();
                 WifiConfiguration currentNetwork =
                         mWifiConfigManager.getConfiguredNetwork(cmmState.wifiInfo.getNetworkId());
-                if (currentNetwork != null) {
+                if (currentNetwork != null && currentBssid != null) {
                     wifiCandidates.setCurrent(currentNetwork.networkId, currentBssid);
                     // We always want the current network to be a candidate so that it can
                     // participate.
