@@ -1279,7 +1279,10 @@ public class SoftApManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mCallback, times(2)).onConnectedClientsOrInfoChanged(
                 mTestSoftApInfoMap, mTestWifiClientsMap, true);
-
+        when(mWifiNative.getBridgedApInstances(any()))
+                .thenReturn(new ArrayList<>(ImmutableList.of(TEST_FIRST_INSTANCE_NAME,
+                        TEST_SECOND_INSTANCE_NAME)),
+                        new ArrayList<>(ImmutableList.of(TEST_FIRST_INSTANCE_NAME)));
         // Trigger onInstanceFailure
         mSoftApHalCallbackCaptor.getValue().onInstanceFailure(TEST_SECOND_INSTANCE_NAME);
         mLooper.dispatchAll();
@@ -1311,6 +1314,11 @@ public class SoftApManagerTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         // Trigger onInstanceFailure on the second instance
+        when(mWifiNative.getBridgedApInstances(eq(TEST_INTERFACE_NAME)))
+                .thenReturn(new ArrayList<>(
+                        ImmutableList.of(TEST_FIRST_INSTANCE_NAME, TEST_SECOND_INSTANCE_NAME)),
+                        new ArrayList<>(
+                        ImmutableList.of(TEST_FIRST_INSTANCE_NAME)));
         mSoftApHalCallbackCaptor.getValue().onInstanceFailure(TEST_SECOND_INSTANCE_NAME);
         mLooper.dispatchAll();
         // Verify the remove correct iface and instance
@@ -1353,28 +1361,14 @@ public class SoftApManagerTest extends WifiBaseTest {
         // SoftApInfo updated
         mockSoftApInfoUpdateAndVerifyAfterSapStarted(true /* bridged mode*/, true);
         mLooper.dispatchAll();
-
+        when(mWifiNative.getBridgedApInstances(any()))
+                .thenReturn(null);
         // Trigger onInstanceFailure on the second instance
         mSoftApHalCallbackCaptor.getValue().onInstanceFailure(TEST_SECOND_INSTANCE_NAME);
         mLooper.dispatchAll();
-        // Verify the remove correct iface and instance
+        // Verify the remove correct iface and instance but SAP off since it can't get instances.
         verify(mWifiNative).removeIfaceInstanceFromBridgedApIface(eq(TEST_INTERFACE_NAME),
                 eq(TEST_SECOND_INSTANCE_NAME));
-        mLooper.dispatchAll();
-        mTestSoftApInfoMap.clear();
-        mTestWifiClientsMap.clear();
-        mTestSoftApInfoMap.put(mTestSoftApInfoOnFirstInstance.getApInstanceIdentifier(),
-                mTestSoftApInfoOnFirstInstance);
-        mTestWifiClientsMap.put(mTestSoftApInfoOnFirstInstance.getApInstanceIdentifier(),
-                new ArrayList<WifiClient>());
-        verify(mCallback, times(3)).onConnectedClientsOrInfoChanged(
-                mTestSoftApInfoMap, mTestWifiClientsMap, true);
-
-        when(mWifiNative.getBridgedApInstances(any()))
-                .thenReturn(null);
-
-        // Trigger onFailure since only left 1 instance
-        mSoftApHalCallbackCaptor.getValue().onFailure();
         mLooper.dispatchAll();
         mTestSoftApInfoMap.clear();
         mTestWifiClientsMap.clear();
@@ -1392,7 +1386,8 @@ public class SoftApManagerTest extends WifiBaseTest {
         startSoftApAndVerifyEnabled(apConfig);
         when(mWifiNative.getBridgedApInstances(any()))
                 .thenReturn(new ArrayList<>(ImmutableList.of(TEST_FIRST_INSTANCE_NAME,
-                        TEST_SECOND_INSTANCE_NAME)));
+                        TEST_SECOND_INSTANCE_NAME)),
+                        new ArrayList<>(ImmutableList.of(TEST_SECOND_INSTANCE_NAME)));
         // SoftApInfo updated for first instance only
         mockApInfoChangedEvent(mTestSoftApInfoOnFirstInstance);
         mLooper.dispatchAll();

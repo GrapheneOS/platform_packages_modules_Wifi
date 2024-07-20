@@ -2060,13 +2060,10 @@ public class SoftApManager implements ActiveModeManager {
                             if (instance != null) {
                                 Log.i(getTag(), "receive instanceFailure on " + instance);
                                 removeIfaceInstanceFromBridgedApIface(instance);
-                                // there is an available instance, keep AP on.
-                                if (mCurrentSoftApInfoMap.size() == 1) {
-                                    break;
-                                }
-                                // Check if there's any instances that aren't done initializing.
-                                if (mWifiNative.getBridgedApInstances(mApInterfaceName)
-                                        .size() > 0) {
+                                instances =
+                                    mWifiNative.getBridgedApInstances(mApInterfaceName);
+                                // Check if there's any instance still active.
+                                if (instances != null && instances.size() > 0) {
                                     break;
                                 }
                             } else if (mCurrentSoftApInfoMap.size() == 1 && instances != null
