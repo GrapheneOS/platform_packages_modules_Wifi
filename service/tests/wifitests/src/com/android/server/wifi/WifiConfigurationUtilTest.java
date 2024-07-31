@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiEnterpriseConfig.OCSP_NONE;
 import static android.net.wifi.WifiEnterpriseConfig.OCSP_REQUIRE_CERT_STATUS;
+import static android.net.wifi.hotspot2.PasspointConfiguration.MAX_URL_BYTES;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -53,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
+import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,6 +79,7 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
             new UserInfo(CURRENT_USER_ID, "owner", 0),
             new UserInfo(CURRENT_USER_MANAGED_PROFILE_USER_ID, "managed profile", 0));
     private static final long SUPPORTED_FEATURES_ALL = Long.MAX_VALUE;
+    private final String mGeneratedString256 = "a".repeat(256);
 
     private MockitoSession mSession;
 
@@ -1605,5 +1608,77 @@ public class WifiConfigurationUtilTest extends WifiBaseTest {
         assertFalse(WifiConfigurationUtil.isConfigLinkable(pskDisabledConfig));
         assertTrue(WifiConfigurationUtil.isConfigLinkable(saeConfig));
         assertFalse(WifiConfigurationUtil.isConfigLinkable(saeDisabledConfig));
+    }
+
+    @Test
+    public void testWepKeyOnNonWepConfig() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+        pskConfig.wepKeys = new String[4];
+        pskConfig.wepKeys[0] = mGeneratedString256;
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    @Test
+    public void testInvalidFqdnAndFriendlyName() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+
+        pskConfig.FQDN = mGeneratedString256;
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+
+        pskConfig.FQDN = null;
+        pskConfig.providerFriendlyName = mGeneratedString256;
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    @Test
+    public void testInvalidDhcpAndGtw() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+        pskConfig.dhcpServer = TEST_BSSID;
+        pskConfig.defaultGwMacAddress = TEST_BSSID;
+        assertTrue(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+        pskConfig.dhcpServer = mGeneratedString256;
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+        pskConfig.dhcpServer = TEST_BSSID;
+        pskConfig.defaultGwMacAddress = mGeneratedString256;
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    @Test
+    public void testInvalidSecurityParameter() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+        List<SecurityParams> securityParamsList = new ArrayList<>();
+        securityParamsList.add(SecurityParams.createSecurityParamsBySecurityType(
+                WifiConfiguration.SECURITY_TYPE_PSK));
+        securityParamsList.add(SecurityParams.createSecurityParamsBySecurityType(
+                WifiConfiguration.SECURITY_TYPE_PSK));
+
+        pskConfig.setSecurityParams(securityParamsList);
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    @Test
+    public void testInvalidUserConnectChoice() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+        String generatedString513 = "a".repeat(513);
+        pskConfig.getNetworkSelectionStatus().setConnectChoice(generatedString513);
+
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
+    }
+
+    @Test
+    public void testInvalidDppConfig() {
+        WifiConfiguration pskConfig = WifiConfigurationTestUtil.createPskNetwork();
+        String generatedString = "a".repeat(MAX_URL_BYTES + 1);
+        pskConfig.setDppConfigurator(generatedString.getBytes(StandardCharsets.UTF_8));
+        assertFalse(WifiConfigurationUtil.validate(pskConfig, SUPPORTED_FEATURES_ALL,
+                WifiConfigurationUtil.VALIDATE_FOR_ADD));
     }
 }

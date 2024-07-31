@@ -3828,6 +3828,11 @@ public class WifiServiceImpl extends BaseWifiService {
         boolean isCamera = mWifiPermissionsUtil.checkCameraPermission(callingUid);
         boolean isSystem = mWifiPermissionsUtil.isSystem(packageName, callingUid);
         boolean isPrivileged = isPrivileged(callingPid, callingUid);
+        if (!isPrivileged && !isSystem && !isAdmin && config.getBssidAllowlistInternal() != null) {
+            mLog.info("addOrUpdateNetwork with allow bssid list is not allowed for uid=%")
+                    .c(callingUid).flush();
+            return -1;
+        }
 
         if (!isTargetSdkLessThanQOrPrivileged(packageName, callingPid, callingUid)) {
             mLog.info("addOrUpdateNetwork not allowed for uid=%").c(callingUid).flush();
