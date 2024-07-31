@@ -6846,6 +6846,31 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that add or update networks is allowed for apps targeting below Q SDK.
+     */
+    @Test
+    public void testAddOrUpdateNetworkWithBssidAllowListIsNotAllowedForAppsNotPrivileged()
+            throws Exception {
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(),  anyInt(), any(), eq(false))).thenReturn(
+                new NetworkUpdateResult(0));
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
+                eq(Build.VERSION_CODES.Q), anyInt())).thenReturn(true);
+
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        config.setBssidAllowlist(Collections.emptyList());
+        mLooper.startAutoDispatch();
+        assertEquals(-1,
+                mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        verifyCheckChangePermission(TEST_PACKAGE_NAME);
+        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
+        verify(mWifiMetrics, never()).incrementNumAddOrUpdateNetworkCalls();
+    }
+
+    /**
      * Verify that add or update networks is not allowed for apps targeting below Q SDK
      * when DISALLOW_ADD_WIFI_CONFIG user restriction is set.
      */
