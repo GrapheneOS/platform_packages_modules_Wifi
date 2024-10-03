@@ -420,6 +420,12 @@ public class WifiNative {
                 case IFACE_TYPE_AP:
                     typeString = "AP";
                     break;
+                case IFACE_TYPE_P2P:
+                    typeString = "P2P";
+                    break;
+                case IFACE_TYPE_NAN:
+                    typeString = "NAN";
+                    break;
                 default:
                     typeString = "<UNKNOWN>";
                     break;
@@ -1316,8 +1322,12 @@ public class WifiNative {
                         nanInterfaceDestroyedListener, handler, requestorWs);
                 if (nanIface != null) {
                     iface.iface = nanIface;
-                    return iface;
+                    iface.name = nanIface.getName();
+                    if (!TextUtils.isEmpty(iface.name)) {
+                        return iface;
+                    }
                 }
+                mIfaceMgr.removeIface(iface.id);
             }
             Log.e(TAG, "Failed to allocate new Nan iface");
             stopHalAndWificondIfNecessary();

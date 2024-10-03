@@ -85,6 +85,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     private static final String IFACE_NAME_0 = "mockWlan0";
     private static final String IFACE_NAME_1 = "mockWlan1";
     private static final String SELF_RECOVERY_IFACE_NAME = "mockWlan2";
+    private static final String IFACE_NAME_AWARE = "MockAware";
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
     private static final long[] TEST_SUPPORTED_FEATURES = new long[]{ 0 };
     private static final int STA_FAILURE_CODE_START_DAEMON = 1;
@@ -240,6 +241,8 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mWifiSettingsConfigStore.get(
                 eq(WifiSettingsConfigStore.WIFI_NATIVE_SUPPORTED_STA_BANDS)))
                 .thenReturn(TEST_SUPPORTED_BANDS);
+
+        when(mActiveWifiNanIface.getName()).thenReturn(IFACE_NAME_AWARE);
 
         mInOrder = inOrder(mWifiVendorHal, mWificondControl, mSupplicantStaIfaceHal, mHostapdHal,
                 mWifiMonitor, mNetdWrapper, mIfaceCallback0, mIfaceCallback1, mIfaceEventCallback0,
@@ -1570,6 +1573,30 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         validateOnDestroyedClientInterface(false, false, false, true,
                 IFACE_NAME_0, mIfaceCallback0, mNetworkObserverCaptor0.getValue());
         executeAndValidateTeardownNanInterface(false, false, false, false, mActiveNanIface);
+    }
+
+    @Test
+    public void testCreateNanIfaceFailureWhenFailToCreateNan() throws Exception {
+        when(mHalDeviceManager.createNanIface(any(), any(), any()))
+                .thenReturn(null);
+        mActiveNanIface = mWifiNative.createNanIface(mTestInterfaceDestroyedListener,
+                    mCreateIfaceEventHandler, TEST_WORKSOURCE);
+        validateStartHal(false, true);
+        assertNull(mActiveNanIface);
+        validateOnDestroyedNanInterface(false, false, false, false);
+    }
+
+    @Test
+    public void testCreateNanIfaceFailureWhenFailToGetNanIfaceName() throws Exception {
+        when(mHalDeviceManager.createNanIface(any(), any(), any()))
+                .thenReturn(mActiveWifiNanIface);
+        // The empty aware iface will cause failure
+        when(mActiveWifiNanIface.getName()).thenReturn(null);
+        mActiveNanIface = mWifiNative.createNanIface(mTestInterfaceDestroyedListener,
+                    mCreateIfaceEventHandler, TEST_WORKSOURCE);
+        validateStartHal(false, true);
+        assertNull(mActiveNanIface);
+        validateOnDestroyedNanInterface(false, false, false, false);
     }
 
     private void executeAndValidateSetupClientInterface(
