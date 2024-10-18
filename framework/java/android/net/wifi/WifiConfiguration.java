@@ -1988,7 +1988,7 @@ public class WifiConfiguration implements Parcelable {
         mRandomizedMacAddress = mac;
     }
 
-    private boolean mIsSendDhcpHostnameEnabled = true;
+    private boolean mIsSendDhcpHostnameEnabled;
 
     /**
      * Set whether to send the hostname of the device to this network's DHCP server.
