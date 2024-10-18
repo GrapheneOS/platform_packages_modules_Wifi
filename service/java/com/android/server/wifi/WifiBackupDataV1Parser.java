@@ -345,7 +345,6 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
         WifiConfiguration configuration = new WifiConfiguration();
         String configKeyInData = null;
         Set<String> supportedTags = getSupportedWifiConfigurationTags(minorVersion);
-        boolean sendDhcpHostnameExists = false;
         // Loop through and parse out all the elements from the stream within this section.
         while (!XmlUtil.isNextSectionEnd(in, outerTagDepth)) {
             String tagName = null;
@@ -442,7 +441,6 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                     break;
                 case WifiConfigurationXmlUtil.XML_TAG_SEND_DHCP_HOSTNAME:
                     configuration.setSendDhcpHostnameEnabled((boolean) value);
-                    sendDhcpHostnameExists = true;
                     break;
                 // V5
                 case WifiConfigurationXmlUtil.XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS:
@@ -456,12 +454,6 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                     throw new XmlPullParserException(
                             "Unknown value name found: " + tagName);
             }
-        }
-        if (!sendDhcpHostnameExists) {
-            // Update legacy configs to send the DHCP hostname for secure networks only.
-            configuration.setSendDhcpHostnameEnabled(
-                    !configuration.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
-                    && !configuration.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE));
         }
         clearAnyKnownIssuesInParsedConfiguration(configuration);
         return Pair.create(configKeyInData, configuration);
