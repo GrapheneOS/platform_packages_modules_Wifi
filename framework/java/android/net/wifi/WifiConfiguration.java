@@ -3424,6 +3424,12 @@ public class WifiConfiguration implements Parcelable {
         mIpProvisioningTimedOut = false;
         mVendorData = Collections.emptyList();
         mIsAllowedToUpdateByOtherUsers = true;
+
+        if (android.app.compat.gms.GmsCompat.isAndroidAuto()) {
+            // Per-connection MAC randomization doesn't work with some cars, see
+            // https://github.com/GrapheneOS/os-issue-tracker/issues/4139
+            macRandomizationSetting = RANDOMIZATION_PERSISTENT;
+        }
         mCreatorUserId = -2; // Same as UserHandle.USER_CURRENT
     }
 
