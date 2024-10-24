@@ -65,6 +65,7 @@ import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
+import android.os.Build;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.util.Log;
@@ -1071,12 +1072,26 @@ public class WifiChipAidlImpl implements IWifiChip {
         }
     }
 
+    private static boolean shouldIgnoreDebugRingBufferLoggingRequests() {
+        return switch (Build.DEVICE) {
+            // There's an MTE Wi-Fi HAL crash on 8th and 9th gen Pixel devices that is triggered by
+            // debug ring buffer logging
+            case "shiba", "husky", "akita", "tokay", "caiman", "komodo", "comet" -> true;
+            default -> false;
+        };
+    }
+
     /**
      * See comments for {@link IWifiChip#startLoggingToDebugRingBuffer(String, int, int, int)}
      */
     @Override
     public boolean startLoggingToDebugRingBuffer(String ringName, int verboseLevel,
             int maxIntervalInSec, int minDataSizeInBytes) {
+        if (shouldIgnoreDebugRingBufferLoggingRequests()) {
+            Log.d(TAG, "ignored startLoggingToDebugRingBuffer");
+            return false;
+        }
+
         final String methodStr = "startLoggingToDebugRingBuffer";
         synchronized (mLock) {
             try {
@@ -1098,6 +1113,11 @@ public class WifiChipAidlImpl implements IWifiChip {
      */
     @Override
     public boolean stopLoggingToDebugRingBuffer() {
+        if (shouldIgnoreDebugRingBufferLoggingRequests()) {
+            Log.d(TAG, "ignored stopLoggingToDebugRingBuffer");
+            return false;
+        }
+
         final String methodStr = "stopLoggingToDebugRingBuffer";
         synchronized (mLock) {
             try {
