@@ -613,14 +613,18 @@ public class WifiPermissionsUtil {
             throw new SecurityException("UID " + uid + " has no wifi scan permission");
         }
         // If the User or profile is current, permission is granted
-        // Otherwise, uid must have INTERACT_ACROSS_USERS_FULL permission.
+        // Otherwise, uid must have INTERACT_ACROSS_USERS_FULL permission or
+        // INSTALL_LOCATION_PROVIDER permission.
         boolean isCurrentProfile = doesUidBelongToUser(
                 uid, mWifiPermissionsWrapper.getCurrentUser());
-        if (!isCurrentProfile && !checkInteractAcrossUsersFull(uid)) {
+        if (!isCurrentProfile && !checkInteractAcrossUsersFull(uid)
+                && !checkInstallLocationProviderPermission(uid)) {
             if (mVerboseLoggingEnabled) {
                 Log.v(TAG, "enforceCanAccessScanResults(pkg=" + pkgName + ", uid=" + uid + "): "
                         + "isCurrentProfile=" + isCurrentProfile
-                        + ", checkInteractAcrossUsersFull=" + checkInteractAcrossUsersFull(uid));
+                        + ", checkInteractAcrossUsersFull=" + checkInteractAcrossUsersFull(uid)
+                        + ", checkInstallLocationProviderPermission="
+                        + checkInstallLocationProviderPermission(uid));
             }
             throw new SecurityException("UID " + uid + " profile not permitted");
         }
@@ -917,6 +921,15 @@ public class WifiPermissionsUtil {
     public boolean checkCameraPermission(int uid) {
         return mWifiPermissionsWrapper.getUidPermission(
                 android.Manifest.permission.CAMERA, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns true if the |uid| holds INSTALL_LOCATION_PROVIDER permission.
+     */
+    public boolean checkInstallLocationProviderPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                android.Manifest.permission.INSTALL_LOCATION_PROVIDER, uid)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
