@@ -782,6 +782,7 @@ public class WifiPermissionsUtil {
      */
     public boolean isLocationModeEnabled() {
         if (!retrieveLocationManagerIfNecessary()) return false;
+        long ident = Binder.clearCallingIdentity();
         try {
             return mLocationManager.isLocationEnabledForUser(UserHandle.of(
                     mWifiPermissionsWrapper.getCurrentUser()));
@@ -790,6 +791,8 @@ public class WifiPermissionsUtil {
             return mFrameworkFacade.getIntegerSetting(
                     mContext, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF)
                     == Settings.Secure.LOCATION_MODE_ON;
+        } finally {
+            Binder.restoreCallingIdentity(ident);
         }
     }
 
