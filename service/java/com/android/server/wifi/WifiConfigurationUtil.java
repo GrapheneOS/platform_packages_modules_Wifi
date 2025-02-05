@@ -27,6 +27,7 @@ import static com.android.server.wifi.util.NativeUtil.addEnclosingQuotes;
 import android.annotation.SuppressLint;
 import android.net.IpConfiguration;
 import android.net.MacAddress;
+import android.net.ProxyInfo;
 import android.net.StaticIpConfiguration;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
@@ -78,6 +79,7 @@ public class WifiConfigurationUtil {
     private static final int WEP104_KEY_BYTES_LEN = 13;
     private static final int WEP40_KEY_BYTES_LEN = 5;
     private static final int MAX_STRING_LENGTH = 512;
+    private static final int MAX_ENTRY_SIZE = 100;
 
     @VisibleForTesting
     public static final String PASSWORD_MASK = "*";
@@ -723,6 +725,42 @@ public class WifiConfigurationUtil {
             if (staticIpConfig.getIpAddress() == null) {
                 Log.e(TAG, "validateIpConfiguration failed: null static ip Address");
                 return false;
+            }
+            if (staticIpConfig.getDnsServers() != null
+                    && staticIpConfig.getDnsServers().size() > MAX_ENTRY_SIZE) {
+                Log.e(TAG, "validateIpConfiguration failed: too many DNS server");
+                return false;
+            }
+            if (staticIpConfig.getDomains() != null
+                    && staticIpConfig.getDomains().length() > MAX_STRING_LENGTH) {
+                Log.e(TAG, "validateIpConfiguration failed: domain name too long");
+                return false;
+            }
+        }
+        ProxyInfo proxyInfo = ipConfig.getHttpProxy();
+        if (proxyInfo != null) {
+            if (!proxyInfo.isValid()) {
+                Log.e(TAG, "validateIpConfiguration failed: invalid proxy info");
+                return false;
+            }
+            if (proxyInfo.getHost() != null
+                    && proxyInfo.getHost().length() > MAX_STRING_LENGTH) {
+                Log.e(TAG, "validateIpConfiguration failed: host name too long");
+                return false;
+            }
+            if (proxyInfo.getExclusionList() != null) {
+                if (proxyInfo.getExclusionList().length > MAX_ENTRY_SIZE) {
+                    Log.e(TAG, "validateIpConfiguration failed: too many entry in exclusion list");
+                    return false;
+                }
+                int sum = 0;
+                for (String s : proxyInfo.getExclusionList()) {
+                    sum += s.length();
+                    if (sum > MAX_STRING_LENGTH) {
+                        Log.e(TAG, "validateIpConfiguration failed: exclusion list size too large");
+                        return false;
+                    }
+                }
             }
         }
         return true;
