@@ -652,8 +652,15 @@ public class WifiPermissionsUtil {
             return;
         }
 
+        final boolean isLocationModeEnabled;
+        final long token = Binder.clearCallingIdentity();
+        try {
+            isLocationModeEnabled = isLocationModeEnabled();
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
         // Location mode must be enabled
-        if (!isLocationModeEnabled()) {
+        if (!isLocationModeEnabled) {
             if (ignoreLocationSettings) {
                 mLog.w("Request from " + pkgName + " violated location settings");
             } else {
