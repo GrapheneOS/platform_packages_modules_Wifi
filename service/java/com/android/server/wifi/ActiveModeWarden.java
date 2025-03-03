@@ -283,6 +283,11 @@ public class ActiveModeWarden {
      */
     public void addWifiStateChangedListener(@NonNull IWifiStateChangedListener listener) {
         mWifiStateChangedListeners.register(listener);
+        try {
+            listener.onWifiStateChanged();
+        } catch (RemoteException e) {
+            Log.e(TAG, "onWifiStateChanged: remote exception -- " + e);
+        }
     }
 
     /**
@@ -2467,9 +2472,6 @@ public class ActiveModeWarden {
         }
 
         class EnabledState extends BaseState {
-
-            private boolean mIsDisablingDueToAirplaneMode;
-
             EnabledState(int threshold) {
                 super(threshold, mWifiInjector.getWifiHandlerLocalLog());
             }
@@ -2481,7 +2483,6 @@ public class ActiveModeWarden {
                 if (!hasAnyModeManager()) {
                     Log.e(TAG, "Entered EnabledState, but no active mode managers");
                 }
-                mIsDisablingDueToAirplaneMode = false;
             }
 
             @Override
@@ -2664,15 +2665,15 @@ public class ActiveModeWarden {
                     case CMD_AIRPLANE_TOGGLED:
                         // airplane mode toggled on is handled in the default state
                         if (mSettingsStore.isAirplaneModeOn()) {
-                            mIsDisablingDueToAirplaneMode = true;
                             return NOT_HANDLED;
                         } else {
-                            if (mIsDisablingDueToAirplaneMode) {
+                            if (mWifiState.get() == WIFI_STATE_DISABLING) {
                                 // Previous airplane mode toggle on is being processed, defer the
                                 // message toggle off until previous processing is completed.
                                 // Once previous airplane mode toggle is complete, we should
                                 // transition to DisabledState. There, we will process the deferred
                                 // airplane mode toggle message to disable airplane mode.
+                                Log.i(TAG, "Deferring CMD_AIRPLANE_TOGGLED.");
                                 deferMessage(msg);
                             } else {
                                 if (!hasPrimaryOrScanOnlyModeManager()) {
@@ -2745,6 +2746,26 @@ public class ActiveModeWarden {
                             transitionTo(mDisabledState);
                         } else {
                             log("STA disabled, remain in EnabledState.");
+                            // Handle any deferred airplane toggle off messages that didn't
+                            // trigger due to no state change
+                            if (hasDeferredMessages(CMD_AIRPLANE_TOGGLED)
+                                    && !hasPrimaryOrScanOnlyModeManager()) {
+                                removeDeferredMessages(CMD_AIRPLANE_TOGGLED);
+                                if (mSettingsStore.isAirplaneModeOn()) {
+                                    // deferred APM toggle is only meant to be done for APM off, so
+                                    // no-op if APM is already on here.
+                                    break;
+                                }
+                                log("Airplane mode disabled, determine next state");
+                                if (shouldEnableSta()) {
+                                    startPrimaryOrScanOnlyClientModeManager(
+                                            // Assumes user toggled it on from settings before.
+                                            mFacade.getSettingsWorkSource(mContext));
+                                    mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED,
+                                            Process.myTid(), Process.WIFI_UID, -1, "android_apm",
+                                            true);
+                                }
+                            }
                         }
                         break;
                     case  CMD_DEFERRED_RECOVERY_RESTART_WIFI:

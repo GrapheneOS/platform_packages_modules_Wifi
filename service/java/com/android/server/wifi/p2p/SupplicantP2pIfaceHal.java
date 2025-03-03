@@ -507,18 +507,20 @@ public class SupplicantP2pIfaceHal {
     /**
      * Reinvoke a device from a persistent group.
      *
-     * @param networkId Used to specify the persistent group.
+     * @param networkId Used to specify the persistent group (valid only for P2P V1 group).
      * @param peerAddress MAC address of the device to reinvoke.
+     * @param dikId The identifier of device identity key of the device to reinvoke.
+     *              (valid only for P2P V2 group).
      *
      * @return true, if operation was successful.
      */
-    public boolean reinvoke(int networkId, String peerAddress) {
+    public boolean reinvoke(int networkId, String peerAddress, int dikId) {
         synchronized (mLock) {
             String methodStr = "reinvoke";
             if (mP2pIfaceHal == null) {
                 return handleNullHal(methodStr);
             }
-            return mP2pIfaceHal.reinvoke(networkId, peerAddress);
+            return mP2pIfaceHal.reinvoke(networkId, peerAddress, dikId);
         }
     }
 

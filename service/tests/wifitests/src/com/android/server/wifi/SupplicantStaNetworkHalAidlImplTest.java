@@ -780,6 +780,23 @@ public class SupplicantStaNetworkHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Tests the addition of multiple AKM when the 64 byte Hexadecimal PSK is used as preSharedKey.
+     */
+    @Test
+    public void testAddPskSaeAkmWhenRawPskIsUsedAsPreSharedKey() throws Exception {
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork();
+        config.preSharedKey = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                config.getDefaultSecurityParams());
+        assertTrue(mSupplicantNetwork.saveWifiConfiguration(config));
+
+        assertEquals(KeyMgmtMask.WPA_PSK, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.WPA_PSK));
+        // Verify that the SAE AKM is not added.
+        assertEquals(0, (mSupplicantVariables.keyMgmtMask & KeyMgmtMask.SAE));
+        assertFalse(mSupplicantVariables.requirePmf);
+    }
+
+    /**
      * Tests ciphers are merged when the device supports auto upgrade offload feature
      * and when candidate security type is PSK.
      */

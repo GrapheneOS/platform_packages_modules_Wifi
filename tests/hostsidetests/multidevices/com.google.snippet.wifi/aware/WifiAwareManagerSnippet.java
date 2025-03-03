@@ -43,6 +43,7 @@ import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.WifiRttManager;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -65,11 +66,15 @@ import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.rpc.RpcOptional;
 import com.google.android.mobly.snippet.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -347,6 +352,10 @@ public class WifiAwareManagerSnippet implements Snippet {
     /**
      * Checks if Wi-Fi RTT is available.
      */
+    @Rpc(description = "Check if Wi-Fi Aware is available")
+    public Boolean wifiRttIsAvailable() {
+        return mWifiRttManager.isAvailable();
+    }
     private void checkWifiRttAvailable() throws WifiAwareManagerSnippetException {
         if (!mWifiRttManager.isAvailable()) {
             throw new WifiAwareManagerSnippetException("WiFi RTT is not available now.");
@@ -833,6 +842,98 @@ public class WifiAwareManagerSnippet implements Snippet {
     }
 
     /**
+     * Converts a JSON representation of a ScanResult to an actual ScanResult object. Mirror of
+     * the code in
+     * {@link com.googlecode.android_scripting.jsonrpc.JsonBuilder#buildJsonScanResult(ScanResult)}.
+     *
+     * @param j JSON object representing a ScanResult.
+     * @return a ScanResult object
+     * @throws JSONException on any JSON errors
+     */
+    public static ScanResult getScanResult(JSONObject j) throws JSONException {
+        if (j == null) {
+            return null;
+        }
+
+        ScanResult scanResult = new ScanResult();
+
+        if (j.has("BSSID")) {
+            scanResult.BSSID = j.getString("BSSID");
+        }
+        if (j.has("SSID")) {
+            scanResult.SSID = j.getString("SSID");
+        }
+        if (j.has("frequency")) {
+            scanResult.frequency = j.getInt("frequency");
+        }
+        if (j.has("level")) {
+            scanResult.level = j.getInt("level");
+        }
+        if (j.has("capabilities")) {
+            scanResult.capabilities = j.getString("capabilities");
+        }
+        if (j.has("timestamp")) {
+            scanResult.timestamp = j.getLong("timestamp");
+        }
+        if (j.has("centerFreq0")) {
+            scanResult.centerFreq0 = j.getInt("centerFreq0");
+        }
+        if (j.has("centerFreq1")) {
+            scanResult.centerFreq1 = j.getInt("centerFreq1");
+        }
+        if (j.has("channelWidth")) {
+            scanResult.channelWidth = j.getInt("channelWidth");
+        }
+        if (j.has("operatorFriendlyName")) {
+            scanResult.operatorFriendlyName = j.getString("operatorFriendlyName");
+        }
+        if (j.has("venueName")) {
+            scanResult.venueName = j.getString("venueName");
+        }
+
+        return scanResult;
+    }
+
+    /**
+     * Converts a JSONArray toa a list of ScanResult.
+     *
+     * @param j JSONArray representing a collection of ScanResult objects
+     * @return a list of ScanResult objects
+     * @throws JSONException on any JSON error
+     */
+    public static List<ScanResult> getScanResults(JSONArray j) throws JSONException {
+        if (j == null || j.length() == 0) {
+            return null;
+        }
+
+        ArrayList<ScanResult> scanResults = new ArrayList<>(j.length());
+        for (int i = 0; i < j.length(); ++i) {
+            scanResults.add(getScanResult(j.getJSONObject(i)));
+        }
+
+        return scanResults;
+    }
+
+    /**
+     * Starts Wi-Fi RTT ranging with Wi-Fi Aware access points.
+     *
+     * @param callbackId        Assigned automatically by mobly for all async RPCs.
+     * @param requestJsonObject The ranging request in JSONArray type for calling {@link
+     *                          android.net.wifi.ScanResult}.
+     */
+    @AsyncRpc(description = "Start ranging to an Access Points.")
+    public void wifiRttStartRangingToAccessPoints(
+            String callbackId, JSONArray requestJsonObject
+    ) throws JSONException, WifiAwareManagerSnippetException {
+        Log.v("wifiRttStartRangingToAccessPoints: " + requestJsonObject);
+        RangingRequest request = new RangingRequest.Builder().addAccessPoints(
+                            getScanResults(requestJsonObject)).build();
+        Log.v("Starting Wi-Fi RTT ranging with access point: " + request.toString());
+        RangingCallback rangingCb = new RangingCallback(eventCache, callbackId);
+        mWifiRttManager.startRanging(request, command -> mHandler.post(command), rangingCb);
+    }
+
+    /**
      * Starts Wi-Fi RTT ranging with Wi-Fi Aware peers.
      *
      * @param callbackId        Assigned automatically by mobly for all async RPCs.
@@ -869,7 +970,7 @@ public class WifiAwareManagerSnippet implements Snippet {
         public void onRangingFailure(int code) {
             SnippetEvent event = new SnippetEvent(mCallbackId, EVENT_NAME_RANGING_RESULT);
             event.getData().putString("callbackName", "onRangingFailure");
-            event.getData().putInt("statusCode", code);
+            event.getData().putInt("status", code);
             mEventCache.postEvent(event);
         }
 
@@ -886,6 +987,16 @@ public class WifiAwareManagerSnippet implements Snippet {
                 if (result.getStatus() == RangingResult.STATUS_SUCCESS) {
                     resultBundles[i].putInt("distanceMm", result.getDistanceMm());
                     resultBundles[i].putInt("rssi", result.getRssi());
+                    resultBundles[i].putInt("distanceStdDevMm", result.getDistanceStdDevMm());
+                    resultBundles[i].putInt(
+                        "numAttemptedMeasurements",
+                        result.getNumAttemptedMeasurements());
+                    resultBundles[i].putInt(
+                        "numSuccessfulMeasurements",
+                        result.getNumSuccessfulMeasurements());
+                    resultBundles[i].putByteArray("lci", result.getLci());
+                    resultBundles[i].putByteArray("lcr", result.getLcr());
+                    resultBundles[i].putLong("timestamp", result.getRangingTimestampMillis());
                 }
                 PeerHandle peer = result.getPeerHandle();
                 if (peer != null) {

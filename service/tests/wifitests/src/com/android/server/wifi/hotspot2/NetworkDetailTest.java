@@ -193,5 +193,34 @@ public class NetworkDetailTest extends WifiBaseTest {
                     TextUtils.equals(bssidStr1, bssidStr2));
         }
     }
+
+    /**
+     * Test IEEE 802.11az NTB Secure Ranging Parameters.
+     */
+    @Test
+    public void verifyIeee80211azNtbSecureRangingParameters() {
+        InformationElement[] ies = new InformationElement[2];
+
+        ies[0] = new InformationElement();
+        ies[0].id = InformationElement.EID_EXTENDED_CAPS;
+        ies[0].bytes = new byte[] { (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x61, (byte) 0x00, (byte) 0x0c };
+
+        ies[1] = new InformationElement();
+        ies[1].id = InformationElement.EID_RSN_EXTENSION;
+        ies[1].bytes = new byte[]{
+                // Length
+                (byte) 0x02,
+                // Extended RSN capabilities - Secure HE-LTF and URNM-MFPR enabled
+                (byte) 0x81, (byte) 0x00,
+        };
+        NetworkDetail networkDetail = new NetworkDetail(TEST_BSSID, ies,
+                Collections.emptyList(), 5745);
+
+        assertTrue(networkDetail.is80211azNtbResponder());
+        assertTrue(networkDetail.isRangingFrameProtectionRequired());
+        assertTrue(networkDetail.isSecureHeLtfSupported());
+    }
 }
 

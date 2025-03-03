@@ -126,6 +126,7 @@ java_library {
         "com.android.net.flags-aconfig-java-export",
         "android.net.wifi.flags-aconfig-java",
         "android.security.flags-aconfig-java-export",
+        "telephony_flags_core_java_exported_lib",
         "net-utils-service-wifi",
     ],
     apex_available: ["com.android.wifi"],

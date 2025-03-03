@@ -435,4 +435,18 @@ public class ScanResultTest {
         assertEquals(WifiScanner.WIFI_BAND_5_GHZ, ScanResult.getBandFromOpClass(120, 149));
         assertEquals(WifiScanner.WIFI_BAND_6_GHZ, ScanResult.getBandFromOpClass(131, 32));
     }
+
+    /**
+     * Test IEEE 802.11az NTB Secure Ranging Parameters.
+     */
+    @Test
+    public void testIeee80211azNtbSecureRangingParameters() {
+        ScanResult scanResult = new ScanResult();
+        scanResult.setFlag(ScanResult.FLAG_80211az_NTB_RESPONDER
+                | ScanResult.FLAG_SECURE_HE_LTF_SUPPORTED
+                | ScanResult.FLAG_RANGING_FRAME_PROTECTION_REQUIRED);
+        assertTrue(scanResult.is80211azNtbResponder());
+        assertTrue(scanResult.isRangingFrameProtectionRequired());
+        assertTrue(scanResult.isSecureHeLtfSupported());
+    }
 }

@@ -19,6 +19,7 @@ import statistics
 import sys
 import time
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -291,6 +292,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
 
     return p_dut, s_dut, p_disc_id, s_disc_id
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_snorange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -319,6 +328,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_snorange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -348,6 +365,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_pnorange_smax_inrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -380,6 +405,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_pnorange_smax_inrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -412,6 +445,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_pnorange_smin_outofrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -444,6 +485,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_pnorange_smin_outofrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -476,6 +525,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_smin_inrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -507,6 +566,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, java.util.List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_smax_inrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -538,6 +607,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_sminmax_inrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -570,6 +650,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_smin_inrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -601,6 +691,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_smax_inrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -632,6 +732,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_sminmax_inrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -664,6 +775,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_smin_outofrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -694,6 +813,15 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_smax_outofrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -725,6 +853,15 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+    ]
+  )
   def test_ranged_discovery_unsolicited_passive_prange_sminmax_outofrange(self):
     """Verify discovery(unsolicited/passive) with ranging.
 
@@ -756,6 +893,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_smin_outofrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -786,6 +931,14 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_smax_outofrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -817,6 +970,15 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
         s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+    ]
+  )
   def test_ranged_discovery_solicited_active_prange_sminmax_outofrange(self):
     """Verify discovery(solicited/active) with ranging.
 
@@ -980,6 +1142,18 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
 
     time.sleep(autils._EVENT_TIMEOUT)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_oor_to_ir(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1014,6 +1188,18 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+        'android.net.wifi.aware.PublishDiscoverySession#updatePublish(android.net.wifi.aware.PublishConfig publishConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_pub_unrange(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1044,6 +1230,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_sub_unrange(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1075,6 +1272,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_sub_oor(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1107,6 +1314,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.PublishDiscoverySession#updatePublish(android.net.wifi.aware.PublishConfig publishConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_pub_same(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1137,6 +1354,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_unsolicited_passive_multi_step(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1201,6 +1428,18 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_oor_to_ir(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1235,6 +1474,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.PublishDiscoverySession#updatePublish(android.net.wifi.aware.PublishConfig publishConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_pub_unrange(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1265,6 +1515,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_sub_unrange(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1294,6 +1555,16 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_sub_oor(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1327,6 +1598,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.PublishDiscoverySession#updatePublish(android.net.wifi.aware.PublishConfig publishConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_pub_same(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1398,6 +1680,18 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
             timeout=_DEFAULT_TIMEOUT)
         return None
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_ranged_updated_discovery_solicited_active_multi_step(self):
     """Verify discovery with ranging operation with updated configuration.
 
@@ -1461,6 +1755,17 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(p_disc_id.callback_id)
     s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(s_disc_id.callback_id)
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+    ]
+  )
   def test_ranged_discovery_multi_session(self):
     """Verify behavior with multiple concurrent discovery session with different configurations.
 
@@ -1833,6 +2138,18 @@ class WiFiAwareDiscoveryWithRangingTest(base_test.BaseTestClass):
     )
     return results
 
+  @ApiTest(
+    apis = [
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean enable)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscovered(android.net.wifi.aware.ServiceDiscoveryInfo info)',
+        'android.net.wifi.aware.DiscoverySessionCallback#onServiceDiscoveredWithinRange(android.net.wifi.aware.PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm)',
+        'android.net.wifi.aware.SubscribeDiscoverySession#updateSubscribe(android.net.wifi.aware.SubscribeConfig subscribeConfig)',
+    ]
+  )
   def test_discovery_direct_concurrency(self):
     """Verify the behavior of Wi-Fi Aware Ranging used as part of discovery and as direct ranging to a peer device.
 

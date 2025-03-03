@@ -70,6 +70,7 @@ class ServiceDiscoveryTest(base_test.BaseTestClass):
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
         wifi_test_utils.set_screen_on_and_unlock(ad)
+        wifi_test_utils.enable_wifi_verbose_logging(ad)
         # Clear all saved Wi-Fi networks.
         ad.wifi.wifiDisable()
         ad.wifi.wifiClearConfiguredNetworks()

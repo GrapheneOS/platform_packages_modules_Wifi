@@ -865,13 +865,15 @@ public class WifiP2pNative {
     /**
      * Reinvoke a device from a persistent group.
      *
-     * @param netId Used to specify the persistent group.
+     * @param netId Used to specify the persistent group (valid only for P2P V1 group).
      * @param deviceAddress MAC address of the device to reinvoke.
+     * @param dikId The identifier of device identity key of the device to reinvoke.
+     *              (valid only for P2P V2 group).
      *
      * @return true, if operation was successful.
      */
-    public boolean p2pReinvoke(int netId, String deviceAddress) {
-        return mSupplicantP2pIfaceHal.reinvoke(netId, deviceAddress);
+    public boolean p2pReinvoke(int netId, String deviceAddress, int dikId) {
+        return mSupplicantP2pIfaceHal.reinvoke(netId, deviceAddress, dikId);
     }
 
     /**

@@ -1019,9 +1019,9 @@
 
     <!-- Indicate whether the verbose logging is always on -->
     <!-- 0: verbose logging controlled by user
-         1: verbose logging on by default for userdebug
+         1: verbose logging on by default for userdebug/eng
          2: verbose logging on by default for all builds -->
-    <integer translatable="false" name="config_wifiVerboseLoggingAlwaysOnLevel">0</integer>
+    <integer translatable="false" name="config_wifiVerboseLoggingAlwaysOnLevel">1</integer>
 
     <!-- Indicate the help page link for the Root CA certifiate installation. -->
     <string translatable="false" name="config_wifiCertInstallationHelpLink">https://support.google.com/pixelphone/answer/2844832</string>
@@ -1268,8 +1268,8 @@
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeStart"/>
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeEnd"/>
     <!-- Boolean indicating whether to disable firmware roaming when the device goes into idle mode.
-         true: firmware roaming will be disabled when the device goes into idle mode, and then
-               re-activated when the device exits idle mode.
+         true: firmware roaming will be disabled when the device goes into idle mode and screen
+               is off, and then re-activated when the device exits idle mode or screen is on.
          false: firmware roaming will not be affected. -->
     <bool translatable="false" name ="config_wifiDisableFirmwareRoamingInIdleMode">false</bool>
     <!-- Boolean indicating whether the framework updates country from scan results when there is
@@ -1412,7 +1412,7 @@
     <!-- Boolean indicating whether to trigger bugreport for WiFi subsystem restart issue -->
     <bool translatable="false" name ="config_wifi_subsystem_restart_bugreport_enabled">true</bool>
 
-    <!-- Boolean indicating whether to use the common nl80211 implementation of the WiFi Hal. This
-         will be used instead of the AIDL or HIDL implementation if enabled. -->
-    <bool translatable="false" name="config_wifiNl80211HalEnabled">false</bool>
+    <!-- Boolean indicating whether to use wifi VoIP detection module to detect VoIP over Wi-FI to
+         ehance Wi-Fi VoIP quality -->
+    <bool translatable="false" name="config_wifiVoipDetectionEnabled">false</bool>
 </resources>

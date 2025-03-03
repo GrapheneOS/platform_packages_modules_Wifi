@@ -23,6 +23,7 @@ from mobly.controllers import android_device
 from mobly.controllers.android_device_lib import callback_handler_v2
 from mobly.snippet import errors
 from softap import constants
+import wifi_test_utils
 
 _CALLBACK_TIMEOUT = constants.CALLBACK_TIMEOUT.total_seconds()
 _WIFI_SCAN_INTERVAL_SEC = constants.WIFI_SCAN_INTERVAL_SEC.total_seconds()
@@ -53,6 +54,7 @@ class WifiSoftApTest(base_test.BaseTestClass):
 
   def _setup_device(self, ad: android_device.AndroidDevice) -> None:
     ad.load_snippet('wifi', 'com.google.snippet.wifi')
+    wifi_test_utils.enable_wifi_verbose_logging(ad)
 
   def setup_test(self):
     for ad in self.ads:

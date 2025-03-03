@@ -54,6 +54,7 @@ import android.util.Log;
 import androidx.annotation.Keep;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.flags.Flags;
 import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.aware.WifiAwareMetrics;
@@ -62,6 +63,7 @@ import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.hotspot2.PasspointObjectFactory;
+import com.android.server.wifi.mainline_supplicant.MainlineSupplicant;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.p2p.SupplicantP2pIfaceHal;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
@@ -171,6 +173,7 @@ public class WifiInjector {
     private final WifiP2pMonitor mWifiP2pMonitor;
     private final SupplicantStaIfaceHal mSupplicantStaIfaceHal;
     private final SupplicantP2pIfaceHal mSupplicantP2pIfaceHal;
+    private final MainlineSupplicant mMainlineSupplicant;
     private final HostapdHal mHostapdHal;
     private final WifiVendorHal mWifiVendorHal;
     private final ScoringParams mScoringParams;
@@ -353,13 +356,14 @@ public class WifiInjector {
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, mWifiHandler, mClock, mWifiMetrics,
                 mWifiGlobals, mSsidTranslator, this);
+        mMainlineSupplicant = new MainlineSupplicant();
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
                 Context.WIFI_NL80211_SERVICE);
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWifiCondManager,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
-                mWifiHandler, new Random(), mBuildProperties, this);
+                mWifiHandler, new Random(), mBuildProperties, this, mMainlineSupplicant);
         mWifiP2pMonitor = new WifiP2pMonitor();
         mSupplicantP2pIfaceHal = new SupplicantP2pIfaceHal(mWifiP2pMonitor, mWifiGlobals, this);
         mWifiP2pNative = new WifiP2pNative(mWifiCondManager, mWifiNative, mWifiMetrics,
@@ -631,7 +635,9 @@ public class WifiInjector {
         mTwtManager = new TwtManager(this, mCmiMonitor, mWifiNative, mWifiHandler, mClock,
                 WifiTwtSession.MAX_TWT_SESSIONS, 1);
         mBackupRestoreController = new BackupRestoreController(mWifiSettingsBackupRestore, mClock);
-        if (mFeatureFlags.voipDetectionBugfix() && SdkLevel.isAtLeastV()) {
+        if (mFeatureFlags.voipDetectionBugfix() && SdkLevel.isAtLeastV()
+                && Flags.passCopiedCallStateList() && mContext.getResources().getBoolean(
+                R.bool.config_wifiVoipDetectionEnabled)) {
             mWifiVoipDetector = new WifiVoipDetector(mContext, mWifiHandler, this,
                     mWifiCarrierInfoManager);
         } else {

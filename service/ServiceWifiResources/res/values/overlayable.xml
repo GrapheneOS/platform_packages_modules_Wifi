@@ -355,7 +355,7 @@
           <item type="integer" name="config_wifiDelayedCarrierSelectionTimeMs" />
           <item type="bool" name="config_wifiRsnOverridingEnabled" />
           <item type="bool" name="config_wifi_subsystem_restart_bugreport_enabled" />
-          <item type="bool" name="config_wifiNl80211HalEnabled" />
+          <item type="bool" name="config_wifiVoipDetectionEnabled" />
 
           <!-- Params from config.xml that can be overlayed -->
 

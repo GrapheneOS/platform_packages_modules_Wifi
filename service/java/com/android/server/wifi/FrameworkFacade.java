@@ -448,8 +448,8 @@ public class FrameworkFacade {
                 return true;
             //If the overlay setting enabled for userdebug builds only
             case VERBOSE_LOGGING_ALWAYS_ON_LEVEL_USERDEBUG:
-                // If it is a userdebug build
-                if (buildProperties.isUserdebugBuild()) return true;
+                // If it is a userdebug or eng build
+                if (buildProperties.isUserdebugBuild() || buildProperties.isEngBuild()) return true;
                 break;
             case VERBOSE_LOGGING_ALWAYS_ON_LEVEL_NONE:
                 // nothing

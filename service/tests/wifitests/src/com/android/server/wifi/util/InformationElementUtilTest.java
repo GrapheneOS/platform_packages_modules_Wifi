@@ -2831,4 +2831,62 @@ public class InformationElementUtilTest extends WifiBaseTest {
         assertEquals(6105, ehtOperation.getCenterFreq1(ScanResult.WIFI_BAND_6_GHZ));
 
     }
+
+    /**
+     * Test Capabilities.generateCapabilitiesString() with a RSN IE.
+     * Expect the function to return a string with the proper security information.
+     */
+    @Test
+    public void buildCapabilities_rsnElementWithPasnSae() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_RSN;
+        ie.bytes = new byte[] {
+                // Version
+                (byte) 0x01, (byte) 0x00,
+                // Group cipher suite: TKIP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x02,
+                // Pairwise cipher count
+                (byte) 0x02, (byte) 0x00,
+                // Pairwise cipher suite: CCMP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x04,
+                // Pairwise cipher suite: GCMP_256
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x09,
+                // AKM count
+                (byte) 0x02, (byte) 0x00,
+                // AMK suite: PASN
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x15,
+                // AKM suite: SAE
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x08,
+                // RSN capabilities
+                (byte) 0x40, (byte) 0x00,
+        };
+        verifyCapabilityStringFromIeWithoutOweSupported(ie,
+                     "[RSN-PASN+SAE-CCMP+GCMP-256][MFPR]");
+    }
+
+    /**
+     * Test RSNXE capabilities for IEEE 802.11az secure ranging support.
+     * <ul>
+     *     <li> Bit 8 : Secure HE-LTF Support
+     *     <li> Bit 15: URNM-MFPR
+     * </ul>
+     */
+    @Test
+    public void testRsnExtensionWithIeee80211azSecuritySupported() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_RSN_EXTENSION;
+        ie.bytes = new byte[]{
+                // Length
+                (byte) 0x02,
+                // Extended RSN capabilities - Secure HE-LTF and URNM-MFPR enabled
+                (byte) 0x81, (byte) 0x00,
+        };
+
+        InformationElementUtil.Rsnxe rsnxe = new InformationElementUtil.Rsnxe();
+        rsnxe.from(ie);
+        assertTrue(rsnxe.isRangingFrameProtectionRequired());
+        assertTrue(rsnxe.isSecureHeLtfSupported());
+    }
+
 }
+

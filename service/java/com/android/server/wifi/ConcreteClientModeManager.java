@@ -20,6 +20,8 @@ import static android.net.wifi.WifiManager.WIFI_STATE_DISABLING;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
 
+import static com.android.server.wifi.util.GeneralUtil.bitsetToLong;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
@@ -1491,6 +1493,12 @@ public class ConcreteClientModeManager implements ClientModeManager {
     @Override
     public @NonNull BitSet getSupportedFeaturesBitSet() {
         return getClientMode().getSupportedFeaturesBitSet();
+    }
+
+    @Override
+    @Keep
+    public long getSupportedFeatures() {
+        return bitsetToLong(getSupportedFeaturesBitSet());
     }
 
     @Override

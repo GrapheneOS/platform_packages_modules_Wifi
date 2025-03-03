@@ -263,6 +263,7 @@ public final class PasnConfig implements Parcelable {
         dest.writeInt(mBaseAkms);
         dest.writeInt(mCiphers);
         dest.writeString(mPassword);
+        dest.writeParcelable(mWifiSsid, flags);
         dest.writeByteArray(mPasnComebackCookie);
     }
 

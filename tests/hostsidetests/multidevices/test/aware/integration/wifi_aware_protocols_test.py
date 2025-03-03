@@ -36,22 +36,21 @@ RUNTIME_PERMISSIONS = (
 )
 PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
 
-_CALLBACK_NAME = constants.DiscoverySessionCallbackParamsType.CALLBACK_NAME
+_REQUEST_NETWORK_TIMEOUT_MS = 15 * 1000
 
-# Publish & Subscribe Config keys.
-_PAYLOAD_SIZE_MIN = 0
-_PAYLOAD_SIZE_TYPICAL = 1
-_PAYLOAD_SIZE_MAX = 2
-
-# number of second to 'reasonably' wait to make sure that devices synchronize
+# The number of second to 'reasonably' wait to make sure that devices synchronize
 # with each other - useful for OOB test cases, where the OOB discovery would
 # take some time
 _WAIT_FOR_CLUSTER = 5
 
+# Aware Data-Path Constants
+_DATA_PATH_INITIATOR = 0
+_DATA_PATH_RESPONDER = 1
+
 
 class WifiAwareProtocolsTest(base_test.BaseTestClass):
   """Set of tests for Wi-Fi Aware data-paths: validating protocols running ontop of a data-path."""
-  # message ID counter to make sure all uses are unique
+  # The message ID counter to make sure all uses are unique.
   msg_id = 0
   device_startup_offset = 1
 
@@ -282,9 +281,186 @@ class WifiAwareProtocolsTest(base_test.BaseTestClass):
     p_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
     s_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
 
+  def request_oob_network(
+      self,
+      ad: android_device.AndroidDevice,
+      aware_session: str,
+      role: int,
+      mac: str,
+      passphrase: str | None,
+      pmk: str | None,
+      net_work_request_id: str,
+  ) -> callback_handler_v2.CallbackHandlerV2:
+    """Requests a Wi-Fi Aware network."""
+    network_specifier_parcel = (
+        ad.wifi_aware_snippet.createNetworkSpecifierOob(
+            aware_session, role, mac, passphrase, pmk
+        )
+    )
+    network_request_dict = constants.NetworkRequest(
+        transport_type=constants.NetworkCapabilities.Transport.TRANSPORT_WIFI_AWARE,
+        network_specifier_parcel=network_specifier_parcel['result'],
+    ).to_dict()
+    return ad.wifi_aware_snippet.connectivityRequestNetwork(
+        net_work_request_id, network_request_dict, _REQUEST_NETWORK_TIMEOUT_MS
+    )
+
+  def create_oob_ndp_on_sessions(
+      self,
+      init_dut,
+      resp_dut,
+      init_id,
+      init_mac,
+      resp_id,
+      resp_mac):
+    """Create an NDP on top of existing Aware sessions (using OOB discovery).
+
+    Args:
+        init_dut: Initiator device
+        resp_dut: Responder device
+        init_id: Initiator attach session id
+        init_mac: Initiator discovery MAC address
+        resp_id: Responder attach session id
+        resp_mac: Responder discovery MAC address
+    Returns:
+        init_req_key: Initiator network request
+        resp_req_key: Responder network request
+        init_aware_if: Initiator Aware data interface
+        resp_aware_if: Responder Aware data interface
+        init_ipv6: Initiator IPv6 address
+        resp_ipv6: Responder IPv6 address
+    """
+    # Responder: request network.
+    init_dut_accept_handler = (
+        init_dut.wifi_aware_snippet.connectivityServerSocketAccept())
+    network_id = init_dut_accept_handler.callback_id
+    resp_network_cb_handler = self.request_oob_network(
+        resp_dut,
+        resp_id,
+        _DATA_PATH_RESPONDER,
+        init_mac,
+        None,
+        None,
+        network_id
+        )
+    # Initiator: request network.
+    init_network_cb_handler = self.request_oob_network(
+        init_dut,
+        init_id,
+        _DATA_PATH_INITIATOR,
+        resp_mac,
+        None,
+        None,
+        network_id
+        )
+    pub_network_cap = autils.wait_for_network(
+        ad=init_dut,
+        request_network_cb_handler=init_network_cb_handler,
+        expected_channel=None,
+    )
+    sub_network_cap = autils.wait_for_network(
+        ad=resp_dut,
+        request_network_cb_handler=resp_network_cb_handler,
+        expected_channel=None,
+    )
+    # To get ipv6 ip address.
+    resp_ipv6 = pub_network_cap.data[constants.NetworkCbName.NET_CAP_IPV6]
+    init_ipv6 = sub_network_cap.data[constants.NetworkCbName.NET_CAP_IPV6]
+
+    pub_network_link = autils.wait_for_link(
+        ad=init_dut,
+        request_network_cb_handler=init_network_cb_handler,
+    )
+    init_aware_if = pub_network_link.data[
+        constants.NetworkCbEventKey.NETWORK_INTERFACE_NAME
+    ]
+    sub_network_link = autils.wait_for_link(
+        ad=resp_dut,
+        request_network_cb_handler=resp_network_cb_handler,
+    )
+    resp_aware_if = sub_network_link.data[
+        constants.NetworkCbEventKey.NETWORK_INTERFACE_NAME
+    ]
+
+    init_dut.log.info('interfaceName = %s, ipv6=%s', init_aware_if, init_ipv6)
+    resp_dut.log.info('interfaceName = %s, ipv6=%s', resp_aware_if, resp_ipv6)
+    return (init_network_cb_handler, resp_network_cb_handler,
+            init_aware_if, resp_aware_if,
+            init_ipv6, resp_ipv6)
+
+  def create_oob_ndp(
+      self,
+      init_dut: android_device.AndroidDevice,
+      resp_dut: android_device.AndroidDevice):
+    """Create an NDP (using OOB discovery).
+
+    Args:
+      init_dut: Initiator device
+      resp_dut: Responder device
+    Returns:
+      A tuple containing the following:
+        - Initiator network request
+        - Responder network request
+        - Initiator Aware data interface
+        - Responder Aware data interface
+        - Initiator IPv6 address
+        - Responder IPv6 address
+    """
+    init_dut.pretty_name = 'Initiator'
+    resp_dut.pretty_name = 'Responder'
+
+    # Initiator+Responder: attach and wait for confirmation & identity.
+    init_id, init_mac = autils.start_attach(init_dut)
+    time.sleep(self.device_startup_offset)
+    resp_id, resp_mac = autils.start_attach(resp_dut)
+
+    # Wait for devices to synchronize with each other - there are no other
+    # mechanisms to make sure this happens for OOB discovery (except retrying
+    # to execute the data-path request).
+    time.sleep(_WAIT_FOR_CLUSTER)
+    return self.create_oob_ndp_on_sessions(init_dut, resp_dut, init_id,
+                                           init_mac, resp_id, resp_mac)
+
+  def test_ping6_oob(self):
+    """Validate that ping6 works correctly on an NDP created using OOB (out-of-band) discovery."""
+    init_dut = self.ads[0]
+    resp_dut = self.ads[1]
+
+    # Create NDP.
+    (
+        init_network_cb,
+        resp_network_cb,
+        init_aware_if,
+        resp_aware_if,
+        init_ipv6,
+        resp_ipv6,
+    ) = self.create_oob_ndp(init_dut, resp_dut)
+    init_dut.log.info(
+        'Interface names: I=%s, R=%s', init_aware_if, resp_aware_if
+    )
+    resp_dut.log.info(
+        'Interface addresses (IPv6): I=%s, R=%s', init_ipv6, resp_ipv6
+    )
+
+    # Run ping6 command.
+    autils.run_ping6(init_dut, resp_ipv6)
+    time.sleep(3)
+    autils.run_ping6(resp_dut, init_ipv6)
+    time.sleep(3)
+
+    # Clean-up.
+    init_dut.wifi_aware_snippet.connectivityUnregisterNetwork(
+        init_network_cb.callback_id
+    )
+    resp_dut.wifi_aware_snippet.connectivityUnregisterNetwork(
+        resp_network_cb.callback_id
+    )
+    init_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
+    resp_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
+
 
 if __name__ == '__main__':
-  # Take test args
+  # Take test args.
   if '--' in sys.argv:
     index = sys.argv.index('--')
     sys.argv = sys.argv[:1] + sys.argv[index + 1 :]

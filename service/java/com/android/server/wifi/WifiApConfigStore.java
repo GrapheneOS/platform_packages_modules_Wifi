@@ -521,8 +521,15 @@ public class WifiApConfigStore {
             configBuilder.setAutoShutdownEnabled(false);
             try {
                 if (ApConfigUtil.isWpa3SaeSupported(context)) {
-                    configBuilder.setPassphrase(generatePassword(),
-                            SECURITY_TYPE_WPA3_SAE_TRANSITION);
+                    if (customConfig != null
+                            && customConfig.getBand() == SoftApConfiguration.BAND_6GHZ) {
+                        // Requested band is limited to 6GHz only, use SAE.
+                        configBuilder.setPassphrase(generatePassword(),
+                                SECURITY_TYPE_WPA3_SAE);
+                    } else {
+                        configBuilder.setPassphrase(generatePassword(),
+                                SECURITY_TYPE_WPA3_SAE_TRANSITION);
+                    }
                 } else {
                     configBuilder.setPassphrase(generatePassword(),
                             SECURITY_TYPE_WPA2_PSK);

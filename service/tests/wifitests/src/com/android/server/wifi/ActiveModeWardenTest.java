@@ -1688,7 +1688,14 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 anyInt(), eq("android_apm"), eq(false));
     }
 
-    /** Wi-Fi state is restored properly when SoftAp is enabled during airplane mode. */
+    /**
+     * Test sequence
+     * - APM on
+     * - STA stop
+     * - SoftAp on
+     * - APM off
+     * Wifi STA should get turned on at the end.
+     **/
     @Test
     public void testWifiStateRestoredWhenSoftApEnabledDuringApm() throws Exception {
         enableWifi();
@@ -1709,6 +1716,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                         anyInt(),
                         eq("android_apm"),
                         eq(false));
+        mActiveModeWarden.setWifiStateForApiCalls(WIFI_STATE_DISABLED);
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
 
@@ -1727,6 +1735,134 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
         mActiveModeWarden.airplaneModeToggled();
         mLooper.dispatchAll();
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(true));
+    }
+
+    /**
+     * Test sequence
+     * - APM on
+     * - SoftAp on
+     * - STA stop
+     * - APM off
+     * Wifi STA should get turned on at the end.
+     **/
+    @Test
+    public void testWifiStateRestoredWhenSoftApEnabledDuringApm2() throws Exception {
+        enableWifi();
+        assertInEnabledState();
+
+        // enabling airplane mode shuts down wifi
+        assertWifiShutDown(
+                () -> {
+                    when(mSettingsStore.isAirplaneModeOn()).thenReturn(true);
+                    mActiveModeWarden.airplaneModeToggled();
+                    mLooper.dispatchAll();
+                });
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(false));
+
+        // start SoftAp
+        mActiveModeWarden.startSoftAp(
+                new SoftApModeConfiguration(
+                        WifiManager.IFACE_IP_MODE_LOCAL_ONLY,
+                        null,
+                        mSoftApCapability,
+                        TEST_COUNTRYCODE,
+                        null),
+                TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        mActiveModeWarden.setWifiStateForApiCalls(WIFI_STATE_DISABLED);
+        mClientListener.onStopped(mClientModeManager);
+        mLooper.dispatchAll();
+
+        // disabling airplane mode enables wifi
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
+        mActiveModeWarden.airplaneModeToggled();
+        mLooper.dispatchAll();
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(true));
+    }
+
+    /**
+     * Test sequence
+     * - APM on
+     * - SoftAp on
+     * - APM off
+     * - STA stop
+     * Wifi STA should get turned on at the end.
+     **/
+    @Test
+    public void testWifiStateRestoredWhenSoftApEnabledDuringApm3() throws Exception {
+        enableWifi();
+        assertInEnabledState();
+
+        // enabling airplane mode shuts down wifi
+        assertWifiShutDown(
+                () -> {
+                    when(mSettingsStore.isAirplaneModeOn()).thenReturn(true);
+                    mActiveModeWarden.airplaneModeToggled();
+                    mLooper.dispatchAll();
+                });
+        verify(mLastCallerInfoManager)
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(false));
+        assertEquals(WIFI_STATE_DISABLING, mActiveModeWarden.getWifiState());
+
+        // start SoftAp
+        mActiveModeWarden.startSoftAp(
+                new SoftApModeConfiguration(
+                        WifiManager.IFACE_IP_MODE_LOCAL_ONLY,
+                        null,
+                        mSoftApCapability,
+                        TEST_COUNTRYCODE,
+                        null),
+                TEST_WORKSOURCE);
+        mLooper.dispatchAll();
+
+        // disabling airplane mode does not enables wifi yet, since wifi haven't stopped properly
+        when(mSettingsStore.isAirplaneModeOn()).thenReturn(false);
+        mActiveModeWarden.airplaneModeToggled();
+        mLooper.dispatchAll();
+        verify(mLastCallerInfoManager, never())
+                .put(
+                        eq(WifiManager.API_WIFI_ENABLED),
+                        anyInt(),
+                        anyInt(),
+                        anyInt(),
+                        eq("android_apm"),
+                        eq(true));
+        assertInEnabledState();
+
+        // Wifi STA stopped, it should now trigger APM handling to re-enable STA
+        mActiveModeWarden.setWifiStateForApiCalls(WIFI_STATE_DISABLED);
+        mClientListener.onStopped(mClientModeManager);
+        mLooper.dispatchAll();
+
         verify(mLastCallerInfoManager)
                 .put(
                         eq(WifiManager.API_WIFI_ENABLED),
@@ -5676,22 +5812,24 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         IWifiStateChangedListener remoteCallback2 = mock(IWifiStateChangedListener.class);
         when(remoteCallback2.asBinder()).thenReturn(mock(IBinder.class));
         mActiveModeWarden.addWifiStateChangedListener(remoteCallback1);
+        verify(remoteCallback1, times(1)).onWifiStateChanged();
         mActiveModeWarden.addWifiStateChangedListener(remoteCallback2);
+        verify(remoteCallback2, times(1)).onWifiStateChanged();
 
         // Change the state to DISABLED and verify the listeners were called.
         final int newState = WIFI_STATE_DISABLED;
         mActiveModeWarden.setWifiStateForApiCalls(newState);
 
-        verify(remoteCallback1, times(1)).onWifiStateChanged();
-        verify(remoteCallback2, times(1)).onWifiStateChanged();
+        verify(remoteCallback1, times(2)).onWifiStateChanged();
+        verify(remoteCallback2, times(2)).onWifiStateChanged();
 
         // Duplicate wifi state should not notify the callbacks again.
         mActiveModeWarden.setWifiStateForApiCalls(newState);
         mActiveModeWarden.setWifiStateForApiCalls(newState);
         mActiveModeWarden.setWifiStateForApiCalls(newState);
 
-        verify(remoteCallback1, times(1)).onWifiStateChanged();
-        verify(remoteCallback2, times(1)).onWifiStateChanged();
+        verify(remoteCallback1, times(2)).onWifiStateChanged();
+        verify(remoteCallback2, times(2)).onWifiStateChanged();
     }
 
     /**
@@ -5706,14 +5844,16 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         IWifiStateChangedListener remoteCallback2 = mock(IWifiStateChangedListener.class);
         when(remoteCallback2.asBinder()).thenReturn(mock(IBinder.class));
         mActiveModeWarden.addWifiStateChangedListener(remoteCallback1);
+        verify(remoteCallback1, times(1)).onWifiStateChanged();
         mActiveModeWarden.addWifiStateChangedListener(remoteCallback2);
+        verify(remoteCallback2, times(1)).onWifiStateChanged();
         mActiveModeWarden.removeWifiStateChangedListener(remoteCallback1);
         mActiveModeWarden.removeWifiStateChangedListener(remoteCallback2);
 
         final int newState = WIFI_STATE_ENABLED;
         mActiveModeWarden.setWifiStateForApiCalls(newState);
 
-        verify(remoteCallback1, never()).onWifiStateChanged();
-        verify(remoteCallback2, never()).onWifiStateChanged();
+        verify(remoteCallback1, times(1)).onWifiStateChanged();
+        verify(remoteCallback2, times(1)).onWifiStateChanged();
     }
 }

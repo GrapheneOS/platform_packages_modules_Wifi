@@ -53,6 +53,7 @@ android_test {
         "compatibility-device-util-axt",
         "guava",
         "mobly-snippet-lib",
+        "mobly-bundled-snippets-lib",
     ],
     min_sdk_version: "31",
 }

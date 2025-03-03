@@ -1560,5 +1560,13 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         // verify that the config passes the validateApWifiConfiguration check
         assertTrue(WifiApConfigStore.validateApWifiConfiguration(softApConfig, true, mContext,
                 mWifiNative));
+        // Test 6G band with non-isPrivileged use case
+        mResources.setBoolean(R.bool.config_wifi_softap_sae_supported, true);
+        customConfigBuilder.setBand(SoftApConfiguration.BAND_6GHZ);
+        softApConfig = store.generateLocalOnlyHotspotConfig(
+                mContext, customConfigBuilder.build(), mSoftApCapability, false);
+        assertThat(softApConfig.getBand()).isEqualTo(SoftApConfiguration.BAND_6GHZ);
+        assertTrue(WifiApConfigStore.validateApWifiConfiguration(
+                softApConfig, false, mContext, mWifiNative));
     }
 }

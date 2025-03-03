@@ -1419,11 +1419,22 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         int assocRejectReason = NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION;
         int assocRejectThreshold =
                 mWifiBlocklistMonitor.getNetworkSelectionDisableThreshold(assocRejectReason);
-        for (int i = 1; i <= assocRejectThreshold; i++) {
+        for (int i = 0; i < assocRejectThreshold; i++) {
             assertFalse(mWifiBlocklistMonitor.updateNetworkSelectionStatus(
                     openNetwork, assocRejectReason));
         }
         assertFalse(openNetwork.getNetworkSelectionStatus().isNetworkTemporaryDisabled());
+
+        // verify that after the consecutive failure threshold is reached, the network is blocked
+        int remainingTriggers = WifiBlocklistMonitor
+                .NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF - assocRejectThreshold;
+        for (int i = 0; i < remainingTriggers - 1; i++) {
+            assertFalse(mWifiBlocklistMonitor.updateNetworkSelectionStatus(
+                    openNetwork, assocRejectReason));
+        }
+        assertTrue(mWifiBlocklistMonitor.updateNetworkSelectionStatus(
+                openNetwork, assocRejectReason));
+        assertTrue(openNetwork.getNetworkSelectionStatus().isNetworkTemporaryDisabled());
     }
 
     /**

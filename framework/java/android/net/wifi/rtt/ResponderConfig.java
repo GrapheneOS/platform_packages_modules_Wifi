@@ -514,12 +514,13 @@ public final class ResponderConfig implements Parcelable {
         if (scanResult.getWifiSsid() != null) {
             pasnConfigBuilder.setWifiSsid(scanResult.getWifiSsid());
         }
+        // If the responder is capable of PASN, always enable frame protection for secure ranging
+        // irrespective of responder mandates or not.
         return new SecureRangingConfig.Builder(pasnConfigBuilder.build())
                 .setSecureHeLtfEnabled(scanResult.isSecureHeLtfSupported())
-                .setRangingFrameProtectionEnabled(scanResult.isRangingFrameProtectionRequired())
+                .setRangingFrameProtectionEnabled(true)
                 .build();
     }
-
 
     /**
      * Creates a Responder configuration from a MAC address corresponding to a Wi-Fi Aware

@@ -52,6 +52,7 @@ EVENT_KEY_PEER_LIST = 'peerList'
 EXTRA_WIFI_P2P_GROUP = 'p2pGroupInfo'
 EXTRA_WIFI_STATE = 'wifi_p2p_state'
 
+ON_CONNECTION_INFO_AVAILABLE = 'WifiP2pOnConnectionInfoAvailable'
 ON_DEVICE_INFO_AVAILABLE = 'WifiP2pOnDeviceInfoAvailable'
 ON_PERSISTENT_GROUP_INFO_AVAILABLE = 'onPersistentGroupInfoAvailable'
 ON_UPNP_SERVICE_AVAILABLE = 'onUpnpServiceAvailable'

@@ -205,6 +205,21 @@ public class WifiP2pManagerSnippet implements Snippet {
     }
 
     /**
+     * Request the connection information in the form of WifiP2pDevice.
+     *
+     * @param callbackId The callback ID assigned by Mobly.
+     * @param channelId The ID of the channel for Wi-Fi P2P to operate on.
+     */
+    @AsyncRpc(description = "Request the connection information in the form of WifiP2pDevice.")
+    public void wifiP2pRequestConnectionInfo(String callbackId,
+            @RpcDefault(value = "0") Integer channelId)
+            throws WifiP2pManagerException {
+        WifiP2pManager.Channel channel = getChannel(channelId);
+        mP2pManager.requestConnectionInfo(channel,
+            new WifiP2pConnectionInfoListener(callbackId));
+    }
+
+    /**
      * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
      * the purpose of establishing a connection.
      *
@@ -762,19 +777,29 @@ public class WifiP2pManagerSnippet implements Snippet {
     /**
      * Close the current P2P connection and indicate to the P2P service that connections created by
      * the app can be removed.
-     *
-     * @throws Throwable If close action timed out or got invalid channel ID.
      */
     @Rpc(description = "Close all P2P connections and indicate to the P2P service that"
             + " connections created by the app can be removed.")
     public void p2pClose() {
         for (Map.Entry<Integer, WifiP2pManager.Channel> entry : mChannels.entrySet()) {
+            Integer channelId = entry.getKey();
             WifiP2pManager.Channel channel = entry.getValue();
+            Log.d("Cleaning p2p resources associated with channelId=" + channelId);
             if (channel != null) {
-                mP2pManager.clearServiceRequests(channel, null);
+                try {
+                    wifiP2pClearServiceRequests(channelId);
+                } catch (Throwable e) {
+                    Log.e("Failed to clear service requests on channelId=" + channelId
+                            + ", error message: " + e.getMessage());
+                }
                 mP2pManager.setDnsSdResponseListeners(channel, null, null);
                 mP2pManager.setUpnpServiceResponseListener(channel, null);
-                mP2pManager.clearLocalServices(channel, null);
+                try {
+                    wifiP2pClearLocalServices(channelId);
+                } catch (Throwable e) {
+                    Log.e("Failed to clear local services on channelId=" + channelId
+                            + ", error message: " + e.getMessage());
+                }
                 channel.close();
             }
         }
@@ -862,6 +887,27 @@ public class WifiP2pManagerSnippet implements Snippet {
             SnippetEvent event = new SnippetEvent(mCallbackId, CALLBACK_EVENT_NAME);
             event.getData().putString(EVENT_KEY_CALLBACK_NAME, ACTION_LISTENER_ON_FAILURE);
             event.getData().putInt(EVENT_KEY_REASON, reason);
+            EventCache.getInstance().postEvent(event);
+        }
+    }
+
+    private static class  WifiP2pConnectionInfoListener
+        implements WifiP2pManager.ConnectionInfoListener {
+        public static final String EVENT_NAME_ON_CONNECTION_INFO =
+            "WifiP2pOnConnectionInfoAvailable";
+        private final String mCallbackId;
+
+        public WifiP2pConnectionInfoListener(String callbackId) {
+            this.mCallbackId = callbackId;
+        }
+
+        @Override
+        public void onConnectionInfoAvailable(WifiP2pInfo info) {
+            Log.d(TAG + ": onConnectionInfoAvailable: " + info.toString());
+            SnippetEvent event = new SnippetEvent(mCallbackId, EVENT_NAME_ON_CONNECTION_INFO);
+            event.getData().putBoolean("groupFormed", info.groupFormed);
+            event.getData().putBoolean("isGroupOwner", info.isGroupOwner);
+            event.getData().putString("groupOwnerHostAddress", info.groupOwnerAddress.toString());
             EventCache.getInstance().postEvent(event);
         }
     }

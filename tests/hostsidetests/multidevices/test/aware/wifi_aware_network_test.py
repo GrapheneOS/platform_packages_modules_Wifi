@@ -85,6 +85,7 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
             device.load_snippet('wifi', _SNIPPET_PACKAGE_NAME)
             device.wifi.wifiEnable()
             wifi_test_utils.set_screen_on_and_unlock(device)
+            wifi_test_utils.enable_wifi_verbose_logging(device)
             # Device capability check
             asserts.abort_class_if(
                 not device.wifi.wifiAwareIsSupported(),

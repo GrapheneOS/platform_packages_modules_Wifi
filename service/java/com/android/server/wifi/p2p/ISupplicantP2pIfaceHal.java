@@ -270,12 +270,14 @@ interface ISupplicantP2pIfaceHal {
     /**
      * Reinvoke a device from a persistent group.
      *
-     * @param networkId Used to specify the persistent group.
+     * @param networkId Used to specify the persistent group (valid only for P2P V1 group).
      * @param peerAddress MAC address of the device to reinvoke.
+     * @param dikId The identifier of device identity key of the device to reinvoke.
+     *              (valid only for P2P V2 group).
      *
      * @return true, if operation was successful.
      */
-    boolean reinvoke(int networkId, String peerAddress);
+    boolean reinvoke(int networkId, String peerAddress, int dikId);
 
     /**
      * Set up a P2P group owner manually (i.e., without group owner

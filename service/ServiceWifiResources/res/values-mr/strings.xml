@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"सिस्टम वाय-फाय स्रोत"</string>
+    <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"सिस्टीम वाय-फाय स्रोत"</string>
     <string name="wifi_available_title" msgid="3899472737467127635">"खुल्या वाय-फाय नेटवर्कशी कनेक्ट करा"</string>
     <string name="wifi_available_title_connecting" msgid="7233590022728579868">"वाय-फाय नेटवर्कशी कनेक्ट करत आहे"</string>
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"वाय-फाय नेटवर्कशी कनेक्ट केले"</string>

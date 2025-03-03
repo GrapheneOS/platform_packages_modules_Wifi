@@ -19,6 +19,7 @@ from collections.abc import Sequence
 import dataclasses
 import datetime
 import logging
+import time
 
 from android.platform.test.annotations import ApiTest
 from mobly import asserts
@@ -57,6 +58,7 @@ class GroupOwnerTest(base_test.BaseTestClass):
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
         wifi_test_utils.set_screen_on_and_unlock(ad)
+        wifi_test_utils.enable_wifi_verbose_logging(ad)
         # Clear all saved Wi-Fi networks.
         ad.wifi.wifiDisable()
         ad.wifi.wifiClearConfiguredNetworks()
@@ -83,6 +85,11 @@ class GroupOwnerTest(base_test.BaseTestClass):
           7. Remove the p2p group on the requester. Verify both devices show
              connection stopped status.
         """
+        # This is a temporary workaround to avoid p2p service discovery
+        # conflicts previous wifi scan or p2p operations. Without sleeping,
+        # p2p service discovery process has a high failure rate.
+        time.sleep(10)
+
         # Step 1. Initialize Wi-Fi p2p on both group owner and client.
         logging.info('Initializing Wi-Fi p2p.')
         group_owner = p2p_utils.setup_wifi_p2p(self.group_owner_ad)
@@ -142,6 +149,11 @@ class GroupOwnerTest(base_test.BaseTestClass):
         7. Remove the p2p group on the requester. Verify both devices show
            connection stopped status.
         """
+        # This is a temporary workaround to avoid p2p service discovery
+        # conflicts previous wifi scan or p2p operations. Without sleeping,
+        # p2p service discovery process has a high failure rate.
+        time.sleep(10)
+
         # Step 1. Initialize Wi-Fi p2p on both group owner and client.
         logging.info('Initializing Wi-Fi p2p.')
         group_owner = p2p_utils.setup_wifi_p2p(self.group_owner_ad)

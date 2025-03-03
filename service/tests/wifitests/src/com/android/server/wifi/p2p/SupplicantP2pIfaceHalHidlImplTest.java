@@ -1258,9 +1258,9 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         when(mISupplicantP2pIfaceMock.reinvoke(anyInt(), eq(mPeerMacAddressBytes)))
                 .thenReturn(mStatusSuccess);
         // Default value when service is not initialized.
-        assertFalse(mDut.reinvoke(0, mPeerMacAddress));
+        assertFalse(mDut.reinvoke(0, mPeerMacAddress, -1));
         executeAndValidateInitializationSequence(false, false, false);
-        assertTrue(mDut.reinvoke(0, mPeerMacAddress));
+        assertTrue(mDut.reinvoke(0, mPeerMacAddress, -1));
     }
 
     /**
@@ -1273,8 +1273,10 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
                 .thenReturn(mStatusSuccess);
 
         for (String address : mInvalidMacAddresses) {
-            assertFalse(mDut.reinvoke(0, address));
+            assertFalse(mDut.reinvoke(0, address, -1));
         }
+
+        assertFalse(mDut.reinvoke(1, mPeerMacAddress, 1));
     }
 
     /**
@@ -1285,7 +1287,7 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence(false, false, false);
         when(mISupplicantP2pIfaceMock.reinvoke(anyInt(), any(byte[].class)))
                 .thenReturn(mStatusFailure);
-        assertFalse(mDut.reinvoke(0, mPeerMacAddress));
+        assertFalse(mDut.reinvoke(0, mPeerMacAddress, -1));
         // Check that service is still alive.
         assertTrue(mDut.isInitializationComplete());
     }
@@ -1298,7 +1300,7 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence(false, false, false);
         when(mISupplicantP2pIfaceMock.reinvoke(anyInt(), any(byte[].class)))
                 .thenThrow(mRemoteException);
-        assertFalse(mDut.reinvoke(0, mPeerMacAddress));
+        assertFalse(mDut.reinvoke(0, mPeerMacAddress, -1));
         // Check service is dead.
         assertFalse(mDut.isInitializationComplete());
     }

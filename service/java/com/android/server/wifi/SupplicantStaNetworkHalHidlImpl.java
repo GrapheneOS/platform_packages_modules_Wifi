@@ -3853,6 +3853,8 @@ public class SupplicantStaNetworkHalHidlImpl {
         synchronized (mLock) {
             if (!config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
                     || !config.getSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK).isEnabled()
+                    || (config.preSharedKey.length() == 64
+                    && config.preSharedKey.matches("[0-9A-Fa-f]{64}"))
                     || !mWifiGlobals.isWpa3SaeUpgradeOffloadEnabled()) {
                 return keyManagementFlags;
             }

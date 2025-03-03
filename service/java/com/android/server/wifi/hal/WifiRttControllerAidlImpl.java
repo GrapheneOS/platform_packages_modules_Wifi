@@ -499,31 +499,10 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                         config.preamble = halRttPreambleCapabilityLimiter(config.preamble, cap,
                                 config.type, responder.frequency);
                     }
-
-                    // Update secure ranging configuration
-                    SecureRangingConfig secureConfig = responder.getSecureRangingConfig();
-                    @PasnConfig.AkmType int baseAkm = PasnConfig.AKM_NONE;
-                    @PasnConfig.Cipher int cipherSuite = PasnConfig.CIPHER_NONE;
-                    PasnConfig pasnConfig = null;
-                    if (secureConfig != null && cap != null
-                            && request.getSecurityMode() != RangingRequest.SECURITY_MODE_OPEN) {
-                        pasnConfig = secureConfig.getPasnConfig();
-                        baseAkm = getBestBaseAkm(pasnConfig.getBaseAkms(), cap.akmsSupported);
-                        cipherSuite = getBestCipherSuite(pasnConfig.getCiphers(),
-                                cap.cipherSuitesSupported);
-
-                    }
-                    if (baseAkm != PasnConfig.AKM_NONE && cipherSuite != PasnConfig.CIPHER_NONE) {
-                        config.secureConfig = new RttSecureConfig();
-                        config.secureConfig.enableSecureHeLtf = secureConfig.isSecureHeLtfEnabled();
-                        config.secureConfig.enableRangingFrameProtection = true;
-                        config.secureConfig.pasnConfig = new android.hardware.wifi.PasnConfig();
-                        config.secureConfig.pasnConfig.baseAkm = baseAkm;
-                        config.secureConfig.pasnConfig.cipherSuite = cipherSuite;
-                        config.secureConfig.pasnConfig.passphrase =
-                                pasnConfig.getPassword().getBytes(StandardCharsets.UTF_8);
-                        config.secureConfig.pasnComebackCookie = pasnConfig.getPasnComebackCookie();
-                    }
+                    // If the device and the responder is capable, IEEE 802.11 az NTB ranging can
+                    // be upgraded to IEEE 802.11 az NTB secure ranging.
+                    upgradeTo80211AzNtbSecureRanging(config, responder.getSecureRangingConfig(),
+                            cap, request.getSecurityMode());
                 }
             } catch (IllegalArgumentException e) {
                 Log.e(TAG, "Invalid configuration: " + e.getMessage());
@@ -538,6 +517,66 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
             configArray[i] = rttConfigs.get(i);
         }
         return configArray;
+    }
+
+    /**
+     * Upgrade to IEEE 802.11az NTB secure ranging, if supported.
+     */
+    private static void upgradeTo80211AzNtbSecureRanging(RttConfig halRttConfig,
+            SecureRangingConfig secureConfig, WifiRttController.Capabilities cap,
+            @RangingRequest.SecurityMode int securityMode) {
+        if (halRttConfig == null || secureConfig == null || cap == null) {
+            return;
+        }
+        // IEEE 802.11az NTB ranging capability is necessary for secure ranging.
+        if (!cap.ntbInitiatorSupported) {
+            return;
+        }
+        // Only 11az NTB ranging can be upgraded to secure ranging.
+        if (halRttConfig.type != RttType.TWO_SIDED_11AZ_NTB) {
+            return;
+        }
+        // An open security mode does not require security
+        if (securityMode == RangingRequest.SECURITY_MODE_OPEN) {
+            return;
+        }
+        // Either ranging protection of secure HE-LTF is required to be supported by the device.
+        if (!cap.rangingFrameProtectionSupported && !cap.secureHeLtfSupported) {
+            return;
+        }
+        // Check PASN configuration.
+        PasnConfig pasnConfig = secureConfig.getPasnConfig();
+        @PasnConfig.AkmType int baseAkm = getBestBaseAkm(pasnConfig.getBaseAkms(),
+                cap.akmsSupported);
+        @PasnConfig.Cipher int cipherSuite = getBestCipherSuite(pasnConfig.getCiphers(),
+                cap.cipherSuitesSupported);
+        // Responder and device need to support a valid base AKM and cipher suite.
+        if (baseAkm == PasnConfig.AKM_NONE || cipherSuite == PasnConfig.CIPHER_NONE) {
+            Log.e(TAG, "AKM/CIPHERS not compatible, skip secure ranging");
+            return;
+        }
+        halRttConfig.secureConfig = new RttSecureConfig();
+        halRttConfig.secureConfig.enableSecureHeLtf =
+                secureConfig.isSecureHeLtfEnabled() && cap.secureHeLtfSupported;
+        halRttConfig.secureConfig.enableRangingFrameProtection =
+                secureConfig.isRangingFrameProtectionEnabled()
+                        && cap.rangingFrameProtectionSupported;
+        halRttConfig.secureConfig.pasnConfig = new android.hardware.wifi.PasnConfig();
+        var passphrase = pasnConfig.getPassword();
+        if (passphrase != null) {
+            halRttConfig.secureConfig.pasnConfig.passphrase = passphrase.getBytes(
+                    StandardCharsets.UTF_8);
+        } else if (securityMode == RangingRequest.SECURITY_MODE_OPPORTUNISTIC
+                && baseAkm != PasnConfig.AKM_PASN) {
+            // If password is not present, in case of opportunistic mode, adjust the base AKM to
+            // un-authenticated PASN.
+            baseAkm = PasnConfig.AKM_PASN;
+        }
+        halRttConfig.secureConfig.pasnConfig.baseAkm = baseAkm;
+        halRttConfig.secureConfig.pasnConfig.cipherSuite = cipherSuite;
+        halRttConfig.secureConfig.pasnComebackCookie = pasnConfig.getPasnComebackCookie();
+        // Upgrade to IEEE 802.11az NTB secure ranging.
+        halRttConfig.type = RttType.TWO_SIDED_11AZ_NTB_SECURE;
     }
 
     /**

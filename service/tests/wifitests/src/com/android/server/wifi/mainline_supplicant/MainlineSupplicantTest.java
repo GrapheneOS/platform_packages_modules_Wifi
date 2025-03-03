@@ -21,12 +21,16 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.wifi.util.Environment;
 import android.os.IBinder;
 import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
+
+import com.android.server.wifi.WifiNative;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +44,7 @@ import org.mockito.MockitoAnnotations;
 public class MainlineSupplicantTest {
     private @Mock IMainlineSupplicant mIMainlineSupplicantMock;
     private @Mock IBinder mIBinderMock;
+    private @Mock WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private MainlineSupplicantSpy mDut;
 
     private ArgumentCaptor<IBinder.DeathRecipient> mDeathRecipientCaptor =
@@ -102,5 +107,32 @@ public class MainlineSupplicantTest {
         // Notification with the correct binder should be handled
         mDeathRecipientCaptor.getValue().binderDied(mIBinderMock);
         assertFalse(mDut.isActive());
+    }
+
+    /**
+     * Verify that the framework death handler is called on death, if registered.
+     */
+    @Test
+    public void testRegisterFrameworkDeathHandler() throws Exception {
+        validateServiceStart();
+        mDut.registerFrameworkDeathHandler(mFrameworkDeathHandler);
+
+        mDeathRecipientCaptor.getValue().binderDied(mIBinderMock);
+        verify(mFrameworkDeathHandler, times(1)).onDeath();
+    }
+
+    /**
+     * Verify that the framework death handler is not called on death,
+     * if it has been unregistered.
+     */
+    @Test
+    public void testUnregisterFrameworkDeathHandler() throws Exception {
+        validateServiceStart();
+        // Register and immediately unregister the framework death handler
+        mDut.registerFrameworkDeathHandler(mFrameworkDeathHandler);
+        mDut.unregisterFrameworkDeathHandler();
+
+        mDeathRecipientCaptor.getValue().binderDied(mIBinderMock);
+        verify(mFrameworkDeathHandler, never()).onDeath();
     }
 }

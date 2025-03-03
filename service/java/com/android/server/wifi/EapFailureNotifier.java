@@ -135,6 +135,23 @@ public class EapFailureNotifier {
     }
 
     /**
+     * Dismiss notification
+     */
+    public void dismissEapFailureNotification(String ssid) {
+        if (TextUtils.isEmpty(mCurrentShownSsid) || TextUtils.isEmpty(ssid)
+                || !TextUtils.equals(ssid, mCurrentShownSsid)) {
+            return;
+        }
+        StatusBarNotification[] activeNotifications = mNotificationManager.getActiveNotifications();
+        for (StatusBarNotification activeNotification : activeNotifications) {
+            if ((activeNotification.getId() == NOTIFICATION_ID)) {
+                mNotificationManager.cancel(NOTIFICATION_ID);
+                return;
+            }
+        }
+    }
+
+    /**
      * Display eap error notification which defined by carrier.
      *
      * @param ssid Error Message which defined by carrier

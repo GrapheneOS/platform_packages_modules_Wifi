@@ -1311,13 +1311,20 @@ public class WifiBlocklistMonitor {
                 return false;
             }
 
-            // Do not update SSID blocklist with information if this is the only
-            // SSID be observed. By ignoring it we will cause additional failures
-            // which will trigger Watchdog.
+            networkStatus.incrementDisableReasonCounter(reason);
+            // For network disable reasons, we should only update the status if we cross the
+            // threshold.
+            int disableReasonCounter = networkStatus.getDisableReasonCounter(reason);
+            int disableReasonThreshold = getNetworkSelectionDisableThreshold(reason);
+
+            // If this is the only SSID be observed, allow more failures to allow Watchdog to
+            // trigger easier
             if (reason == NetworkSelectionStatus.DISABLED_ASSOCIATION_REJECTION
                     || reason == NetworkSelectionStatus.DISABLED_AUTHENTICATION_FAILURE
                     || reason == NetworkSelectionStatus.DISABLED_DHCP_FAILURE) {
-                if (mWifiLastResortWatchdog.shouldIgnoreSsidUpdate()) {
+                if (mWifiLastResortWatchdog.shouldIgnoreSsidUpdate()
+                        && disableReasonCounter
+                        < NUM_CONSECUTIVE_FAILURES_PER_NETWORK_EXP_BACKOFF) {
                     if (mVerboseLoggingEnabled) {
                         Log.v(TAG, "Ignore update network selection status "
                                 + "since Watchdog trigger is activated");
@@ -1326,11 +1333,6 @@ public class WifiBlocklistMonitor {
                 }
             }
 
-            networkStatus.incrementDisableReasonCounter(reason);
-            // For network disable reasons, we should only update the status if we cross the
-            // threshold.
-            int disableReasonCounter = networkStatus.getDisableReasonCounter(reason);
-            int disableReasonThreshold = getNetworkSelectionDisableThreshold(reason);
             if (disableReasonCounter < disableReasonThreshold) {
                 if (mVerboseLoggingEnabled) {
                     Log.v(TAG, "Disable counter for network " + config.getPrintableSsid()

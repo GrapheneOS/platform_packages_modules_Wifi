@@ -16,9 +16,11 @@
 
 package android.net.wifi.rtt;
 
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -32,6 +34,7 @@ import android.net.MacAddress;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.OuiKeyedDataUtil;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.PeerHandle;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -520,6 +523,64 @@ public class WifiRttManagerTest {
     }
 
     /**
+     * Validate that RangingResults parcel works with secure ranging enabled (produces same
+     * object on write/read).
+     */
+    @Test
+    public void testSecureRangingResultsParcel() {
+        int status = RangingResult.STATUS_SUCCESS;
+        final MacAddress mac = MacAddress.fromString("00:01:02:03:04:05");
+        int distanceCm = 105;
+        int distanceStdDevCm = 10;
+        int rssi = 5;
+        int numAttemptedMeasurements = 8;
+        int numSuccessfulMeasurements = 3;
+        long timestamp = System.currentTimeMillis();
+        byte[] lci = { 0x5, 0x6, 0x7 };
+        byte[] lcr = { 0x1, 0x2, 0x3, 0xA, 0xB, 0xC };
+        List<OuiKeyedData> vendorData = OuiKeyedDataUtil.createTestOuiKeyedDataList(5);
+
+        RangingResult.Builder resultBuilder = new RangingResult.Builder()
+                .setStatus(status)
+                .setMacAddress(mac)
+                .setDistanceMm(distanceCm)
+                .setDistanceStdDevMm(distanceStdDevCm)
+                .setRssi(rssi)
+                .setNumAttemptedMeasurements(numAttemptedMeasurements)
+                .setNumSuccessfulMeasurements(numSuccessfulMeasurements)
+                .setLci(lci)
+                .setLcr(lcr)
+                .setRangingTimestampMillis(timestamp)
+                .set80211mcMeasurement(false)
+                .set80211azNtbMeasurement(true)
+                .set80211azInitiatorTxLtfRepetitionsCount(2)
+                .set80211azResponderTxLtfRepetitionsCount(2)
+                .set80211azNumberOfRxSpatialStreams(2)
+                .setPasnComebackCookie(new byte[] {1, 2, 3})
+                .setMaxTimeBetweenNtbMeasurementsMicros(1000)
+                .setMinTimeBetweenNtbMeasurementsMicros(100)
+                .setRangingAuthenticated(true)
+                .setRangingFrameProtected(true);
+
+        if (SdkLevel.isAtLeastV()) {
+            resultBuilder.setVendorData(vendorData);
+        }
+        RangingResult result = resultBuilder.build();
+
+        Parcel parcelW = Parcel.obtain();
+        result.writeToParcel(parcelW, 0);
+        byte[] bytes = parcelW.marshall();
+        parcelW.recycle();
+
+        Parcel parcelR = Parcel.obtain();
+        parcelR.unmarshall(bytes, 0, bytes.length);
+        parcelR.setDataPosition(0);
+        RangingResult rereadResult = RangingResult.CREATOR.createFromParcel(parcelR);
+
+        assertEquals(result, rereadResult);
+    }
+
+    /**
      * Validate that RangingResults tests equal even if LCI/LCR is empty (length == 0) and null.
      */
     @Test
@@ -568,6 +629,17 @@ public class WifiRttManagerTest {
      */
     @Test
     public void testResponderConfigParcel() {
+        // Create SecureRangingConfig
+        PasnConfig pasnConfig = new PasnConfig.Builder(PasnConfig.AKM_SAE | PasnConfig.AKM_PASN,
+                PasnConfig.CIPHER_CCMP_256 | PasnConfig.CIPHER_GCMP_256)
+                .setPassword("password")
+                .setWifiSsid(WifiSsid.fromString("\"SSID\""))
+                .setPasnComebackCookie(new byte[]{1, 2, 3})
+                .build();
+        SecureRangingConfig secureRangingConfig = new SecureRangingConfig.Builder(pasnConfig)
+                .setSecureHeLtfEnabled(true)
+                .setRangingFrameProtectionEnabled(true)
+                .build();
         // ResponderConfig constructed with a MAC address
         ResponderConfig config = new ResponderConfig.Builder()
                 .setMacAddress(MacAddress.fromString("00:01:02:03:04:05"))
@@ -577,6 +649,10 @@ public class WifiRttManagerTest {
                 .setCenterFreq0Mhz(2345)
                 .setCenterFreq1Mhz(2555)
                 .setPreamble(ScanResult.PREAMBLE_LEGACY)
+                .set80211azNtbSupported(true)
+                .setNtbMaxTimeBetweenMeasurementsMicros(10000)
+                .setNtbMinTimeBetweenMeasurementsMicros(100)
+                .setSecureRangingConfig(secureRangingConfig)
                 .build();
 
         Parcel parcelW = Parcel.obtain();
@@ -753,4 +829,96 @@ public class WifiRttManagerTest {
         verify(mockRttService).getRttCharacteristics();
         assertEquals(0, characteristics.size());
     }
+
+    /**
+     * Validate secure ranging request call flow with successful results.
+     */
+    @Test
+    public void testSecureRangeSuccess() throws Exception {
+        // Build a scan result with secure ranging support
+        ScanResult.InformationElement htCap = new ScanResult.InformationElement();
+        htCap.id = ScanResult.InformationElement.EID_HT_CAPABILITIES;
+
+        ScanResult.InformationElement vhtCap = new ScanResult.InformationElement();
+        vhtCap.id = ScanResult.InformationElement.EID_VHT_CAPABILITIES;
+
+        ScanResult.InformationElement vsa = new ScanResult.InformationElement();
+        vsa.id = ScanResult.InformationElement.EID_VSA;
+
+        ScanResult.InformationElement heCap = new ScanResult.InformationElement();
+        heCap.id = ScanResult.InformationElement.EID_EXTENSION_PRESENT;
+        heCap.idExt = ScanResult.InformationElement.EID_EXT_HE_CAPABILITIES;
+
+        ScanResult.InformationElement ehtCap = new ScanResult.InformationElement();
+        ehtCap.id = ScanResult.InformationElement.EID_EXTENSION_PRESENT;
+        ehtCap.idExt = ScanResult.InformationElement.EID_EXT_EHT_CAPABILITIES;
+
+        ScanResult.InformationElement[] ie = new ScanResult.InformationElement[3];
+        ie[0] = vhtCap;
+        ie[1] = heCap;
+        ie[2] = ehtCap;
+
+        // Build a secure ranging request
+        ScanResult scanResult = new ScanResult();
+        scanResult.BSSID = "00:01:02:03:04:05";
+        scanResult.setFlag(
+                ScanResult.FLAG_80211az_NTB_RESPONDER | ScanResult.FLAG_SECURE_HE_LTF_SUPPORTED);
+        scanResult.informationElements = ie;
+        scanResult.capabilities = "[RSN-PASN-SAE+SAE_EXT_KEY-GCMP-128]";
+        scanResult.setWifiSsid(WifiSsid.fromString("\"TEST_SSID\""));
+
+        RangingRequest.Builder builder = new RangingRequest.Builder();
+        builder.addAccessPoint(scanResult);
+        builder.setSecurityMode(RangingRequest.SECURITY_MODE_SECURE_AUTH);
+        RangingRequest secureRangingRequest = builder.build();
+
+        // Make sure responder is configured correctly for secure ranging
+        ResponderConfig responderConfig = secureRangingRequest.getRttResponders().get(0);
+        assertNotNull(responderConfig);
+        SecureRangingConfig secureRangingConfig = responderConfig.getSecureRangingConfig();
+        assertNotNull(secureRangingConfig);
+        assertTrue(secureRangingConfig.isRangingFrameProtectionEnabled());
+        assertTrue(secureRangingConfig.isSecureHeLtfEnabled());
+        PasnConfig pasnConfig = secureRangingConfig.getPasnConfig();
+        assertNotNull(pasnConfig);
+        assertEquals(PasnConfig.AKM_PASN | PasnConfig.AKM_SAE, pasnConfig.getBaseAkms());
+        assertEquals(PasnConfig.CIPHER_GCMP_128, pasnConfig.getCiphers());
+        assertNull(pasnConfig.getPasnComebackCookie());
+        assertEquals(WifiSsid.fromString("\"TEST_SSID\""), pasnConfig.getWifiSsid());
+        assertEquals(RangingRequest.SECURITY_MODE_SECURE_AUTH,
+                secureRangingRequest.getSecurityMode());
+
+        List<RangingResult> results = new ArrayList<>();
+        results.add(new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setMacAddress(MacAddress.fromString(scanResult.BSSID))
+                .setDistanceMm(15)
+                .setDistanceStdDevMm(5)
+                .setRssi(10)
+                .setNumAttemptedMeasurements(8)
+                .setNumSuccessfulMeasurements(5)
+                .setRangingTimestampMillis(666)
+                .set80211mcMeasurement(false)
+                .set80211azNtbMeasurement(true)
+                .setRangingFrameProtected(true)
+                .setSecureHeLtfEnabled(true)
+                .setSecureHeLtfProtocolVersion(0)
+                .build());
+        RangingResultCallback callbackMock = mock(RangingResultCallback.class);
+        ArgumentCaptor<IRttCallback> callbackCaptor = ArgumentCaptor.forClass(IRttCallback.class);
+
+        // verify ranging request passed to service
+        mDut.startRanging(secureRangingRequest, mMockLooperExecutor, callbackMock);
+        verify(mockRttService).startRanging(any(IBinder.class), eq(packageName), eq(featureId),
+                eq(null),  eq(secureRangingRequest), callbackCaptor.capture(),
+                any(Bundle.class));
+
+        // service calls back with success
+        callbackCaptor.getValue().onRangingResults(results);
+        mMockLooper.dispatchAll();
+        verify(callbackMock).onRangingResults(results);
+
+        verifyNoMoreInteractions(mockRttService, callbackMock);
+    }
+
 }

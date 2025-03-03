@@ -68,10 +68,10 @@ public class WifiP2pProvDiscEvent {
     public String wpsPin;
 
     /*
-     * Valid when event = PAIRING_BOOTSTRAPPING_SHOW_PIN or PAIRING_BOOTSTRAPPING_SHOW_PASSPHRASE.
+     * Whether the provision discovery frame is with a comeback request.
      */
     @UnsupportedAppUsage
-    public String pairingPinOrPassphrase;
+    public boolean isComeback;
 
     /** List of {@link OuiKeyedData} providing vendor-specific configuration data. */
     private @NonNull List<OuiKeyedData> mVendorData = Collections.emptyList();
@@ -159,8 +159,8 @@ public class WifiP2pProvDiscEvent {
         sbuf.append(device);
         sbuf.append("\n event: ").append(event);
         sbuf.append("\n wpsPin: ").append(wpsPin);
-        sbuf.append("\n PairingPinOrPassphrase: ").append(pairingPinOrPassphrase);
         sbuf.append("\n vendorData: ").append(mVendorData);
+        sbuf.append("\n isComeback: ").append(isComeback);
         return sbuf.toString();
     }
 }

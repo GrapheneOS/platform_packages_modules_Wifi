@@ -19,6 +19,7 @@ package com.android.server.wifi.p2p;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -30,12 +31,18 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.net.MacAddress;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDirInfo;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pUsdBasedLocalServiceAdvertisementConfig;
+import android.net.wifi.p2p.WifiP2pUsdBasedServiceDiscoveryConfig;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceConfig;
+import android.net.wifi.util.Environment;
 
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiGlobals;
@@ -74,6 +81,17 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     private static final boolean DISABLE = false;
     private static final int NETWORK_ID = 2;
     private static final int CHANNEL = 3;
+    private static final String TEST_USD_SERVICE_NAME = "test_service_name";
+    private static final int TEST_USD_PROTOCOL_TYPE = 4;
+    private static final byte[] TEST_USD_SERVICE_SPECIFIC_INFO = {10, 20, 30, 40, 50, 60};
+    private static final int TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ = 2437;
+    private static final int[] TEST_USD_DISCOVERY_CHANNEL_FREQUENCIES_MHZ = {2412, 2437, 2462};
+    private static final int TEST_USD_TIMEOUT_SEC = 30;
+    private static final int TEST_USD_SESSION_ID = 2;
+    private static final byte[] TEST_NONCE = {10, 20, 30, 40, 50, 60, 70, 80};
+    private static final byte[] TEST_DIR_TAG = {11, 22, 33, 44, 55, 66, 77, 88};
+    private static final WifiP2pDirInfo TEST_DIR_INFO = new WifiP2pDirInfo(
+            MacAddress.fromString(BSSID), TEST_NONCE, TEST_DIR_TAG);
 
     private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHal {
         SupplicantP2pIfaceHalSpy() {
@@ -413,9 +431,9 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     @Test
     public void testReinvoke() {
         initializeWithAidlImpl(true);
-        when(mP2pIfaceHalAidlMock.reinvoke(anyInt(), anyString())).thenReturn(true);
-        assertTrue(mDut.reinvoke(NETWORK_ID, BSSID));
-        verify(mP2pIfaceHalAidlMock).reinvoke(eq(NETWORK_ID), eq(BSSID));
+        when(mP2pIfaceHalAidlMock.reinvoke(anyInt(), anyString(), anyInt())).thenReturn(true);
+        assertTrue(mDut.reinvoke(NETWORK_ID, BSSID, -1));
+        verify(mP2pIfaceHalAidlMock).reinvoke(eq(NETWORK_ID), eq(BSSID), eq(-1));
     }
 
     /**
@@ -849,5 +867,97 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
         when(mP2pIfaceHalAidlMock.deregisterDeathHandler()).thenReturn(true);
         assertTrue(mDut.deregisterDeathHandler());
         verify(mP2pIfaceHalAidlMock).deregisterDeathHandler();
+    }
+
+    /**
+     * Test the start of an Unsynchronized Service Discovery (USD) based P2P service discovery.
+     */
+    @Test
+    public void testStartUsdBasedServiceDiscovery() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        when(mP2pIfaceHalAidlMock.startUsdBasedServiceDiscovery(any(), any(), anyInt()))
+                .thenReturn(TEST_USD_SESSION_ID);
+        WifiP2pUsdBasedServiceConfig usdConfig = new WifiP2pUsdBasedServiceConfig.Builder(
+                TEST_USD_SERVICE_NAME)
+                .setServiceProtocolType(TEST_USD_PROTOCOL_TYPE)
+                .setServiceSpecificInfo(TEST_USD_SERVICE_SPECIFIC_INFO).build();
+        WifiP2pUsdBasedServiceDiscoveryConfig serviceDiscoveryConfig =
+                new WifiP2pUsdBasedServiceDiscoveryConfig.Builder()
+                        .setFrequenciesMhz(TEST_USD_DISCOVERY_CHANNEL_FREQUENCIES_MHZ).build();
+        assertEquals(TEST_USD_SESSION_ID, mDut.startUsdBasedServiceDiscovery(
+                usdConfig, serviceDiscoveryConfig, TEST_USD_TIMEOUT_SEC));
+        verify(mP2pIfaceHalAidlMock).startUsdBasedServiceDiscovery(eq(usdConfig),
+                eq(serviceDiscoveryConfig), eq(TEST_USD_TIMEOUT_SEC));
+    }
+
+    /**
+     * Test the stop of an Unsynchronized Service Discovery (USD) based P2P service discovery.
+     */
+    @Test
+    public void testStopUsdBasedServiceDiscovery() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        doNothing().when(mP2pIfaceHalAidlMock).stopUsdBasedServiceDiscovery(anyInt());
+        mDut.stopUsdBasedServiceDiscovery(TEST_USD_SESSION_ID);
+        verify(mP2pIfaceHalAidlMock).stopUsdBasedServiceDiscovery(eq(TEST_USD_SESSION_ID));
+    }
+
+    /**
+     * Test the start of an Unsynchronized Service Discovery (USD) based service advertisement.
+     */
+    @Test
+    public void testStartUsdBasedServiceAdvertisement() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        when(mP2pIfaceHalAidlMock.startUsdBasedServiceAdvertisement(any(), any(), anyInt()))
+                .thenReturn(TEST_USD_SESSION_ID);
+        WifiP2pUsdBasedServiceConfig usdConfig = new WifiP2pUsdBasedServiceConfig.Builder(
+                TEST_USD_SERVICE_NAME)
+                .setServiceProtocolType(TEST_USD_PROTOCOL_TYPE)
+                .setServiceSpecificInfo(TEST_USD_SERVICE_SPECIFIC_INFO).build();
+        WifiP2pUsdBasedLocalServiceAdvertisementConfig serviceAdvertisementConfig =
+                new WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder()
+                        .setFrequencyMhz(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ).build();
+        assertEquals(TEST_USD_SESSION_ID, mDut.startUsdBasedServiceAdvertisement(
+                usdConfig, serviceAdvertisementConfig, TEST_USD_TIMEOUT_SEC));
+        verify(mP2pIfaceHalAidlMock).startUsdBasedServiceAdvertisement(eq(usdConfig),
+                eq(serviceAdvertisementConfig), eq(TEST_USD_TIMEOUT_SEC));
+    }
+
+    /**
+     * Test the stop of an Unsynchronized Service Discovery (USD) based service advertisement.
+     */
+    @Test
+    public void testStopUsdBasedServiceAdvertisement() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        doNothing().when(mP2pIfaceHalAidlMock).stopUsdBasedServiceAdvertisement(anyInt());
+        mDut.stopUsdBasedServiceAdvertisement(TEST_USD_SESSION_ID);
+        verify(mP2pIfaceHalAidlMock).stopUsdBasedServiceAdvertisement(eq(TEST_USD_SESSION_ID));
+    }
+
+    /**
+     * Test get Device Identity Resolution (DIR) Information.
+     */
+    @Test
+    public void testGetDirInfo() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        when(mP2pIfaceHalAidlMock.getDirInfo()).thenReturn(TEST_DIR_INFO);
+        assertEquals(TEST_DIR_INFO, mDut.getDirInfo());
+        verify(mP2pIfaceHalAidlMock).getDirInfo();
+    }
+
+    /**
+     * Test validate Device Identity Resolution (DIR) Information.
+     */
+    @Test
+    public void testValidateDirInfo() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeWithAidlImpl(true);
+        when(mP2pIfaceHalAidlMock.validateDirInfo(any())).thenReturn(1);
+        assertEquals(1, mDut.validateDirInfo(TEST_DIR_INFO));
+        verify(mP2pIfaceHalAidlMock).validateDirInfo(eq(TEST_DIR_INFO));
     }
 }

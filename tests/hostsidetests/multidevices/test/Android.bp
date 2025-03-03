@@ -178,6 +178,7 @@ python_test_host {
     test_config: "softap/AndroidTest.xml",
     libs: [
         "mobly",
+        "wifi_test_utils",
         "wifi_softap_constants",
     ],
     device_common_data: [":wifi_mobly_snippet"],

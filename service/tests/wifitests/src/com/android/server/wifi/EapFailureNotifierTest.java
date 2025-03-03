@@ -20,6 +20,7 @@ import static com.android.server.wifi.EapFailureNotifier.CONFIG_EAP_FAILURE_DISA
 import static com.android.server.wifi.EapFailureNotifier.CONFIG_EAP_FAILURE_DISABLE_THRESHOLD;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_PREFIX;
 import static com.android.server.wifi.EapFailureNotifier.ERROR_MESSAGE_OVERLAY_UNKNOWN_ERROR_CODE;
+import static com.android.server.wifi.EapFailureNotifier.NOTIFICATION_ID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -274,6 +275,10 @@ public class EapFailureNotifierTest extends WifiBaseTest {
         verify(mFrameworkFacade, never()).makeNotificationBuilder(any(),
                 eq(WifiService.NOTIFICATION_NETWORK_ALERTS));
         assertEquals(mExpectedEapFailureConfig, failureConfig);
+
+        // verify cancel notification works
+        mEapFailureNotifier.dismissEapFailureNotification(SSID_1);
+        verify(mWifiNotificationManager).cancel(NOTIFICATION_ID);
     }
 
     /**

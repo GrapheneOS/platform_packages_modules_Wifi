@@ -24,3 +24,8 @@ def set_screen_on_and_unlock(ad: android_device.AndroidDevice):
     ad.adb.shell("svc power stayon true")
     ad.adb.shell("input keyevent KEYCODE_WAKEUP")
     ad.adb.shell("wm dismiss-keyguard")
+
+
+def enable_wifi_verbose_logging(ad: android_device.AndroidDevice):
+    """Sets the Wi-Fi verbose logging developer option to Enable."""
+    ad.adb.shell('cmd wifi set-verbose-logging enabled')

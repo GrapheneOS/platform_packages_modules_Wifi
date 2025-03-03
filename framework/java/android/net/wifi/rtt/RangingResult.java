@@ -1168,6 +1168,12 @@ public final class RangingResult implements Parcelable {
         if (SdkLevel.isAtLeastV()) {
             dest.writeList(mVendorData);
         }
+        dest.writeBoolean(mIsRangingAuthenticated);
+        dest.writeBoolean(mIsRangingFrameProtected);
+        dest.writeBoolean(mIsSecureHeLtfEnabled);
+        dest.writeLong(mPasnComebackAfterMillis);
+        dest.writeByteArray(mPasnComebackCookie);
+        dest.writeInt(mSecureHeLtfProtocolVersion);
     }
 
     public static final @android.annotation.NonNull Creator<RangingResult> CREATOR =
@@ -1208,6 +1214,12 @@ public final class RangingResult implements Parcelable {
                     if (SdkLevel.isAtLeastV()) {
                         builder.setVendorData(ParcelUtil.readOuiKeyedDataList(in));
                     }
+                    builder.setRangingAuthenticated(in.readBoolean())
+                            .setRangingFrameProtected(in.readBoolean())
+                            .setSecureHeLtfEnabled(in.readBoolean())
+                            .setPasnComebackAfterMillis(in.readLong())
+                            .setPasnComebackCookie(in.createByteArray())
+                            .setSecureHeLtfProtocolVersion(in.readInt());
                     return builder.build();
                 }
             };

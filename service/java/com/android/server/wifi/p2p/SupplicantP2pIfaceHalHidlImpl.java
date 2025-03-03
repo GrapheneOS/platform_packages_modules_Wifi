@@ -1300,13 +1300,19 @@ public class SupplicantP2pIfaceHalHidlImpl implements ISupplicantP2pIfaceHal {
     /**
      * Reinvoke a device from a persistent group.
      *
-     * @param networkId Used to specify the persistent group.
+     * @param networkId Used to specify the persistent group (valid only for P2P V1 group).
      * @param peerAddress MAC address of the device to reinvoke.
+     * @param dikId The identifier of device identity key of the device to reinvoke.
+     *              (valid only for P2P V2 group).
      *
      * @return true, if operation was successful.
      */
-    public boolean reinvoke(int networkId, String peerAddress) {
+    public boolean reinvoke(int networkId, String peerAddress, int dikId) {
         if (TextUtils.isEmpty(peerAddress) || networkId < 0) return false;
+        if (dikId >= 0) {
+            Log.e(TAG, "Reinvoke with dikId is not supported.");
+            return false;
+        }
         synchronized (mLock) {
             if (!checkSupplicantP2pIfaceAndLogFailure("reinvoke")) return false;
             if (peerAddress == null) {

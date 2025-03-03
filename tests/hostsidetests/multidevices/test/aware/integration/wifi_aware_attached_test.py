@@ -16,6 +16,7 @@
 """ACTS Wi-Fi Aware Attached test reimplemented in Mobly."""
 import sys
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -32,7 +33,10 @@ RUNTIME_PERMISSIONS = (
     'android.permission.NEARBY_WIFI_DEVICES',
 )
 PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
-
+snippets_to_load = [
+    ('wifi_aware_snippet', PACKAGE_NAME),
+    ('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME),
+]
 
 class WifiAwareAttachTest(base_test.BaseTestClass):
   """Wi-Fi Aware Attach test class."""
@@ -44,9 +48,10 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
     self.ads = self.register_controller(android_device, min_number=1)
 
     def setup_device(device: android_device.AndroidDevice):
-      device.load_snippet('wifi_aware_snippet', PACKAGE_NAME)
+      for snippet_name, package_name in snippets_to_load:
+                device.load_snippet(snippet_name, package_name)
       for permission in RUNTIME_PERMISSIONS:
-        device.adb.shell(['pm', 'grant', PACKAGE_NAME, permission])
+        device.adb.shell(['pm', 'grant', package_name, permission])
       asserts.abort_all_if(
           not device.wifi_aware_snippet.wifiAwareIsAvailable(),
           f'{device} Wi-Fi Aware is not available.',
@@ -62,7 +67,7 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
 
   def setup_test(self):
     for ad in self.ads:
-      autils.control_wifi(ad, True)
+      ad.wifi.wifiEnable()
       aware_avail = ad.wifi_aware_snippet.wifiAwareIsAvailable()
       if not aware_avail:
         ad.log.info('Aware not available. Waiting ...')
@@ -85,13 +90,20 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
   def _teardown_test_on_device(self, ad: android_device.AndroidDevice) -> None:
     ad.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
     ad.wifi_aware_snippet.wifiAwareMonitorStopStateChange()
-    autils.set_airplane_mode(ad, False)
-    autils.control_wifi(ad, True)
+    ad.wifi.wifiEnable()
+    if ad.is_adb_root:
+          autils.set_airplane_mode(ad, False)
 
   def on_fail(self, record: records.TestResult) -> None:
     android_device.take_bug_reports(
         self.ads, destination=self.current_test_info.output_path
     )
+
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
 
   def test_attach(self) -> None:
     """Basic attaching request.
@@ -106,6 +118,12 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
         handler, constants.AttachCallBackMethodType.ID_CHANGED
     )
 
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
+
   def test_attach_with_identity(self) -> None:
     """Basic attaching request with extra callback.
 
@@ -116,6 +134,12 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
     handler = dut.wifi_aware_snippet.wifiAwareAttached(True)
     handler.waitAndGet(constants.AttachCallBackMethodType.ATTACHED)
     handler.waitAndGet(constants.AttachCallBackMethodType.ID_CHANGED)
+
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
 
   def test_attach_multiple_sessions(self):
     """Multiple attaching request.
@@ -138,6 +162,12 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
         handler_3, constants.AttachCallBackMethodType.ID_CHANGED, 10, True
     )
 
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
+
   def test_attach_with_no_wifi(self):
     """WiFi Aware attempt to attach with wifi off.
 
@@ -152,6 +182,12 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
     attach_callback = dut.wifi_aware_snippet.wifiAwareAttached(True)
     attach_callback.waitAndGet(constants.AttachCallBackMethodType.ATTACH_FAILED)
     dut.wifi_aware_snippet.wifiAwareMonitorStopStateChange()
+
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
 
   def test_attach_with_location_off(self):
     """Function/Attach test cases/attempt to attach with location mode off.
@@ -175,6 +211,12 @@ class WifiAwareAttachTest(base_test.BaseTestClass):
     dut.adb.shell('settings put secure location_mode 3')
     state_handler.waitAndGet(constants.WifiAwareBroadcast.WIFI_AWARE_AVAILABLE)
     dut.wifi_aware_snippet.wifiAwareMonitorStopStateChange()
+
+  @ApiTest(
+      apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+      ]
+  )
 
   def test_attach_apm_toggle_attach_again(self):
     """Function/Attach test cases/attempt to attach with airplane mode on.

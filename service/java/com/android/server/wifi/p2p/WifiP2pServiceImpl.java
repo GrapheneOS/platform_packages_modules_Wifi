@@ -170,6 +170,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -298,7 +299,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private static final int DISCOVER_TIMEOUT_S = 120;
 
     // Set a 30 seconds timeout for USD service discovery and advertisement.
-    private static final int USD_BASED_SERVICE_ADVERTISEMENT_DISCOVERY_TIMEOUT_S = 30;
+    @VisibleForTesting static final int USD_BASED_SERVICE_ADVERTISEMENT_DISCOVERY_TIMEOUT_S = 30;
 
     // Idle time after a peer is gone when the group is torn down
     private static final int GROUP_IDLE_TIME_S = 10;
@@ -468,6 +469,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     static final String GO_EAPOL_IP_RANGE_DEFAULT_START_ADDRESS = "192.168.49.128";
     @VisibleForTesting
     static final String GO_EAPOL_IP_RANGE_DEFAULT_END_ADDRESS = "192.168.49.254";
+
+    private static final int PAIRING_PIN_OR_PASSWORD_LENGTH = 8;
 
     private final RemoteCallbackList<IWifiP2pListener> mWifiP2pListeners =
             new RemoteCallbackList<>();
@@ -3832,11 +3835,12 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                 replyToMessage(message, WifiP2pManager.CONNECT_FAILED);
                             }
                         } else if (isConfigForV2Connection(config)) {
-                            // TODO add support for V2 persistent connection
                             if (isWifiDirect2Enabled()) {
                                 mAutonomousGroup = false;
                                 mWifiNative.p2pStopFind();
-                                if (isConfigForBootstrappingMethodOutOfBand(config)) {
+                                if (reinvokePersistentV2Group(config)) {
+                                    smTransition(this, mGroupNegotiationState);
+                                } else if (isConfigForBootstrappingMethodOutOfBand(config)) {
                                     if (mWifiNative.p2pConnect(config, FORM_GROUP) != null) {
                                         smTransition(this, mGroupNegotiationState);
                                     } else {
@@ -3996,43 +4000,27 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pMonitor
-                            .P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT: {
-                        if (processProvDiscPairingBootstrappingOpportunisticRequestEvent(
-                                (WifiP2pProvDiscEvent) message.obj)) {
-                            mAutonomousGroup = false;
-                            mJoinExistingGroup = false;
-                            smTransition(this, mUserAuthorizingNegotiationRequestState);
-                        }
-                        break;
-                    }
+                            .P2P_PROV_DISC_ENTER_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT:
                     case WifiP2pMonitor
-                            .P2P_PROV_DISC_ENTER_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT: {
-                        if (processProvDiscEnterPairingBootstrappingPinOrPassphraseEvent(
+                            .P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT: {
+                        if (processProvisionDiscoveryRequestForV2ConnectionOnP2pDevice(
                                 (WifiP2pProvDiscEvent) message.obj)) {
-                            mAutonomousGroup = false;
-                            mJoinExistingGroup = false;
                             smTransition(this, mUserAuthorizingNegotiationRequestState);
                         }
                         break;
                     }
                     case WifiP2pMonitor
                             .P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT: {
-                        if (message.obj == null) {
-                            Log.e(TAG, "Illegal argument(s)");
-                            break;
-                        }
-                        WifiP2pProvDiscEvent provDisc = (WifiP2pProvDiscEvent) message.obj;
-                        WifiP2pDevice device = provDisc.device;
-                        if (device == null) {
-                            loge("Device entry is null");
-                            break;
-                        }
-                        if (processProvDiscShowPairingBootstrappingPinOrPassphraseEvent(provDisc)) {
-                            mAutonomousGroup = false;
-                            mJoinExistingGroup = false;
-                            notifyP2pProvDiscShowPinRequest(provDisc.pairingPinOrPassphrase,
-                                    device.deviceAddress);
-                            smTransition(this, mUserAuthorizingNegotiationRequestState);
+                        // TODO Change this logic:
+                        // Move to UserAuthorizingNegotiationRequestState, display the PIN or
+                        // passphrase and request user to accept/reject.
+                        if (processProvisionDiscoveryRequestForV2ConnectionOnP2pDevice(
+                                (WifiP2pProvDiscEvent) message.obj)) {
+                            notifyP2pProvDiscShowPinRequest(getPinOrPassphraseFromSavedPeerConfig(),
+                                    mSavedPeerConfig.deviceAddress);
+                            p2pConnectWithPinDisplay(mSavedPeerConfig,
+                                    P2P_CONNECT_TRIGGER_GROUP_NEG_REQ);
+                            smTransition(this, mGroupNegotiationState);
                         }
                         break;
                     }
@@ -4816,11 +4804,13 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             break;
                         }
                         if (isConfigForBootstrappingMethodOpportunistic(mSavedPeerConfig)) {
-                            if (mVerboseLoggingEnabled) {
-                                logd("Found a match " + mSavedPeerConfig);
+                            if (!provDisc.isComeback) {
+                                logd("Peer accepted the bootstrapping request " + mSavedPeerConfig
+                                        + " Initiate the pairing protocol");
+                                p2pConnectWithPinDisplay(mSavedPeerConfig,
+                                        P2P_CONNECT_TRIGGER_OTHER);
+                                smTransition(this, mGroupNegotiationState);
                             }
-                            p2pConnectWithPinDisplay(mSavedPeerConfig, P2P_CONNECT_TRIGGER_OTHER);
-                            smTransition(this, mGroupNegotiationState);
                         } else {
                             loge("Error in mapping pairingBootstrappingMethod");
                         }
@@ -4864,18 +4854,18 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         }
                         if (isConfigForBootstrappingMethodDisplayPinOrPassphrase(
                                 mSavedPeerConfig)) {
-                            if (mVerboseLoggingEnabled) {
-                                logd("Found a match " + mSavedPeerConfig);
+                            setDisplayPinOrPassphraseInSavedPeerConfigIfNeeded();
+                            if (!provDisc.isComeback) {
+                                logd("Peer accepted the bootstrapping request " + mSavedPeerConfig
+                                        + " Initiate the pairing protocol");
+                                p2pConnectWithPinDisplay(mSavedPeerConfig,
+                                        P2P_CONNECT_TRIGGER_OTHER);
+                                smTransition(this, mGroupNegotiationState);
+                            } else {
+                                logd("Display Pin/Passphrase " + mSavedPeerConfig);
+                                notifyInvitationSent(getPinOrPassphraseFromSavedPeerConfig(),
+                                        device.deviceAddress);
                             }
-                            if (TextUtils.isEmpty(provDisc.pairingPinOrPassphrase)) {
-                                loge("Didn't receive pairing pin/passphrase from supplicant");
-                                break;
-                            }
-                            setPinOrPassphraseInSavedPeerConfig(provDisc.pairingPinOrPassphrase);
-                            p2pConnectWithPinDisplay(mSavedPeerConfig, P2P_CONNECT_TRIGGER_OTHER);
-                            notifyInvitationSent(provDisc.pairingPinOrPassphrase,
-                                    device.deviceAddress);
-                            smTransition(this, mGroupNegotiationState);
                         } else {
                             loge("Error in mapping pairingBootstrappingMethod");
                         }
@@ -5769,17 +5759,33 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pMonitor
-                            .P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT:
-                    case WifiP2pMonitor
                             .P2P_PROV_DISC_ENTER_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT:
+                    case WifiP2pMonitor
+                            .P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT: {
+                        if (mGroup.isGroupOwner()) {
+                            if (processProvisionDiscoveryRequestForV2ConnectionOnGroupOwner(
+                                    (WifiP2pProvDiscEvent) message.obj)) {
+                                smTransition(this, mUserAuthorizingJoinState);
+                            }
+                        } else {
+                            if (mVerboseLoggingEnabled) {
+                                logd("Ignore provision discovery for GC");
+                            }
+                        }
+                        break;
+                    }
                     case WifiP2pMonitor
                             .P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT: {
                         // According to section 3.2.3 in SPEC, only GO can handle group join.
                         // Multiple groups is not supported, ignore this discovery for GC.
                         if (mGroup.isGroupOwner()) {
-                            if (processProvDiscEventOnGroupOwner(
+                            if (processProvisionDiscoveryRequestForV2ConnectionOnGroupOwner(
                                     (WifiP2pProvDiscEvent) message.obj)) {
-                                smTransition(this, mUserAuthorizingJoinState);
+                                notifyP2pProvDiscShowPinRequest(
+                                        getPinOrPassphraseFromSavedPeerConfig(),
+                                        mSavedPeerConfig.deviceAddress);
+                                mWifiNative.authorizeConnectRequestOnGroupOwner(mSavedPeerConfig,
+                                        mGroup.getInterface());
                             }
                         } else {
                             if (mVerboseLoggingEnabled) {
@@ -5939,6 +5945,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                                         mSavedPeerConfig.wps.pin);
                             }
                         }
+                        smTransition(this, mGroupCreatedState);
                         break;
                     case PEER_CONNECTION_USER_REJECT:
                         if (mVerboseLoggingEnabled) logd("User rejected incoming request");
@@ -6796,7 +6803,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
          * if not found, return -1.
          */
         @SuppressLint("NewApi")
-        private int convertWifiP2pProvDiscEventToPairingBootstrappingMethod(int event) {
+        private @WifiP2pPairingBootstrappingConfig.PairingBootstrappingMethod int
+        convertWifiP2pProvDiscEventToPairingBootstrappingMethod(int event) {
             switch (event) {
                 case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ:
                 case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_RSP:
@@ -6815,7 +6823,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                     return WifiP2pPairingBootstrappingConfig
                             .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PASSPHRASE;
                 default:
-                    return -1;
+                    return 0;
             }
         }
 
@@ -6912,138 +6920,95 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             return false;
         }
 
-        @SuppressLint("NewApi")
-        private boolean processProvDiscPairingBootstrappingOpportunisticRequestEvent(
-                WifiP2pProvDiscEvent provDisc) {
-            if (!isWifiDirect2Enabled()) {
-                return false;
+        private static String generatePairingPin() {
+            SecureRandom random = new SecureRandom();
+            StringBuilder sb = new StringBuilder(PAIRING_PIN_OR_PASSWORD_LENGTH);
+            for (int i = 0; i < PAIRING_PIN_OR_PASSWORD_LENGTH; i++) {
+                sb.append(random.nextInt(10));
             }
-            if (provDisc == null) {
-                Log.e(TAG, "provDisc is null");
-                return false;
-            }
-            WifiP2pDevice device = provDisc.device;
-            if (device == null) {
-                loge("Device entry is null");
-                return false;
-            }
-            if (TextUtils.isEmpty(device.deviceAddress)) {
-                loge("Device address is empty");
-                return false;
-            }
+            return sb.toString();
+        }
 
-            WifiP2pPairingBootstrappingConfig pairingBootstrappingConfig =
-                    new WifiP2pPairingBootstrappingConfig(
-                            WifiP2pPairingBootstrappingConfig
-                                    .PAIRING_BOOTSTRAPPING_METHOD_OPPORTUNISTIC,
-                            "");
-            mSavedPeerConfig = new WifiP2pConfig.Builder()
-                    .setDeviceAddress(MacAddress.fromString(device.deviceAddress))
-                    .setPairingBootstrappingConfig(pairingBootstrappingConfig)
-                    .setGroupClientIpProvisioningMode(
-                            GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL)
-                    .build();
-            mPeers.updateStatus(device.deviceAddress, WifiP2pDevice.INVITED);
-            sendPeersChangedBroadcast();
-            return true;
+        private static String generatePairingPassphrase() {
+            final String allowed = "23456789abcdefghjkmnpqrstuvwxyz";
+            StringBuilder sb = new StringBuilder(PAIRING_PIN_OR_PASSWORD_LENGTH);
+            SecureRandom random = new SecureRandom();
+            for (int i = 0; i < PAIRING_PIN_OR_PASSWORD_LENGTH; i++) {
+                sb.append(allowed.charAt(random.nextInt(allowed.length())));
+            }
+            return sb.toString();
         }
 
         @SuppressLint("NewApi")
-        private boolean processProvDiscEnterPairingBootstrappingPinOrPassphraseEvent(
+        private boolean createPeerConfigForV2ConnectionRequest(
                 WifiP2pProvDiscEvent provDisc) {
-            if (!isWifiDirect2Enabled()) {
-                return false;
-            }
-            if (provDisc == null) {
-                Log.e(TAG, "provDisc is null");
-                return false;
-            }
-            WifiP2pDevice device = provDisc.device;
-            if (device == null) {
-                loge("Device entry is null");
-                return false;
-            }
-            if (TextUtils.isEmpty(device.deviceAddress)) {
-                loge("Device address is empty");
-                return false;
-            }
-
             int pairingBootstrappingMethod =
                     convertWifiP2pProvDiscEventToPairingBootstrappingMethod(
                             provDisc.event);
-            if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
-                    .PAIRING_BOOTSTRAPPING_METHOD_KEYPAD_PINCODE
-                    || pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
-                    .PAIRING_BOOTSTRAPPING_METHOD_KEYPAD_PASSPHRASE) {
-                WifiP2pPairingBootstrappingConfig pairingBootstrappingConfig =
-                        new WifiP2pPairingBootstrappingConfig(
-                                pairingBootstrappingMethod, "");
-                mSavedPeerConfig = new WifiP2pConfig.Builder()
-                        .setDeviceAddress(MacAddress.fromString(device.deviceAddress))
-                        .setPairingBootstrappingConfig(pairingBootstrappingConfig)
-                        .setGroupClientIpProvisioningMode(
-                                GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL)
-                        .build();
-                mPeers.updateStatus(device.deviceAddress, WifiP2pDevice.INVITED);
-                sendPeersChangedBroadcast();
-                return true;
-            } else {
-                loge("Error in mapping pairingBootstrappingMethod");
-                return false;
-            }
-        }
-
-        @SuppressLint("NewApi")
-        private boolean processProvDiscShowPairingBootstrappingPinOrPassphraseEvent(
-                WifiP2pProvDiscEvent provDisc) {
-            if (!isWifiDirect2Enabled()) {
-                return false;
-            }
-            if (provDisc == null) {
-                Log.e(TAG, "provDisc is null");
-                return false;
-            }
-            WifiP2pDevice device = provDisc.device;
-            if (device == null) {
-                loge("Device entry is null");
-                return false;
-            }
-            if (TextUtils.isEmpty(device.deviceAddress)) {
-                loge("Device address is empty");
-                return false;
-            }
-
-            int pairingBootstrappingMethod =
-                    convertWifiP2pProvDiscEventToPairingBootstrappingMethod(
-                            provDisc.event);
-            if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
-                    .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE
-                    || pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
-                    .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PASSPHRASE) {
+            if (pairingBootstrappingMethod != 0) {
+                String pairingPinOrPassphrase = "";
+                if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE) {
+                    pairingPinOrPassphrase = generatePairingPin();
+                } else if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PASSPHRASE) {
+                    pairingPinOrPassphrase = generatePairingPassphrase();
+                }
                 WifiP2pPairingBootstrappingConfig pairingBootstrappingConfig =
                         new WifiP2pPairingBootstrappingConfig(
                                 pairingBootstrappingMethod,
-                                provDisc.pairingPinOrPassphrase);
+                                pairingPinOrPassphrase);
                 mSavedPeerConfig = new WifiP2pConfig.Builder()
-                        .setDeviceAddress(MacAddress.fromString(device.deviceAddress))
+                        .setDeviceAddress(MacAddress.fromString(
+                                provDisc.device.deviceAddress))
                         .setPairingBootstrappingConfig(pairingBootstrappingConfig)
                         .setGroupClientIpProvisioningMode(
                                 GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL)
+                        .setAuthorizeConnectionFromPeerEnabled(true)
                         .build();
                 if (provDisc.getVendorData() != null) {
                     mSavedPeerConfig.setVendorData(provDisc.getVendorData());
                 }
-                mPeers.updateStatus(device.deviceAddress, WifiP2pDevice.INVITED);
-                sendPeersChangedBroadcast();
                 return true;
             } else {
-                loge("Error in mapping pairingBootstrappingMethod");
+                loge("Error in mapping provDisc event: " + provDisc.event
+                        + " to pairingBootstrappingMethod");
                 return false;
             }
         }
 
         @SuppressLint("NewApi")
-        private boolean processProvDiscEventOnGroupOwner(
+        private boolean processProvisionDiscoveryRequestForV2ConnectionOnP2pDevice(
+                WifiP2pProvDiscEvent provDisc) {
+            if (!isWifiDirect2Enabled()) {
+                return false;
+            }
+            if (provDisc == null) {
+                Log.e(TAG, "provDisc is null");
+                return false;
+            }
+            WifiP2pDevice device = provDisc.device;
+            if (device == null) {
+                loge("Device entry is null");
+                return false;
+            }
+            if (TextUtils.isEmpty(device.deviceAddress)) {
+                loge("Device address is empty");
+                return false;
+            }
+            if (createPeerConfigForV2ConnectionRequest(provDisc)) {
+                mPeers.updateStatus(provDisc.device.deviceAddress, WifiP2pDevice.INVITED);
+                sendPeersChangedBroadcast();
+                mAutonomousGroup = false;
+                mJoinExistingGroup = false;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @SuppressLint("NewApi")
+        private boolean processProvisionDiscoveryRequestForV2ConnectionOnGroupOwner(
                 WifiP2pProvDiscEvent provDisc) {
             if (!isWifiDirect2Enabled()) {
                 return false;
@@ -7062,44 +7027,52 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 return false;
             }
 
-
-            WifiP2pConfig newPeerConfig = null;
-            int pairingBootstrappingMethod =
-                    convertWifiP2pProvDiscEventToPairingBootstrappingMethod(
-                            provDisc.event);
-            if (pairingBootstrappingMethod > 0) {
-                WifiP2pPairingBootstrappingConfig pairingBootstrappingConfig =
-                        new WifiP2pPairingBootstrappingConfig(
-                                pairingBootstrappingMethod,
-                                provDisc.pairingPinOrPassphrase);
-                newPeerConfig = new WifiP2pConfig.Builder()
-                        .setDeviceAddress(MacAddress.fromString(
-                                provDisc.device.deviceAddress))
-                        .setPairingBootstrappingConfig(pairingBootstrappingConfig)
-                        .setAuthorizeConnectionFromPeerEnabled(true)
-                        .build();
-                if (provDisc.getVendorData() != null) {
-                    newPeerConfig.setVendorData(provDisc.getVendorData());
-                }
-            } else {
-                loge("Error in mapping pairingBootstrappingMethod");
-                return false;
-            }
-            if (isPeerAuthorizing(newPeerConfig.deviceAddress)) {
+            if (isPeerAuthorizing(device.deviceAddress)) {
                 Log.i(TAG, "Ignore duplicate provision discovery request from "
-                        + newPeerConfig.deviceAddress);
+                        + device.deviceAddress);
                 return false;
             }
-            mSavedPeerConfig = newPeerConfig;
-            mPeerAuthorizingTimestamp.put(mSavedPeerConfig.deviceAddress,
-                    mClock.getElapsedSinceBootMillis());
-            return true;
+            if (createPeerConfigForV2ConnectionRequest(provDisc)) {
+                mPeerAuthorizingTimestamp.put(mSavedPeerConfig.deviceAddress,
+                        mClock.getElapsedSinceBootMillis());
+                return true;
+            } else {
+                return false;
+            }
         }
 
         @SuppressLint("NewApi")
-        private void setPinOrPassphraseInSavedPeerConfig(String pairingPinOrPassphrase) {
-            mSavedPeerConfig.getPairingBootstrappingConfig()
-                    .setPairingBootstrappingPassword(pairingPinOrPassphrase);
+        private void setDisplayPinOrPassphraseInSavedPeerConfigIfNeeded() {
+            WifiP2pPairingBootstrappingConfig pairingConfig =
+                    mSavedPeerConfig.getPairingBootstrappingConfig();
+            if (pairingConfig != null) {
+                String pairingPinOrPassphrase = pairingConfig.getPairingBootstrappingPassword();
+                if (TextUtils.isEmpty(pairingPinOrPassphrase)) {
+                    int pairingBootstrappingMethod = pairingConfig.getPairingBootstrappingMethod();
+                    if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
+                            .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PASSPHRASE) {
+                        pairingPinOrPassphrase = generatePairingPassphrase();
+                    } else if (pairingBootstrappingMethod == WifiP2pPairingBootstrappingConfig
+                            .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE) {
+                        pairingPinOrPassphrase = generatePairingPin();
+                    } else {
+                        loge("setDisplayPinOrPassphraseInSavedPeerConfigIfNeeded() called for"
+                                + " a non-display method: " + pairingBootstrappingMethod);
+                        return;
+                    }
+                    pairingConfig.setPairingBootstrappingPassword(pairingPinOrPassphrase);
+                }
+            }
+        }
+
+        @SuppressLint("NewApi")
+        private String getPinOrPassphraseFromSavedPeerConfig() {
+            WifiP2pPairingBootstrappingConfig pairingConfig =
+                    mSavedPeerConfig.getPairingBootstrappingConfig();
+            if (pairingConfig != null) {
+                return pairingConfig.getPairingBootstrappingPassword();
+            }
+            return null;
         }
 
         private WifiP2pDevice fetchCurrentDeviceDetails(WifiP2pConfig config) {
@@ -7273,6 +7246,63 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         }
 
         /**
+         * Reinvoke a P2P version 2 persistent group.
+         *
+         * @param config for the peer
+         * @return true on success, false on failure
+         */
+        private boolean reinvokePersistentV2Group(WifiP2pConfig config) {
+            if (config == null) {
+                Log.e(TAG, "config is null for p2pReinvoke() of V2 group");
+                return false;
+            }
+
+            if (!isConfigForV2Connection(config)) {
+                Log.e(TAG, "config is not for p2pReinvoke() of V2 group");
+                return false;
+            }
+            WifiP2pDevice peerDevice = fetchCurrentDeviceDetails(config);
+            if (peerDevice == null) {
+                Log.e(TAG, "Invalid device for p2pReinvoke() of V2 group");
+                return false;
+            }
+            if (!peerDevice.isInvitationCapable()) {
+                Log.e(TAG, "Device is not invitation capable for p2pReinvoke() of V2 group");
+                return false;
+            }
+            boolean shouldJoin = peerDevice.isGroupOwner() || config.isJoinExistingGroup();
+            if (shouldJoin && peerDevice.isGroupLimit()) {
+                if (mVerboseLoggingEnabled) logd("target V2 supported device reaches group limit");
+                // if the target group has reached the limit,
+                // try group formation.
+                shouldJoin = false;
+            }
+            if (!shouldJoin && peerDevice.isDeviceLimit()) {
+                loge("target V2 supported device reaches the device limit");
+                return false;
+            }
+
+            WifiP2pDirInfo dirInfo = peerDevice.dirInfo;
+            if (dirInfo == null) {
+                return false;
+            }
+            int dikIdx = mWifiNative.validateDirInfo(dirInfo);
+            if (dikIdx < 0) {
+                if (mVerboseLoggingEnabled) {
+                    logd("target V2 supported device is not paired before");
+                }
+                return false;
+            }
+
+            if (mWifiNative.p2pReinvoke(-1, peerDevice.deviceAddress, dikIdx)) {
+                return true;
+            }
+
+            loge("p2pReinvoke() of V2 group failed");
+            return false;
+        }
+
+        /**
          * Reinvoke a persistent group.
          *
          * @param config for the peer
@@ -7281,6 +7311,10 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private boolean reinvokePersistentGroup(WifiP2pConfig config, boolean isInvited) {
             if (config == null) {
                 Log.e(TAG, "Illegal argument(s)");
+                return false;
+            }
+            if (isConfigForV2Connection(config)) {
+                Log.e(TAG, "config is for V2 group. Should call reinvokePersistentV2Group()");
                 return false;
             }
             WifiP2pDevice dev = fetchCurrentDeviceDetails(config);
@@ -7335,7 +7369,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 }
                 if (netId >= 0) {
                     // Invoke the persistent group.
-                    if (mWifiNative.p2pReinvoke(netId, dev.deviceAddress)) {
+                    if (mWifiNative.p2pReinvoke(netId, dev.deviceAddress, -1)) {
                         // Save network id. It'll be used when an invitation
                         // result event is received.
                         config.netId = netId;

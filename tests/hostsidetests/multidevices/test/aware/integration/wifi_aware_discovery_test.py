@@ -22,6 +22,7 @@ import sys
 import time
 from typing import Any, Dict, Union
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -38,6 +39,10 @@ RUNTIME_PERMISSIONS = (
     'android.permission.NEARBY_WIFI_DEVICES',
 )
 PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
+snippets_to_load = [
+    ('wifi_aware_snippet', PACKAGE_NAME),
+    ('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME),
+]
 _DEFAULT_TIMEOUT = constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds()
 _MSG_ID_SUB_TO_PUB = random.randint(1000, 5000)
 _MSG_ID_PUB_TO_SUB = random.randint(5001, 9999)
@@ -70,11 +75,10 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         self.subscriber = self.ads[1]
 
         def setup_device(device: android_device.AndroidDevice):
-            device.load_snippet(
-                'wifi_aware_snippet', PACKAGE_NAME
-            )
+            for snippet_name, package_name in snippets_to_load:
+                device.load_snippet(snippet_name, package_name)
             for permission in RUNTIME_PERMISSIONS:
-                device.adb.shell(['pm', 'grant', PACKAGE_NAME, permission])
+                device.adb.shell(['pm', 'grant', package_name, permission])
             asserts.abort_all_if(
                 not device.wifi_aware_snippet.wifiAwareIsAvailable(),
                 f'{device} Wi-Fi Aware is not available.',
@@ -90,7 +94,7 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
 
     def setup_test(self):
         for ad in self.ads:
-            autils.control_wifi(ad, True)
+            ad.wifi.wifiEnable()
             aware_avail = ad.wifi_aware_snippet.wifiAwareIsAvailable()
             if not aware_avail:
                 ad.log.info('Aware not available. Waiting ...')
@@ -114,8 +118,11 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
 
     def _teardown_test_on_device(self, ad: android_device.AndroidDevice) -> None:
         ad.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
-        autils.reset_device_parameters(ad)
-        autils.reset_device_statistics(ad)
+        ad.wifi.wifiClearConfiguredNetworks()
+        ad.wifi.wifiEnable()
+        if ad.is_adb_root:
+          autils.reset_device_parameters(ad)
+          autils.reset_device_statistics(ad)
 
     def on_fail(self, record: records.TestResult) -> None:
         android_device.take_bug_reports(self.ads,
@@ -696,7 +703,6 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         if p_service_name is not None:
             p_config[constants.SERVICE_NAME] = p_service_name
         if p_mf_1 is not None:
-            # p_config[constants.MATCH_FILTER] = p_mf_1.encode("utf-8")
             p_config[constants.MATCH_FILTER] = autils.encode_list(
               [(10).to_bytes(1, byteorder="big"), p_mf_1 , bytes(range(40))])
         s_config = self.create_subscribe_config(
@@ -1116,7 +1122,6 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         SERVICE_NAME = "ServiceName"
         X_SERVICE_SSI = "ServiceSpecificInfoXXX"
         Y_SERVICE_SSI = "ServiceSpecificInfoYYY"
-        # use_id = True
         # attach and wait for confirmation
         p_id = self._start_attach(p_dut)
         s_id = self._start_attach(s_dut)
@@ -1277,7 +1282,6 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         p_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
             p_disc_id.callback_id)
         time.sleep(10)
-        # service_lost_event = s_disc_id.waitAndGet("WifiAwareSessionOnServiceLost")
         service_lost_event = s_disc_id.waitAndGet(
             constants.DiscoverySessionCallbackMethodType.SESSION_CB_ON_SERVICE_LOST)
         asserts.assert_equal(peer_id_on_sub,
@@ -1286,6 +1290,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             constants.EASON_PEER_NOT_VISIBLE,
             service_lost_event.data[constants.DiscoverySessionCallbackMethodType.SESSION_CB_KEY_LOST_REASON]
             )
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        ]
+    )
 
     def test_positive_unsolicited_passive_typical(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
@@ -1300,6 +1314,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
              _PAYLOAD_SIZE_TYPICAL
             )
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        ]
+    )
+
     def test_positive_unsolicited_passive_min(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
         - Unsolicited publish + passive subscribe
@@ -1312,6 +1336,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
              _SUBSCRIBE_TYPE_PASSIVE,
              _PAYLOAD_SIZE_MIN
             )
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        ]
+    )
 
     def test_positive_unsolicited_passive_max(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
@@ -1326,6 +1360,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
              _PAYLOAD_SIZE_MAX
             )
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        ]
+    )
+
     def test_positive_solicited_active_typical(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
         - Solicited publish + active subscribe
@@ -1339,6 +1383,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
              _PAYLOAD_SIZE_TYPICAL
             )
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        ]
+    )
+
     def test_positive_solicited_active_min(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
         - Solicited publish + active subscribe
@@ -1351,6 +1405,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
              _SUBSCRIBE_TYPE_ACTIVE,
              _PAYLOAD_SIZE_MIN
             )
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        ]
+    )
 
     def test_positive_solicited_active_max(self)-> None:
         """Functional test case / Discovery test cases / positive test case:
@@ -1376,6 +1440,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # term_ind: ind_on or ind_off
     #######################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_ttl_unsolicited_ind_on(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
         - Unsolicited publish
@@ -1386,6 +1460,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             ptype=_PUBLISH_TYPE_UNSOLICITED,
             stype=None,
             term_ind_on=True)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_ttl_unsolicited_ind_off(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
@@ -1398,6 +1482,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             stype=None,
             term_ind_on=False)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_ttl_solicited_ind_on(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
         - Solicited publish
@@ -1408,6 +1502,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             ptype=_PUBLISH_TYPE_SOLICITED,
             stype=None,
             term_ind_on=True)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_ttl_solicited_ind_off(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
@@ -1420,6 +1524,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             stype=None,
             term_ind_on=False)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_ttl_passive_ind_on(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
         - Passive subscribe
@@ -1430,6 +1544,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             ptype=None,
             stype=_SUBSCRIBE_TYPE_PASSIVE,
             term_ind_on=True)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_ttl_passive_ind_off(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
@@ -1442,6 +1566,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_PASSIVE,
             term_ind_on=False)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_ttl_active_ind_on(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
         - Active subscribe
@@ -1452,6 +1586,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             ptype=None,
             stype=_SUBSCRIBE_TYPE_ACTIVE,
             term_ind_on=True)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_ttl_active_ind_off(self)-> None:
         """Functional test case / Discovery test cases / TTL test case:
@@ -1474,6 +1618,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # sub_type: Type of subscribe discovery session: passive or active.
     #######################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_mismatch_service_type_unsolicited_active(self):
         """Functional test case / Discovery test cases / Mismatch service name
     - Unsolicited publish
@@ -1483,6 +1639,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             is_expected_to_pass=True,
             p_type=_PUBLISH_TYPE_UNSOLICITED,
             s_type=_SUBSCRIBE_TYPE_ACTIVE)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_mismatch_service_type_solicited_passive(self):
         """Functional test case / Discovery test cases / Mismatch service name
@@ -1504,6 +1672,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # sub_type: Type of subscribe discovery session: passive or active.
     #######################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_mismatch_service_name_unsolicited_passive(self):
         """Functional test case / Discovery test cases / Mismatch service name
     - Unsolicited publish
@@ -1515,6 +1695,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             s_type=_SUBSCRIBE_TYPE_PASSIVE,
             p_service_name="GoogleTestServiceXXX",
             s_service_name="GoogleTestServiceYYY")
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_mismatch_service_name_solicited_active(self):
         """Functional test case / Discovery test cases / Mismatch service name
@@ -1538,6 +1730,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # sub_type: Type of subscribe discovery session: passive or active.
     #######################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
+
     def test_mismatch_match_filter_unsolicited_passive(self):
         """Functional test case / Discovery test cases / Mismatch match filter
     - Unsolicited publish
@@ -1549,6 +1753,18 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             s_type=_SUBSCRIBE_TYPE_PASSIVE,
             p_mf_1="hello there string",
             s_mf_1="goodbye there string")
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setTerminateNotificationEnabled(SubscribeConfig.mEnableTerminateNotification)',
+            'android.net.wifi.aware.PublishConfig.Builder#setTerminateNotificationEnabled(PublishConfig.mEnableTerminateNotification)',
+        ]
+    )
 
     def test_mismatch_match_filter_solicited_active(self):
         """Functional test case / Discovery test cases / Mismatch match filter
@@ -1565,6 +1781,17 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     #########################################################
     # Multiple concurrent services
     #######################################
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_multiple_concurrent_services_both_unsolicited_passive(self):
         """Validate multiple concurrent discovery sessions running on both devices.
@@ -1589,6 +1816,17 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
                 _SUBSCRIBE_TYPE_PASSIVE
             ])
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_multiple_concurrent_services_both_solicited_active(self):
         """Validate multiple concurrent discovery sessions running on both devices.
     - DUT1 & DUT2 running Publish for X
@@ -1610,6 +1848,19 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             type_y=[
                 _PUBLISH_TYPE_SOLICITED, _SUBSCRIBE_TYPE_ACTIVE
             ])
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_multiple_concurrent_services_mix_unsolicited_solicited(self):
         """Validate multiple concurrent discovery sessions running on both devices.
@@ -1638,6 +1889,17 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # Multiple concurrent services with diff ssi
     #########################################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_multiple_concurrent_services_diff_ssi_unsolicited_passive(self):
         """Multi service test on same service name but different Service Specific Info
         - Unsolicited publish
@@ -1646,6 +1908,17 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         self.run_multiple_concurrent_services_same_name_diff_ssi(
             type_x=[_PUBLISH_TYPE_UNSOLICITED, _SUBSCRIBE_TYPE_PASSIVE],
             type_y=[_PUBLISH_TYPE_UNSOLICITED, _SUBSCRIBE_TYPE_PASSIVE])
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_multiple_concurrent_services_diff_ssi_solicited_active(self):
         """Multi service test on same service name but different Service Specific Info
@@ -1657,6 +1930,17 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
             type_y=[_PUBLISH_TYPE_SOLICITED, _SUBSCRIBE_TYPE_ACTIVE])
 
     #########################################################
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_upper_lower_service_name_equivalence(self):
         """Validate that Service Name is case-insensitive. Publish a service name
@@ -1681,6 +1965,16 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
     # service discovery on service lost
     #########################################################
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        ]
+    )
+
     def test_service_discovery_on_service_lost_unsolicited_passive(self):
         """
         Test service discovery lost with unsolicited publish and passive subscribe
@@ -1688,12 +1982,23 @@ class WifiAwareDiscoveryTest(base_test.BaseTestClass):
         self.run_service_discovery_on_service_lost(_PUBLISH_TYPE_UNSOLICITED,
                                                    _SUBSCRIBE_TYPE_PASSIVE)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED,)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        ]
+    )
+
     def test_service_discovery_on_service_lost_solicited_active(self):
         """
         Test service discovery lost with solicited publish and active subscribe
         """
         self.run_service_discovery_on_service_lost(_PUBLISH_TYPE_SOLICITED,
                                                    _SUBSCRIBE_TYPE_ACTIVE)
+
 
 if __name__ == '__main__':
     # Take test args

@@ -18,6 +18,7 @@ import logging
 import string
 import sys
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -34,6 +35,10 @@ RUNTIME_PERMISSIONS = (
     'android.permission.NEARBY_WIFI_DEVICES',
 )
 PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
+snippets_to_load = [
+    ('wifi_aware_snippet', PACKAGE_NAME),
+    ('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME),
+]
 _DEFAULT_TIMEOUT = constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds()
 _CALLBACK_NAME = constants.DiscoverySessionCallbackParamsType.CALLBACK_NAME
 _IS_SESSION_INIT = constants.DiscoverySessionCallbackParamsType.IS_SESSION_INIT
@@ -81,11 +86,10 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
         self.subscriber = self.ads[1]
 
         def setup_device(device: android_device.AndroidDevice):
-            device.load_snippet(
-                'wifi_aware_snippet', PACKAGE_NAME
-            )
+            for snippet_name, package_name in snippets_to_load:
+                device.load_snippet(snippet_name, package_name)
             for permission in RUNTIME_PERMISSIONS:
-                device.adb.shell(['pm', 'grant', PACKAGE_NAME, permission])
+                device.adb.shell(['pm', 'grant', package_name, permission])
             asserts.abort_all_if(
                 not device.wifi_aware_snippet.wifiAwareIsAvailable(),
                 f'{device} Wi-Fi Aware is not available.',
@@ -101,7 +105,7 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
 
     def setup_test(self):
         for ad in self.ads:
-            autils.control_wifi(ad, True)
+            ad.wifi.wifiEnable()
             aware_avail = ad.wifi_aware_snippet.wifiAwareIsAvailable()
             if not aware_avail:
                 ad.log.info('Aware not available. Waiting ...')
@@ -125,9 +129,12 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
 
     def _teardown_test_on_device(self, ad: android_device.AndroidDevice) -> None:
         ad.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
-        autils.reset_device_parameters(ad)
-        autils.validate_forbidden_callbacks(ad)
-        autils.reset_device_statistics(ad)
+        ad.wifi.wifiClearConfiguredNetworks()
+        ad.wifi.wifiEnable()
+        if ad.is_adb_root:
+          autils.reset_device_parameters(ad)
+          autils.reset_device_statistics(ad)
+          autils.validate_forbidden_callbacks(ad)
 
     def on_fail(self, record: records.TestResult) -> None:
         android_device.take_bug_reports(self.ads,
@@ -403,12 +410,9 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
                 event_name=_MESSAGE_SEND_RESULT,
                 timeout=_DEFAULT_TIMEOUT,
                 )
-            logging.info("tx_event: %s",tx_event )
             tx_msg_id = tx_event.data[
                 constants.DiscoverySessionCallbackParamsType.MESSAGE_ID
                 ]
-            logging.info("tx_msg_id: %s",tx_msg_id )
-            logging.info("tx_msg_ids: %s",tx_msg_ids )
             tx_msg_ids[tx_msg_id] = tx_msg_ids[tx_msg_id] + 1
             if tx_msg_ids[tx_msg_id] == 1:
                 still_to_be_tx = still_to_be_tx - 1
@@ -569,6 +573,16 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
         self.wait_for_messages(msgs2, msg_ids2, p_disc_id2, s_disc_id2, p_dut,
                                s_dut, payload_size == _PAYLOAD_SIZE_MIN)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_message_no_queue_min(self):
         """Functional / Message / No queue
@@ -576,11 +590,33 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
         """
         self.run_message_no_queue(_PAYLOAD_SIZE_MIN)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_message_no_queue_typical(self):
         """Functional / Message / No queue
         - Typical payload size
         """
         self.run_message_no_queue(_PAYLOAD_SIZE_TYPICAL)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_message_no_queue_max(self):
         """Functional / Message / No queue
@@ -588,11 +624,33 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
         """
         self.run_message_no_queue(_PAYLOAD_SIZE_MAX)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_message_with_queue_min(self):
         """Functional / Message / With queue
     - Minimal payload size (none or "")
     """
         self.run_message_with_queue(_PAYLOAD_SIZE_MIN)
+
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
 
     def test_message_with_queue_typical(self):
         """Functional / Message / With queue
@@ -600,20 +658,43 @@ class WifiAwareMessageTest(base_test.BaseTestClass):
     """
         self.run_message_with_queue(_PAYLOAD_SIZE_TYPICAL)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_message_with_queue_max(self):
         """Functional / Message / With queue
     - Max payload size (based on device capabilities)
     """
         self.run_message_with_queue(_PAYLOAD_SIZE_MAX)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+            'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+            'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+            'android.net.wifi.aware.DiscoverySession#sendMessage(int, byte[])',
+        ]
+    )
+
     def test_message_with_multiple_discovery_sessions_typical(self):
         """Functional / Message / Multiple sessions
 
-     Sets up 2 discovery sessions on 2 devices. Sends a message in each
-     direction on each discovery session and verifies that reaches expected
-     destination.
+    Sets up 2 discovery sessions on 2 devices. Sends a message in each
+    direction on each discovery session and verifies that reaches expected
+    destination.
     """
         self.run_message_multi_session_with_queue(_PAYLOAD_SIZE_TYPICAL)
+
 
 if __name__ == '__main__':
     # Take test args

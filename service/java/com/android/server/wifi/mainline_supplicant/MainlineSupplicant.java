@@ -26,6 +26,8 @@ import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.WifiNative;
+import com.android.wifi.flags.Flags;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -43,11 +45,14 @@ public class MainlineSupplicant {
 
     private IMainlineSupplicant mIMainlineSupplicant;
     private final Object mLock = new Object();
-    private SupplicantDeathRecipient mDeathRecipient;
+    private SupplicantDeathRecipient mServiceDeathRecipient;
+    private WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private CountDownLatch mWaitForDeathLatch;
+    private final boolean mIsServiceAvailable;
 
     public MainlineSupplicant() {
-        mDeathRecipient = new SupplicantDeathRecipient();
+        mServiceDeathRecipient = new SupplicantDeathRecipient();
+        mIsServiceAvailable = canServiceBeAccessed();
     }
 
     @VisibleForTesting
@@ -85,9 +90,28 @@ public class MainlineSupplicant {
                     mWaitForDeathLatch.countDown();
                 }
                 mIMainlineSupplicant = null;
+                if (mFrameworkDeathHandler != null) {
+                    mFrameworkDeathHandler.onDeath();
+                }
                 Log.i(TAG, "Service death was handled successfully");
             }
         }
+    }
+
+    /**
+     * Check whether the mainline supplicant service can be accessed.
+     */
+    private boolean canServiceBeAccessed() {
+        // Requires an Android B+ Selinux policy and a copy of the binary.
+        return Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
+                && Environment.isMainlineSupplicantBinaryInWifiApex();
+    }
+
+    /**
+     * Returns true if the mainline supplicant service is available on this device.
+     */
+    public boolean isAvailable() {
+        return mIsServiceAvailable;
     }
 
     /**
@@ -114,7 +138,8 @@ public class MainlineSupplicant {
 
             try {
                 mWaitForDeathLatch = null;
-                mIMainlineSupplicant.asBinder().linkToDeath(mDeathRecipient, /* flags= */  0);
+                mIMainlineSupplicant.asBinder()
+                        .linkToDeath(mServiceDeathRecipient, /* flags= */  0);
             } catch (RemoteException e) {
                 handleRemoteException(e, "startService");
                 return false;
@@ -128,8 +153,7 @@ public class MainlineSupplicant {
     /**
      * Check whether this instance is active.
      */
-    @VisibleForTesting
-    protected boolean isActive() {
+    public boolean isActive() {
         synchronized (mLock) {
             return mIMainlineSupplicant != null;
         }
@@ -163,6 +187,37 @@ public class MainlineSupplicant {
             }
         } catch (InterruptedException e) {
             Log.e(TAG, "Failed to wait for service death");
+        }
+    }
+
+    /**
+     * Register a WifiNative death handler to receive service death notifications.
+     */
+    public void registerFrameworkDeathHandler(
+            @NonNull WifiNative.SupplicantDeathEventHandler deathHandler) {
+        if (deathHandler == null) {
+            Log.e(TAG, "Attempted to register a null death handler");
+            return;
+        }
+        synchronized (mLock) {
+            if (mFrameworkDeathHandler != null) {
+                Log.i(TAG, "Replacing the existing death handler");
+            }
+            mFrameworkDeathHandler = deathHandler;
+        }
+    }
+
+    /**
+     * Unregister an existing WifiNative death handler, for instance to avoid receiving a
+     * death notification during a solicited terminate.
+     */
+    public void unregisterFrameworkDeathHandler() {
+        synchronized (mLock) {
+            if (mFrameworkDeathHandler == null) {
+                Log.e(TAG, "Framework death handler has already been unregistered");
+                return;
+            }
+            mFrameworkDeathHandler = null;
         }
     }
 

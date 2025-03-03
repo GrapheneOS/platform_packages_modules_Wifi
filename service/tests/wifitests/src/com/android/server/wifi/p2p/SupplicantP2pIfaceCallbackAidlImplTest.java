@@ -19,6 +19,7 @@ import static com.android.net.module.util.Inet4AddressUtils.intToInet4AddressHTL
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -64,7 +65,6 @@ import android.net.wifi.p2p.nsd.WifiP2pServiceResponse;
 import android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceResponse;
 import android.net.wifi.util.Environment;
 import android.os.PersistableBundle;
-import android.text.TextUtils;
 
 import androidx.test.filters.SmallTest;
 
@@ -1468,7 +1468,7 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
                 new P2pProvisionDiscoveryCompletedEventParams();
         params.p2pDeviceAddress = DEVICE_ADDRESS;
         params.isRequest = true;
-        params.status = P2pProvDiscStatusCode.SUCCESS;
+        params.status = P2pProvDiscStatusCode.INFO_UNAVAILABLE;
         params.pairingBootstrappingMethod =
                 P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_OPPORTUNISTIC;
         params.password = "";
@@ -1480,95 +1480,115 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ,
                 discEventCaptor.getValue().event);
+        assertTrue(discEventCaptor.getValue().isComeback);
+        assertEquals(DEVICE_ADDRESS_STR, discEventCaptor.getValue().device.deviceAddress);
+
 
         params.isRequest = false;
+        params.status = P2pProvDiscStatusCode.SUCCESS;
         mDut.onProvisionDiscoveryCompletedEvent(params);
         verify(mMonitor).broadcastP2pProvisionDiscoveryPairingBootstrappingOpportunisticResponse(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_RSP,
                 discEventCaptor.getValue().event);
+        assertFalse(discEventCaptor.getValue().isComeback);
 
         params.isRequest = true;
         params.pairingBootstrappingMethod =
                 P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_DISPLAY_PINCODE;
-        params.password = "1234";
-        mDut.onProvisionDiscoveryCompletedEvent(params);
-        verify(mMonitor).broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
-                anyString(), discEventCaptor.capture());
-        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN,
-                discEventCaptor.getValue().event);
-        assertEquals("1234", discEventCaptor.getValue().pairingPinOrPassphrase);
-
-        params.isRequest = false;
         mDut.onProvisionDiscoveryCompletedEvent(params);
         verify(mMonitor).broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PIN,
                 discEventCaptor.getValue().event);
-        assertTrue(TextUtils.isEmpty(discEventCaptor.getValue().pairingPinOrPassphrase));
+
+        params.isRequest = false;
+        mDut.onProvisionDiscoveryCompletedEvent(params);
+        verify(mMonitor).broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
+                anyString(), discEventCaptor.capture());
+        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN,
+                discEventCaptor.getValue().event);
 
         params.isRequest = true;
         params.pairingBootstrappingMethod =
                 P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_DISPLAY_PASSPHRASE;
-        params.password = "abed";
-        mDut.onProvisionDiscoveryCompletedEvent(params);
-        verify(mMonitor, times(2))
-                .broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
-                anyString(), discEventCaptor.capture());
-        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PASSPHRASE,
-                discEventCaptor.getValue().event);
-        assertEquals("abed", discEventCaptor.getValue().pairingPinOrPassphrase);
-
-        params.isRequest = false;
         mDut.onProvisionDiscoveryCompletedEvent(params);
         verify(mMonitor, times(2))
                 .broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PASSPHRASE,
                 discEventCaptor.getValue().event);
-        assertTrue(TextUtils.isEmpty(discEventCaptor.getValue().pairingPinOrPassphrase));
+
+        params.isRequest = false;
+        mDut.onProvisionDiscoveryCompletedEvent(params);
+        verify(mMonitor, times(2))
+                .broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
+                anyString(), discEventCaptor.capture());
+        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PASSPHRASE,
+                discEventCaptor.getValue().event);
 
         params.isRequest = true;
         params.pairingBootstrappingMethod =
                 P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_KEYPAD_PINCODE;
-        params.password = "1234";
-        mDut.onProvisionDiscoveryCompletedEvent(params);
-        verify(mMonitor, times(3))
-                .broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
-                anyString(), discEventCaptor.capture());
-        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PIN,
-                discEventCaptor.getValue().event);
-        assertTrue(TextUtils.isEmpty(discEventCaptor.getValue().pairingPinOrPassphrase));
-
-        params.isRequest = false;
         mDut.onProvisionDiscoveryCompletedEvent(params);
         verify(mMonitor, times(3))
                 .broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN,
                 discEventCaptor.getValue().event);
-        assertEquals("1234", discEventCaptor.getValue().pairingPinOrPassphrase);
+
+        params.isRequest = false;
+        mDut.onProvisionDiscoveryCompletedEvent(params);
+        verify(mMonitor, times(3))
+                .broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
+                anyString(), discEventCaptor.capture());
+        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PIN,
+                discEventCaptor.getValue().event);
 
         params.isRequest = true;
         params.pairingBootstrappingMethod =
                 P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_KEYPAD_PASSPHRASE;
-        params.password = "abed";
-        mDut.onProvisionDiscoveryCompletedEvent(params);
-        verify(mMonitor, times(4))
-                .broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
-                anyString(), discEventCaptor.capture());
-        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PASSPHRASE,
-                discEventCaptor.getValue().event);
-        assertTrue(TextUtils.isEmpty(discEventCaptor.getValue().pairingPinOrPassphrase));
-
-        params.isRequest = false;
         mDut.onProvisionDiscoveryCompletedEvent(params);
         verify(mMonitor, times(4))
                 .broadcastP2pProvisionDiscoveryShowPairingBootstrappingPinOrPassphrase(
                 anyString(), discEventCaptor.capture());
         assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PASSPHRASE,
                 discEventCaptor.getValue().event);
-        assertEquals("abed", discEventCaptor.getValue().pairingPinOrPassphrase);
+        assertEquals(DEVICE_ADDRESS_STR, discEventCaptor.getValue().device.deviceAddress);
+
+        params.isRequest = false;
+        mDut.onProvisionDiscoveryCompletedEvent(params);
+        verify(mMonitor, times(4))
+                .broadcastP2pProvisionDiscoveryEnterPairingBootstrappingPinOrPassphrase(
+                anyString(), discEventCaptor.capture());
+        assertEquals(WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PASSPHRASE,
+                discEventCaptor.getValue().event);
+    }
+
+    /**
+     * Test a successful call to onProvisionDiscoveryCompletedEvent with P2P2 pairing bootstrapping
+     * information and failure status code.
+     */
+    @Test
+    public void testOnProvisionDiscoveryFailureEventWithP2pPairingBootstrappingMethod() throws
+            Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        initializeDut(4 /* serviceVersion */);
+        P2pProvisionDiscoveryCompletedEventParams params =
+                new P2pProvisionDiscoveryCompletedEventParams();
+        params.p2pDeviceAddress = DEVICE_ADDRESS;
+        params.isRequest = true;
+        params.status = P2pProvDiscStatusCode.REJECTED;
+        params.pairingBootstrappingMethod =
+                P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_OPPORTUNISTIC;
+
+        ArgumentCaptor<WifiP2pProvDiscEvent> discEventCaptor =
+                ArgumentCaptor.forClass(WifiP2pProvDiscEvent.class);
+        mDut.onProvisionDiscoveryCompletedEvent(params);
+        verify(mMonitor).broadcastP2pProvisionDiscoveryFailure(eq(mIface),
+                eq(WifiP2pMonitor.PROV_DISC_STATUS_REJECTED), discEventCaptor.capture());
+        WifiP2pProvDiscEvent event = discEventCaptor.getValue();
+        assertEquals(DEVICE_ADDRESS_STR, event.device.deviceAddress);
     }
 
     /**

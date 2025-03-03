@@ -20,11 +20,14 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import android.hardware.wifi.Akm;
+import android.hardware.wifi.CipherSuite;
 import android.hardware.wifi.IWifiRttController;
 import android.hardware.wifi.IWifiRttControllerEventCallback;
 import android.hardware.wifi.RttBw;
@@ -87,6 +90,7 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
         verify(mIWifiRttControllerMock)
                 .registerEventCallback(mEventCallbackCaptor.capture());
         verify(mIWifiRttControllerMock).getCapabilities();
+        clearInvocations(mIWifiRttControllerMock);
     }
 
     /**
@@ -125,6 +129,79 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
 
     }
 
+    /**
+     * Validate successful 802.11az secure ranging flow.
+     */
+    @Test
+    public void testOpportunisticSecureRangeRequest() throws Exception {
+        int cmdId = 66;
+        RangingRequest request = RttTestUtils.getDummySecureRangingRequest(
+                RangingRequest.SECURITY_MODE_OPPORTUNISTIC);
+        // Issue range request
+        mDut.rangeRequest(cmdId, request);
+        // Verify HAL call and parameters
+        verify(mIWifiRttControllerMock).rangeRequest(eq(cmdId), mRttConfigCaptor.capture());
+        // Verify contents of HAL request (hard codes knowledge from getDummySecureRangingRequest
+        RttConfig[] halRequest = mRttConfigCaptor.getValue();
+        collector.checkThat("number of entries", halRequest.length,
+                equalTo(request.mRttPeers.size()));
+        verifyNoMoreInteractions(mIWifiRttControllerMock);
+
+        // 1. SAE with password
+        RttConfig rttConfig = halRequest[0];
+        collector.checkThat("entry 0: MAC", rttConfig.type,
+                equalTo(RttType.TWO_SIDED_11AZ_NTB_SECURE));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.enableSecureHeLtf,
+                equalTo(true));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnComebackCookie,
+                equalTo(new byte[]{1, 2, 3, 4, 5}));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.baseAkm,
+                equalTo(Akm.SAE));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.cipherSuite,
+                equalTo(CipherSuite.GCMP_256));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.passphrase,
+                equalTo("TEST_PASSWORD".getBytes()));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.pmkid,
+                equalTo(null));
+
+        // 2. SAE with no password will downgraded to unauthenticated PASN in case of
+        // SECURITY_MODE_OPPORTUNISTIC
+        rttConfig = halRequest[1];
+        collector.checkThat("entry 0: MAC", rttConfig.type,
+                equalTo(RttType.TWO_SIDED_11AZ_NTB_SECURE));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.enableSecureHeLtf,
+                equalTo(true));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnComebackCookie,
+                equalTo(null));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.baseAkm,
+                equalTo(Akm.PASN));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.cipherSuite,
+                equalTo(CipherSuite.GCMP_256));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.passphrase,
+                equalTo(null));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.pmkid,
+                equalTo(null));
+
+        // 3. Secure ranging with unauthenticated PASN
+        rttConfig = halRequest[2];
+        collector.checkThat("entry 0: MAC", rttConfig.type,
+                equalTo(RttType.TWO_SIDED_11AZ_NTB_SECURE));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.enableSecureHeLtf,
+                equalTo(true));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnComebackCookie,
+                equalTo(null));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.baseAkm,
+                equalTo(Akm.PASN));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.cipherSuite,
+                equalTo(CipherSuite.GCMP_256));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig.pasnConfig.pmkid,
+                equalTo(null));
+
+        // 4. Open security will use TWO_SIDED_11AZ_NTB
+        rttConfig = halRequest[3];
+        collector.checkThat("entry 0: MAC", rttConfig.type, equalTo(RttType.TWO_SIDED_11AZ_NTB));
+        collector.checkThat("entry 0: secure Config", rttConfig.secureConfig, equalTo(null));
+    }
     /**
      * Validate successful ranging flow.
      */
@@ -565,6 +642,13 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
                         | RttBw.BW_160MHZ;
         cap.azBwSupport = cap.bwSupport;
         cap.mcVersion = 1; // unused
+        cap.akmsSupported = Akm.PASN | Akm.SAE;
+        cap.cipherSuitesSupported =
+                CipherSuite.GCMP_256 | CipherSuite.GCMP_128 | CipherSuite.CCMP_128
+                        | CipherSuite.CCMP_256;
+        cap.secureHeLtfSupported = true;
+        cap.rangingFrameProtectionSupported = true;
+        cap.maxSupportedSecureHeLtfProtocolVersion = 0;
 
         return cap;
     }

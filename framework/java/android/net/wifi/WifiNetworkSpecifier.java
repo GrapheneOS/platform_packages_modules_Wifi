@@ -22,6 +22,7 @@ import static com.android.internal.util.Preconditions.checkNotNull;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.compat.annotation.UnsupportedAppUsage;
 import android.net.ConnectivityManager;
 import android.net.ConnectivityManager.NetworkCallback;
 import android.net.MacAddress;
@@ -490,7 +491,7 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
          * @return Instance of {@link Builder} to enable chaining of the builder method.
          * @hide
          */
-        @NonNull public Builder setPreferSecondarySta(boolean value) {
+        @NonNull @UnsupportedAppUsage public Builder setPreferSecondarySta(boolean value) {
             mPreferSecondarySta = value;
             return this;
         }
@@ -779,7 +780,7 @@ public final class WifiNetworkSpecifier extends NetworkSpecifier implements Parc
      * @see Builder#setPreferSecondarySta(boolean)
      * @hide
      */
-    public boolean isPreferSecondarySta() {
+    @UnsupportedAppUsage public boolean isPreferSecondarySta() {
         return mPreferSecondarySta;
     }
 

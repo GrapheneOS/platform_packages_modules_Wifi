@@ -46,6 +46,12 @@ public class Environment {
             new File("/apex", WIFI_APEX_NAME).getAbsolutePath();
 
     /**
+     * Path to the mainline supplicant binary.
+     */
+    private static final String MAINLINE_SUPPLICANT_BINARY_PATH =
+            WIFI_APEX_PATH + "/bin/wpa_supplicant_mainline";
+
+    /**
      * Wifi shared folder.
      */
     public static File getWifiSharedDirectory() {
@@ -66,6 +72,13 @@ public class Environment {
      */
     public static boolean isAppInWifiApex(ApplicationInfo appInfo) {
         return appInfo.sourceDir.startsWith(WIFI_APEX_PATH);
+    }
+
+    /**
+     * Returns true if the mainline supplicant binary is in the Wifi Apex.
+     */
+    public static boolean isMainlineSupplicantBinaryInWifiApex() {
+        return new File(MAINLINE_SUPPLICANT_BINARY_PATH).isFile();
     }
 
     /**
